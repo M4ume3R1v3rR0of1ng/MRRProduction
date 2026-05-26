@@ -326,10 +326,11 @@ function PhotoUpload({ current, onUpload, maxDim = 350, quality = 0.72, label = 
 }
 
 // ── Login ─────────────────────────────────────────
-const DEMOS = [{ label: 'Admin', id: 'u1' }, { label: 'Warehouse Mgr', id: 'u5' }, { label: 'Coordinator', id: 'u6' }, { label: 'Manager', id: 'u2' }, { label: 'Site Supervisor', id: 'u3' }];
+import { supabase } from "../utils/supabaseClient"; // Ensure your client import is configured!
+
 const COMPANY_DOMAIN = '@maumeeriverroofing.com';
 
-function LoginScreen({ onLogin, onSignup, users, activeLogo }) {
+function LoginScreen({ onLogin, activeLogo }) {
   const [mode, setMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -337,24 +338,79 @@ function LoginScreen({ onLogin, onSignup, users, activeLogo }) {
   const [confirm, setConfirm] = useState('');
   const [err, setErr] = useState('');
 
-  const tryLogin = u => {
-    if (u) { onLogin(u); return; }
-    const m = users.find(x => x.email.toLowerCase() === email.trim().toLowerCase() && x.pass === pass);
-    if (m) onLogin(m); else setErr('Email or password incorrect.');
+  // 1. Live Supabase Login + Secure Profiles Hook
+  const tryLogin = async (demoUser) => {
+    setErr('');
+
+    // Handle standard database authentication
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: pass,
+    });
+
+    if (authError) return setErr(authError.message);
+
+    if (authData.user) {
+      // Fetch the role and active state verified by the Postgres database
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, role, active')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError) return setErr("Failed to verify user profile access.");
+      if (!profileData.active) return setErr("This account has been deactivated by an administrator.");
+
+      // Remap properties to match your App.jsx global authorization keys
+      const formattedUser = {
+        id: authData.user.id,
+        email: authData.user.email,
+        name: profileData.full_name,
+        role: profileData.role, 
+        active: profileData.active
+      };
+      
+      onLogin(formattedUser);
+    }
   };
 
-  const trySignup = () => {
+  // 2. Live Supabase Registration 
+  const trySignup = async () => {
+    setErr('');
     const trimmedEmail = email.trim().toLowerCase();
+
+    // Core validation checks prior to sending database payloads
     if (!name.trim()) return setErr('Please enter your full name.');
     if (!trimmedEmail.endsWith(COMPANY_DOMAIN)) return setErr(`Use your ${COMPANY_DOMAIN} email address.`);
     if (!pass) return setErr('Please choose a password.');
     if (pass.length < 8) return setErr('Password must be at least 8 characters.');
     if (pass !== confirm) return setErr('Passwords do not match.');
-    if (users.some(x => x.email.toLowerCase() === trimmedEmail)) return setErr('An account with that email already exists.');
 
-    const newUser = { id: uid(), name: name.trim(), email: trimmedEmail, pass, role: 'employee', active: true };
-    onSignup(newUser);
-    onLogin(newUser);
+    // Fire signup request to Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: trimmedEmail,
+      password: pass,
+      options: {
+        data: {
+          full_name: name.trim(),
+          role: 'employee', // Fallback default for self-registrations
+        },
+      },
+    });
+
+    if (authError) return setErr(authError.message);
+
+    if (authData.user) {
+      // Map properties for immediate access
+      const formattedUser = {
+        id: authData.user.id,
+        email: authData.user.email,
+        name: name.trim(),
+        role: 'employee',
+        active: true
+      };
+      onLogin(formattedUser);
+    }
   };
 
   return (
@@ -386,7 +442,6 @@ function LoginScreen({ onLogin, onSignup, users, activeLogo }) {
     </div>
   );
 }
-
 // ── Dashboard ─────────────────────────────────────
 function Dashboard({ inv, vehs, reqs, jobs, users, user, perms, onNav }) {
   const low = inv.filter(i => tot(i) <= i.alrt);
@@ -2062,7 +2117,7 @@ export default function App() {
   }
 
   if (!curUser) {
-    return <LoginScreen onLogin={u => { setCurUser(u); setView('dashboard'); }} onSignup={u => setUsers(p => [...p, u])} users={users} activeLogo={activeLogo} />;
+    return <LoginScreen onLogin={u => { setCurUser(u); setView('dashboard'); }} activeLogo={activeLogo} />;
   }
 
   return (
