@@ -2135,7 +2135,7 @@ function ProfileView({ user, onUpdateUser }) {
   const [submittingProfile, setSubmittingProfile] = useState(false);
   const [submittingPass, setSubmittingPass] = useState(false);
 
-  // Handle General Profile Updates (Name)
+ // Handle General Profile Updates (Name)
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setProfileMsg({ text: '', isError: false });
@@ -2143,50 +2143,31 @@ function ProfileView({ user, onUpdateUser }) {
 
     setSubmittingProfile(true);
     
-    // Update profile tracking details in Supabase user metadata
-    const handleProfileUpdate = async (e) => {
-  e.preventDefault();
-  setProfileMsg({ text: '', isError: false });
-  if (!name.trim()) return setProfileMsg({ text: 'Name cannot be empty.', isError: true });
+    // 1. Update the Supabase Auth Metadata
+    const { error: authError } = await supabase.auth.updateUser({
+      data: { display_name: name.trim() }
+    });
 
-  setSubmittingProfile(true);
-  
-  // 1. Update the Supabase Auth Metadata
-  const { error: authError } = await supabase.auth.updateUser({
-    data: { display_name: name.trim() }
-  });
-
-  if (authError) {
-    setSubmittingProfile(false);
-    return setProfileMsg({ text: `Auth Error: ${authError.message}`, isError: true });
-  }
-
-  // 2. Update the Permanent Database Profiles Table
-  const { error: dbError } = await supabase.from('profiles')
-    .update({ name: name.trim() })
-    .eq('id', user.id); // Matches the row belonging to the logged-in user
-
-  setSubmittingProfile(false);
-
-  if (dbError) {
-    setProfileMsg({ text: `Database Error: ${dbError.message}`, isError: true });
-  } else {
-    setProfileMsg({ text: '🎉 Profile permanently saved!', isError: false });
-    // Update the local app state so changes display instantly
-    onUpdateUser({ ...user, name: name.trim() });
-  }
-};
-
-    setSubmittingProfile(false);
-
-    if (error) {
-      setProfileMsg({ text: `System Error: ${error.message}`, isError: true });
-    } else {
-      setProfileMsg({ text: '🎉 Profile updated successfully!', isError: false });
-      // Bubble up the state change to App.jsx so the sidebar instantly reflects the new name
-      onUpdateUser({ ...user, name: name.trim() });
+    if (authError) {
+      setSubmittingProfile(false);
+      return setProfileMsg({ text: `Auth Error: ${authError.message}`, isError: true });
     }
-  };
+
+    // 2. Update the Permanent Database Profiles Table (Using full_name)
+    const { error: dbError } = await supabase.from('profiles')
+      .update({ full_name: name.trim() }) // ✨ Fixed to match your database column perfectly!
+      .eq('id', user.id);
+
+    setSubmittingProfile(false);
+
+    if (dbError) {
+      setProfileMsg({ text: `Database Error: ${dbError.message}`, isError: true });
+    } else {
+      setProfileMsg({ text: '🎉 Profile permanently saved!', isError: false });
+      // Update local state properties safely so the sidebar and components sync up instantly
+      onUpdateUser({ ...user, name: name.trim(), full_name: name.trim() });
+    }
+  }; // Ends handleProfileUpdate cleanly
 
   // Handle Password Changes
   const handlePasswordChange = async (e) => {
