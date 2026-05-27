@@ -326,7 +326,7 @@ function PhotoUpload({ current, onUpload, maxDim = 350, quality = 0.72, label = 
 }
 
 // ── Login ─────────────────────────────────────────
-import { supabase } from "../utils/supabaseClient"; // Ensure your client import is configured!
+import { supabase } from "./utils/supabase";
 
 const COMPANY_DOMAIN = '@maumeeriverroofing.com';
 
@@ -542,6 +542,7 @@ function Inventory({ inv, setInv, users, user, perms, invPhotos, setInvPhotos })
   const filtered = inv.filter(i => i.name.toLowerCase().includes(srch.toLowerCase()) && (cat === 'All' || i.cat === cat));
   const sClr = i => { const s = tot(i); if (s <= i.alrt) return C.rd; if (s <= i.alrt * 1.5) return C.am; return C.gr; };
   const setPhoto = (id, data) => setInvPhotos(p => data ? { ...p, [id]: data } : Object.fromEntries(Object.entries(p).filter(([k]) => k !== id)));
+  const [selectedIds, setSelectedIds] = useState([]);
 
   const addItem = () => {
     if (!form.name || !form.cat || !form.unit) return;
@@ -651,6 +652,16 @@ function Inventory({ inv, setInv, users, user, perms, invPhotos, setInvPhotos })
               <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                 {perms.inv_edit && <Btn v="outline" sz="sm" onClick={() => { setForm({ name: sel.name, cat: sel.cat, unit: sel.unit, alrt: sel.alrt }); setModal('edit'); }}>✏️ Edit</Btn>}
                 {perms.inv_receive && <Btn v="primary" sz="sm" onClick={() => { setForm({ date: new Date().toISOString().split('T')[0] }); setModal('rcv'); }}>+ Receive Batch</Btn>}
+                {perms.inv_edit && (
+  <Btn v="danger" sz="sm" onClick={() => { 
+    if(window.confirm(`Permanently delete ${sel.name} from inventory?`)) { 
+      setInv(p => p.filter(i => i.id !== sel.id)); 
+      setModal(null); 
+    } 
+  }}>
+    🗑️ Delete Product
+  </Btn>
+)}
               </div>
             </div>
           </div>
@@ -673,7 +684,7 @@ function Inventory({ inv, setInv, users, user, perms, invPhotos, setInvPhotos })
           ))}
           {sel.batches.length === 0 && <p style={{ color: C.sub, fontSize: 13 }}>No batches yet.</p>}
         </Modal>
-      )}
+      )} 
 
       {modal === 'add' && (
         <Modal title="Add New Item" onClose={() => setModal(null)}>
@@ -824,8 +835,7 @@ function BuildJobs({ jobs, setJobs, inv, users, user, perms }) {
   const [apAssign, setApAssign] = useState('');
   const [srch, setSrch] = useState('');
 
-  const fieldUsers = users.filter(u => u.role === 'field' && u.active);
-  const counts = { all: jobs.length, draft: 0, approved: 0, active: 0, completed: 0, closed: 0 };
+  const fieldUsers = users.filter(u => (u.role === 'field' || u.role === 'Site Supervisor') && u.active);  const counts = { all: jobs.length, draft: 0, approved: 0, active: 0, completed: 0, closed: 0 };
   jobs.forEach(j => { if (counts[j.status] !== undefined) counts[j.status]++; });
   const q = srch.toLowerCase().trim();
   const shown = jobs.filter(j => (filt === 'all' || j.status === filt) && (q === '' || j.po.toLowerCase().includes(q) || j.name.toLowerCase().includes(q) || (j.addr || '').toLowerCase().includes(q))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -904,7 +914,18 @@ function BuildJobs({ jobs, setJobs, inv, users, user, perms }) {
                   </div>
                 )}
                 {perms.jobs_approve && job.status === 'draft' && <Btn v="teal" sz="sm" onClick={e => { e.stopPropagation(); setSel(job); setApAssign(job.assignedTo || ''); setModal('approve'); }}>Approve & Assign →</Btn>}
-                {job.status === 'completed' && <Btn v="green" sz="sm" onClick={e => { e.stopPropagation(); generatePDF(job, users); }}>📄 PDF</Btn>}
+{job.status === 'completed' && <Btn v="green" sz="sm" onClick={e => { e.stopPropagation(); generatePDF(job, users); }}>📄 PDF</Btn>}
+{perms.jobs_approve && (
+  <Btn v="danger" sz="sm" onClick={e => { 
+    e.stopPropagation();
+    if (window.confirm('Permanently delete this job record? This cannot be undone.')) { 
+      setJobs(p => p.filter(j => j.id !== job.id)); 
+      if (sel?.id === job.id) setSel(null);
+    } 
+  }}>
+    🗑️ Delete
+  </Btn>
+)}
               </div>
             </div>
           );
@@ -1332,9 +1353,10 @@ function Fleet({ vehs, setVehs, reqs, setReqs, users, user, perms, vehPhotos, se
   const [form, setForm] = useState({});
   const [reqModal, setReqModal] = useState(false);
   const [reqVid, setReqVid] = useState('');
+  const [isEditingInfo, setIsEditingInfo] = useState(false); // Added State Flag
   const filtered = vehs.filter(v => filt === 'all' || v.type === filt);
   const setPhoto = (id, data) => setVehPhotos(p => data ? { ...p, [id]: data } : Object.fromEntries(Object.entries(p).filter(([k]) => k !== id)));
-
+  
   const logMi = () => {
     if (!form.mi || !form.date) return;
     const mi = parseFloat(form.mi);
@@ -1412,13 +1434,37 @@ function Fleet({ vehs, setVehs, reqs, setReqs, users, user, perms, vehPhotos, se
       </div>
 
       {sel && (
-        <Modal title={`${sel.name} — ${sel.yr} ${sel.make} ${sel.model}`} onClose={() => setSel(null)} wide>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-            {perms.fleet_log_mi && sel.type === 'truck' && <Btn v="primary" sz="sm" onClick={() => { setForm({ date: new Date().toISOString().split('T')[0], mi: sel.mi }); setModal('mi'); }}>📍 Log Mileage</Btn>}
-            {perms.fleet_edit && <Btn v="outline" sz="sm" onClick={() => { setForm({ type: 'Oil Change', date: new Date().toISOString().split('T')[0], mi: sel.mi }); setModal('svc'); }}>🔧 Log Service</Btn>}
-            {perms.fleet_edit && <Btn v="ghost" sz="sm" onClick={() => { setForm({ assignedTo: sel.assignedTo || '' }); setModal('assign'); }}>👤 Assign Driver</Btn>}
-            {perms.maint_submit && <Btn v="purple" sz="sm" onClick={() => { setReqVid(sel.id); setReqModal(true); }}>🔔 Request Service</Btn>}
-          </div>
+        <Modal title={`${sel.name} — ${sel.yr} ${sel.make} ${sel.model}`} onClose={() => { setSel(null); setIsEditingInfo(false); }} wide>
+  <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+    {perms.fleet_log_mi && sel.type === 'truck' && <Btn v="primary" sz="sm" onClick={() => { setForm({ date: new Date().toISOString().split('T')[0], mi: sel.mi }); setModal('mi'); }}>📍 Log Mileage</Btn>}
+    {perms.fleet_edit && <Btn v="outline" sz="sm" onClick={() => { setForm({ type: 'Oil Change', date: new Date().toISOString().split('T')[0], mi: sel.mi }); setModal('svc'); }}>🔧 Log Service</Btn>}
+    {perms.fleet_edit && <Btn v="ghost" sz="sm" onClick={() => { setForm({ assignedTo: sel.assignedTo || '' }); setModal('assign'); }}>👤 Assign Driver</Btn>}
+    {perms.fleet_edit && (
+      <Btn v="outline" sz="sm" onClick={() => {
+        setForm({ name: sel.name, plate: sel.plate, make: sel.make, model: sel.model, yr: sel.yr });
+        setIsEditingInfo(!isEditingInfo);
+      }}>
+        ✏️ {isEditingInfo ? 'Cancel Details Edit' : 'Edit Vehicle Name/Plate'}
+      </Btn>
+    )}
+  </div>
+  {isEditingInfo && (
+    <div style={{ background: C.lg, padding: 14, borderRadius: 10, marginBottom: 14, border: `1.5px solid ${C.bd}` }}>
+      <Fld label="Vehicle Display Name / Nickname"><Inp value={form.name || ''} onChange={e => setForm({...form, name: e.target.value})} /></Fld>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <Fld label="Year"><Inp type="number" value={form.yr || ''} onChange={e => setForm({...form, yr: e.target.value})} /></Fld>
+        <Fld label="Make"><Inp value={form.make || ''} onChange={e => setForm({...form, make: e.target.value})} /></Fld>
+        <Fld label="Model"><Inp value={form.model || ''} onChange={e => setForm({...form, model: e.target.value})} /></Fld>
+      </div>
+      <Fld label="License Plate"><Inp value={form.plate || ''} onChange={e => setForm({...form, plate: e.target.value})} /></Fld>
+      <Btn v="green" sz="sm" onClick={() => {
+        const updated = { ...sel, name: form.name, yr: parseInt(form.yr) || sel.yr, make: form.make, model: form.model, plate: form.plate };
+        setVehs(p => p.map(v => v.id === sel.id ? updated : v));
+        setSel(updated);
+        setIsEditingInfo(false);
+      }}>Save Vehicle Changes</Btn>
+    </div>
+  )}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Vehicle Photo</div>
             <PhotoUpload current={vehPhotos[sel.id] || null} onUpload={data => setPhoto(sel.id, data)} label="Upload vehicle photo" maxDim={600} quality={0.75} previewHeight={200} />
@@ -1752,6 +1798,7 @@ function Users({ users, setUsers, currentUser, rolePerms, userOverrides, setUser
               <option value="coordinator">Production Coordinator</option>
               <option value="manager">Manager</option>
               <option value="field">Site Supervisor (Field)</option>
+              <option value="employee">Employee / Field Staff</option>
             </Sel>
           </Fld>
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
@@ -1972,8 +2019,7 @@ function Settings({ warehouses, setWarehouses, logos, setLogos, rolePerms, setRo
         <Modal title="Upload Company Logo" onClose={() => { setLogoModal(false); setNewLogoName(''); setNewLogoData(null); }}>
           <Fld label="Logo Name"><Inp value={newLogoName} onChange={e => setNewLogoName(e.target.value)} placeholder="e.g. Main Company Logo" /></Fld>
           <Fld label="Logo Image *"><PhotoUpload current={newLogoData} onUpload={setNewLogoData} label="Upload logo image" maxDim={400} quality={0.85} previewHeight={140} /></Fld>
-          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-            <Btn v="ghost" onClick={() => { setLogoModal(false); setNewLogoName(''); setNewLogoData(null); }} style={{ flex: 1, justifyContent: 'center' }}>Cancel</Btn>
+          <div onClick={() => setShowProfile(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 8, borderRadius: 7, background: 'rgba(255,255,255,0.06)', marginBottom: 6, cursor: 'pointer' }}>            <Btn v="ghost" onClick={() => { setLogoModal(false); setNewLogoName(''); setNewLogoData(null); }} style={{ flex: 1, justifyContent: 'center' }}>Cancel</Btn>
             <Btn v="primary" onClick={saveLogo} style={{ flex: 1, justifyContent: 'center' }}>💾 Save Logo</Btn>
           </div>
         </Modal>
@@ -2006,16 +2052,20 @@ function Sidebar({ cur, onNav, user, onLogout, collapsed, setCollapsed, pendingR
     ...(perms.users_manage ? [{ id: 'users', icon: '👥', label: 'Users' }] : []),
     ...(perms.settings_manage ? [{ id: 'settings', icon: '⚙️', label: 'Settings' }] : []),
   ];
+  
   const rColor = r => r === 'warehouse' ? C.pu : r === 'coordinator' ? C.tl : r === 'field' ? C.gr : r === 'employee' ? C.sub : C.gold;
 
   return (
     <div style={{ width: collapsed ? 60 : 215, background: C.navy, minHeight: '100vh', display: 'flex', flexDirection: 'column', transition: 'width 0.2s', flexShrink: 0 }}>
+      {/* Sidebar Header/Logo Wrapper */}
       <div style={{ padding: collapsed ? '12px 0' : '12px 14px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(255,255,255,0.1)', justifyContent: collapsed ? 'center' : 'flex-start', minHeight: 62 }}>
         <div style={{ width: 36, height: 36, background: activeLogo ? 'transparent' : C.gold, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
           {activeLogo ? <img src={activeLogo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 19 }}>🏠</span>}
         </div>
         {!collapsed && <div><div style={{ fontSize: 11, fontWeight: 900, color: C.gold, lineHeight: 1.1 }}>MAUMEE RIVER</div><div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.5px' }}>ROOFING</div></div>}
       </div>
+
+      {/* Main Navigation Links */}
       <nav style={{ flex: 1, padding: '10px 6px' }}>
         {navItems.map(item => (
           <button key={item.id} onClick={() => onNav(item.id)} style={{ width: '100%', padding: collapsed ? '11px' : '9px 10px', background: cur === item.id ? 'rgba(245,168,0,0.2)' : 'transparent', border: 'none', borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2, color: cur === item.id ? C.gold : 'rgba(255,255,255,0.65)', justifyContent: collapsed ? 'center' : 'flex-start', position: 'relative' }}>
@@ -2026,18 +2076,191 @@ function Sidebar({ cur, onNav, user, onLogout, collapsed, setCollapsed, pendingR
           </button>
         ))}
       </nav>
+      
+      {/* Sidebar Collapse Toggle Button */}
       <button onClick={() => setCollapsed(!collapsed)} style={{ padding: 10, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 16, textAlign: 'center' }}>{collapsed ? '▶' : '◀'}</button>
+      
+      {/* Restored Clean Footer Panel inside the Sidebar Wrapper */}
       <div style={{ padding: '10px 6px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 8, borderRadius: 7, background: 'rgba(255,255,255,0.06)', marginBottom: 6 }}>
-          <div style={{ width: 30, height: 30, borderRadius: '50%', background: rColor(user.role), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: C.w, flexShrink: 0 }}>{user.name[0]}</div>
-          {!collapsed && <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 11, fontWeight: 700, color: C.w, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div><div style={{ fontSize: 9, color: rColor(user.role), textTransform: 'capitalize' }}>{ROLES[user.role]?.label || 'Employee'}</div></div>}
+<div 
+  onClick={() => onNav('profile')}
+  style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 8, borderRadius: 7, background: cur === 'profile' ? 'rgba(245,168,0,0.15)' : 'rgba(255,255,255,0.06)', border: cur === 'profile' ? `1px solid ${C.gold}` : '1px solid transparent', marginBottom: 6, cursor: 'pointer', transition: 'background 0.2s' }}
+  title="Click to manage profile settings"
+>          <div style={{ width: 30, height: 30, borderRadius: '50%', background: rColor(user.role), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: C.w, flexShrink: 0 }}>{user.name[0]}</div>
+          {!collapsed && (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.w, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+              <div style={{ fontSize: 9, color: rColor(user.role), textTransform: 'capitalize', fontWeight: 600 }}>
+                {ROLES[user.role]?.label || user.role || 'Employee'}
+              </div>
+            </div>
+          )}
         </div>
-        {!collapsed && <button onClick={onLogout} style={{ width: '100%', padding: 6, background: 'none', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6, cursor: 'pointer', color: 'rgba(255,255,255,0.5)', fontSize: 11 }}>Sign Out</button>}
+        
+        {!collapsed && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 4px' }}>
+            <button 
+              onClick={async () => {
+                const newPass = window.prompt("Enter your new secure password (min 8 characters):");
+                if (!newPass) return;
+                if (newPass.length < 8) return alert("Password must be at least 8 characters long.");
+                
+                const { error } = await supabase.auth.updateUser({ password: newPass });
+                if (error) alert("System Error: " + error.message);
+                else alert("Your password has been updated successfully!");
+              }} 
+              style={{ width: '100%', padding: '5px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 5, color: C.gold, fontSize: 11, cursor: 'pointer', fontWeight: 600, textAlign: 'center' }}
+            >
+              🔐 Change Password
+            </button>
+            
+            <button onClick={onLogout} style={{ width: '100%', padding: 5, background: 'none', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 5, cursor: 'pointer', color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 600 }}>
+              Sign Out
+            </button>
+          </div>
+        )}
+      </div> 
+        </div>
+  );
+}
+// ── My Profile Page View ──────────────────────────
+function ProfileView({ user, onUpdateUser }) {
+  const [name, setName] = useState(user.name || '');
+  const [currentPass, setCurrentPass] = useState('');
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [profileMsg, setProfileMsg] = useState({ text: '', isError: false });
+  const [passMsg, setPassMsg] = useState({ text: '', isError: false });
+  const [submittingProfile, setSubmittingProfile] = useState(false);
+  const [submittingPass, setSubmittingPass] = useState(false);
+
+  // Handle General Profile Updates (Name)
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    setProfileMsg({ text: '', isError: false });
+    if (!name.trim()) return setProfileMsg({ text: 'Name cannot be empty.', isError: true });
+
+    setSubmittingProfile(true);
+    
+    // Update profile tracking details in Supabase user metadata
+    const { data, error } = await supabase.auth.updateUser({
+      data: { display_name: name.trim() }
+    });
+
+    setSubmittingProfile(false);
+
+    if (error) {
+      setProfileMsg({ text: `System Error: ${error.message}`, isError: true });
+    } else {
+      setProfileMsg({ text: '🎉 Profile updated successfully!', isError: false });
+      // Bubble up the state change to App.jsx so the sidebar instantly reflects the new name
+      onUpdateUser({ ...user, name: name.trim() });
+    }
+  };
+
+  // Handle Password Changes
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPassMsg({ text: '', isError: false });
+
+    if (newPass.length < 8) {
+      return setPassMsg({ text: 'New password must be at least 8 characters long.', isError: true });
+    }
+    if (newPass !== confirmPass) {
+      return setPassMsg({ text: 'New passwords do not match.', isError: true });
+    }
+
+    setSubmittingPass(true);
+
+    // Verify current credentials
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPass,
+    });
+
+    if (verifyError) {
+      setSubmittingPass(false);
+      return setPassMsg({ text: 'Incorrect current password. Please try again.', isError: true });
+    }
+
+    // Apply password change
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPass });
+    setSubmittingPass(false);
+
+    if (updateError) {
+      setPassMsg({ text: `System Error: ${updateError.message}`, isError: true });
+    } else {
+      setPassMsg({ text: '🎉 Password updated successfully!', isError: false });
+      setCurrentPass('');
+      setNewPass('');
+      setConfirmPass('');
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 500, margin: '20px auto' }}>
+      
+      {/* Box 1: General Information */}
+      <div style={{ background: C.w, borderRadius: 12, padding: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+        <h1 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 900, color: C.navy }}>👤 Personal Profile</h1>
+        <p style={{ margin: '0 0 20px', color: C.sub, fontSize: 13 }}>Manage your account identity details</p>
+        
+        <form onSubmit={handleProfileUpdate}>
+          <Fld label="Full Name">
+            <Inp type="text" value={name} onChange={e => setName(e.target.value)} required />
+          </Fld>
+          <Fld label="Email Address">
+            <Inp type="email" value={user.email} disabled style={{ background: '#f5f5f5', color: C.sub, cursor: 'not-allowed' }} />
+          </Fld>
+          <Fld label="System Permissions Level">
+            <div style={{ background: 'rgba(245,168,0,0.08)', border: `1px solid ${C.gold}`, color: C.navy, padding: '8px 12px', borderRadius: 6, fontSize: 13, fontWeight: 700, textTransform: 'capitalize' }}>
+              🛡️ {user.role || 'Employee'} Account
+            </div>
+          </Fld>
+
+          {profileMsg.text && (
+            <div style={{ background: profileMsg.isError ? C.rB : C.gB, color: profileMsg.isError ? C.rd : C.gr, padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16, fontWeight: 600 }}>
+              {profileMsg.text}
+            </div>
+          )}
+
+          <Btn v="gold" type="submit" style={{ width: '100%', justifyContent: 'center' }} disabled={submittingProfile}>
+            {submittingProfile ? 'Saving Changes...' : 'Save Profile Details'}
+          </Btn>
+        </form>
+      </div>
+
+      {/* Box 2: Password Management */}
+      <div style={{ background: C.w, borderRadius: 12, padding: 24, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+        <h2 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 900, color: C.navy }}>🔐 Access Credentials</h2>
+        <p style={{ margin: '0 0 20px', color: C.sub, fontSize: 13 }}>Change your current login security details</p>
+        
+        <form onSubmit={handlePasswordChange}>
+          <Fld label="Current Password">
+            <Inp type="password" value={currentPass} onChange={e => setCurrentPass(e.target.value)} placeholder="Verify current password" required />
+          </Fld>
+          <hr style={{ border: 'none', borderTop: `1px dashed ${C.bd}`, margin: '16px 0' }} />
+          <Fld label="New Password">
+            <Inp type="password" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Minimum 8 characters" required />
+          </Fld>
+          <Fld label="Confirm New Password">
+            <Inp type="password" value={confirmPass} onChange={e => setConfirmPass(e.target.value)} placeholder="Repeat new password" required />
+          </Fld>
+
+          {passMsg.text && (
+            <div style={{ background: passMsg.isError ? C.rB : C.gB, color: passMsg.isError ? C.rd : C.gr, padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 16, fontWeight: 600 }}>
+              {passMsg.text}
+            </div>
+          )}
+
+          <Btn v="gold" type="submit" style={{ width: '100%', justifyContent: 'center' }} disabled={submittingPass}>
+            {submittingPass ? 'Updating...' : 'Update Password'}
+          </Btn>
+        </form>
       </div>
     </div>
   );
 }
-
 // ── App ───────────────────────────────────────────
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -2143,7 +2366,7 @@ export default function App() {
           {view === 'reports' && userPerms.reports_view && <Reports jobs={jobs} users={users} user={curUser} perms={userPerms} />}
           {view === 'users' && userPerms.users_manage && <Users users={users} setUsers={setUsers} currentUser={curUser} rolePerms={rolePerms} userOverrides={userOverrides} setUserOverrides={setUserOverrides} />}
           {view === 'settings' && userPerms.settings_manage && <Settings warehouses={warehouses} setWarehouses={setWH} logos={logos} setLogos={setLogos} rolePerms={rolePerms} setRolePerms={setRolePerms} acculynxConfig={acculynxConfig} setAccuLynxConfig={setAccuLynxConfig} />}
-        </div>
+          {view === 'profile' && <ProfileView user={curUser} onUpdateUser={setCurUser} />}        </div>
       </div>
     </div>
   );
