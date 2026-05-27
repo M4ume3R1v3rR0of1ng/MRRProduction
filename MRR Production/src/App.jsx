@@ -2287,8 +2287,20 @@ export default function App() {
   useEffect(() => {
     async function load() {
       try {
-        const [main, ip, vp, lg, rp, uo, ax] = await Promise.all([
-          storage.get('mrr-v7-main').catch(() => null),
+        // 1. Fetch ALL relational database tables and asset streams concurrently
+        const [
+          { data: dbInv, error: invErr },
+          { data: dbVehs, error: vehErr },
+          { data: dbJobs, error: jobErr },
+          { data: dbReqs, error: reqErr },
+          { data: dbWH, error: whErr },
+          ip, vp, lg, rp, uo, ax
+        ] = await Promise.all([
+          supabase.from('inventory').select('*'),
+          supabase.from('vehicles').select('*'),
+          supabase.from('jobs').select('*'),
+          supabase.from('maintenance_requests').select('*'),
+          supabase.from('warehouses').select('*'),
           storage.get('mrr-v7-inv-photos').catch(() => null),
           storage.get('mrr-v7-veh-photos').catch(() => null),
           storage.get('mrr-v7-logos').catch(() => null),
@@ -2296,15 +2308,24 @@ export default function App() {
           storage.get('mrr-v7-userov').catch(() => null),
           storage.get('mrr-v7-acculynx').catch(() => null),
         ]);
-        if (main?.value) {
-          const d = JSON.parse(main.value);
-          if (d.inv) setInv(d.inv);
-          if (d.vehs) setVehs(d.vehs);
-          if (d.reqs) setReqs(d.reqs);
-          if (d.jobs) setJobs(d.jobs);
-          if (d.wh) setWH(d.wh);
-          if (d.users && Array.isArray(d.users) && d.users.every(u => u.pass)) setUsers(d.users);
-        }
+
+        // 2. Hydrate database streams safely into local app states
+        if (invErr) console.error("Inventory load error:", invErr.message);
+        else if (dbInv) setInv(dbInv);
+
+        if (vehErr) console.error("Vehicles load error:", vehErr.message);
+        else if (dbVehs) setVehs(dbVehs);
+
+        if (jobErr) console.error("Jobs load error:", jobErr.message);
+        else if (dbJobs) setJobs(dbJobs);
+
+        if (reqErr) console.error("Maintenance Requests load error:", reqErr.message);
+        else if (dbReqs) setReqs(dbReqs.sort((a, b) => new Date(b.at) - new Date(a.at))); // Keep newest requests on top
+
+        if (whErr) console.error("Warehouses load error:", whErr.message);
+        else if (dbWH) setWH(dbWH);
+
+        // 3. Hydrate UI configuration preferences and media buckets
         if (ip?.value) setInvPhotos(JSON.parse(ip.value));
         if (vp?.value) setVehPhotos(JSON.parse(vp.value));
         if (lg?.value) setLogos(JSON.parse(lg.value));
@@ -2314,13 +2335,15 @@ export default function App() {
         }
         if (uo?.value) setUserOverrides(JSON.parse(uo.value));
         if (ax?.value) setAccuLynxConfig(p => ({ ...p, ...JSON.parse(ax.value) }));
-      } catch (e) { }
+        
+      } catch (e) {
+        console.error("Critical dashboard loading error:", e);
+      }
       setLoading(false);
     }
     load();
   }, []);
 
-  useEffect(() => { if (!loading) storage.set('mrr-v7-main', JSON.stringify({ users, inv, vehs, wh: warehouses, reqs, jobs })).catch(() => { }); }, [users, inv, vehs, warehouses, reqs, jobs, loading]);
   useEffect(() => { if (!loading) storage.set('mrr-v7-inv-photos', JSON.stringify(invPhotos)).catch(() => { }); }, [invPhotos, loading]);
   useEffect(() => { if (!loading) storage.set('mrr-v7-veh-photos', JSON.stringify(vehPhotos)).catch(() => { }); }, [vehPhotos, loading]);
   useEffect(() => { if (!loading) storage.set('mrr-v7-logos', JSON.stringify(logos)).catch(() => { }); }, [logos, loading]);
