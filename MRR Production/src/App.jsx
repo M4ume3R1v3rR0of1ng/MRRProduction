@@ -543,6 +543,8 @@ function Inventory({ inv, setInv, users, user, perms, invPhotos, setInvPhotos })
   const sClr = i => { const s = tot(i); if (s <= i.alrt) return C.rd; if (s <= i.alrt * 1.5) return C.am; return C.gr; };
   const setPhoto = (id, data) => setInvPhotos(p => data ? { ...p, [id]: data } : Object.fromEntries(Object.entries(p).filter(([k]) => k !== id)));
   const [selectedIds, setSelectedIds] = useState([]);
+  const [editingId, setEditingId] = useState(null); // Tracks which item row is being edited
+  const [editForm, setEditForm] = useState({ name: '', alrt: 0 }); // Stores active edits
 
   const addItem = () => {
     if (!form.name || !form.cat || !form.unit) return;
@@ -576,6 +578,111 @@ function Inventory({ inv, setInv, users, user, perms, invPhotos, setInvPhotos })
     }));
     setModal(null); setBulkItems([]); setBulkMeta({ date: new Date().toISOString().split('T')[0], po: '', vendor: '' }); setBulkSrch('');
   };
+  
+{filteredItems.map(item => {
+  const isChecked = selectedIds.includes(item.id);
+  const isEditing = editingId === item.id;
+
+  return (
+    <tr key={item.id} style={{ borderBottom: `1px solid ${C.lg}`, background: isChecked ? 'rgba(239, 68, 68, 0.02)' : isEditing ? 'rgba(245, 168, 0, 0.04)' : 'transparent', transition: 'background 0.15s' }}>
+      {perms.inv_manage && (
+        <td style={{ textAlign: 'center', padding: '12px 0' }}>
+          <input 
+            type="checkbox" 
+            disabled={isEditing} // Block selections while updating values
+            checked={isChecked}
+            onChange={(e) => {
+              if (e.target.checked) setSelectedIds([...selectedIds, item.id]);
+              else setSelectedIds(selectedIds.filter(id => id !== item.id));
+            }}
+          />
+        </td>
+      )}
+      
+      {/* ── ITEM NAME COLUMN ── */}
+      <td style={{ padding: 10 }}>
+        {isEditing ? (
+          <input 
+            type="text" 
+            value={editForm.name} 
+            onChange={e => setEditForm({ ...editForm, name: e.target.value })} 
+            style={{ padding: '4px 8px', borderRadius: 4, border: `1px solid ${C.gold}`, width: '90%', fontSize: 13, fontWeight: 600 }}
+          />
+        ) : (
+          <span style={{ fontWeight: 600, color: C.navy }}>{item.name}</span>
+        )}
+      </td>
+
+      {/* ── STOCK LEVEL COLUMN (Read-only total calculation) ── */}
+      <td style={{ fontWeight: 700, color: tot(item) <= item.alrt ? C.rd : C.navy }}>
+        {tot(item)}
+      </td>
+
+      {/* ── ALERT THRESHOLD COLUMN ── */}
+      <td style={{ color: C.sub }}>
+        {isEditing ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <input 
+              type="number" 
+              value={editForm.alrt} 
+              onChange={e => setEditForm({ ...editForm, alrt: parseInt(e.target.value) || 0 })} 
+              style={{ padding: '4px 6px', borderRadius: 4, border: `1px solid ${C.gold}`, width: 60, fontSize: 13 }}
+            />
+            <span style={{ fontSize: 12 }}>units</span>
+          </div>
+        ) : (
+          <span>{item.alrt} units</span>
+        )}
+      </td>
+
+      {/* ── ACTIONS COLUMN ── */}
+      {perms.inv_manage && (
+        <td style={{ textAlign: 'right', paddingRight: 10, whiteSpace: 'nowrap' }}>
+          {isEditing ? (
+            <div style={{ display: 'inline-flex', gap: 8 }}>
+              <button 
+                onClick={() => {
+                  if (!editForm.name.trim()) return alert("Item name cannot be empty.");
+                  // Map through array and update values for matching ID
+                  setInv(inv.map(i => i.id === item.id ? { ...i, name: editForm.name.trim(), alrt: editForm.alrt } : i));
+                  setEditingId(null);
+                }} 
+                style={{ background: C.gr, color: C.w, border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Save
+              </button>
+              <button 
+                onClick={() => setEditingId(null)} 
+                style={{ background: '#e0e0e0', color: '#333', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+              <button 
+                onClick={() => {
+                  setEditingId(item.id);
+                  setEditForm({ name: item.name, alrt: item.alrt });
+                }} 
+                style={{ background: 'none', border: 'none', color: C.gold, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
+                title="Edit item details"
+              >
+                ✏️ Edit
+              </button>
+              <button 
+                onClick={() => { if(window.confirm(`Delete ${item.name}?`)) setInv(inv.filter(i => i.id !== item.id)) }} 
+                style={{ background: 'none', border: 'none', color: 'rgba(0,0,0,0.3)', cursor: 'pointer', fontSize: 14 }}
+              >
+                🗑️
+              </button>
+            </div>
+          )}
+        </td>
+      )}
+    </tr>
+  );
+})}
 
   return (
     <div>
