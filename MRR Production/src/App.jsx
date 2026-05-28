@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { runMigration } from './seed';
 
 const C = {
   blue: '#1B52B8', navy: '#0E2D6B', gold: '#F5A800', gL: '#FFFBEB',
