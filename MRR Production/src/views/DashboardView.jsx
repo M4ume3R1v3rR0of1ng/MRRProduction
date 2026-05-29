@@ -1,6 +1,7 @@
 // src/views/DashboardView.jsx
-import { C } from '../utils/helpers';
+import { C, displayName } from '../utils/helpers';
 import { Bdg, Btn } from '../components/UIPrimitives';
+
 
 export default function DashboardView({ inv, vehs, reqs, jobs, users, user, perms, onNav, tot, jSC }) {
   const low = inv.filter(i => tot(i) <= i.alrt);
@@ -16,11 +17,13 @@ export default function DashboardView({ inv, vehs, reqs, jobs, users, user, perm
       {sub && <div style={{ fontSize: 10, color: C.sub, marginTop: 2 }}>{sub}</div>}
     </div>
   );
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>Good morning, {user.name?.split(' ')[0]}! 👋</h1>
+        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>{greeting}, {displayName(user)}! 👋</h1>
         <p style={{ margin: '3px 0 0', color: C.sub, fontSize: 12 }}>Saint Joe Road Warehouse · {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
       </div>
       

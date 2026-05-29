@@ -92,12 +92,29 @@ export default function SettingsView({
     e.preventDefault();
     setSavingAx(true);
     
+    // 1. Commit configuration properties to local state caching profiles
     if (typeof window !== 'undefined' && window.storage) {
       await window.storage.set('mrr-v7-acculynx', JSON.stringify(acculynxConfig));
     }
-    
-    setSavingAx(false);
-    alert("AccuLynx synchronization parameters locked successfully! 🔄");
+
+    // 2. Perform a test handshake call via our new Netlify function proxy endpoint
+    try {
+      const proxyRoute = acculynxConfig?.proxyUrl || '/.netlify/functions/acculynx-sync';
+      
+      const response = await fetch(`${proxyRoute}?apiKey=${acculynxConfig.apiKey}&targetEndpoint=account/validate`, {
+        method: 'GET'
+      });
+
+      if (!response.ok) {
+        throw new Error("Handshake connection refused. Double check your API authentication key token string.");
+      }
+
+      alert("AccuLynx Gateway synchronization confirmed and running successfully! 🔄");
+    } catch (err) {
+      alert(`Configuration Note: Settings saved locally, but handshake test failed: ${err.message}`);
+    } finally {
+      setSavingAx(false);
+    }
   };
 
   // ACTION 5: Process uploaded file assets
@@ -186,7 +203,8 @@ export default function SettingsView({
                               fontWeight: 700
                             }}
                           >
-↩ Reset                          </button>
+                            ↩ Reset
+                          </button>
                         </th>
                       );
                     })}

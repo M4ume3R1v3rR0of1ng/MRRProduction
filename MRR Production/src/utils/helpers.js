@@ -48,7 +48,7 @@ export function compressImg(file, maxDim, quality, cb) {
       c.getContext('2d').drawImage(img, 0, 0, w, h);
       cb(c.toDataURL('image/jpeg', quality));
     };
-    img.src = img.src = ev.target.result;
+    img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
 }
@@ -78,6 +78,9 @@ export const predDays = v => {
   const lf = v.oii - (v.mi - v.lomi);
   return lf <= 0 ? 0 : Math.round(lf / d);
 };
+
+export const displayName = (user) => 
+  (user?.name || user?.full_name || '').split(' ')[0] || 'User';
 
 export const detSt = v => {
     if (!v.ldd) return 'overdue';

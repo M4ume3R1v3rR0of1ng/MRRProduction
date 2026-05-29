@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { C, fd, fm } from '../utils/helpers';
-import { Btn, Sel } from '../components/UIPrimitives';
+import { Btn, Sel, Bdg } from '../components/UIPrimitives';
+import { generatePDF } from '../utils/pdfGenerator';
 
 export default function Reports({ jobs, users, user, perms }) {
   const [filt, setFilt] = useState('all');
@@ -10,6 +11,13 @@ export default function Reports({ jobs, users, user, perms }) {
   const completedJobs = jobs.filter(j => j.status === 'completed');
   const totalCost = completedJobs.reduce((s, j) => s + j.items.reduce((a, i) => a + (i.pulled - i.returned) * i.priceAtPull, 0), 0);
   const cards = [{ label: 'Total Jobs', value: jobs.length, color: C.blue }, { label: 'Completed', value: completedJobs.length, color: C.gr }, { label: 'Active', value: jobs.filter(j => j.status === 'active').length, color: C.am }];
+  const jSC = {
+    draft: { c: 'gray', l: 'Draft' },
+    approved: { c: 'blue', l: 'Approved' },
+    active: { c: 'amber', l: 'Active' },
+    completed: { c: 'green', l: 'Completed' },
+    closed: { c: 'purple', l: 'Closed' }
+}; 
 
   return (
     <div>

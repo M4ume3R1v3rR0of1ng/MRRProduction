@@ -25,7 +25,7 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
   const [bulkMeta, setBulkMeta] = useState({ date: new Date().toISOString().split('T')[0], po: '', vendor: '' });
   const [bulkSrch, setBulkSrch] = useState('');
   
-  const cats = ['All', ...new Set(inv.map(i => i.cat))].sort();
+  const cats = ['All', ...new Set(inv.map(i => i.cat).filter(Boolean))].sort();
   const filtered = inv.filter(i => i.name.toLowerCase().includes(srch.toLowerCase()) && (cat === 'All' || i.cat === cat));
   const sClr = i => { const s = tot(i); if (s <= i.alrt) return C.rd; if (s <= i.alrt * 1.5) return C.am; return C.gr; };
   const setPhoto = (id, data) => setInvPhotos(p => data ? { ...p, [id]: data } : Object.fromEntries(Object.entries(p).filter(([k]) => k !== id)));
@@ -82,8 +82,7 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       id: 'b_' + uid(), 
       rcvd: form.date, 
       qty: parseFloat(form.qty), 
-      price: parseFloat(form.price), 
-      by: user.id, 
+      price: parseFloat(form.price) || newestPrice(sel), by: user.id, 
       rem: parseFloat(form.qty) 
     };
     

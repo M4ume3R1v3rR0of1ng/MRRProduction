@@ -1,21 +1,19 @@
 // ── Pull Inventory ────────────────────────────────
 import { useState } from 'react';
-import { supabase } from '../utils/supabase';
-import { C, fd, fm, doFifo } from '../utils/helpers';
+import { C, fd, fm, doFifo, uid } from '../utils/helpers';
 import { generatePDF } from '../utils/pdfGenerator';
 import { attemptAccuLynxSync } from '../utils/accuLynxSync';
 import { Btn, Bdg, Modal, Fld, TA, Inp } from '../components/UIPrimitives';
 
 
-export default function PullInventory({ jobs, setJobs, inv, setInv, users, user, perms, activeLogo, acculynxConfig }) {
-  const [sel, setSel] = useState(null);
+export default function PullInventory({ jobs, setJobs, inv, setInv, users, user, perms, activeLogo, acculynxConfig, jSC }) {  const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
   const [pullQtys, setPullQtys] = useState({});
   const [retQtys, setRetQtys] = useState({});
   const [syncModal, setSyncModal] = useState(null);
   const isField = user.role === 'field';
   const myJobs = isField ? jobs.filter(j => j.assignedTo === user.id && j.status !== 'draft') : jobs.filter(j => j.status !== 'draft').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
+  
   const openJob = j => { setSel(j); if (j.newForAssigned && j.assignedTo === user.id) setJobs(p => p.map(x => x.id === j.id ? { ...x, newForAssigned: false } : x)); };
 
   const confirmPull = () => {

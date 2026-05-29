@@ -1,7 +1,7 @@
 // src/views/ProfileView.jsx
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
-import { C } from '../utils/helpers';
+import { C, displayName } from '../utils/helpers';
 import { Fld, Inp, Btn } from '../components/UIPrimitives';
 import { dispatchSMSAlert } from '../utils/helpers';
 

@@ -1,12 +1,11 @@
 // ── Build Jobs ────────────────────────────────────
 import { useState } from 'react';
-import { supabase } from '../utils/supabase';
-import { C, uid } from '../utils/helpers';
+import { C, uid, fd, fm, tot } from '../utils/helpers';
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from '../components/UIPrimitives';
 
 
 
-export default function BuildJobs({ jobs, setJobs, inv, users, user, perms }) {
+export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC, onNav }) {
   const [filt, setFilt] = useState('all');
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
@@ -20,6 +19,8 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms }) {
   const [axL, setAxL] = useState(false);
   const [apAssign, setApAssign] = useState('');
   const [srch, setSrch] = useState('');
+  const userPerms = perms;
+
 
   const fieldUsers = users.filter(u => (u.role === 'field' || u.role === 'Site Supervisor') && u.active);  const counts = { all: jobs.length, draft: 0, approved: 0, active: 0, completed: 0, closed: 0 };
   jobs.forEach(j => { if (counts[j.status] !== undefined) counts[j.status]++; });
