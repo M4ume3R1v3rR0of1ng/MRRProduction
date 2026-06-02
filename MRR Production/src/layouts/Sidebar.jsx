@@ -1,5 +1,6 @@
 import { C } from '../utils/helpers';
 import { ROLES } from '../database/permissions';
+import { logAction } from '../utils/logger';
 
 export default function Sidebar({ cur, onNav, user, onLogout, collapsed, setCollapsed, pendingReqs, lowStock, newJobsForMe, activeLogo, perms }) {
   const navItems = [
@@ -11,10 +12,20 @@ export default function Sidebar({ cur, onNav, user, onLogout, collapsed, setColl
     ...((perms.maint_submit || perms.maint_manage) ? [{ id: 'requests', icon: '🔧', label: 'Maintenance', badge: perms.maint_manage ? pendingReqs : 0, badgeColor: C.pu }] : []),
     ...(perms.reports_view ? [{ id: 'reports', icon: '📊', label: 'Reports' }] : []),
     ...(perms.users_manage ? [{ id: 'users', icon: '👥', label: 'Users' }] : []),
+    ...(perms.users_manage ? [{ id: 'logs', icon: '📜', label: 'Audit Logs' }] : []),
     ...(perms.settings_manage ? [{ id: 'settings', icon: '⚙️', label: 'Settings' }] : []),
   ];
   const rColor = r => r === 'warehouse' ? C.pu : r === 'coordinator' ? C.tl : r === 'field' ? C.gr : r === 'employee' ? C.sub : C.gold;
   
+  const handleSignOut = async () => {
+    try {
+      await logAction(user.id, user.email, 'LOGOUT', 'User signed out of session');
+    } catch (err) {
+      console.error("Failed to log logout action:", err);
+    }
+    onLogout(); 
+  };
+
     return (
       <div style={{ width: collapsed ? 60 : 215, background: C.navy, minHeight: '100vh', display: 'flex', flexDirection: 'column', transition: 'width 0.2s', flexShrink: 0 }}>
         {/* Sidebar Header/Logo Wrapper */}

@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { supabase } from "../utils/supabase";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, PhotoUpload } from "../components/UIPrimitives";
-import { C } from "../utils/helpers";
-import { ROLES } from "../database/permissions";
+import { C, fd, fm } from "../utils/helpers"; 
+import { logAction } from "../utils/logger";
 
 // ── SUB-COMPONENT: ReqModal (Named Export) ─────────
 export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
@@ -32,6 +32,18 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
     });
     onClose();
   };
+
+  const handleApproveMaintenance = async (requestId, vehicleVin) => {
+  // ... existing update code ...
+
+  await logAction(
+    user.id, 
+    user.email, 
+    'FLEET_MAINTENANCE', 
+    `Approved maintenance ticket for vehicle VIN: ${vehicleVin}`,
+    { ticketId: requestId }
+  );
+};
 
   return (
     <Modal title="🔧 Submit Maintenance Request" onClose={onClose}>
@@ -67,7 +79,7 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
 // ── MAIN VIEW COMPONENT (The Only Default Export) ──
 export default function FleetManagementView({ 
   vehs, setVehs, reqs, setReqs, users, user, perms, vehPhotos, setVehPhotos,
-  oilSt, detSt, predDays, fd, fm 
+  oilSt, detSt, predDays
 }) {
   const [filt, setFilt] = useState('all');
   const [sel, setSel] = useState(null);

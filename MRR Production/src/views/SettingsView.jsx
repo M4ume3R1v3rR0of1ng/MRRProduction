@@ -4,9 +4,10 @@ import { supabase } from '../utils/supabase';
 import { C, compressImg } from '../utils/helpers';
 import { PERM_DEFS, PERM_GROUPS, ROLE_COLS, DEFAULT_ROLE_PERMS } from '../database/permissions';
 import { Btn, Bdg, Fld, Inp, Toggle, PhotoUpload } from '../components/UIPrimitives';
+import { logAction } from '../utils/logger';
 
 export default function SettingsView({ 
-  warehouses, setWarehouses, logos, setLogos, rolePerms, setRolePerms, acculynxConfig, setAccuLynxConfig 
+  warehouses, setWarehouses, logos, setLogos, rolePerms, setRolePerms, acculynxConfig, setAccuLynxConfig, users, setUsers, curUser 
 }) {
   // Navigation State
   const [currentTab, setCurrentTab] = useState('Permissions');
@@ -135,6 +136,23 @@ export default function SettingsView({
       <div style={{ fontSize: 14, fontWeight: 700, color: '#0f294a' }}>{value}</div>
     </div>
   );
+  const handleRoleChange = async (targetUserId, newRole) => {
+    // 1. Your existing logic that updates the database via Supabase/State...
+    const { error } = await supabase
+      .from('users')
+      .update({ role: newRole })
+      .eq('id', targetUserId);
+
+    if (!error) {
+      console.log("AUDIT LOG TRIGGERED");
+      await logAction(
+        curUser.id, 
+        curUser.email, 
+        'PERM_CHANGE', 
+        `Changed user ${targetUserId} role configuration to '${newRole}'`
+      );
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: '100%', padding: '0 10px', fontFamily: 'sans-serif' }}>

@@ -4,6 +4,7 @@ import { C, fd, fm, doFifo, uid } from '../utils/helpers';
 import { generatePDF } from '../utils/pdfGenerator';
 import { attemptAccuLynxSync } from '../utils/accuLynxSync';
 import { Btn, Bdg, Modal, Fld, TA, Inp } from '../components/UIPrimitives';
+import { logAction } from "../utils/logger";
 
 
 export default function PullInventory({ jobs, setJobs, inv, setInv, users, user, perms, activeLogo, acculynxConfig, jSC }) {  const [sel, setSel] = useState(null);
@@ -70,6 +71,18 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
     if (job.syncStatus === 'manual') return <Bdg color="amber">📋 Configure Sync</Bdg>;
     return null;
   };
+
+  const handlePullMaterials = async (jobId, materialsList) => {
+  // ... existing FIFO or material decrement logic ...
+  
+  await logAction(
+    user.id, 
+    user.email, 
+    'INVENTORY_PULL', 
+    `Pulled staging materials for Job #${jobId}`,
+    { jobId, materialsPulled: materialsList }
+  );
+};
 
   return (
     <div>

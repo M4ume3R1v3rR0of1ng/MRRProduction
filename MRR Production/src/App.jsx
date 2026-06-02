@@ -29,6 +29,7 @@ import MaintenanceRequestsView from "./views/MaintenanceRequestsView";
 import ReportsView from "./views/ReportsView";
 import UserManagementView from "./views/UserManagementView";
 import SettingsView from "./views/SettingsView";
+import AuditLogView from "./views/AuditLogView";
 
 const jSC = { 
   draft: { c: 'gray', l: 'Draft', icon: '📝' }, 
@@ -178,12 +179,29 @@ export default function App() {
 
           {view === 'pull' && <PullInventoryView jobs={jobs} setJobs={setJobs} inv={inv} setInv={setInv} users={users} user={curUser} perms={userPerms} activeLogo={activeLogo} acculynxConfig={acculynxConfig} jSC={jSC}/>}
           {view === 'inventory' && userPerms.inv_view && <InventoryView inv={inv} setInv={setInv} users={users} user={curUser} perms={userPerms} invPhotos={invPhotos} setInvPhotos={setInvPhotos} />}
-          {view === 'fleet' && userPerms.fleet_view && <FleetManagementView vehs={vehs} setVehs={setVehs} reqs={reqs} setReqs={setReqs} users={users} user={curUser} perms={userPerms} vehPhotos={vehPhotos} setVehPhotos={setVehPhotos} oilSt={oilSt} detSt={detSt} predDays={predDays} />}
-          {view === 'requests' && (userPerms.maint_submit || userPerms.maint_manage) && <MaintenanceRequestsView reqs={reqs} setReqs={setReqs} vehs={vehs} users={users} user={curUser} perms={userPerms} />}
+{view === 'fleet' && userPerms.fleet_view && (
+  <FleetManagementView 
+    vehs={vehs} 
+    setVehs={setVehs} 
+    reqs={reqs} 
+    setReqs={setReqs} 
+    users={users} 
+    user={curUser} 
+    perms={userPerms} 
+    vehPhotos={vehPhotos} 
+    setVehPhotos={setVehPhotos}
+    oilSt={oilSt}
+    detSt={detSt}
+    predDays={predDays}
+    fd={fd}   
+    fm={fm}   
+  />
+)}          {view === 'requests' && (userPerms.maint_submit || userPerms.maint_manage) && <MaintenanceRequestsView reqs={reqs} setReqs={setReqs} vehs={vehs} users={users} user={curUser} perms={userPerms} />}
           {view === 'reports' && userPerms.reports_view && <ReportsView jobs={jobs} users={users} user={curUser} perms={userPerms} />}
           {view === 'users' && userPerms.users_manage && <UserManagementView users={users} setUsers={setUsers} currentUser={curUser} rolePerms={rolePerms} userOverrides={userOverrides} setUserOverrides={setUserOverrides} />}
           {view === 'settings' && userPerms.settings_manage && <SettingsView warehouses={warehouses} setWarehouses={setWH} logos={logos} setLogos={setLogos} rolePerms={rolePerms} setRolePerms={setRolePerms} acculynxConfig={acculynxConfig} setAccuLynxConfig={setAccuLynxConfig} />}
           {view === 'profile' && <ProfileView user={curUser} onUpdateUser={setCurUser} />}
+          {view === 'logs' && userPerms.users_manage && <AuditLogView perms={userPerms} />}
         </div>
       </div>
     </div>

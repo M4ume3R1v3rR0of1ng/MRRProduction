@@ -3,7 +3,7 @@
 exports.handler = async (event, context) => {
   // 1. Enforce CORS protection: Only allow requests from your frontend dashboard
   const headers = {
-    'Access-Control-Allow-Origin': '*', // Replace with your actual live Netlify URL for production security
+'Access-Control-Allow-Origin': 'https://mrr-production.netlify.app/',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };

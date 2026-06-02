@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '../utils/supabase';
 import { C, uid, fd, fm } from '../utils/helpers';
 import { Btn, Bdg, Fld, Inp, Sel, Modal, PhotoUpload } from '../components/UIPrimitives';
+import { logAction } from '../utils/logger';
 
 // ── INTERNAL FILE UTILITY COUNTERS ─────────────────
 const tot = (item) => {
@@ -15,7 +16,7 @@ const newestPrice = (item) => {
   return [...item.batches].sort((a, b) => new Date(b.rcvd) - new Date(a.rcvd))[0].price;
 };
 
-export default function InventoryView({ inv, setInv, users, user, perms, invPhotos, setInvPhotos }) {
+export default function InventoryView({ inv, setInv, users, user, perms, invPhotos, setInvPhotos, curUser }) {
   const [srch, setSrch] = useState('');
   const [cat, setCat] = useState('All');
   const [modal, setModal] = useState(null);
@@ -48,6 +49,16 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       alert("Database Error adding item: " + error.message);
     } else {
       setInv(p => [...p, record]);
+      
+      // Log Item Creation
+      await logAction(
+        user.id,
+        user.email,
+        'INV_MUTATION',
+        `Created new catalog material item: "${record.name}"`,
+        { item_id: record.id, category: record.cat, unit: record.unit }
+      );
+
       setModal(null); 
       setForm({});
     }
@@ -70,6 +81,16 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       alert("Database Error modifying catalog record: " + error.message);
     } else {
       setInv(p => p.map(i => i.id === sel.id ? { ...i, ...updatedFields } : i));
+      
+      // Log Catalog Schema Modification
+      await logAction(
+        user.id,
+        user.email,
+        'INV_MUTATION',
+        `Modified catalog specifications for item: "${sel.name}"`,
+        { item_id: sel.id, changes: updatedFields }
+      );
+
       setModal(null); 
       setForm({});
     }
@@ -82,7 +103,8 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       id: 'b_' + uid(), 
       rcvd: form.date, 
       qty: parseFloat(form.qty), 
-      price: parseFloat(form.price) || newestPrice(sel), by: user.id, 
+      price: parseFloat(form.price) || newestPrice(sel), 
+      by: user.id, 
       rem: parseFloat(form.qty) 
     };
     
@@ -97,6 +119,16 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       alert("Database Error posting receipt batch: " + error.message);
     } else {
       setInv(p => p.map(i => i.id === sel.id ? { ...i, batches: updatedBatches } : i));
+      
+      // Log Single Batch Reception
+      await logAction(
+        user.id,
+        user.email,
+        'INV_MUTATION',
+        `Received new inbound batch stack for material: "${sel.name}"`,
+        { item_id: sel.id, quantity_added: b.qty, unit_cost: b.price }
+      );
+
       setModal(null); 
       setForm({});
     }
@@ -151,6 +183,21 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       );
       
       setInv(stateSnapshot);
+      
+      // Log Complex Bulk Manifest Execution
+      await logAction(
+        user.id,
+        user.email,
+        'INV_MUTATION',
+        `Processed bulk purchase order delivery into warehouse roster`,
+        { 
+          purchase_order: bulkMeta.po || 'N/A', 
+          vendor: bulkMeta.vendor || 'N/A', 
+          item_count: valid.length, 
+          total_manifest_value: bulkTotal 
+        }
+      );
+
       setModal(null); 
       setBulkItems([]); 
       setBulkMeta({ date: new Date().toISOString().split('T')[0], po: '', vendor: '' }); 
@@ -246,6 +293,7 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
                       if (error) alert("Database Error: " + error.message);
                       else {
                         setInv(p => p.filter(i => i.id !== sel.id)); 
+                        await logAction(user.id, user.email, 'INV_MUTATION', `Permanently purged catalog blueprint item: "${sel.name}"`, { item_id: sel.id });
                         setModal(null); 
                       }
                     } 
@@ -386,11 +434,11 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
               ) : (
                 <>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto', marginBottom: 10 }}>
-  {bulkItems.map(b => {
-    const sub = (parseFloat(b.qty) || 0) * (parseFloat(b.price) || 0);
-    return (
-      <div key={b.iid} style={{ background: C.w, border: `1.5px solid ${C.bd}`, borderRadius: 8, padding: '10px 12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
+                    {bulkItems.map(b => {
+                      const sub = (parseFloat(b.qty) || 0) * (parseFloat(b.price) || 0);
+                      return (
+                        <div key={b.iid} style={{ background: C.w, border: `1.5px solid ${C.bd}`, borderRadius: 8, padding: '10px 12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
                             <span style={{ fontWeight: 700, color: C.navy, fontSize: 12 }}>{b.iname}</span>
                             <button onClick={() => removeBulk(b.iid)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.rd, fontSize: 18, lineHeight: 1 }}>×</button>
                           </div>

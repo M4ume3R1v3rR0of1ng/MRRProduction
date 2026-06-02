@@ -4,6 +4,7 @@ import { supabase } from '../utils/supabase';
 import { C } from '../utils/helpers';
 import { PERM_DEFS, PERM_GROUPS, ROLE_COLS, ROLES } from '../database/permissions';
 import { Btn, Bdg, RoleBdg, Toggle, Modal, Fld, Sel, Inp } from '../components/UIPrimitives';
+import { logAction } from "../utils/logger";
 
 export default function Users({ users, setUsers, currentUser, rolePerms, userOverrides, setUserOverrides }) {
   const [modal, setModal] = useState(null);
@@ -26,6 +27,18 @@ export default function Users({ users, setUsers, currentUser, rolePerms, userOve
     });
   };
   const clearOverrides = uid => setUserOverrides(p => { const n = { ...p }; delete n[uid]; return n; });
+
+  const handleUpdatePermissions = async (targetUser, newRole, overrides) => {
+  // ... existing saving state / local storage overrides ...
+
+  await logAction(
+    user.id, 
+    user.email, 
+    'PERM_CHANGE', 
+    `Modified access profile/role for user: ${targetUser.email}`,
+    { targetUserId: targetUser.id, assignedRole: newRole, activeOverrides: overrides }
+  );
+};
 
   return (
     <div>
