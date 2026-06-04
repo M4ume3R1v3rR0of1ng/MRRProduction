@@ -2,7 +2,8 @@
 import { useState } from 'react';
 import { supabase } from '../utils/supabase';
 import { C } from '../utils/helpers';
-import { Fld, RoleBdg } from '../components/UIPrimitives';
+import { Fld } from '../components/UIPrimitives';
+import { logAction } from '../utils/logger';
 
 const COMPANY_DOMAIN = '@maumeeriverroofing.com';
 
@@ -19,52 +20,81 @@ export default function LoginScreen({ onLogin, activeLogo }) {
   const [successMsg, setSuccessMsg] = useState('');
 
   const tryLogin = async () => {
-    await logAction(authData.user.id, authData.user.email, 'LOGIN', 'Authenticated credentials successfully via secure gateway lock.');
-    setErr('');
-    setSuccessMsg('');
-    setSubmitting(true); // Engaged mutation layout barrier
+  setErr('');
+  setSuccessMsg('');
+  setSubmitting(true); 
 
+  // 1. Declare variables outside the block so they are scoped to the entire tryLogin function
+  let authData = null;
+  let authError = null;
+
+  try {
+    // 2. Assign the destructuring results to those variables (no 'const' here)
+    const result = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password: pass,
+    });
+    
+    authData = result.data;
+    authError = result.error;
+
+  } catch (e) {
+    return setErr("An unexpected network error interrupted authentication.");
+  } finally {
+    // We only turn off submitting if we aren't proceeding, 
+    // but since onLogin changes screen state, handling it safely here:
+    if (authError || !authData?.user) {
+      setSubmitting(false); 
+    }
+  }
+
+  // 3. Now these are fully accessible out here safely!
+  if (authError) {
+    setErr(authError.message);
+    return;
+  }
+
+  if (authData?.user) {
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password: pass,
-      });
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name, role, active')
+        .eq('id', authData.user.id)
+        .single();
 
-      if (authError) {
-        setErr(authError.message);
+      if (profileError) {
+        setErr("Failed to verify user profile access.");
+        setSubmitting(false);
+        return;
+      }
+      if (!profileData.active) {
+        setErr("This account has been deactivated by an administrator.");
+        setSubmitting(false);
         return;
       }
 
-      if (authData.user) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('full_name, role, active')
-          .eq('id', authData.user.id)
-          .single();
+      await logAction(
+        authData.user.id, 
+        authData.user.email, 
+        'LOGIN', 
+        'Authenticated credentials successfully via secure gateway lock.', 
+        {}, 
+        'login'
+      );
 
-        if (profileError) {
-          setErr("Failed to verify user profile access.");
-          return;
-        }
-        if (!profileData.active) {
-          setErr("This account has been deactivated by an administrator.");
-          return;
-        }
-
-        onLogin({
-          id: authData.user.id,
-          email: authData.user.email,
-          name: profileData.full_name,
-          role: profileData.role, 
-          active: profileData.active
-        });
-      }
-    } catch (e) {
-      setErr("An unexpected network error interrupted authentication.");
-    } finally {
-      setSubmitting(false); // Released interaction thread
+      onLogin({
+        id: authData.user.id,
+        email: authData.user.email,
+        name: profileData.full_name,
+        role: profileData.role, 
+        active: profileData.active
+      });
+    } catch (profileCatchError) {
+      setErr("Profile resolution failed.");
+      setSubmitting(false);
     }
-  };
+  }
+};
 
   const trySignup = async () => {
     setErr('');
@@ -96,8 +126,17 @@ export default function LoginScreen({ onLogin, activeLogo }) {
         return;
       }
 
-      // If identities array is populated, it's a completely new signup trace
-      if (authData.user) {
+      if (authData?.user) {
+        // ✅ Correctly sequenced signup logging
+        await logAction(
+          authData?.user?.id, 
+          authData?.user?.email, 
+          'SIGNUP', 
+          `Initiated employee profile registration request for ${trimmedEmail}`, 
+          {}, 
+          'signup'
+        );
+
         setSuccessMsg("Registration pending! Please check your inbox to confirm your account before logging in.");
         // Clear out form text blocks gracefully
         setName('');
