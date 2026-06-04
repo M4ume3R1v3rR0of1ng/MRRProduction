@@ -1,3 +1,6 @@
+import { supabase } from './supabase';
+
+
 // 1. Global UI Color Theme Utility
 export const C = {
   blue: '#1B52B8', navy: '#0E2D6B', gold: '#F5A800', gL: '#FFFBEB',
@@ -20,11 +23,20 @@ export const ft = d => new Date(d).toLocaleString('en-US', { month: 'short', day
 export const fm = n => '$' + (n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
 // 6. Real-time Inventory Summation Loop
-export const tot = i => i.batches.reduce((s, b) => s + b.rem, 0);
-
+export function tot(item) {
+  // Defensive null guard ensures it won't throw if item or item.batches is missing
+  if (!item || !item.batches || !Array.isArray(item.batches)) return 0;
+  
+  return item.batches.reduce((sum, batch) => sum + (parseFloat(batch.rem) || 0), 0);
+}
 // 7. Pricing Evaluator Array sorter
-export const newestPrice = i => !i.batches.length ? 0 : [...i.batches].sort((a, b) => new Date(b.rcvd) - new Date(a.rcvd))[0].price;
-
+export function newestPrice(item) {
+  if (!item || !item.batches || !Array.isArray(item.batches) || item.batches.length === 0) return 0;
+  
+  // Create a copy to sort chronologically by received date to grab the newest entry
+  const sorted = [...item.batches].sort((a, b) => new Date(b.rcvd) - new Date(a.rcvd));
+  return parseFloat(sorted[0]?.price) || 0;
+}
 // 8. Odometer Status Evaluator Rules
 export const oilSt = v => {
   if (v.type !== 'truck') return null;
@@ -126,3 +138,16 @@ export const dispatchSMSAlert = async (phone, textMsg) => {
     console.error("Failed to connect to SMS Edge Function:", err);
   }
 };
+export function mkJI(iid, name, cat, unit, plannedQty = 1) {
+  return {
+    iid: iid,
+    iname: name,
+    icat: cat,
+    unit: unit,
+    planned: parseFloat(plannedQty) || 0,
+    pulled: 0,        // Stamped as zero until field user initiates a pull
+    returned: 0,      // Populated when completing site logistics teardown
+    priceAtPull: 0,   // Populated dynamically via FIFO calculations upon load execution
+    pullCost: 0       // Populated dynamically via FIFO calculations upon load execution
+  };
+}

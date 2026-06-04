@@ -19,8 +19,7 @@ export default function Sidebar({ cur, onNav, user, onLogout, collapsed, setColl
   
   const handleSignOut = async () => {
     try {
-      await logAction(user.id, user.email, 'LOGOUT', 'User signed out of session');
-    } catch (err) {
+    await logAction(curUser.id, curUser.email, 'LOGOUT', 'Terminated application session cleanly.');    } catch (err) {
       console.error("Failed to log logout action:", err);
     }
     onLogout(); 

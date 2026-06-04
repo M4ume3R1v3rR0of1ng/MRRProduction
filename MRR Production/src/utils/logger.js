@@ -1,52 +1,45 @@
-// System logger
+// src/utils/logger.js
 import { supabase } from "./supabase";
 
 /**
- * Creates an immutable system audit trail record
- * @param {string} userId - The unique identifier of the active user
- * @param {string} userEmail - The email string of the active user
- * @param {string} actionType - Category of action (e.g., 'PERM_CHANGE')
- * @param {string} description - Human-readable details of the mutation
- * @param {object} [metadata] - Optional raw data payload for debugging
+ * Commits a highly detailed, device-aware audit event to Supabase.
+ *
+ * @param {string} userId - UUID of the executing employee profile
+ * @param {string} userEmail - Corporate email string of the operator
+ * @param {string} actionType - System state index matching feed color highlights
+ * @param {string} description - Human-readable operational narrative
+ * @param {object} metadata - Optional entity IDs, snapshot data, or tracking states
+ * @param {string} [currentView] - Optional active state layout view passed from App.jsx state
  */
-export const logAction = async (
-  userId,
-  userEmail,
-  actionType,
-  description,
-  metadata = {}
-) => {
-  console.log("AUDIT ATTEMPT", {
-    userId,
-    userEmail,
-    actionType,
-    description,
-  });
-
+export const logAction = async (userId, userEmail, actionType, description, metadata = {}, currentView = null) => {
   try {
-    const { data, error } = await supabase
-      .from("system_logs")
-      .insert([
-        {
-          user_id: userId,
-          user_email: userEmail,
-          action_type: actionType,
-          description,
-          metadata,
-          created_at: new Date().toISOString(),
-        },
-      ])
-      .select();
+    const payload = {
+      user_id: userId || null, 
+      user_email: userEmail || null,
+      action_type: actionType,
+      description: description,
+      metadata: {
+        ...metadata,
+        // FIX: Prioritize the state-driven application view string over the static '/' route
+        active_view: currentView || 'system_core',
+        page_url: window.location.pathname + window.location.hash, 
+        user_agent: navigator.userAgent 
+      },
+      created_at: new Date().toISOString()
+    };
 
-    console.log("AUDIT RESULT", data, error);
+    // Continuous developer feedback
+    console.log(`📝 [AUDIT LOG]: ${actionType}`, payload);
+
+    // Write packet straight to the immutable database block
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert([payload]);
 
     if (error) {
-      console.error("AUDIT ERROR", error);
+      console.error("❌ Supabase Audit Log Database Error:", error.message);
     }
-
-    return { data, error };
   } catch (err) {
-    console.error("AUDIT EXCEPTION", err);
-    return { data: null, error: err };
+    console.error("❌ Critical Failure inside Logger Utility:", err.message);
   }
 };

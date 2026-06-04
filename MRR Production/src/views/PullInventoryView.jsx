@@ -1,49 +1,103 @@
 // ── Pull Inventory ────────────────────────────────
 import { useState } from 'react';
-import { C, fd, fm, doFifo, uid } from '../utils/helpers';
+import { C, fd, fm, doFifo, uid, tot, ft } from '../utils/helpers';
 import { generatePDF } from '../utils/pdfGenerator';
 import { attemptAccuLynxSync } from '../utils/accuLynxSync';
 import { Btn, Bdg, Modal, Fld, TA, Inp } from '../components/UIPrimitives';
 import { logAction } from "../utils/logger";
+import { supabase } from '../utils/supabase';
+import { useNotify } from '../context/NotificationContext';
 
-
-export default function PullInventory({ jobs, setJobs, inv, setInv, users, user, perms, activeLogo, acculynxConfig, jSC }) {  const [sel, setSel] = useState(null);
+export default function PullInventory({ jobs, setJobs, inv, setInv, users, user, perms, activeLogo, acculynxConfig, jSC }) {  
+  const { showToast } = useNotify();
+  const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
   const [pullQtys, setPullQtys] = useState({});
   const [retQtys, setRetQtys] = useState({});
   const [syncModal, setSyncModal] = useState(null);
+  
+  // Dedicated async operation mutation track states
+  const [pulling, setPulling] = useState(false);
+  const [returning, setReturning] = useState(false);
+  
   const isField = user.role === 'field';
   const myJobs = isField ? jobs.filter(j => j.assignedTo === user.id && j.status !== 'draft') : jobs.filter(j => j.status !== 'draft').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   
-  const openJob = j => { setSel(j); if (j.newForAssigned && j.assignedTo === user.id) setJobs(p => p.map(x => x.id === j.id ? { ...x, newForAssigned: false } : x)); };
+  const openJob = async (j) => { 
+    setSel(j); 
+    if (j.newForAssigned && j.assignedTo === user.id) {
+      try {
+        const { error } = await supabase.from('jobs').update({ newForAssigned: false }).eq('id', j.id);
+        if (error) throw error;
+        setJobs(p => p.map(x => x.id === j.id ? { ...x, newForAssigned: false } : x));
+      } catch (err) {
+        console.error('Failed to update newForAssigned badge:', err);
+      }
+    } 
+  };
 
-  const confirmPull = () => {
+  const confirmPull = async () => {
     if (!sel) return;
+    setPulling(true); // Locked interface from double-submit actions
+    
     const newInv = [...inv];
     let ok = true;
     const updItems = [...sel.items];
+    
     for (const item of updItems) {
       const qty = parseFloat(pullQtys[item.iid]) ?? item.planned;
       if (qty <= 0) continue;
       const idx = newInv.findIndex(i => i.id === item.iid);
       if (idx < 0) continue;
+      
       const res = doFifo(newInv[idx], qty);
-      if (!res) { alert(`Not enough stock for ${item.iname}`); ok = false; break; }
+      if (!res) { 
+        showToast(`Not enough warehouse stock available for ${item.iname}. Please review staging allocations.`, 'error'); 
+        ok = false; 
+        break; 
+      }
+      
       newInv[idx] = { ...newInv[idx], batches: res.batches };
       const ppu = qty > 0 ? res.cost / qty : 0;
       const ji = updItems.findIndex(i => i.iid === item.iid);
       updItems[ji] = { ...updItems[ji], pulled: qty, priceAtPull: ppu, pullCost: res.cost };
     }
-    if (!ok) return;
-    setInv(newInv);
-    const upd = { ...sel, status: 'active', items: updItems };
-    setJobs(p => p.map(j => j.id === sel.id ? upd : j));
-    setSel(upd);
-    setModal(null); setPullQtys({});
+    
+    if (!ok) {
+      setPulling(false);
+      return;
+    }
+
+    const updatedJob = { ...sel, status: 'active', items: updItems };
+
+    try {
+      const jobRes = await supabase.from('jobs').update({ status: 'active', items: updItems }).eq('id', sel.id);
+      if (jobRes.error) throw jobRes.error;
+
+      for (const updatedItem of newInv) {
+        const invRes = await supabase.from('inventory').update({ batches: updatedItem.batches }).eq('id', updatedItem.id);
+        if (invRes.error) throw invRes.error;
+      }
+
+      setInv(newInv);
+      setJobs(p => p.map(j => j.id === sel.id ? updatedJob : j));
+      setSel(updatedJob);
+      
+      await handlePullMaterials(sel.id, updItems);
+      showToast('Materials successfully pulled from warehouse staging.', 'success');
+      setModal(null); setPullQtys({});
+    } catch (err) {
+      console.error('Failed to finalize material pull layout:', err);
+      showToast(`Database Error: Pull aborted. ${err.message}`, 'error');
+    } finally {
+      setPulling(false); // Released interaction thread safely
+    }
   };
 
-  const confirmReturn = () => {
+  const confirmReturn = async () => {
     if (!sel) return;
+    setReturning(true); // Locked form against duplicate execution calls
+    
     const newInv = [...inv];
     const updItems = sel.items.map(item => {
       const ret = Math.min(parseFloat(retQtys[item.iid]) || 0, item.pulled);
@@ -56,12 +110,36 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
       }
       return { ...item, returned: ret };
     });
-    setInv(newInv);
-    const upd = { ...sel, status: 'completed', completedAt: new Date().toISOString(), items: updItems };
-    setJobs(p => p.map(j => j.id === sel.id ? upd : j));
-    setModal(null); setRetQtys({});
-    setTimeout(() => { generatePDF(upd, users, activeLogo); attemptAccuLynxSync(upd, users, acculynxConfig, setJobs); }, 300);
-    setSel(null);
+
+    const completedAt = new Date().toISOString();
+    const updatedJob = { ...sel, status: 'completed', completedAt, items: updItems };
+
+    try {
+      const jobRes = await supabase.from('jobs').update({ status: 'completed', completedAt, items: updItems }).eq('id', sel.id);
+      if (jobRes.error) throw jobRes.error;
+
+      for (const updatedItem of newInv) {
+        const invRes = await supabase.from('inventory').update({ batches: updatedItem.batches }).eq('id', updatedItem.id);
+        if (invRes.error) throw invRes.error;
+      }
+
+      setInv(newInv);
+      setJobs(p => p.map(j => j.id === sel.id ? updatedJob : j));
+      showToast('Job logistics completed. Generating material manifest report.', 'success');
+      setModal(null); setRetQtys({});
+      
+      setTimeout(() => { 
+        generatePDF(updatedJob, users, activeLogo); 
+        attemptAccuLynxSync(updatedJob, users, acculynxConfig, setJobs); 
+      }, 300);
+      
+      setSel(null);
+    } catch (err) {
+      console.error('Failed to complete job procedures:', err);
+      showToast(`Database Error: Could not process return & completion. ${err.message}`, 'error');
+    } finally {
+      setReturning(false); // Released lock path safely
+    }
   };
 
   const syncBadge = job => {
@@ -73,16 +151,15 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
   };
 
   const handlePullMaterials = async (jobId, materialsList) => {
-  // ... existing FIFO or material decrement logic ...
-  
-  await logAction(
-    user.id, 
-    user.email, 
-    'INVENTORY_PULL', 
-    `Pulled staging materials for Job #${jobId}`,
-    { jobId, materialsPulled: materialsList }
-  );
-};
+    // Triggered on successful confirmPull execution
+await logAction(
+  user.id, 
+  user.email, 
+  'INVENTORY_PULL', 
+  `Dispatched staging materials out for Job PO #${sel.po} (${sel.name}).`,
+  { targetId: sel.id, payload: { itemsPulled: updItems } }
+);
+  };
 
   return (
     <div>
@@ -140,7 +217,7 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
       </div>
 
       {modal === 'pull' && sel && (
-        <Modal title={`Pull Materials — ${sel.name}`} onClose={() => { setModal(null); setSel(null); setPullQtys({}); }} wide>
+        <Modal title={`Pull Materials — ${sel.name}`} onClose={() => { if (!pulling) { setModal(null); setSel(null); setPullQtys({}); } }} wide>
           <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: C.tl, fontWeight: 600 }}>Adjust quantities if needed. Confirm to deduct from warehouse inventory (FIFO).</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 14, fontSize: 13 }}>
             <thead><tr style={{ background: C.lg }}>{['Item', 'Planned', 'Actual to Pull', 'Available'].map(h => <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: C.sub, fontWeight: 700, fontSize: 11 }}>{h}</th>)}</tr></thead>
@@ -152,21 +229,23 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
                 <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}`, background: short ? C.rB : 'transparent' }}>
                   <td style={{ padding: '9px 10px', fontWeight: 700, color: C.navy }}>{item.iname}</td>
                   <td style={{ padding: '9px 10px' }}>{item.planned} {item.unit}</td>
-                  <td style={{ padding: '9px 10px' }}><Inp type="number" value={pullQtys[item.iid] ?? item.planned} min="0" max={avail} onChange={e => setPullQtys(p => ({ ...p, [item.iid]: Math.max(0, parseFloat(e.target.value) || 0) }))} style={{ width: 80, padding: '4px 8px' }} /></td>
+                  <td style={{ padding: '9px 10px' }}><Inp type="number" value={pullQtys[item.iid] ?? item.planned} min="0" max={avail} onChange={e => setPullQtys(p => ({ ...p, [item.iid]: Math.max(0, parseFloat(e.target.value) || 0) }))} style={{ width: 80, padding: '4px 8px' }} disabled={pulling} /></td>
                   <td style={{ padding: '9px 10px', color: short ? C.rd : C.gr, fontWeight: 700 }}>{avail} {item.unit}{short && ' ⚠️'}</td>
                 </tr>
               );
             })}</tbody>
           </table>
           <div style={{ display: 'flex', gap: 10 }}>
-            <Btn v="ghost" onClick={() => { setModal(null); setSel(null); setPullQtys({}); }} style={{ flex: 1, justifyContent: 'center' }}>Cancel</Btn>
-            <Btn v="teal" sz="lg" onClick={confirmPull} style={{ flex: 2, justifyContent: 'center' }}>✅ Confirm Pull from Warehouse</Btn>
+            <Btn v="ghost" onClick={() => { setModal(null); setSel(null); setPullQtys({}); }} style={{ flex: 1, justifyContent: 'center' }} disabled={pulling}>Cancel</Btn>
+            <Btn v="teal" sz="lg" onClick={confirmPull} style={{ flex: 2, justifyContent: 'center' }} disabled={pulling}>
+              {pulling ? '⏳ Allocation Sync In Progress...' : '✅ Confirm Pull from Warehouse'}
+            </Btn>
           </div>
         </Modal>
       )}
 
       {modal === 'return' && sel && (
-        <Modal title={`Return Unused — ${sel.name}`} onClose={() => { setModal(null); setRetQtys({}); }} wide>
+        <Modal title={`Return Unused — ${sel.name}`} onClose={() => { if (!returning) { setModal(null); setRetQtys({}); } }} wide>
           <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: C.am, fontWeight: 600 }}>Enter quantities being returned. PDF report + AccuLynx sync will trigger on completion.</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 14, fontSize: 13 }}>
             <thead><tr style={{ background: C.lg }}>{['Item', 'Pulled', 'Returning', 'Will Be Used'].map(h => <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: C.sub, fontWeight: 700, fontSize: 11 }}>{h}</th>)}</tr></thead>
@@ -177,7 +256,7 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
                 <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
                   <td style={{ padding: '9px 10px', fontWeight: 700, color: C.navy }}>{item.iname}</td>
                   <td style={{ padding: '9px 10px' }}>{item.pulled} {item.unit}</td>
-                  <td style={{ padding: '9px 10px' }}><Inp type="number" value={retQtys[item.iid] ?? 0} min="0" max={item.pulled} onChange={e => setRetQtys(p => ({ ...p, [item.iid]: Math.min(item.pulled, Math.max(0, parseFloat(e.target.value) || 0)) }))} style={{ width: 80, padding: '4px 8px' }} /></td>
+                  <td style={{ padding: '9px 10px' }}><Inp type="number" value={retQtys[item.iid] ?? 0} min="0" max={item.pulled} onChange={e => setRetQtys(p => ({ ...p, [item.iid]: Math.min(item.pulled, Math.max(0, parseFloat(e.target.value) || 0)) }))} style={{ width: 80, padding: '4px 8px' }} disabled={returning} /></td>
                   <td style={{ padding: '9px 10px', fontWeight: 800, color: used > 0 ? C.navy : C.sub }}>{used} {item.unit}</td>
                 </tr>
               );
@@ -192,8 +271,10 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
             )}
           </table>
           <div style={{ display: 'flex', gap: 10 }}>
-            <Btn v="ghost" onClick={() => { setModal(null); setRetQtys({}); }} style={{ flex: 1, justifyContent: 'center' }}>Cancel</Btn>
-            <Btn v="green" sz="lg" onClick={confirmReturn} style={{ flex: 2, justifyContent: 'center' }}>🏁 Complete Job & Generate PDF</Btn>
+            <Btn v="ghost" onClick={() => { setModal(null); setRetQtys({}); }} style={{ flex: 1, justifyContent: 'center' }} disabled={returning}>Cancel</Btn>
+            <Btn v="green" sz="lg" onClick={confirmReturn} style={{ flex: 2, justifyContent: 'center' }} disabled={returning}>
+              {returning ? '⏳ Compiling Core Assets...' : '🏁 Complete Job & Generate PDF'}
+            </Btn>
           </div>
         </Modal>
       )}

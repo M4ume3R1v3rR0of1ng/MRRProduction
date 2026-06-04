@@ -2,16 +2,18 @@
 import { useState } from "react";
 import { supabase } from "../utils/supabase";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, PhotoUpload } from "../components/UIPrimitives";
-import { C, fd, fm } from "../utils/helpers"; 
+import { C } from "../utils/helpers";
+import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";
+import { useNotify } from '../context/NotificationContext';
 
 // ── SUB-COMPONENT: ReqModal (Named Export) ─────────
 export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
   const [form, setForm] = useState({ vid: preVid || '', type: 'Oil Change', urgency: 'normal', notes: '', mileage: '' });
   const selV = vehs.find(v => v.id === form.vid);
-  
+  const { showToast } = useNotify();
   const submit = () => {
-    if (!form.vid || !form.notes.trim()) { alert('Please select a vehicle and describe the issue.'); return; }
+    if (!form.vid || !form.notes.trim()) { showToast('Please select a vehicle and describe the issue.', 'info'); return; }
     const v = vehs.find(x => x.id === form.vid);
     onSave({ 
       id: Math.random().toString(36).slice(2, 10), 
@@ -79,7 +81,7 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
 // ── MAIN VIEW COMPONENT (The Only Default Export) ──
 export default function FleetManagementView({ 
   vehs, setVehs, reqs, setReqs, users, user, perms, vehPhotos, setVehPhotos,
-  oilSt, detSt, predDays
+  oilSt, detSt, predDays, fd, fm 
 }) {
   const [filt, setFilt] = useState('all');
   const [sel, setSel] = useState(null);
@@ -95,7 +97,7 @@ export default function FleetManagementView({
   const logMi = () => {
     if (!form.mi || !form.date) return;
     const mi = parseFloat(form.mi);
-    if (mi < sel.mi) { alert('Cannot be less than current mileage.'); return; }
+    if (mi < sel.mi) { showToast('Cannot be less than current mileage.', 'info'); return; }
     const up = { ...sel, mi, mil: [...sel.mil, { dt: form.date, mi, by: user.id }] };
     setVehs(p => p.map(v => v.id === sel.id ? up : v));
     setSel(up); setModal(null); setForm({});
@@ -118,7 +120,7 @@ export default function FleetManagementView({
   const handleRemoveVehicle = async (vehicleId, vehicleName) => {
     if (!window.confirm(`Are you sure you want to permanently remove ${vehicleName} from the fleet roster?`)) return;
     const { error } = await supabase.from('vehicles').delete().eq('id', vehicleId);
-    if (error) alert("Database Error: " + error.message);
+    if (error) showToast(`Database Error: ${error.message}`, 'error');
     else setVehs(prev => prev.filter(v => v.id !== vehicleId));
   };
 

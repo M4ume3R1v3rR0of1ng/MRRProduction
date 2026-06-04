@@ -1,21 +1,14 @@
 // src/views/InventoryView.jsx
 import { useState } from 'react';
 import { supabase } from '../utils/supabase';
-import { C, uid, fd, fm } from '../utils/helpers';
+import { C, uid, fd, fm, tot, newestPrice } from '../utils/helpers';
 import { Btn, Bdg, Fld, Inp, Sel, Modal, PhotoUpload } from '../components/UIPrimitives';
 import { logAction } from '../utils/logger';
+import { sendEmail } from '../utils/email';
+import { useNotify } from '../context/NotificationContext';
+
 
 // ── INTERNAL FILE UTILITY COUNTERS ─────────────────
-const tot = (item) => {
-  if (!item || !item.batches) return 0;
-  return item.batches.reduce((s, b) => s + b.rem, 0);
-};
-
-const newestPrice = (item) => {
-  if (!item || !item.batches || !item.batches.length) return 0;
-  return [...item.batches].sort((a, b) => new Date(b.rcvd) - new Date(a.rcvd))[0].price;
-};
-
 export default function InventoryView({ inv, setInv, users, user, perms, invPhotos, setInvPhotos, curUser }) {
   const [srch, setSrch] = useState('');
   const [cat, setCat] = useState('All');
@@ -25,14 +18,23 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
   const [bulkItems, setBulkItems] = useState([]);
   const [bulkMeta, setBulkMeta] = useState({ date: new Date().toISOString().split('T')[0], po: '', vendor: '' });
   const [bulkSrch, setBulkSrch] = useState('');
-  
-  const cats = ['All', ...new Set(inv.map(i => i.cat).filter(Boolean))].sort();
+  const { showToast } = useNotify();
+
+ const cats = ['All', ...new Set(inv.map(i => i.cat).filter(Boolean))].sort();
   const filtered = inv.filter(i => i.name.toLowerCase().includes(srch.toLowerCase()) && (cat === 'All' || i.cat === cat));
   const sClr = i => { const s = tot(i); if (s <= i.alrt) return C.rd; if (s <= i.alrt * 1.5) return C.am; return C.gr; };
   const setPhoto = (id, data) => setInvPhotos(p => data ? { ...p, [id]: data } : Object.fromEntries(Object.entries(p).filter(([k]) => k !== id)));
 
   const addItem = async () => {
     if (!form.name || !form.cat || !form.unit) return;
+
+    await logAction(
+  user.id, 
+  user.email, 
+  'INV_MUTATION', 
+  `Manually adjusted stock level for '${item.name}' by ${adjustmentQty} units.`,
+  { targetId: item.id, warehouseCode: item.warehouse || 'WH-A', payload: { before: item.qty, adjustment: adjustmentQty } }
+);
     
     const record = { 
       id: 'i_' + uid(), 
@@ -46,7 +48,7 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
     const { error } = await supabase.from('inventory').insert([record]);
 
     if (error) {
-      alert("Database Error adding item: " + error.message);
+      showToast(`Database Error adding item: ${error.message}`, 'error');
     } else {
       setInv(p => [...p, record]);
       
@@ -64,6 +66,8 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
     }
   };
 
+
+  
   const editItem = async () => {
     const updatedFields = { 
       name: form.name, 
@@ -71,6 +75,7 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       unit: form.unit, 
       alrt: parseInt(form.alrt) || sel.alrt 
     };
+    
 
     const { error } = await supabase
       .from('inventory')
@@ -78,7 +83,7 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       .eq('id', sel.id);
 
     if (error) {
-      alert("Database Error modifying catalog record: " + error.message);
+      showToast(`Database Error modifying catalog record: ${error.message}`, 'error');
     } else {
       setInv(p => p.map(i => i.id === sel.id ? { ...i, ...updatedFields } : i));
       
@@ -116,10 +121,32 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       .eq('id', sel.id);
 
     if (error) {
-      alert("Database Error posting receipt batch: " + error.message);
+      showToast(`Database Error posting receipt batch: ${error.message}`, 'error');
     } else {
       setInv(p => p.map(i => i.id === sel.id ? { ...i, batches: updatedBatches } : i));
+      const updatedItem = { ...sel, batches: updatedBatches };
       
+      // Send Low Stock Alerts securely via Netlify backend function
+      if (tot(updatedItem) <= updatedItem.alrt) {
+        const managers = users.filter(u => 
+          (u.role === 'manager' || u.role === 'coordinator' || u.role === 'warehouse') && u.active
+        );
+        managers.forEach(mgr => {
+          if (mgr.email) {
+            fetch('/.netlify/functions/send-alert', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: mgr.email,
+                itemName: updatedItem.name,
+                currentStock: tot(updatedItem),
+                unit: updatedItem.unit,
+                alertThreshold: updatedItem.alrt
+              })
+            }).catch(err => console.error("Email processing error:", err));
+          }
+        });
+      }
       // Log Single Batch Reception
       await logAction(
         user.id,
@@ -141,9 +168,9 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
   const bulkTotal = bulkItems.reduce((s, b) => s + (parseFloat(b.qty) || 0) * (parseFloat(b.price) || 0), 0);
 
   const confirmBulk = async () => {
-    if (!bulkMeta.date) { alert('Please set a received date.'); return; }
+    if (!bulkMeta.date) { showToast('Please set a received date.', 'info'); return; }
     const valid = bulkItems.filter(b => parseFloat(b.qty) > 0);
-    if (valid.length === 0) { alert('Add at least one item with a quantity > 0.'); return; }
+    if (valid.length === 0) { showToast('Add at least one item with a quantity > 0.', 'info'); return; }
 
     const stateSnapshot = inv.map(item => {
       const bi = valid.find(b => b.iid === item.id);
@@ -203,9 +230,11 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       setBulkMeta({ date: new Date().toISOString().split('T')[0], po: '', vendor: '' }); 
       setBulkSrch('');
     } catch (err) {
-      alert("Error logging batch payload operations: " + err.message);
+      showToast(`Error logging batch payload operations: ${err.message}`, 'error');
     }
   };
+
+  
 
   return (
     <div>
@@ -290,7 +319,7 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
                   <Btn v="danger" sz="sm" onClick={async () => { 
                     if(window.confirm(`Permanently delete ${sel.name} from inventory?`)) { 
                       const { error } = await supabase.from('inventory').delete().eq('id', sel.id);
-                      if (error) alert("Database Error: " + error.message);
+                      if (error) showToast(`Database Error: ${error.message}`, 'error');
                       else {
                         setInv(p => p.filter(i => i.id !== sel.id)); 
                         await logAction(user.id, user.email, 'INV_MUTATION', `Permanently purged catalog blueprint item: "${sel.name}"`, { item_id: sel.id });

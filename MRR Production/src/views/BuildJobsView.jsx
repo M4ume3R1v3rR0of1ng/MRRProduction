@@ -1,11 +1,13 @@
 // ── Build Jobs ────────────────────────────────────
 import { useState } from 'react';
-import { C, uid, fd, fm, tot } from '../utils/helpers';
+import { C, uid, fd, fm, tot, mkJI } from '../utils/helpers';
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from '../components/UIPrimitives';
+import { sendEmail } from '../utils/email';
+import { supabase } from '../utils/supabase';
+import { useNotify } from '../context/NotificationContext';
 
-
-
-export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC, onNav }) {
+export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC, onNav, acculynxConfig }) { 
+  const { showToast } = useNotify();
   const [filt, setFilt] = useState('all');
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
@@ -19,36 +21,216 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
   const [axL, setAxL] = useState(false);
   const [apAssign, setApAssign] = useState('');
   const [srch, setSrch] = useState('');
+  
+  // Dedicated state hooks to isolate concurrent background mutations
+  const [saving, setSaving] = useState(false);
+  const [approving, setApproving] = useState(false);
+  
   const userPerms = perms;
 
-
-  const fieldUsers = users.filter(u => (u.role === 'field' || u.role === 'Site Supervisor') && u.active);  const counts = { all: jobs.length, draft: 0, approved: 0, active: 0, completed: 0, closed: 0 };
+  const fieldUsers = users.filter(u => (u.role === 'field' || u.role === 'Site Supervisor') && u.active);
+  const counts = { all: jobs.length, draft: 0, approved: 0, active: 0, completed: 0, closed: 0 };
   jobs.forEach(j => { if (counts[j.status] !== undefined) counts[j.status]++; });
   const q = srch.toLowerCase().trim();
   const shown = jobs.filter(j => (filt === 'all' || j.status === filt) && (q === '' || j.po.toLowerCase().includes(q) || j.name.toLowerCase().includes(q) || (j.addr || '').toLowerCase().includes(q))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const resetWiz = () => { setWStep(1); setWPO({ po: '', name: '', addr: '', notes: '' }); setWItems([]); setWAssign(''); setISrch(''); setAxQ(''); setAxR([]); };
+  
   const searchAX = async () => {
     if (!axQ.trim()) return;
+    
+    if (!acculynxConfig || !acculynxConfig.enabled || !acculynxConfig.proxyUrl) {
+      showToast('AccuLynx integration is disabled or proxy endpoint URL is unconfigured in Settings.', 'warning');
+      return;
+    }
+
     setAxL(true);
-    await new Promise(r => setTimeout(r, 600));
-    const mock = [{ po: 'PO-2025-010', name: 'Henderson Re-roof', addr: '4521 Sylvania Ave, Maumee OH' }, { po: 'PO-2025-011', name: 'Lake View Church', addr: '890 Lake Shore Dr, Toledo OH' }, { po: 'PO-2025-012', name: 'Perrysburg Commercial', addr: '200 Commerce Dr, Perrysburg OH' }];
-    setAxR(mock.filter(j => j.name.toLowerCase().includes(axQ.toLowerCase()) || j.po.toLowerCase().includes(axQ.toLowerCase())));
-    setAxL(false);
+    try {
+      const targetUrl = `${acculynxConfig.proxyUrl}/api/acculynx/jobs?q=${encodeURIComponent(axQ.trim())}`;
+      
+      const response = await fetch(targetUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${acculynxConfig.apiKey}` 
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned HTTP Error Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (Array.isArray(data)) {
+        setAxR(data);
+      } else if (data && Array.isArray(data.jobs)) {
+        setAxR(data.jobs); 
+      } else {
+        setAxR([]);
+      }
+      showToast(`AccuLynx search completed successfully.`, 'success');
+    } catch (err) {
+      console.error('AccuLynx Live Proxy Query Failure:', err);
+      showToast(`Integration Error: Failed fetching AccuLynx data records. ${err.message}`, 'error');
+      setAxR([]);
+    } finally {
+      setAxL(false);
+    }
   };
+  
   const addWItem = item => { if (wItems.find(i => i.iid === item.id)) return; setWItems(p => [...p, { iid: item.id, iname: item.name, icat: item.cat, unit: item.unit, qty: 1, avail: tot(item) }]); };
-  const saveJob = asDraft => {
-    if (!wPO.po || !wPO.name || wItems.length === 0) { alert('Please complete all steps first.'); return; }
+
+  const saveJob = async (asDraft) => {
+    if (!wPO.po || !wPO.name || wItems.length === 0) { 
+      showToast('Please complete all steps and select project materials first.', 'warning'); 
+      return; 
+    }
+    
+    setSaving(true); // Engaged primary saving gate
     const now = new Date().toISOString();
-    const job = { id: uid(), ...wPO, status: asDraft ? 'draft' : 'approved', assignedTo: wAssign, createdBy: user.id, createdAt: now, approvedAt: asDraft ? '' : now, completedAt: '', newForAssigned: !asDraft && !!wAssign, syncStatus: null, syncedAt: '', syncPayload: null, syncNote: '', items: wItems.map(i => mkJI(i.iid, i.iname, i.icat, i.unit, i.qty)) };
-    setJobs(p => [...p, job]);
-    setModal(null); resetWiz();
+    const jobId = uid();
+    
+    const job = { 
+      id: jobId, 
+      ...wPO, 
+      status: asDraft ? 'draft' : 'approved', 
+      assignedTo: wAssign, 
+      createdBy: user.id, 
+      createdAt: now, 
+      approvedAt: asDraft ? '' : now, 
+      completedAt: '', 
+      newForAssigned: !asDraft && !!wAssign, 
+      syncStatus: null, 
+      syncedAt: '', 
+      syncPayload: null, 
+      syncNote: '', 
+      items: wItems.map(i => mkJI(i.iid, i.iname, i.icat, i.unit, i.qty)) 
+    };
+
+    try {
+      const { error } = await supabase.from('jobs').insert([job]);
+      if (error) throw error;
+
+      setJobs(p => [...p, job]);
+      
+      if (!asDraft && wAssign) {
+        const assignedUser = users.find(u => u.id === wAssign);
+        if (assignedUser?.email) {
+          sendEmail({
+            to: assignedUser.email,
+            subject: `New Job Assigned: ${wPO.name}`,
+            html: `<h2>You've been assigned a new job</h2>
+                   <p><strong>Job:</strong> ${wPO.name}</p>
+                   <p><strong>PO:</strong> ${wPO.po}</p>
+                   <p><strong>Address:</strong> ${wPO.addr}</p>
+                   ${wPO.notes ? `<p><strong>Notes:</strong> ${wPO.notes}</p>` : ''}
+                   <p>Log in to pull inventory and get started.</p>`,
+          });
+        }
+      }
+      showToast(asDraft ? 'Job draft saved successfully.' : 'Job approved and supervisor notified.', 'success');
+      setModal(null); resetWiz();
+    } catch (err) {
+      console.error('Failed to save job:', err);
+      showToast(`Database Error: Could not save job. ${err.message}`, 'error');
+    } finally {
+      setSaving(false); // Released validation lock
+    }
   };
-  const doApprove = () => {
-    if (!apAssign) { alert('Please assign a site supervisor.'); return; }
-    setJobs(p => p.map(j => j.id === sel.id ? { ...j, status: 'approved', approvedAt: new Date().toISOString(), assignedTo: apAssign, newForAssigned: true } : j));
-    setSel(null); setModal(null); setApAssign('');
+
+  const doApprove = async () => {
+    if (!apAssign) { 
+      showToast('Please assign a site supervisor before approval.', 'warning'); 
+      return; 
+    }
+    
+    setApproving(true); // Engaged pipeline toggle gate
+    const approvedAt = new Date().toISOString();
+    
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: 'approved', approvedAt, assignedTo: apAssign, newForAssigned: true })
+        .eq('id', sel.id);
+        
+      if (error) throw error;
+
+      setJobs(p => p.map(j => j.id === sel.id ? { ...j, status: 'approved', approvedAt, assignedTo: apAssign, newForAssigned: true } : j));
+      
+      const assignedUser = users.find(u => u.id === apAssign);
+      if (assignedUser?.email) {
+        sendEmail({
+          to: assignedUser.email,
+          subject: `Job Approved & Assigned: ${sel.name}`,
+          html: `<h2>A job has been approved and assigned to you</h2>
+                 <p><strong>Job:</strong> ${sel.name}</p>
+                 <p><strong>PO:</strong> ${sel.po}</p>
+                 <p><strong>Address:</strong> ${sel.addr || 'N/A'}</p>
+                 <p>Log in to pull inventory and get started.</p>`,
+        });
+      }
+      showToast('Project successfully approved and assigned.', 'success');
+      setSel(null); setModal(null); setApAssign('');
+    } catch (err) {
+      console.error('Failed to approve job:', err);
+      showToast(`Database Error: Could not approve job. ${err.message}`, 'error');
+    } finally {
+      setApproving(false); // Released operational track
+    }
   };
+
+  const deleteJob = async (jobId) => {
+    try {
+      const { error } = await supabase.from('jobs').delete().eq('id', jobId);
+      if (error) throw error;
+      
+      setJobs(p => p.filter(j => j.id !== jobId)); 
+      if (sel?.id === jobId) setSel(null);
+      showToast('Job track purged successfully.', 'success');
+    } catch (err) {
+      console.error('Failed to delete job:', err);
+      showToast(`Database Error: Could not delete job record. ${err.message}`, 'error');
+    }
+  };
+
+  const closeJob = async () => {
+    const closedAt = new Date().toISOString();
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: 'closed', closedAt })
+        .eq('id', sel.id);
+      if (error) throw error;
+
+      const updated = { ...sel, status: 'closed', closedAt };
+      setJobs(p => p.map(j => j.id === sel.id ? updated : j)); 
+      setSel(updated);
+      showToast('Project closed and archived from pipeline.', 'success');
+    } catch (err) {
+      console.error('Failed to close job:', err);
+      showToast(`Database Error: Could not close job. ${err.message}`, 'error');
+    }
+  };
+
+  const reopenJob = async () => {
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: 'completed', closedAt: '' })
+        .eq('id', sel.id);
+      if (error) throw error;
+
+      const updated = { ...sel, status: 'completed', closedAt: '' };
+      setJobs(p => p.map(j => j.id === sel.id ? updated : j)); 
+      setSel(updated);
+      showToast('Job successfully returned to active completed view.', 'success');
+    } catch (err) {
+      console.error('Failed to reopen job:', err);
+      showToast(`Database Error: Could not reopen job. ${err.message}`, 'error');
+    }
+  };
+
   const filtInv = inv.filter(i => i.name.toLowerCase().includes(iSrch.toLowerCase()));
 
   return (
@@ -101,18 +283,17 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
                   </div>
                 )}
                 {perms.jobs_approve && job.status === 'draft' && <Btn v="teal" sz="sm" onClick={e => { e.stopPropagation(); setSel(job); setApAssign(job.assignedTo || ''); setModal('approve'); }}>Approve & Assign →</Btn>}
-{job.status === 'completed' && <Btn v="green" sz="sm" onClick={e => { e.stopPropagation(); generatePDF(job, users); }}>📄 PDF</Btn>}
-{perms.jobs_approve && (
-  <Btn v="danger" sz="sm" onClick={e => { 
-    e.stopPropagation();
-    if (window.confirm('Permanently delete this job record? This cannot be undone.')) { 
-      setJobs(p => p.filter(j => j.id !== job.id)); 
-      if (sel?.id === job.id) setSel(null);
-    } 
-  }}>
-    🗑️ Delete
-  </Btn>
-)}
+                {job.status === 'completed' && <Btn v="green" sz="sm" onClick={e => { e.stopPropagation(); generatePDF(job, users); }}>📄 PDF</Btn>}
+                {perms.jobs_approve && (
+                  <Btn v="danger" sz="sm" onClick={e => { 
+                    e.stopPropagation();
+                    if (window.confirm('Permanently delete this job record? This cannot be undone.')) { 
+                      deleteJob(job.id);
+                    } 
+                  }}>
+                    🗑️ Delete
+                  </Btn>
+                )}
               </div>
             </div>
           );
@@ -125,9 +306,9 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             {perms.jobs_approve && sel.status === 'draft' && <Btn v="teal" sz="sm" onClick={() => { setApAssign(sel.assignedTo || ''); setModal('approve'); }}>✅ Approve & Assign</Btn>}
             {(sel.status === 'completed' || sel.status === 'closed') && <Btn v="green" sz="sm" onClick={() => generatePDF(sel, users)}>📄 Download PDF Report</Btn>}
-            {perms.jobs_approve && sel.status === 'completed' && <Btn v="purple" sz="sm" onClick={() => { if (window.confirm('Close this job? It will be moved to the Closed list and archived from active work.')) { const updated = { ...sel, status: 'closed', closedAt: new Date().toISOString() }; setJobs(p => p.map(j => j.id === sel.id ? updated : j)); setSel(updated); } }}>🔒 Close Job</Btn>}
-            {perms.jobs_approve && sel.status === 'closed' && <Btn v="ghost" sz="sm" onClick={() => { const updated = { ...sel, status: 'completed', closedAt: '' }; setJobs(p => p.map(j => j.id === sel.id ? updated : j)); setSel(updated); }}>↩ Reopen</Btn>}
-            {perms.jobs_build && sel.status === 'draft' && <Btn v="danger" sz="sm" onClick={() => { if (window.confirm('Delete this draft?')) { setJobs(p => p.filter(j => j.id !== sel.id)); setModal(null); setSel(null); } }}>🗑️ Delete</Btn>}
+            {perms.jobs_approve && sel.status === 'completed' && <Btn v="purple" sz="sm" onClick={() => { if (window.confirm('Close this job? It will be moved to the Closed list and archived from active work.')) { closeJob(); } }}>🔒 Close Job</Btn>}
+            {perms.jobs_approve && sel.status === 'closed' && <Btn v="ghost" sz="sm" onClick={reopenJob}>↩ Reopen</Btn>}
+            {perms.jobs_build && sel.status === 'draft' && <Btn v="danger" sz="sm" onClick={() => { if (window.confirm('Delete this draft?')) { deleteJob(sel.id); setModal(null); } }}>🗑️ Delete</Btn>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 8, marginBottom: 16 }}>
             {[['Status', <Bdg color={jSC[sel.status].c}>{jSC[sel.status].l}</Bdg>], ['PO', sel.po], ['Assigned To', users.find(u => u.id === sel.assignedTo)?.name || 'Unassigned'], ['Created', fd(sel.createdAt)], ['Approved', fd(sel.approvedAt)], ['Completed', fd(sel.completedAt)]].map(([k, v]) => (
@@ -161,20 +342,22 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
             <div style={{ color: C.sub, marginTop: 2 }}>{sel.items.length} items planned</div>
           </div>
           <Fld label="Assign to Site Supervisor *">
-            <Sel value={apAssign} onChange={e => setApAssign(e.target.value)}>
+            <Sel value={apAssign} onChange={e => setApAssign(e.target.value)} disabled={approving}>
               <option value="">— Select Site Supervisor —</option>
               {fieldUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </Sel>
           </Fld>
           <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: 'center' }}>Cancel</Btn>
-            <Btn v="teal" onClick={doApprove} style={{ flex: 1, justifyContent: 'center' }}>✅ Approve & Notify</Btn>
+            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: 'center' }} disabled={approving}>Cancel</Btn>
+            <Btn v="teal" onClick={doApprove} style={{ flex: 1, justifyContent: 'center' }} disabled={approving}>
+              {approving ? '⏳ Approving...' : '✅ Approve & Notify'}
+            </Btn>
           </div>
         </Modal>
       )}
 
       {modal === 'new' && (
-        <Modal title={`New Job — Step ${wStep} of 3`} onClose={() => { setModal(null); resetWiz(); }} wide>
+        <Modal title={`New Job — Step ${wStep} of 3`} onClose={() => { if (!saving) { setModal(null); resetWiz(); } }} wide>
           <div style={{ display: 'flex', gap: 0, marginBottom: 18, background: C.lg, borderRadius: 8, overflow: 'hidden' }}>
             {['1. Find Job', '2. Add Inventory', '3. Assign & Save'].map((s, i) => (
               <div key={s} style={{ flex: 1, padding: '9px 6px', textAlign: 'center', fontSize: 11, fontWeight: 700, background: wStep === i + 1 ? C.blue : wStep > i + 1 ? C.gB : 'transparent', color: wStep === i + 1 ? C.w : wStep > i + 1 ? C.gr : C.sub }}>{wStep > i + 1 ? '✓ ' : ''}{s}</div>
@@ -183,8 +366,8 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
           {wStep === 1 && (
             <div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                <Inp value={axQ} onChange={e => setAxQ(e.target.value)} placeholder="Search AccuLynx job name or PO..." onKeyDown={e => e.key === 'Enter' && searchAX()} style={{ flex: 1 }} />
-                <Btn v="primary" onClick={searchAX}>{axL ? 'Searching...' : '🔍 Search'}</Btn>
+                <Inp value={axQ} onChange={e => setAxQ(e.target.value)} placeholder="Search AccuLynx job name or PO..." onKeyDown={e => e.key === 'Enter' && !axL && searchAX()} style={{ flex: 1 }} disabled={axL} />
+                <Btn v="primary" onClick={searchAX} disabled={axL}>{axL ? 'Searching...' : '🔍 Search'}</Btn>
               </div>
               {axR.length > 0 && (
                 <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: 8, overflow: 'hidden', marginBottom: 14 }}>
@@ -202,7 +385,7 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
                 <Fld label="Job Address *"><Inp value={wPO.addr} onChange={e => setWPO({ ...wPO, addr: e.target.value })} placeholder="123 Main St, Toledo OH" /></Fld>
                 <Fld label="Notes"><TA value={wPO.notes} onChange={e => setWPO({ ...wPO, notes: e.target.value })} placeholder="Job details..." /></Fld>
               </div>
-              <Btn v="primary" sz="lg" onClick={() => { if (!wPO.po || !wPO.name) { alert('PO and Job Name required.'); return; } setWStep(2); }} style={{ width: '100%', justifyContent: 'center', marginTop: 10 }}>Continue →</Btn>
+              <Btn v="primary" sz="lg" onClick={() => { if (!wPO.po || !wPO.name) { showToast('PO and Job Name are strictly required fields.', 'warning'); return; } setWStep(2); }} style={{ width: '100%', justifyContent: 'center', marginTop: 10 }}>Continue →</Btn>
             </div>
           )}
           {wStep === 2 && (
@@ -248,7 +431,7 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
                 <Btn v="ghost" onClick={() => setWStep(1)} style={{ flex: 1, justifyContent: 'center' }}>← Back</Btn>
-                <Btn v="primary" onClick={() => { if (wItems.length === 0) { alert('Add at least one item.'); return; } setWStep(3); }} style={{ flex: 1, justifyContent: 'center' }}>Continue →</Btn>
+                <Btn v="primary" onClick={() => { if (wItems.length === 0) { showToast('Add at least one workflow material item to build a job checklist.', 'warning'); return; } setWStep(3); }} style={{ flex: 1, justifyContent: 'center' }}>Continue →</Btn>
               </div>
             </div>
           )}
@@ -259,16 +442,20 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
                 <div style={{ fontSize: 12, color: C.sub }}>{wItems.length} items planned</div>
               </div>
               <Fld label="Assign to Site Supervisor" hint="Leave blank to save as draft and assign later.">
-                <Sel value={wAssign} onChange={e => setWAssign(e.target.value)}>
+                <Sel value={wAssign} onChange={e => setWAssign(e.target.value)} disabled={saving}>
                   <option value="">— Assign later (save as draft) —</option>
                   {fieldUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </Sel>
               </Fld>
               <div style={{ background: wAssign ? C.tB : C.aB, border: `1px solid ${wAssign ? C.tl : C.am}`, borderRadius: 8, padding: '8px 12px', marginBottom: 14, fontSize: 12, color: wAssign ? C.tl : C.am, fontWeight: 600 }}>{wAssign ? `✅ ${users.find(u => u.id === wAssign)?.name} will be notified when you approve.` : '⚠️ No supervisor assigned — will save as draft.'}</div>
               <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                <Btn v="ghost" onClick={() => setWStep(2)} style={{ flex: 1, justifyContent: 'center' }}>← Back</Btn>
-                <Btn v="ghost" onClick={() => saveJob(true)} style={{ flex: 1, justifyContent: 'center' }}>💾 Save Draft</Btn>
-                <Btn v="teal" onClick={() => saveJob(false)} style={{ flex: 1, justifyContent: 'center' }}>✅ Approve & Notify</Btn>
+                <Btn v="ghost" onClick={() => setWStep(2)} style={{ flex: 1, justifyContent: 'center' }} disabled={saving}>← Back</Btn>
+                <Btn v="ghost" onClick={() => saveJob(true)} style={{ flex: 1, justifyContent: 'center' }} disabled={saving}>
+                  {saving ? '⏳ Caching...' : '💾 Save Draft'}
+                </Btn>
+                <Btn v="teal" onClick={() => saveJob(false)} style={{ flex: 1, justifyContent: 'center' }} disabled={saving}>
+                  {saving ? '⏳ Submitting...' : '✅ Approve & Notify'}
+                </Btn>
               </div>
             </div>
           )}
@@ -277,4 +464,3 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
     </div>
   );
 }
-
