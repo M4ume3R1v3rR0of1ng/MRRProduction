@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { supabase } from "../utils/supabase";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, PhotoUpload } from "../components/UIPrimitives";
-import { C, fd, fm } from "../utils/helpers"; 
+import { C } from "../utils/helpers";
+import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";
 
 // ── SUB-COMPONENT: ReqModal (Named Export) ─────────
@@ -79,7 +80,7 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
 // ── MAIN VIEW COMPONENT (The Only Default Export) ──
 export default function FleetManagementView({ 
   vehs, setVehs, reqs, setReqs, users, user, perms, vehPhotos, setVehPhotos,
-  oilSt, detSt, predDays
+  oilSt, detSt, predDays, fd, fm 
 }) {
   const [filt, setFilt] = useState('all');
   const [sel, setSel] = useState(null);

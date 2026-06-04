@@ -44,7 +44,7 @@ export default function App() {
   const [curUser, setCurUser] = useState(null);
   const [view, setView] = useState('dashboard');
   const [collapsed, setCollapsed] = useState(false);
-  const [users, setUsers] = useState(SEED_U);
+  const [users, setUsers] = useState(SEED_U); // Initialized with fallback, overridden by DB mount
   const [warehouses, setWH] = useState(SEED_W);
   const [inv, setInv] = useState(SEED_I);
   const [vehs, setVehs] = useState(SEED_V);
@@ -68,11 +68,14 @@ export default function App() {
     async function load() {
       try {
         const [
-          { data: dbInv, error: invErr },
-          { data: dbVehs, error: vehErr },
-          { data: dbJobs, error: jobErr },
-          { data: dbReqs, error: reqErr },
-          { data: dbWH, error: whErr },
+        { data: dbInv, error: invErr },
+        { data: dbVehs, error: vehErr },
+        { data: dbJobs, error: jobErr },
+        { data: dbReqs, error: reqErr },
+        { data: dbWH, error: whErr },
+        { data: dbProfiles, error: profileErr },
+        { data: dbRolePerms, error: rpErr }, // Real-time DB Role Permissions Query
+        { data: dbUserOv, error: uoErr },    // Real-time DB User Overrides Query
           ip, vp, lg, rp, uo, ax
         ] = await Promise.all([
           supabase.from('inventory').select('*'),
@@ -80,6 +83,7 @@ export default function App() {
           supabase.from('jobs').select('*'),
           supabase.from('maintenance_requests').select('*'),
           supabase.from('warehouses').select('*'),
+          supabase.from('profiles').select('*'), // Querying single source of truth user records
           storage.get('mrr-v7-inv-photos').catch(() => null),
           storage.get('mrr-v7-veh-photos').catch(() => null),
           storage.get('mrr-v7-logos').catch(() => null),
@@ -89,24 +93,57 @@ export default function App() {
         ]);
 
         if (invErr) console.error("Inventory load error:", invErr.message);
-        else if (dbInv && dbInv.length > 0) setInv(dbInv);
+      else if (dbInv && dbInv.length > 0) setInv(dbInv);
 
-        if (vehErr) console.error("Vehicles load error:", vehErr.message);
-        else if (dbVehs && dbVehs.length > 0) setVehs(dbVehs);
+      if (vehErr) console.error("Vehicles load error:", vehErr.message);
+      else if (dbVehs && dbVehs.length > 0) setVehs(dbVehs);
 
-        if (jobErr) console.error("Jobs load error:", jobErr.message);
-        else if (dbJobs && dbJobs.length > 0) setJobs(dbJobs);
+      if (jobErr) console.error("Jobs load error:", jobErr.message);
+      else if (dbJobs && dbJobs.length > 0) setJobs(dbJobs);
 
-        if (reqErr) console.error("Requests load error:", reqErr.message);
-        else if (dbReqs && dbReqs.length > 0) setReqs(dbReqs.sort((a, b) => new Date(b.at) - new Date(a.at)));
+      if (reqErr) console.error("Requests load error:", reqErr.message);
+      else if (dbReqs && dbReqs.length > 0) setReqs(dbReqs.sort((a, b) => new Date(b.at) - new Date(a.at)));
 
-        if (whErr) console.error("Warehouses load error:", whErr.message);
-        else if (dbWH && dbWH.length > 0) setWH(dbWH);
+      if (whErr) console.error("Warehouses load error:", whErr.message);
+      else if (dbWH && dbWH.length > 0) setWH(dbWH);
+
+      if (profileErr) console.error("Profiles load error:", profileErr.message);
+      else if (dbProfiles && dbProfiles.length > 0) setUsers(dbProfiles);
+
+      // PARSE ROLE PERMISSIONS FROM DATABASE
+      if (rpErr) console.error("Role permissions DB load error:", rpErr.message);
+      else if (dbRolePerms && dbRolePerms.length > 0) {
+        const formattedRolePerms = {};
+        dbRolePerms.forEach(row => {
+          formattedRolePerms[row.role] = row.permissions;
+        });
+        setRolePerms(p => ({ ...p, ...formattedRolePerms }));
+      }
+      
+      if (uoErr) console.error("User overrides DB load error:", uoErr.message);
+      else if (dbUserOv && dbUserOv.length > 0) {
+        const formattedUserOv = {};
+        dbUserOv.forEach(row => {
+          formattedUserOv[row.user_id] = row.overrides;
+        });
+        setUserOverrides(formattedUserOv);
+      }
 
         if (ip?.value) setInvPhotos(JSON.parse(ip.value));
         if (vp?.value) setVehPhotos(JSON.parse(vp.value));
-        if (lg?.value) setLogos(JSON.parse(lg.value));
-        if (rp?.value) {
+if (lg?.value) {
+  try {
+    const parsedLogos = JSON.parse(lg.value);
+    if (Array.isArray(parsedLogos)) {
+      setLogos(parsedLogos);
+    } else {
+      setLogos([]); // Clean reset if local storage holds an object instead of array
+    }
+  } catch (e) {
+    console.error("Failed to parse logos from storage:", e);
+    setLogos([]);
+  }
+}        if (rp?.value) {
           const saved = JSON.parse(rp.value);
           setRolePerms(p => Object.fromEntries(Object.keys(p).map(r => [r, { ...p[r], ...(saved[r] || {}) }])));
         }
@@ -131,8 +168,10 @@ export default function App() {
   const pendingReqCount = useMemo(() => reqs.filter(r => r.status === 'pending').length, [reqs]);
   const lowStockCount = useMemo(() => inv.filter(i => tot(i) <= i.alrt).length, [inv]);
   const newJobsForMe = useMemo(() => curUser ? jobs.filter(j => j.newForAssigned && j.assignedTo === curUser.id).length : 0, [jobs, curUser]);
-  const activeLogo = useMemo(() => logos.find(l => l.isActive)?.data || null, [logos]);
-  const userPerms = useMemo(() => { if (!curUser) return {}; return getEffectivePerms(curUser, rolePerms, userOverrides); }, [curUser, rolePerms, userOverrides]);
+const activeLogo = useMemo(() => {
+  if (!logos || !Array.isArray(logos)) return null;
+  return logos.find(l => l.isActive)?.data || null;
+}, [logos]);  const userPerms = useMemo(() => { if (!curUser) return {}; return getEffectivePerms(curUser, rolePerms, userOverrides); }, [curUser, rolePerms, userOverrides]);
 
   if (loading) {
     return (
@@ -163,41 +202,57 @@ export default function App() {
         <div style={{ flex: 1, padding: 20, overflowY: 'auto' }}>
           {view === 'dashboard' && <DashboardView inv={inv} vehs={vehs} reqs={reqs} jobs={jobs} users={users} user={curUser} perms={userPerms} onNav={setView} tot={tot} jSC={jSC} />}
 
-{view === 'buildjobs' && userPerms.jobs_build && (
-  <BuildJobsView 
-    jobs={jobs} 
-    setJobs={setJobs} 
-    inv={inv} 
-    users={users} 
-    user={curUser} 
-    perms={userPerms} 
-    jSC={jSC}
-    view={view}      
-    onNav={setView}   
-  />
-)}        
+          {view === 'buildjobs' && userPerms.jobs_build && (
+            <BuildJobsView 
+              jobs={jobs} 
+              setJobs={setJobs} 
+              inv={inv} 
+              users={users} 
+              user={curUser} 
+              perms={userPerms} 
+              jSC={jSC}
+              view={view}      
+              onNav={setView}   
+              acculynxConfig={acculynxConfig}
+            />
+          )}        
 
           {view === 'pull' && <PullInventoryView jobs={jobs} setJobs={setJobs} inv={inv} setInv={setInv} users={users} user={curUser} perms={userPerms} activeLogo={activeLogo} acculynxConfig={acculynxConfig} jSC={jSC}/>}
           {view === 'inventory' && userPerms.inv_view && <InventoryView inv={inv} setInv={setInv} users={users} user={curUser} perms={userPerms} invPhotos={invPhotos} setInvPhotos={setInvPhotos} />}
-{view === 'fleet' && userPerms.fleet_view && (
-  <FleetManagementView 
-    vehs={vehs} 
-    setVehs={setVehs} 
-    reqs={reqs} 
-    setReqs={setReqs} 
-    users={users} 
-    user={curUser} 
-    perms={userPerms} 
-    vehPhotos={vehPhotos} 
-    setVehPhotos={setVehPhotos}
-    oilSt={oilSt}
-    detSt={detSt}
-    predDays={predDays}
-    fd={fd}   
-    fm={fm}   
-  />
-)}          {view === 'requests' && (userPerms.maint_submit || userPerms.maint_manage) && <MaintenanceRequestsView reqs={reqs} setReqs={setReqs} vehs={vehs} users={users} user={curUser} perms={userPerms} />}
-          {view === 'reports' && userPerms.reports_view && <ReportsView jobs={jobs} users={users} user={curUser} perms={userPerms} />}
+          
+          {view === 'fleet' && userPerms.fleet_view && (
+            <FleetManagementView 
+              vehs={vehs} 
+              setVehs={setVehs} 
+              reqs={reqs} 
+              setReqs={setReqs} 
+              users={users} 
+              user={curUser} 
+              perms={userPerms} 
+              vehPhotos={vehPhotos} 
+              setVehPhotos={setVehPhotos}
+              oilSt={oilSt}
+              detSt={detSt}
+              predDays={predDays}
+              fd={fd}   
+              fm={fm}   
+            />
+          )}          
+          
+          {view === 'requests' && (userPerms.maint_submit || userPerms.maint_manage) && <MaintenanceRequestsView reqs={reqs} setReqs={setReqs} vehs={vehs} users={users} user={curUser} perms={userPerms} />}
+          
+          {view === 'reports' && userPerms.reports_view && (
+            <ReportsView 
+              jobs={jobs} 
+              users={users} 
+              user={curUser} 
+              perms={userPerms} 
+              inv={inv} 
+              vehs={vehs} 
+              reqs={reqs} 
+            />
+          )}
+          
           {view === 'users' && userPerms.users_manage && <UserManagementView users={users} setUsers={setUsers} currentUser={curUser} rolePerms={rolePerms} userOverrides={userOverrides} setUserOverrides={setUserOverrides} />}
           {view === 'settings' && userPerms.settings_manage && <SettingsView warehouses={warehouses} setWarehouses={setWH} logos={logos} setLogos={setLogos} rolePerms={rolePerms} setRolePerms={setRolePerms} acculynxConfig={acculynxConfig} setAccuLynxConfig={setAccuLynxConfig} />}
           {view === 'profile' && <ProfileView user={curUser} onUpdateUser={setCurUser} />}

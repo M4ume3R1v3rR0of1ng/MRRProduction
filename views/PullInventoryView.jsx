@@ -1,13 +1,14 @@
 // ── Pull Inventory ────────────────────────────────
 import { useState } from 'react';
-import { C, fd, fm, doFifo, uid } from '../utils/helpers';
+import { C, fd, fm, doFifo, uid, tot, ft } from '../utils/helpers';
 import { generatePDF } from '../utils/pdfGenerator';
 import { attemptAccuLynxSync } from '../utils/accuLynxSync';
 import { Btn, Bdg, Modal, Fld, TA, Inp } from '../components/UIPrimitives';
 import { logAction } from "../utils/logger";
+import { supabase } from '../utils/supabase';
 
-
-export default function PullInventory({ jobs, setJobs, inv, setInv, users, user, perms, activeLogo, acculynxConfig, jSC }) {  const [sel, setSel] = useState(null);
+export default function PullInventory({ jobs, setJobs, inv, setInv, users, user, perms, activeLogo, acculynxConfig, jSC }) {  
+  const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
   const [pullQtys, setPullQtys] = useState({});
   const [retQtys, setRetQtys] = useState({});
@@ -15,13 +16,25 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
   const isField = user.role === 'field';
   const myJobs = isField ? jobs.filter(j => j.assignedTo === user.id && j.status !== 'draft') : jobs.filter(j => j.status !== 'draft').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   
-  const openJob = j => { setSel(j); if (j.newForAssigned && j.assignedTo === user.id) setJobs(p => p.map(x => x.id === j.id ? { ...x, newForAssigned: false } : x)); };
+  const openJob = async (j) => { 
+    setSel(j); 
+    if (j.newForAssigned && j.assignedTo === user.id) {
+      try {
+        const { error } = await supabase.from('jobs').update({ newForAssigned: false }).eq('id', j.id);
+        if (error) throw error;
+        setJobs(p => p.map(x => x.id === j.id ? { ...x, newForAssigned: false } : x));
+      } catch (err) {
+        console.error('Failed to update newForAssigned badge:', err);
+      }
+    } 
+  };
 
-  const confirmPull = () => {
+  const confirmPull = async () => {
     if (!sel) return;
     const newInv = [...inv];
     let ok = true;
     const updItems = [...sel.items];
+    
     for (const item of updItems) {
       const qty = parseFloat(pullQtys[item.iid]) ?? item.planned;
       if (qty <= 0) continue;
@@ -35,14 +48,31 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
       updItems[ji] = { ...updItems[ji], pulled: qty, priceAtPull: ppu, pullCost: res.cost };
     }
     if (!ok) return;
-    setInv(newInv);
-    const upd = { ...sel, status: 'active', items: updItems };
-    setJobs(p => p.map(j => j.id === sel.id ? upd : j));
-    setSel(upd);
-    setModal(null); setPullQtys({});
+
+    const updatedJob = { ...sel, status: 'active', items: updItems };
+
+    try {
+      const jobRes = await supabase.from('jobs').update({ status: 'active', items: updItems }).eq('id', sel.id);
+      if (jobRes.error) throw jobRes.error;
+
+      for (const updatedItem of newInv) {
+        const invRes = await supabase.from('inventory').update({ batches: updatedItem.batches }).eq('id', updatedItem.id);
+        if (invRes.error) throw invRes.error;
+      }
+
+      setInv(newInv);
+      setJobs(p => p.map(j => j.id === sel.id ? updatedJob : j));
+      setSel(updatedJob);
+      
+      await handlePullMaterials(sel.id, updItems);
+      setModal(null); setPullQtys({});
+    } catch (err) {
+      console.error('Failed to finalize material pull layout:', err);
+      alert(`Database Error: Pull aborted. ${err.message}`);
+    }
   };
 
-  const confirmReturn = () => {
+  const confirmReturn = async () => {
     if (!sel) return;
     const newInv = [...inv];
     const updItems = sel.items.map(item => {
@@ -56,12 +86,33 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
       }
       return { ...item, returned: ret };
     });
-    setInv(newInv);
-    const upd = { ...sel, status: 'completed', completedAt: new Date().toISOString(), items: updItems };
-    setJobs(p => p.map(j => j.id === sel.id ? upd : j));
-    setModal(null); setRetQtys({});
-    setTimeout(() => { generatePDF(upd, users, activeLogo); attemptAccuLynxSync(upd, users, acculynxConfig, setJobs); }, 300);
-    setSel(null);
+
+    const completedAt = new Date().toISOString();
+    const updatedJob = { ...sel, status: 'completed', completedAt, items: updItems };
+
+    try {
+      const jobRes = await supabase.from('jobs').update({ status: 'completed', completedAt, items: updItems }).eq('id', sel.id);
+      if (jobRes.error) throw jobRes.error;
+
+      for (const updatedItem of newInv) {
+        const invRes = await supabase.from('inventory').update({ batches: updatedItem.batches }).eq('id', updatedItem.id);
+        if (invRes.error) throw invRes.error;
+      }
+
+      setInv(newInv);
+      setJobs(p => p.map(j => j.id === sel.id ? updatedJob : j));
+      setModal(null); setRetQtys({});
+      
+      setTimeout(() => { 
+        generatePDF(updatedJob, users, activeLogo); 
+        attemptAccuLynxSync(updatedJob, users, acculynxConfig, setJobs); 
+      }, 300);
+      
+      setSel(null);
+    } catch (err) {
+      console.error('Failed to complete job procedures:', err);
+      alert(`Database Error: Could not process return & completion. ${err.message}`);
+    }
   };
 
   const syncBadge = job => {
@@ -73,16 +124,14 @@ export default function PullInventory({ jobs, setJobs, inv, setInv, users, user,
   };
 
   const handlePullMaterials = async (jobId, materialsList) => {
-  // ... existing FIFO or material decrement logic ...
-  
-  await logAction(
-    user.id, 
-    user.email, 
-    'INVENTORY_PULL', 
-    `Pulled staging materials for Job #${jobId}`,
-    { jobId, materialsPulled: materialsList }
-  );
-};
+    await logAction(
+      user.id, 
+      user.email, 
+      'INVENTORY_PULL', 
+      `Pulled staging materials for Job #${jobId}`,
+      { jobId, materialsPulled: materialsList }
+    );
+  };
 
   return (
     <div>

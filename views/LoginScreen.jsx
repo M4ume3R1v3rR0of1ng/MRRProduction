@@ -73,11 +73,11 @@ export default function LoginScreen({ onLogin, activeLogo }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: `linear-gradient(135deg,${C.navy} 0%,${C.blue} 55%,${C.navy} 100%)`, display: 'flex', alignItems: 'center', justifycontent: 'center', padding: 16 }}>
+    <div style={{ minHeight: '100vh', background: `linear-gradient(135deg,${C.navy} 0%,${C.blue} 55%,${C.navy} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
       <div style={{ background: C.w, borderRadius: 18, padding: 36, width: '100%', maxWidth: 420, boxShadow: '0 24px 60px rgba(0,0,0,0.4)', margin: 'auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-            <div style={{ width: 54, height: 54, background: C.gold, borderRadius: 14, display: 'flex', alignItems: 'center', justifycontent: 'center', overflow: 'hidden' }}>
+            <div style={{ width: 54, height: 54, background: C.gold, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
               {activeLogo ? <img src={activeLogo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 28 }}>🏠</span>}
             </div>
             <div style={{ textAlign: 'left' }}>

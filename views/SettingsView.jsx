@@ -12,7 +12,8 @@ export default function SettingsView({
   // Navigation State
   const [currentTab, setCurrentTab] = useState('Permissions');
   
-  const [whForm, setWhForm] = useState({ name: '', location: '' });
+  // Expanded form state to handle facility codes
+  const [whForm, setWhForm] = useState({ name: '', location: '', code: '' });
   const [savingAx, setSavingAx] = useState(false);
 
   // Tab definitions matching layout preferences
@@ -24,81 +25,105 @@ export default function SettingsView({
     { id: 'System', label: 'System', icon: 'ℹ️' },
   ];
 
-  // ACTION 1: Add a new physical warehouse to the system
+  // ACTION 1: Add a new physical warehouse to the system with database persistence
   const handleAddWarehouse = async (e) => {
     e.preventDefault();
     if (!whForm.name.trim()) return;
 
+    const generatedCode = whForm.code.trim().toUpperCase() || whForm.name.trim().substring(0, 3).toUpperCase();
+    const targetId = 'w_' + Math.random().toString(36).substr(2, 9);
+
     const record = {
-      id: 'w_' + Math.random().toString(36).substr(2, 9),
+      id: targetId,
       name: whForm.name.trim(),
+      code: generatedCode,
       location: whForm.location.trim() || 'N/A',
       active: true
     };
 
-    const { error } = await supabase.from('warehouses').insert([record]);
+    try {
+      const { error } = await supabase.from('warehouses').insert([record]);
+      if (error) throw error;
 
-    if (error) {
-      alert("Database Error adding warehouse: " + error.message);
-    } else {
       setWarehouses(prev => [...prev, record]);
-      setWhForm({ name: '', location: '' });
+      setWhForm({ name: '', location: '', code: '' });
+    } catch (err) {
+      alert("Database Error adding warehouse: " + err.message);
     }
   };
 
-  // ACTION 2: Toggle permission keys leveraging functional updates to guarantee immediate toggle actions
-  const handleTogglePerm = async (targetRole, permKey) => {
-    setRolePerms(prevPerms => {
-      const nextGlobalPermsState = {
-        ...prevPerms,
-        [targetRole]: {
-          ...(prevPerms?.[targetRole] || {}),
-          [permKey]: !(prevPerms?.[targetRole]?.[permKey])
-        }
-      };
-
-      // Handle persistence to global storage layout targets asynchronously
-      if (typeof window !== 'undefined' && window.storage) {
-        window.storage.set('mrr-v7-roleperms', JSON.stringify(nextGlobalPermsState)).catch(err => {
-          console.error("Storage save failure:", err);
-        });
-      }
-
-      return nextGlobalPermsState;
-    });
+  // ACTION 2: Toggle permission keys with instant Supabase database persistence
+const handleTogglePerm = async (targetRole, permKey) => {
+  // 1. Calculate the next permission configuration state safely
+  const currentRolePerms = rolePerms?.[targetRole] || {};
+  const nextRolePermsState = {
+    ...currentRolePerms,
+    [permKey]: !currentRolePerms[permKey]
   };
 
-  // ACTION 3: Reset individual role column to matching factory state templates
-  const handleResetRole = async (targetRole) => {
-    const backupDefaults = DEFAULT_ROLE_PERMS?.[targetRole] || {};
-    
-    setRolePerms(prevPerms => {
-      const nextGlobalPermsState = {
-        ...prevPerms,
-        [targetRole]: { ...backupDefaults }
-      };
+  try {
+    // 2. Perform a network upsert operation into the database table row
+    const { error } = await supabase
+      .from('role_permissions')
+      .upsert({ 
+        role: targetRole, 
+        permissions: nextRolePermsState,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'role' });
 
-      if (typeof window !== 'undefined' && window.storage) {
-        window.storage.set('mrr-v7-roleperms', JSON.stringify(nextGlobalPermsState)).catch(err => {
-          console.error("Storage save failure:", err);
-        });
-      }
+    if (error) throw error;
 
-      return nextGlobalPermsState;
-    });
-  };
+    // 3. Sync the local React UI state tracking block on success
+    setRolePerms(prev => ({
+      ...prev,
+      [targetRole]: nextRolePermsState
+    }));
+  } catch (err) {
+    console.error("Failed to sync role permissions upgrade to Supabase:", err);
+    alert(`Database Error: Settings could not sync. ${err.message}`);
+  }
+};
+
+// ACTION 3: Reset individual role layout back to default configurations
+const handleResetRole = async (targetRole) => {
+  const backupDefaults = DEFAULT_ROLE_PERMS?.[targetRole] || {};
+  
+  if (!window.confirm(`Are you sure you want to reset all permissions for ${targetRole} to system factory defaults?`)) {
+    return;
+  }
+
+  try {
+    // Overwrite database configurations with factory objects
+    const { error } = await supabase
+      .from('role_permissions')
+      .upsert({ 
+        role: targetRole, 
+        permissions: backupDefaults,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'role' });
+
+    if (error) throw error;
+
+    // Update frontend memory matrices
+    setRolePerms(prev => ({
+      ...prev,
+      [targetRole]: backupDefaults
+    }));
+  } catch (err) {
+    console.error("Failed to restore factory settings bundle:", err);
+    alert(`Database Error: Reset aborted. ${err.message}`);
+  }
+};
 
   // ACTION 4: Save AccuLynx API connection credentials
   const handleSaveAccuLynx = async (e) => {
     e.preventDefault();
     setSavingAx(true);
     
-    // 1. Commit configuration properties to local state caching profiles
     if (typeof window !== 'undefined' && window.storage) {
       await window.storage.set('mrr-v7-acculynx', JSON.stringify(acculynxConfig));
     }
 
-    // 2. Perform a test handshake call via our new Netlify function proxy endpoint
     try {
       const proxyRoute = acculynxConfig?.proxyUrl || '/.netlify/functions/acculynx-sync';
       
@@ -136,21 +161,31 @@ export default function SettingsView({
       <div style={{ fontSize: 14, fontWeight: 700, color: '#0f294a' }}>{value}</div>
     </div>
   );
-  const handleRoleChange = async (targetUserId, newRole) => {
-    // 1. Your existing logic that updates the database via Supabase/State...
-    const { error } = await supabase
-      .from('users')
-      .update({ role: newRole })
-      .eq('id', targetUserId);
 
-    if (!error) {
-      console.log("AUDIT LOG TRIGGERED");
+  // FIX: Directed table mutation to targeted profiles table to prevent silent data dropouts
+  const handleRoleChange = async (targetUserId, newRole) => {
+    try {
+      const { error } = await supabase
+        .from('profiles') // Changed from 'users' to unified 'profiles' source of truth
+        .update({ role: newRole })
+        .eq('id', targetUserId);
+
+      if (error) throw error;
+
       await logAction(
         curUser.id, 
         curUser.email, 
         'PERM_CHANGE', 
         `Changed user ${targetUserId} role configuration to '${newRole}'`
       );
+      
+      // Sync local users list state vector
+      if (setUsers) {
+        setUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, role: newRole } : u));
+      }
+    } catch (err) {
+      console.error("Failed to commit role change metrics:", err);
+      alert(`Database Error: Could not modify user access profile. ${err.message}`);
     }
   };
 
@@ -231,13 +266,11 @@ export default function SettingsView({
                 <tbody>
                   {PERM_GROUPS?.map(([groupTitle, groupKeys]) => (
                     <React.Fragment key={groupTitle}>
-                      {/* Category Header Separator */}
                       <tr style={{ background: '#0f294a' }}>
                         <td colSpan={(ROLE_COLS?.length || 0) + 1} style={{ padding: '12px 14px', fontWeight: 800, color: '#ffffff', fontSize: 13, letterSpacing: '0.3px' }}>
                           {groupTitle}
                         </td>
                       </tr>
-                      {/* Mapping Individual Feature Rule Options */}
                       {Array.isArray(groupKeys) && groupKeys.map(pKey => (
                         <tr key={pKey} style={{ borderBottom: `1px solid #f1f5f9`, backgroundColor: '#ffffff' }}>
                           <td style={{ padding: '14px 12px' }}>
@@ -358,8 +391,9 @@ export default function SettingsView({
             <p style={{ margin: '0 0 20px 0', color: C.sub, fontSize: 13 }}>Manage physical storage branches connected to material balance feeds.</p>
             
             <form onSubmit={handleAddWarehouse} style={{ display: 'flex', gap: 10, alignItems: 'end', marginBottom: 16, flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 200 }}><Fld label="Warehouse Facility Name"><Inp value={whForm.name} onChange={e => setWhForm({ ...whForm, name: e.target.value })} placeholder="e.g. Saint Joe Road Warehouse" required /></Fld></div>
-              <div style={{ flex: 1, minWidth: 200 }}><Fld label="Location Address / City"><Inp value={whForm.location} onChange={e => setWhForm({ ...whForm, location: e.target.value })} placeholder="e.g. Fort Wayne, IN" /></Fld></div>
+              <div style={{ flex: 2, minWidth: 200 }}><Fld label="Warehouse Facility Name"><Inp value={whForm.name} onChange={e => setWhForm({ ...whForm, name: e.target.value })} placeholder="e.g. Saint Joe Road Warehouse" required /></Fld></div>
+              <div style={{ flex: 1, minWidth: 90 }}><Fld label="Code Identification"><Inp value={whForm.code} onChange={e => setWhForm({ ...whForm, code: e.target.value })} placeholder="e.g. SJR" /></Fld></div>
+              <div style={{ flex: 2, minWidth: 200 }}><Fld label="Location Address / City"><Inp value={whForm.location} onChange={e => setWhForm({ ...whForm, location: e.target.value })} placeholder="e.g. Fort Wayne, IN" /></Fld></div>
               <Btn v="primary" type="submit" style={{ height: 38, marginBottom: 12 }}>➕ Add Branch</Btn>
             </form>
 
@@ -367,7 +401,10 @@ export default function SettingsView({
               {warehouses?.map(w => (
                 <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: C.lg, padding: '12px 16px', borderRadius: 8 }}>
                   <div>
-                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>{w.name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>{w.name}</div>
+                      {w.code && <Bdg color="blue" sz="sm" style={{ fontSize: 10 }}>{w.code}</Bdg>}
+                    </div>
                     <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>📍 {w.location || 'No address logged'}</div>
                   </div>
                   <Bdg color={w.active ? 'green' : 'gray'}>{w.active ? 'Operational' : 'Inactive'}</Bdg>

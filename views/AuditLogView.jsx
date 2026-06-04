@@ -11,7 +11,7 @@ export default function AuditLogView({ perms }) {
     async function fetchLogs() {
       setLoading(true);
       const { data, error } = await supabase
-        .from("system_logs")
+        .from("audit_logs")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(200);

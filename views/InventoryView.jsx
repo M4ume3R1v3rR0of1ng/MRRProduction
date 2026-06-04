@@ -1,21 +1,12 @@
 // src/views/InventoryView.jsx
 import { useState } from 'react';
 import { supabase } from '../utils/supabase';
-import { C, uid, fd, fm } from '../utils/helpers';
+import { C, uid, fd, fm, tot, newestPrice } from '../utils/helpers';
 import { Btn, Bdg, Fld, Inp, Sel, Modal, PhotoUpload } from '../components/UIPrimitives';
 import { logAction } from '../utils/logger';
+import { sendEmail } from '../utils/email';
 
 // ── INTERNAL FILE UTILITY COUNTERS ─────────────────
-const tot = (item) => {
-  if (!item || !item.batches) return 0;
-  return item.batches.reduce((s, b) => s + b.rem, 0);
-};
-
-const newestPrice = (item) => {
-  if (!item || !item.batches || !item.batches.length) return 0;
-  return [...item.batches].sort((a, b) => new Date(b.rcvd) - new Date(a.rcvd))[0].price;
-};
-
 export default function InventoryView({ inv, setInv, users, user, perms, invPhotos, setInvPhotos, curUser }) {
   const [srch, setSrch] = useState('');
   const [cat, setCat] = useState('All');
@@ -26,7 +17,7 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
   const [bulkMeta, setBulkMeta] = useState({ date: new Date().toISOString().split('T')[0], po: '', vendor: '' });
   const [bulkSrch, setBulkSrch] = useState('');
   
-  const cats = ['All', ...new Set(inv.map(i => i.cat).filter(Boolean))].sort();
+ const cats = ['All', ...new Set(inv.map(i => i.cat).filter(Boolean))].sort();
   const filtered = inv.filter(i => i.name.toLowerCase().includes(srch.toLowerCase()) && (cat === 'All' || i.cat === cat));
   const sClr = i => { const s = tot(i); if (s <= i.alrt) return C.rd; if (s <= i.alrt * 1.5) return C.am; return C.gr; };
   const setPhoto = (id, data) => setInvPhotos(p => data ? { ...p, [id]: data } : Object.fromEntries(Object.entries(p).filter(([k]) => k !== id)));
@@ -119,7 +110,29 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       alert("Database Error posting receipt batch: " + error.message);
     } else {
       setInv(p => p.map(i => i.id === sel.id ? { ...i, batches: updatedBatches } : i));
+      const updatedItem = { ...sel, batches: updatedBatches };
       
+      // Send Low Stock Alerts securely via Netlify backend function
+      if (tot(updatedItem) <= updatedItem.alrt) {
+        const managers = users.filter(u => 
+          (u.role === 'manager' || u.role === 'coordinator' || u.role === 'warehouse') && u.active
+        );
+        managers.forEach(mgr => {
+          if (mgr.email) {
+            fetch('/.netlify/functions/send-alert', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: mgr.email,
+                itemName: updatedItem.name,
+                currentStock: tot(updatedItem),
+                unit: updatedItem.unit,
+                alertThreshold: updatedItem.alrt
+              })
+            }).catch(err => console.error("Email processing error:", err));
+          }
+        });
+      }
       // Log Single Batch Reception
       await logAction(
         user.id,
@@ -206,6 +219,8 @@ export default function InventoryView({ inv, setInv, users, user, perms, invPhot
       alert("Error logging batch payload operations: " + err.message);
     }
   };
+
+  
 
   return (
     <div>

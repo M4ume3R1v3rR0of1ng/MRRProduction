@@ -1,11 +1,11 @@
 // ── Build Jobs ────────────────────────────────────
 import { useState } from 'react';
-import { C, uid, fd, fm, tot } from '../utils/helpers';
+import { C, uid, fd, fm, tot, mkJI } from '../utils/helpers';
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from '../components/UIPrimitives';
+import { sendEmail } from '../utils/email';
+import { supabase } from '../utils/supabase';
 
-
-
-export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC, onNav }) {
+export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC, onNav, acculynxConfig }) { // Added acculynxConfig to props destructuring
   const [filt, setFilt] = useState('all');
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
@@ -21,34 +21,194 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
   const [srch, setSrch] = useState('');
   const userPerms = perms;
 
-
-  const fieldUsers = users.filter(u => (u.role === 'field' || u.role === 'Site Supervisor') && u.active);  const counts = { all: jobs.length, draft: 0, approved: 0, active: 0, completed: 0, closed: 0 };
+  const fieldUsers = users.filter(u => (u.role === 'field' || u.role === 'Site Supervisor') && u.active);
+  const counts = { all: jobs.length, draft: 0, approved: 0, active: 0, completed: 0, closed: 0 };
   jobs.forEach(j => { if (counts[j.status] !== undefined) counts[j.status]++; });
   const q = srch.toLowerCase().trim();
   const shown = jobs.filter(j => (filt === 'all' || j.status === filt) && (q === '' || j.po.toLowerCase().includes(q) || j.name.toLowerCase().includes(q) || (j.addr || '').toLowerCase().includes(q))).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const resetWiz = () => { setWStep(1); setWPO({ po: '', name: '', addr: '', notes: '' }); setWItems([]); setWAssign(''); setISrch(''); setAxQ(''); setAxR([]); };
+  
+  // LIVE ACCULYNX SEARCH IMPLEMENTATION via Secure API Proxy Gateway
   const searchAX = async () => {
     if (!axQ.trim()) return;
+    
+    if (!acculynxConfig || !acculynxConfig.enabled || !acculynxConfig.proxyUrl) {
+      alert('AccuLynx integration is disabled or proxy endpoint URL is unconfigured in Settings.');
+      return;
+    }
+
     setAxL(true);
-    await new Promise(r => setTimeout(r, 600));
-    const mock = [{ po: 'PO-2025-010', name: 'Henderson Re-roof', addr: '4521 Sylvania Ave, Maumee OH' }, { po: 'PO-2025-011', name: 'Lake View Church', addr: '890 Lake Shore Dr, Toledo OH' }, { po: 'PO-2025-012', name: 'Perrysburg Commercial', addr: '200 Commerce Dr, Perrysburg OH' }];
-    setAxR(mock.filter(j => j.name.toLowerCase().includes(axQ.toLowerCase()) || j.po.toLowerCase().includes(axQ.toLowerCase())));
-    setAxL(false);
+    try {
+      // Build proxy destination URL passing user's lookup term safely
+      const targetUrl = `${acculynxConfig.proxyUrl}/api/acculynx/jobs?q=${encodeURIComponent(axQ.trim())}`;
+      
+      const response = await fetch(targetUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          // Pass identification parameters if required by your middleware, otherwise handled server-side
+          'Authorization': `Bearer ${acculynxConfig.apiKey}` 
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned HTTP Error Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Map external AccuLynx payload attributes to our internal app schema mapping requirements
+      // Expected backend array output format: [{ po: '...', name: '...', addr: '...' }]
+      if (Array.isArray(data)) {
+        setAxR(data);
+      } else if (data && Array.isArray(data.jobs)) {
+        setAxR(data.jobs); // Fallback parse block depending on your node/edge middleware layout structure
+      } else {
+        setAxR([]);
+      }
+    } catch (err) {
+      console.error('AccuLynx Live Proxy Query Failure:', err);
+      alert(`Integration Error: Failed fetching AccuLynx data records. ${err.message}`);
+      setAxR([]);
+    } finally {
+      setAxL(false);
+    }
   };
+  
   const addWItem = item => { if (wItems.find(i => i.iid === item.id)) return; setWItems(p => [...p, { iid: item.id, iname: item.name, icat: item.cat, unit: item.unit, qty: 1, avail: tot(item) }]); };
-  const saveJob = asDraft => {
+
+  const saveJob = async (asDraft) => {
     if (!wPO.po || !wPO.name || wItems.length === 0) { alert('Please complete all steps first.'); return; }
     const now = new Date().toISOString();
-    const job = { id: uid(), ...wPO, status: asDraft ? 'draft' : 'approved', assignedTo: wAssign, createdBy: user.id, createdAt: now, approvedAt: asDraft ? '' : now, completedAt: '', newForAssigned: !asDraft && !!wAssign, syncStatus: null, syncedAt: '', syncPayload: null, syncNote: '', items: wItems.map(i => mkJI(i.iid, i.iname, i.icat, i.unit, i.qty)) };
-    setJobs(p => [...p, job]);
-    setModal(null); resetWiz();
+    const jobId = uid();
+    
+    const job = { 
+      id: jobId, 
+      ...wPO, 
+      status: asDraft ? 'draft' : 'approved', 
+      assignedTo: wAssign, 
+      createdBy: user.id, 
+      createdAt: now, 
+      approvedAt: asDraft ? '' : now, 
+      completedAt: '', 
+      newForAssigned: !asDraft && !!wAssign, 
+      syncStatus: null, 
+      syncedAt: '', 
+      syncPayload: null, 
+      syncNote: '', 
+      items: wItems.map(i => mkJI(i.iid, i.iname, i.icat, i.unit, i.qty)) 
+    };
+
+    try {
+      const { error } = await supabase.from('jobs').insert([job]);
+      if (error) throw error;
+
+      setJobs(p => [...p, job]);
+      
+      if (!asDraft && wAssign) {
+        const assignedUser = users.find(u => u.id === wAssign);
+        if (assignedUser?.email) {
+          sendEmail({
+            to: assignedUser.email,
+            subject: `New Job Assigned: ${wPO.name}`,
+            html: `<h2>You've been assigned a new job</h2>
+                   <p><strong>Job:</strong> ${wPO.name}</p>
+                   <p><strong>PO:</strong> ${wPO.po}</p>
+                   <p><strong>Address:</strong> ${wPO.addr}</p>
+                   ${wPO.notes ? `<p><strong>Notes:</strong> ${wPO.notes}</p>` : ''}
+                   <p>Log in to pull inventory and get started.</p>`,
+          });
+        }
+      }
+      setModal(null); resetWiz();
+    } catch (err) {
+      console.error('Failed to save job:', err);
+      alert(`Database Error: Could not save job. ${err.message}`);
+    }
   };
-  const doApprove = () => {
+
+  const doApprove = async () => {
     if (!apAssign) { alert('Please assign a site supervisor.'); return; }
-    setJobs(p => p.map(j => j.id === sel.id ? { ...j, status: 'approved', approvedAt: new Date().toISOString(), assignedTo: apAssign, newForAssigned: true } : j));
-    setSel(null); setModal(null); setApAssign('');
+    const approvedAt = new Date().toISOString();
+    
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: 'approved', approvedAt, assignedTo: apAssign, newForAssigned: true })
+        .eq('id', sel.id);
+        
+      if (error) throw error;
+
+      setJobs(p => p.map(j => j.id === sel.id ? { ...j, status: 'approved', approvedAt, assignedTo: apAssign, newForAssigned: true } : j));
+      
+      const assignedUser = users.find(u => u.id === apAssign);
+      if (assignedUser?.email) {
+        sendEmail({
+          to: assignedUser.email,
+          subject: `Job Approved & Assigned: ${sel.name}`,
+          html: `<h2>A job has been approved and assigned to you</h2>
+                 <p><strong>Job:</strong> ${sel.name}</p>
+                 <p><strong>PO:</strong> ${sel.po}</p>
+                 <p><strong>Address:</strong> ${sel.addr || 'N/A'}</p>
+                 <p>Log in to pull inventory and get started.</p>`,
+        });
+      }
+      setSel(null); setModal(null); setApAssign('');
+    } catch (err) {
+      console.error('Failed to approve job:', err);
+      alert(`Database Error: Could not approve job. ${err.message}`);
+    }
   };
+
+  const deleteJob = async (jobId) => {
+    try {
+      const { error } = await supabase.from('jobs').delete().eq('id', jobId);
+      if (error) throw error;
+      
+      setJobs(p => p.filter(j => j.id !== jobId)); 
+      if (sel?.id === jobId) setSel(null);
+    } catch (err) {
+      console.error('Failed to delete job:', err);
+      alert(`Database Error: Could not delete job record. ${err.message}`);
+    }
+  };
+
+  const closeJob = async () => {
+    const closedAt = new Date().toISOString();
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: 'closed', closedAt })
+        .eq('id', sel.id);
+      if (error) throw error;
+
+      const updated = { ...sel, status: 'closed', closedAt };
+      setJobs(p => p.map(j => j.id === sel.id ? updated : j)); 
+      setSel(updated);
+    } catch (err) {
+      console.error('Failed to close job:', err);
+      alert(`Database Error: Could not close job. ${err.message}`);
+    }
+  };
+
+  const reopenJob = async () => {
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: 'completed', closedAt: '' })
+        .eq('id', sel.id);
+      if (error) throw error;
+
+      const updated = { ...sel, status: 'completed', closedAt: '' };
+      setJobs(p => p.map(j => j.id === sel.id ? updated : j)); 
+      setSel(updated);
+    } catch (err) {
+      console.error('Failed to reopen job:', err);
+      alert(`Database Error: Could not reopen job. ${err.message}`);
+    }
+  };
+
   const filtInv = inv.filter(i => i.name.toLowerCase().includes(iSrch.toLowerCase()));
 
   return (
@@ -101,18 +261,17 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
                   </div>
                 )}
                 {perms.jobs_approve && job.status === 'draft' && <Btn v="teal" sz="sm" onClick={e => { e.stopPropagation(); setSel(job); setApAssign(job.assignedTo || ''); setModal('approve'); }}>Approve & Assign →</Btn>}
-{job.status === 'completed' && <Btn v="green" sz="sm" onClick={e => { e.stopPropagation(); generatePDF(job, users); }}>📄 PDF</Btn>}
-{perms.jobs_approve && (
-  <Btn v="danger" sz="sm" onClick={e => { 
-    e.stopPropagation();
-    if (window.confirm('Permanently delete this job record? This cannot be undone.')) { 
-      setJobs(p => p.filter(j => j.id !== job.id)); 
-      if (sel?.id === job.id) setSel(null);
-    } 
-  }}>
-    🗑️ Delete
-  </Btn>
-)}
+                {job.status === 'completed' && <Btn v="green" sz="sm" onClick={e => { e.stopPropagation(); generatePDF(job, users); }}>📄 PDF</Btn>}
+                {perms.jobs_approve && (
+                  <Btn v="danger" sz="sm" onClick={e => { 
+                    e.stopPropagation();
+                    if (window.confirm('Permanently delete this job record? This cannot be undone.')) { 
+                      deleteJob(job.id);
+                    } 
+                  }}>
+                    🗑️ Delete
+                  </Btn>
+                )}
               </div>
             </div>
           );
@@ -125,9 +284,9 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             {perms.jobs_approve && sel.status === 'draft' && <Btn v="teal" sz="sm" onClick={() => { setApAssign(sel.assignedTo || ''); setModal('approve'); }}>✅ Approve & Assign</Btn>}
             {(sel.status === 'completed' || sel.status === 'closed') && <Btn v="green" sz="sm" onClick={() => generatePDF(sel, users)}>📄 Download PDF Report</Btn>}
-            {perms.jobs_approve && sel.status === 'completed' && <Btn v="purple" sz="sm" onClick={() => { if (window.confirm('Close this job? It will be moved to the Closed list and archived from active work.')) { const updated = { ...sel, status: 'closed', closedAt: new Date().toISOString() }; setJobs(p => p.map(j => j.id === sel.id ? updated : j)); setSel(updated); } }}>🔒 Close Job</Btn>}
-            {perms.jobs_approve && sel.status === 'closed' && <Btn v="ghost" sz="sm" onClick={() => { const updated = { ...sel, status: 'completed', closedAt: '' }; setJobs(p => p.map(j => j.id === sel.id ? updated : j)); setSel(updated); }}>↩ Reopen</Btn>}
-            {perms.jobs_build && sel.status === 'draft' && <Btn v="danger" sz="sm" onClick={() => { if (window.confirm('Delete this draft?')) { setJobs(p => p.filter(j => j.id !== sel.id)); setModal(null); setSel(null); } }}>🗑️ Delete</Btn>}
+            {perms.jobs_approve && sel.status === 'completed' && <Btn v="purple" sz="sm" onClick={() => { if (window.confirm('Close this job? It will be moved to the Closed list and archived from active work.')) { closeJob(); } }}>🔒 Close Job</Btn>}
+            {perms.jobs_approve && sel.status === 'closed' && <Btn v="ghost" sz="sm" onClick={reopenJob}>↩ Reopen</Btn>}
+            {perms.jobs_build && sel.status === 'draft' && <Btn v="danger" sz="sm" onClick={() => { if (window.confirm('Delete this draft?')) { deleteJob(sel.id); setModal(null); } }}>🗑️ Delete</Btn>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 8, marginBottom: 16 }}>
             {[['Status', <Bdg color={jSC[sel.status].c}>{jSC[sel.status].l}</Bdg>], ['PO', sel.po], ['Assigned To', users.find(u => u.id === sel.assignedTo)?.name || 'Unassigned'], ['Created', fd(sel.createdAt)], ['Approved', fd(sel.approvedAt)], ['Completed', fd(sel.completedAt)]].map(([k, v]) => (
@@ -277,4 +436,3 @@ export default function BuildJobs({ jobs, setJobs, inv, users, user, perms, jSC,
     </div>
   );
 }
-

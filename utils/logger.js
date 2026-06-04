@@ -9,44 +9,34 @@ import { supabase } from "./supabase";
  * @param {string} description - Human-readable details of the mutation
  * @param {object} [metadata] - Optional raw data payload for debugging
  */
-export const logAction = async (
-  userId,
-  userEmail,
-  actionType,
-  description,
-  metadata = {}
-) => {
-  console.log("AUDIT ATTEMPT", {
-    userId,
-    userEmail,
-    actionType,
-    description,
-  });
-
+export const logAction = async (userId, userEmail, actionType, description, metadata = {}) => {
   try {
-    const { data, error } = await supabase
-      .from("system_logs")
-      .insert([
-        {
-          user_id: userId,
-          user_email: userEmail,
-          action_type: actionType,
-          description,
-          metadata,
-          created_at: new Date().toISOString(),
-        },
-      ])
-      .select();
+    // Expanded payload to track richer metrics for compliance/audits
+    const payload = {
+      user_id: userId || null, // Allows null if system action or unauthenticated
+      user_email: userEmail || null,
+      action_type: actionType,
+      description: description,
+      metadata: {
+        ...metadata,
+        page_url: window.location.pathname + window.location.hash, // Tracks where the action occurred
+        user_agent: navigator.userAgent // Tracks device metadata for security
+      },
+      created_at: new Date().toISOString()
+    };
 
-    console.log("AUDIT RESULT", data, error);
+    // Always log to local console instantly for developer debugging
+    console.log(`📝 [AUDIT LOG]: ${actionType}`, payload);
+
+    // Write to database
+    const { error } = await supabase
+      .from('audit_logs')
+      .insert([payload]);
 
     if (error) {
-      console.error("AUDIT ERROR", error);
+      console.error("❌ Supabase Audit Log Database Error:", error.message);
     }
-
-    return { data, error };
   } catch (err) {
-    console.error("AUDIT EXCEPTION", err);
-    return { data: null, error: err };
+    console.error("❌ Critical Failure inside Logger Utility:", err.message);
   }
 };

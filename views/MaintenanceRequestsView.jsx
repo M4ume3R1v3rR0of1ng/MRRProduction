@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { supabase } from '../utils/supabase';
 import { C } from '../utils/helpers';
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from '../components/UIPrimitives';
+import { sendEmail } from '../utils/email';
 
 export default function MaintenanceRequestsView({ reqs, setReqs, vehs, users, user, perms }) {
   const [filt, setFilt] = useState('all');
@@ -29,6 +30,33 @@ export default function MaintenanceRequestsView({ reqs, setReqs, vehs, users, us
     }
 
     setReqs(p => p.map(r => r.id === id ? { ...r, status, whNotes, scheduledDate, completedAt } : r));
+    if (status === 'scheduled') {
+  const submitter = users.find(u => u.id === sel?.submittedBy || u.name === sel?.uname);
+  if (submitter?.email) {
+    sendEmail({
+      to: submitter.email,
+      subject: `Maintenance Scheduled — ${sel?.vname}`,
+      html: `<h2>Your maintenance request has been scheduled</h2>
+             <p><strong>Vehicle:</strong> ${sel?.vname}</p>
+             <p><strong>Issue:</strong> ${sel?.type}</p>
+             ${form.scheduledDate ? `<p><strong>Date:</strong> ${form.scheduledDate}</p>` : ''}
+             ${form.whNotes ? `<p><strong>Notes:</strong> ${form.whNotes}</p>` : ''}`,
+    });
+  }
+}
+if (status === 'completed') {
+  const submitter = users.find(u => u.id === sel?.submittedBy || u.name === sel?.uname);
+  if (submitter?.email) {
+    sendEmail({
+      to: submitter.email,
+      subject: `Maintenance Completed — ${sel?.vname}`,
+      html: `<h2>Your maintenance request has been resolved</h2>
+             <p><strong>Vehicle:</strong> ${sel?.vname}</p>
+             <p><strong>Issue:</strong> ${sel?.type}</p>
+             ${form.whNotes ? `<p><strong>Resolution:</strong> ${form.whNotes}</p>` : ''}`,
+    });
+  }
+}
     setSel(null);
     setForm({});
   };

@@ -1,7 +1,7 @@
 // ── Users ─────────────────────────────────────────
 import { useState } from 'react';
 import { supabase } from '../utils/supabase';
-import { C } from '../utils/helpers';
+import { C, uid } from '../utils/helpers';
 import { PERM_DEFS, PERM_GROUPS, ROLE_COLS, ROLES } from '../database/permissions';
 import { Btn, Bdg, RoleBdg, Toggle, Modal, Fld, Sel, Inp } from '../components/UIPrimitives';
 import { logAction } from "../utils/logger";
@@ -11,34 +11,108 @@ export default function Users({ users, setUsers, currentUser, rolePerms, userOve
   const [form, setForm] = useState({});
   const [editing, setEditing] = useState(null);
   const [permUser, setPermUser] = useState(null);
-  const save = () => {
+
+  const save = async () => {
     if (!form.name || !form.email || !form.role) return;
-    if (editing) setUsers(p => p.map(u => u.id === editing ? { ...u, ...form } : u));
-    else setUsers(p => [...p, { id: uid(), active: true, pass: 'TempPass123!', ...form }]);
-    setModal(null); setForm({}); setEditing(null);
+
+    try {
+      if (editing) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ name: form.name, email: form.email, role: form.role })
+          .eq('id', editing);
+        if (error) throw error;
+
+        setUsers(p => p.map(u => u.id === editing ? { ...u, ...form } : u));
+      } else {
+        const newUserId = uid();
+        const newUserPayload = { 
+          id: newUserId, 
+          active: true, 
+          name: form.name,
+          email: form.email,
+          role: form.role
+        };
+
+        const { error } = await supabase
+          .from('profiles')
+          .insert([newUserPayload]);
+        if (error) throw error;
+
+        setUsers(p => [...p, newUserPayload]);
+      }
+      setModal(null); setForm({}); setEditing(null);
+    } catch (err) {
+      console.error('Failed to save profile metrics:', err);
+      alert(`Database Error: Profile updates aborted. ${err.message}`);
+    }
   };
-  const toggleOverride = (uid, perm, baseVal) => {
-    setUserOverrides(p => {
-      const uov = { ...(p[uid] || {}) };
-      if (uov[perm] === undefined) { uov[perm] = !baseVal; }
-      else if (uov[perm] === !baseVal) { delete uov[perm]; }
-      else { uov[perm] = !uov[perm]; }
-      return { ...p, [uid]: uov };
-    });
+
+  const toggleOverride = async (uid, perm, baseVal) => {
+    const currentTargetOverrides = { ...(userOverrides[uid] || {}) };
+    if (currentTargetOverrides[perm] === undefined) {
+      currentTargetOverrides[perm] = !baseVal;
+    } else if (currentTargetOverrides[perm] === !baseVal) {
+      delete currentTargetOverrides[perm];
+    } else {
+      currentTargetOverrides[perm] = !currentTargetOverrides[perm];
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_permission_overrides')
+        .upsert({ user_id: uid, overrides: currentTargetOverrides }, { onConflict: 'user_id' });
+      if (error) throw error;
+
+      setUserOverrides(p => ({ ...p, [uid]: currentTargetOverrides }));
+      
+      await handleUpdatePermissions({ id: uid, email: users.find(u => u.id === uid)?.email }, users.find(u => u.id === uid)?.role, currentTargetOverrides);
+    } catch (err) {
+      console.error('Failed to update explicit clearance criteria:', err);
+      alert(`Database Error: Clearances failed to sync. ${err.message}`);
+    }
   };
-  const clearOverrides = uid => setUserOverrides(p => { const n = { ...p }; delete n[uid]; return n; });
+
+  const clearOverrides = async uid => {
+    try {
+      const { error } = await supabase
+        .from('user_permission_overrides')
+        .delete()
+        .eq('user_id', uid);
+      if (error) throw error;
+
+      setUserOverrides(p => { const n = { ...p }; delete n[uid]; return n; });
+    } catch (err) {
+      console.error('Failed to delete user overrides context:', err);
+      alert(`Database Error: Clearances modification failure. ${err.message}`);
+    }
+  };
+
+  const handleToggleActive = async (targetUser) => {
+    const nextActiveState = !targetUser.active;
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ active: nextActiveState })
+        .eq('id', targetUser.id);
+      if (error) throw error;
+
+      setUsers(p => p.map(x => x.id === targetUser.id ? { ...x, active: nextActiveState } : x));
+    } catch (err) {
+      console.error('Failed to change user status metrics:', err);
+      alert(`Database Error: Status update failed. ${err.message}`);
+    }
+  };
 
   const handleUpdatePermissions = async (targetUser, newRole, overrides) => {
-  // ... existing saving state / local storage overrides ...
-
-  await logAction(
-    user.id, 
-    user.email, 
-    'PERM_CHANGE', 
-    `Modified access profile/role for user: ${targetUser.email}`,
-    { targetUserId: targetUser.id, assignedRole: newRole, activeOverrides: overrides }
-  );
-};
+    await logAction(
+      currentUser.id, 
+      currentUser.email, 
+      'PERM_CHANGE', 
+      `Modified access profile/role for user: ${targetUser.email}`,
+      { targetUserId: targetUser.id, assignedRole: newRole, activeOverrides: overrides }
+    );
+  };
 
   return (
     <div>
@@ -66,7 +140,7 @@ export default function Users({ users, setUsers, currentUser, rolePerms, userOve
                   <div style={{ display: 'flex', gap: 6 }}>
                     <Btn v="ghost" sz="sm" onClick={() => { setForm({ name: u.name, email: u.email, role: u.role }); setEditing(u.id); setModal('user'); }}>Edit</Btn>
                     {u.id !== currentUser.id && u.role !== 'admin' && <Btn v="ghost" sz="sm" onClick={() => { setPermUser(u); setModal('perms'); }} style={{ color: C.pu }}>🔒 Permissions</Btn>}
-                    {u.id !== currentUser.id && <Btn v="ghost" sz="sm" onClick={() => setUsers(p => p.map(x => x.id === u.id ? { ...x, active: !x.active } : x))} style={{ color: u.active ? C.rd : C.gr }}>{u.active ? 'Deactivate' : 'Activate'}</Btn>}
+                    {u.id !== currentUser.id && <Btn v="ghost" sz="sm" onClick={() => handleToggleActive(u)} style={{ color: u.active ? C.rd : C.gr }}>{u.active ? 'Deactivate' : 'Activate'}</Btn>}
                   </div>
                 </td>
               </tr>
@@ -79,7 +153,6 @@ export default function Users({ users, setUsers, currentUser, rolePerms, userOve
         <Modal title={editing ? 'Edit User' : 'Add New User'} onClose={() => setModal(null)}>
           <Fld label="Full Name"><Inp value={form.name || ''} onChange={e => setForm({ ...form, name: e.target.value })} /></Fld>
           <Fld label="Email"><Inp type="email" value={form.email || ''} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="user@maumeeriverroofing.com" /></Fld>
-          {!editing && <Fld label="Temp Password"><Inp value={form.pass || 'TempPass123!'} onChange={e => setForm({ ...form, pass: e.target.value })} /></Fld>}
           <Fld label="Role">
             <Sel value={form.role || 'field'} onChange={e => setForm({ ...form, role: e.target.value })}>
               <option value="admin"> — Full System Access</option>

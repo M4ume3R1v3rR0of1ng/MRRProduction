@@ -1,9 +1,10 @@
 // src/views/DashboardView.jsx
 import { C, displayName } from '../utils/helpers';
 import { Bdg, Btn } from '../components/UIPrimitives';
-
+import RecentActivityFeed from '../components/RecentActivityFeed';
 
 export default function DashboardView({ inv, vehs, reqs, jobs, users, user, perms, onNav, tot, jSC }) {
+  
   const low = inv.filter(i => tot(i) <= i.alrt);
   const pendingReqs = reqs.filter(r => r.status === 'pending');
   const myJobs = user.role === 'field' ? jobs.filter(j => j.assignedTo === user.id && j.status !== 'completed') : jobs;
@@ -17,6 +18,7 @@ export default function DashboardView({ inv, vehs, reqs, jobs, users, user, perm
       {sub && <div style={{ fontSize: 10, color: C.sub, marginTop: 2 }}>{sub}</div>}
     </div>
   );
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
@@ -61,57 +63,53 @@ export default function DashboardView({ inv, vehs, reqs, jobs, users, user, perm
         )}
       </div>
 
-      {/* Split Utility Data Pipelines */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      {/* Primary Responsive Layout Grid Setup */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14, alignItems: 'start' }}>
         
-        {/* Left Card Panel: Pipeline Items */}
-        <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 800, color: C.navy }}>📋 Job Pipeline</h3>
-          {jobs.filter(j => user.role === 'field' ? j.assignedTo === user.id : true).filter(j => j.status !== 'completed').slice(0, 5).map(j => {
-            const sup = users.find(u => u.id === j.assignedTo);
-            const st = jSC[j.status];
-            return (
-              <div key={j.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.lg, borderRadius: 7, marginBottom: 6, fontSize: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: C.navy }}>{j.name}</div>
-                  <div style={{ color: C.sub, fontSize: 10 }}>{j.po}{sup ? ` · ${sup.name}` : ''}</div>
+        {/* Left Column: Metrics and Pipelines */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          
+          {/* Job Pipeline Panel */}
+          <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 800, color: C.navy }}>📋 Job Pipeline</h3>
+            {jobs.filter(j => user.role === 'field' ? j.assignedTo === user.id : true).filter(j => j.status !== 'completed').slice(0, 5).map(j => {
+              const sup = users.find(u => u.id === j.assignedTo);
+              const st = jSC[j.status];
+              return (
+                <div key={j.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: C.lg, borderRadius: 7, marginBottom: 6, fontSize: 12 }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: C.navy }}>{j.name}</div>
+                    <div style={{ color: C.sub, fontSize: 10 }}>{j.po}{sup ? ` · ${sup.name}` : ''}</div>
+                  </div>
+                  <Bdg color={st.c}>{st.l}</Bdg>
                 </div>
-                <Bdg color={st.c}>{st.l}</Bdg>
-              </div>
-            );
-          })}
-          {jobs.filter(j => j.status !== 'completed').length === 0 && <p style={{ color: C.gr, fontSize: 12, margin: 0 }}>✅ No active jobs.</p>}
+              );
+            })}
+            {jobs.filter(j => j.status !== 'completed').length === 0 && <p style={{ color: C.gr, fontSize: 12, margin: 0 }}>✅ No active jobs.</p>}
+          </div>
+
+          {/* Low Stock Watchlist Panel */}
+          <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 800, color: C.navy }}>🚨 Low Stock Items</h3>
+            {low.length === 0 ? (
+              <p style={{ color: C.gr, fontSize: 12, margin: 0 }}>✅ All items well stocked!</p>
+            ) : (
+              low.slice(0, 5).map(item => (
+                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'rgba(242, 119, 119, 0.32)', borderRadius: 10, marginBottom: 6, fontSize: 12 }}>
+                  <span style={{ fontWeight: 700, color: C.navy }}>{item.name}</span>
+                  <span style={{ color: C.rd, fontWeight: 800, whiteSpace: 'nowrap', marginLeft: 'auto' }}>
+                    {tot(item)} <span style={{ fontSize: '10px', fontWeight: 600, color: '#71717a', marginLeft: '2px' }}>{item.unit}</span>
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+
         </div>
 
-        {/* Right Card Panel: Corrected Low Stock Alignment Row Items */}
-        <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 800, color: C.navy }}>🚨 Low Stock Items</h3>
-          {low.length === 0 ? (
-            <p style={{ color: C.gr, fontSize: 12, margin: 0 }}>✅ All items well stocked!</p>
-          ) : (
-            low.slice(0, 5).map(item => (
-              <div 
-                key={item.id} 
-                style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  padding: '10px 14px', 
-                  background: 'rgba(242, 119, 119, 0.32)', 
-                  borderRadius: 10, 
-                  marginBottom: 6, 
-                  fontSize: 12 
-                }}
-              >
-                <span style={{ fontWeight: 700, color: C.navy }}>
-                  {item.name}
-                </span>
-                <span style={{ color: C.rd, fontWeight: 800, whiteSpace: 'nowrap' }}>
-                  {tot(item)} <span style={{ fontSize: '10px', fontWeight: 600, color: '#71717a', marginLeft: '2px' }}>{item.unit}</span>
-                </span>
-              </div>
-            ))
-          )}
+        {/* Right Column: Dynamic Activity Feed Sidebar */}
+        <div>
+          <RecentActivityFeed limit={5} />
         </div>
 
       </div>
