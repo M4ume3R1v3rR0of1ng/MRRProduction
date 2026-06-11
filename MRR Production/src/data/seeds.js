@@ -82,3 +82,4 @@ export const SEED_JOBS = [
   mkJob('j3', 'PO-2025-006', 'Lakewood HOA — Building B', '500 Lakewood Dr, Maumee OH', '', 'draft', '', 'u6', '2025-05-17T14:00:00', '', '', false, [mkJI('i5', 'SEBS - White', 'Sealants', 'tubes', 12), mkJI('i12', 'Atlas Box Vent - Black', 'Ventilation', 'each', 8), mkJI('i1', 'Underlayment', 'Roofing Materials', 'rolls', 10)]),
   mkJob('j4', 'PO-2025-007', 'Henderson Residence', '4521 Sylvania Ave, Maumee OH', 'Insurance claim re-roof.', 'active', 'u7', 'u6', '2025-05-14T11:00:00', '2025-05-15T07:00:00', '', false, [mkJI('i1', 'Underlayment', 'Roofing Materials', 'rolls', 10, 10, 0, 47.5, 475), mkJI('i4', 'Ring Shank Coil Nails', 'Fasteners', 'boxes', 6, 6, 0, 58, 348), mkJI('i11', 'Atlas Rolled Ridge Vent', 'Ventilation', 'rolls', 3, 3, 0, 95, 285), mkJI('i14', 'OSB', 'Decking', 'each', 8, 4, 0, 28, 112)]),
 ];
+

@@ -352,6 +352,27 @@ export default function FleetManagementView({
         {filtered.map((v) => {
           const os = oilSt(v);
           const ds = detSt(v);
+          const getFleetStatus = (vehicle, oilStatus, detailStatus) => {
+            // If explicitly flagged as out of service or has overdue safety metrics
+            if (
+              vehicle.status === "out_of_service" ||
+              oilStatus === "overdue"
+            ) {
+              return { dot: "🔴", label: "Out of Service", color: C.rd };
+            }
+            // If maintenance or detailing is coming up soon
+            if (
+              oilStatus === "soon" ||
+              detailStatus === "soon" ||
+              vehicle.status === "service_due"
+            ) {
+              return { dot: "🟡", label: "Service Due", color: C.am };
+            }
+            // Fully operational asset
+            return { dot: "🟢", label: "Active", color: C.gr };
+          };
+
+          const fleetStatus = getFleetStatus(v, os, ds);
           const bc =
             os === "overdue" || ds === "overdue"
               ? C.rd
@@ -378,6 +399,19 @@ export default function FleetManagementView({
                 border: `2px solid ${bc}`,
               }}
             >
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: "11px",
+                  fontWeight: 800,
+                  color: fleetStatus.color,
+                }}
+              >
+                <span>{fleetStatus.dot}</span>
+                <span>{fleetStatus.label}</span>
+              </div>
               <div
                 style={{
                   height: 130,
