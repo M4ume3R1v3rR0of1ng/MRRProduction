@@ -59,10 +59,10 @@ export default function OmniSearch({ jobs = [], inv = [], vehs = [], onNavigate 
         value={query}
         onChange={(e) => { setQuery(e.target.value); setIsOpen(true); }}
         onFocus={() => setIsOpen(true)}
-        placeholder="🔍 Search jobs, materials, trucks ..."
+        placeholder="🔍 Search jobs, materials, trucks, plates ..."
         style={{
           width: "100%",
-          padding: "10px 14px 10px 36px",
+          padding: "10px 12px",
           borderRadius: "8px",
           border: `1px solid ${C.bd || "#cbd5e1"}`,
           background: "#f8fafc",
@@ -71,6 +71,7 @@ export default function OmniSearch({ jobs = [], inv = [], vehs = [], onNavigate 
           color: C.navy,
           outline: "none",
           transition: "all 0.2s"
+          
         }}
       />
 

@@ -80,6 +80,8 @@ export default function App() {
   const [curUser, setCurUser] = useState(null);
   const [view, setView] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [users, setUsers] = useState(SEED_U); // Initialized with fallback, overridden by DB mount
   const [warehouses, setWH] = useState(SEED_W);
   const [inv, setInv] = useState(SEED_I);
@@ -382,6 +384,14 @@ export default function App() {
     return () => window.removeEventListener("online", handleReconnect);
   }, [showToast]);
 
+  // Track window resizing to dynamically swap layouts
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   if (loading) {
     return (
       <div
@@ -423,141 +433,204 @@ export default function App() {
       <div
         style={{
           display: "flex",
+          flexDirection: isMobile ? "column" : "row",
           minHeight: "100vh",
           background: C.bg,
           fontFamily: "'Segoe UI',system-ui,sans-serif",
+          width: "100vw",
+          overflowX: "hidden",
         }}
       >
-        <Sidebar
-          cur={view}
-          onNav={setView}
-          user={curUser}
-          onLogout={() => setCurUser(null)}
-          collapsed={collapsed}
-          setCollapsed={setCollapsed}
-          pendingReqs={pendingReqCount}
-          lowStock={lowStockCount}
-          newJobsForMe={newJobsForMe}
-          activeLogo={activeLogo}
-          perms={userPerms}
-        />
+        {/* 📱 MOBILE HEADER BAR — only visible on small screens */}
+        {isMobile && (
+          <div
+            style={{
+              background: "#0f172a",
+              color: "#fff",
+              padding: "0 20px",
+              height: 50,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              position: "sticky",
+              top: 0,
+              zIndex: 100,
+              boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 13 }}>
+              🏗️ MAUMEE RIVER ROOFING
+            </div>
+            <button
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#fff",
+                fontSize: 22,
+                cursor: "pointer",
+                lineHeight: 1,
+              }}
+            >
+              {mobileMenuOpen ? "✕" : "☰"}
+            </button>
+          </div>
+        )}
+
+        {/* 🗺️ SIDEBAR — fixed overlay on mobile, static column on desktop */}
+        <div
+          style={{
+            width: isMobile ? "100%" : collapsed ? 64 : 260,
+            display: isMobile && !mobileMenuOpen ? "none" : "block",
+            position: isMobile ? "fixed" : "relative",
+            top: isMobile ? 50 : 0,
+            left: 0,
+            height: isMobile ? "calc(100vh - 50px)" : "100vh",
+            zIndex: 99,
+            overflowY: "auto",
+            flexShrink: 0,
+          }}
+        >
+          <Sidebar
+            cur={view}
+            onNav={(v) => {
+              setView(v);
+              if (isMobile) setMobileMenuOpen(false); // Auto-close menu on nav
+            }}
+            user={curUser}
+            onLogout={() => setCurUser(null)}
+            collapsed={isMobile ? false : collapsed}
+            setCollapsed={setCollapsed}
+            pendingReqs={pendingReqCount}
+            lowStock={lowStockCount}
+            newJobsForMe={newJobsForMe}
+            activeLogo={activeLogo}
+            perms={userPerms}
+          />
+        </div>
+
+        {/* 📊 MAIN CONTENT AREA */}
         <div
           style={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
             minWidth: 0,
+            // On mobile, push content below the sticky header
+            marginTop: isMobile ? 50 : 0,
           }}
         >
-          <div
-            style={{
-              background: C.w,
-              padding: "0 20px",
-              height: 56,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              borderBottom: `1px solid ${C.lg}`, // Fixed 0px to 1px line separation block
-              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-            }}
-          >
-            {/* Left Text Metadata Header */}
+          {/* Top bar — hidden on mobile (handled by mobile header above) */}
+          {!isMobile && (
             <div
               style={{
-                fontSize: 12,
-                color: C.sub,
-                flexShrink: 0,
-                marginRight: 24,
-              }}
-            >
-              Maumee River Roofing · Saint Joe Road Warehouse
-            </div>
-
-            {/* Centralized OmniSearch Navigation Panel Wrapper */}
-            <div
-              style={{
-                flex: 1,
-                maxWidth: "400px",
+                background: C.w,
+                padding: "0 20px",
+                height: 56,
                 display: "flex",
-                justifyContent: "flex-start",
-                paddingRight: "40px",
-              }}
-            >
-              <OmniSearch
-                jobs={jobs}
-                inv={inv}
-                vehs={vehs}
-                onNavigate={setView}
-              />
-            </div>
-
-            {/* Right Action Alert Badges Panel */}
-            <div
-              style={{
-                display: "flex",
+                justifyContent: "space-between",
                 alignItems: "center",
-                gap: 12, // Increased gap slightly to accommodate status indicator badge spacing
-                flexShrink: 0,
-                marginLeft: 24,
+                borderBottom: `1px solid ${C.lg}`,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
               }}
             >
-              {/* ── ✅ INJECTED STATUS INDICATOR PRIMITIVE HERE ── */}
-              <SyncIndicator />
+              {/* Left Text Metadata Header */}
+              <div
+                style={{
+                  fontSize: 12,
+                  color: C.sub,
+                  flexShrink: 0,
+                  marginRight: 24,
+                }}
+              >
+                Maumee River Roofing · Saint Joe Road Warehouse
+              </div>
 
-              {newJobsForMe > 0 && (
-                <div
-                  onClick={() => setView("pull")}
-                  style={{
-                    background: C.tB,
-                    color: C.tl,
-                    borderRadius: 20,
-                    padding: "3px 10px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  🎉 {newJobsForMe} new job{newJobsForMe !== 1 ? "s" : ""}
-                </div>
-              )}
-              {pendingReqCount > 0 && userPerms.maint_manage && (
-                <div
-                  onClick={() => setView("requests")}
-                  style={{
-                    background: C.pB,
-                    color: C.pu,
-                    borderRadius: 20,
-                    padding: "3px 10px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  🔧 {pendingReqCount} pending
-                </div>
-              )}
-              {lowStockCount > 0 && userPerms.inv_view && (
-                <div
-                  onClick={() => setView("inventory")}
-                  style={{
-                    background: C.aB,
-                    color: C.am,
-                    borderRadius: 20,
-                    padding: "3px 10px",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  ⚠️ {lowStockCount} low stock
-                </div>
-              )}
-              <RoleBdg role={curUser.role} />
+              {/* Centralized OmniSearch Navigation Panel Wrapper */}
+              <div
+                style={{
+                  flex: 1,
+                  maxWidth: "400px",
+                  display: "flex",
+                  justifyContent: "flex-start",
+                  paddingRight: "40px",
+                }}
+              >
+                <OmniSearch
+                  jobs={jobs}
+                  inv={inv}
+                  vehs={vehs}
+                  onNavigate={setView}
+                />
+              </div>
+
+              {/* Right Action Alert Badges Panel */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  flexShrink: 0,
+                  marginLeft: 24,
+                }}
+              >
+                <SyncIndicator />
+                {newJobsForMe > 0 && (
+                  <div
+                    onClick={() => setView("pull")}
+                    style={{
+                      background: C.tB,
+                      color: C.tl,
+                      borderRadius: 20,
+                      padding: "3px 10px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    🎉 {newJobsForMe} new job{newJobsForMe !== 1 ? "s" : ""}
+                  </div>
+                )}
+                {pendingReqCount > 0 && userPerms.maint_manage && (
+                  <div
+                    onClick={() => setView("requests")}
+                    style={{
+                      background: C.pB,
+                      color: C.pu,
+                      borderRadius: 20,
+                      padding: "3px 10px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    🔧 {pendingReqCount} pending
+                  </div>
+                )}
+                {lowStockCount > 0 && userPerms.inv_view && (
+                  <div
+                    onClick={() => setView("inventory")}
+                    style={{
+                      background: C.aB,
+                      color: C.am,
+                      borderRadius: 20,
+                      padding: "3px 10px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    ⚠️ {lowStockCount} low stock
+                  </div>
+                )}
+                <RoleBdg role={curUser.role} />
+              </div>
             </div>
-          </div>
-          
+          )}
+
           {/* Main Content Layout Route Multi-view Panel */}
-          <div style={{ flex: 1, padding: 20, overflowY: "auto" }}>
+          <div style={{ flex: 1, padding: isMobile ? 16 : 20, overflowY: "auto" }}>
             {view === "dashboard" && (
               <DashboardView
                 inv={inv}
