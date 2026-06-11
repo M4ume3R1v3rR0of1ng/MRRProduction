@@ -203,9 +203,3 @@ export function mkJI(iid, name, cat, unit, plannedQty = 1) {
   };
 }
 
-export const C = {
-  gr: "#10b981", // Emerald Green (Safe / Active / Completed)
-  am: "#f59e0b", // Amber Yellow (Warning / Service Due / Low Stock)
-  rd: "#ef4444", // Crimson Red (Critical / Out of Service / Out of Stock)
-  // ... your other existing color styles
-};

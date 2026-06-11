@@ -1,7 +1,7 @@
 // src/App.jsx
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "./utils/supabase";
-
+import OmniSearch from "./components/OmniSearch";
 // Centralized Stateless Calculation & Helper Utilities
 import {
   C,
@@ -62,7 +62,7 @@ import SettingsView from "./views/SettingsView";
 import AuditLogView from "./views/AuditLogView";
 
 // Time-based Session Management Wrapper
-import IdleTimeoutWrapper from './components/IdleTimeoutWrapper';
+import IdleTimeoutWrapper from "./components/IdleTimeoutWrapper";
 
 const jSC = {
   draft: { c: "gray", l: "Draft", icon: "📝" },
@@ -395,248 +395,273 @@ export default function App() {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: C.bg,
-        fontFamily: "'Segoe UI',system-ui,sans-serif",
-      }}
+    <IdleTimeoutWrapper
+      isAuthenticated={!!curUser}
+      onLogout={() => setCurUser(null)}
     >
-      <IdleTimeoutWrapper 
-    isAuthenticated={!!curUser} 
-    onLogout={() => setCurUser(null)}
-  >
-    <div className="app-container" style={{ display: 'flex', background: C.lg, minHeight: '100vh' }}>
-      {/* Your existing sidebar, header, and active view content rendering routes */}
-      {/* ... */}
-    </div>
-  </IdleTimeoutWrapper>
-
-      <Sidebar
-        cur={view}
-        onNav={setView}
-        user={curUser}
-        onLogout={() => setCurUser(null)}
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-        pendingReqs={pendingReqCount}
-        lowStock={lowStockCount}
-        newJobsForMe={newJobsForMe}
-        activeLogo={activeLogo}
-        perms={userPerms}
-      />
       <div
         style={{
-          flex: 1,
           display: "flex",
-          flexDirection: "column",
-          minWidth: 0,
+          minHeight: "100vh",
+          background: C.bg,
+          fontFamily: "'Segoe UI',system-ui,sans-serif",
         }}
       >
+        <Sidebar
+          cur={view}
+          onNav={setView}
+          user={curUser}
+          onLogout={() => setCurUser(null)}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+          pendingReqs={pendingReqCount}
+          lowStock={lowStockCount}
+          newJobsForMe={newJobsForMe}
+          activeLogo={activeLogo}
+          perms={userPerms}
+        />
         <div
           style={{
-            background: C.w,
-            padding: "10px 20px",
+            flex: 1,
             display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            borderBottom: `1px solid ${C.lg}`,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            flexDirection: "column",
+            minWidth: 0,
           }}
         >
-          <div style={{ fontSize: 12, color: C.sub }}>
-            Maumee River Roofing · Saint Joe Road Warehouse
-          </div>
           <div
             style={{
+              background: C.w,
+              padding: "0 20px", // Swapped padding to 0 top/bottom, 20px sides
+              height: 56, // Fixed uniform height block
               display: "flex",
-              alignItems: "center",
-              gap: 8,
-              flexWrap: "wrap",
+              justifyContent: "space-between",
+              alignItems: "center", // ✅ alignment fix: binds children to dead center
+              borderBottom: `0px solid ${C.lg}`,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
             }}
           >
-            {newJobsForMe > 0 && (
-              <div
-                onClick={() => setView("pull")}
-                style={{
-                  background: C.tB,
-                  color: C.tl,
-                  borderRadius: 20,
-                  padding: "3px 10px",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                🎉 {newJobsForMe} new job{newJobsForMe !== 1 ? "s" : ""}
-              </div>
-            )}
-            {pendingReqCount > 0 && userPerms.maint_manage && (
-              <div
-                onClick={() => setView("requests")}
-                style={{
-                  background: C.pB,
-                  color: C.pu,
-                  borderRadius: 20,
-                  padding: "3px 10px",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                🔧 {pendingReqCount} pending
-              </div>
-            )}
-            {lowStockCount > 0 && userPerms.inv_view && (
-              <div
-                onClick={() => setView("inventory")}
-                style={{
-                  background: C.aB,
-                  color: C.am,
-                  borderRadius: 20,
-                  padding: "3px 10px",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                ⚠️ {lowStockCount} low stock
-              </div>
-            )}
-            <RoleBdg role={curUser.role} />
-          </div>
-        </div>
-        <div style={{ flex: 1, padding: 20, overflowY: "auto" }}>
-          {view === "dashboard" && (
-            <DashboardView
-              inv={inv}
-              vehs={vehs}
-              reqs={reqs}
-              jobs={jobs}
-              users={users}
-              user={curUser}
-              perms={userPerms}
-              onNav={setView}
-              tot={tot}
-              jSC={jSC}
-            />
-          )}
+            {/* Left Text Metadata Header */}
+            <div
+              style={{
+                fontSize: 12,
+                color: C.sub,
+                flexShrink: 0,
+                marginRight: 24,
+              }}
+            >
+              Maumee River Roofing · Saint Joe Road Warehouse
+            </div>
 
-          {view === "buildjobs" && userPerms.jobs_build && (
-            <BuildJobsView
-              jobs={jobs}
-              setJobs={setJobs}
-              inv={inv}
-              users={users}
-              user={curUser}
-              perms={userPerms}
-              jSC={jSC}
-              view={view}
-              onNav={setView}
-              acculynxConfig={acculynxConfig}
-            />
-          )}
-
-          {view === "pull" && (
-            <PullInventoryView
-              jobs={jobs}
-              setJobs={setJobs}
-              inv={inv}
-              setInv={setInv}
-              users={users}
-              user={curUser}
-              perms={userPerms}
-              activeLogo={activeLogo}
-              acculynxConfig={acculynxConfig}
-              jSC={jSC}
-            />
-          )}
-          {view === "inventory" && userPerms.inv_view && (
-            <InventoryView
-              inv={inv}
-              setInv={setInv}
-              users={users}
-              user={curUser}
-              perms={userPerms}
-              invPhotos={invPhotos}
-              setInvPhotos={setInvPhotos}
-            />
-          )}
-
-          {view === "fleet" && userPerms.fleet_view && (
-            <FleetManagementView
-              vehs={vehs}
-              setVehs={setVehs}
-              reqs={reqs}
-              setReqs={setReqs}
-              users={users}
-              user={curUser}
-              perms={userPerms}
-              vehPhotos={vehPhotos}
-              setVehPhotos={setVehPhotos}
-              oilSt={oilSt}
-              detSt={detSt}
-              predDays={predDays}
-              fd={fd}
-              fm={fm}
-            />
-          )}
-
-          {view === "requests" &&
-            (userPerms.maint_submit || userPerms.maint_manage) && (
-              <MaintenanceRequestsView
-                reqs={reqs}
-                setReqs={setReqs}
+            {/* Centralized OmniSearch Navigation Panel Wrapper */}
+            <div
+              style={{
+                flex: 1,
+                maxWidth: "400px",
+                display: "flex",
+                justifyContent: "flex-start", // ✅ Swapped from 'center' to slide left
+                paddingRight: "40px", // ✅ Adjust this spacing to nudge it exactly where you want it
+              }}
+            >
+              <OmniSearch
+                jobs={jobs}
+                inv={inv}
                 vehs={vehs}
+                onNavigate={setView}
+              />
+            </div>
+
+            {/* Right Action Alert Badges Panel */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center", // ✅ centers the right side pills to match
+                gap: 8,
+                flexShrink: 0,
+                marginLeft: 24,
+              }}
+            >
+              {newJobsForMe > 0 && (
+                <div
+                  onClick={() => setView("pull")}
+                  style={{
+                    background: C.tB,
+                    color: C.tl,
+                    borderRadius: 20,
+                    padding: "3px 10px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  🎉 {newJobsForMe} new job{newJobsForMe !== 1 ? "s" : ""}
+                </div>
+              )}
+              {pendingReqCount > 0 && userPerms.maint_manage && (
+                <div
+                  onClick={() => setView("requests")}
+                  style={{
+                    background: C.pB,
+                    color: C.pu,
+                    borderRadius: 20,
+                    padding: "3px 10px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  🔧 {pendingReqCount} pending
+                </div>
+              )}
+              {lowStockCount > 0 && userPerms.inv_view && (
+                <div
+                  onClick={() => setView("inventory")}
+                  style={{
+                    background: C.aB,
+                    color: C.am,
+                    borderRadius: 20,
+                    padding: "3px 10px",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  ⚠️ {lowStockCount} low stock
+                </div>
+              )}
+              <RoleBdg role={curUser.role} />
+            </div>
+          </div>
+          <div style={{ flex: 1, padding: 20, overflowY: "auto" }}>
+            {view === "dashboard" && (
+              <DashboardView
+                inv={inv}
+                vehs={vehs}
+                reqs={reqs}
+                jobs={jobs}
                 users={users}
                 user={curUser}
                 perms={userPerms}
+                onNav={setView}
+                tot={tot}
+                jSC={jSC}
               />
             )}
 
-          {view === "reports" && userPerms.reports_view && (
-            <ReportsView
-              jobs={jobs}
-              users={users}
-              user={curUser}
-              perms={userPerms}
-              inv={inv}
-              vehs={vehs}
-              reqs={reqs}
-            />
-          )}
+            {view === "buildjobs" && userPerms.jobs_build && (
+              <BuildJobsView
+                jobs={jobs}
+                setJobs={setJobs}
+                inv={inv}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                jSC={jSC}
+                view={view}
+                onNav={setView}
+                acculynxConfig={acculynxConfig}
+              />
+            )}
 
-          {view === "users" && userPerms.users_manage && (
-            <UserManagementView
-              users={users}
-              setUsers={setUsers}
-              currentUser={curUser}
-              rolePerms={rolePerms}
-              userOverrides={userOverrides}
-              setUserOverrides={setUserOverrides}
-            />
-          )}
-          {view === "settings" && userPerms.settings_manage && (
-            <SettingsView
-              warehouses={warehouses}
-              setWarehouses={setWH}
-              logos={logos}
-              setLogos={setLogos}
-              rolePerms={rolePerms}
-              setRolePerms={setRolePerms}
-              acculynxConfig={acculynxConfig}
-              setAccuLynxConfig={setAccuLynxConfig}
-            />
-          )}
-          {view === "profile" && (
-            <ProfileView user={curUser} onUpdateUser={setCurUser} />
-          )}
-          {view === "logs" && userPerms.users_manage && (
-            <AuditLogView perms={userPerms} />
-          )}
+            {view === "pull" && (
+              <PullInventoryView
+                jobs={jobs}
+                setJobs={setJobs}
+                inv={inv}
+                setInv={setInv}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                activeLogo={activeLogo}
+                acculynxConfig={acculynxConfig}
+                jSC={jSC}
+              />
+            )}
+            {view === "inventory" && userPerms.inv_view && (
+              <InventoryView
+                inv={inv}
+                setInv={setInv}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                invPhotos={invPhotos}
+                setInvPhotos={setInvPhotos}
+              />
+            )}
+
+            {view === "fleet" && userPerms.fleet_view && (
+              <FleetManagementView
+                vehs={vehs}
+                setVehs={setVehs}
+                reqs={reqs}
+                setReqs={setReqs}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                vehPhotos={vehPhotos}
+                setVehPhotos={setVehPhotos}
+                oilSt={oilSt}
+                detSt={detSt}
+                predDays={predDays}
+                fd={fd}
+                fm={fm}
+              />
+            )}
+
+            {view === "requests" &&
+              (userPerms.maint_submit || userPerms.maint_manage) && (
+                <MaintenanceRequestsView
+                  reqs={reqs}
+                  setReqs={setReqs}
+                  vehs={vehs}
+                  users={users}
+                  user={curUser}
+                  perms={userPerms}
+                />
+              )}
+
+            {view === "reports" && userPerms.reports_view && (
+              <ReportsView
+                jobs={jobs}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                inv={inv}
+                vehs={vehs}
+                reqs={reqs}
+              />
+            )}
+
+            {view === "users" && userPerms.users_manage && (
+              <UserManagementView
+                users={users}
+                setUsers={setUsers}
+                currentUser={curUser}
+                rolePerms={rolePerms}
+                userOverrides={userOverrides}
+                setUserOverrides={setUserOverrides}
+              />
+            )}
+            {view === "settings" && userPerms.settings_manage && (
+              <SettingsView
+                warehouses={warehouses}
+                setWarehouses={setWH}
+                logos={logos}
+                setLogos={setLogos}
+                rolePerms={rolePerms}
+                setRolePerms={setRolePerms}
+                acculynxConfig={acculynxConfig}
+                setAccuLynxConfig={setAccuLynxConfig}
+              />
+            )}
+            {view === "profile" && (
+              <ProfileView user={curUser} onUpdateUser={setCurUser} />
+            )}
+            {view === "logs" && userPerms.users_manage && (
+              <AuditLogView perms={userPerms} />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </IdleTimeoutWrapper>
   );
 }
