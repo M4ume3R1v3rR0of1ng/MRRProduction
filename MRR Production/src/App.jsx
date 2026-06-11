@@ -2,6 +2,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "./utils/supabase";
 import OmniSearch from "./components/OmniSearch";
+import SyncIndicator from "./components/SyncIndicator";
+import { processOfflineQueue } from "./utils/offlineSync";
+import { useNotify } from "./context/NotificationContext"; // Ensure your toast context is imported here
 // Centralized Stateless Calculation & Helper Utilities
 import {
   C,
@@ -83,7 +86,8 @@ export default function App() {
   const [vehs, setVehs] = useState(SEED_V);
   const [reqs, setReqs] = useState([]);
   const [jobs, setJobs] = useState(SEED_JOBS);
-
+  const { showToast } = useNotify();
+  
   const [rolePerms, setRolePerms] = useState({
     warehouse: { ...DEFAULT_ROLE_PERMS.warehouse },
     coordinator: { ...DEFAULT_ROLE_PERMS.coordinator },
@@ -361,6 +365,23 @@ export default function App() {
     return getEffectivePerms(curUser, rolePerms, userOverrides);
   }, [curUser, rolePerms, userOverrides]);
 
+  // ── AUTOMATED BACKGROUND OFFLINE QUEUE PROCESSOR ──
+  useEffect(() => {
+    const handleReconnect = () => {
+      // Trigger execution manifest matching item uploads automatically
+      processOfflineQueue(showToast);
+    };
+
+    window.addEventListener("online", handleReconnect);
+    
+    // Check synchronization queue right away on component boot sequence
+    if (navigator.onLine) {
+      processOfflineQueue(showToast);
+    }
+
+    return () => window.removeEventListener("online", handleReconnect);
+  }, [showToast]);
+
   if (loading) {
     return (
       <div
@@ -431,12 +452,12 @@ export default function App() {
           <div
             style={{
               background: C.w,
-              padding: "0 20px", // Swapped padding to 0 top/bottom, 20px sides
-              height: 56, // Fixed uniform height block
+              padding: "0 20px",
+              height: 56,
               display: "flex",
               justifyContent: "space-between",
-              alignItems: "center", // ✅ alignment fix: binds children to dead center
-              borderBottom: `0px solid ${C.lg}`,
+              alignItems: "center",
+              borderBottom: `1px solid ${C.lg}`, // Fixed 0px to 1px line separation block
               boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
             }}
           >
@@ -458,8 +479,8 @@ export default function App() {
                 flex: 1,
                 maxWidth: "400px",
                 display: "flex",
-                justifyContent: "flex-start", // ✅ Swapped from 'center' to slide left
-                paddingRight: "40px", // ✅ Adjust this spacing to nudge it exactly where you want it
+                justifyContent: "flex-start",
+                paddingRight: "40px",
               }}
             >
               <OmniSearch
@@ -474,12 +495,15 @@ export default function App() {
             <div
               style={{
                 display: "flex",
-                alignItems: "center", // ✅ centers the right side pills to match
-                gap: 8,
+                alignItems: "center",
+                gap: 12, // Increased gap slightly to accommodate status indicator badge spacing
                 flexShrink: 0,
                 marginLeft: 24,
               }}
             >
+              {/* ── ✅ INJECTED STATUS INDICATOR PRIMITIVE HERE ── */}
+              <SyncIndicator />
+
               {newJobsForMe > 0 && (
                 <div
                   onClick={() => setView("pull")}
@@ -531,6 +555,8 @@ export default function App() {
               <RoleBdg role={curUser.role} />
             </div>
           </div>
+          
+          {/* Main Content Layout Route Multi-view Panel */}
           <div style={{ flex: 1, padding: 20, overflowY: "auto" }}>
             {view === "dashboard" && (
               <DashboardView
