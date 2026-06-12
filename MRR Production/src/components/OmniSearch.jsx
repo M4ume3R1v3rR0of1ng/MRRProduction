@@ -1,150 +1,201 @@
 // src/components/OmniSearch.jsx
-import { useState, useMemo, useRef, useEffect } from "react";
-import { C, tot, fm } from "../utils/helpers";
+import { useState, useRef, useEffect } from "react";
+import { C } from "../utils/helpers";
 
-export default function OmniSearch({ jobs = [], inv = [], vehs = [], onNavigate }) {
+export default function OmniSearch({ jobs = [], users = [], vehs = [], reqs = [], inv = [], onNavigate }) {
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const wrapperRef = useRef(null);
+  const containerRef = useRef(null);
 
-  // Close dropdown cleanly if clicking completely outside the element wrapper
+  // Close the drop-down naturally if an operator clicks away
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
         setIsOpen(false);
       }
-    }
+    };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // High-performance search cross-referencing across multiple distinct state vectors simultaneously
-  const results = useMemo(() => {
-    const txt = query.toLowerCase().trim();
-    if (txt.length < 2) return { jobs: [], inventory: [], vehicles: [] };
+  // ── 🔍 THE SEARCH FILTER MATRIX ──
+  const getFilteredResults = () => {
+    const txt = query.trim().toLowerCase();
+    if (!txt) return null;
 
     return {
+      // 🏗️ 1. Pipeline Contracts
       jobs: jobs.filter(j => 
-        (j?.name || "").toLowerCase().includes(txt) || 
-        (j?.po || "").toLowerCase().includes(txt) || 
-        (j?.addr || "").toLowerCase().includes(txt)
-      ).slice(0, 4), // Limit results so the dropdown stays clean and compact
+        j.name?.toLowerCase().includes(txt) || 
+        j.poNumber?.toLowerCase().includes(txt) || 
+        j.address?.toLowerCase().includes(txt)
+      ).slice(0, 3),
 
-      inventory: inv.filter(i => 
-        (i?.name || "").toLowerCase().includes(txt) || 
-        (i?.cat || "").toLowerCase().includes(txt)
-      ).slice(0, 4),
+      // 👥 2. Corporate Team Members
+      users: users.filter(u => 
+        u.full_name?.toLowerCase().includes(txt) || 
+        u.email?.toLowerCase().includes(txt) || 
+        u.role?.toLowerCase().includes(txt)
+      ).slice(0, 3),
 
+      // 🚛 3. Fleet Operations Registry
       vehicles: vehs.filter(v => 
-        (v?.name || "").toLowerCase().includes(txt) || 
-        (v?.plate || "").toLowerCase().includes(txt) || 
-        (v?.make || "").toLowerCase().includes(txt)
-      ).slice(0, 4)
+        v.make?.toLowerCase().includes(txt) || 
+        v.model?.toLowerCase().includes(txt) || 
+        v.plates?.toLowerCase().includes(txt) ||
+        v.assigned_to?.toLowerCase().includes(txt)
+      ).slice(0, 3),
+
+      // 🔧 4. Maintenance Work Orders
+      requests: reqs.filter(r => 
+        r.issue?.toLowerCase().includes(txt) || 
+        r.status?.toLowerCase().includes(txt) ||
+        r.priority?.toLowerCase().includes(txt)
+      ).slice(0, 3),
+
+      // 📦 5. Warehouse Inventory Metrics
+      inventory: inv.filter(i => 
+        i.name?.toLowerCase().includes(txt) || 
+        i.sku?.toLowerCase().includes(txt) ||
+        i.cat?.toLowerCase().includes(txt)
+      ).slice(0, 3)
     };
-  }, [query, jobs, inv, vehs]);
+  };
 
-  const hasResults = results.jobs.length > 0 || results.inventory.length > 0 || results.vehicles.length > 0;
+  const results = getFilteredResults();
+  const hasResults = results && Object.values(results).some(arr => arr.length > 0);
 
-  const handleSelect = (targetView) => {
+  const handleSelection = (targetView) => {
     onNavigate(targetView);
     setQuery("");
     setIsOpen(false);
   };
 
   return (
-    <div ref={wrapperRef} style={{ position: "relative", width: "100%", maxWidth: "420px" }}>
-      {/* Universal Search Input */}
+    <div ref={containerRef} style={{ position: "relative", width: "100%" }}>
+      {/* Search Input field */}
       <input
         type="text"
         value={query}
         onChange={(e) => { setQuery(e.target.value); setIsOpen(true); }}
         onFocus={() => setIsOpen(true)}
-        placeholder="🔍 Search jobs, materials, trucks, plates ..."
+        placeholder="Search jobs, staff, trucks, tickets, materials..."
         style={{
           width: "100%",
-          padding: "10px 12px",
+          padding: "10px 14px 10px 12px",
           borderRadius: "8px",
           border: `1px solid ${C.bd || "#cbd5e1"}`,
           background: "#f8fafc",
-          fontSize: "12px",
+          fontSize: "13px",
           fontWeight: 600,
           color: C.navy,
           outline: "none",
           transition: "all 0.2s"
-          
         }}
       />
 
-      {/* Floating Global Results Dashboard Overlay Menu */}
-      {isOpen && query.trim().length >= 2 && (
-        <div style={{
-          position: "absolute",
-          top: "100%",
-          left: 0,
-          right: 0,
-          background: C.w || "#ffffff",
-          borderRadius: "10px",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-          border: "1px solid rgba(0,0,0,0.08)",
-          marginTop: "6px",
-          maxHeight: "420px",
-          overflowY: "auto",
-          zIndex: 9999,
-          padding: "8px 0"
-        }}>
-          {!hasResults ? (
-            <div style={{ padding: "16px", textAlign: "center", color: C.sub, fontSize: "12px" }}>
-              ❌ No records matched "<strong>{query}</strong>"
-            </div>
-          ) : (
+      {/* ── 🗺️ RECONSTRUCTED INTERACTION RESULT PANEL ── */}
+      {isOpen && results && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: 0,
+            right: 0,
+            background: "#ffffff",
+            borderRadius: "12px",
+            boxShadow: "0 12px 32px rgba(15, 23, 42, 0.15)",
+            border: "1px solid #e2e8f0",
+            maxHeight: "420px",
+            overflowY: "auto",
+            zIndex: 1100,
+            padding: "8px 0"
+          }}
+        >
+          {hasResults ? (
             <>
-              {/* CATEGORY TIER 1: ACTIVE PIPELINE PROJECTS */}
+              {/* 🏗️ Category Block: Jobs Pipeline */}
               {results.jobs.length > 0 && (
                 <div>
-                  <div style={{ background: C.lg || "#f1f5f9", padding: "4px 12px", fontSize: "10px", fontWeight: 800, color: C.sub, textTransform: "uppercase" }}>🏗️ Active Roofing Projects</div>
+                  <div style={{ padding: "6px 14px", fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", background: "#f8fafc" }}>
+                    🏗️ Pipeline Contracts
+                  </div>
                   {results.jobs.map(j => (
-                    <div key={j.id} onClick={() => handleSelect("buildjobs")} style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #f1f5f9" }} className="search-row-hover">
-                      <div style={{ fontWeight: 700, color: C.navy, fontSize: "12px" }}>{j.name}</div>
-                      <div style={{ fontSize: "10px", color: C.sub }}>PO: {j.po} · <span style={{color: C.am}}>{j.status}</span></div>
+                    <div key={j.id} onClick={() => handleSelection("pull")} style={{ padding: "10px 14px", cursor: "pointer", fontSize: "13px", color: "#0f172a", transition: "background 0.15s" }} onMouseEnter={(e) => e.target.style.background = "#f1f5f9"} onMouseLeave={(e) => e.target.style.background = "transparent"}>
+                      <div style={{ fontWeight: 600 }}>{j.name}</div>
+                      <div style={{ fontSize: "11px", color: "#64748b" }}>PO: {j.poNumber || "N/A"} · {j.address}</div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* CATEGORY TIER 2: WAREHOUSE MATERIALS STOCK */}
-              {results.inventory.length > 0 && (
-                <div style={{ marginTop: "6px" }}>
-                  <div style={{ background: C.lg || "#f1f5f9", padding: "4px 12px", fontSize: "10px", fontWeight: 800, color: C.sub, textTransform: "uppercase" }}>📦 Warehouse Inventory Catalog</div>
-                  {results.inventory.map(i => (
-                    <div key={i.id} onClick={() => handleSelect("inventory")} style={{ padding: "8px 12px", cursor: "pointer", borderBottom: "1px solid #f1f5f9" }} className="search-row-hover">
-                      <div style={{ fontWeight: 700, color: C.navy, fontSize: "12px" }}>{i.name}</div>
-                      <div style={{ fontSize: "10px", color: C.sub }}>Stock: <strong style={{color: tot(i) <= i.alrt ? C.rd : C.gr}}>{tot(i)} {i.unit}</strong> · {i.cat}</div>
+              {/* 👥 Category Block: Users / Staff */}
+              {results.users.length > 0 && (
+                <div>
+                  <div style={{ padding: "6px 14px", fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", background: "#f8fafc" }}>
+                    👥 Staff & Profiles
+                  </div>
+                  {results.users.map(u => (
+                    <div key={u.id} onClick={() => handleSelection("users")} style={{ padding: "10px 14px", cursor: "pointer", fontSize: "13px", color: "#0f172a", transition: "background 0.15s" }} onMouseEnter={(e) => e.target.style.background = "#f1f5f9"} onMouseLeave={(e) => e.target.style.background = "transparent"}>
+                      <div style={{ fontWeight: 600 }}>{u.full_name}</div>
+                      <div style={{ fontSize: "11px", color: "#64748b" }}>{u.email} · <span style={{ textTransform: "capitalize" }}>{u.role}</span></div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* CATEGORY TIER 3: COMPANY VEHICLES & TRAILERS */}
+              {/* 🚛 Category Block: Vehicles */}
               {results.vehicles.length > 0 && (
-                <div style={{ marginTop: "6px" }}>
-                  <div style={{ background: C.lg || "#f1f5f9", padding: "4px 12px", fontSize: "10px", fontWeight: 800, color: C.sub, textTransform: "uppercase" }}>🚛 Fleet Tracker Assets</div>
+                <div>
+                  <div style={{ padding: "6px 14px", fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", background: "#f8fafc" }}>
+                    🚛 Fleet Vehicles
+                  </div>
                   {results.vehicles.map(v => (
-                    <div key={v.id} onClick={() => handleSelect("fleet")} style={{ padding: "8px 12px", cursor: "pointer" }} className="search-row-hover">
-                      <div style={{ fontWeight: 700, color: C.navy, fontSize: "12px" }}>{v.name} <span style={{fontWeight: 400, color: C.sub}}>({v.yr} {v.make})</span></div>
-                      <div style={{ fontSize: "10px", color: C.sub }}>Plate: #{v.plate} · Tagged: {v.type}</div>
+                    <div key={v.id} onClick={() => handleSelection("fleet")} style={{ padding: "10px 14px", cursor: "pointer", fontSize: "13px", color: "#0f172a", transition: "background 0.15s" }} onMouseEnter={(e) => e.target.style.background = "#f1f5f9"} onMouseLeave={(e) => e.target.style.background = "transparent"}>
+                      <div style={{ fontWeight: 600 }}>{v.make} {v.model}</div>
+                      <div style={{ fontSize: "11px", color: "#64748b" }}>Plates: {v.plates || "No Plate Info"} · Driver: {v.assigned_to || "Unassigned"}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 🔧 Category Block: Maintenance Tickets */}
+              {results.requests.length > 0 && (
+                <div>
+                  <div style={{ padding: "6px 14px", fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", background: "#f8fafc" }}>
+                    🔧 Maintenance Tickets
+                  </div>
+                  {results.requests.map(r => (
+                    <div key={r.id} onClick={() => handleSelection("requests")} style={{ padding: "10px 14px", cursor: "pointer", fontSize: "13px", color: "#0f172a", transition: "background 0.15s" }} onMouseEnter={(e) => e.target.style.background = "#f1f5f9"} onMouseLeave={(e) => e.target.style.background = "transparent"}>
+                      <div style={{ fontWeight: 600 }}>{r.issue}</div>
+                      <div style={{ fontSize: "11px", color: "#64748b" }}>Status: <span style={{ textTransform: "uppercase", fontWeight: 700 }}>{r.status}</span> · Priority: {r.priority}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* 📦 Category Block: Inventory Stock */}
+              {results.inventory.length > 0 && (
+                <div>
+                  <div style={{ padding: "6px 14px", fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", background: "#f8fafc" }}>
+                    📦 Materials & Inventory
+                  </div>
+                  {results.inventory.map(i => (
+                    <div key={i.id} onClick={() => handleSelection("inventory")} style={{ padding: "10px 14px", cursor: "pointer", fontSize: "13px", color: "#0f172a", transition: "background 0.15s" }} onMouseEnter={(e) => e.target.style.background = "#f1f5f9"} onMouseLeave={(e) => e.target.style.background = "transparent"}>
+                      <div style={{ fontWeight: 600 }}>{i.name}</div>
+                      <div style={{ fontSize: "11px", color: "#64748b" }}>Category: {i.cat || "General"} · SKU: {i.sku || "N/A"}</div>
                     </div>
                   ))}
                 </div>
               )}
             </>
+          ) : (
+            <div style={{ padding: "16px", textAlign: "center", fontSize: "13px", color: "#64748b" }}>
+              🔍 No tracking coordinates match your query.
+            </div>
           )}
         </div>
       )}
-
-      {/* Basic CSS Inject for Smooth Row Hover Highlight Effects */}
-      <style>{`
-        .search-row-hover:hover { background: #f8fafc !important; }
-      `}</style>
     </div>
   );
 }
