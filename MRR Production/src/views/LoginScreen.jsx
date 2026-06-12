@@ -24,12 +24,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
     setSuccessMsg("");
     setSubmitting(true);
 
-    // 1. Declare variables outside the block so they are scoped to the entire tryLogin function
     let authData = null;
     let authError = null;
 
     try {
-      // 2. Assign the destructuring results to those variables (no 'const' here)
       const result = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password: pass,
@@ -40,14 +38,11 @@ export default function LoginScreen({ onLogin, activeLogo }) {
     } catch (e) {
       return setErr("An unexpected network error interrupted authentication.");
     } finally {
-      // We only turn off submitting if we aren't proceeding,
-      // but since onLogin changes screen state, handling it safely here:
       if (authError || !authData?.user) {
         setSubmitting(false);
       }
     }
 
-    // 3. Now these are fully accessible out here safely!
     if (authError) {
       setErr(authError.message);
       return;
@@ -108,7 +103,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
       return setErr("Password must be at least 8 characters.");
     if (pass !== confirm) return setErr("Passwords do not match.");
 
-    setSubmitting(true); // Engaged mutation layout barrier
+    setSubmitting(true);
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: trimmedEmail,
@@ -121,7 +116,6 @@ export default function LoginScreen({ onLogin, activeLogo }) {
         return;
       }
 
-      // ── THE EXTRA IF BLOCK: CHECK DUPLICATE EMAIL IDENTITIES ──
       if (authData?.user?.identities?.length === 0) {
         setErr(
           "An account with this email address already exists. Please navigate back to sign in.",
@@ -130,7 +124,6 @@ export default function LoginScreen({ onLogin, activeLogo }) {
       }
 
       if (authData?.user) {
-        // ✅ Correctly sequenced signup logging
         await logAction(
           authData?.user?.id,
           authData?.user?.email,
@@ -143,7 +136,6 @@ export default function LoginScreen({ onLogin, activeLogo }) {
         setSuccessMsg(
           "Registration pending! Please check your inbox to confirm your account before logging in.",
         );
-        // Clear out form text blocks gracefully
         setName("");
         setPass("");
         setConfirm("");
@@ -151,7 +143,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
     } catch (e) {
       setErr("Database transaction aborted during registration processing.");
     } finally {
-      setSubmitting(false); // Released interaction thread
+      setSubmitting(false);
     }
   };
 
@@ -163,35 +155,35 @@ export default function LoginScreen({ onLogin, activeLogo }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 16,
+        padding: 24, // ✅ Increased padding for mobile screens
       }}
     >
       <div
         style={{
           background: C.w,
-          borderRadius: 18,
-          padding: 36,
+          borderRadius: 20, // ✅ Smoother, slightly more rounded corners
+          padding: "48px 56px", // ✅ Expanded inner breathing room padding
           width: "100%",
-          maxWidth: 420,
+          maxWidth: 520, // ✅ Boosted width footprint from 420px to 520px
           boxShadow: "0 24px 60px rgba(0,0,0,0.4)",
           margin: "auto",
         }}
       >
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 12,
-              marginBottom: 8,
+              gap: 16, // ✅ More gap space for the upscaled logo text
+              marginBottom: 12,
             }}
           >
             <div
               style={{
-                width: 54,
-                height: 54,
+                width: 64, // ✅ Upscaled logo box footprint from 54px to 64px
+                height: 64,
                 background: C.gold,
-                borderRadius: 14,
+                borderRadius: 16,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -209,26 +201,26 @@ export default function LoginScreen({ onLogin, activeLogo }) {
                   }}
                 />
               ) : (
-                <span style={{ fontSize: 28 }}>🏠</span>
+                <span style={{ fontSize: 32 }}>🏠</span>
               )}
             </div>
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 17, fontWeight: 900, color: C.navy }}>
+              <div style={{ fontSize: 20, fontWeight: 900, color: C.navy, letterSpacing: "0.5px" }}>
                 MAUMEE RIVER
               </div>
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: 700,
                   color: C.blue,
-                  letterSpacing: "1px",
+                  letterSpacing: "1.5px",
                 }}
               >
                 ROOFING
               </div>
             </div>
           </div>
-          <div style={{ fontSize: 12, color: C.sub }}>
+          <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>
             {mode === "login"
               ? "Warehouse & Fleet Management System"
               : `Register with ${COMPANY_DOMAIN}`}
@@ -242,10 +234,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               background: "#ecfdf5",
               border: "1.5px solid #10b981",
               color: "#065f46",
-              padding: "14px",
+              padding: "16px",
               borderRadius: 8,
-              fontSize: 13,
-              marginBottom: 16,
+              fontSize: 14,
+              marginBottom: 20,
               fontWeight: 600,
               lineHeight: "1.4",
             }}
@@ -263,10 +255,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               placeholder="Your full name"
               style={{
                 width: "100%",
-                padding: "9px 11px",
+                padding: "12px 14px", // ✅ Substantially larger tap/click targets
                 border: `1.5px solid ${C.bd}`,
                 borderRadius: 8,
-                fontSize: 14,
+                fontSize: 15, // ✅ Boosted font legibility vector
                 boxSizing: "border-box",
               }}
               disabled={submitting}
@@ -281,10 +273,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             placeholder="your@maumeeriverroofing.com"
             style={{
               width: "100%",
-              padding: "9px 11px",
+              padding: "12px 14px", // ✅ Substantially larger tap/click targets
               border: `1.5px solid ${C.bd}`,
               borderRadius: 8,
-              fontSize: 14,
+              fontSize: 15, // ✅ Boosted font legibility vector
               boxSizing: "border-box",
             }}
             disabled={submitting}
@@ -303,10 +295,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             placeholder="Password"
             style={{
               width: "100%",
-              padding: "9px 11px",
+              padding: "12px 14px", // ✅ Substantially larger tap/click targets
               border: `1.5px solid ${C.bd}`,
               borderRadius: 8,
-              fontSize: 14,
+              fontSize: 15, // ✅ Boosted font legibility vector
               boxSizing: "border-box",
             }}
             disabled={submitting}
@@ -322,10 +314,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               placeholder="Confirm password"
               style={{
                 width: "100%",
-                padding: "9px 11px",
+                padding: "12px 14px", // ✅ Substantially larger tap/click targets
                 border: `1.5px solid ${C.bd}`,
                 borderRadius: 8,
-                fontSize: 14,
+                fontSize: 15, // ✅ Boosted font legibility vector
                 boxSizing: "border-box",
               }}
               disabled={submitting}
@@ -338,10 +330,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             style={{
               background: C.rB,
               color: C.rd,
-              padding: "8px 12px",
+              padding: "10px 14px",
               borderRadius: 8,
-              fontSize: 12,
-              marginBottom: 12,
+              fontSize: 13,
+              marginBottom: 16,
             }}
           >
             {err}
@@ -352,16 +344,17 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           onClick={() => (mode === "login" ? tryLogin() : trySignup())}
           style={{
             width: "100%",
-            padding: "12px",
+            padding: "14px", // ✅ Enhanced thumb hit target for warehouse operators
             background: submitting ? C.bd : C.gold,
             color: C.navy,
             border: "none",
             borderRadius: 8,
-            fontSize: 15,
+            fontSize: 16, // ✅ Noticeable call to action
             fontWeight: 800,
             cursor: submitting ? "not-allowed" : "pointer",
-            marginBottom: 12,
+            marginBottom: 16,
             opacity: submitting ? 0.7 : 1,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
           }}
           disabled={submitting}
         >
@@ -377,9 +370,9 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            fontSize: 12,
+            fontSize: 13, // ✅ Easier tracking for helper links
             color: C.sub,
-            marginTop: 16,
+            marginTop: 20,
           }}
         >
           <button
