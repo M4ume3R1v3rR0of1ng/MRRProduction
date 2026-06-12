@@ -5,6 +5,9 @@ import { C } from "../utils/helpers";
 import { Fld } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 
+// ── 📸 IMPORT THE LOG-IN BACKGROUND DRONE IMAGE ──
+import backgroundImage from "../assets/image_79f79a.jpg";
+
 const COMPANY_DOMAIN = "@maumeeriverroofing.com";
 
 export default function LoginScreen({ onLogin, activeLogo }) {
@@ -15,7 +18,6 @@ export default function LoginScreen({ onLogin, activeLogo }) {
   const [confirm, setConfirm] = useState("");
   const [err, setErr] = useState("");
 
-  // New operational state vectors for mutations and confirmation messages
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
 
@@ -151,21 +153,27 @@ export default function LoginScreen({ onLogin, activeLogo }) {
     <div
       style={{
         minHeight: "100vh",
-        background: `linear-gradient(135deg,${C.navy} 0%,${C.blue} 55%,${C.navy} 100%)`,
+        // ── 🎨 GRAPHICS ENGINE: PHOTO AS BACKGROUND ──
+        backgroundImage: `linear-gradient(rgba(15, 16, 20, 0.6), rgba(15, 23, 42, 0.75)), url(${backgroundImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center 90%",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 24, // ✅ Increased padding for mobile screens
+        padding: 24,
       }}
     >
       <div
         style={{
-          background: C.w,
-          borderRadius: 20, // ✅ Smoother, slightly more rounded corners
-          padding: "48px 56px", // ✅ Expanded inner breathing room padding
+          background: "rgba(255, 255, 255, 0.96)", // ✅ Added slight background blur opacity for elite contrast
+          backdropFilter: "blur(8px)",              // ✅ Blurs the drone photo slightly just behind the card
+          borderRadius: 20,
+          padding: "48px 56px",
           width: "100%",
-          maxWidth: 520, // ✅ Boosted width footprint from 420px to 520px
-          boxShadow: "0 24px 60px rgba(0,0,0,0.4)",
+          maxWidth: 400,
+          boxShadow: "0 24px 60px rgba(0,0,0,0.45)",
           margin: "auto",
         }}
       >
@@ -174,13 +182,13 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 16, // ✅ More gap space for the upscaled logo text
+              gap: 16,
               marginBottom: 12,
             }}
           >
             <div
               style={{
-                width: 64, // ✅ Upscaled logo box footprint from 54px to 64px
+                width: 64,
                 height: 64,
                 background: C.gold,
                 borderRadius: 16,
@@ -227,7 +235,6 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           </div>
         </div>
 
-        {/* Inline Success Notice Placement */}
         {successMsg && (
           <div
             style={{
@@ -255,10 +262,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               placeholder="Your full name"
               style={{
                 width: "100%",
-                padding: "12px 14px", // ✅ Substantially larger tap/click targets
+                padding: "12px 14px",
                 border: `1.5px solid ${C.bd}`,
                 borderRadius: 8,
-                fontSize: 15, // ✅ Boosted font legibility vector
+                fontSize: 15,
                 boxSizing: "border-box",
               }}
               disabled={submitting}
@@ -273,10 +280,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             placeholder="your@maumeeriverroofing.com"
             style={{
               width: "100%",
-              padding: "12px 14px", // ✅ Substantially larger tap/click targets
+              padding: "12px 14px",
               border: `1.5px solid ${C.bd}`,
               borderRadius: 8,
-              fontSize: 15, // ✅ Boosted font legibility vector
+              fontSize: 15,
               boxSizing: "border-box",
             }}
             disabled={submitting}
@@ -295,10 +302,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             placeholder="Password"
             style={{
               width: "100%",
-              padding: "12px 14px", // ✅ Substantially larger tap/click targets
+              padding: "12px 14px",
               border: `1.5px solid ${C.bd}`,
               borderRadius: 8,
-              fontSize: 15, // ✅ Boosted font legibility vector
+              fontSize: 15,
               boxSizing: "border-box",
             }}
             disabled={submitting}
@@ -314,10 +321,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               placeholder="Confirm password"
               style={{
                 width: "100%",
-                padding: "12px 14px", // ✅ Substantially larger tap/click targets
+                padding: "12px 14px",
                 border: `1.5px solid ${C.bd}`,
                 borderRadius: 8,
-                fontSize: 15, // ✅ Boosted font legibility vector
+                fontSize: 15,
                 boxSizing: "border-box",
               }}
               disabled={submitting}
@@ -344,12 +351,12 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           onClick={() => (mode === "login" ? tryLogin() : trySignup())}
           style={{
             width: "100%",
-            padding: "14px", // ✅ Enhanced thumb hit target for warehouse operators
+            padding: "14px",
             background: submitting ? C.bd : C.gold,
             color: C.navy,
             border: "none",
             borderRadius: 8,
-            fontSize: 16, // ✅ Noticeable call to action
+            fontSize: 16,
             fontWeight: 800,
             cursor: submitting ? "not-allowed" : "pointer",
             marginBottom: 16,
@@ -370,7 +377,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            fontSize: 13, // ✅ Easier tracking for helper links
+            fontSize: 13,
             color: C.sub,
             marginTop: 20,
           }}
