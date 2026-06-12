@@ -230,6 +230,20 @@ export default function PullInventory({
     );
   };
 
+const handleStagePhoto = (phase, base64Data) => {
+    if (!sel) return;
+    setJobPhotos((prev) => ({
+      ...prev,
+      [sel.id]: {
+        ...(prev[sel.id] || { before: null, after: null }),
+        [phase]: base64Data,
+      },
+    }));
+    showToast(`${phase === "before" ? "Before" : "After"} photo successfully captured!`, "success");
+  };
+
+  const currentJobPhotos = sel ? (jobPhotos[sel.id] || { before: null, after: null }) : { before: null, after: null };
+
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
@@ -804,6 +818,40 @@ export default function PullInventory({
           onClose={() => setSel(null)}
           wide
         >
+          {/* ── 📸 NEW: INTEGRATED BEFORE & AFTER PHOTOS WORKFLOW BLOCK ── */}
+          <div style={{ marginTop: 18, borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
+            <h3 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 800, color: C.navy }}>
+              📸 Visual Production Accountability Media
+            </h3>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 4 }}>
+                  Before Photo (Site Prep / Decking)
+                </div>
+                <PhotoUpload
+                  value={currentJobPhotos.before}
+                  onChange={(base64) => handleStagePhoto("before", base64)}
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 4 }}>
+                  After Photo (Finished Shingles / Clean)
+                </div>
+                <PhotoUpload
+                  value={currentJobPhotos.after}
+                  onChange={(base64) => handleStagePhoto("after", base64)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {sel.status === "completed" && (
+            <div style={{ marginTop: 14, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <Btn v="green" onClick={() => generatePDF(sel, users, activeLogo)}>📄 PDF</Btn>
+              <Btn v="sky" onClick={() => setSyncModal(sel)}>☁️ AccuLynx Sync</Btn>
+            </div>
+          )}
+
           <div
             style={{
               display: "grid",

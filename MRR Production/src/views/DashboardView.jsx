@@ -46,6 +46,52 @@ export default function DashboardView({
     </div>
   );
 
+  // Reusable Large Quick Action Card Primitive
+  const QuickActionCard = ({ title, subtitle, icon, color, onClick }) => (
+    <div
+      onClick={onClick}
+      style={{
+        background: C.w,
+        borderRadius: 12,
+        padding: "16px 20px",
+        cursor: "pointer",
+        boxShadow: "0 4px 12px rgba(15, 23, 42, 0.05)",
+        border: "1px solid #e2e8f0",
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        flex: "1 1 220px",
+        transition: "transform 0.15s ease, box-shadow 0.15s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "0 6px 16px rgba(15, 23, 42, 0.1)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 23, 42, 0.05)";
+      }}
+    >
+      <div style={{
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        background: `${color}15`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: 22,
+        flexShrink: 0
+      }}>
+        {icon}
+      </div>
+      <div style={{ textAlign: "left" }}>
+        <div style={{ fontWeight: 700, color: C.navy, fontSize: 14 }}>{title}</div>
+        <div style={{ color: C.sub, fontSize: 11, marginTop: 2 }}>{subtitle}</div>
+      </div>
+    </div>
+  );
+
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -65,7 +111,6 @@ export default function DashboardView({
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14, alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Today's Agenda Panel */}
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>📅 My Active Agenda</h3>
               {myJobs.length === 0 ? (
@@ -80,15 +125,14 @@ export default function DashboardView({
               )}
             </div>
 
-            {/* Assigned Truck Panel */}
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>🚛 Assigned Fleet Truck</h3>
               {myVehicle ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px", background: C.lg, borderRadius: 8, fontSize: 12 }}>
                   <span style={{ fontSize: 28 }}>🛻</span>
                   <div>
-                    <div style={{ fontWeight: 700, color: C.navy }}>{myVehicle.make} {myVehicle.model}</div>
-                    <div style={{ color: C.sub, fontSize: 11, marginTop: 1 }}>Plate ID: <strong style={{ color: C.navy }}>{myVehicle.plates}</strong></div>
+                    <div style={{ fontWeight: 700, color: C.navy }}>{v.make} {v.model}</div>
+                    <div style={{ color: C.sub, fontSize: 11, marginTop: 1 }}>Plate ID: <strong style={{ color: C.navy }}>{v.plates}</strong></div>
                   </div>
                 </div>
               ) : (
@@ -116,7 +160,6 @@ export default function DashboardView({
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14, alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Critical Watchlist */}
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>🚨 Low Stock Watchlist</h3>
               {low.length === 0 ? (
@@ -131,7 +174,6 @@ export default function DashboardView({
               )}
             </div>
 
-            {/* Pending Loads Pull Panel */}
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>📦 Staged Loading Orders</h3>
               {pendingPulls.slice(0, 4).map((p) => (
@@ -164,7 +206,6 @@ export default function DashboardView({
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14, alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {/* Global Job Pipeline */}
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>📋 Master Contract Pipeline</h3>
               {jobs.filter((j) => j.status !== "completed").slice(0, 4).map((j) => {
@@ -190,7 +231,7 @@ export default function DashboardView({
 
   return (
     <div>
-      {/* Upper Meta Welcome Context Row */}
+      {/* Upper Welcome Context Row */}
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>
           {greeting}, {displayName(user)}! 👋
@@ -235,7 +276,45 @@ export default function DashboardView({
         </div>
       )}
 
-      {/* ── 🎛️ CORE EVALUATION ROUTER BRANCH ── */}
+      {/* ── ⚡ NEW: QUICK ACTIONS GRID PANEL ── */}
+      <div style={{
+        display: "flex",
+        gap: 12,
+        flexWrap: "wrap",
+        marginBottom: 20,
+        width: "100%"
+      }}>
+        <QuickActionCard 
+          title="Pull Inventory" 
+          subtitle="Stage materials for loading" 
+          icon="📦" 
+          color="#3b82f6" 
+          onClick={() => onNav("pull")} 
+        />
+        <QuickActionCard 
+          title="Create Request" 
+          subtitle="Submit vehicle maintenance" 
+          icon="🔧" 
+          color="#a855f7" 
+          onClick={() => onNav("requests")} 
+        />
+        <QuickActionCard 
+          title="View My Jobs" 
+          subtitle="Check assigned work lists" 
+          icon="📋" 
+          color="#14b8a6" 
+          onClick={() => onNav("pull")} 
+        />
+        <QuickActionCard 
+          title="Report Damage" 
+          subtitle="Flag down tools or fleet assets" 
+          icon="⚠️" 
+          color="#f43f5e" 
+          onClick={() => onNav("fleet")} 
+        />
+      </div>
+
+      {/* Core Evaluation Router Branch */}
       {(() => {
         if (perms.settings_manage || user.role === "manager" || user.role === "admin" || user.role === "coordinator") {
           return renderManagerDashboard();

@@ -4,9 +4,8 @@ import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { Fld } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
-
-// ── 📸 IMPORT THE LOG-IN BACKGROUND DRONE IMAGE ──
 import backgroundImage from "../assets/image_79f79a.jpg";
+import mrrpic from "../assets/mrrpic.jpg";
 
 const COMPANY_DOMAIN = "@maumeeriverroofing.com";
 
@@ -209,7 +208,16 @@ export default function LoginScreen({ onLogin, activeLogo }) {
                   }}
                 />
               ) : (
-                <span style={{ fontSize: 32 }}>🏠</span>
+                // ── ✅ SWAPPED THE HOUSE EMOJI FOR THE OFFICIAL BEAVER MASCOT IMAGE ──
+                <img
+                  src={mrrpic}
+                  alt="Maumee River Roofing Mascot"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover", // 'cover' fills out the golden square box beautifully
+                  }}
+                />
               )}
             </div>
             <div style={{ textAlign: "left" }}>

@@ -49,6 +49,9 @@ import AuditLogView from "./views/AuditLogView";
 // Time-based Session Management Wrapper
 import IdleTimeoutWrapper from "./components/IdleTimeoutWrapper";
 
+// ── 🦫 IMPORT THE MRR MASCOUT ASSET ──
+import mrrpic from "./assets/mrrmascot.jpg";
+
 const jSC = {
   draft: { c: "gray", l: "Draft", icon: "📝" },
   approved: { c: "blue", l: "Approved", icon: "✅" },
@@ -71,7 +74,7 @@ export default function App() {
   const [reqs, setReqs] = useState([]);
   const [jobs, setJobs] = useState(SEED_JOBS);
   const { showToast } = useNotify();
-
+  const [jobPhotos, setJobPhotos] = useState({});
   const [rolePerms, setRolePerms] = useState({
     warehouse: { ...DEFAULT_ROLE_PERMS.warehouse },
     coordinator: { ...DEFAULT_ROLE_PERMS.coordinator },
@@ -116,17 +119,19 @@ export default function App() {
       console.log("🚀 Initializing Maumee River Roofing WMS Boot Sequence...");
 
       try {
-        const [ip, vp, lg, ax] = await Promise.all([
+        const [ip, vp, lg, ax, jp] = await Promise.all([
           storage.get("mrr-v7-inv-photos").catch(() => null),
           storage.get("mrr-v7-veh-photos").catch(() => null),
           storage.get("mrr-v7-logos").catch(() => null),
           storage.get("mrr-v7-acculynx").catch(() => null),
+          storage.get("mrr-v7-job-photos").catch(() => null), // ✅ Cache slot
         ]);
 
         if (ip?.value) setInvPhotos(JSON.parse(ip.value));
         if (vp?.value) setVehPhotos(JSON.parse(vp.value));
         if (ax?.value) setAccuLynxConfig((p) => ({ ...p, ...JSON.parse(ax.value) }));
-
+        if (jp?.value) setJobPhotos(JSON.parse(jp.value));
+        
         if (lg?.value) {
           try {
             const parsedLogos = JSON.parse(lg.value);
@@ -208,6 +213,11 @@ export default function App() {
   useEffect(() => { if (!loading) storage.set("mrr-v7-roleperms", JSON.stringify(rolePerms)).catch(() => {}); }, [rolePerms, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-userov", JSON.stringify(userOverrides)).catch(() => {}); }, [userOverrides, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-acculynx", JSON.stringify(acculynxConfig)).catch(() => {}); }, [acculynxConfig, loading]);
+  
+useEffect(() => {
+    if (!loading)
+      storage.set("mrr-v7-job-photos", JSON.stringify(jobPhotos)).catch(() => {});
+  }, [jobPhotos, loading]);
 
   const pendingReqCount = useMemo(() => reqs.filter((r) => r.status === "pending").length, [reqs]);
   const lowStockCount = useMemo(() => inv.filter((i) => tot(i) <= i.alrt).length, [inv]);
@@ -238,9 +248,32 @@ export default function App() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: C.bg, flexDirection: "column", gap: 12 }}>
-        <div style={{ fontSize: 44 }}>🏠</div>
-        <div style={{ color: C.navy, fontWeight: 700, fontSize: 16 }}>Loading Maumee River Roofing...</div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "100vh",
+          background: C.bg,
+          flexDirection: "column",
+          gap: 16, // Slightly widened to give the beaver mascot clean breathing room
+        }}
+      >
+        <img 
+          src={mrrpic} 
+          alt="Maumee River Roofing Mascot" 
+          style={{ 
+            width: "160px",      // Perfectly sizes the beaver + text logo horizontally
+            height: "auto", 
+            maxHeight: "120px", 
+            objectFit: "contain",
+            marginBottom: 4
+          }} 
+        />
+        
+        <div style={{ color: C.navy, fontWeight: 700, fontSize: 15, letterSpacing: "0.5px" }}>
+          Loading Maumee River Roofing...
+        </div>
       </div>
     );
   }
