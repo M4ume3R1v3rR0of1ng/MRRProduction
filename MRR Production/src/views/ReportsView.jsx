@@ -4,7 +4,30 @@ import { supabase } from "../utils/supabase";
 import { C, fd, fm, tot, newestPrice } from "../utils/helpers";
 import { Btn, Sel, Bdg } from "../components/UIPrimitives";
 import { generatePDF } from "../utils/pdfGenerator";
-import { downloadCSV } from "../utils/csvExport";
+
+// ── 🔄 SHARED NATIVE SPREADSHEET DOWNLOAD ENGINE ──
+const triggerNativeDownload = (filename, headers, rows) => {
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) => row.join(","))
+  ].join("\n");
+
+  try {
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (err) {
+    console.error(`Native export stream failed for ${filename}:`, err);
+  }
+};
 
 // ── 1. JOB FINANCIAL VARIANCE REPORT ──
 function JobCostReport({ jobs }) {
@@ -13,29 +36,35 @@ function JobCostReport({ jobs }) {
   );
 
   const handleExportExcel = () => {
-    const csvRows = closedJobs.map((j) => {
+    if (closedJobs.length === 0) return;
+
+    const headers = ["PO Number", "Project Name", "Items Planned", "Estimated Planned Cost", "Actual Material Cost", "Variance", "Status"];
+    
+    const rows = closedJobs.map((j) => {
       let plannedCost = 0;
       let actualCost = 0;
 
       j.items?.forEach((i) => {
         const fallbackPrice = i.priceAtPull || 0;
         plannedCost += (parseFloat(i.planned) || 0) * fallbackPrice;
-        actualCost +=
-          ((parseFloat(i.pulled) || 0) - (parseFloat(i.returned) || 0)) *
-          fallbackPrice;
+        actualCost += ((parseFloat(i.pulled) || 0) - (parseFloat(i.returned) || 0)) * fallbackPrice;
       });
 
-      return {
-        "PO Number": j.po,
-        "Project Name": j.name,
-        "Items Planned": j.items?.length || 0,
-        "Estimated Planned Cost": fm(plannedCost),
-        "Actual Material Cost": fm(actualCost),
-        Variance: fm(plannedCost - actualCost),
-        Status: j.status.toUpperCase(),
-      };
+      const variance = plannedCost - actualCost;
+
+      return [
+        `"${j.po || ""}"`,
+        `"${j.name || ""}"`,
+        j.items?.length || 0,
+        plannedCost.toFixed(2),
+        actualCost.toFixed(2),
+        variance.toFixed(2),
+        `"${j.status.toUpperCase()}"`
+      ];
     });
-    downloadCSV("job-financial-variance.csv", csvRows);
+
+    const dateStr = new Date().toISOString().split("T")[0];
+    triggerNativeDownload(`mrr-job-financial-variance-${dateStr}.csv`, headers, rows);
   };
 
   return (
@@ -94,64 +123,27 @@ function JobCostReport({ jobs }) {
             {closedJobs.map((job) => {
               let estCost = 0;
               let actCost = 0;
-
               job.items?.forEach((i) => {
                 const price = i.priceAtPull || 0;
                 estCost += (parseFloat(i.planned) || 0) * price;
-                actCost +=
-                  ((parseFloat(i.pulled) || 0) -
-                    (parseFloat(i.returned) || 0)) *
-                  price;
+                actCost += ((parseFloat(i.pulled) || 0) - (parseFloat(i.returned) || 0)) * price;
               });
-
               const variance = estCost - actCost;
-
               return (
                 <tr key={job.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                  <td style={{ padding: "10px 12px", fontWeight: 700 }}>
-                    {job.po}
-                  </td>
+                  <td style={{ padding: "10px 12px", fontWeight: 700 }}>{job.po}</td>
                   <td style={{ padding: "10px 12px" }}>{job.name}</td>
-                  <td style={{ padding: "10px 12px", color: C.sub }}>
-                    {fm(estCost)}
-                  </td>
-                  <td
-                    style={{
-                      padding: "10px 12px",
-                      color: C.gr,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {fm(actCost)}
-                  </td>
-                  <td
-                    style={{
-                      padding: "10px 12px",
-                      fontWeight: 700,
-                      color: variance >= 0 ? C.blue : C.rd,
-                    }}
-                  >
+                  <td style={{ padding: "10px 12px", color: C.sub }}>{fm(estCost)}</td>
+                  <td style={{ padding: "10px 12px", color: C.gr, fontWeight: 700 }}>{fm(actCost)}</td>
+                  <td style={{ padding: "10px 12px", fontWeight: 700, color: variance >= 0 ? C.blue : C.rd }}>
                     {variance >= 0 ? `+${fm(variance)}` : fm(variance)}
                   </td>
-                  <td>
-                    <Bdg
-                      color={job.status === "completed" ? "green" : "purple"}
-                    >
-                      {job.status}
-                    </Bdg>
-                  </td>
+                  <td><Bdg color={job.status === "completed" ? "green" : "purple"}>{job.status}</Bdg></td>
                 </tr>
               );
             })}
             {closedJobs.length === 0 && (
-              <tr>
-                <td
-                  colSpan={6}
-                  style={{ padding: 24, textAlign: "center", color: C.sub }}
-                >
-                  No finalized project ledger entries found.
-                </td>
-              </tr>
+              <tr><td colSpan={6} style={{ padding: 24, textAlign: "center", color: C.sub }}>No finalized project ledger entries found.</td></tr>
             )}
           </tbody>
         </table>
@@ -166,11 +158,7 @@ function InventoryValuationReport({ inv }) {
 
   const rows = inv.map((item) => {
     const qtyOnHand = tot(item);
-    const totalVal =
-      item.batches?.reduce(
-        (s, b) => s + (parseFloat(b.rem) || 0) * (parseFloat(b.price) || 0),
-        0,
-      ) || 0;
+    const totalVal = item.batches?.reduce((s, b) => s + (parseFloat(b.rem) || 0) * (parseFloat(b.price) || 0), 0) || 0;
     const isLow = qtyOnHand <= (parseFloat(item.alrt) || 0);
     return { ...item, qtyOnHand, totalVal, isLow };
   });
@@ -186,157 +174,61 @@ function InventoryValuationReport({ inv }) {
   const grandTotalValue = rows.reduce((s, r) => s + r.totalVal, 0);
 
   const handleExportInventoryCSV = () => {
-    const data = filteredRows.map((r) => ({
-      "Material Name": r.name,
-      "Category Group": r.cat,
-      "Current Qty On Hand": r.qtyOnHand,
-      "Unit Type": r.unit,
-      "Total FIFO Capital Value": r.totalVal,
-      "Stock Alert Status": r.isLow ? "REORDER" : "GOOD",
-    }));
-    downloadCSV("inventory-valuation-levels.csv", data);
+    if (filteredRows.length === 0) return;
+
+    const headers = ["Material Name", "Category Group", "Current Qty On Hand", "Unit Type", "Total FIFO Capital Value", "Stock Alert Status"];
+    
+    const csvRows = filteredRows.map((r) => [
+      `"${r.name || ""}"`,
+      `"${r.cat || ""}"`,
+      r.qtyOnHand,
+      `"${r.unit || ""}"`,
+      r.totalVal.toFixed(2),
+      `"${r.isLow ? "REORDER" : "GOOD"}"`
+    ]);
+
+    const dateStr = new Date().toISOString().split("T")[0];
+    triggerNativeDownload(`mrr-inventory-valuation-levels-${dateStr}.csv`, headers, csvRows);
   };
 
   return (
-    <div
-      style={{
-        background: C.w,
-        padding: 20,
-        borderRadius: 12,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: 10,
-        }}
-      >
+    <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2
-            style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}
-          >
-            🏭 Stock Allocations & Financial Value
-          </h2>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🏭 Stock Allocations & Financial Value</h2>
           <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-            {[
-              ["all", "All Items"],
-              ["low", "🚨 Low Stock Alert"],
-              ["excess", "📦 Excess Stock"],
-            ].map(([k, l]) => (
-              <Btn
-                key={k}
-                v={stockFilter === k ? "primary" : "ghost"}
-                sz="sm"
-                onClick={() => setStockFilter(k)}
-              >
-                {l}
-              </Btn>
+            {[["all", "All Items"], ["low", "🚨 Low Stock Alert"], ["excess", "📦 Excess Stock"]].map(([k, l]) => (
+              <Btn key={k} v={stockFilter === k ? "primary" : "ghost"} sz="sm" onClick={() => setStockFilter(k)}>{l}</Btn>
             ))}
           </div>
         </div>
-        <Btn v="green" sz="sm" onClick={handleExportInventoryCSV}>
-          ⬇ Export Inventory Excel
-        </Btn>
+        <Btn v="green" sz="sm" onClick={handleExportInventoryCSV}>⬇ Export Inventory Excel</Btn>
       </div>
-
       <div style={{ overflowX: "auto" }}>
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}
-        >
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: C.lg }}>
-              {[
-                "Material Item Name",
-                "Category",
-                "Quantity Available",
-                "Latest Batch Cost",
-                "Total Asset Value",
-                "Status",
-              ].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "left",
-                    color: C.sub,
-                    fontWeight: 700,
-                  }}
-                >
-                  {h}
-                </th>
+              {["Material Item Name", "Category", "Quantity Available", "Latest Batch Cost", "Total Asset Value", "Status"].map((h) => (
+                <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filteredRows.map((item) => (
-              <tr
-                key={item.id}
-                style={{
-                  borderBottom: `1px solid ${C.lg}`,
-                  background: item.isLow
-                    ? "rgba(239,68,68,0.03)"
-                    : "transparent",
-                }}
-              >
-                <td
-                  style={{
-                    padding: "10px 12px",
-                    fontWeight: 600,
-                    color: C.navy,
-                  }}
-                >
-                  {item.name}
-                </td>
-                <td style={{ padding: "10px 12px", color: C.sub }}>
-                  {item.cat}
-                </td>
-                <td style={{ padding: "10px 12px", fontWeight: 700 }}>
-                  {item.qtyOnHand} {item.unit}
-                </td>
-                <td style={{ padding: "10px 12px" }}>
-                  {fm(newestPrice(item))}
-                </td>
-                <td
-                  style={{
-                    padding: "10px 12px",
-                    fontWeight: 700,
-                    color: C.blue,
-                  }}
-                >
-                  {fm(item.totalVal)}
-                </td>
-                <td>
-                  <Bdg color={item.isLow ? "red" : "green"}>
-                    {item.isLow ? "LOW STOCK" : "WELL STOCKED"}
-                  </Bdg>
-                </td>
+              <tr key={item.id} style={{ borderBottom: `1px solid ${C.lg}`, background: item.isLow ? "rgba(239,68,68,0.03)" : "transparent" }}>
+                <td style={{ padding: "10px 12px", fontWeight: 600, color: C.navy }}>{item.name}</td>
+                <td style={{ padding: "10px 12px", color: C.sub }}>{item.cat}</td>
+                <td style={{ padding: "10px 12px", fontWeight: 700 }}>{item.qtyOnHand} {item.unit}</td>
+                <td style={{ padding: "10px 12px" }}>{fm(newestPrice(item))}</td>
+                <td style={{ padding: "10px 12px", fontWeight: 700, color: C.blue }}>{fm(item.totalVal)}</td>
+                <td><Bdg color={item.isLow ? "red" : "green"}>{item.isLow ? "LOW STOCK" : "WELL STOCKED"}</Bdg></td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr style={{ background: C.sB }}>
-              <td
-                colSpan={4}
-                style={{ padding: "12px", fontWeight: 800, color: C.navy }}
-              >
-                Total Portfolio Warehouse Capitalization
-              </td>
-              <td
-                colSpan={2}
-                style={{
-                  padding: "12px",
-                  fontWeight: 900,
-                  color: C.blue,
-                  fontSize: 15,
-                }}
-              >
-                {fm(grandTotalValue)}
-              </td>
+              <td colSpan={4} style={{ padding: "12px", fontWeight: 800, color: C.navy }}>Total Portfolio Warehouse Capitalization</td>
+              <td colSpan={2} style={{ padding: "12px", fontWeight: 900, color: C.blue, fontSize: 15 }}>{fm(grandTotalValue)}</td>
             </tr>
           </tfoot>
         </table>
@@ -349,123 +241,56 @@ function InventoryValuationReport({ inv }) {
 function FleetCostReport({ vehs, reqs }) {
   const fleetData = vehs
     .map((v) => {
-      const matchingTickets = reqs.filter(
-        (r) => r.vid === v.id && r.status === "completed",
-      );
-      const aggregateCost = matchingTickets.reduce(
-        (sum, r) => sum + (parseFloat(r.cost) || 0),
-        0,
-      );
+      const matchingTickets = reqs.filter((r) => r.vid === v.id && r.status === "completed");
+      const aggregateCost = matchingTickets.reduce((sum, r) => sum + (parseFloat(r.cost) || 0), 0);
       return { ...v, aggregateCost, ticketCount: matchingTickets.length };
     })
     .sort((a, b) => b.aggregateCost - a.aggregateCost);
 
-  const totalFleetInvestment = fleetData.reduce(
-    (sum, v) => sum + v.aggregateCost,
-    0,
-  );
+  const totalFleetInvestment = fleetData.reduce((sum, v) => sum + v.aggregateCost, 0);
 
   const handleExportFleetCSV = () => {
-    const data = fleetData.map((v) => ({
-      "Vehicle Description": `${v.yr} ${v.make} ${v.name}`,
-      "Asset Class": v.type.toUpperCase(),
-      "License Plate": v.plate,
-      "Closed Tickets Count": v.ticketCount,
-      "Cumulative Capital Maintenance Cost": fm(v.aggregateCost),
-    }));
-    downloadCSV("fleet-maintenance-ledger.csv", data);
+    if (fleetData.length === 0) return;
+
+    const headers = ["Vehicle Description", "Asset Class", "License Plate", "Closed Tickets Count", "Cumulative Capital Maintenance Cost"];
+    
+    const csvRows = fleetData.map((v) => [
+      `"${v.yr || ""} ${v.make || ""} ${v.name || ""}"`,
+      `"${v.type ? v.type.toUpperCase() : ""}"`,
+      `"${v.plate || ""}"`,
+      v.ticketCount,
+      v.aggregateCost.toFixed(2)
+    ]);
+
+    const dateStr = new Date().toISOString().split("T")[0];
+    triggerNativeDownload(`mrr-fleet-maintenance-ledger-${dateStr}.csv`, headers, csvRows);
   };
 
   return (
-    <div
-      style={{
-        background: C.w,
-        padding: 20,
-        borderRadius: 12,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>
-          🚛 Fleet Maintenance Ledger
-        </h2>
-        <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>
-          ⬇ Export Fleet Excel
-        </Btn>
+    <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🚛 Fleet Maintenance Ledger</h2>
+        <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>⬇ Export Fleet Excel</Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}
-        >
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: C.lg }}>
-              {[
-                "Vehicle Asset identifier",
-                "Classification",
-                "Plate Code",
-                "Completed Maintenance",
-                "Cumulative Investment",
-              ].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "left",
-                    color: C.sub,
-                    fontWeight: 700,
-                  }}
-                >
-                  {h}
-                </th>
+              {["Vehicle Asset identifier", "Classification", "Plate Code", "Completed Maintenance", "Cumulative Investment"].map((h) => (
+                <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {fleetData.map((v) => (
               <tr key={v.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                <td
-                  style={{
-                    padding: "10px 12px",
-                    fontWeight: 700,
-                    color: C.navy,
-                  }}
-                >
-                  {v.name}{" "}
-                  <span style={{ fontWeight: 400, color: C.sub, fontSize: 11 }}>
-                    {v.yr} {v.make}
-                  </span>
+                <td style={{ padding: "10px 12px", fontWeight: 700, color: C.navy }}>
+                  {v.name} <span style={{ fontWeight: 400, color: C.sub, fontSize: 11 }}>{v.yr} {v.make}</span>
                 </td>
-                <td
-                  style={{ padding: "10px 12px", textTransform: "capitalize" }}
-                >
-                  {v.type}
-                </td>
-                <td
-                  style={{
-                    padding: "10px 12px",
-                    fontFamily: "monospace",
-                    color: C.sub,
-                  }}
-                >
-                  {v.plate}
-                </td>
-                <td style={{ padding: "10px 12px" }}>
-                  {v.ticketCount} resolved repairs
-                </td>
-                <td
-                  style={{
-                    padding: "10px 12px",
-                    fontWeight: 700,
-                    color: v.aggregateCost > 0 ? C.rd : C.sub,
-                  }}
-                >
+                <td style={{ padding: "10px 12px", textTransform: "capitalize" }}>{v.type}</td>
+                <td style={{ padding: "10px 12px", fontFamily: "monospace", color: C.sub }}>{v.plate}</td>
+                <td style={{ padding: "10px 12px" }}>{v.ticketCount} resolved repairs</td>
+                <td style={{ padding: "10px 12px", fontWeight: 700, color: v.aggregateCost > 0 ? C.rd : C.sub }}>
                   {v.aggregateCost > 0 ? fm(v.aggregateCost) : "—"}
                 </td>
               </tr>
@@ -473,22 +298,8 @@ function FleetCostReport({ vehs, reqs }) {
           </tbody>
           <tfoot>
             <tr style={{ background: "rgba(239, 68, 68, 0.05)" }}>
-              <td
-                colSpan={4}
-                style={{ padding: "12px", fontWeight: 800, color: C.navy }}
-              >
-                Total Fleet Maintenance Expenditures
-              </td>
-              <td
-                style={{
-                  padding: "12px",
-                  fontWeight: 900,
-                  color: C.rd,
-                  fontSize: 15,
-                }}
-              >
-                {fm(totalFleetInvestment)}
-              </td>
+              <td colSpan={4} style={{ padding: "12px", fontWeight: 800, color: C.navy }}>Total Fleet Maintenance Expenditures</td>
+              <td style={{ padding: "12px", fontWeight: 900, color: C.rd, fontSize: 15 }}>{fm(totalFleetInvestment)}</td>
             </tr>
           </tfoot>
         </table>
@@ -527,7 +338,6 @@ function AuditTrailReport() {
     getLogs();
   }, [actionTypeFilter]);
 
-  // 🕒 Custom full timestamp helper for localized date and hours/minutes
   const formatFullTimestamp = (rawDateString) => {
     if (!rawDateString) return "—";
     const date = new Date(rawDateString);
@@ -542,46 +352,28 @@ function AuditTrailReport() {
   };
 
   const handleExportAuditExcel = () => {
-    const data = logs.map((l) => ({
-      "Timestamp Code": formatFullTimestamp(l.created_at),
-      "Operator Email": l.user_email,
-      "Action Flag": l.action_type,
-      "Log Description Narrative": l.description,
-    }));
-    downloadCSV("system-audit-trail.csv", data);
+    if (logs.length === 0) return;
+
+    const headers = ["Timestamp Code", "Operator Email", "Action Flag", "Log Description Narrative"];
+    
+    const csvRows = logs.map((l) => [
+      `"${formatFullTimestamp(l.created_at)}"`,
+      `"${l.user_email || ""}"`,
+      `"${l.action_type || ""}"`,
+      `"${l.description || ""}"`
+    ]);
+
+    const dateStr = new Date().toISOString().split("T")[0];
+    triggerNativeDownload(`mrr-system-audit-trail-${dateStr}.csv`, headers, csvRows);
   };
 
   return (
-    <div
-      style={{
-        background: C.w,
-        padding: 20,
-        borderRadius: 12,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: 10,
-        }}
-      >
+    <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2
-            style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}
-          >
-            🔒 Historical Operations Audit Trail
-          </h2>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🔒 Historical Operations Audit Trail</h2>
           <div style={{ marginTop: 8 }}>
-            <Sel
-              value={actionTypeFilter}
-              onChange={(e) => setActionTypeFilter(e.target.value)}
-              style={{ padding: "4px 8px", fontSize: 12 }}
-            >
+            <Sel value={actionTypeFilter} onChange={(e) => setActionTypeFilter(e.target.value)} style={{ padding: "4px 8px", fontSize: 12 }}>
               <option value="all">Filter by Action Type (All)</option>
               <option value="INVENTORY_PULL">INVENTORY_PULL</option>
               <option value="PERM_CHANGE">PERM_CHANGE</option>
@@ -590,78 +382,27 @@ function AuditTrailReport() {
             </Sel>
           </div>
         </div>
-        <Btn v="green" sz="sm" onClick={handleExportAuditExcel}>
-          ⬇ Export Audit Excel
-        </Btn>
+        <Btn v="green" sz="sm" onClick={handleExportAuditExcel}>⬇ Export Audit Excel</Btn>
       </div>
-
       {loading ? (
-        <div style={{ padding: 24, textAlign: "center", color: C.sub }}>
-          Loading audit stream records...
-        </div>
+        <div style={{ padding: 24, textAlign: "center", color: C.sub }}>Loading audit stream records...</div>
       ) : (
         <div style={{ overflowX: "auto", maxHeight: 400, overflowY: "auto" }}>
-          <table
-            style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}
-          >
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
-              <tr
-                style={{
-                  background: C.lg,
-                  position: "sticky",
-                  top: 0,
-                  zIndex: 1,
-                }}
-              >
-                {[
-                  "Timestamp",
-                  "User Email",
-                  "Action Code",
-                  "Audit Narrative Description",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "10px 12px",
-                      textAlign: "left",
-                      color: C.sub,
-                      fontWeight: 700,
-                      background: C.lg,
-                    }}
-                  >
-                    {h}
-                  </th>
+              <tr style={{ background: C.lg, position: "sticky", top: 0, zIndex: 1 }}>
+                {["Timestamp", "User Email", "Action Code", "Audit Narrative Description"].map((h) => (
+                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700, background: C.lg }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {logs.map((log) => (
                 <tr key={log.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                  {/* Updated with detailed timestamp formatting */}
-                  <td
-                    style={{
-                      padding: "8px 12px",
-                      whiteSpace: "nowrap",
-                      color: C.sub,
-                    }}
-                  >
-                    {formatFullTimestamp(log.created_at)}
-                  </td>
-                  <td style={{ padding: "8px 12px", fontWeight: 600 }}>
-                    {log.user_email}
-                  </td>
-                  <td>
-                    <Bdg
-                      color={
-                        log.action_type === "PERM_CHANGE" ? "purple" : "teal"
-                      }
-                    >
-                      {log.action_type}
-                    </Bdg>
-                  </td>
-                  <td style={{ padding: "8px 12px", color: C.navy }}>
-                    {log.description}
-                  </td>
+                  <td style={{ padding: "8px 12px", whiteSpace: "nowrap", color: C.sub }}>{formatFullTimestamp(log.created_at)}</td>
+                  <td style={{ padding: "8px 12px", fontWeight: 600 }}>{log.user_email}</td>
+                  <td><Bdg color={log.action_type === "PERM_CHANGE" ? "purple" : "teal"}>{log.action_type}</Bdg></td>
+                  <td style={{ padding: "8px 12px", color: C.navy }}>{log.description}</td>
                 </tr>
               ))}
             </tbody>
@@ -708,85 +449,28 @@ export default function Reports({
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>
-          📊 Corporate Intelligence Reporting
-        </h1>
-        <p style={{ margin: "3px 0 0", color: C.sub, fontSize: 12 }}>
-          Saint Joe Road Warehouse · Analytical Material & Asset Auditing
-        </p>
+        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>📊 Corporate Intelligence Reporting</h1>
+        <p style={{ margin: "3px 0 0", color: C.sub, fontSize: 12 }}>Saint Joe Road Warehouse · Analytical Material & Asset Auditing</p>
       </div>
 
-      <div
-        style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}
-      >
-        <div
-          style={{
-            background: C.w,
-            borderRadius: 12,
-            padding: 14,
-            borderLeft: `5px solid ${C.blue}`,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            flex: 1,
-            minWidth: 160,
-          }}
-        >
-          <div style={{ fontSize: 22, fontWeight: 900, color: C.blue }}>
-            {jobs.length}
-          </div>
-          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>
-            Total Contracts Managed
-          </div>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
+        <div style={{ background: C.w, borderRadius: 12, padding: 14, borderLeft: `5px solid ${C.blue}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 160 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: C.blue }}>{jobs.length}</div>
+          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Total Contracts Managed</div>
         </div>
-        <div
-          style={{
-            background: C.w,
-            borderRadius: 12,
-            padding: 14,
-            borderLeft: `5px solid ${C.gr}`,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            flex: 1,
-            minWidth: 160,
-          }}
-        >
-          <div style={{ fontSize: 22, fontWeight: 900, color: C.gr }}>
-            {completedJobs.length}
-          </div>
-          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>
-            Completed Projects
-          </div>
+        <div style={{ background: C.w, borderRadius: 12, padding: 14, borderLeft: `5px solid ${C.gr}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 160 }}>
+          <div style={{ fontSize: 22, fontWeight: 900, color: C.gr }}>{completedJobs.length}</div>
+          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Completed Projects</div>
         </div>
         {perms.inv_pricing_view && (
-          <div
-            style={{
-              background: C.w,
-              borderRadius: 12,
-              padding: 14,
-              borderLeft: `5px solid ${C.gr}`,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-              flex: 1,
-              minWidth: 200,
-            }}
-          >
-            <div style={{ fontSize: 20, fontWeight: 900, color: C.gr }}>
-              {fm(historicalTotalMaterialSpend)}
-            </div>
-            <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>
-              Total Realized Material Cost (Completed)
-            </div>
+          <div style={{ background: C.w, borderRadius: 12, padding: 14, borderLeft: `5px solid ${C.gr}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 20, fontWeight: 900, color: C.gr }}>{fm(historicalTotalMaterialSpend)}</div>
+            <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Total Realized Material Cost (Completed)</div>
           </div>
         )}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          borderBottom: `1px solid ${C.lg}`,
-          paddingBottom: 12,
-          marginBottom: 20,
-          flexWrap: "wrap",
-        }}
-      >
+      <div style={{ display: "flex", gap: 10, borderBottom: `1px solid ${C.lg}`, paddingBottom: 12, marginBottom: 20, flexWrap: "wrap" }}>
         {tabOptions.map((t) => {
           const active = activeTab === t.id;
           return (
@@ -816,12 +500,8 @@ export default function Reports({
 
       <div>
         {activeTab === "Jobs" && <JobCostReport jobs={jobs} />}
-        {activeTab === "Inventory" && perms.inv_pricing_view && (
-          <InventoryValuationReport inv={inv} />
-        )}
-        {activeTab === "Fleet" && perms.inv_pricing_view && (
-          <FleetCostReport vehs={vehs} reqs={reqs} />
-        )}
+        {activeTab === "Inventory" && perms.inv_pricing_view && ( <InventoryValuationReport inv={inv} /> )}
+        {activeTab === "Fleet" && perms.inv_pricing_view && ( <FleetCostReport vehs={vehs} reqs={reqs} /> )}
         {activeTab === "Audit" && perms.users_manage && <AuditTrailReport />}
       </div>
     </div>
