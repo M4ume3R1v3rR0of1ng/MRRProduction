@@ -81,10 +81,6 @@ export function PhotoUpload({ current, onUpload, maxDim = 350, quality = 0.72, l
         </div>
       )}
       <input ref={ref} type="file" accept="image/*" onChange={handle} style={{ display: 'none' }} />
-      <div style={{ display: 'flex', gap: 8 }}>
-        <Btn v="ghost" sz="sm" onClick={() => ref.current.click()} style={{ flex: 1, justifyContent: 'center' }}>📷 {current ? 'Change' : 'Upload'} Photo</Btn>
-        {current && <Btn v="ghost" sz="sm" onClick={() => onUpload(null)} style={{ color: C.rd }}>🗑️</Btn>}
-      </div>
     </div>
   );
 }

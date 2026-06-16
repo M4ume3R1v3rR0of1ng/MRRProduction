@@ -14,8 +14,7 @@ import {
   Fld,
   Inp,
   Toggle,
-  PhotoUpload,
-} from "../components/UIPrimitives";
+} from "../components/UIPrimitives"; // Removed unused PhotoUpload from this view's primitives import
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 
@@ -80,7 +79,6 @@ export default function SettingsView({
 
   // ACTION 2: Toggle permission keys with instant Supabase database persistence
   const handleTogglePerm = async (targetRole, permKey) => {
-    // 1. Calculate the next permission configuration state safely
     const currentRolePerms = rolePerms?.[targetRole] || {};
     const nextRolePermsState = {
       ...currentRolePerms,
@@ -88,7 +86,6 @@ export default function SettingsView({
     };
 
     try {
-      // 2. Perform a network upsert operation into the database table row
       const { error } = await supabase.from("role_permissions").upsert(
         {
           role: targetRole,
@@ -100,7 +97,6 @@ export default function SettingsView({
 
       if (error) throw error;
 
-      // 3. Sync the local React UI state tracking block on success
       setRolePerms((prev) => ({
         ...prev,
         [targetRole]: nextRolePermsState,
@@ -130,7 +126,6 @@ export default function SettingsView({
     }
 
     try {
-      // Overwrite database configurations with factory objects
       const { error } = await supabase.from("role_permissions").upsert(
         {
           role: targetRole,
@@ -142,7 +137,6 @@ export default function SettingsView({
 
       if (error) throw error;
 
-      // Update frontend memory matrices
       setRolePerms((prev) => ({
         ...prev,
         [targetRole]: backupDefaults,
@@ -196,22 +190,74 @@ export default function SettingsView({
     }
   };
 
-  // ACTION 5: Process uploaded file assets
-  const handleLogoUpload = async (file) => {
+  // ── 🏢 ACTION 5 FIXED: NATIVE FILE SELECTOR INPUT + CORRECT COMPRESSIMG POSITIONING PASSTHROUGH ──
+  const handleLogoFileChange = async (e) => {
+    const file = e.target.files[0];
     if (!file) return;
+
     try {
-      const compressed = await compressImg(file, {
-        maxWidth: 400,
-        quality: 0.85,
+      // Corrected from object config parameters over to explicit positional parameters: (file, maxDim, quality, callback)
+      await compressImg(file, 400, 0.85, async (base64Data) => {
+        if (!base64Data) {
+          showToast("Failed to compile compressed visual parameters.", "error");
+          return;
+        }
+
+        // Upload directly to Supabase global branding system tables
+        const { error } = await supabase
+          .from("settings")
+          .update({ value: base64Data })
+          .eq("key", "company_logo");
+
+        if (error) throw error;
+
+        // Sync state arrays cleanly across active view configurations
+        if (typeof setLogos === "function") {
+          setLogos(base64Data);
+        }
+        showToast("Company logo processed and saved successfully!", "success");
       });
-      showToast("Logo processed and buffered successfully!", "success");
     } catch (err) {
       console.error("Image processing failure:", err);
       showToast(`Image processing failed: ${err.message}`, "error");
+    } finally {
+      e.target.value = ""; // Empty input buffer memory tracking safely
     }
   };
 
-  // Reusable sub-layout card for formatting System Configuration statistics
+  const handleRoleChange = async (targetUserId, newRole) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role: newRole })
+        .eq("id", targetUserId);
+
+      if (error) throw error;
+
+      await logAction(
+        curUser.id,
+        curUser.email,
+        "PERM_CHANGE",
+        `Altered clearance profile for user ${targetUserId} directly to role '${newRole}'.`,
+        { targetId: targetUserId },
+      );
+
+      if (setUsers) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === targetUserId ? { ...u, role: newRole } : u,
+          ),
+        );
+      }
+    } catch (err) {
+      console.error("Failed to commit role change metrics:", err);
+      showToast(
+        `Database Error: Could not modify user access profile. ${err.message}`,
+        "error",
+      );
+    }
+  };
+
   const InfoCard = ({ label, value }) => (
     <div
       style={{
@@ -239,42 +285,6 @@ export default function SettingsView({
       </div>
     </div>
   );
-
-  // FIX: Directed table mutation to targeted profiles table to prevent silent data dropouts
-  const handleRoleChange = async (targetUserId, newRole) => {
-    try {
-      const { error } = await supabase
-        .from("profiles") // Changed from 'users' to unified 'profiles' source of truth
-        .update({ role: newRole })
-        .eq("id", targetUserId);
-
-      if (error) throw error;
-
-      // Inside your profile role swap success block
-      await logAction(
-        curUser.id,
-        curUser.email,
-        "PERM_CHANGE",
-        `Altered clearance profile for user ${targetUserId} directly to role '${newRole}'.`,
-        { targetId: targetUserId },
-      );
-
-      // Sync local users list state vector
-      if (setUsers) {
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === targetUserId ? { ...u, role: newRole } : u,
-          ),
-        );
-      }
-    } catch (err) {
-      console.error("Failed to commit role change metrics:", err);
-      showToast(
-        `Database Error: Could not modify user access profile. ${err.message}`,
-        "error",
-      );
-    }
-  };
 
   return (
     <div
@@ -668,56 +678,49 @@ export default function SettingsView({
         )}
 
         {/* PANEL 3: Corporate Branding Assets */}
-        {currentTab === "Branding" && (
-          <div>
-            <h2
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                margin: "0 0 6px 0",
-                fontSize: 18,
-                fontWeight: 900,
-                color: C.navy,
-              }}
-            >
-              🏢 Company Logos
-            </h2>
-            <p style={{ margin: "0 0 20px 0", color: C.sub, fontSize: 13 }}>
-              Active logo appears in the sidebar, login screen, and all PDF
-              reports.
-            </p>
+{currentTab === "Branding" && (
+  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", padding: "20px 0" }}>
+    <div style={{ textAlign: "center", marginBottom: 20 }}>
+      <h2 style={{ margin: "0 0 6px 0", fontSize: 18, fontWeight: 900, color: C.navy }}>
+        🏢 Company Logos
+      </h2>
+      <p style={{ margin: 0, color: C.sub, fontSize: 13 }}>
+        Active logo appears in the sidebar, login screen, and all PDF reports
+      </p>
+    </div>
 
-            <div
-              style={{
-                border: "2px dashed #cbd5e1",
-                borderRadius: 12,
-                padding: "40px 20px",
-                textAlign: "center",
-                backgroundColor: "#f8fafc",
-                marginBottom: 20,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <span style={{ fontSize: 32 }}>🖼️</span>
-              <div style={{ fontWeight: 700, color: "#475569", fontSize: 15 }}>
-                Upload your company logo
-              </div>
-            </div>
-
-            <PhotoUpload onUpload={handleLogoUpload}>
-              <Btn
-                v="primary"
-                style={{ padding: "10px 24px", fontWeight: 700 }}
-              >
-                + Upload First Logo
-              </Btn>
-            </PhotoUpload>
-          </div>
-        )}
+    {/* Centered Upload Target with a Smaller Width and Padding */}
+    <div style={{ width: "100%", maxWidth: 400 }}>
+      <label
+        style={{
+          border: "1.5px dashed #cbd5e1", // Made border smaller (1.5px instead of 2px)
+          borderRadius: 12,
+          padding: "100px 16px", // Tightened padding to decrease box footprint
+          textAlign: "center",
+          backgroundColor: "#f8fafc",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          cursor: "pointer",
+          transition: "background 0.1s ease"
+        }}
+      >
+        <span style={{ fontSize: 26 }}>🖼️</span>
+        <div style={{ fontWeight: 700, color: "#475569", fontSize: 13 }}>
+          {logos ? "🔄 Replace Company Logo" : "➕ Upload Company Logo"}
+        </div>
+        <input 
+          type="file" 
+          accept="image/*" 
+          onChange={handleLogoFileChange} 
+          style={{ display: "none" }} 
+        />
+      </label>
+    </div>
+  </div>
+)}
 
         {/* PANEL 4: Warehouses Mapping Panel */}
         {currentTab === "Warehouses" && (

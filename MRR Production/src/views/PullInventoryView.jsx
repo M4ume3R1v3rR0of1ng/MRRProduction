@@ -1,9 +1,10 @@
+// src/views/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
 import { useState } from "react";
 import { C, fd, fm, doFifo, uid, tot, ft } from "../utils/helpers";
 import { generatePDF } from "../utils/pdfGenerator";
 import { attemptAccuLynxSync } from "../utils/accuLynxSync";
-import { Btn, Bdg, Modal, Fld, TA, Inp } from "../components/UIPrimitives";
+import { Btn, Bdg, Modal, Fld, TA, Inp, PhotoUpload } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { supabase } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
@@ -19,6 +20,9 @@ export default function PullInventory({
   activeLogo,
   acculynxConfig,
   jSC,
+  // ── 🟢 PROTECTED INTERACTION ARGUMENTS REGISTERED HERE ──
+  jobPhotos,
+  setJobPhotos,
 }) {
   const { showToast } = useNotify();
   const [sel, setSel] = useState(null);
@@ -226,23 +230,29 @@ export default function PullInventory({
       user.email,
       "INVENTORY_PULL",
       `Dispatched staging materials out for Job PO #${sel.po} (${sel.name}).`,
-      { targetId: sel.id, payload: { itemsPulled: updItems } },
+      { targetId: sel.id, payload: { itemsPulled: materialsList } },
     );
   };
 
-const handleStagePhoto = (phase, base64Data) => {
+  const handleStagePhoto = (phase, base64Data) => {
     if (!sel) return;
-    setJobPhotos((prev) => ({
-      ...prev,
-      [sel.id]: {
-        ...(prev[sel.id] || { before: null, after: null }),
-        [phase]: base64Data,
-      },
-    }));
+    
+    // Safety check ensuring callback exists before firing
+    if (typeof setJobPhotos === "function") {
+      setJobPhotos((prev) => ({
+        ...prev,
+        [sel.id]: {
+          ...(prev[sel.id] || { before: null, after: null }),
+          [phase]: base64Data,
+        },
+      }));
+    }
     showToast(`${phase === "before" ? "Before" : "After"} photo successfully captured!`, "success");
   };
 
-  const currentJobPhotos = sel ? (jobPhotos[sel.id] || { before: null, after: null }) : { before: null, after: null };
+  // ── 🟢 STRUCTURAL EVALUATION SAFE SHIELD APPLIED HERE ──
+  const parsedJobPhotos = typeof jobPhotos !== "undefined" && jobPhotos ? jobPhotos : {};
+  const currentJobPhotos = sel ? (parsedJobPhotos[sel.id] || { before: null, after: null }) : { before: null, after: null };
 
   return (
     <div>
@@ -818,7 +828,7 @@ const handleStagePhoto = (phase, base64Data) => {
           onClose={() => setSel(null)}
           wide
         >
-          {/* ── 📸 NEW: INTEGRATED BEFORE & AFTER PHOTOS WORKFLOW BLOCK ── */}
+          {/* ── 📸 INTEGRATED BEFORE & AFTER PHOTOS WORKFLOW BLOCK ── */}
           <div style={{ marginTop: 18, borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
             <h3 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 800, color: C.navy }}>
               📸 Visual Production Accountability Media
@@ -829,8 +839,8 @@ const handleStagePhoto = (phase, base64Data) => {
                   Before Photo (Site Prep / Decking)
                 </div>
                 <PhotoUpload
-                  value={currentJobPhotos.before}
-                  onChange={(base64) => handleStagePhoto("before", base64)}
+                  current={currentJobPhotos.before}
+                  onUpload={(base64) => handleStagePhoto("before", base64)}
                 />
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
@@ -838,19 +848,12 @@ const handleStagePhoto = (phase, base64Data) => {
                   After Photo (Finished Shingles / Clean)
                 </div>
                 <PhotoUpload
-                  value={currentJobPhotos.after}
-                  onChange={(base64) => handleStagePhoto("after", base64)}
+                  current={currentJobPhotos.after}
+                  onUpload={(base64) => handleStagePhoto("after", base64)}
                 />
               </div>
             </div>
           </div>
-
-          {sel.status === "completed" && (
-            <div style={{ marginTop: 14, display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <Btn v="green" onClick={() => generatePDF(sel, users, activeLogo)}>📄 PDF</Btn>
-              <Btn v="sky" onClick={() => setSyncModal(sel)}>☁️ AccuLynx Sync</Btn>
-            </div>
-          )}
 
           <div
             style={{
