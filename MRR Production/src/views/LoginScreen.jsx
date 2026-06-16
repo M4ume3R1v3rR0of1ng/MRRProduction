@@ -134,12 +134,14 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           "signup",
         );
 
+        // ── 🟢 FIXED: REMOVED OBSOLETE 'PENDING' PHRASING AND TOGGLED MODE INSTANTLY ──
         setSuccessMsg(
-          "Registration pending! Please check your inbox to confirm your account before logging in.",
+          "Registration successful! Your corporate profile is live. Go ahead and sign in below.",
         );
         setName("");
         setPass("");
         setConfirm("");
+        setMode("login"); // Drops them back into the active sign-in form immediately
       }
     } catch (e) {
       setErr("Database transaction aborted during registration processing.");
@@ -152,7 +154,6 @@ export default function LoginScreen({ onLogin, activeLogo }) {
     <div
       style={{
         minHeight: "100vh",
-        // ── 🎨 GRAPHICS ENGINE: PHOTO AS BACKGROUND ──
         backgroundImage: `linear-gradient(rgba(15, 16, 20, 0.6), rgba(15, 23, 42, 0.75)), url(${backgroundImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center 90%",
@@ -166,8 +167,8 @@ export default function LoginScreen({ onLogin, activeLogo }) {
     >
       <div
         style={{
-          background: "rgba(255, 255, 255, 0.96)", // ✅ Added slight background blur opacity for elite contrast
-          backdropFilter: "blur(8px)",              // ✅ Blurs the drone photo slightly just behind the card
+          background: "rgba(255, 255, 255, 0.96)",
+          backdropFilter: "blur(8px)",
           borderRadius: 20,
           padding: "48px 56px",
           width: "100%",
@@ -189,7 +190,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               style={{
                 width: 64,
                 height: 64,
-                background: C.gold,
+                background: activeLogo ? "transparent" : C.gold,
                 borderRadius: 16,
                 display: "flex",
                 alignItems: "center",
@@ -208,14 +209,13 @@ export default function LoginScreen({ onLogin, activeLogo }) {
                   }}
                 />
               ) : (
-                // ── ✅ SWAPPED THE HOUSE EMOJI FOR THE OFFICIAL BEAVER MASCOT IMAGE ──
                 <img
                   src={mrrpic}
                   alt="Maumee River Roofing Mascot"
                   style={{
                     width: "100%",
                     height: "100%",
-                    objectFit: "cover", // 'cover' fills out the golden square box beautifully
+                    objectFit: "cover",
                   }}
                 />
               )}
@@ -243,6 +243,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           </div>
         </div>
 
+        {/* Updated visual rendering box mapping matching new message hook states */}
         {successMsg && (
           <div
             style={{
@@ -257,7 +258,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               lineHeight: "1.4",
             }}
           >
-            ✉️ {successMsg}
+            ✅ {successMsg}
           </div>
         )}
 

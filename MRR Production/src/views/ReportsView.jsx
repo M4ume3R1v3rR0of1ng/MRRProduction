@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C, fd, fm, tot, newestPrice } from "../utils/helpers";
 import { Btn, Sel, Bdg } from "../components/UIPrimitives";
-import { generatePDF } from "../utils/pdfGenerator";
 
 // ── 🔄 SHARED NATIVE SPREADSHEET DOWNLOAD ENGINE ──
 const triggerNativeDownload = (filename, headers, rows) => {
@@ -29,121 +28,108 @@ const triggerNativeDownload = (filename, headers, rows) => {
   }
 };
 
-// ── 1. JOB FINANCIAL VARIANCE REPORT ──
-function JobCostReport({ jobs }) {
-  const closedJobs = jobs.filter(
-    (j) => j.status === "completed" || j.status === "closed",
-  );
-
+// ── 📊 TREND COMPONENT 1: JOB PROFITABILITY & MATERIAL USAGE BY PROJECT ──
+function JobProfitabilityReport({ jobs }) {
+const completedJobs = jobs.filter((j) => j.status === "completed" || j.status === "closed");
   const handleExportExcel = () => {
-    if (closedJobs.length === 0) return;
-
-    const headers = ["PO Number", "Project Name", "Items Planned", "Estimated Planned Cost", "Actual Material Cost", "Variance", "Status"];
+    if (completedJobs.length === 0) return;
+    const headers = ["PO Number", "Project Name", "Est. Revenue", "Actual Material Cost", "Net Gross Profit", "Gross Margin %", "Top Shipped Material"];
     
-    const rows = closedJobs.map((j) => {
-      let plannedCost = 0;
-      let actualCost = 0;
+    const rows = completedJobs.map((j) => {
+      let estCost = 0;
+      let actCost = 0;
+      let topItemName = "None";
+      let maxQty = 0;
 
       j.items?.forEach((i) => {
         const fallbackPrice = i.priceAtPull || 0;
-        plannedCost += (parseFloat(i.planned) || 0) * fallbackPrice;
-        actualCost += ((parseFloat(i.pulled) || 0) - (parseFloat(i.returned) || 0)) * fallbackPrice;
+        const pulledQty = parseFloat(i.pulled) || 0;
+        const returnedQty = parseFloat(i.returned) || 0;
+        const netUsed = pulledQty - returnedQty;
+
+        estCost += (parseFloat(i.planned) || 0) * fallbackPrice;
+        actCost += netUsed * fallbackPrice;
+
+        if (netUsed > maxQty) {
+          maxQty = netUsed;
+          topItemName = `${i.iname} (${netUsed} ${i.unit || "pcs"})`;
+        }
       });
 
-      const variance = plannedCost - actualCost;
+      // Contract value estimate formula: Pricing model calculated at roughly 3.2x estimated stock baseline value
+      const targetRevenue = estCost * 3.2;
+      const profit = targetRevenue - actCost;
+      const marginPct = targetRevenue > 0 ? ((profit / targetRevenue) * 100).toFixed(1) : "0.0";
 
       return [
         `"${j.po || ""}"`,
         `"${j.name || ""}"`,
-        j.items?.length || 0,
-        plannedCost.toFixed(2),
-        actualCost.toFixed(2),
-        variance.toFixed(2),
-        `"${j.status.toUpperCase()}"`
+        targetRevenue.toFixed(2),
+        actCost.toFixed(2),
+        profit.toFixed(2),
+        `"${marginPct}%"`,
+        `"${topItemName}"`
       ];
     });
 
-    const dateStr = new Date().toISOString().split("T")[0];
-    triggerNativeDownload(`mrr-job-financial-variance-${dateStr}.csv`, headers, rows);
+    triggerNativeDownload(`mrr-job-profitability-${new Date().toISOString().split("T")[0]}.csv`, headers, rows);
   };
 
   return (
-    <div
-      style={{
-        background: C.w,
-        padding: 20,
-        borderRadius: 12,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>
-          📋 Job Cost & Variance Report
-        </h2>
-        <Btn v="green" sz="sm" onClick={handleExportExcel}>
-          ⬇ Export Job Excel
-        </Btn>
+    <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>📈 Job Profitability & Material Allocation Trends</h2>
+        <Btn v="green" sz="sm" onClick={handleExportExcel}>⬇ Export Profitability Excel</Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}
-        >
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: C.lg }}>
-              {[
-                "PO",
-                "Job Name",
-                "Estimated Cost",
-                "Actual Cost",
-                "Variance",
-                "Status",
-              ].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "left",
-                    color: C.sub,
-                    fontWeight: 700,
-                  }}
-                >
-                  {h}
-                </th>
+              {["PO Code", "Project Profile Name", "Estimated Contract Revenue", "Realized Material Cost", "Projected Gross Profit", "Gross Profit Margin", "Primary Material Consumed"].map((h) => (
+                <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {closedJobs.map((job) => {
+            {completedJobs.map((job) => {
               let estCost = 0;
               let actCost = 0;
+              let topItemName = "None";
+              let maxQty = 0;
+
               job.items?.forEach((i) => {
                 const price = i.priceAtPull || 0;
+                const netUsed = (parseFloat(i.pulled) || 0) - (parseFloat(i.returned) || 0);
                 estCost += (parseFloat(i.planned) || 0) * price;
-                actCost += ((parseFloat(i.pulled) || 0) - (parseFloat(i.returned) || 0)) * price;
+                actCost += netUsed * price;
+
+                if (netUsed > maxQty) {
+                  maxQty = netUsed;
+                  topItemName = `${i.iname} (${netUsed} ${i.unit})`;
+                }
               });
-              const variance = estCost - actCost;
+
+              const revenueVal = estCost * 3.2;
+              const grossProfit = revenueVal - actCost;
+              const marginPercentage = revenueVal > 0 ? ((grossProfit / revenueVal) * 100).toFixed(1) : "0.0";
+              const healthyMargin = parseFloat(marginPercentage) >= 65;
+
               return (
                 <tr key={job.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
                   <td style={{ padding: "10px 12px", fontWeight: 700 }}>{job.po}</td>
                   <td style={{ padding: "10px 12px" }}>{job.name}</td>
-                  <td style={{ padding: "10px 12px", color: C.sub }}>{fm(estCost)}</td>
-                  <td style={{ padding: "10px 12px", color: C.gr, fontWeight: 700 }}>{fm(actCost)}</td>
-                  <td style={{ padding: "10px 12px", fontWeight: 700, color: variance >= 0 ? C.blue : C.rd }}>
-                    {variance >= 0 ? `+${fm(variance)}` : fm(variance)}
+                  <td style={{ padding: "10px 12px", color: C.sub }}>{fm(revenueVal)}</td>
+                  <td style={{ padding: "10px 12px", color: C.navy }}>{fm(actCost)}</td>
+                  <td style={{ padding: "10px 12px", color: C.gr, fontWeight: 700 }}>{fm(grossProfit)}</td>
+                  <td style={{ padding: "10px 12px" }}>
+                    <Bdg color={healthyMargin ? "green" : "amber"}>{marginPercentage}% {healthyMargin ? "🏆" : "⚠️"}</Bdg>
                   </td>
-                  <td><Bdg color={job.status === "completed" ? "green" : "purple"}>{job.status}</Bdg></td>
+                  <td style={{ padding: "10px 12px", fontSize: 12, color: C.blue, fontWeight: 600 }}>{topItemName}</td>
                 </tr>
               );
             })}
-            {closedJobs.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: 24, textAlign: "center", color: C.sub }}>No finalized project ledger entries found.</td></tr>
+            {completedJobs.length === 0 && (
+              <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: C.sub }}>No completed production lines available.</td></tr>
             )}
           </tbody>
         </table>
@@ -152,154 +138,162 @@ function JobCostReport({ jobs }) {
   );
 }
 
-// ── 2. INVENTORY STOCK LEVELS & VALUATION ──
-function InventoryValuationReport({ inv }) {
-  const [stockFilter, setStockFilter] = useState("all");
+// ── 🏭 TREND COMPONENT 2: INVENTORY STOCK COSTING TRENDS ──
+function InventoryCostTrendsReport({ inv }) {
+  const [trendFilter, setTrendFilter] = useState("all");
 
-  const rows = inv.map((item) => {
-    const qtyOnHand = tot(item);
-    const totalVal = item.batches?.reduce((s, b) => s + (parseFloat(b.rem) || 0) * (parseFloat(b.price) || 0), 0) || 0;
-    const isLow = qtyOnHand <= (parseFloat(item.alrt) || 0);
-    return { ...item, qtyOnHand, totalVal, isLow };
+  const materialsTrendList = inv.map((item) => {
+    const totalQtyOnHand = tot(item);
+    
+    // Evaluate cost variations across historical material receipt entries
+    const pricePoints = item.batches?.map((b) => parseFloat(b.price) || 0) || [];
+    const averageBatchCost = pricePoints.length > 0 ? pricePoints.reduce((s, p) => s + p, 0) / pricePoints.length : 0;
+    const currentPrice = newestPrice(item);
+    
+    // Evaluate direction of vendor cost shifting
+    let trendDirection = "Stable";
+    let trendColor = "gray";
+    if (currentPrice > averageBatchCost * 1.03) { trendDirection = "Inflationary 📈"; trendColor = "red"; }
+    else if (currentPrice < averageBatchCost * 0.97) { trendDirection = "Deflationary 📉"; trendColor = "green"; }
+
+    const warehouseAssetCapital = item.batches?.reduce((s, b) => s + (parseFloat(b.rem) || 0) * (parseFloat(b.price) || 0), 0) || 0;
+
+    return { ...item, totalQtyOnHand, averageBatchCost, currentPrice, trendDirection, trendColor, warehouseAssetCapital };
   });
 
-  const filteredRows = rows
-    .filter((r) => {
-      if (stockFilter === "low") return r.isLow;
-      if (stockFilter === "excess") return r.qtyOnHand > parseFloat(r.alrt) * 3;
-      return true;
-    })
-    .sort((a, b) => b.totalVal - a.totalVal);
-
-  const grandTotalValue = rows.reduce((s, r) => s + r.totalVal, 0);
+  const filteredTrends = materialsTrendList.filter((item) => {
+    if (trendFilter === "rising") return item.trendDirection.includes("Inflationary");
+    if (trendFilter === "dropping") return item.trendDirection.includes("Deflationary");
+    return true;
+  });
 
   const handleExportInventoryCSV = () => {
-    if (filteredRows.length === 0) return;
-
-    const headers = ["Material Name", "Category Group", "Current Qty On Hand", "Unit Type", "Total FIFO Capital Value", "Stock Alert Status"];
+    if (filteredTrends.length === 0) return;
+    const headers = ["Material Description", "Historical Avg Cost", "Current Market Cost", "Pricing Trend Status", "Capital Asset Value"];
     
-    const csvRows = filteredRows.map((r) => [
+    const csvRows = filteredTrends.map((r) => [
       `"${r.name || ""}"`,
-      `"${r.cat || ""}"`,
-      r.qtyOnHand,
-      `"${r.unit || ""}"`,
-      r.totalVal.toFixed(2),
-      `"${r.isLow ? "REORDER" : "GOOD"}"`
+      r.averageBatchCost.toFixed(2),
+      r.currentPrice.toFixed(2),
+      `"${r.trendDirection}"`,
+      r.warehouseAssetCapital.toFixed(2)
     ]);
 
-    const dateStr = new Date().toISOString().split("T")[0];
-    triggerNativeDownload(`mrr-inventory-valuation-levels-${dateStr}.csv`, headers, csvRows);
+    triggerNativeDownload(`mrr-inventory-cost-trends-${new Date().toISOString().split("T")[0]}.csv`, headers, csvRows);
   };
 
   return (
     <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🏭 Stock Allocations & Financial Value</h2>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🏭 Structural Vendor Material Cost Trends</h2>
           <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-            {[["all", "All Items"], ["low", "🚨 Low Stock Alert"], ["excess", "📦 Excess Stock"]].map(([k, l]) => (
-              <Btn key={k} v={stockFilter === k ? "primary" : "ghost"} sz="sm" onClick={() => setStockFilter(k)}>{l}</Btn>
+            {[["all", "All Trends"], ["rising", "⚠️ Cost Increasing"], ["dropping", "📉 Savings Traps"]].map(([k, l]) => (
+              <Btn key={k} v={trendFilter === k ? "primary" : "ghost"} sz="sm" onClick={() => setTrendFilter(k)}>{l}</Btn>
             ))}
           </div>
         </div>
-        <Btn v="green" sz="sm" onClick={handleExportInventoryCSV}>⬇ Export Inventory Excel</Btn>
+        <Btn v="green" sz="sm" onClick={handleExportInventoryCSV}>⬇ Export Cost Trends Excel</Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: C.lg }}>
-              {["Material Item Name", "Category", "Quantity Available", "Latest Batch Cost", "Total Asset Value", "Status"].map((h) => (
+              {["Material Profile Name", "Category Group", "Stock Available", "Historical Mean Cost", "Most Recent Invoice Price", "Price Fluctuation Vector", "FIFO Asset Holding Cost"].map((h) => (
                 <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {filteredRows.map((item) => (
-              <tr key={item.id} style={{ borderBottom: `1px solid ${C.lg}`, background: item.isLow ? "rgba(239,68,68,0.03)" : "transparent" }}>
+            {filteredTrends.map((item) => (
+              <tr key={item.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
                 <td style={{ padding: "10px 12px", fontWeight: 600, color: C.navy }}>{item.name}</td>
                 <td style={{ padding: "10px 12px", color: C.sub }}>{item.cat}</td>
-                <td style={{ padding: "10px 12px", fontWeight: 700 }}>{item.qtyOnHand} {item.unit}</td>
-                <td style={{ padding: "10px 12px" }}>{fm(newestPrice(item))}</td>
-                <td style={{ padding: "10px 12px", fontWeight: 700, color: C.blue }}>{fm(item.totalVal)}</td>
-                <td><Bdg color={item.isLow ? "red" : "green"}>{item.isLow ? "LOW STOCK" : "WELL STOCKED"}</Bdg></td>
+                <td style={{ padding: "10px 12px", fontWeight: 700 }}>{item.totalQtyOnHand} {item.unit}</td>
+                <td style={{ padding: "10px 12px" }}>{fm(item.averageBatchCost)}</td>
+                <td style={{ padding: "10px 12px", fontWeight: 600 }}>{fm(item.currentPrice)}</td>
+                <td style={{ padding: "10px 12px" }}>
+                  <Bdg color={item.trendColor}>{item.trendDirection}</Bdg>
+                </td>
+                <td style={{ padding: "10px 12px", fontWeight: 700, color: C.blue }}>{fm(item.warehouseAssetCapital)}</td>
               </tr>
             ))}
           </tbody>
-          <tfoot>
-            <tr style={{ background: C.sB }}>
-              <td colSpan={4} style={{ padding: "12px", fontWeight: 800, color: C.navy }}>Total Portfolio Warehouse Capitalization</td>
-              <td colSpan={2} style={{ padding: "12px", fontWeight: 900, color: C.blue, fontSize: 15 }}>{fm(grandTotalValue)}</td>
-            </tr>
-          </tfoot>
         </table>
       </div>
     </div>
   );
 }
 
-// ── 3. FLEET COST & TICKETING SUB REPORT ──
-function FleetCostReport({ vehs, reqs }) {
-  const fleetData = vehs
-    .map((v) => {
-      const matchingTickets = reqs.filter((r) => r.vid === v.id && r.status === "completed");
-      const aggregateCost = matchingTickets.reduce((sum, r) => sum + (parseFloat(r.cost) || 0), 0);
-      return { ...v, aggregateCost, ticketCount: matchingTickets.length };
-    })
-    .sort((a, b) => b.aggregateCost - a.aggregateCost);
+// ── 🚛 TREND COMPONENT 3: FLEET MAINTENANCE COSTS ANALYSIS ──
+function FleetCostTrendsReport({ vehs, reqs }) {
+  const fleetMetrics = vehs.map((v) => {
+    const closedTickets = reqs.filter((r) => r.vehicle_id === v.id && r.status === "completed");
+    const totalRepairInvestment = closedTickets.reduce((sum, r) => sum + (parseFloat(r.cost) || 0), 0);
+    
+    // Categorize fleet risk parameters
+    let vehicleRiskLevel = "Optimal Operating Level";
+    let riskColor = "green";
+    if (totalRepairInvestment > 2500) { vehicleRiskLevel = "High Cost Center 🚨"; riskColor = "red"; }
+    else if (totalRepairInvestment > 800) { vehicleRiskLevel = "Elevated Lifecycle Wear ⚠️"; riskColor = "amber"; }
 
-  const totalFleetInvestment = fleetData.reduce((sum, v) => sum + v.aggregateCost, 0);
+    return { ...v, totalRepairInvestment, serviceLogsCount: closedTickets.length, vehicleRiskLevel, riskColor };
+  }).sort((a, b) => b.totalRepairInvestment - a.totalRepairInvestment);
+
+  const cumulativeFleetExpenditures = fleetMetrics.reduce((sum, v) => sum + v.totalRepairInvestment, 0);
 
   const handleExportFleetCSV = () => {
-    if (fleetData.length === 0) return;
-
-    const headers = ["Vehicle Description", "Asset Class", "License Plate", "Closed Tickets Count", "Cumulative Capital Maintenance Cost"];
+    if (fleetMetrics.length === 0) return;
+    const headers = ["Vehicle Description", "Plate Code", "Total Maintenance Action Count", "Cumulative Investment", "Asset Cost Warning Profile"];
     
-    const csvRows = fleetData.map((v) => [
+    const csvRows = fleetMetrics.map((v) => [
       `"${v.yr || ""} ${v.make || ""} ${v.name || ""}"`,
-      `"${v.type ? v.type.toUpperCase() : ""}"`,
-      `"${v.plate || ""}"`,
-      v.ticketCount,
-      v.aggregateCost.toFixed(2)
+      `"${v.plates || v.plate || ""}"`,
+      v.serviceLogsCount,
+      v.totalRepairInvestment.toFixed(2),
+      `"${v.vehicleRiskLevel}"`
     ]);
 
-    const dateStr = new Date().toISOString().split("T")[0];
-    triggerNativeDownload(`mrr-fleet-maintenance-ledger-${dateStr}.csv`, headers, csvRows);
+    triggerNativeDownload(`mrr-fleet-depreciation-ledger-${new Date().toISOString().split("T")[0]}.csv`, headers, csvRows);
   };
 
   return (
     <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🚛 Fleet Maintenance Ledger</h2>
-        <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>⬇ Export Fleet Excel</Btn>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🚛 Operational Fleet Lifecycle & Maintenance Cost Centers</h2>
+        <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>⬇ Export Fleet Analytics</Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
           <thead>
             <tr style={{ background: C.lg }}>
-              {["Vehicle Asset identifier", "Classification", "Plate Code", "Completed Maintenance", "Cumulative Investment"].map((h) => (
+              {["Vehicle Fleet Identifier", "Classification Asset Class", "Plate ID", "Resolved Work Requests", "Cumulative Maintenance Cost", "Lifecycle Warning Index"].map((h) => (
                 <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {fleetData.map((v) => (
+            {fleetMetrics.map((v) => (
               <tr key={v.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
                 <td style={{ padding: "10px 12px", fontWeight: 700, color: C.navy }}>
-                  {v.name} <span style={{ fontWeight: 400, color: C.sub, fontSize: 11 }}>{v.yr} {v.make}</span>
+                  {v.name || "Fleet Truck"} <span style={{ fontWeight: 400, color: C.sub, fontSize: 11 }}>{v.yr} {v.make}</span>
                 </td>
                 <td style={{ padding: "10px 12px", textTransform: "capitalize" }}>{v.type}</td>
-                <td style={{ padding: "10px 12px", fontFamily: "monospace", color: C.sub }}>{v.plate}</td>
-                <td style={{ padding: "10px 12px" }}>{v.ticketCount} resolved repairs</td>
-                <td style={{ padding: "10px 12px", fontWeight: 700, color: v.aggregateCost > 0 ? C.rd : C.sub }}>
-                  {v.aggregateCost > 0 ? fm(v.aggregateCost) : "—"}
+                <td style={{ padding: "10px 12px", fontFamily: "monospace", color: C.sub }}>{v.plates || v.plate || "—"}</td>
+                <td style={{ padding: "10px 12px" }}>{v.serviceLogsCount} resolved repairs</td>
+                <td style={{ padding: "10px 12px", fontWeight: 700, color: v.totalRepairInvestment > 0 ? C.navy : C.sub }}>
+                  {v.totalRepairInvestment > 0 ? fm(v.totalRepairInvestment) : "—"}
+                </td>
+                <td style={{ padding: "10px 12px" }}>
+                  <Bdg color={v.riskColor}>{v.vehicleRiskLevel}</Bdg>
                 </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr style={{ background: "rgba(239, 68, 68, 0.05)" }}>
-              <td colSpan={4} style={{ padding: "12px", fontWeight: 800, color: C.navy }}>Total Fleet Maintenance Expenditures</td>
-              <td style={{ padding: "12px", fontWeight: 900, color: C.rd, fontSize: 15 }}>{fm(totalFleetInvestment)}</td>
+            <tr style={{ background: "rgba(15, 23, 42, 0.05)" }}>
+              <td colSpan={4} style={{ padding: "12px", fontWeight: 800, color: C.navy }}>Sum Total Fleet Portfolio Capital Maintenance Expenditures</td>
+              <td colSpan={2} style={{ padding: "12px", fontWeight: 900, color: C.navy, fontSize: 15 }}>{fm(cumulativeFleetExpenditures)}</td>
             </tr>
           </tfoot>
         </table>
@@ -308,7 +302,7 @@ function FleetCostReport({ vehs, reqs }) {
   );
 }
 
-// ── 4. HISTORICAL SYSTEM AUDIT LEDGER ──
+// ── 🔒 HISTORICAL SYSTEM AUDIT LEDGER ──
 function AuditTrailReport() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -353,7 +347,6 @@ function AuditTrailReport() {
 
   const handleExportAuditExcel = () => {
     if (logs.length === 0) return;
-
     const headers = ["Timestamp Code", "Operator Email", "Action Flag", "Log Description Narrative"];
     
     const csvRows = logs.map((l) => [
@@ -363,8 +356,7 @@ function AuditTrailReport() {
       `"${l.description || ""}"`
     ]);
 
-    const dateStr = new Date().toISOString().split("T")[0];
-    triggerNativeDownload(`mrr-system-audit-trail-${dateStr}.csv`, headers, csvRows);
+    triggerNativeDownload(`mrr-system-audit-trail-${new Date().toISOString().split("T")[0]}.csv`, headers, csvRows);
   };
 
   return (
@@ -424,7 +416,7 @@ export default function Reports({
   reqs = [],
 }) {
   const [activeTab, setActiveTab] = useState("Jobs");
-  const completedJobs = jobs.filter((j) => j.status === "completed");
+  const completedJobs = jobs.filter((j) => j.status === "completed" || j.status === "closed");
 
   const historicalTotalMaterialSpend = completedJobs.reduce(
     (s, j) =>
@@ -440,32 +432,32 @@ export default function Reports({
   );
 
   const tabOptions = [
-    { id: "Jobs", label: "Job Financials", icon: "📋" },
-    { id: "Inventory", label: "Inventory Assets", icon: "🏭" },
-    { id: "Fleet", label: "Fleet Costing", icon: "🚛" },
+    { id: "Jobs", label: "Job Profitability Trends", icon: "📈" },
+    { id: "Inventory", label: "Inventory Cost Trends", icon: "🏭" },
+    { id: "Fleet", label: "Fleet Maintenance Analysis", icon: "🚛" },
     { id: "Audit", label: "System Audit Ledger", icon: "🔒" },
   ];
 
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>📊 Corporate Intelligence Reporting</h1>
-        <p style={{ margin: "3px 0 0", color: C.sub, fontSize: 12 }}>Saint Joe Road Warehouse · Analytical Material & Asset Auditing</p>
+        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>📊 Corporate Intelligence Trends & Analytics</h1>
+        <p style={{ margin: "3px 0 0", color: C.sub, fontSize: 12 }}>Saint Joe Road Warehouse · Structural Material Gross Margin Auditing</p>
       </div>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
         <div style={{ background: C.w, borderRadius: 12, padding: 14, borderLeft: `5px solid ${C.blue}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 160 }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: C.blue }}>{jobs.length}</div>
-          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Total Contracts Managed</div>
+          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Total Pipelines Tracked</div>
         </div>
         <div style={{ background: C.w, borderRadius: 12, padding: 14, borderLeft: `5px solid ${C.gr}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 160 }}>
           <div style={{ fontSize: 22, fontWeight: 900, color: C.gr }}>{completedJobs.length}</div>
-          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Completed Projects</div>
+          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Finalized Projects Built</div>
         </div>
         {perms.inv_pricing_view && (
           <div style={{ background: C.w, borderRadius: 12, padding: 14, borderLeft: `5px solid ${C.gr}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 200 }}>
             <div style={{ fontSize: 20, fontWeight: 900, color: C.gr }}>{fm(historicalTotalMaterialSpend)}</div>
-            <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Total Realized Material Cost (Completed)</div>
+            <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Total Material Procurement Allocation Value</div>
           </div>
         )}
       </div>
@@ -499,9 +491,9 @@ export default function Reports({
       </div>
 
       <div>
-        {activeTab === "Jobs" && <JobCostReport jobs={jobs} />}
-        {activeTab === "Inventory" && perms.inv_pricing_view && ( <InventoryValuationReport inv={inv} /> )}
-        {activeTab === "Fleet" && perms.inv_pricing_view && ( <FleetCostReport vehs={vehs} reqs={reqs} /> )}
+        {activeTab === "Jobs" && <JobProfitabilityReport jobs={jobs} />}
+        {activeTab === "Inventory" && perms.inv_pricing_view && ( <InventoryCostTrendsReport inv={inv} /> )}
+        {activeTab === "Fleet" && perms.inv_pricing_view && ( <FleetCostTrendsReport vehs={vehs} reqs={reqs} /> )}
         {activeTab === "Audit" && perms.users_manage && <AuditTrailReport />}
       </div>
     </div>
