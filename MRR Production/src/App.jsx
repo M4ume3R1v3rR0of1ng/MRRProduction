@@ -23,10 +23,7 @@ import {
 
 import { storage } from "./utils/storage";
 // Automated Document and External Sync Engines
-import {
-  DEFAULT_ROLE_PERMS,
-  getEffectivePerms,
-} from "./database/permissions";
+import { DEFAULT_ROLE_PERMS, getEffectivePerms } from "./database/permissions";
 import { SEED_U, SEED_W, SEED_I, SEED_V, SEED_JOBS } from "./data/seeds";
 
 import { RoleBdg } from "./components/UIPrimitives";
@@ -75,6 +72,7 @@ export default function App() {
   const [jobs, setJobs] = useState(SEED_JOBS);
   const { showToast } = useNotify();
   const [jobPhotos, setJobPhotos] = useState({});
+  const [inventorySearchQuery, setInventorySearchQuery] = useState("");
   const [rolePerms, setRolePerms] = useState({
     warehouse: { ...DEFAULT_ROLE_PERMS.warehouse },
     coordinator: { ...DEFAULT_ROLE_PERMS.coordinator },
@@ -129,9 +127,10 @@ export default function App() {
 
         if (ip?.value) setInvPhotos(JSON.parse(ip.value));
         if (vp?.value) setVehPhotos(JSON.parse(vp.value));
-        if (ax?.value) setAccuLynxConfig((p) => ({ ...p, ...JSON.parse(ax.value) }));
+        if (ax?.value)
+          setAccuLynxConfig((p) => ({ ...p, ...JSON.parse(ax.value) }));
         if (jp?.value) setJobPhotos(JSON.parse(jp.value));
-        
+
         if (lg?.value) {
           try {
             const parsedLogos = JSON.parse(lg.value);
@@ -144,7 +143,9 @@ export default function App() {
 
         await Promise.all([
           (async () => {
-            const { data, error } = await supabase.from("inventory").select("*");
+            const { data, error } = await supabase
+              .from("inventory")
+              .select("*");
             if (error) setInv(SEED_I);
             else if (data && data.length > 0) setInv(data);
             else setInv(SEED_I);
@@ -162,13 +163,18 @@ export default function App() {
             else setJobs(SEED_JOBS);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("maintenance_requests").select("*");
+            const { data, error } = await supabase
+              .from("maintenance_requests")
+              .select("*");
             if (error) setReqs([]);
-            else if (data && data.length > 0) setReqs(data.sort((a, b) => new Date(b.at) - new Date(a.at)));
+            else if (data && data.length > 0)
+              setReqs(data.sort((a, b) => new Date(b.at) - new Date(a.at)));
             else setReqs([]);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("warehouses").select("*");
+            const { data, error } = await supabase
+              .from("warehouses")
+              .select("*");
             if (error) setWH(SEED_W);
             else if (data && data.length > 0) setWH(data);
             else setWH(SEED_W);
@@ -180,18 +186,26 @@ export default function App() {
             else setUsers(SEED_U);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("role_permissions").select("*");
+            const { data, error } = await supabase
+              .from("role_permissions")
+              .select("*");
             if (data && data.length > 0) {
               const formattedRolePerms = {};
-              data.forEach((row) => { formattedRolePerms[row.role] = row.permissions; });
+              data.forEach((row) => {
+                formattedRolePerms[row.role] = row.permissions;
+              });
               setRolePerms((p) => ({ ...p, ...formattedRolePerms }));
             }
           })(),
           (async () => {
-            const { data, error } = await supabase.from("user_permission_overrides").select("*");
+            const { data, error } = await supabase
+              .from("user_permission_overrides")
+              .select("*");
             if (data && data.length > 0) {
               const formattedUserOv = {};
-              data.forEach((row) => { formattedUserOv[row.user_id] = row.overrides; });
+              data.forEach((row) => {
+                formattedUserOv[row.user_id] = row.overrides;
+              });
               setUserOverrides(formattedUserOv);
             }
           })(),
@@ -199,7 +213,10 @@ export default function App() {
 
         console.log("🏁 Core synchronization complete. App ready.");
       } catch (e) {
-        console.error("🚨 Critical failure during app instantiation sequence:", e);
+        console.error(
+          "🚨 Critical failure during app instantiation sequence:",
+          e,
+        );
       } finally {
         setLoading(false);
       }
@@ -207,21 +224,64 @@ export default function App() {
     load();
   }, []);
 
-  useEffect(() => { if (!loading) storage.set("mrr-v7-inv-photos", JSON.stringify(invPhotos)).catch(() => {}); }, [invPhotos, loading]);
-  useEffect(() => { if (!loading) storage.set("mrr-v7-veh-photos", JSON.stringify(vehPhotos)).catch(() => {}); }, [vehPhotos, loading]);
-  useEffect(() => { if (!loading) storage.set("mrr-v7-logos", JSON.stringify(logos)).catch(() => {}); }, [logos, loading]);
-  useEffect(() => { if (!loading) storage.set("mrr-v7-roleperms", JSON.stringify(rolePerms)).catch(() => {}); }, [rolePerms, loading]);
-  useEffect(() => { if (!loading) storage.set("mrr-v7-userov", JSON.stringify(userOverrides)).catch(() => {}); }, [userOverrides, loading]);
-  useEffect(() => { if (!loading) storage.set("mrr-v7-acculynx", JSON.stringify(acculynxConfig)).catch(() => {}); }, [acculynxConfig, loading]);
-  
-useEffect(() => {
+  useEffect(() => {
     if (!loading)
-      storage.set("mrr-v7-job-photos", JSON.stringify(jobPhotos)).catch(() => {});
+      storage
+        .set("mrr-v7-inv-photos", JSON.stringify(invPhotos))
+        .catch(() => {});
+  }, [invPhotos, loading]);
+  useEffect(() => {
+    if (!loading)
+      storage
+        .set("mrr-v7-veh-photos", JSON.stringify(vehPhotos))
+        .catch(() => {});
+  }, [vehPhotos, loading]);
+  useEffect(() => {
+    if (!loading)
+      storage.set("mrr-v7-logos", JSON.stringify(logos)).catch(() => {});
+  }, [logos, loading]);
+  useEffect(() => {
+    if (!loading)
+      storage
+        .set("mrr-v7-roleperms", JSON.stringify(rolePerms))
+        .catch(() => {});
+  }, [rolePerms, loading]);
+  useEffect(() => {
+    if (!loading)
+      storage
+        .set("mrr-v7-userov", JSON.stringify(userOverrides))
+        .catch(() => {});
+  }, [userOverrides, loading]);
+  useEffect(() => {
+    if (!loading)
+      storage
+        .set("mrr-v7-acculynx", JSON.stringify(acculynxConfig))
+        .catch(() => {});
+  }, [acculynxConfig, loading]);
+
+  useEffect(() => {
+    if (!loading)
+      storage
+        .set("mrr-v7-job-photos", JSON.stringify(jobPhotos))
+        .catch(() => {});
   }, [jobPhotos, loading]);
 
-  const pendingReqCount = useMemo(() => reqs.filter((r) => r.status === "pending").length, [reqs]);
-  const lowStockCount = useMemo(() => inv.filter((i) => tot(i) <= i.alrt).length, [inv]);
-  const newJobsForMe = useMemo(() => curUser ? jobs.filter((j) => j.newForAssigned && j.assignedTo === curUser.id).length : 0, [jobs, curUser]);
+  const pendingReqCount = useMemo(
+    () => reqs.filter((r) => r.status === "pending").length,
+    [reqs],
+  );
+  const lowStockCount = useMemo(
+    () => inv.filter((i) => tot(i) <= i.alrt).length,
+    [inv],
+  );
+  const newJobsForMe = useMemo(
+    () =>
+      curUser
+        ? jobs.filter((j) => j.newForAssigned && j.assignedTo === curUser.id)
+            .length
+        : 0,
+    [jobs, curUser],
+  );
   const activeLogo = useMemo(() => {
     if (!logos || !Array.isArray(logos)) return null;
     return logos.find((l) => l.isActive)?.data || null;
@@ -233,7 +293,9 @@ useEffect(() => {
   }, [curUser, rolePerms, userOverrides]);
 
   useEffect(() => {
-    const handleReconnect = () => { processOfflineQueue(showToast); };
+    const handleReconnect = () => {
+      processOfflineQueue(showToast);
+    };
     window.addEventListener("online", handleReconnect);
     if (navigator.onLine) processOfflineQueue(showToast);
     return () => window.removeEventListener("online", handleReconnect);
@@ -259,19 +321,26 @@ useEffect(() => {
           gap: 16, // Slightly widened to give the beaver mascot clean breathing room
         }}
       >
-        <img 
-          src={mrrpic} 
-          alt="Maumee River Roofing Mascot" 
-          style={{ 
-            width: "160px",      // Perfectly sizes the beaver + text logo horizontally
-            height: "auto", 
-            maxHeight: "120px", 
+        <img
+          src={mrrpic}
+          alt="Maumee River Roofing Mascot"
+          style={{
+            width: "160px", // Perfectly sizes the beaver + text logo horizontally
+            height: "auto",
+            maxHeight: "120px",
             objectFit: "contain",
-            marginBottom: 4
-          }} 
+            marginBottom: 4,
+          }}
         />
-        
-        <div style={{ color: C.navy, fontWeight: 700, fontSize: 15, letterSpacing: "0.5px" }}>
+
+        <div
+          style={{
+            color: C.navy,
+            fontWeight: 700,
+            fontSize: 15,
+            letterSpacing: "0.5px",
+          }}
+        >
           Loading Maumee River Roofing...
         </div>
       </div>
@@ -279,25 +348,84 @@ useEffect(() => {
   }
 
   if (!curUser) {
-    return <LoginScreen onLogin={(u) => { setCurUser(u); navigateTo("dashboard"); }} activeLogo={activeLogo} />;
+    return (
+      <LoginScreen
+        onLogin={(u) => {
+          setCurUser(u);
+          navigateTo("dashboard");
+        }}
+        activeLogo={activeLogo}
+      />
+    );
   }
 
   return (
-    <IdleTimeoutWrapper isAuthenticated={!!curUser} onLogout={() => setCurUser(null)}>
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", minHeight: "100vh", background: C.bg, fontFamily: "'Segoe UI',system-ui,sans-serif", width: "100vw", overflowX: "hidden" }}>
-        
+    <IdleTimeoutWrapper
+      isAuthenticated={!!curUser}
+      onLogout={() => setCurUser(null)}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          minHeight: "100vh",
+          background: C.bg,
+          fontFamily: "'Segoe UI',system-ui,sans-serif",
+          width: "100vw",
+          overflowX: "hidden",
+        }}
+      >
         {/* 📱 MOBILE HEADER BAR */}
         {isMobile && (
-          <div style={{ background: "#0f172a", color: "#fff", padding: "0 20px", height: 50, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 13 }}>🏗️ MAUMEE RIVER ROOFING</div>
-            <button onClick={() => setMobileMenuOpen((o) => !o)} style={{ background: "transparent", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>
+          <div
+            style={{
+              background: "#0f172a",
+              color: "#fff",
+              padding: "0 20px",
+              height: 50,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              position: "sticky",
+              top: 0,
+              zIndex: 100,
+              boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 13 }}>
+              🏗️ MAUMEE RIVER ROOFING
+            </div>
+            <button
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#fff",
+                fontSize: 22,
+                cursor: "pointer",
+                lineHeight: 1,
+              }}
+            >
               {mobileMenuOpen ? "✕" : "☰"}
             </button>
           </div>
         )}
 
         {/* 🗺️ SIDEBAR ROUTER SYSTEM */}
-        <div style={{ width: isMobile ? "100%" : collapsed ? 64 : 260, display: isMobile && !mobileMenuOpen ? "none" : "block", position: isMobile ? "fixed" : "relative", top: isMobile ? 50 : 0, left: 0, height: isMobile ? "calc(100vh - 50px)" : "100vh", zIndex: 99, overflowY: "auto", flexShrink: 0 }}>
+        <div
+          style={{
+            width: isMobile ? "100%" : collapsed ? 64 : 260,
+            display: isMobile && !mobileMenuOpen ? "none" : "block",
+            position: isMobile ? "fixed" : "relative",
+            top: isMobile ? 50 : 0,
+            left: 0,
+            height: isMobile ? "calc(100vh - 50px)" : "100vh",
+            zIndex: 99,
+            overflowY: "auto",
+            flexShrink: 0,
+          }}
+        >
           <Sidebar
             cur={view}
             onNav={(v) => {
@@ -317,31 +445,115 @@ useEffect(() => {
         </div>
 
         {/* 📊 MAIN VIEW CONTAINER TRACK */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, marginTop: isMobile ? 50 : 0 }}>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+            marginTop: isMobile ? 50 : 0,
+          }}
+        >
           {!isMobile && (
-            <div style={{ background: C.w, padding: "0 20px", height: 56, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.lg}`, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-              <div style={{ fontSize: 12, color: C.sub, flexShrink: 0, marginRight: 24 }}>
+            <div
+              style={{
+                background: C.w,
+                padding: "0 20px",
+                height: 56,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                borderBottom: `1px solid ${C.lg}`,
+                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  color: C.sub,
+                  flexShrink: 0,
+                  marginRight: 24,
+                }}
+              >
                 Maumee River Roofing · Saint Joe Road Warehouse
               </div>
 
-              <div style={{ flex: 1, maxWidth: "400px", display: "flex", justifyContent: "flex-start", paddingRight: "40px" }}>
-                <OmniSearch jobs={jobs} users ={users} reqs={reqs} inv={inv} vehs={vehs} onNavigate={navigateTo} />
+              <div
+                style={{
+                  flex: 1,
+                  maxWidth: "400px",
+                  display: "flex",
+                  justifyContent: "flex-start",
+                  paddingRight: "40px",
+                }}
+              >
+                <OmniSearch
+                  jobs={jobs}
+                  users={users}
+                  reqs={reqs}
+                  inv={inv}
+                  vehs={vehs}
+                  onNavigate={navigateTo}
+                  onNavigate={setView}
+                  onInventorySearch={setInventorySearchQuery}
+                />
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 24 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  flexShrink: 0,
+                  marginLeft: 24,
+                }}
+              >
                 <SyncIndicator />
                 {newJobsForMe > 0 && (
-                  <div onClick={() => navigateTo("pull")} style={{ background: C.tB, color: C.tl, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                  <div
+                    onClick={() => navigateTo("pull")}
+                    style={{
+                      background: C.tB,
+                      color: C.tl,
+                      borderRadius: 20,
+                      padding: "3px 10px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
                     🎉 {newJobsForMe} new job{newJobsForMe !== 1 ? "s" : ""}
                   </div>
                 )}
                 {pendingReqCount > 0 && userPerms.maint_manage && (
-                  <div onClick={() => navigateTo("requests")} style={{ background: C.pB, color: C.pu, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                  <div
+                    onClick={() => navigateTo("requests")}
+                    style={{
+                      background: C.pB,
+                      color: C.pu,
+                      borderRadius: 20,
+                      padding: "3px 10px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
                     🔧 {pendingReqCount} pending
                   </div>
                 )}
                 {lowStockCount > 0 && userPerms.inv_view && (
-                  <div onClick={() => navigateTo("inventory")} style={{ background: C.aB, color: C.am, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                  <div
+                    onClick={() => navigateTo("inventory")}
+                    style={{
+                      background: C.aB,
+                      color: C.am,
+                      borderRadius: 20,
+                      padding: "3px 10px",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
                     ⚠️ {lowStockCount} low stock
                   </div>
                 )}
@@ -351,18 +563,132 @@ useEffect(() => {
           )}
 
           {/* Core App View Routers */}
-          <div style={{ flex: 1, padding: isMobile ? 16 : 20, overflowY: "auto" }}>
-            {view === "dashboard" && <DashboardView inv={inv} vehs={vehs} reqs={reqs} jobs={jobs} users={users} user={curUser} perms={userPerms} onNav={navigateTo} tot={tot} jSC={jSC} />}
-            {view === "buildjobs" && userPerms.jobs_build && <BuildJobsView jobs={jobs} setJobs={setJobs} inv={inv} users={users} user={curUser} perms={userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={acculynxConfig} />}
-            {view === "pull" && <PullInventoryView jobs={jobs} setJobs={setJobs} inv={inv} setInv={setInv} users={users} user={curUser} perms={userPerms} activeLogo={activeLogo} acculynxConfig={acculynxConfig} jSC={jSC} />}
-            {view === "inventory" && userPerms.inv_view && <InventoryView inv={inv} setInv={setInv} users={users} user={curUser} perms={userPerms} invPhotos={invPhotos} setInvPhotos={setInvPhotos} />}
-            {view === "fleet" && userPerms.fleet_view && <FleetManagementView vehs={vehs} setVehs={setVehs} reqs={reqs} setReqs={setReqs} users={users} user={curUser} perms={userPerms} vehPhotos={vehPhotos} setVehPhotos={setVehPhotos} oilSt={oilSt} detSt={detSt} predDays={predDays} fd={fd} fm={fm} />}
-            {view === "requests" && (userPerms.maint_submit || userPerms.maint_manage) && <MaintenanceRequestsView reqs={reqs} setReqs={setReqs} vehs={vehs} users={users} user={curUser} perms={userPerms} />}
-            {view === "reports" && userPerms.reports_view && <ReportsView jobs={jobs} users={users} user={curUser} perms={userPerms} inv={inv} vehs={vehs} reqs={reqs} />}
-            {view === "users" && userPerms.users_manage && <UserManagementView users={users} setUsers={setUsers} currentUser={curUser} rolePerms={rolePerms} userOverrides={userOverrides} setUserOverrides={setUserOverrides} />}
-            {view === "settings" && userPerms.settings_manage && <SettingsView warehouses={warehouses} setWarehouses={setWH} logos={logos} setLogos={setLogos} rolePerms={rolePerms} setRolePerms={setRolePerms} acculynxConfig={acculynxConfig} setAccuLynxConfig={setAccuLynxConfig} />}
-            {view === "profile" && <ProfileView user={curUser} onUpdateUser={setCurUser} />}
-            {view === "logs" && userPerms.users_manage && <AuditLogView perms={userPerms} />}
+          <div
+            style={{ flex: 1, padding: isMobile ? 16 : 20, overflowY: "auto" }}
+          >
+            {view === "dashboard" && (
+              <DashboardView
+                inv={inv}
+                vehs={vehs}
+                reqs={reqs}
+                jobs={jobs}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                onNav={navigateTo}
+                tot={tot}
+                jSC={jSC}
+              />
+            )}
+            {view === "buildjobs" && userPerms.jobs_build && (
+              <BuildJobsView
+                jobs={jobs}
+                setJobs={setJobs}
+                inv={inv}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                jSC={jSC}
+                view={view}
+                onNav={navigateTo}
+                acculynxConfig={acculynxConfig}
+              />
+            )}
+            {view === "pull" && (
+              <PullInventoryView
+                jobs={jobs}
+                setJobs={setJobs}
+                inv={inv}
+                setInv={setInv}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                activeLogo={activeLogo}
+                acculynxConfig={acculynxConfig}
+                jSC={jSC}
+              />
+            )}
+            {view === "inventory" && userPerms.inv_view && (
+              <InventoryView
+                inv={inv}
+                setInv={setInv}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                invPhotos={invPhotos}
+                setInvPhotos={setInvPhotos}
+              />
+            )}
+            {view === "fleet" && userPerms.fleet_view && (
+              <FleetManagementView
+                vehs={vehs}
+                setVehs={setVehs}
+                reqs={reqs}
+                setReqs={setReqs}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                vehPhotos={vehPhotos}
+                setVehPhotos={setVehPhotos}
+                oilSt={oilSt}
+                detSt={detSt}
+                predDays={predDays}
+                fd={fd}
+                fm={fm}
+                inventorySearchQuery={inventorySearchQuery}
+                setInventorySearchQuery={setInventorySearchQuery}
+              />
+            )}
+            {view === "requests" &&
+              (userPerms.maint_submit || userPerms.maint_manage) && (
+                <MaintenanceRequestsView
+                  reqs={reqs}
+                  setReqs={setReqs}
+                  vehs={vehs}
+                  users={users}
+                  user={curUser}
+                  perms={userPerms}
+                />
+              )}
+            {view === "reports" && userPerms.reports_view && (
+              <ReportsView
+                jobs={jobs}
+                users={users}
+                user={curUser}
+                perms={userPerms}
+                inv={inv}
+                vehs={vehs}
+                reqs={reqs}
+              />
+            )}
+            {view === "users" && userPerms.users_manage && (
+              <UserManagementView
+                users={users}
+                setUsers={setUsers}
+                currentUser={curUser}
+                rolePerms={rolePerms}
+                userOverrides={userOverrides}
+                setUserOverrides={setUserOverrides}
+              />
+            )}
+            {view === "settings" && userPerms.settings_manage && (
+              <SettingsView
+                warehouses={warehouses}
+                setWarehouses={setWH}
+                logos={logos}
+                setLogos={setLogos}
+                rolePerms={rolePerms}
+                setRolePerms={setRolePerms}
+                acculynxConfig={acculynxConfig}
+                setAccuLynxConfig={setAccuLynxConfig}
+              />
+            )}
+            {view === "profile" && (
+              <ProfileView user={curUser} onUpdateUser={setCurUser} />
+            )}
+            {view === "logs" && userPerms.users_manage && (
+              <AuditLogView perms={userPerms} />
+            )}
           </div>
         </div>
       </div>

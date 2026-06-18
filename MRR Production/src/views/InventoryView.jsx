@@ -1,5 +1,5 @@
 // src/views/InventoryView.jsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C, uid, fd, fm, tot, newestPrice } from "../utils/helpers";
 import {
@@ -22,9 +22,11 @@ export default function InventoryView({
   perms,
   invPhotos = {},
   setInvPhotos,
+  inventorySearchQuery = "",
+  setInventorySearchQuery,
 }) {
   const [saving, setSaving] = useState(false);
-  const [srch, setSrch] = useState("");
+  const [srch, setSrch] = useState(inventorySearchQuery);
   const [cat, setCat] = useState("All");
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
@@ -35,6 +37,10 @@ export default function InventoryView({
     po: "",
     vendor: "",
   });
+  useEffect(() => {
+    setSrch(inventorySearchQuery);
+  }, [inventorySearchQuery]);
+  
   const [bulkSrch, setBulkSrch] = useState("");
   const { showToast } = useNotify();
 
@@ -364,11 +370,22 @@ export default function InventoryView({
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-        <Inp placeholder="🔍 Search items..." value={srch} onChange={(e) => setSrch(e.target.value)} style={{ flex: 1, minWidth: 160, maxWidth: 300 }} />
-        <Sel value={cat} onChange={(e) => setCat(e.target.value)} style={{ width: "auto" }}>
-          {cats.map((c) => (<option key={c} value={c}>{c}</option>))}
-        </Sel>
-      </div>
+    <Inp 
+      placeholder="🔍 Search items..." 
+      value={srch} 
+      onChange={(e) => {
+        setSrch(e.target.value);
+        // Sync back up to parent components to prevent data state mismatches on view changes
+        if (typeof setInventorySearchQuery === "function") {
+          setInventorySearchQuery(e.target.value);
+        }
+      }} 
+      style={{ flex: 1, minWidth: 160, maxWidth: 300 }} 
+    />
+    <Sel value={cat} onChange={(e) => setCat(e.target.value)} style={{ width: "auto" }}>
+      {cats.map((c) => (<option key={c} value={c}>{c}</option>))}
+    </Sel>
+  </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
         {filtered.map((item) => {
