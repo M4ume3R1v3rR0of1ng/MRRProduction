@@ -40,6 +40,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [inventorySearchQuery, setInventorySearchQuery] = useState("");
 
   // ── 🟢 CONSUME DECOUPLED CUSTOM STATE INFRASTRUCTURE HOOK ──
@@ -103,6 +104,39 @@ export default function App() {
             <button onClick={() => setMobileMenuOpen((o) => !o)} style={{ background: "transparent", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>
               {mobileMenuOpen ? "✕" : "☰"}
             </button>
+          </div>
+        )}
+
+{/* ── 🟢 MOBILE FULL-SCREEN SEARCH OVERLAY SHEET ── */}
+        {isMobile && mobileSearchOpen && (
+          <div style={{ position: "fixed", inset: 0, background: "#ffffff", zIndex: 1000, display: "flex", flexDirection: "column", padding: "16px 20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexShrink: 0 }}>
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: C.navy }}>🔍 Global Ecosystem Search</h2>
+              <button 
+                onClick={() => setMobileSearchOpen(false)}
+                style={{ background: C.lg, border: "none", borderRadius: "50%", width: 32, height: 32, fontSize: 14, fontWeight: 700, color: C.sub, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <OmniSearch
+                jobs={app.jobs}
+                users={app.users}
+                reqs={app.reqs}
+                inv={app.inv}
+                vehs={app.vehs}
+                onNavigate={(v) => {
+                  navigateTo(v);
+                  setMobileSearchOpen(false); // Close layout sheet after item tap
+                }}
+                onInventorySearch={(q) => {
+                  setInventorySearchQuery(q);
+                  setMobileSearchOpen(false);
+                }}
+              />
+            </div>
           </div>
         )}
 
