@@ -8,6 +8,7 @@ import { Btn, Bdg, Modal, Fld, TA, Inp, PhotoUpload } from "../components/UIPrim
 import { logAction } from "../utils/logger";
 import { supabase } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
+import { uploadPhotoToBucket } from "../utils/storageBucketUpload"; 
 
 export default function PullInventory({
   jobs,
@@ -234,25 +235,64 @@ export default function PullInventory({
     );
   };
 
-  const handleStagePhoto = (phase, base64Data) => {
+ const handleStagePhoto = async (phase, base64Data) => {
     if (!sel) return;
     
-    // Safety check ensuring callback exists before firing
-    if (typeof setJobPhotos === "function") {
-      setJobPhotos((prev) => ({
-        ...prev,
-        [sel.id]: {
-          ...(prev[sel.id] || { before: null, after: null }),
-          [phase]: base64Data,
-        },
-      }));
+    if (!base64Data) {
+      // Handle image removal locally and globally
+      if (typeof setJobPhotos === "function") {
+        setJobPhotos((prev) => ({
+          ...prev,
+          [sel.id]: {
+            ...(prev[sel.id] || { before: null, after: null }),
+            [phase]: null,
+          },
+        }));
+      }
+      return;
     }
-    showToast(`${phase === "before" ? "Before" : "After"} photo successfully captured!`, "success");
+
+    try {
+      showToast(`Uploading ${phase} photo asset securely to cloud...`, "info");
+
+      // 1. Process base64 parsing and push to your public Supabase Storage bucket
+      const cloudPublicUrl = await uploadPhotoToBucket("job-attachments", sel.id, base64Data);
+
+      if (!cloudPublicUrl) {
+        throw new Error("Cloud engine failed to return a valid public access URL routing pointer.");
+      }
+
+      // 2. Commit the tiny string URL directly to your context state array
+      if (typeof setJobPhotos === "function") {
+        setJobPhotos((prev) => ({
+          ...prev,
+          [sel.id]: {
+            ...(prev[sel.id] || { before: null, after: null }),
+            [phase]: cloudPublicUrl,
+          },
+        }));
+      }
+
+      // 3. Persist the link pointer column straight down to your primary Supabase Database table row
+      const columnToUpdate = phase === "before" ? "photo_before_url" : "photo_after_url";
+      const { error: dbError } = await supabase
+        .from("jobs")
+        .update({ [columnToUpdate]: cloudPublicUrl })
+        .eq("id", sel.id);
+
+      if (dbError) throw dbError;
+
+      showToast(`${phase === "before" ? "Before" : "After"} photo synchronized to cloud storage!`, "success");
+    } catch (err) {
+      console.error("[Storage Upload Failure]:", err);
+      showToast(`Upload failed: ${err.message || "Network timeout error."}`, "error");
+    }
   };
 
   // ── 🟢 STRUCTURAL EVALUATION SAFE SHIELD APPLIED HERE ──
   const parsedJobPhotos = typeof jobPhotos !== "undefined" && jobPhotos ? jobPhotos : {};
   const currentJobPhotos = sel ? (parsedJobPhotos[sel.id] || { before: null, after: null }) : { before: null, after: null };
+  
 
   return (
     <div>

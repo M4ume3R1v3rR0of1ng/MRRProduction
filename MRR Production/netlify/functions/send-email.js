@@ -38,7 +38,7 @@ export async function handler(event, context) {
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: "Maumee River Roofing <notifications@maumeeriverroofing WMS>", // Fallback to your verified Resend domain link
+        from: "Maumee River Roofing <<notifications@yourdomain.com>", // Fallback to your verified Resend domain link
         to: Array.isArray(to) ? to : [to],
         subject: subject,
         html: html,

@@ -31,7 +31,10 @@ export async function processOfflineQueue(showToast) {
   if (queue.length === 0) return;
 
   console.log(`📡 Signal restored. Syncing ${queue.length} cached offline records...`);
+  
   let successCount = 0;
+  // ── 🟢 TRACK FAILED ITEMS TO KEEP THEM IN CACHE ──
+  const failedItems = [];
 
   for (const item of queue) {
     try {
@@ -42,17 +45,29 @@ export async function processOfflineQueue(showToast) {
         ({ error } = await supabase.from(item.tableName).update(item.payload).eq("id", item.payload.id));
       }
 
-      if (!error) successCount++;
+      if (!error) {
+        successCount++;
+      } else {
+        console.error(`Database error syncing transaction ${item.id}:`, error.message);
+        failedItems.push(item); // Retain on partial database/network error
+      }
     } catch (err) {
-      console.error("Failed to sync item:", item, err);
+      console.error(`Failed to sync item ${item.id}:`, item, err);
+      failedItems.push(item); // Retain on network crash/timeout
     }
   }
 
-  // Wipe queue or retain failed ones
-  localStorage.setItem("mrr_offline_queue", JSON.stringify([]));
+  // ── 🔒 SECURE SAVE: RESIDUAL RETRY QUEUE UPGRADE ──
+  localStorage.setItem("mrr_offline_queue", JSON.stringify(failedItems));
+  
+  // Keep the UI badges synchronized with the accurate remaining count
   window.dispatchEvent(new Event("offline_queue_updated"));
 
   if (successCount > 0 && showToast) {
     showToast(`🔄 Connected! ${successCount} offline submissions synced with server.`, "success");
+  }
+  
+  if (failedItems.length > 0 && showToast) {
+    showToast(`⚠️ Warning: ${failedItems.length} records failed to sync and remain queued.`, "warning");
   }
 }

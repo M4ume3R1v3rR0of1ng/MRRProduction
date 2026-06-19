@@ -1,0 +1,203 @@
+// src/hooks/useAppData.js
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "../utils/supabase";
+import { storage } from "../utils/storage";
+import { useNotify } from "../context/NotificationContext";
+import { SEED_U, SEED_W, SEED_I, SEED_V, SEED_JOBS } from "../data/seeds";
+import { DEFAULT_ROLE_PERMS, getEffectivePerms } from "../database/permissions";
+import { processOfflineQueue } from "../utils/offlineSync";
+import { tot } from "../utils/helpers";
+
+export function useAppData() {
+  const [loading, setLoading] = useState(true);
+  const [curUser, setCurUser] = useState(null);
+  const [users, setUsers] = useState(SEED_U);
+  const [warehouses, setWH] = useState(SEED_W);
+  const [inv, setInv] = useState(SEED_I);
+  const [vehs, setVehs] = useState(SEED_V);
+  const [reqs, setReqs] = useState([]);
+  const [jobs, setJobs] = useState(SEED_JOBS);
+  const [jobPhotos, setJobPhotos] = useState({});
+  const [rolePerms, setRolePerms] = useState({
+    warehouse: { ...DEFAULT_ROLE_PERMS.warehouse },
+    coordinator: { ...DEFAULT_ROLE_PERMS.coordinator },
+    manager: { ...DEFAULT_ROLE_PERMS.manager },
+    field: { ...DEFAULT_ROLE_PERMS.field },
+  });
+
+  const [userOverrides, setUserOverrides] = useState({});
+  const [acculynxConfig, setAccuLynxConfig] = useState({
+    apiKey: "",
+    enabled: false,
+    autoSync: true,
+    proxyUrl: "",
+  });
+  const [invPhotos, setInvPhotos] = useState({});
+  const [vehPhotos, setVehPhotos] = useState({});
+  const [logos, setLogos] = useState([]);
+  
+  const { showToast } = useNotify();
+
+  // ── ⚙️ DATA INITIALIZATION ENGINE ──
+  useEffect(() => {
+    async function load() {
+      console.log("🚀 Initializing Maumee River Roofing WMS Boot Sequence via useAppData...");
+      try {
+        const [ip, vp, lg, ax, jp] = await Promise.all([
+          storage.get("mrr-v7-inv-photos").catch(() => null),
+          storage.get("mrr-v7-veh-photos").catch(() => null),
+          storage.get("mrr-v7-logos").catch(() => null),
+          storage.get("mrr-v7-acculynx").catch(() => null),
+          storage.get("mrr-v7-job-photos").catch(() => null),
+        ]);
+
+        if (ip?.value) setInvPhotos(JSON.parse(ip.value));
+        if (vp?.value) setVehPhotos(JSON.parse(vp.value));
+        if (ax?.value) setAccuLynxConfig((p) => ({ ...p, ...JSON.parse(ax.value) }));
+        if (jp?.value) setJobPhotos(JSON.parse(jp.value));
+
+        if (lg?.value) {
+          try {
+            const parsedLogos = JSON.parse(lg.value);
+            if (Array.isArray(parsedLogos)) setLogos(parsedLogos);
+            else setLogos([]);
+          } catch (e) {
+            setLogos([]);
+          }
+        }
+
+        await Promise.all([
+          (async () => {
+            const { data, error } = await supabase.from("inventory").select("*");
+            if (error) setInv(SEED_I);
+            else if (data && data.length > 0) setInv(data);
+            else setInv(SEED_I);
+          })(),
+          (async () => {
+            const { data, error } = await supabase.from("vehicles").select("*");
+            if (error) setVehs(SEED_V);
+            else if (data && data.length > 0) setVehs(data);
+            else setVehs(SEED_V);
+          })(),
+          (async () => {
+            const { data, error } = await supabase.from("jobs").select("*");
+            if (error) setJobs(SEED_JOBS);
+            else if (data && data.length > 0) setJobs(data);
+            else setJobs(SEED_JOBS);
+          })(),
+          (async () => {
+            const { data, error } = await supabase.from("maintenance_requests").select("*");
+            if (error) setReqs([]);
+            else if (data && data.length > 0) setReqs(data.sort((a, b) => new Date(b.at) - new Date(a.at)));
+            else setReqs([]);
+          })(),
+          (async () => {
+            const { data, error } = await supabase.from("warehouses").select("*");
+            if (error) setWH(SEED_W);
+            else if (data && data.length > 0) setWH(data);
+            else setWH(SEED_W);
+          })(),
+          (async () => {
+            const { data, error } = await supabase.from("profiles").select("*");
+            if (error) setUsers(SEED_U);
+            else if (data && data.length > 0) setUsers(data);
+            else setUsers(SEED_U);
+          })(),
+          (async () => {
+            const { data, error } = await supabase.from("role_permissions").select("*");
+            if (data && data.length > 0) {
+              const formattedRolePerms = {};
+              data.forEach((row) => {
+                formattedRolePerms[row.role] = row.permissions;
+              });
+              setRolePerms((p) => ({ ...p, ...formattedRolePerms }));
+            }
+          })(),
+          (async () => {
+            const { data, error } = await supabase.from("user_permission_overrides").select("*");
+            if (data && data.length > 0) {
+              const formattedUserOv = {};
+              data.forEach((row) => {
+                formattedUserOv[row.user_id] = row.overrides;
+              });
+              setUserOverrides(formattedUserOv);
+            }
+          })(),
+        ]);
+
+        console.log("🏁 Core synchronization complete. Hook environment primed.");
+      } catch (e) {
+        console.error("🚨 Critical failure during app instantiation sequence:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  // ── 💾 BACKGROUND STORAGE SYNCHRONIZER EFFECTS ──
+  useEffect(() => { if (!loading) storage.set("mrr-v7-veh-photos", JSON.stringify(vehPhotos)).catch(() => {}); }, [vehPhotos, loading]);
+  useEffect(() => { if (!loading) storage.set("mrr-v7-logos", JSON.stringify(logos)).catch(() => {}); }, [logos, loading]);
+  useEffect(() => { if (!loading) storage.set("mrr-v7-roleperms", JSON.stringify(rolePerms)).catch(() => {}); }, [rolePerms, loading]);
+  useEffect(() => { if (!loading) storage.set("mrr-v7-userov", JSON.stringify(userOverrides)).catch(() => {}); }, [userOverrides, loading]);
+  useEffect(() => { if (!loading) storage.set("mrr-v7-acculynx", JSON.stringify(acculynxConfig)).catch(() => {}); }, [acculynxConfig, loading]);
+
+  // ── 📡 OFFLINE BACKEND RETRY LISTENER ──
+  useEffect(() => {
+    const handleReconnect = () => processOfflineQueue(showToast);
+    window.addEventListener("online", handleReconnect);
+    if (navigator.onLine) processOfflineQueue(showToast);
+    return () => window.removeEventListener("online", handleReconnect);
+  }, [showToast]);
+
+  // ── 📊 COMPUTED MEMO VALUES ──
+  const pendingReqCount = useMemo(() => reqs.filter((r) => r.status === "pending").length, [reqs]);
+  const lowStockCount = useMemo(() => inv.filter((i) => tot(i) <= i.alrt).length, [inv]);
+  const newJobsForMe = useMemo(() => curUser ? jobs.filter((j) => j.newForAssigned && j.assignedTo === curUser.id).length : 0, [jobs, curUser]);
+  const activeLogo = useMemo(() => {
+    if (!logos || !Array.isArray(logos)) return null;
+    return logos.find((l) => l.isActive)?.data || null;
+  }, [logos]);
+
+  const userPerms = useMemo(() => {
+    if (!curUser) return {};
+    return getEffectivePerms(curUser, rolePerms, userOverrides);
+  }, [curUser, rolePerms, userOverrides]);
+
+  return {
+    loading,
+    curUser,
+    setCurUser,
+    users,
+    setUsers,
+    warehouses,
+    setWH,
+    inv,
+    setInv,
+    vehs,
+    setVehs,
+    reqs,
+    setReqs,
+    jobs,
+    setJobs,
+    jobPhotos,
+    setJobPhotos,
+    rolePerms,
+    setRolePerms,
+    userOverrides,
+    setUserOverrides,
+    acculynxConfig,
+    setAccuLynxConfig,
+    invPhotos,
+    setInvPhotos,
+    vehPhotos,
+    setVehPhotos,
+    logos,
+    setLogos,
+    pendingReqCount,
+    lowStockCount,
+    newJobsForMe,
+    activeLogo,
+    userPerms
+  };
+}

@@ -68,18 +68,23 @@ export default function Sidebar({
             : C.gold;
 
   const handleSignOut = async () => {
-    try {
-      await logAction(
-        curUser.id,
-        curUser.email,
-        "LOGOUT",
-        "Terminated application session cleanly.",
-      );
-    } catch (err) {
-      console.error("Failed to log logout action:", err);
-    }
-    onLogout();
-  };
+  try {
+    // ── 🔒 SECURE AUDIT LOGOUT FIX: SWAPPED curUser OUT FOR user ──
+    await logAction(
+      user.id,       // 🟢 Fixed from curUser.id
+      user.email,    // 🟢 Fixed from curUser.email
+      "LOGOUT",
+      "User terminated active workspace session and logged out securely via sidebar gateway.",
+      {},
+      "auth"
+    );
+
+    // Call your standard Supabase auth sign-out engine right after logging
+    await supabase.auth.signOut();
+  } catch (err) {
+    console.error("Secure logout trace interrupted:", err);
+  }
+};
 
   return (
     <div

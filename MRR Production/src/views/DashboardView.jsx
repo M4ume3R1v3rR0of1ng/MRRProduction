@@ -127,17 +127,28 @@ export default function DashboardView({
 
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>🚛 Assigned Fleet Truck</h3>
-              {myVehicle ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px", background: C.lg, borderRadius: 8, fontSize: 12 }}>
-                  <span style={{ fontSize: 28 }}>🛻</span>
-                  <div>
-                    <div style={{ fontWeight: 700, color: C.navy }}>{v.make} {v.model}</div>
-                    <div style={{ color: C.sub, fontSize: 11, marginTop: 1 }}>Plate ID: <strong style={{ color: C.navy }}>{v.plates}</strong></div>
-                  </div>
-                </div>
-              ) : (
-                <p style={{ color: C.sub, fontSize: 12, margin: 0 }}>No company vehicle checked out to you at this branch.</p>
-              )}
+              {/* ── 🚛 VEHICLE CHASSIS REGISTRY BLOCK SPECIFIC FIX ── */}
+{myVehicle ? (
+  <div style={{ background: C.w, padding: 16, borderRadius: 12, boxShadow: "0 2px 6px rgba(0,0,0,0.04)" }}>
+    <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, textTransform: "uppercase", marginBottom: 4 }}>
+      🚛 Your Assigned Fleet Truck
+    </div>
+    
+    {/* 🟢 CHANGED v.make and v.model OVER TO myVehicle */}
+    <div style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>
+      {myVehicle.make} {myVehicle.model}
+    </div>
+    
+    {/* 🟢 CHANGED v.plates OVER TO myVehicle */}
+    <div style={{ fontSize: 13, color: C.blue, fontWeight: 700, marginTop: 2 }}>
+      Plate ID: {myVehicle.plates || "No Plate Registered"}
+    </div>
+  </div>
+) : (
+  <div style={{ fontSize: 13, color: C.sub, fontStyle: "italic", padding: "12px 0" }}>
+    No company vehicle assigned to your crew profile for this current shift window.
+  </div>
+)}
             </div>
           </div>
           <RecentActivityFeed limit={5} />
