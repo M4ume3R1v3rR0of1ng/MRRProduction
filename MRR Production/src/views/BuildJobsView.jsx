@@ -5,6 +5,10 @@ import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "../components/UIPrimitives";
 import { sendEmail } from "../utils/email";
 import { supabase } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
+import CrewCalendar from "../components/CrewCalendar";
+import { generatePDF } from "../utils/pdfGenerator";
+
+
 
 export default function BuildJobs({
   jobs = [],
@@ -18,11 +22,18 @@ export default function BuildJobs({
   acculynxConfig,
 }) {
   const { showToast } = useNotify();
+  const [subView, setSubView] = useState("list");
   const [filt, setFilt] = useState("all");
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
   const [wStep, setWStep] = useState(1);
-  const [wPO, setWPO] = useState({ po: "", name: "", addr: "", notes: "" });
+  const [wPO, setWPO] = useState({
+    po: "",
+    name: "",
+    addr: "",
+    notes: "",
+    scheduledDate: "",
+  });
   const [wItems, setWItems] = useState([]);
   const [wAssign, setWAssign] = useState("");
   const [iSrch, setISrch] = useState("");
@@ -34,6 +45,7 @@ export default function BuildJobs({
 
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
+  const jobId = uid();
 
   const fieldUsers = users.filter(
     (u) => (u.role === "field" || u.role === "Site Supervisor") && u.active,
@@ -51,7 +63,6 @@ export default function BuildJobs({
     if (counts[j.status] !== undefined) counts[j.status]++;
   });
 
-  // Fix 3 & 8: Memoize and provide strict null-safety string fallbacks to avoid layout runtime crashes
   const shown = useMemo(() => {
     const q = srch.toLowerCase().trim();
     return jobs
@@ -68,7 +79,7 @@ export default function BuildJobs({
 
   const resetWiz = () => {
     setWStep(1);
-    setWPO({ po: "", name: "", addr: "", notes: "" });
+    setWPO({ po: "", name: "", addr: "", notes: "", scheduledDate: "" });
     setWItems([]);
     setWAssign("");
     setISrch("");
@@ -148,7 +159,12 @@ export default function BuildJobs({
     const jobId = uid();
     const job = {
       id: jobId,
-      ...wPO,
+      po: wPO.po,
+      name: wPO.name,
+      addr: wPO.addr,
+      notes: wPO.notes,
+      scheduledDate:
+        wPO.scheduledDate || new Date().toISOString().split("T")[0], 
       status: asDraft ? "draft" : "approved",
       assignedTo: wAssign,
       createdBy: user?.id || null,
@@ -312,13 +328,13 @@ export default function BuildJobs({
     }
   };
 
-  // Fix 3: Strict null safety guard check for dynamic list sorting filter values
   const filtInv = inv.filter((i) =>
     (i?.name || "").toLowerCase().includes(iSrch.toLowerCase()),
   );
 
   return (
     <div>
+      {/* ── 🏗️ CORE APP ACTIONS MENU NAVIGATION ── */}
       <div
         style={{
           display: "flex",
@@ -330,355 +346,249 @@ export default function BuildJobs({
         }}
       >
         <div>
-          <h1
-            style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}
-          >
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>
             🏗️ Build Jobs
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: 12 }}>
             Plan inventory, assign site supervisors, manage the pipeline
           </p>
         </div>
-        {perms.jobs_build && (
-          <Btn
-            v="primary"
-            onClick={() => {
-              resetWiz();
-              setModal("new");
-            }}
-          >
-            + New Job
-          </Btn>
-        )}
-      </div>
+        
+        {/* Sub-navigation View Switchers */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", background: C.lg, padding: 4, borderRadius: 8, marginRight: 8 }}>
+            <button 
+              onClick={() => setSubView("list")} 
+              style={{ padding: "6px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: subView === "list" ? C.w : "transparent", color: subView === "list" ? C.navy : C.sub, boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+            >
+              📋 Pipeline List
+            </button>
+            <button 
+              onClick={() => setSubView("calendar")} 
+              style={{ padding: "6px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: subView === "calendar" ? C.w : "transparent", color: subView === "calendar" ? C.navy : C.sub, boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+            >
+              📅 Shift Timeline
+            </button>
+          </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          marginBottom: 10,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
-        <Inp
-          value={srch}
-          onChange={(e) => setSrch(e.target.value)}
-          placeholder="🔍 Search by PO #, job name, or addresses..."
-          style={{ flex: 1, minWidth: 220, maxWidth: 380 }}
-        />
-        {srch && (
-          <Btn v="ghost" sz="sm" onClick={() => setSrch("")}>
-            ✕ Clear
-          </Btn>
-        )}
-        {srch && (
-          <span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>
-            {shown.length} result{shown.length !== 1 ? "s" : ""}
-          </span>
-        )}
-      </div>
-
-      <div
-        style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}
-      >
-        {[
-          ["all", "All Jobs"],
-          ["draft", "Drafts"],
-          ["approved", "Approved"],
-          ["active", "Active"],
-          ["completed", "Completed"],
-          ["closed", "Closed"],
-        ].map(([k, l]) => (
-          <Btn
-            key={k}
-            v={filt === k ? "primary" : "ghost"}
-            sz="sm"
-            onClick={() => setFilt(k)}
-          >
-            {l}
-            {counts[k] > 0 && (
-              <span
-                style={{
-                  marginLeft: 4,
-                  background: filt === k ? "rgba(255,255,255,0.3)" : C.lg,
-                  color: filt === k ? C.w : C.sub,
-                  borderRadius: 20,
-                  fontSize: 10,
-                  padding: "1px 6px",
-                  fontWeight: 800,
-                }}
-              >
-                {counts[k]}
-              </span>
-            )}
-          </Btn>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {shown.map((job) => {
-          const sup = users.find((u) => u.id === job.assignedTo);
-          const st = jSC[job.status];
-          const pulledCount = job.items.filter((i) => i.pulled > 0).length;
-
-          // Added User Interface Color Optimization Mapping
-          const getJobStatusMeta = (status) => {
-            switch (status?.toLowerCase()) {
-              case "completed":
-              case "closed":
-                return { dot: "🟢", color: C.gr, label: "Completed" };
-              case "active":
-                return { dot: "🟡", color: C.am, label: "In Progress" };
-              case "approved":
-                return { dot: "🟡", color: C.blue, label: "Approved" };
-              case "delayed":
-              case "draft":
-              default:
-                return { dot: "🔴", color: C.rd, label: "Delayed / Draft" };
-            }
-          };
-
-          if (jobs.length === 0) {
-            return (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "60px 20px",
-                  background: "#ffffff",
-                  borderRadius: "12px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                  textAlign: "center",
-                  marginTop: 10,
-                }}
-              >
-                <span style={{ fontSize: "48px", marginBottom: 16 }}>🏗️</span>
-                <h3
-                  style={{
-                    margin: "0 0 8px 0",
-                    color: "#0f294a",
-                    fontWeight: 800,
-                  }}
-                >
-                  No Jobs Pipeline Registered
-                </h3>
-                <p
-                  style={{
-                    margin: "0 0 20px 0",
-                    color: "#64748b",
-                    fontSize: 13,
-                    maxWidth: "340px",
-                  }}
-                >
-                  There are currently no build contracts logged in the system
-                  database. Get started by creating your first roof project
-                  layout.
-                </p>
-                {perms.jobs_build && (
-                  <Btn
-                    v="primary"
-                    onClick={() => {
-                      /* Open your existing Add Job Modal state here */
-                    }}
-                  >
-                    + Create Your First Build Job
-                  </Btn>
-                )}
-              </div>
-            );
-          }
-
-          const statusMeta = getJobStatusMeta(job.status);
-
-          return (
-            <div
-              key={job.id}
+          {perms.jobs_build && (
+            <Btn
+              v="primary"
               onClick={() => {
-                setSel(job);
-                setModal("detail");
-              }}
-              style={{
-                background: C.w,
-                borderRadius: 12,
-                padding: 16,
-                cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-                border: `2px solid ${statusMeta.color}`, // Standardized border mapping matching card urgency
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 12,
-                flexWrap: "wrap",
+                resetWiz();
+                setModal("new");
               }}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 7,
-                    alignItems: "center",
-                    marginBottom: 6,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 4,
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: statusMeta.color,
-                    }}
-                  >
-                    <span>{statusMeta.dot}</span>
-                    <span style={{ textTransform: "uppercase" }}>
-                      {statusMeta.label}
-                    </span>
-                  </span>
-                  <span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>
-                    · {job.po}
-                  </span>
-                  {job.syncStatus === "synced" && (
-                    <Bdg color="sky">☁️ AccuLynx Synced</Bdg>
-                  )}
-                  {job.syncStatus === "failed" && (
-                    <Bdg color="red">⚠️ Sync Failed</Bdg>
-                  )}
-                  {job.syncStatus === "manual" && (
-                    <Bdg color="amber">📋 Sync Pending</Bdg>
-                  )}
-                </div>
-                <div
-                  style={{
-                    fontWeight: 800,
-                    color: C.navy,
-                    fontSize: 15,
-                    marginBottom: 2,
-                  }}
-                >
-                  {job.name}
-                </div>
-                <div style={{ fontSize: 12, color: C.sub, marginBottom: 6 }}>
-                  {job.addr}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 14,
-                    fontSize: 11,
-                    color: C.sub,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span>📦 {job.items.length} items</span>
-                  {sup ? (
-                    <span>👤 {sup.name}</span>
-                  ) : (
-                    <span style={{ color: C.am }}>⚠️ Unassigned</span>
-                  )}
-                  <span>Created {fd(job.createdAt)}</span>
-                </div>
-              </div>
-
-              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                {(job.status === "active" || job.status === "completed") && (
-                  <div style={{ marginBottom: 8 }}>
-                    <div
-                      style={{ fontSize: 10, color: C.sub, marginBottom: 3 }}
-                    >
-                      {pulledCount}/{job.items.length} pulled
-                    </div>
-                    <div
-                      style={{
-                        height: 5,
-                        width: 90,
-                        background: C.lg,
-                        borderRadius: 3,
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: "100%",
-                          background: C.gr,
-                          borderRadius: 3,
-                          width: `${job.items.length > 0 ? (pulledCount / job.items.length) * 100 : 0}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {perms.jobs_approve && job.status === "draft" && (
-                  <Btn
-                    v="teal"
-                    sz="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSel(job);
-                      setApAssign(job.assignedTo || "");
-                      setModal("approve");
-                    }}
-                  >
-                    Approve & Assign →
-                  </Btn>
-                )}
-                {job.status === "completed" && (
-                  <Btn
-                    v="green"
-                    sz="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      generatePDF(job, users);
-                    }}
-                  >
-                    📄 PDF
-                  </Btn>
-                )}
-                {perms.jobs_approve && (
-                  <Btn
-                    v="danger"
-                    sz="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (
-                        window.confirm(
-                          "Permanently delete this job record? This cannot be undone.",
-                        )
-                      ) {
-                        deleteJob(job.id);
-                      }
-                    }}
-                  >
-                    🗑️ Delete
-                  </Btn>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        {shown.length === 0 && (
-          <div
-            style={{
-              background: C.w,
-              borderRadius: 12,
-              padding: 30,
-              textAlign: "center",
-              color: C.sub,
-              fontSize: 13,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-            }}
-          >
-            No {filt === "all" ? "" : filt + " "}jobs.{" "}
-            {perms.jobs_build &&
-              filt === "all" &&
-              ' Click "+ New Job" to get started.'}
-          </div>
-        )}
+              + New Job
+            </Btn>
+          )}
+        </div>
       </div>
 
+      {/* ── 🔀 DYNAMIC ELEMENT CONTENT SWITCHER EDGE ── */}
+      {subView === "calendar" ? (
+        <CrewCalendar
+          jobs={jobs}
+          users={users}
+          jSC={jSC}
+          onJobClick={(job) => {
+            setSel(job);
+            setModal("detail");
+          }}
+        />
+      ) : (
+        <>
+          {/* 🔍 Search Layer Panel */}
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              marginBottom: 10,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <Inp
+              value={srch}
+              onChange={(e) => setSrch(e.target.value)}
+              placeholder="🔍 Search by PO #, job name, or addresses..."
+              style={{ flex: 1, minWidth: 220, maxWidth: 380 }}
+            />
+            {srch && (
+              <Btn v="ghost" sz="sm" onClick={() => setSrch("")}>
+                ✕ Clear
+              </Btn>
+            )}
+            {srch && (
+              <span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>
+                {shown.length} result{shown.length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+
+          {/* 🏷️ Status Filters Row */}
+          <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+            {[
+              ["all", "All Jobs"],
+              ["draft", "Drafts"],
+              ["approved", "Approved"],
+              ["active", "Active"],
+              ["completed", "Completed"],
+              ["closed", "Closed"],
+            ].map(([k, l]) => (
+              <Btn
+                key={k}
+                v={filt === k ? "primary" : "ghost"}
+                sz="sm"
+                onClick={() => setFilt(k)}
+              >
+                {l}
+                {counts[k] > 0 && (
+                  <span
+                    style={{
+                      marginLeft: 4,
+                      background: filt === k ? "rgba(255,255,255,0.3)" : C.lg,
+                      color: filt === k ? C.w : C.sub,
+                      borderRadius: 20,
+                      fontSize: 10,
+                      padding: "1px 6px",
+                      fontWeight: 800,
+                    }}
+                  >
+                    {counts[k]}
+                  </span>
+                )}
+              </Btn>
+            ))}
+          </div>
+
+          {/* 📋 Pipeline Cards List Matrix Grid */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {shown.map((job) => {
+              const sup = users.find((u) => u.id === job.assignedTo);
+              const pulledCount = job.items.filter((i) => i.pulled > 0).length;
+
+              const getJobStatusMeta = (status) => {
+                switch (status?.toLowerCase()) {
+                  case "completed":
+                  case "closed":
+                    return { dot: "🟢", color: C.gr, label: "Completed" };
+                  case "active":
+                    return { dot: "🟡", color: C.am, label: "In Progress" };
+                  case "approved":
+                    return { dot: "🟡", color: C.blue, label: "Approved" };
+                  case "draft":
+                  default:
+                    return { dot: "🔴", color: C.rd, label: "Delayed / Draft" };
+                }
+              };
+
+              const statusMeta = getJobStatusMeta(job.status);
+
+              return (
+                <div
+                  key={job.id}
+                  onClick={() => {
+                    setSel(job);
+                    setModal("detail");
+                  }}
+                  style={{
+                    background: C.w,
+                    borderRadius: 12,
+                    padding: 16,
+                    cursor: "pointer",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                    border: `2px solid ${statusMeta.color}`,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 800, color: statusMeta.color }}>
+                        <span>{statusMeta.dot}</span>
+                        <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
+                      </span>
+                      <span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>· {job.po}</span>
+                      {job.syncStatus === "synced" && <Bdg color="sky">☁️ AccuLynx Synced</Bdg>}
+                      {job.syncStatus === "failed" && <Bdg color="red">⚠️ Sync Failed</Bdg>}
+                      {job.syncStatus === "manual" && <Bdg color="amber">📋 Sync Pending</Bdg>}
+                    </div>
+                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 15, marginBottom: 2 }}>{job.name}</div>
+                    <div style={{ fontSize: 12, color: C.sub, marginBottom: 6 }}>{job.addr}</div>
+                    <div style={{ display: "flex", gap: 14, fontSize: 11, color: C.sub, flexWrap: "wrap" }}>
+                      <span>📦 {job.items.length} items</span>
+                      {sup ? <span>👤 {sup.name}</span> : <span style={{ color: C.am }}>⚠️ Unassigned</span>}
+                      <span>Created {fd(job.createdAt)}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    {(job.status === "active" || job.status === "completed") && (
+                      <div style={{ marginBottom: 8 }}>
+                        <div style={{ fontSize: 10, color: C.sub, marginBottom: 3 }}>{pulledCount}/{job.items.length} pulled</div>
+                        <div style={{ height: 5, width: 90, background: C.lg, borderRadius: 3 }}>
+                          <div style={{ height: "100%", background: C.gr, borderRadius: 3, width: `${job.items.length > 0 ? (pulledCount / job.items.length) * 100 : 0}%` }} />
+                        </div>
+                      </div>
+                    )}
+                    {perms.jobs_approve && job.status === "draft" && (
+                      <Btn
+                        v="teal"
+                        sz="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSel(job);
+                          setApAssign(job.assignedTo || "");
+                          setModal("approve");
+                        }}
+                      >
+                        Approve & Assign →
+                      </Btn>
+                    )}
+                    {job.status === "completed" && (
+                      <Btn
+                        v="green"
+                        sz="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          generatePDF(job, users);
+                        }}
+                      >
+                        📄 PDF
+                      </Btn>
+                    )}
+                    {perms.jobs_approve && (
+                      <Btn
+                        v="danger"
+                        sz="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm("Permanently delete this job record? This cannot be undone.")) {
+                            deleteJob(job.id);
+                          }
+                        }}
+                      >
+                        🗑️ Delete
+                      </Btn>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {shown.length === 0 && (
+              <div style={{ background: C.w, borderRadius: 12, padding: 30, textAlign: "center", color: C.sub, fontSize: 13, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+                No {filt === "all" ? "" : filt + " "}jobs. {perms.jobs_build && filt === "all" && ' Click "+ New Job" to get started.'}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── 📂 MODAL: DETAILS DRAWER VIEW ── */}
       {modal === "detail" && sel && (
         <Modal
           title={`${sel.po} — ${sel.name}`}
@@ -688,14 +598,7 @@ export default function BuildJobs({
           }}
           wide
         >
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              marginBottom: 14,
-              flexWrap: "wrap",
-            }}
-          >
+          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
             {perms.jobs_approve && sel.status === "draft" && (
               <Btn
                 v="teal"
@@ -718,11 +621,7 @@ export default function BuildJobs({
                 v="purple"
                 sz="sm"
                 onClick={() => {
-                  if (
-                    window.confirm(
-                      "Close this job? It will be moved to the Closed list and archived from active work.",
-                    )
-                  ) {
+                  if (window.confirm("Close this job? It will be moved to the Closed list and archived from active work.")) {
                     closeJob();
                   }
                 }}
@@ -750,122 +649,39 @@ export default function BuildJobs({
               </Btn>
             )}
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))",
-              gap: 8,
-              marginBottom: 16,
-            }}
-          >
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: 8, marginBottom: 16 }}>
             {[
-              [
-                "Status",
-                <Bdg color={jSC[sel.status].c}>{jSC[sel.status].l}</Bdg>,
-              ],
+              ["Status", <Bdg color={jSC[sel.status].c}>{jSC[sel.status].l}</Bdg>],
               ["PO", sel.po],
-              [
-                "Assigned To",
-                users.find((u) => u.id === sel.assignedTo)?.name ||
-                  "Unassigned",
-              ],
+              ["Assigned To", users.find((u) => u.id === sel.assignedTo)?.name || "Unassigned"],
               ["Created", fd(sel.createdAt)],
               ["Approved", fd(sel.approvedAt)],
               ["Completed", fd(sel.completedAt)],
             ].map(([k, v]) => (
-              <div
-                key={k}
-                style={{ background: C.lg, borderRadius: 8, padding: 10 }}
-              >
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: C.sub,
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {k}
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: C.navy,
-                    marginTop: 2,
-                  }}
-                >
-                  {v}
-                </div>
+              <div key={k} style={{ background: C.lg, borderRadius: 8, padding: 10 }}>
+                <div style={{ fontSize: 10, color: C.sub, fontWeight: 700, textTransform: "uppercase" }}>{k}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginTop: 2 }}>{v}</div>
               </div>
             ))}
           </div>
-          <table
-            style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}
-          >
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr style={{ background: C.lg }}>
-                {[
-                  "Item",
-                  "Category",
-                  "Planned",
-                  "Pulled",
-                  "Used",
-                  ...(perms.inv_pricing_view ? ["Cost"] : []),
-                ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "7px 10px",
-                      textAlign: "left",
-                      color: C.sub,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {h}
-                  </th>
+                {["Item", "Category", "Planned", "Pulled", "Used", ...(perms.inv_pricing_view ? ["Cost"] : [])].map((h) => (
+                  <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {sel.items.map((item) => (
                 <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
-                  <td
-                    style={{
-                      padding: "8px 10px",
-                      fontWeight: 700,
-                      color: C.navy,
-                    }}
-                  >
-                    {item.iname}
-                  </td>
-                  <td style={{ padding: "8px 10px", color: C.sub }}>
-                    {item.icat}
-                  </td>
-                  <td style={{ padding: "8px 10px" }}>
-                    {item.planned} {item.unit}
-                  </td>
-                  <td
-                    style={{
-                      padding: "8px 10px",
-                      color: item.pulled > 0 ? C.gr : C.sub,
-                    }}
-                  >
-                    {item.pulled}
-                  </td>
-                  <td style={{ padding: "8px 10px", fontWeight: 700 }}>
-                    {item.pulled - item.returned}
-                  </td>
+                  <td style={{ padding: "8px 10px", fontWeight: 700, color: C.navy }}>{item.iname}</td>
+                  <td style={{ padding: "8px 10px", color: C.sub }}>{item.icat}</td>
+                  <td style={{ padding: "8px 10px" }}>{item.planned} {item.unit}</td>
+                  <td style={{ padding: "8px 10px", color: item.pulled > 0 ? C.gr : C.sub }}>{item.pulled}</td>
+                  <td style={{ padding: "8px 10px", fontWeight: 700 }}>{item.pulled - item.returned}</td>
                   {perms.inv_pricing_view && (
-                    <td
-                      style={{
-                        padding: "8px 10px",
-                        fontWeight: 700,
-                        color: C.blue,
-                      }}
-                    >
-                      {item.pullCost > 0 ? fm(item.pullCost) : "—"}
-                    </td>
+                    <td style={{ padding: "8px 10px", fontWeight: 700, color: C.blue }}>{item.pullCost > 0 ? fm(item.pullCost) : "—"}</td>
                   )}
                 </tr>
               ))}
@@ -874,73 +690,34 @@ export default function BuildJobs({
         </Modal>
       )}
 
+      {/* ── 📂 MODAL: SUPERVISOR APPROVAL POPUP ── */}
       {modal === "approve" && sel && (
         <Modal title={`Approve: ${sel.name}`} onClose={() => setModal(null)}>
-          <div
-            style={{
-              background: C.tB,
-              border: `1.5px solid ${C.tl}`,
-              borderRadius: 8,
-              padding: "10px 14px",
-              marginBottom: 14,
-              fontSize: 12,
-              color: C.tl,
-              fontWeight: 600,
-            }}
-          >
+          <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: C.tl, fontWeight: 600 }}>
             Approving will notify the assigned Site Supervisor.
           </div>
-          <div
-            style={{
-              background: C.lg,
-              borderRadius: 8,
-              padding: "10px 14px",
-              marginBottom: 14,
-              fontSize: 12,
-            }}
-          >
-            <strong style={{ color: C.navy }}>
-              {sel.po} — {sel.name}
-            </strong>
-            <div style={{ color: C.sub, marginTop: 2 }}>
-              {sel.items.length} items planned
-            </div>
+          <div style={{ background: C.lg, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12 }}>
+            <strong style={{ color: C.navy }}>{sel.po} — {sel.name}</strong>
+            <div style={{ color: C.sub, marginTop: 2 }}>{sel.items.length} items planned</div>
           </div>
           <Fld label="Assign to Site Supervisor *">
-            <Sel
-              value={apAssign}
-              onChange={(e) => setApAssign(e.target.value)}
-              disabled={approving}
-            >
+            <Sel value={apAssign} onChange={(e) => setApAssign(e.target.value)} disabled={approving}>
               <option value="">— Select Site Supervisor —</option>
               {fieldUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
+                <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </Sel>
           </Fld>
           <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-            <Btn
-              v="ghost"
-              onClick={() => setModal(null)}
-              style={{ flex: 1, justifyContent: "center" }}
-              disabled={approving}
-            >
-              Cancel
-            </Btn>
-            <Btn
-              v="teal"
-              onClick={doApprove}
-              style={{ flex: 1, justifyContent: "center" }}
-              disabled={approving}
-            >
+            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }} disabled={approving}>Cancel</Btn>
+            <Btn v="teal" onClick={doApprove} style={{ flex: 1, justifyContent: "center" }} disabled={approving}>
               {approving ? "⏳ Approving..." : "✅ Approve & Notify"}
             </Btn>
           </div>
         </Modal>
       )}
 
+      {/* ── 📂 MODAL: NEW CREATION MULTI-STEP WIZARD ── */}
       {modal === "new" && (
         <Modal
           title={`New Job — Step ${wStep} of 3`}
@@ -952,333 +729,99 @@ export default function BuildJobs({
           }}
           wide
         >
-          <div
-            style={{
-              display: "flex",
-              gap: 0,
-              marginBottom: 18,
-              background: C.lg,
-              borderRadius: 8,
-              overflow: "hidden",
-            }}
-          >
-            {["1. Find Job", "2. Add Inventory", "3. Assign & Save"].map(
-              (s, i) => (
-                <div
-                  key={s}
-                  style={{
-                    flex: 1,
-                    padding: "9px 6px",
-                    textAlign: "center",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    background:
-                      wStep === i + 1
-                        ? C.blue
-                        : wStep > i + 1
-                          ? C.gB
-                          : "transparent",
-                    color: wStep === i + 1 ? C.w : wStep > i + 1 ? C.gr : C.sub,
-                  }}
-                >
-                  {wStep > i + 1 ? "✓ " : ""}
-                  {s}
-                </div>
-              ),
-            )}
+          <div style={{ display: "flex", gap: 0, marginBottom: 18, background: C.lg, borderRadius: 8, overflow: "hidden" }}>
+            {["1. Find Job", "2. Add Inventory", "3. Assign & Save"].map((s, i) => (
+              <div
+                key={s}
+                style={{
+                  flex: 1,
+                  padding: "9px 6px",
+                  textAlign: "center",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  background: wStep === i + 1 ? C.blue : wStep > i + 1 ? C.gB : "transparent",
+                  color: wStep === i + 1 ? C.w : wStep > i + 1 ? C.gr : C.sub,
+                }}
+              >
+                {wStep > i + 1 ? "✓ " : ""}{s}
+              </div>
+            ))}
           </div>
+
           {wStep === 1 && (
             <div>
               <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                <Inp
-                  value={axQ}
-                  onChange={(e) => setAxQ(e.target.value)}
-                  placeholder="Search AccuLynx job name or PO..."
-                  onKeyDown={(e) => e.key === "Enter" && !axL && searchAX()}
-                  style={{ flex: 1 }}
-                  disabled={axL}
-                />
-                <Btn v="primary" onClick={searchAX} disabled={axL}>
-                  {axL ? "Searching..." : "🔍 Search"}
-                </Btn>
+                <Inp value={axQ} onChange={(e) => setAxQ(e.target.value)} placeholder="Search AccuLynx job name or PO..." onKeyDown={(e) => e.key === "Enter" && !axL && searchAX()} style={{ flex: 1 }} disabled={axL} />
+                <Btn v="primary" onClick={searchAX} disabled={axL}>{axL ? "Searching..." : "🔍 Search"}</Btn>
               </div>
               {axR.length > 0 && (
-                <div
-                  style={{
-                    border: `1.5px solid ${C.bd}`,
-                    borderRadius: 8,
-                    overflow: "hidden",
-                    marginBottom: 14,
-                  }}
-                >
+                <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
                   {axR.map((j) => (
                     <div
                       key={j.po}
                       onClick={() => {
-                        setWPO({
-                          po: j.po,
-                          name: j.name,
-                          addr: j.addr,
-                          notes: "",
-                        });
+                        setWPO({ po: j.po, name: j.name, addr: j.addr, notes: "", scheduledDate: "" });
                         setAxR([]);
                       }}
-                      style={{
-                        padding: "10px 14px",
-                        cursor: "pointer",
-                        borderBottom: `1px solid ${C.lg}`,
-                        background: C.w,
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = C.lg)
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = C.w)
-                      }
+                      style={{ padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${C.lg}`, background: C.w }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = C.lg)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = C.w)}
                     >
-                      <div style={{ fontWeight: 700, color: C.navy }}>
-                        {j.name}
-                      </div>
-                      <div style={{ fontSize: 11, color: C.sub }}>
-                        {j.po} · {j.addr}
-                      </div>
+                      <div style={{ fontWeight: 700, color: C.navy }}>{j.name}</div>
+                      <div style={{ fontSize: 11, color: C.sub }}>{j.po} · {j.addr}</div>
                     </div>
                   ))}
                 </div>
               )}
               <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
-                <Fld label="Job PO Number *">
-                  <Inp
-                    value={wPO.po}
-                    onChange={(e) => setWPO({ ...wPO, po: e.target.value })}
-                    placeholder="PO-2025-XXX"
-                  />
-                </Fld>
-                <Fld label="Job Name *">
-                  <Inp
-                    value={wPO.name}
-                    onChange={(e) => setWPO({ ...wPO, name: e.target.value })}
-                    placeholder="Customer / Project Name"
-                  />
-                </Fld>
-                <Fld label="Job Address *">
-                  <Inp
-                    value={wPO.addr}
-                    onChange={(e) => setWPO({ ...wPO, addr: e.target.value })}
-                    placeholder="123 Main St, Toledo OH"
-                  />
-                </Fld>
-                <Fld label="Notes">
-                  <TA
-                    value={wPO.notes}
-                    onChange={(e) => setWPO({ ...wPO, notes: e.target.value })}
-                    placeholder="Job details..."
-                  />
+                <Fld label="Job PO Number *"><Inp value={wPO.po} onChange={(e) => setWPO({ ...wPO, po: e.target.value })} placeholder="PO-2025-XXX" /></Fld>
+                <Fld label="Job Name *"><Inp value={wPO.name} onChange={(e) => setWPO({ ...wPO, name: e.target.value })} placeholder="Customer / Project Name" /></Fld>
+                <Fld label="Job Address *"><Inp value={wPO.addr} onChange={(e) => setWPO({ ...wPO, addr: e.target.value })} placeholder="123 Main St, Toledo OH" /></Fld>
+                <Fld label="Production Schedule Start Date">
+                  <Inp type="date" value={wPO.scheduledDate || ""} onChange={(e) => setWPO({ ...wPO, scheduledDate: e.target.value })} />
                 </Fld>
               </div>
-              <Btn
-                v="primary"
-                sz="lg"
-                onClick={() => {
-                  if (!wPO.po || !wPO.name) {
-                    showToast(
-                      "PO and Job Name are strictly required fields.",
-                      "warning",
-                    );
-                    return;
-                  }
-                  setWStep(2);
-                }}
-                style={{
-                  width: "100%",
-                  justifyContent: "center",
-                  marginTop: 10,
-                }}
-              >
-                Continue →
-              </Btn>
+              <Btn v="primary" sz="lg" onClick={() => { if (!wPO.po || !wPO.name) { showToast("PO and Job Name are strictly required fields.", "warning"); return; } setWStep(2); }} style={{ width: "100%", justifyContent: "center", marginTop: 10 }}>Continue →</Btn>
             </div>
           )}
+
           {wStep === 2 && (
             <div>
-              <div
-                style={{
-                  background: C.gL,
-                  border: `1.5px solid ${C.gold}`,
-                  borderRadius: 8,
-                  padding: "8px 12px",
-                  marginBottom: 12,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: C.navy,
-                }}
-              >
+              <div style={{ background: C.gL, border: `1.5px solid ${C.gold}`, borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: C.navy }}>
                 📋 {wPO.po} — {wPO.name}
               </div>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <div style={{ flex: 2, minWidth: 220 }}>
-                  <Inp
-                    value={iSrch}
-                    onChange={(e) => setISrch(e.target.value)}
-                    placeholder="🔍 Search inventory..."
-                    style={{ marginBottom: 8 }}
-                  />
-                  <div
-                    style={{
-                      maxHeight: 300,
-                      overflowY: "auto",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 5,
-                    }}
-                  >
+                  <Inp value={iSrch} onChange={(e) => setISrch(e.target.value)} placeholder="🔍 Search inventory..." style={{ marginBottom: 8 }} />
+                  <div style={{ maxHeight: 300, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
                     {filtInv.map((item) => {
                       const added = wItems.find((i) => i.iid === item.id);
                       return (
-                        <div
-                          key={item.id}
-                          style={{
-                            background: C.w,
-                            borderRadius: 8,
-                            padding: "9px 12px",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            border: `1.5px solid ${added ? C.blue : "transparent"}`,
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                          }}
-                        >
+                        <div key={item.id} style={{ background: C.w, borderRadius: 8, padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", border: `1.5px solid ${added ? C.blue : "transparent"}`, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                           <div>
-                            <div
-                              style={{
-                                fontWeight: 700,
-                                color: C.navy,
-                                fontSize: 12,
-                              }}
-                            >
-                              {item.name}
-                            </div>
-                            <div style={{ fontSize: 10, color: C.sub }}>
-                              {tot(item)} {item.unit} available
-                            </div>
+                            <div style={{ fontWeight: 700, color: C.navy, fontSize: 12 }}>{item.name}</div>
+                            <div style={{ fontSize: 10, color: C.sub }}>{tot(item)} {item.unit} available</div>
                           </div>
-                          {added ? (
-                            <Bdg color="blue">Added ✓</Bdg>
-                          ) : (
-                            <Btn
-                              v="primary"
-                              sz="sm"
-                              onClick={() => addWItem(item)}
-                            >
-                              + Add
-                            </Btn>
-                          )}
+                          {added ? <Bdg color="blue">Added ✓</Bdg> : <Btn v="primary" sz="sm" onClick={() => addWItem(item)}>+ Add</Btn>}
                         </div>
                       );
                     })}
                   </div>
                 </div>
                 <div style={{ flex: 1, minWidth: 170 }}>
-                  <div
-                    style={{
-                      background: C.w,
-                      borderRadius: 10,
-                      padding: 12,
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-                      position: "sticky",
-                      top: 0,
-                    }}
-                  >
-                    <h4
-                      style={{
-                        margin: "0 0 10px",
-                        color: C.navy,
-                        fontSize: 13,
-                      }}
-                    >
-                      📦 Job List ({wItems.length})
-                    </h4>
+                  <div style={{ background: C.w, borderRadius: 10, padding: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", position: "sticky", top: 0 }}>
+                    <h4 style={{ margin: "0 0 10px", color: C.navy, fontSize: 13 }}>📦 Job List ({wItems.length})</h4>
                     {wItems.length === 0 ? (
-                      <p style={{ color: C.sub, fontSize: 12, margin: 0 }}>
-                        Add items from the list
-                      </p>
+                      <p style={{ color: C.sub, fontSize: 12, margin: 0 }}>Add items from the list</p>
                     ) : (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 6,
-                        }}
-                      >
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         {wItems.map((i) => (
-                          <div
-                            key={i.iid}
-                            style={{
-                              background: C.lg,
-                              borderRadius: 7,
-                              padding: "7px 9px",
-                            }}
-                          >
-                            <div
-                              style={{
-                                fontWeight: 700,
-                                color: C.navy,
-                                fontSize: 11,
-                                marginBottom: 4,
-                              }}
-                            >
-                              {i.iname}
-                            </div>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 5,
-                              }}
-                            >
-                              <Inp
-                                type="number"
-                                value={i.qty}
-                                min="1"
-                                max={i.avail}
-                                onChange={(e) =>
-                                  setWItems((p) =>
-                                    p.map((x) =>
-                                      x.iid === i.iid
-                                        ? {
-                                            ...x,
-                                            qty: Math.max(
-                                              1,
-                                              parseInt(e.target.value) || 1,
-                                            ),
-                                          }
-                                        : x,
-                                    ),
-                                  )
-                                }
-                                style={{ width: 55, padding: "3px 6px" }}
-                              />
-                              <span style={{ fontSize: 10, color: C.sub }}>
-                                {i.unit}
-                              </span>
-                              <button
-                                onClick={() =>
-                                  setWItems((p) =>
-                                    p.filter((x) => x.iid !== i.iid),
-                                  )
-                                }
-                                style={{
-                                  marginLeft: "auto",
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  color: C.rd,
-                                  fontSize: 16,
-                                  lineHeight: 1,
-                                }}
-                              >
-                                ×
-                              </button>
+                          <div key={i.iid} style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}>
+                            <div style={{ fontWeight: 700, color: C.navy, fontSize: 11, marginBottom: 4 }}>{i.iname}</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                              <Inp type="number" value={i.qty} min="1" max={i.avail} onChange={(e) => setWItems((p) => p.map((x) => x.iid === i.iid ? { ...x, qty: Math.max(1, parseInt(e.target.value) || 1) } : x))} style={{ width: 55, padding: "3px 6px" }} />
+                              <span style={{ fontSize: 10, color: C.sub }}>{i.unit}</span>
+                              <button onClick={() => setWItems((p) => p.filter((x) => x.iid !== i.iid))} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: 16, lineHeight: 1 }}>×</button>
                             </div>
                           </div>
                         ))}
@@ -1288,107 +831,33 @@ export default function BuildJobs({
                 </div>
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-                <Btn
-                  v="ghost"
-                  onClick={() => setWStep(1)}
-                  style={{ flex: 1, justifyContent: "center" }}
-                >
-                  ← Back
-                </Btn>
-                <Btn
-                  v="primary"
-                  onClick={() => {
-                    if (wItems.length === 0) {
-                      showToast(
-                        "Add at least one workflow material item to build a job checklist.",
-                        "warning",
-                      );
-                      return;
-                    }
-                    setWStep(3);
-                  }}
-                  style={{ flex: 1, justifyContent: "center" }}
-                >
-                  Continue →
-                </Btn>
+                <Btn v="ghost" onClick={() => setWStep(1)} style={{ flex: 1, justifyContent: "center" }}>← Back</Btn>
+                <Btn v="primary" onClick={() => { if (wItems.length === 0) { showToast("Add at least one workflow material item to build a job checklist.", "warning"); return; } setWStep(3); }} style={{ flex: 1, justifyContent: "center" }}>Continue →</Btn>
               </div>
             </div>
           )}
+
           {wStep === 3 && (
             <div>
-              <div
-                style={{
-                  background: C.lg,
-                  borderRadius: 8,
-                  padding: "10px 14px",
-                  marginBottom: 14,
-                }}
-              >
-                <div style={{ fontWeight: 700, color: C.navy }}>
-                  {wPO.po} — {wPO.name}
-                </div>
-                <div style={{ fontSize: 12, color: C.sub }}>
-                  {wItems.length} items planned
-                </div>
+              <div style={{ background: C.lg, borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
+                <div style={{ fontWeight: 700, color: C.navy }}>{wPO.po} — {wPO.name}</div>
+                <div style={{ fontSize: 12, color: C.sub }}>{wItems.length} items planned</div>
               </div>
-              <Fld
-                label="Assign to Site Supervisor"
-                hint="Leave blank to save as draft and assign later."
-              >
-                <Sel
-                  value={wAssign}
-                  onChange={(e) => setWAssign(e.target.value)}
-                  disabled={saving}
-                >
+              <Fld label="Assign to Site Supervisor" hint="Leave blank to save as draft and assign later.">
+                <Sel value={wAssign} onChange={(e) => setWAssign(e.target.value)} disabled={saving}>
                   <option value="">— Assign later (save as draft) —</option>
                   {fieldUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
-                    </option>
+                    <option key={u.id} value={u.id}>{u.name}</option>
                   ))}
                 </Sel>
               </Fld>
-              <div
-                style={{
-                  background: wAssign ? C.tB : C.aB,
-                  border: `1px solid ${wAssign ? C.tl : C.am}`,
-                  borderRadius: 8,
-                  padding: "8px 12px",
-                  marginBottom: 14,
-                  fontSize: 12,
-                  color: wAssign ? C.tl : C.am,
-                  fontWeight: 600,
-                }}
-              >
-                {wAssign
-                  ? `✅ ${users.find((u) => u.id === wAssign)?.name} will be notified when you approve.`
-                  : "⚠️ No supervisor assigned — will save as draft."}
+              <div style={{ background: wAssign ? C.tB : C.aB, border: `1px solid ${wAssign ? C.tl : C.am}`, borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 12, color: wAssign ? C.tl : C.am, fontWeight: 600 }}>
+                {wAssign ? `✅ ${users.find((u) => u.id === wAssign)?.name} will be notified when you approve.` : "⚠️ No supervisor assigned — will save as draft."}
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-                <Btn
-                  v="ghost"
-                  onClick={() => setWStep(2)}
-                  style={{ flex: 1, justifyContent: "center" }}
-                  disabled={saving}
-                >
-                  ← Back
-                </Btn>
-                <Btn
-                  v="ghost"
-                  onClick={() => saveJob(true)}
-                  style={{ flex: 1, justifyContent: "center" }}
-                  disabled={saving}
-                >
-                  {saving ? "⏳ Caching..." : "💾 Save Draft"}
-                </Btn>
-                <Btn
-                  v="teal"
-                  onClick={() => saveJob(false)}
-                  style={{ flex: 1, justifyContent: "center" }}
-                  disabled={saving}
-                >
-                  {saving ? "⏳ Submitting..." : "✅ Approve & Notify"}
-                </Btn>
+                <Btn v="ghost" onClick={() => setWStep(2)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>← Back</Btn>
+                <Btn v="ghost" onClick={() => saveJob(true)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{saving ? "⏳ Caching..." : "💾 Save Draft"}</Btn>
+                <Btn v="teal" onClick={() => saveJob(false)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{saving ? "⏳ Submitting..." : "✅ Approve & Notify"}</Btn>
               </div>
             </div>
           )}
