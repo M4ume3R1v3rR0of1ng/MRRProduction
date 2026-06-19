@@ -10,6 +10,9 @@ import { tot } from "../utils/helpers";
 
 export function useAppData() {
   const [loading, setLoading] = useState(true);
+  // ── 🟢 FIXED: ADDED LACKING PROGRESS TRACKER STATE ──
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  
   const [curUser, setCurUser] = useState(null);
   const [users, setUsers] = useState(SEED_U);
   const [warehouses, setWH] = useState(SEED_W);
@@ -38,11 +41,13 @@ export function useAppData() {
   
   const { showToast } = useNotify();
 
-  // ── ⚙️ DATA INITIALIZATION ENGINE ──
+  // ── ⚙️ UNIFIED DATA INITIALIZATION ENGINE ──
   useEffect(() => {
     async function load() {
       console.log("🚀 Initializing Maumee River Roofing WMS Boot Sequence via useAppData...");
       try {
+        setLoadingProgress(10); // Start cache extraction step[cite: 6]
+
         const [ip, vp, lg, ax, jp] = await Promise.all([
           storage.get("mrr-v7-inv-photos").catch(() => null),
           storage.get("mrr-v7-veh-photos").catch(() => null),
@@ -66,42 +71,55 @@ export function useAppData() {
           }
         }
 
+        setLoadingProgress(25); // Cache verified, starting database lookups[cite: 6]
+
+        // Smooth 9% progression helper for each completed query block[cite: 6]
+        const trackProgress = (incrementValue) => {
+          setLoadingProgress((prev) => Math.min(prev + incrementValue, 95));
+        };
+
         await Promise.all([
           (async () => {
             const { data, error } = await supabase.from("inventory").select("*");
             if (error) setInv(SEED_I);
             else if (data && data.length > 0) setInv(data);
             else setInv(SEED_I);
+            trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("vehicles").select("*");
             if (error) setVehs(SEED_V);
             else if (data && data.length > 0) setVehs(data);
             else setVehs(SEED_V);
+            trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("jobs").select("*");
             if (error) setJobs(SEED_JOBS);
             else if (data && data.length > 0) setJobs(data);
             else setJobs(SEED_JOBS);
+            trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("maintenance_requests").select("*");
             if (error) setReqs([]);
             else if (data && data.length > 0) setReqs(data.sort((a, b) => new Date(b.at) - new Date(a.at)));
             else setReqs([]);
+            trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("warehouses").select("*");
             if (error) setWH(SEED_W);
             else if (data && data.length > 0) setWH(data);
             else setWH(SEED_W);
+            trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("profiles").select("*");
             if (error) setUsers(SEED_U);
             else if (data && data.length > 0) setUsers(data);
             else setUsers(SEED_U);
+            trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("role_permissions").select("*");
@@ -112,6 +130,7 @@ export function useAppData() {
               });
               setRolePerms((p) => ({ ...p, ...formattedRolePerms }));
             }
+            trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("user_permission_overrides").select("*");
@@ -122,9 +141,11 @@ export function useAppData() {
               });
               setUserOverrides(formattedUserOv);
             }
+            trackProgress(7);
           })(),
         ]);
 
+        setLoadingProgress(100);
         console.log("🏁 Core synchronization complete. Hook environment primed.");
       } catch (e) {
         console.error("🚨 Critical failure during app instantiation sequence:", e);
@@ -136,11 +157,13 @@ export function useAppData() {
   }, []);
 
   // ── 💾 BACKGROUND STORAGE SYNCHRONIZER EFFECTS ──
+  useEffect(() => { if (!loading) storage.set("mrr-v7-inv-photos", JSON.stringify(invPhotos)).catch(() => {}); }, [invPhotos, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-veh-photos", JSON.stringify(vehPhotos)).catch(() => {}); }, [vehPhotos, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-logos", JSON.stringify(logos)).catch(() => {}); }, [logos, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-roleperms", JSON.stringify(rolePerms)).catch(() => {}); }, [rolePerms, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-userov", JSON.stringify(userOverrides)).catch(() => {}); }, [userOverrides, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-acculynx", JSON.stringify(acculynxConfig)).catch(() => {}); }, [acculynxConfig, loading]);
+  useEffect(() => { if (!loading) storage.set("mrr-v7-job-photos", JSON.stringify(jobPhotos)).catch(() => {}); }, [jobPhotos, loading]);
 
   // ── 📡 OFFLINE BACKEND RETRY LISTENER ──
   useEffect(() => {
@@ -166,6 +189,7 @@ export function useAppData() {
 
   return {
     loading,
+    loadingProgress, // Safely exposed to App.jsx for visual tracking
     curUser,
     setCurUser,
     users,

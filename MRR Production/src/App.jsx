@@ -68,13 +68,30 @@ export default function App() {
     window.history.pushState({ view: nextView }, "", "");
   };
 
-  // ── ⏳ LOADING FALLBACK RENDERING BOUNDARY ──
+  // ── ⏳ HARDENED PROGRESS BAR LOADING FALLBACK ──
   if (app.loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: C.bg, flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", minHeight: "100vh", background: C.bg, flexDirection: "column", gap: 14 }}>
         <img src={mrrpic} alt="Maumee River Roofing Mascot" style={{ width: "160px", height: "auto", maxHeight: "120px", objectFit: "contain", marginBottom: 4 }} />
-        <div style={{ color: C.navy, fontWeight: 700, fontSize: 15, letterSpacing: "0.5px" }}>
-          Loading Maumee River Roofing...
+        
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: "100%", maxWidth: "240px" }}>
+          {/* External Track Container */}
+          <div style={{ width: "100%", height: "6px", backgroundColor: "#cbd5e1", borderRadius: "10px", overflow: "hidden" }}>
+            {/* Dynamic Colored Bar Indicator */}
+            <div 
+              style={{ 
+                height: "100%", 
+                backgroundColor: C.blue, 
+                width: `${app.loadingProgress}%`, 
+                transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)", 
+                borderRadius: "10px" 
+              }} 
+            />
+          </div>
+          
+          <div style={{ color: C.navy, fontWeight: 700, fontSize: 13, letterSpacing: "0.5px", marginTop: 4 }}>
+            Syncing System Data Matrix... {app.loadingProgress}%
+          </div>
         </div>
       </div>
     );
