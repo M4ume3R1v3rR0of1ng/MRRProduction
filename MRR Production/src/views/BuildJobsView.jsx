@@ -78,8 +78,15 @@ export default function BuildJobs({
 
   const searchAX = async () => {
     if (!axQ.trim()) return;
-    if (!acculynxConfig || !acculynxConfig.enabled || !acculynxConfig.proxyUrl) {
-      showToast("AccuLynx integration is disabled or proxy endpoint URL is unconfigured in Settings.", "warning");
+    if (
+      !acculynxConfig ||
+      !acculynxConfig.enabled ||
+      !acculynxConfig.proxyUrl
+    ) {
+      showToast(
+        "AccuLynx integration is disabled or proxy endpoint URL is unconfigured in Settings.",
+        "warning",
+      );
       return;
     }
     setAxL(true);
@@ -92,7 +99,10 @@ export default function BuildJobs({
           Authorization: `Bearer ${acculynxConfig.apiKey}`,
         },
       });
-      if (!response.ok) throw new Error(`Server returned HTTP Error Status: ${response.status}`);
+      if (!response.ok)
+        throw new Error(
+          `Server returned HTTP Error Status: ${response.status}`,
+        );
       const data = await response.json();
       if (Array.isArray(data)) setAxR(data);
       else if (data && Array.isArray(data.jobs)) setAxR(data.jobs);
@@ -100,7 +110,10 @@ export default function BuildJobs({
       showToast(`AccuLynx search completed successfully.`, "success");
     } catch (err) {
       console.error("AccuLynx Live Proxy Query Failure:", err);
-      showToast(`Integration Error: Failed fetching AccuLynx data records. ${err.message}`, "error");
+      showToast(
+        `Integration Error: Failed fetching AccuLynx data records. ${err.message}`,
+        "error",
+      );
       setAxR([]);
     } finally {
       setAxL(false);
@@ -124,7 +137,10 @@ export default function BuildJobs({
 
   const saveJob = async (asDraft) => {
     if (!wPO.po || !wPO.name || wItems.length === 0) {
-      showToast("Please complete all steps and select project materials first.", "warning");
+      showToast(
+        "Please complete all steps and select project materials first.",
+        "warning",
+      );
       return;
     }
     setSaving(true);
@@ -165,7 +181,12 @@ export default function BuildJobs({
           });
         }
       }
-      showToast(asDraft ? "Job draft saved successfully." : "Job approved and supervisor notified.", "success");
+      showToast(
+        asDraft
+          ? "Job draft saved successfully."
+          : "Job approved and supervisor notified.",
+        "success",
+      );
       setModal(null);
       resetWiz();
     } catch (err) {
@@ -225,7 +246,10 @@ export default function BuildJobs({
       setApAssign("");
     } catch (err) {
       console.error("Failed to approve job:", err);
-      showToast(`Database Error: Could not approve job. ${err.message}`, "error");
+      showToast(
+        `Database Error: Could not approve job. ${err.message}`,
+        "error",
+      );
     } finally {
       setApproving(false);
     }
@@ -240,7 +264,10 @@ export default function BuildJobs({
       showToast("Job track purged successfully.", "success");
     } catch (err) {
       console.error("Failed to delete job:", err);
-      showToast(`Database Error: Could not delete job record. ${err.message}`, "error");
+      showToast(
+        `Database Error: Could not delete job record. ${err.message}`,
+        "error",
+      );
     }
   };
 
@@ -272,10 +299,16 @@ export default function BuildJobs({
       const updated = { ...sel, status: "completed", closedAt: "" };
       setJobs((p) => p.map((j) => (j.id === sel.id ? updated : j)));
       setSel(updated);
-      showToast("Job successfully returned to active completed view.", "success");
+      showToast(
+        "Job successfully returned to active completed view.",
+        "success",
+      );
     } catch (err) {
       console.error("Failed to reopen job:", err);
-      showToast(`Database Error: Could not reopen job. ${err.message}`, "error");
+      showToast(
+        `Database Error: Could not reopen job. ${err.message}`,
+        "error",
+      );
     }
   };
 
@@ -405,6 +438,58 @@ export default function BuildJobs({
                 return { dot: "🔴", color: C.rd, label: "Delayed / Draft" };
             }
           };
+
+          if (jobs.length === 0) {
+            return (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "60px 20px",
+                  background: "#ffffff",
+                  borderRadius: "12px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                  textAlign: "center",
+                  marginTop: 10,
+                }}
+              >
+                <span style={{ fontSize: "48px", marginBottom: 16 }}>🏗️</span>
+                <h3
+                  style={{
+                    margin: "0 0 8px 0",
+                    color: "#0f294a",
+                    fontWeight: 800,
+                  }}
+                >
+                  No Jobs Pipeline Registered
+                </h3>
+                <p
+                  style={{
+                    margin: "0 0 20px 0",
+                    color: "#64748b",
+                    fontSize: 13,
+                    maxWidth: "340px",
+                  }}
+                >
+                  There are currently no build contracts logged in the system
+                  database. Get started by creating your first roof project
+                  layout.
+                </p>
+                {perms.jobs_build && (
+                  <Btn
+                    v="primary"
+                    onClick={() => {
+                      /* Open your existing Add Job Modal state here */
+                    }}
+                  >
+                    + Create Your First Build Job
+                  </Btn>
+                )}
+              </div>
+            );
+          }
 
           const statusMeta = getJobStatusMeta(job.status);
 

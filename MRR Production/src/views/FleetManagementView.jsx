@@ -283,6 +283,27 @@ export default function FleetManagementView({
     ? reqs.filter((r) => r.vid === sel.id && r.status !== "completed")
     : [];
 
+    if (vehs.length === 0) {
+    return (
+      <div style={{ 
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        padding: "60px 20px", background: "#ffffff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+        textAlign: "center", marginTop: 10 
+      }}>
+        <span style={{ fontSize: "48px", marginBottom: 16 }}>🚛</span>
+        <h3 style={{ margin: "0 0 8px 0", color: "#0f294a", fontWeight: 800 }}>Fleet Registry Empty</h3>
+        <p style={{ margin: "0 0 20px 0", color: "#64748b", fontSize: 13, maxWidth: "340px" }}>
+          No company vehicles are currently configured for tracking at the Saint Joe Road Warehouse.
+        </p>
+        {perms.fleet_manage && (
+          <Btn v="gold" onClick={() => { /* Open your existing Add Vehicle Modal here */ }}>
+            + Register First Fleet Vehicle
+          </Btn>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <div
