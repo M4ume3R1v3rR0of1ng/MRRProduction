@@ -30,7 +30,8 @@ const triggerNativeDownload = (filename, headers, rows) => {
 
 // ── 📊 TREND COMPONENT 1: JOB PROFITABILITY & MATERIAL USAGE BY PROJECT ──
 function JobProfitabilityReport({ jobs }) {
-const completedJobs = jobs.filter((j) => j.status === "completed" || j.status === "closed");
+  const completedJobs = jobs.filter((j) => j.status === "completed" || j.status === "closed");
+  
   const handleExportExcel = () => {
     if (completedJobs.length === 0) return;
     const headers = ["PO Number", "Project Name", "Est. Revenue", "Actual Material Cost", "Net Gross Profit", "Gross Margin %", "Top Shipped Material"];
@@ -56,7 +57,6 @@ const completedJobs = jobs.filter((j) => j.status === "completed" || j.status ==
         }
       });
 
-      // Contract value estimate formula: Pricing model calculated at roughly 3.2x estimated stock baseline value
       const targetRevenue = estCost * 3.2;
       const profit = targetRevenue - actCost;
       const marginPct = targetRevenue > 0 ? ((profit / targetRevenue) * 100).toFixed(1) : "0.0";
@@ -144,13 +144,10 @@ function InventoryCostTrendsReport({ inv }) {
 
   const materialsTrendList = inv.map((item) => {
     const totalQtyOnHand = tot(item);
-    
-    // Evaluate cost variations across historical material receipt entries
     const pricePoints = item.batches?.map((b) => parseFloat(b.price) || 0) || [];
     const averageBatchCost = pricePoints.length > 0 ? pricePoints.reduce((s, p) => s + p, 0) / pricePoints.length : 0;
     const currentPrice = newestPrice(item);
     
-    // Evaluate direction of vendor cost shifting
     let trendDirection = "Stable";
     let trendColor = "gray";
     if (currentPrice > averageBatchCost * 1.03) { trendDirection = "Inflationary 📈"; trendColor = "red"; }
@@ -237,7 +234,22 @@ function FleetCostTrendsReport({ vehs, reqs }) {
     if (totalRepairInvestment > 2500) { vehicleRiskLevel = "High Cost Center 🚨"; riskColor = "red"; }
     else if (totalRepairInvestment > 800) { vehicleRiskLevel = "Elevated Lifecycle Wear ⚠️"; riskColor = "amber"; }
 
-    return { ...v, totalRepairInvestment, serviceLogsCount: closedTickets.length, vehicleRiskLevel, riskColor };
+    // Identify if service intervals are lagging based on inline data parameters[cite: 5]
+    const currentMileage = parseFloat(v.current_mileage) || 0;
+    const lastOilMileage = parseFloat(v.last_oil_change_mileage) || 0;
+    const isOilOverdue = v.oil_status === "overdue" || (currentMileage > 0 && currentMileage >= (lastOilMileage + 5000));
+    const isDetailOverdue = v.detail_status === "overdue";
+
+    return { 
+      ...v, 
+      totalRepairInvestment, 
+      serviceLogsCount: closedTickets.length, 
+      vehicleRiskLevel, 
+      riskColor,
+      isOilOverdue,
+      isDetailOverdue,
+      currentMileage
+    };
   }).sort((a, b) => b.totalRepairInvestment - a.totalRepairInvestment);
 
   const cumulativeFleetExpenditures = fleetMetrics.reduce((sum, v) => sum + v.totalRepairInvestment, 0);
@@ -258,45 +270,97 @@ function FleetCostTrendsReport({ vehs, reqs }) {
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🚛 Operational Fleet Lifecycle & Maintenance Cost Centers</h2>
-        <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>⬇ Export Fleet Analytics</Btn>
-      </div>
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: C.lg }}>
-              {["Vehicle Fleet Identifier", "Classification Asset Class", "Plate ID", "Resolved Work Requests", "Cumulative Maintenance Cost", "Lifecycle Warning Index"].map((h) => (
-                <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {fleetMetrics.map((v) => (
-              <tr key={v.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                <td style={{ padding: "10px 12px", fontWeight: 700, color: C.navy }}>
-                  {v.name || "Fleet Truck"} <span style={{ fontWeight: 400, color: C.sub, fontSize: 11 }}>{v.yr} {v.make}</span>
-                </td>
-                <td style={{ padding: "10px 12px", textTransform: "capitalize" }}>{v.type}</td>
-                <td style={{ padding: "10px 12px", fontFamily: "monospace", color: C.sub }}>{v.plates || v.plate || "—"}</td>
-                <td style={{ padding: "10px 12px" }}>{v.serviceLogsCount} resolved repairs</td>
-                <td style={{ padding: "10px 12px", fontWeight: 700, color: v.totalRepairInvestment > 0 ? C.navy : C.sub }}>
-                  {v.totalRepairInvestment > 0 ? fm(v.totalRepairInvestment) : "—"}
-                </td>
-                <td style={{ padding: "10px 12px" }}>
-                  <Bdg color={v.riskColor}>{v.vehicleRiskLevel}</Bdg>
-                </td>
-              </tr>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* 📊 UPPER REVENUE METER LEVEL: VISUAL RUN COST BARS & COMPLIANCE MONITORS */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+        
+        {/* PANEL A: BUDGETARY RUN COST METRIC ACCUMULATORS */}
+        <div style={{ background: C.w, borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          <h3 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: C.navy }}>📊 Expense Burn Footprint</h3>
+          <p style={{ margin: "0 0 16px 0", fontSize: 11, color: C.sub }}>Relative cost breakdown bar chart scaled against a standard \$2,500 lifecycle tier.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {fleetMetrics.slice(0, 5).map((v) => {
+              const barPercent = Math.min(100, (v.totalRepairInvestment / 2500) * 100);
+              return (
+                <div key={v.id}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ fontWeight: 600, color: C.navy }}>{v.make} {v.name}</span>
+                    <span style={{ fontWeight: 700 }}>{fm(v.totalRepairInvestment)}</span>
+                  </div>
+                  <div style={{ width: "100%", height: 6, background: C.lg, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ width: `${barPercent}%`, height: "100%", background: v.totalRepairInvestment > 2500 ? C.rd : C.blue, borderRadius: 3 }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* PANEL B: INSPECTION AND INTERVAL WARNING WATCH LIST */}
+        <div style={{ background: C.w, borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          <h3 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: C.navy }}>🚨 Fleet Maintenance Compliance Monitor</h3>
+          <p style={{ margin: "0 0 12px 0", fontSize: 11, color: C.sub }}>Vehicles requiring mechanical interval adjustments or detailing maintenance sweeps.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 180, overflowY: "auto" }}>
+            {fleetMetrics.filter(v => v.isOilOverdue || v.isDetailOverdue).map((v) => (
+              <div key={v.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.lg, padding: "8px 12px", borderRadius: 8 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{v.make} {v.name}</div>
+                  <div style={{ fontSize: 10, color: C.sub, marginTop: 2 }}>Odo: {v.currentMileage.toLocaleString()} mi</div>
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {v.isOilOverdue && <Bdg color="red">🔧 Oil Overdue</Bdg>}
+                  {v.isDetailOverdue && <Bdg color="amber">🧹 Detailing</Bdg>}
+                </div>
+              </div>
             ))}
-          </tbody>
-          <tfoot>
-            <tr style={{ background: "rgba(15, 23, 42, 0.05)" }}>
-              <td colSpan={4} style={{ padding: "12px", fontWeight: 800, color: C.navy }}>Sum Total Fleet Portfolio Capital Maintenance Expenditures</td>
-              <td colSpan={2} style={{ padding: "12px", fontWeight: 900, color: C.navy, fontSize: 15 }}>{fm(cumulativeFleetExpenditures)}</td>
-            </tr>
-          </tfoot>
-        </table>
+            {fleetMetrics.filter(v => v.isOilOverdue || v.isDetailOverdue).length === 0 && (
+              <div style={{ textAlign: "center", color: C.gr, fontSize: 12, fontWeight: 700, padding: "20px 0" }}>✨ All system fleet assets are 100% compliant.</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* DETAILED LEDGER GRID */}
+      <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🚛 Operational Fleet Lifecycle & Maintenance Cost Centers</h2>
+          <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>⬇ Export Fleet Analytics</Btn>
+        </div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: C.lg }}>
+                {["Vehicle Fleet Identifier", "Classification Asset Class", "Plate ID", "Resolved Work Requests", "Cumulative Maintenance Cost", "Lifecycle Warning Index"].map((h) => (
+                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {fleetMetrics.map((v) => (
+                <tr key={v.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
+                  <td style={{ padding: "10px 12px", fontWeight: 700, color: C.navy }}>
+                    {v.name || "Fleet Truck"} <span style={{ fontWeight: 400, color: C.sub, fontSize: 11 }}>{v.yr} {v.make}</span>
+                  </td>
+                  <td style={{ padding: "10px 12px", textTransform: "capitalize" }}>{v.type}</td>
+                  <td style={{ padding: "10px 12px", fontFamily: "monospace", color: C.sub }}>{v.plates || v.plate || "—"}</td>
+                  <td style={{ padding: "10px 12px" }}>{v.serviceLogsCount} resolved repairs</td>
+                  <td style={{ padding: "10px 12px", fontWeight: 700, color: v.totalRepairInvestment > 0 ? C.navy : C.sub }}>
+                    {v.totalRepairInvestment > 0 ? fm(v.totalRepairInvestment) : "—"}
+                  </td>
+                  <td style={{ padding: "10px 12px" }}>
+                    <Bdg color={v.riskColor}>{v.vehicleRiskLevel}</Bdg>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ background: "rgba(15, 23, 42, 0.05)" }}>
+                <td colSpan={4} style={{ padding: "12px", fontWeight: 800, color: C.navy }}>Sum Total Fleet Portfolio Capital Maintenance Expenditures</td>
+                <td colSpan={2} style={{ padding: "12px", fontWeight: 900, color: C.navy, fontSize: 15 }}>{fm(cumulativeFleetExpenditures)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
     </div>
   );
