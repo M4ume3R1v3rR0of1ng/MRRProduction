@@ -54,8 +54,6 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
   };
 
   const handleApproveMaintenance = async (requestId, vehicleVin) => {
-    // ... existing update code ...
-
     await logAction(
       user.id,
       user.email,
@@ -283,7 +281,7 @@ export default function FleetManagementView({
     ? reqs.filter((r) => r.vid === sel.id && r.status !== "completed")
     : [];
 
-    if (vehs.length === 0) {
+  if (vehs.length === 0) {
     return (
       <div style={{ 
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
@@ -296,7 +294,7 @@ export default function FleetManagementView({
           No company vehicles are currently configured for tracking at the Saint Joe Road Warehouse.
         </p>
         {perms.fleet_manage && (
-          <Btn v="gold" onClick={() => { /* Open your existing Add Vehicle Modal here */ }}>
+          <Btn v="gold" onClick={() => {}}>
             + Register First Fleet Vehicle
           </Btn>
         )}
@@ -305,7 +303,17 @@ export default function FleetManagementView({
   }
 
   return (
-    <div>
+    // ── 🟢 1. WRAP ENTIRE VIEW TO FILL WIDTH AND LOCK SCREEN ELEMENT OVERFLOW ──
+    <div style={{ 
+      display: "flex", 
+      flexDirection: "column", 
+      height: "calc(100vh - 96px)", // Dynamic compensation boundary calculation subtracting parent layout bars
+      width: "100%",
+      maxWidth: "100%",
+      overflow: "hidden"
+    }}>
+      
+      {/* HEADER SECTION TIER (flexShrink: 0 keeps it locked in view) */}
       <div
         style={{
           display: "flex",
@@ -314,6 +322,7 @@ export default function FleetManagementView({
           marginBottom: 16,
           flexWrap: "wrap",
           gap: 10,
+          flexShrink: 0
         }}
       >
         <div>
@@ -363,252 +372,264 @@ export default function FleetManagementView({
         </div>
       </div>
 
-      <div
+      {/* ── 🟢 2. INJECT ENCLOSED SCROLL TRACK CONTAINER FOR INTERIOR ELEMENTS ONLY ── */}
+      <div 
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill,minmax(255px,1fr))",
-          gap: 12,
+          flex: 1,
+          overflowY: "auto",
+          paddingRight: 6,
+          paddingBottom: 24,
+          scrollbarWidth: "thin", // Native Firefox layout alignment compatibility rules fallback
+          scrollbarColor: "#cbd5e1 transparent"
         }}
       >
-        {filtered.map((v) => {
-          const os = oilSt(v);
-          const ds = detSt(v);
-          const getFleetStatus = (vehicle, oilStatus, detailStatus) => {
-            // If explicitly flagged as out of service or has overdue safety metrics
-            if (
-              vehicle.status === "out_of_service" ||
-              oilStatus === "overdue"
-            ) {
-              return { dot: "🔴", label: "Out of Service", color: C.rd };
-            }
-            // If maintenance or detailing is coming up soon
-            if (
-              oilStatus === "soon" ||
-              detailStatus === "soon" ||
-              vehicle.status === "service_due"
-            ) {
-              return { dot: "🟡", label: "Service Due", color: C.am };
-            }
-            // Fully operational asset
-            return { dot: "🟢", label: "Active", color: C.gr };
-          };
+        {/* Fleet Grid Tracker */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(265px, 1fr))",
+            gap: 14,
+          }}
+        >
+          {filtered.map((v) => {
+            const os = oilSt(v);
+            const ds = detSt(v);
+            const getFleetStatus = (vehicle, oilStatus, detailStatus) => {
+              if (
+                vehicle.status === "out_of_service" ||
+                oilStatus === "overdue"
+              ) {
+                return { dot: "🔴", label: "Out of Service", color: C.rd };
+              }
+              if (
+                oilStatus === "soon" ||
+                detailStatus === "soon" ||
+                vehicle.status === "service_due"
+              ) {
+                return { dot: "🟡", label: "Service Due", color: C.am };
+              }
+              return { dot: "🟢", label: "Active", color: C.gr };
+            };
 
-          const fleetStatus = getFleetStatus(v, os, ds);
-          const bc =
-            os === "overdue" || ds === "overdue"
-              ? C.rd
-              : os === "soon" || ds === "soon"
-                ? C.am
-                : "transparent";
-          const oLeft = v.type === "truck" ? v.oii - (v.mi - v.lomi) : null;
-          const pd = predDays(v);
-          const vOpenReqs = reqs.filter(
-            (r) => r.vid === v.id && r.status !== "completed",
-          );
-          const asgn = users.find((u) => u.id === v.assignedTo);
-          const photo = vehPhotos[v.id];
-          return (
-            <div
-              key={v.id}
-              onClick={() => setSel(v)}
-              style={{
-                background: C.w,
-                borderRadius: 12,
-                overflow: "hidden",
-                cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-                border: `2px solid ${bc}`,
-              }}
-            >
+            const fleetStatus = getFleetStatus(v, os, ds);
+            const bc =
+              os === "overdue" || ds === "overdue"
+                ? C.rd
+                : os === "soon" || ds === "soon"
+                  ? C.am
+                  : "transparent";
+            const oLeft = v.type === "truck" ? v.oii - (v.mi - v.lomi) : null;
+            const pd = predDays(v);
+            const vOpenReqs = reqs.filter(
+              (r) => r.vid === v.id && r.status !== "completed",
+            );
+            const asgn = users.find((u) => u.id === v.assignedTo);
+            const photo = vehPhotos[v.id];
+            return (
               <div
+                key={v.id}
+                onClick={() => setSel(v)}
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  fontSize: "11px",
-                  fontWeight: 800,
-                  color: fleetStatus.color,
-                }}
-              >
-                <span>{fleetStatus.dot}</span>
-                <span>{fleetStatus.label}</span>
-              </div>
-              <div
-                style={{
-                  height: 130,
-                  background: photo ? "#000" : C.lg,
+                  background: C.w,
+                  borderRadius: 12,
                   overflow: "hidden",
-                  position: "relative",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                  border: `2px solid ${bc}`,
                 }}
               >
-                {photo ? (
-                  <img
-                    src={photo}
-                    alt={v.name}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : (
-                  <span style={{ fontSize: 52, opacity: 0.25 }}>
-                    {v.type === "truck" ? "🚛" : "🚜"}
-                  </span>
-                )}
-                <div style={{ position: "absolute", top: 8, left: 8 }}>
-                  {vOpenReqs.length > 0 && (
-                    <span
-                      style={{
-                        background: C.pu,
-                        color: C.w,
-                        borderRadius: 20,
-                        fontSize: 10,
-                        padding: "2px 8px",
-                        fontWeight: 800,
-                      }}
-                    >
-                      {vOpenReqs.length} req
-                    </span>
-                  )}
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    color: fleetStatus.color,
+                    padding: "8px 12px 4px"
+                  }}
+                >
+                  <span>{fleetStatus.dot}</span>
+                  <span>{fleetStatus.label}</span>
                 </div>
                 <div
                   style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    background: "linear-gradient(transparent,rgba(0,0,0,0.55))",
-                    padding: "8px 10px 6px",
+                    height: 130,
+                    background: photo ? "#000" : C.lg,
+                    overflow: "hidden",
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  <div
-                    style={{
-                      fontWeight: 800,
-                      color: photo ? C.w : C.navy,
-                      fontSize: 14,
-                    }}
-                  >
-                    {v.name}
+                  {photo ? (
+                    <img
+                      src={photo}
+                      alt={v.name}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                      }}
+                    />
+                  ) : (
+                    <span style={{ fontSize: 52, opacity: 0.25 }}>
+                      {v.type === "truck" ? "🚛" : "🚜"}
+                    </span>
+                  )}
+                  <div style={{ position: "absolute", top: 8, left: 8 }}>
+                    {vOpenReqs.length > 0 && (
+                      <span
+                        style={{
+                          background: C.pu,
+                          color: C.w,
+                          borderRadius: 20,
+                          fontSize: 10,
+                          padding: "2px 8px",
+                          fontWeight: 800,
+                        }}
+                      >
+                        {vOpenReqs.length} req
+                      </span>
+                    )}
                   </div>
                   <div
                     style={{
-                      fontSize: 10,
-                      color: photo ? "rgba(255,255,255,0.8)" : C.sub,
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      background: "linear-gradient(transparent,rgba(0,0,0,0.55))",
+                      padding: "8px 10px 6px",
                     }}
                   >
-                    {v.yr} {v.make} {v.model} · #{v.plate}
+                    <div
+                      style={{
+                        fontWeight: 800,
+                        color: photo ? C.w : C.navy,
+                        fontSize: 14,
+                    }}
+                    >
+                      {v.name}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: photo ? "rgba(255,255,255,0.8)" : C.sub,
+                      }}
+                    >
+                      {v.yr} {v.make} {v.model} · #{v.plate}
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div style={{ padding: 12 }}>
-                {asgn && (
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: C.blue,
-                      fontWeight: 700,
-                      marginBottom: 6,
-                    }}
-                  >
-                    👤 {asgn.name}
-                  </div>
-                )}
-                {v.type === "truck" && (
-                  <div style={{ marginBottom: 8 }}>
+                <div style={{ padding: 12 }}>
+                  {asgn && (
                     <div
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: 11,
-                        marginBottom: 3,
+                        fontSize: 10,
+                        color: C.blue,
+                        fontWeight: 700,
+                        marginBottom: 6,
                       }}
                     >
-                      <span style={{ color: C.sub }}>Mileage</span>
-                      <span style={{ fontWeight: 700, color: C.navy }}>
-                        {v.mi.toLocaleString()} mi
-                      </span>
+                      👤 {asgn.name}
                     </div>
-                    <div
-                      style={{
-                        height: 4,
-                        background: C.lg,
-                        borderRadius: 3,
-                        marginBottom: 3,
-                      }}
-                    >
+                  )}
+                  {v.type === "truck" && (
+                    <div style={{ marginBottom: 8 }}>
                       <div
                         style={{
-                          height: "100%",
-                          borderRadius: 3,
-                          background:
-                            os === "overdue"
-                              ? C.rd
-                              : os === "soon"
-                                ? C.am
-                                : C.gr,
-                          width: `${Math.max(0, Math.min(100, (1 - oLeft / v.oii) * 100))}%`,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          fontSize: 11,
+                          marginBottom: 3,
                         }}
-                      />
-                    </div>
-                    <div
-                      style={{ fontSize: 10, color: oLeft <= 0 ? C.rd : C.sub }}
-                    >
-                      {oLeft <= 0
-                        ? "🚨 Oil overdue!"
-                        : `${Math.max(0, oLeft)} mi until oil change`}
-                      {pd !== null && (
-                        <span style={{ color: C.blue }}>
-                          {" "}
-                          · ~{pd === 0 ? "overdue" : `${pd}d`}
+                      >
+                        <span style={{ color: C.sub }}>Mileage</span>
+                        <span style={{ fontWeight: 700, color: C.navy }}>
+                          {v.mi.toLocaleString()} mi
                         </span>
-                      )}
+                      </div>
+                      <div
+                        style={{
+                          height: 4,
+                          background: C.lg,
+                          borderRadius: 3,
+                          marginBottom: 3,
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            borderRadius: 3,
+                            background:
+                              os === "overdue"
+                                ? C.rd
+                                : os === "soon"
+                                  ? C.am
+                                  : C.gr,
+                            width: `${Math.max(0, Math.min(100, (1 - oLeft / v.oii) * 100))}%`,
+                          }}
+                        />
+                      </div>
+                      <div
+                        style={{ fontSize: 10, color: oLeft <= 0 ? C.rd : C.sub }}
+                      >
+                        {oLeft <= 0
+                          ? "🚨 Oil overdue!"
+                          : `${Math.max(0, oLeft)} mi until oil change`}
+                        {pd !== null && (
+                          <span style={{ color: C.blue }}>
+                            {" "}
+                            · ~{pd === 0 ? "overdue" : `${pd}d`}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                  {v.type === "truck" && (
+                  )}
+                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                    {v.type === "truck" && (
+                      <Bdg
+                        color={
+                          os === "overdue"
+                            ? "red"
+                            : os === "soon"
+                              ? "amber"
+                              : "green"
+                        }
+                      >
+                        {os === "overdue"
+                          ? "Oil Overdue"
+                          : os === "soon"
+                            ? "Oil Soon"
+                            : "Oil OK"}
+                      </Bdg>
+                    )}
                     <Bdg
                       color={
-                        os === "overdue"
+                        ds === "overdue"
                           ? "red"
-                          : os === "soon"
+                          : ds === "soon"
                             ? "amber"
                             : "green"
                       }
                     >
-                      {os === "overdue"
-                        ? "Oil Overdue"
-                        : os === "soon"
-                          ? "Oil Soon"
-                          : "Oil OK"}
-                    </Bdg>
-                  )}
-                  <Bdg
-                    color={
-                      ds === "overdue"
-                        ? "red"
+                      {ds === "overdue"
+                        ? "Detail Overdue"
                         : ds === "soon"
-                          ? "amber"
-                          : "green"
-                    }
-                  >
-                    {ds === "overdue"
-                      ? "Detail Overdue"
-                      : ds === "soon"
-                        ? "Detail Soon"
-                        : "Detail OK"}
-                  </Bdg>
+                          ? "Detail Soon"
+                          : "Detail OK"}
+                    </Bdg>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
+      {/* ── MODALS ELEMENT LAYERS RENDERED DOWN BELOW ONLY ── */}
       {sel && (
         <Modal
           title={`${sel.name} — ${sel.yr} ${sel.make} ${sel.model}`}

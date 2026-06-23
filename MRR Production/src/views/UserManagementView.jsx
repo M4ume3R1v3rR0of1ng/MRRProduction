@@ -61,7 +61,7 @@ export default function Users({
         );
         showToast("User updates saved successfully.", "success");
       } else {
-        const newUserId = uid();
+        const newUserId = crypto.randomUUID();
         const newUserPayload = {
           id: newUserId,
           active: true,

@@ -110,11 +110,21 @@ export default function App() {
     );
   }
 
-  return (
+return (
     <IdleTimeoutWrapper isAuthenticated={!!app.curUser} onLogout={() => app.setCurUser(null)}>
-      <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", minHeight: "100vh", background: C.bg, fontFamily: "'Segoe UI',system-ui,sans-serif", width: "100vw", overflowX: "hidden" }}>
+      {/* ── 🟢 1. LOCK THE ROOT CONTAINER VIEWPORT TO SCREEN HEIGHT ── */}
+      <div style={{ 
+        display: "flex", 
+        flexDirection: isMobile ? "column" : "row", 
+        height: "100vh", // Force the layout wrapper to freeze at exactly screen height
+        maxHeight: "100vh",
+        background: C.bg, 
+        fontFamily: "'Segoe UI',system-ui,sans-serif", 
+        width: "100vw", 
+        overflow: "hidden" // Prevents the whole browser page from ever scrolling
+      }}>
         
-        {/* 📱 MOBILE HEADER NAVIGATION BAR BAR */}
+        {/* 📱 MOBILE HEADER NAVIGATION BAR */}
         {isMobile && (
           <div style={{ background: "#0f172a", color: "#fff", padding: "0 20px", height: 50, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>
             <div style={{ fontWeight: 700, fontSize: 13 }}>🏗️ MAUMEE RIVER ROOFING</div>
@@ -124,40 +134,8 @@ export default function App() {
           </div>
         )}
 
-{/* ── 🟢 MOBILE FULL-SCREEN SEARCH OVERLAY SHEET ── */}
-        {isMobile && mobileSearchOpen && (
-          <div style={{ position: "fixed", inset: 0, background: "#ffffff", zIndex: 1000, display: "flex", flexDirection: "column", padding: "16px 20px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexShrink: 0 }}>
-              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: C.navy }}>🔍 Global Ecosystem Search</h2>
-              <button 
-                onClick={() => setMobileSearchOpen(false)}
-                style={{ background: C.lg, border: "none", borderRadius: "50%", width: 32, height: 32, fontSize: 14, fontWeight: 700, color: C.sub, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <OmniSearch
-                jobs={app.jobs}
-                users={app.users}
-                reqs={app.reqs}
-                inv={app.inv}
-                vehs={app.vehs}
-                onNavigate={(v) => {
-                  navigateTo(v);
-                  setMobileSearchOpen(false); // Close layout sheet after item tap
-                }}
-                onInventorySearch={(q) => {
-                  setInventorySearchQuery(q);
-                  setMobileSearchOpen(false);
-                }}
-              />
-            </div>
-          </div>
-        )}
-
         {/* 🗺️ CONTAINER ROUTER NAVIGATION DRAWER LAYOUT */}
+        {/* (Added height constraint to sidebar element) */}
         <div style={{ width: isMobile ? "100%" : collapsed ? 64 : 260, display: isMobile && !mobileMenuOpen ? "none" : "block", position: isMobile ? "fixed" : "relative", top: isMobile ? 50 : 0, left: 0, height: isMobile ? "calc(100vh - 50px)" : "100vh", zIndex: 99, overflowY: "auto", flexShrink: 0 }}>
           <Sidebar
             cur={view}
@@ -177,8 +155,16 @@ export default function App() {
           />
         </div>
 
-        {/* 📊 CORE MODULE SCREEN GRAPH CANVAS PLATES */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, marginTop: isMobile ? 50 : 0 }}>
+        {/* 📊 CORE PANEL FRAMEWORK METER BODY */}
+        <div style={{ 
+          flex: 1, 
+          display: "flex", 
+          flexDirection: "column", 
+          minWidth: 0, 
+          height: "100%", // Inherit frozen screen layout constraints
+          marginTop: isMobile ? 50 : 0,
+          overflow: "hidden" 
+        }}>
           {!isMobile && (
             <div style={{ background: C.w, padding: "0 20px", height: 56, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.lg}`, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flexShrink: 0 }}>
               <div style={{ fontSize: 12, color: C.sub, flexShrink: 0, marginRight: 24 }}>
@@ -219,125 +205,42 @@ export default function App() {
             </div>
           )}
 
-          {/* ⚡ DIRECT CONTEXTUAL CONDITION DISPATCHER BLOCK */}
-          <div style={{ flex: 1, padding: isMobile ? 16 : 20, overflowY: "auto" }}>
+          {/* ── 🟢 2. CENTRAL DISPATCH PANEL CARDS SCROLL INSIDE THIS CANVAS ONLY ── */}
+          <div 
+            className="global-app-scrollbar" // Connects with custom slim styling markers
+            style={{ 
+              flex: 1, 
+              padding: isMobile ? 16 : 20, 
+              overflowY: "auto", // Confines scroll mechanics strictly to the open sub-view card
+              background: C.bg 
+            }}
+          >
             {view === "dashboard" && (
-              <DashboardView
-                inv={app.inv}
-                vehs={app.vehs}
-                reqs={app.reqs}
-                jobs={app.jobs}
-                users={app.users}
-                user={app.curUser}
-                perms={app.userPerms}
-                onNav={navigateTo}
-                tot={tot}
-                jSC={jSC}
-              />
+              <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} />
             )}
             {view === "buildjobs" && app.userPerms.jobs_build && (
-              <BuildJobsView
-                jobs={app.jobs}
-                setJobs={app.setJobs}
-                inv={app.inv}
-                users={app.users}
-                user={app.curUser}
-                perms={app.userPerms}
-                jSC={jSC}
-                view={view}
-                onNav={navigateTo}
-                acculynxConfig={app.acculynxConfig}
-              />
+              <BuildJobsView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} />
             )}
             {view === "pull" && (
-              <PullInventoryView
-                jobs={app.jobs}
-                setJobs={app.setJobs}
-                inv={app.inv}
-                setInv={app.setInv}
-                users={app.users}
-                user={app.curUser}
-                perms={app.userPerms}
-                activeLogo={app.activeLogo}
-                acculynxConfig={app.acculynxConfig}
-                jSC={jSC}
-              />
+              <PullInventoryView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} users={app.users} user={app.curUser} perms={app.userPerms} activeLogo={app.activeLogo} acculynxConfig={app.acculynxConfig} jSC={jSC} />
             )}
             {view === "inventory" && app.userPerms.inv_view && (
-              <InventoryView
-                inv={app.inv}
-                setInv={app.setInv}
-                users={app.users}
-                user={app.curUser}
-                perms={app.userPerms}
-                invPhotos={app.invPhotos}
-                setInvPhotos={app.setInvPhotos}
-                inventorySearchQuery={inventorySearchQuery}
-                setInventorySearchQuery={setInventorySearchQuery}
-              />
+              <InventoryView inv={app.inv} setInv={app.setInv} users={app.users} user={app.curUser} perms={app.userPerms} invPhotos={app.invPhotos} setInvPhotos={app.setInvPhotos} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} />
             )}
             {view === "fleet" && app.userPerms.fleet_view && (
-              <FleetManagementView
-                vehs={app.vehs}
-                setVehs={app.setVehs}
-                reqs={app.reqs}
-                setReqs={app.setReqs}
-                users={app.users}
-                user={app.curUser}
-                perms={app.userPerms}
-                vehPhotos={app.vehPhotos}
-                setVehPhotos={app.setVehPhotos}
-                oilSt={oilSt}
-                detSt={detSt}
-                predDays={predDays}
-                fd={fd}
-                fm={fm}
-                inventorySearchQuery={inventorySearchQuery}
-                setInventorySearchQuery={setInventorySearchQuery}
-              />
+              <FleetManagementView vehs={app.vehs} setVehs={app.setVehs} reqs={app.reqs} setReqs={app.setReqs} users={app.users} user={app.curUser} perms={app.userPerms} vehPhotos={app.vehPhotos} setVehPhotos={app.setVehPhotos} oilSt={oilSt} detSt={detSt} predDays={predDays} fd={fd} fm={fm} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} />
             )}
             {view === "requests" && (app.userPerms.maint_submit || app.userPerms.maint_manage) && (
-              <MaintenanceRequestsView
-                reqs={app.reqs}
-                setReqs={app.setReqs}
-                vehs={app.vehs}
-                users={app.users}
-                user={app.curUser}
-                perms={app.userPerms}
-              />
+              <MaintenanceRequestsView reqs={app.reqs} setReqs={app.setReqs} vehs={app.vehs} users={app.users} user={app.curUser} perms={app.userPerms} />
             )}
             {view === "reports" && app.userPerms.reports_view && (
-              <ReportsView
-                jobs={app.jobs}
-                users={app.users}
-                user={app.curUser}
-                perms={app.userPerms}
-                inv={app.inv}
-                vehs={app.vehs}
-                reqs={app.reqs}
-              />
+              <ReportsView jobs={app.jobs} users={app.users} user={app.curUser} perms={app.userPerms} inv={app.inv} vehs={app.vehs} reqs={app.reqs} />
             )}
             {view === "users" && app.userPerms.users_manage && (
-              <UserManagementView
-                users={app.users}
-                setUsers={app.setUsers}
-                currentUser={app.curUser}
-                rolePerms={app.rolePerms}
-                userOverrides={app.userOverrides}
-                setUserOverrides={app.setUserOverrides}
-              />
+              <UserManagementView users={app.users} setUsers={app.setUsers} currentUser={app.curUser} rolePerms={app.rolePerms} userOverrides={app.userOverrides} setUserOverrides={app.setUserOverrides} />
             )}
             {view === "settings" && app.userPerms.settings_manage && (
-              <SettingsView
-                warehouses={app.warehouses}
-                setWarehouses={app.setWH}
-                logos={app.logos}
-                setLogos={app.setLogos}
-                rolePerms={app.rolePerms}
-                setRolePerms={app.setRolePerms}
-                acculynxConfig={app.acculynxConfig}
-                setAccuLynxConfig={app.setAccuLynxConfig}
-              />
+              <SettingsView warehouses={app.warehouses} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} />
             )}
             {view === "profile" && (
               <ProfileView user={app.curUser} onUpdateUser={app.setCurUser} />
@@ -346,6 +249,7 @@ export default function App() {
               <AuditLogView perms={app.userPerms} />
             )}
           </div>
+
         </div>
       </div>
     </IdleTimeoutWrapper>
