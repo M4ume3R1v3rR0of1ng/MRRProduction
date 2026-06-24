@@ -4,6 +4,7 @@ import { C, displayName } from "../utils/helpers";
 import { Bdg, Btn, Modal } from "../components/UIPrimitives"; // 🟢 Imported Modal here
 import RecentActivityFeed from "../components/RecentActivityFeed";
 import { supabase } from "../utils/supabase"; // 🟢 Imported supabase client configuration
+import { translations } from "../utils/translations";
 
 export default function DashboardView({
   inv,
@@ -16,8 +17,10 @@ export default function DashboardView({
   onNav,
   tot,
   jSC,
-  setJobs, // 🟢 Make sure setJobs is destructured here so we can update state!
+  setJobs, 
+  lang = "en"
 }) {
+  const t = translations[lang] || translations.en;
   const low = inv.filter((i) => tot(i) <= i.alrt);
   const pendingReqs = reqs.filter((r) => r.status === "pending");
   
@@ -130,8 +133,9 @@ export default function DashboardView({
   );
 
   const hour = new Date().getHours();
+
   const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    hour < 12 ? t.goodMorning : hour < 17 ? t.goodAfternoon : t.goodEvening;
 
   // ── 🔨 LAYOUT 1: FIELD WORKER PORTAL ──
   const renderFieldDashboard = () => {
@@ -201,17 +205,17 @@ export default function DashboardView({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <SC label="Low Stock Targets" value={low.length} color={low.length > 0 ? C.rd : C.gr} icon="🚨" onClick={() => onNav("inventory")} />
-          <SC label="Pending Order Pulls" value={pendingPulls.length} color={C.blue} icon="📦" onClick={() => onNav("pull")} />
-          <SC label="Active Tickets" value={pendingReqs.length} color={C.pu} icon="🔧" onClick={() => onNav("requests")} />
+          <SC label={t.lowStockWatch} value={low.length} color={low.length > 0 ? C.rd : C.gr} icon="🚨" onClick={() => onNav("inventory")} />
+          <SC label={t.stagedOrders} value={pendingPulls.length} color={C.blue} icon="📦" onClick={() => onNav("pull")} />
+          <SC label={t.myOpenTickets} value={pendingReqs.length} color={C.pu} icon="🔧" onClick={() => onNav("requests")} />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14, alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>🚨 Low Stock Watchlist</h3>
+              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>🚨 {t.lowStockWatch}</h3>
               {low.length === 0 ? (
-                <p style={{ color: C.gr, fontSize: 12, margin: 0 }}>✅ All material quantities safe.</p>
+                <p style={{ color: C.gr, fontSize: 12, margin: 0 }}>✅ {t.allStockSafe}</p>
               ) : (
                 low.slice(0, 4).map((item) => (
                   <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "rgba(242, 119, 119, 0.15)", borderRadius: 8, marginBottom: 6, fontSize: 12 }}>
@@ -223,10 +227,10 @@ export default function DashboardView({
             </div>
 
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>📦 Staged Loading Orders</h3>
+              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>📦 {t.stagedOrders}</h3>
               {pendingPulls.slice(0, 4).map((p) => (
                 <div key={p.id} onClick={() => onNav("pull")} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: C.lg, borderRadius: 7, marginBottom: 6, fontSize: 12, cursor: "pointer" }}>
-                  <span style={{ fontWeight: 700, color: C.navy }}>{p.name}</span>
+                  <span style={{ fontWeight: 700, color: C.navy }}>{p.title || p.name}</span>
                   <Bdg color={p.status === "approved" ? "blue" : "gray"}>{p.status.toUpperCase()}</Bdg>
                 </div>
               ))}
@@ -247,23 +251,26 @@ export default function DashboardView({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <SC label="Active Projects" value={activeJobsList.length} color={C.am} icon="🔄" onClick={() => onNav("pull")} />
-          <SC label="Fleet Disruptions" value={deadlinedTrucks.length} color={deadlinedTrucks.length > 0 ? C.rd : C.gr} icon="🚛" onClick={() => onNav("fleet")} />
-          <SC label="Holding Valuation" value={`$${Math.round(totalInventoryCost).toLocaleString()}`} color={C.blue} icon="💰" onClick={() => onNav("reports")} />
+          
+          
+          {/* ── 🟢 FIXED: ATTACHED DYNAMIC LOCAL DICTIONARY KEYS TO ALL PRIMITIVES ── */}
+          <SC label={t.activeProjects} value={activeJobsList.length} color={C.am} icon="🔄" onClick={() => onNav("pull")} />
+          <SC label={t.fleetDisruptions} value={deadlinedTrucks.length} color={deadlinedTrucks.length > 0 ? C.rd : C.gr} icon="🚛" onClick={() => onNav("fleet")} />
+          <SC label={t.holdingValuation} value={`$${Math.round(totalInventoryCost).toLocaleString()}`} color={C.blue} icon="💰" onClick={() => onNav("reports")} />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14, alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>📋 Master Contract Pipeline</h3>
+              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>📋 {t.masterPipeline}</h3>
               {jobs.filter((j) => j.status !== "completed").slice(0, 4).map((j) => {
-                const sup = users.find((u) => u.id === j.assignedTo);
+                const sup = users.find((u) => u.id === j.assignedto || u.id === j.assignedTo);
                 const st = jSC[j.status] || { c: "gray", l: j.status };
                 return (
                   <div key={j.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: C.lg, borderRadius: 7, marginBottom: 6, fontSize: 12 }}>
                     <div>
-                      <div style={{ fontWeight: 700, color: C.navy }}>{j.name}</div>
-                      <div style={{ color: C.sub, fontSize: 10 }}>{j.po || "No PO"}{sup ? ` · ${sup.full_name || sup.name}` : ""}</div>
+                      <div style={{ fontWeight: 700, color: C.navy }}>{j.title || j.name}</div>
+                      <div style={{ color: C.sub, fontSize: 10 }}>{j.po || t.noPO}{sup ? ` · ${sup.full_name || sup.name}` : ""}</div>
                     </div>
                     <Bdg color={st.c}>{st.l}</Bdg>
                   </div>
@@ -324,7 +331,7 @@ export default function DashboardView({
         </div>
       )}
 
-      {/* ── ⚡ NEW: QUICK ACTIONS GRID PANEL ── */}
+      {/* ── 🟢 FIXED: ATTACHED TRANSLATED STRINGS INTO QUICK ACTIONS PANEL ── */}
       <div style={{
         display: "flex",
         gap: 12,
@@ -333,29 +340,29 @@ export default function DashboardView({
         width: "100%"
       }}>
         <QuickActionCard 
-          title="Pull Inventory" 
-          subtitle="Stage materials for loading" 
+          title={t.pull} 
+          subtitle={lang === "es" ? "Preparar materiales para cargar" : "Stage materials for loading"} 
           icon="📦" 
           color="#3b82f6" 
           onClick={() => onNav("pull")} 
         />
         <QuickActionCard 
-          title="Create Request" 
-          subtitle="Submit vehicle maintenance" 
+          title={t.requests} 
+          subtitle={lang === "es" ? "Enviar registro de mantenimiento" : "Submit vehicle maintenance"} 
           icon="🔧" 
           color="#a855f7" 
           onClick={() => onNav("requests")} 
         />
         <QuickActionCard 
-          title="View My Jobs" 
-          subtitle="Check assigned work lists" 
+          title={t.myAssignedJobs} 
+          subtitle={lang === "es" ? "Ver lista de trabajos asignados" : "Check assigned work lists"} 
           icon="📋" 
           color="#14b8a6" 
           onClick={() => onNav("pull")} 
         />
         <QuickActionCard 
-          title="Report Damage" 
-          subtitle="Flag down tools or fleet assets" 
+          title={t.fleet} 
+          subtitle={lang === "es" ? "Reportar herramientas o vehículos dañados" : "Flag down tools or fleet assets"} 
           icon="⚠️" 
           color="#f43f5e" 
           onClick={() => onNav("fleet")} 

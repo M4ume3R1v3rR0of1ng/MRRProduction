@@ -1,7 +1,11 @@
+// src/layouts/Sidebar.jsx
+import { useState } from "react";
+import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";
 import mrrpic from "../assets/mrrpic.jpg";
+import { translations } from "../utils/translations"; // 🟢 Imported Dictionary
 
 export default function Sidebar({
   cur,
@@ -15,47 +19,54 @@ export default function Sidebar({
   newJobsForMe,
   activeLogo,
   perms,
+  // ── 🟢 NEW: ACCEPT LANG MATRIX CONTROL ARGS ──
+  lang = "en",
+  setLang,
 }) {
-  const navItems = [
-    { id: "dashboard", icon: "🏠", label: "Dashboard" },
+  const t = translations[lang];
+
+  // ── 🟢 TRANSLATED DYNAMIC SIDEBAR Blueprints ──
+ const navItems = [
+    { id: "dashboard", icon: "🏠", label: t.dashboard || "Dashboard" },
     ...(perms.jobs_build
-      ? [{ id: "buildjobs", icon: "🏗️", label: "Build Jobs" }]
+      ? [{ id: "buildjobs", icon: "🏗️", label: t.buildjobs || "Build Jobs" }]
       : []),
     {
       id: "pull",
       icon: "📋",
-      label: "Pull Inventory",
+      label: t.pull || "Pull Inventory",
       badge: newJobsForMe,
       badgeColor: C.tl,
     },
     ...(perms.inv_view
-      ? [{ id: "inventory", icon: "📦", label: "Inventory", badge: lowStock }]
+      ? [{ id: "inventory", icon: "📦", label: t.inventory || "Inventory", badge: lowStock }]
       : []),
-    ...(perms.fleet_view ? [{ id: "fleet", icon: "🚛", label: "Fleet" }] : []),
+    ...(perms.fleet_view ? [{ id: "fleet", icon: "🚛", label: t.fleet || "Fleet" }] : []),
     ...(perms.maint_submit || perms.maint_manage
       ? [
           {
             id: "requests",
             icon: "🔧",
-            label: "Maintenance",
+            label: t.requests || "Maintenance",
             badge: perms.maint_manage ? pendingReqs : 0,
             badgeColor: C.pu,
           },
         ]
       : []),
     ...(perms.reports_view
-      ? [{ id: "reports", icon: "📊", label: "Reports" }]
+      ? [{ id: "reports", icon: "📊", label: t.reports || "Reports" }]
       : []),
     ...(perms.users_manage
-      ? [{ id: "users", icon: "👥", label: "Users" }]
+      ? [{ id: "users", icon: "👥", label: t.users || "Users" }]
       : []),
     ...(perms.users_manage
-      ? [{ id: "logs", icon: "📜", label: "Audit Logs" }]
+      ? [{ id: "logs", icon: "📜", label: t.logs || "Audit Logs" }]
       : []),
     ...(perms.settings_manage
-      ? [{ id: "settings", icon: "⚙️", label: "Settings" }]
+      ? [{ id: "settings", icon: "⚙️", label: t.settings || "Settings" }]
       : []),
   ];
+  
   const rColor = (r) =>
     r === "warehouse"
       ? C.pu
@@ -68,23 +79,20 @@ export default function Sidebar({
             : C.gold;
 
   const handleSignOut = async () => {
-  try {
-    // ── 🔒 SECURE AUDIT LOGOUT FIX: SWAPPED curUser OUT FOR user ──
-    await logAction(
-      user.id,       // 🟢 Fixed from curUser.id
-      user.email,    // 🟢 Fixed from curUser.email
-      "LOGOUT",
-      "User terminated active workspace session and logged out securely via sidebar gateway.",
-      {},
-      "auth"
-    );
-
-    // Call your standard Supabase auth sign-out engine right after logging
-    await supabase.auth.signOut();
-  } catch (err) {
-    console.error("Secure logout trace interrupted:", err);
-  }
-};
+    try {
+      await logAction(
+        user.id,
+        user.email,
+        "LOGOUT",
+        "User terminated active workspace session and logged out securely via sidebar gateway.",
+        {},
+        "auth"
+      );
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Secure logout trace interrupted:", err);
+    }
+  };
 
   return (
     <div
@@ -124,49 +132,15 @@ export default function Sidebar({
           }}
         >
           {activeLogo ? (
-                <img
-                  src={activeLogo}
-                  alt="Logo"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                  }}
-                />
-              ) : (
-                // ── ✅ SWAPPED THE HOUSE EMOJI FOR THE OFFICIAL BEAVER MASCOT IMAGE ──
-                <img
-                  src={mrrpic}
-                  alt="Maumee River Roofing Mascot"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover", // 'cover' fills out the golden square box beautifully
-                  }}
-                />
-              )}
+            <img src={activeLogo} alt="Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+          ) : (
+            <img src={mrrpic} alt="Maumee River Roofing Mascot" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          )}
         </div>
         {!collapsed && (
           <div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 900,
-                color: C.gold,
-                lineHeight: 1.1,
-              }}
-            >
-              MAUMEE RIVER
-            </div>
-            <div
-              style={{
-                fontSize: 9,
-                color: "rgba(255,255,255,0.6)",
-                letterSpacing: "0.5px",
-              }}
-            >
-              ROOFING
-            </div>
+            <div style={{ fontSize: 11, fontWeight: 900, color: C.gold, lineHeight: 1.1 }}>MAUMEE RIVER</div>
+            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", letterSpacing: "0.5px" }}>ROOFING</div>
           </div>
         )}
       </div>
@@ -180,8 +154,7 @@ export default function Sidebar({
             style={{
               width: "100%",
               padding: collapsed ? "11px" : "9px 10px",
-              background:
-                cur === item.id ? "rgba(245,168,0,0.2)" : "transparent",
+              background: cur === item.id ? "rgba(245,168,0,0.2)" : "transparent",
               border: "none",
               borderRadius: 7,
               cursor: "pointer",
@@ -196,47 +169,22 @@ export default function Sidebar({
           >
             <span style={{ fontSize: 17 }}>{item.icon}</span>
             {!collapsed && (
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: cur === item.id ? 700 : 500,
-                  flex: 1,
-                  textAlign: "left",
-                }}
-              >
+              <span style={{ fontSize: 13, fontWeight: cur === item.id ? 700 : 500, flex: 1, textAlign: "left" }}>
                 {item.label}
               </span>
             )}
             {(item.badge || 0) > 0 && !collapsed && (
-              <span
-                style={{
-                  background: item.badgeColor || C.rd,
-                  color: C.w,
-                  borderRadius: 20,
-                  fontSize: 10,
-                  padding: "1px 6px",
-                  fontWeight: 800,
-                }}
-              >
+              <span style={{ background: item.badgeColor || C.rd, color: C.w, borderRadius: 20, fontSize: 10, padding: "1px 6px", fontWeight: 800 }}>
                 {item.badge}
               </span>
             )}
             {(item.badge || 0) > 0 && collapsed && (
-              <span
-                style={{
-                  position: "absolute",
-                  top: 6,
-                  right: 8,
-                  width: 8,
-                  height: 8,
-                  background: item.badgeColor || C.rd,
-                  borderRadius: "50%",
-                }}
-              />
+              <span style={{ position: "absolute", top: 6, right: 8, width: 8, height: 8, background: item.badgeColor || C.rd, borderRadius: "50%" }} />
             )}
           </button>
         ))}
       </nav>
+
       {/* Sidebar Collapse Toggle Button */}
       <button
         onClick={() => setCollapsed(!collapsed)}
@@ -253,13 +201,46 @@ export default function Sidebar({
         {collapsed ? "▶" : "◀"}
       </button>
 
-      {/* Restored Clean Footer Panel inside the Sidebar Wrapper */}
-      <div
-        style={{
-          padding: "10px 6px",
-          borderTop: "1px solid rgba(255,255,255,0.1)",
-        }}
-      >
+      {/* ── 🟢 NEW: TRANSLATION CONTROL SWITCH DRUM ── */}
+      <div style={{
+        padding: "4px 10px 10px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: collapsed ? "center" : "space-between",
+        borderTop: "1px solid rgba(255,255,255,0.05)"
+      }}>
+        {!collapsed && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 800 }}>🌐 {t.language}:</span>}
+        <div style={{ display: "flex", background: "rgba(0,0,0,0.2)", borderRadius: 15, padding: 2, border: "1px solid rgba(255,255,255,0.1)" }}>
+          {[
+            { id: "en", label: "EN" },
+            { id: "es", label: "ES" }
+          ].map((langObj) => {
+            const active = lang === langObj.id;
+            return (
+              <button
+                key={langObj.id}
+                onClick={() => setLang(langObj.id)}
+                style={{
+                  background: active ? C.gold : "transparent",
+                  color: active ? C.navy : "rgba(255,255,255,0.6)",
+                  border: "none",
+                  borderRadius: 12,
+                  padding: collapsed ? "4px 6px" : "3px 8px",
+                  fontSize: 10,
+                  fontWeight: 900,
+                  cursor: "pointer",
+                  transition: "all 0.15s"
+                }}
+              >
+                {langObj.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Footer Profile Segment */}
+      <div style={{ padding: "10px 6px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
         <div
           onClick={() => onNav("profile")}
           style={{
@@ -268,63 +249,23 @@ export default function Sidebar({
             gap: 7,
             padding: 8,
             borderRadius: 7,
-            background:
-              cur === "profile"
-                ? "rgba(245,168,0,0.15)"
-                : "rgba(255,255,255,0.06)",
-            border:
-              cur === "profile"
-                ? `1px solid ${C.gold}`
-                : "1px solid transparent",
+            background: cur === "profile" ? "rgba(245,168,0,0.15)" : "rgba(255,255,255,0.06)",
+            border: cur === "profile" ? `1px solid ${C.gold}` : "1px solid transparent",
             marginBottom: 6,
             cursor: "pointer",
             transition: "background 0.2s",
           }}
           title="Click to manage profile settings"
         >
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: "50%",
-              background: rColor(user.role),
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 13,
-              fontWeight: 900,
-              color: C.w,
-              flexShrink: 0,
-            }}
-          >
-            {user.name
-              ? user.name[0]
-              : user.full_name
-                ? user.full_name[0]
-                : "U"}
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: rColor(user.role), display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: C.w, flexShrink: 0 }}>
+            {user.name ? user.name[0] : user.full_name ? user.full_name[0] : "U"}
           </div>
           {!collapsed && (
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: C.w,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {user.name || user.full_name || "Active User"}
               </div>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: rColor(user.role),
-                  textTransform: "capitalize",
-                  fontWeight: 600,
-                }}
-              >
+              <div style={{ fontSize: 9, color: rColor(user.role), textTransform: "capitalize", fontWeight: 600 }}>
                 {ROLES[user.role]?.label || user.role || "Employee"}
               </div>
             </div>
@@ -332,14 +273,7 @@ export default function Sidebar({
         </div>
 
         {!collapsed && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 4,
-              padding: "0 4px",
-            }}
-          >
+          <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: "0 4px" }}>
             <button
               onClick={onLogout}
               style={{
@@ -354,7 +288,7 @@ export default function Sidebar({
                 fontWeight: 600,
               }}
             >
-              Sign Out
+              {t.signout}
             </button>
           </div>
         )}

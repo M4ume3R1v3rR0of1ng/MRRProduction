@@ -27,6 +27,7 @@ import AuditLogView from "./views/AuditLogView";
 // Mascot Branding Asset
 import mrrpic from "./assets/mrrmascot.jpg";
 
+
 const jSC = {
   draft: { c: "gray", l: "Draft", icon: "📝" },
   approved: { c: "blue", l: "Approved", icon: "✅" },
@@ -68,6 +69,8 @@ export default function App() {
     window.history.pushState({ view: nextView }, "", "");
   };
 
+  const [lang, setLang] = useState("en");
+  
   // ── ⏳ HARDENED PROGRESS BAR LOADING FALLBACK ──
   if (app.loading) {
     return (
@@ -154,7 +157,9 @@ return (
             lowStock={app.lowStockCount}
             newJobsForMe={app.newJobsForMe}
             activeLogo={app.activeLogo}
-            perms={app.userPerms}
+            perms={app.userPerms} 
+            lang={lang}
+            setLang={setLang}
           />
         </div>
 
