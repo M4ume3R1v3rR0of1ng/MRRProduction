@@ -20,16 +20,18 @@ import { useNotify } from "../context/NotificationContext";
 export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
   const [form, setForm] = useState({
     vid: preVid || "",
-    type: "Oil Change",
+    type: [], // 🟢 FIXED: Stored cleanly as an array for multiple items
     urgency: "normal",
     notes: "",
     mileage: "",
   });
   const selV = vehs.find((v) => v.id === form.vid);
   const { showToast } = useNotify();
+  
   const submit = () => {
-    if (!form.vid || !form.notes.trim()) {
-      showToast("Please select a vehicle and describe the issue.", "info");
+    // 🟢 FIXED: Validate array length instead of single empty string check
+    if (!form.vid || !Array.isArray(form.type) || form.type.length === 0 || !form.notes.trim()) {
+      showToast("Please select a vehicle, at least one service type, and describe the issue.", "info");
       return;
     }
     const v = vehs.find((x) => x.id === form.vid);
@@ -38,7 +40,7 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
       vid: form.vid,
       vname: `${v.name} (${v.plate})`,
       vtype: v.type,
-      type: form.type,
+      type: form.type.join(", "), // 🟢 FIXED: Serializes elements cleanly to a string for your database
       urgency: form.urgency,
       notes: form.notes,
       mileage: form.mileage,
@@ -83,7 +85,7 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
         <Sel
           value={form.vid}
           onChange={(e) =>
-            setForm({ ...form, vid: e.target.value, type: "Oil Change" })
+            setForm({ ...form, vid: e.target.value, type: [] }) // 🟢 FIXED: Flushes checkbox state on toggle
           }
         >
           <option value="">— Select a vehicle —</option>
@@ -96,11 +98,17 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
       </Fld>
       {selV && (
         <>
-          <Fld label="Service Type">
-            <Sel
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value })}
-            >
+          {/* ── 🟢 FIXED: MULTI-SELECT CHECKBOX GRID INTERACTION LAYER ── */}
+          <Fld label="Service Types (Select all that apply) *">
+            <div style={{ 
+              display: "grid", 
+              gridTemplateColumns: "1fr 1fr", 
+              gap: "10px", 
+              background: "#f8fafc", 
+              padding: 12, 
+              borderRadius: 8,
+              border: `1px solid ${C.bd || "#e2e8f0"}` 
+            }}>
               {(selV.type === "truck"
                 ? [
                     "Oil Change",
@@ -122,11 +130,29 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
                     "Inspection",
                     "Other",
                   ]
-              ).map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </Sel>
+              ).map((t) => {
+                const isChecked = Array.isArray(form.type) && form.type.includes(t);
+                return (
+                  <label key={t} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: C.navy, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      style={{ accentColor: C.pu, transform: "scale(1.1)", cursor: "pointer" }}
+                      onChange={() => {
+                        const currentTypes = Array.isArray(form.type) ? form.type : [];
+                        const nextTypes = isChecked 
+                          ? currentTypes.filter(item => item !== t) 
+                          : [...currentTypes, t];
+                        setForm({ ...form, type: nextTypes });
+                      }}
+                    />
+                    {t}
+                  </label>
+                );
+              })}
+            </div>
           </Fld>
+          
           <Fld label="Urgency">
             <Sel
               value={form.urgency}

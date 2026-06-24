@@ -1,45 +1,44 @@
 // src/components/IdleTimeoutWrapper.jsx
 import { useEffect, useRef } from 'react';
 
-export default function IdleTimeoutWrapper({ children, onLogout, isAuthenticated }) {
-  // 5 minutes in milliseconds (5 * 60 * 1000)
-  const TIMEOUT_IN_MS = 5 * 60 * 1000; 
+// ── 🟢 FIXED: ACCEPT THE TIMEOUT PROP WITH A 5-MINUTE DEFAULT FALLBACK ──
+export default function IdleTimeoutWrapper({ children, onLogout, isAuthenticated, timeout }) {
+  
+  // Use the passed timeout value (e.g., from App.jsx) or default to 5 minutes if not provided[cite: 4]
+  const TIMEOUT_IN_MS = timeout || (5 * 60 * 1000); 
   const timerRef = useRef(null);
 
   const resetTimer = () => {
-    // Clear any existing active countdown timer
-    if (timerRef.current) clearTimeout(timerRef.current);
+    if (timerRef.current) clearTimeout(timerRef.current); //[cite: 4]
 
-    // Only start a new countdown timer if the user is actually logged in
-    if (isAuthenticated) {
+    if (isAuthenticated) { //[cite: 4]
       timerRef.current = setTimeout(() => {
         handleTimeout();
-      }, TIMEOUT_IN_MS);
+      }, TIMEOUT_IN_MS); //[cite: 4]
     }
   };
 
   const handleTimeout = () => {
-    console.warn("Session expired due to 5 minutes of inactivity.");
-    alert("Your session has expired due to inactivity. Please log in again.");
-    onLogout(); // This will clear state and redirect to login
+    // Dynamically calculate the printed log message based on the active milliseconds count
+    const minutesLogged = Math.round(TIMEOUT_IN_MS / 60 / 1000);
+    console.warn(`Session expired due to ${minutesLogged} minutes of inactivity.`);
+    alert(`Your session has expired due to ${minutesLogged} minutes of inactivity. Please log in again.`);
+    onLogout(); //[cite: 4]
   };
 
   useEffect(() => {
-    // Events that indicate the user is actively working/present
-    const activityEvents = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'];
+    const activityEvents = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart']; //[cite: 4]
 
-    // If authenticated, set up the initial timer and attach listeners
-    if (isAuthenticated) {
+    if (isAuthenticated) { //[cite: 4]
       resetTimer();
-      activityEvents.forEach(event => window.addEventListener(event, resetTimer));
+      activityEvents.forEach(event => window.addEventListener(event, resetTimer)); //[cite: 4]
     }
 
-    // Cleanup: Remove listeners and clear timers when component updates or unmounts
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      activityEvents.forEach(event => window.removeEventListener(event, resetTimer));
+      if (timerRef.current) clearTimeout(timerRef.current); //[cite: 4]
+      activityEvents.forEach(event => window.removeEventListener(event, resetTimer)); //[cite: 4]
     };
-  }, [isAuthenticated]); // Re-run setup if the user logs in or out
+  }, [isAuthenticated, TIMEOUT_IN_MS]); // 🟢 Added TIMEOUT_IN_MS to safely track prop changes!
 
-  return <>{children}</>;
+  return <>{children}</>; //[cite: 4]
 }

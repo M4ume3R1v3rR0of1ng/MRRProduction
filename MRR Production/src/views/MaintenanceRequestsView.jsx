@@ -32,7 +32,7 @@ export default function MaintenanceRequestsView({
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTicket, setNewTicket] = useState({
     vehicleId: "",
-    type: "Routine Oil Change",
+    type: [], // 🟢 FIXED: Changed to an array to handle multiple option checkboxes
     urgency: "standard",
     notes: "",
     photo: null,
@@ -49,6 +49,11 @@ export default function MaintenanceRequestsView({
       showToast("Please select a vehicle.", "error");
       return;
     }
+    // 🟢 FIXED: Check array selection count instead of a blank string
+    if (!Array.isArray(newTicket.type) || newTicket.type.length === 0) {
+      showToast("Please select at least one issue or classification checkbox.", "error");
+      return;
+    }
     if (!newTicket.notes.trim()) {
       showToast("Please describe the issue or service requested.", "error");
       return;
@@ -62,14 +67,15 @@ export default function MaintenanceRequestsView({
       : "Unknown Vehicle";
 
     const requestPayload = {
-      vehicle_id: newTicket.vehicleId,
+      vid: newTicket.vehicleId,
       vname: vehicleName,
-      type: newTicket.type,
+      vtype: selectedVehicle ? selectedVehicle.type : "truck",
+      type: newTicket.type.join(", "), 
       urgency: newTicket.urgency,
       notes: newTicket.notes.trim(),
       photo: newTicket.photo || null,
       uname: user.name || user.email,
-      submitted_by: user.id,
+      uid: user.id,
       status: "pending",
       at: new Date().toISOString(),
     };
@@ -90,7 +96,7 @@ export default function MaintenanceRequestsView({
 
     setNewTicket({
       vehicleId: "",
-      type: "Routine Oil Change",
+      type: [], // 🟢 FIXED: Flushes checkbox state on clear
       urgency: "standard",
       notes: "",
       photo: null,
@@ -127,7 +133,6 @@ export default function MaintenanceRequestsView({
     showToast(`Ticket status successfully updated to ${status}!`, "success");
   };
 
-  // ── ⚡ NEW FUNCTION: DELETE REQUEST FROM SUPABASE ──
   const handleDeleteRequest = async (id) => {
     if (!window.confirm("Are you absolutely sure you want to permanently delete this maintenance request? This action cannot be undone.")) {
       return;
@@ -309,16 +314,48 @@ export default function MaintenanceRequestsView({
                 ))}
               </Sel>
             </Fld>
-            <Fld label="Issue Classification">
-              <Sel value={newTicket.type} onChange={(e) => setNewTicket({ ...newTicket, type: e.target.value })}>
-                <option value="Routine Oil Change">🔄 Routine Oil Change</option>
-                <option value="Brake System Service">🛑 Brake System Service</option>
-                <option value="Tire Repair / Replacement">🛞 Tire Repair / Replacement</option>
-                <option value="Engine / Powertrain Alert">⚠️ Engine / Powertrain Alert</option>
-                <option value="Body Damage / Accident Report">💥 Body Damage / Accident Report</option>
-                <option value="Other / General Diagnostics">📋 Other / General Diagnostics</option>
-              </Sel>
+
+            {/* ── 🟢 FIXED: DROPDOWN CONVERTED TO A MULTI-SELECT CHECKBOX GRID ── */}
+            <Fld label="Issue Classification (Select all that apply) *">
+              <div style={{ 
+                display: "grid", 
+                gridTemplateColumns: "1fr 1fr", 
+                gap: "10px", 
+                background: "#f8fafc", 
+                padding: 12, 
+                borderRadius: 8,
+                border: "1px solid #e2e8f0" 
+              }}>
+                {[
+                  "Routine Oil Change",
+                  "Brake System Service",
+                  "Tire Repair / Replacement",
+                  "Engine / Powertrain Alert",
+                  "Body Damage / Accident Report",
+                  "Other / General Diagnostics"
+                ].map((t) => {
+                  const isChecked = Array.isArray(newTicket.type) && newTicket.type.includes(t);
+                  return (
+                    <label key={t} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        style={{ transform: "scale(1.1)", cursor: "pointer" }}
+                        onChange={() => {
+                          const currentTypes = Array.isArray(newTicket.type) ? newTicket.type : [];
+                          const nextTypes = isChecked 
+                            ? currentTypes.filter(item => item !== t) 
+                            : [...currentTypes, t];
+                          setNewTicket({ ...newTicket, type: nextTypes });
+                        }}
+                      />
+                      {t.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g, '')}
+                    </label>
+                  );
+                })}
+              </div>
             </Fld>
+
             <Fld label="Urgency Level">
               <Sel value={newTicket.urgency} onChange={(e) => setNewTicket({ ...newTicket, urgency: e.target.value })}>
                 <option value="standard">Standard Schedule (Next service interval)</option>
@@ -326,12 +363,21 @@ export default function MaintenanceRequestsView({
                 <option value="urgent">🚨 URGENT / SAFETY HAZARD (Ground vehicle immediately)</option>
               </Sel>
             </Fld>
-            <Fld label="Reported Notes & Detailed Description">
+            <Fld label="Reported Notes & Detailed Description*">
               <TA placeholder="Describe exactly what is wrong..." value={newTicket.notes} onChange={(e) => setNewTicket({ ...newTicket, notes: e.target.value })} />
             </Fld>
-            <Fld label="Visual Evidence / Broken Equipment Reference Photo">
-              <PhotoUpload value={newTicket.photo} onChange={(base64) => setNewTicket({ ...newTicket, photo: base64 })} />
+
+            {/* ── 🟢 FIXED: PROP MAP CORRECTED FROM value/onChange TO current/onUpload ── */}
+            <Fld label="Visual Evidence / Broken Equipment Reference Photo*">
+              <PhotoUpload 
+                current={newTicket.photo} 
+                onUpload={(base64) => setNewTicket({ ...newTicket, photo: base64 })} 
+                maxDim={600}
+                quality={0.75}
+                previewHeight={140}
+              />
             </Fld>
+            
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
               <Btn v="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setIsCreateOpen(false)}>Cancel</Btn>
               <Btn v="primary" style={{ flex: 1, justifyContent: "center" }} onClick={handleCreateRequest}>🚀 Submit Work Order</Btn>
@@ -346,7 +392,6 @@ export default function MaintenanceRequestsView({
           <div style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: 13 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div><strong>Submitted By:</strong> {sel.uname} on {new Date(sel.at).toLocaleDateString()}</div>
-              {/* Back-end deletion hook integrated within internal review profile */}
               {perms.maint_manage && (
                 <button
                   onClick={() => handleDeleteRequest(sel.id)}

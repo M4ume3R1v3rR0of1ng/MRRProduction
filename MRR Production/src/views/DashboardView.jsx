@@ -1,7 +1,9 @@
 // src/views/DashboardView.jsx
+import { useState, useEffect } from "react"; // 🟢 Added useState and useEffect here
 import { C, displayName } from "../utils/helpers";
-import { Bdg, Btn } from "../components/UIPrimitives";
+import { Bdg, Btn, Modal } from "../components/UIPrimitives"; // 🟢 Imported Modal here
 import RecentActivityFeed from "../components/RecentActivityFeed";
+import { supabase } from "../utils/supabase"; // 🟢 Imported supabase client configuration
 
 export default function DashboardView({
   inv,
@@ -14,12 +16,47 @@ export default function DashboardView({
   onNav,
   tot,
   jSC,
+  setJobs, // 🟢 Make sure setJobs is destructured here so we can update state!
 }) {
   const low = inv.filter((i) => tot(i) <= i.alrt);
   const pendingReqs = reqs.filter((r) => r.status === "pending");
-  const myJobs = jobs.filter((j) => j.assignedTo === user.id && j.status !== "completed");
-  const newJobs = myJobs.filter((j) => j.newForAssigned);
+  
+  // ── 🟢 REALIGNED TRACKING MECHANISMS TO EXACT BACKEND FIELDS ──
+  const myJobs = jobs.filter((j) => (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "completed");
+  const newJobs = myJobs.filter((j) => j.newforassigned || j.newForAssigned);
 
+  const [newJobAlert, setNewJobAlert] = useState(null);
+
+  // ── 🟢 MONITOR ASSIGNMENT ENGINES LIVE ──
+  useEffect(() => {
+    if (newJobs.length > 0 && !newJobAlert) {
+      setNewJobAlert(newJobs[0]); // Stage the first unacknowledged assignment popup box
+    }
+  }, [jobs, newJobs, newJobAlert]);
+
+  const acknowledgeJob = async () => {
+    if (!newJobAlert) return;
+    try {
+      // Clear the alert status in the database so it stops prompting
+      const { error } = await supabase
+        .from("jobs")
+        .update({ newforassigned: false, newForAssigned: false })
+        .eq("id", newJobAlert.id);
+
+      if (error) throw error;
+
+      // Clean local array states instantly 
+      if (setJobs) {
+        setJobs((p) =>
+          p.map((j) => (j.id === newJobAlert.id ? { ...j, newforassigned: false, newForAssigned: false } : j))
+        );
+      }
+      setNewJobAlert(null);
+    } catch (err) {
+      console.error("Failed to dismiss supervisor project warning banner:", err);
+    }
+  };
+  
   // Reusable Metric Card Primitive
   const SC = ({ label, value, color, icon, onClick, sub }) => (
     <div
@@ -335,6 +372,34 @@ export default function DashboardView({
         }
         return renderFieldDashboard();
       })()}
+      
+    {/* ── 🟢 NEW: INJECT DYNAMICS DIRECT CONSOLE NOTIFICATION MODAL ── */}
+      {newJobAlert && (
+        <Modal title="🚨 New Project Assignment Received" onClose={() => {}} disableCloseButton>
+          <div style={{ textAlign: "center", padding: "8px 0" }}>
+            <div style={{ fontSize: 42, marginBottom: 10 }}>🏗️</div>
+            <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: 900, fontSize: 16 }}>
+              {newJobAlert.title || newJobAlert.name || "Untitled Production Contract"}
+            </h3>
+            <p style={{ margin: "0 0 14px 0", color: C.sub, fontSize: 13 }}>
+              PO Tracker Number: <strong>{newJobAlert.po || "—"}</strong>
+            </p>
+            
+            <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, textAlign: "left", fontSize: 12, border: `1px solid ${C.bd}`, marginBottom: 16 }}>
+              <strong>📍 Dispatch Address:</strong> {newJobAlert.addr || newJobAlert.address || "No Location Specified"}
+              {newJobAlert.notes && (
+                <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
+                  <strong>📝 Crew Instructions:</strong> {newJobAlert.notes}
+                </div>
+              )}
+            </div>
+
+            <Btn v="teal" onClick={acknowledgeJob} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
+              Got It, Open Job Materials Checklist →
+            </Btn>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

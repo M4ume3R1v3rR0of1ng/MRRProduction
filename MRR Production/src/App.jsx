@@ -111,18 +111,21 @@ export default function App() {
   }
 
 return (
-    <IdleTimeoutWrapper isAuthenticated={!!app.curUser} onLogout={() => app.setCurUser(null)}>
-      {/* ── 🟢 1. LOCK THE ROOT CONTAINER VIEWPORT TO SCREEN HEIGHT ── */}
-      <div style={{ 
-        display: "flex", 
-        flexDirection: isMobile ? "column" : "row", 
-        height: "100vh", // Force the layout wrapper to freeze at exactly screen height
-        maxHeight: "100vh",
-        background: C.bg, 
-        fontFamily: "'Segoe UI',system-ui,sans-serif", 
-        width: "100vw", 
-        overflow: "hidden" // Prevents the whole browser page from ever scrolling
-      }}>
+<IdleTimeoutWrapper 
+      isAuthenticated={!!app.curUser} 
+      onLogout={() => app.setCurUser(null)}
+      timeout={1800000}
+    >    {/* ── 🟢 1. LOCK THE ROOT CONTAINER VIEWPORT TO SCREEN HEIGHT ── */}
+    <div style={{
+      display: "flex",
+      flexDirection: isMobile ? "column" : "row",
+      height: "100vh", // Force the layout wrapper to freeze at exactly screen height
+      maxHeight: "100vh",
+      background: C.bg,
+      fontFamily: "'Segoe UI',system-ui,sans-serif",
+      width: "100vw",
+      overflow: "hidden" // Prevents the whole browser page from ever scrolling
+    }}>
         
         {/* 📱 MOBILE HEADER NAVIGATION BAR */}
         {isMobile && (

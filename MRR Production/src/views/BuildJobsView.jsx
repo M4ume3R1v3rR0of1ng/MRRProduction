@@ -154,30 +154,32 @@ export default function BuildJobs({
       );
       return;
     }
+
     setSaving(true);
     const now = new Date().toISOString();
     const jobId = uid();
     const job = {
       id: jobId,
       po: wPO.po,
-      name: wPO.name,
+
+      title: wPO.name,       // Maps your name input to the 'title' column
       addr: wPO.addr,
       notes: wPO.notes,
-      scheduledDate:
-        wPO.scheduledDate || new Date().toISOString().split("T")[0], 
+      scheduledDate: wPO.scheduledDate || new Date().toISOString().split("T")[0],
       status: asDraft ? "draft" : "approved",
-      assignedTo: wAssign,
-      createdBy: user?.id || null,
-      createdAt: now,
-      approvedAt: asDraft ? "" : now,
-      completedAt: "",
-      newForAssigned: !asDraft && !!wAssign,
+      assignedto: wAssign,   // Changed from assignedTo -> assignedto
+      created: now,          // Changed from createdAt -> created
+      approved: asDraft ? "" : now, // Changed from approvedAt -> approved
+      completed: "",         // Changed from completedAt -> completed
+
+      newforassigned: !asDraft && !!wAssign, // Changed from newForAssigned -> newforassigned
       syncStatus: null,
       syncedAt: "",
       syncPayload: null,
       syncNote: "",
-      items: wItems.map((i) => mkJI(i.iid, i.iname, i.icat, i.unit, i.qty)),
+      materials: wItems.map((i) => mkJI(i.iid, i.iname, i.icat, i.unit, i.qty)),
     };
+
     try {
       const { error } = await supabase.from("jobs").insert([job]);
       if (error) throw error;
@@ -189,11 +191,11 @@ export default function BuildJobs({
             to: assignedUser.email,
             subject: `New Job Assigned: ${wPO.name}`,
             html: `<h2>You've been assigned a new job</h2>
-                   <p><strong>Job:</strong> ${wPO.name}</p>
-                   <p><strong>PO:</strong> ${wPO.po}</p>
-                   <p><strong>Address:</strong> ${wPO.addr}</p>
-                   ${wPO.notes ? `<p><strong>Notes:</strong> ${wPO.notes}</p>` : ""}
-                   <p>Log in to pull inventory and get started.</p>`,
+                <p><strong>Job:</strong> ${wPO.name}</p>
+                <p><strong>PO:</strong> ${wPO.po}</p>
+                <p><strong>Address:</strong> ${wPO.addr}</p>
+                ${wPO.notes ? `<p><strong>Notes:</strong> ${wPO.notes}</p>` : ""}
+                <p>Log in to pull inventory and get started.</p>`,
           });
         }
       }
@@ -219,31 +221,34 @@ export default function BuildJobs({
       return;
     }
     setApproving(true);
-    const approvedAt = new Date().toISOString();
+    const approvedAtTime = new Date().toISOString();
     try {
       const { error } = await supabase
         .from("jobs")
         .update({
           status: "approved",
-          approvedAt,
-          assignedTo: apAssign,
-          newForAssigned: true,
+          approved: approvedAtTime,
+          assignedto: apAssign,
+          newforassigned: true,
         })
         .eq("id", sel.id);
       if (error) throw error;
+
       setJobs((p) =>
         p.map((j) =>
           j.id === sel.id
             ? {
-                ...j,
-                status: "approved",
-                approvedAt,
-                assignedTo: apAssign,
-                newForAssigned: true,
-              }
+              ...j,
+              status: "approved",
+              approved: approvedAtTime,
+              assignedto: apAssign,
+              newforassigned: true,
+            }
             : j,
         ),
       );
+
+
       const assignedUser = users.find((u) => u.id === apAssign);
       if (assignedUser?.email) {
         sendEmail({
@@ -353,18 +358,18 @@ export default function BuildJobs({
             Plan inventory, assign site supervisors, manage the pipeline
           </p>
         </div>
-        
+
         {/* Sub-navigation View Switchers */}
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div style={{ display: "flex", background: C.lg, padding: 4, borderRadius: 8, marginRight: 8 }}>
-            <button 
-              onClick={() => setSubView("list")} 
+            <button
+              onClick={() => setSubView("list")}
               style={{ padding: "6px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: subView === "list" ? C.w : "transparent", color: subView === "list" ? C.navy : C.sub, boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
             >
               📋 Pipeline List
             </button>
-            <button 
-              onClick={() => setSubView("calendar")} 
+            <button
+              onClick={() => setSubView("calendar")}
               style={{ padding: "6px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: subView === "calendar" ? C.w : "transparent", color: subView === "calendar" ? C.navy : C.sub, boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
             >
               📅 Shift Timeline
@@ -466,7 +471,8 @@ export default function BuildJobs({
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {shown.map((job) => {
               const sup = users.find((u) => u.id === job.assignedTo);
-              const pulledCount = job.items.filter((i) => i.pulled > 0).length;
+              const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
+              const pulledCount = currentItems.filter((i) => i && i.pulled > 0).length;
 
               const getJobStatusMeta = (status) => {
                 switch (status?.toLowerCase()) {
@@ -520,8 +526,7 @@ export default function BuildJobs({
                     <div style={{ fontWeight: 800, color: C.navy, fontSize: 15, marginBottom: 2 }}>{job.name}</div>
                     <div style={{ fontSize: 12, color: C.sub, marginBottom: 6 }}>{job.addr}</div>
                     <div style={{ display: "flex", gap: 14, fontSize: 11, color: C.sub, flexWrap: "wrap" }}>
-                      <span>📦 {job.items.length} items</span>
-                      {sup ? <span>👤 {sup.name}</span> : <span style={{ color: C.am }}>⚠️ Unassigned</span>}
+                      <span>📦 {Math.max((job.items || job.materials || []).length, 0)} items</span>                      {sup ? <span>👤 {sup.name}</span> : <span style={{ color: C.am }}>⚠️ Unassigned</span>}
                       <span>Created {fd(job.createdAt)}</span>
                     </div>
                   </div>
@@ -531,8 +536,7 @@ export default function BuildJobs({
                       <div style={{ marginBottom: 8 }}>
                         <div style={{ fontSize: 10, color: C.sub, marginBottom: 3 }}>{pulledCount}/{job.items.length} pulled</div>
                         <div style={{ height: 5, width: 90, background: C.lg, borderRadius: 3 }}>
-                          <div style={{ height: "100%", background: C.gr, borderRadius: 3, width: `${job.items.length > 0 ? (pulledCount / job.items.length) * 100 : 0}%` }} />
-                        </div>
+<div style={{ height: "100%", width: `${currentItems.length > 0 ? (pulledCount / currentItems.length) * 100 : 0}%` }} />                        </div>
                       </div>
                     )}
                     {perms.jobs_approve && job.status === "draft" && (
@@ -673,18 +677,21 @@ export default function BuildJobs({
               </tr>
             </thead>
             <tbody>
-              {sel.items.map((item) => (
-                <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
-                  <td style={{ padding: "8px 10px", fontWeight: 700, color: C.navy }}>{item.iname}</td>
-                  <td style={{ padding: "8px 10px", color: C.sub }}>{item.icat}</td>
-                  <td style={{ padding: "8px 10px" }}>{item.planned} {item.unit}</td>
-                  <td style={{ padding: "8px 10px", color: item.pulled > 0 ? C.gr : C.sub }}>{item.pulled}</td>
-                  <td style={{ padding: "8px 10px", fontWeight: 700 }}>{item.pulled - item.returned}</td>
-                  {perms.inv_pricing_view && (
-                    <td style={{ padding: "8px 10px", fontWeight: 700, color: C.blue }}>{item.pullCost > 0 ? fm(item.pullCost) : "—"}</td>
-                  )}
-                </tr>
-              ))}
+              {((sel.items || sel.materials || [])).map((item) => {
+                if (!item) return null; // Safe guard against empty items
+                return (
+                  <tr key={item.iid || item.id || Math.random()} style={{ borderTop: `1px solid ${C.lg}` }}>
+                    <td style={{ padding: "8px 10px", fontWeight: 700, color: C.navy }}>{item.iname || item.name || "—"}</td>
+                    <td style={{ padding: "8px 10px", color: C.sub }}>{item.icat || item.cat || "—"}</td>
+                    <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0} {item.unit || ""}</td>
+                    <td style={{ padding: "8px 10px", color: item.pulled > 0 ? C.gr : C.sub }}>{item.pulled || 0}</td>
+                    <td style={{ padding: "8px 10px", fontWeight: 700 }}>{Math.max((item.pulled || 0) - (item.returned || 0), 0)}</td>
+                    {perms.inv_pricing_view && (
+                      <td style={{ padding: "8px 10px", fontWeight: 700, color: C.blue }}>{item.pullCost > 0 ? fm(item.pullCost) : "—"}</td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </Modal>
@@ -794,8 +801,12 @@ export default function BuildJobs({
                 <div style={{ flex: 2, minWidth: 220 }}>
                   <Inp value={iSrch} onChange={(e) => setISrch(e.target.value)} placeholder="🔍 Search inventory..." style={{ marginBottom: 8 }} />
                   <div style={{ maxHeight: 300, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
-                    {filtInv.map((item) => {
-                      const added = wItems.find((i) => i.iid === item.id);
+                    {(filtInv || []).map((item) => {
+    if (!item) return null; // Skip any empty items safely
+    const added = (wItems || []).find((i) => i && i.iid === item.id);
+
+
+
                       return (
                         <div key={item.id} style={{ background: C.w, borderRadius: 8, padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", border: `1.5px solid ${added ? C.blue : "transparent"}`, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                           <div>
