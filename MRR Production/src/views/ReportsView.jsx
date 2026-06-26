@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C, fd, fm, tot, newestPrice } from "../utils/helpers";
-import { Btn, Sel, Bdg } from "../components/UIPrimitives";
+import { Btn, Sel, Bdg, Modal } from "../components/UIPrimitives"; // Added Modal wrapper primitives
 
 // ── 🔄 SHARED NATIVE SPREADSHEET DOWNLOAD ENGINE ──
 const triggerNativeDownload = (filename, headers, rows) => {
@@ -224,17 +224,38 @@ function InventoryCostTrendsReport({ inv }) {
 
 // ── 🚛 TREND COMPONENT 3: FLEET MAINTENANCE COSTS ANALYSIS ──
 function FleetCostTrendsReport({ vehs, reqs }) {
+  // ── 🟢 NEW: ADD HOOK STATES FOR RUNTIME CONDITION DATA LOADING ──
+  const [inspections, setInspections] = useState([]);
+  const [loadingInspect, setLoadingInspect] = useState(true);
+  const [lightboxPic, setLightboxPic] = useState(null);
+
+  useEffect(() => {
+    async function getHistory() {
+      try {
+        const { data, error } = await supabase
+          .from("vehicle_inspections")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        setInspections(data || []);
+      } catch (err) {
+        console.error("Failed syncing condition history reports:", err);
+      } finally {
+        setLoadingInspect(false);
+      }
+    }
+    getHistory();
+  }, []);
+
   const fleetMetrics = vehs.map((v) => {
     const closedTickets = reqs.filter((r) => r.vehicle_id === v.id && r.status === "completed");
     const totalRepairInvestment = closedTickets.reduce((sum, r) => sum + (parseFloat(r.cost) || 0), 0);
     
-    // Categorize fleet risk parameters
     let vehicleRiskLevel = "Optimal Operating Level";
     let riskColor = "green";
     if (totalRepairInvestment > 2500) { vehicleRiskLevel = "High Cost Center 🚨"; riskColor = "red"; }
     else if (totalRepairInvestment > 800) { vehicleRiskLevel = "Elevated Lifecycle Wear ⚠️"; riskColor = "amber"; }
 
-    // Identify if service intervals are lagging based on inline data parameters[cite: 5]
     const currentMileage = parseFloat(v.current_mileage) || 0;
     const lastOilMileage = parseFloat(v.last_oil_change_mileage) || 0;
     const isOilOverdue = v.oil_status === "overdue" || (currentMileage > 0 && currentMileage >= (lastOilMileage + 5000));
@@ -269,12 +290,26 @@ function FleetCostTrendsReport({ vehs, reqs }) {
     triggerNativeDownload(`mrr-fleet-depreciation-ledger-${new Date().toISOString().split("T")[0]}.csv`, headers, csvRows);
   };
 
+const handleDeleteInspection = async (id, vehicleName) => {
+  if (!window.confirm(`Delete inspection record for ${vehicleName}?`)) return;
+  try {
+    const { error } = await supabase
+      .from("vehicle_inspections")
+      .delete()
+      .eq("id", id);
+    if (error) throw error;
+    setInspections((prev) => prev.filter((log) => log.id !== id));
+  } catch (err) {
+    console.error("Failed to delete inspection:", err);
+  }
+};
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* 📊 UPPER REVENUE METER LEVEL: VISUAL RUN COST BARS & COMPLIANCE MONITORS */}
+      {/* UPPER REVENUE METER LEVEL */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
         
-        {/* PANEL A: BUDGETARY RUN COST METRIC ACCUMULATORS */}
+        {/* PANEL A */}
         <div style={{ background: C.w, borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
           <h3 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: C.navy }}>📊 Expense Burn Footprint</h3>
           <p style={{ margin: "0 0 16px 0", fontSize: 11, color: C.sub }}>Relative cost breakdown bar chart scaled against a standard \$2,500 lifecycle tier.</p>
@@ -296,7 +331,7 @@ function FleetCostTrendsReport({ vehs, reqs }) {
           </div>
         </div>
 
-        {/* PANEL B: INSPECTION AND INTERVAL WARNING WATCH LIST */}
+        {/* PANEL B */}
         <div style={{ background: C.w, borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
           <h3 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: C.navy }}>🚨 Fleet Maintenance Compliance Monitor</h3>
           <p style={{ margin: "0 0 12px 0", fontSize: 11, color: C.sub }}>Vehicles requiring mechanical interval adjustments or detailing maintenance sweeps.</p>
@@ -362,6 +397,117 @@ function FleetCostTrendsReport({ vehs, reqs }) {
           </table>
         </div>
       </div>
+
+      {/* ── 🟢 NEW: HISTORICAL VEHICLE INSPECTION LOOPS LIST CANVA PIPELINE ── */}
+      <div 
+        style={{ 
+          background: C.w, 
+          padding: 20, 
+          borderRadius: 12, 
+          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+          border: `1px solid ${C.lg}`
+        }}
+      >
+        <h3 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 800, color: C.navy }}>📋 Historical Vehicle Inspection Logs</h3>
+        <p style={{ margin: "0 0 16px 0", fontSize: 12, color: C.sub }}>Condition log packages and provider diagnostic sheets uploaded by department managers.</p>
+        
+        {loadingInspect ? (
+          <div style={{ padding: 20, textAlign: "center", color: C.sub, fontSize: 13 }}>Streaming condition metrics ledger...</div>
+        ) : inspections.length === 0 ? (
+          <div style={{ padding: 24, textAlign: "center", color: C.sub, fontSize: 13, background: C.lg, borderRadius: 8 }}>No inspection files or reports submitted this period.</div>
+        ) : (
+          /* ── SCROLL CONTAINER BOUNDARY CONTROLLER ── */
+          <div 
+            style={{ 
+              maxHeight: "380px", 
+              overflowY: "auto", 
+              display: "flex", 
+              flexDirection: "column", 
+              gap: 10,
+              paddingRight: 4,
+              scrollbarWidth: "thin"
+            }}
+          >
+            {inspections.map((log) => (
+              <div 
+                key={log.id} 
+                style={{ 
+                  background: "#f8fafc", 
+                  borderRadius: 10, 
+                  padding: 14, 
+                  borderLeft: `4px solid ${log.photos?.length > 0 ? "#1b52b8" : "#e2e8f0"}`,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 16,
+                  flexWrap: "wrap"
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 240 }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4, flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 800, color: C.navy, fontSize: 13 }}>{log.vehicle_name}</span>
+                    <span style={{ fontSize: 11, color: C.sub }}>· {new Date(log.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p style={{ margin: "0 0 6px 0", fontSize: 13, color: "#334155", lineHeight: 1.4 }}>
+                    {log.notes || <span style={{ fontStyle: "italic", color: C.sub }}>No supplementary text or provider notes attached.</span>}
+                  </p>
+                  <div style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>
+                    🕵️‍♂️ Inspector: <span style={{ color: C.navy }}>{log.inspector_name}</span>
+                  </div>
+                </div>
+
+                {/* Picture Array Thumbnails Box */}
+                {log.photos && log.photos.length > 0 && (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {log.photos.map((pic, idx) => (
+                      <img
+                        key={idx}
+                        src={pic}
+                        alt="Inspection thumbnail proof"
+                        onClick={() => setLightboxPic(pic)}
+                        style={{ width: 48, height: 48, borderRadius: 6, objectFit: "cover", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                        title="Expand Image"
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => handleDeleteInspection(log.id, log.vehicle_name)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: C.rd,
+                    cursor: "pointer",
+                    fontSize: 16,
+                    padding: "4px 8px",
+                    display: "flex",
+                    alignItems: "center",
+                    transition: "opacity 0.2s"
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+                  title="Permanently delete this inspection record"
+                >
+                  🗑️
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+
+      {/* Lightbox Canvas Overlay Component */}
+      {lightboxPic && (
+        <Modal title="🔍 Full Resolution Condition Reference" onClose={() => setLightboxPic(null)} wide>
+          <div style={{ textAlign: "center", padding: 4 }}>
+            <img src={lightboxPic} alt="Condition full view" style={{ maxWidth: "100%", maxHeight: "68vh", borderRadius: 8, objectFit: "contain", background: "#000" }} />
+            <Btn v="primary" style={{ width: "100%", marginTop: 12, justifyContent: "center" }} onClick={() => setLightboxPic(null)}>Close Screen Review</Btn>
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }

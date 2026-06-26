@@ -20,7 +20,7 @@ import { useNotify } from "../context/NotificationContext";
 export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
   const [form, setForm] = useState({
     vid: preVid || "",
-    type: [], // 🟢 FIXED: Stored cleanly as an array for multiple items
+    type: [], 
     urgency: "normal",
     notes: "",
     mileage: "",
@@ -29,7 +29,6 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
   const { showToast } = useNotify();
   
   const submit = () => {
-    // 🟢 FIXED: Validate array length instead of single empty string check
     if (!form.vid || !Array.isArray(form.type) || form.type.length === 0 || !form.notes.trim()) {
       showToast("Please select a vehicle, at least one service type, and describe the issue.", "info");
       return;
@@ -40,7 +39,7 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
       vid: form.vid,
       vname: `${v.name} (${v.plate})`,
       vtype: v.type,
-      type: form.type.join(", "), // 🟢 FIXED: Serializes elements cleanly to a string for your database
+      type: form.type.join(", "), 
       urgency: form.urgency,
       notes: form.notes,
       mileage: form.mileage,
@@ -231,7 +230,13 @@ export default function FleetManagementView({
   const [reqModal, setReqModal] = useState(false);
   const [reqVid, setReqVid] = useState("");
   const [isEditingInfo, setIsEditingInfo] = useState(false);
-
+  const [isInspectOpen, setIsInspectOpen] = useState(false);
+  const [inspectSubmitting, setInspectSubmitting] = useState(false);
+  const [inspectionForm, setInspectionForm] = useState({
+    vehicleId: "",
+    notes: "",
+    photos: [] 
+  });
   const filtered = vehs.filter((v) => filt === "all" || v.type === filt);
   const setPhoto = (id, data) =>
     setVehPhotos((p) =>
@@ -287,6 +292,55 @@ export default function FleetManagementView({
     setSel(up);
     setModal(null);
     setForm({});
+  };
+
+// ── 🟢 ADD HERE: DATABASE CONTROLLER FOR VEHICLE INSPECTION SUBMISSIONS ──
+  const handleCreateInspection = async () => {
+    if (!inspectionForm.vehicleId) {
+      showToast("Please select a vehicle asset for inspection logging.", "error");
+      return;
+    }
+    setInspectSubmitting(true);
+
+    const targetVehicle = vehs.find(v => String(v.id) === String(inspectionForm.vehicleId));
+    const vehicleLabel = targetVehicle 
+      ? `${targetVehicle.name} (${targetVehicle.plate})` 
+      : "Unknown Fleet Asset";
+
+    const inspectionPayload = {
+      vehicle_id: inspectionForm.vehicleId,
+      vehicle_name: vehicleLabel,
+      inspector_name: user.name || user.email,
+      inspector_id: user.id,
+      notes: inspectionForm.notes.trim(),
+      photos: inspectionForm.photos,
+      created_at: new Date().toISOString()
+    };
+
+    try {
+      const { error } = await supabase
+        .from("vehicle_inspections")
+        .insert([inspectionPayload]);
+
+      if (error) throw error;
+
+      await logAction(
+        user.id,
+        user.email,
+        "FLEET_MAINTENANCE",
+        `Logged a formal condition inspection report for vehicle asset: ${vehicleLabel}`,
+        { vehicle_id: inspectionForm.vehicleId, attached_photos_count: inspectionForm.photos.length },
+        "fleet"
+      );
+
+      showToast("Inspection records and photos committed successfully!", "success");
+      setIsInspectOpen(false);
+      setInspectionForm({ vehicleId: "", notes: "", photos: [] });
+    } catch (err) {
+      showToast(`Database Transaction Blocked: ${err.message}`, "error");
+    } finally {
+      setInspectSubmitting(false);
+    }
   };
 
  const handleRemoveVehicle = async (vehicleId, vehicleName) => {
@@ -385,6 +439,17 @@ export default function FleetManagementView({
             alignItems: "center",
           }}
         >
+          {/* ── 🟢 ADD HERE: THE LOG INSPECTION TOGGLE ACTION BUTTON ── */}
+          {(user.role === "admin" || user.name === "John" || user.name === "Adam" || perms.fleet_manage) && (
+            <Btn
+              v="gold"
+              sz="sm"
+              onClick={() => setIsInspectOpen(true)}
+              style={{ fontWeight: 800 }}
+            >
+              📋 Log Inspection
+            </Btn>
+          )}
           {perms.maint_submit && (
             <Btn
               v="purple"
@@ -1150,6 +1215,68 @@ export default function FleetManagementView({
           }}
         />
       )}
+
+{isInspectOpen && (
+        <Modal title="📋 File Vehicle Condition & Inspection Report" onClose={() => setIsInspectOpen(false)} wide>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            
+            <Fld label="Select Fleet Vehicle *">
+              <Sel 
+                value={inspectionForm.vehicleId} 
+                onChange={(e) => setInspectionForm({ ...inspectionForm, vehicleId: e.target.value })}
+                disabled={inspectSubmitting}
+              >
+                <option value="">-- Choose Fleet Vehicle --</option>
+                {vehs.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name} — {v.yr} {v.make} ({v.plate})</option>
+                ))}
+              </Sel>
+            </Fld>
+
+            <Fld label="Inspection Assessments & Condition Notes">
+              <TA 
+                placeholder="Log structural inspection results, provider diagnostics or general notes..." 
+                value={inspectionForm.notes} 
+                onChange={(e) => setInspectionForm({ ...inspectionForm, notes: e.target.value })}
+                disabled={inspectSubmitting}
+              />
+            </Fld>
+
+            <Fld label="Upload Inspection Pictures / Condition Evidence">
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <PhotoUpload 
+                  current={null} 
+                  onUpload={(base64) => setInspectionForm(prev => ({ ...prev, photos: [...prev.photos, base64] }))} 
+                  maxDim={800}
+                  quality={0.80}
+                />
+                {inspectionForm.photos.length > 0 && (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                    {inspectionForm.photos.map((img, idx) => (
+                      <div key={idx} style={{ position: "relative", width: 70, height: 70, borderRadius: 6, overflow: "hidden", border: "1px solid #cbd5e1" }}>
+                        <img src={img} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <button 
+                          onClick={() => setInspectionForm(prev => ({ ...prev, photos: prev.photos.filter((_, i) => i !== idx) }))}
+                          style={{ position: "absolute", top: 2, right: 2, background: "rgba(15,23,42,0.8)", color: "#fff", border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                        >✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Fld>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <Btn v="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setIsInspectOpen(false)} disabled={inspectSubmitting}>Cancel</Btn>
+              <Btn v="gold" style={{ flex: 1, justifyContent: "center" }} onClick={handleCreateInspection} disabled={inspectSubmitting}>
+                {inspectSubmitting ? "⏳ Saving Log Entry..." : "💾 Commit Inspection Log"}
+              </Btn>
+            </div>
+
+          </div>
+        </Modal>
+      )}
+
     </div>
   );
 }
