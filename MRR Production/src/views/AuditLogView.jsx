@@ -43,7 +43,6 @@ export default function AuditLogView({ perms }) {
       (l.warehouse_code || "").toLowerCase().includes(search.toLowerCase()),
   );
 
-  // 🕒 Custom timestamp formatter to include specific hours & minutes
   const formatFullTimestamp = (rawDateString) => {
     if (!rawDateString) return "—";
     const date = new Date(rawDateString);
@@ -88,7 +87,7 @@ export default function AuditLogView({ perms }) {
         <Sel
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          style={{ width: 200 }}
+          style={{ width: 220 }}
         >
           <option value="all">All Action Classes</option>
           <option value="LOGIN">LOGIN</option>
@@ -96,6 +95,12 @@ export default function AuditLogView({ perms }) {
           <option value="INVENTORY_PULL">INVENTORY_PULL</option>
           <option value="INV_MUTATION">INV_MUTATION</option>
           <option value="PERM_CHANGE">PERM_CHANGE</option>
+          
+          {/* ── 🟢 NEW: DROPDOWN OPTIONS FOR THE RECENTLY INJECTED MODULE FILTERS ── */}
+          <option value="INVENTORY_ADJUST">INVENTORY_ADJUST</option>
+          <option value="FLEET_STATUS_CHANGE">FLEET_STATUS_CHANGE</option>
+          <option value="MAINTENANCE_REQUEST_CREATE">MAINTENANCE_REQUEST_CREATE</option>
+          <option value="JOB_BUILD_CREATE">JOB_BUILD_CREATE</option>
         </Sel>
       </div>
 
@@ -143,7 +148,6 @@ export default function AuditLogView({ perms }) {
             <tbody>
               {filteredLogs.map((l) => (
                 <tr key={l.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                  {/* Updated cell rendering with full timestamp detail */}
                   <td
                     style={{
                       padding: "12px 10px",
@@ -167,16 +171,20 @@ export default function AuditLogView({ perms }) {
                       color={
                         l.action_type === "PERM_CHANGE"
                           ? "purple"
-                          : l.action_type === "INV_MUTATION"
+                          : l.action_type === "INV_MUTATION" || l.action_type === "INVENTORY_ADJUST"
                             ? "amber"
-                            : "teal"
+                            : l.action_type === "JOB_BUILD_CREATE"
+                              ? "blue"
+                              : l.action_type === "FLEET_STATUS_CHANGE" || l.action_type === "MAINTENANCE_REQUEST_CREATE"
+                                ? "rose"
+                                : "teal"
                       }
                     >
                       {l.action_type}
                     </Bdg>
                   </td>
                   <td style={{ padding: "12px 10px", fontWeight: 600 }}>
-                    🏭 {l.warehouse_code}
+                    🏭 {l.warehouse_code || "SJR"}
                   </td>
                   <td
                     style={{

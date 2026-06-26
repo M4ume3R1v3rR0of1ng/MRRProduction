@@ -1,3 +1,4 @@
+// src/utils/translations.js
 export const translations = {
   en: {
     dashboard: "Dashboard",
@@ -35,7 +36,21 @@ export const translations = {
     pendingMaint: "pending maintenance requests",
     lowStockAlert: "item(s) at or below low stock threshold.",
     view: "View",
-    noPO: "No PO"
+    noPO: "No PO",
+
+    // Inventory Panel
+    inventoryTitle: "Warehouse Inventory Staging",
+    searchInventory: "Search stock materials...",
+    sku: "SKU", materialName: "Material Name", availableStock: "Available Stock", unit: "Unit", status: "Status",
+    
+    
+    // Fleet & Maintenance
+    fleetTitle: "Base Fleet Management",
+    trucks: "trucks", trailers: "trailers",
+    mileage: "Mileage", lastOil: "Last Oil Change", detailStatus: "Detail Status",
+    requestMaintBtn: "🔧 Request Maintenance",
+    activeTickets: "Active Tickets", pending: "Pending", scheduled: "Scheduled", completed: "Completed",
+    reportedNotes: "Reported Notes & Detailed Description", urgency: "Urgency Level"
   },
   es: {
     // Sidebar & Navigation
@@ -74,6 +89,30 @@ export const translations = {
     pendingMaint: "solicitudes de mantenimiento pendientes",
     lowStockAlert: "artículo(s) en o por debajo del umbral de stock bajo.",
     view: "Ver",
-    noPO: "Sin PO"
+    noPO: "Sin PO",
+
+    // ── 🟢 FIXED: ADDED MISSING INVENTORY SPANISH STRINGS ──
+    inventoryTitle: "Inventario de Almacén",
+    searchInventory: "🔍 Buscar materiales...",
+    sku: "SKU", 
+    materialName: "Nombre del Material", 
+    availableStock: "Stock Disponible", 
+    unit: "Unidad", 
+    status: "Estado",
+    
+    // ── 🟢 FIXED: ADDED MISSING FLEET & MAINTENANCE SPANISH STRINGS ──
+    fleetTitle: "Gestión de la Flota Base",
+    trucks: "camiones", 
+    trailers: "remolques",
+    mileage: "Kilometraje", 
+    lastOil: "Último Cambio de Aceite", 
+    detailStatus: "Estado de Limpieza",
+    requestMaintBtn: "🔧 Solicitar Mantenimiento",
+    activeTickets: "Tickets Activos", 
+    pending: "Pendiente", 
+    scheduled: "Programado", 
+    completed: "Completado",
+    reportedNotes: "Notas Reportadas y Descripción Detallada", 
+    urgency: "Nivel de Urgencia"
   }
 };

@@ -1,5 +1,5 @@
 // src/views/LoginScreen.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { Fld } from "../components/UIPrimitives";
@@ -16,9 +16,22 @@ export default function LoginScreen({ onLogin, activeLogo }) {
   const [pass, setPass] = useState("");
   const [confirm, setConfirm] = useState("");
   const [err, setErr] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
+
+  // ── 🟢 EFFECT: AUTO-LOAD DISPATCH SAVED CREDENTIALS ON MOUNT ──
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("mrr_remember_email") || "";
+    const savedPassword = localStorage.getItem("mrr_remember_pass") || "";
+    
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setPass(savedPassword);
+      setRememberMe(true);
+    }
+  }, []);
 
   const tryLogin = async () => {
     setErr("");
@@ -66,6 +79,15 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           setErr("This account has been deactivated by an administrator.");
           setSubmitting(false);
           return;
+        }
+
+        // ── 🟢 SAVING STRATEGY EVALUATION ──
+        if (rememberMe) {
+          localStorage.setItem("mrr_remember_email", email.trim().toLowerCase());
+          localStorage.setItem("mrr_remember_pass", pass);
+        } else {
+          localStorage.removeItem("mrr_remember_email");
+          localStorage.removeItem("mrr_remember_pass");
         }
 
         await logAction(
@@ -134,14 +156,13 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           "signup",
         );
 
-        // ── 🟢 FIXED: REMOVED OBSOLETE 'PENDING' PHRASING AND TOGGLED MODE INSTANTLY ──
         setSuccessMsg(
           "Registration successful! Your corporate profile is live. Go ahead and sign in below.",
         );
         setName("");
         setPass("");
         setConfirm("");
-        setMode("login"); // Drops them back into the active sign-in form immediately
+        setMode("login"); 
       }
     } catch (e) {
       setErr("Database transaction aborted during registration processing.");
@@ -243,7 +264,6 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           </div>
         </div>
 
-        {/* Updated visual rendering box mapping matching new message hook states */}
         {successMsg && (
           <div
             style={{
@@ -339,6 +359,22 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               disabled={submitting}
             />
           </Fld>
+        )}
+
+        {/* ── 🟢 NEW: REMEMBER ME CHECKBOX SWITCH TOGGLE TIER ── */}
+        {mode === "login" && (
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 16, marginTop: -4 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.navy, fontWeight: 700, cursor: "pointer" }}>
+              <input 
+                type="checkbox" 
+                checked={rememberMe} 
+                onChange={(e) => setRememberMe(e.target.checked)}
+                style={{ transform: "scale(1.15)", cursor: "pointer", accentColor: C.gold }}
+                disabled={submitting}
+              />
+              Remember Me
+            </label>
+          </div>
         )}
 
         {err && (

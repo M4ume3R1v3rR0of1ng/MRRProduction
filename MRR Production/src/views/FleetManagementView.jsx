@@ -62,6 +62,7 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
       "FLEET_MAINTENANCE",
       `Approved maintenance ticket for vehicle VIN: ${vehicleVin}`,
       { ticketId: requestId },
+            "fleet" 
     );
   };
 
@@ -288,21 +289,35 @@ export default function FleetManagementView({
     setForm({});
   };
 
-  const handleRemoveVehicle = async (vehicleId, vehicleName) => {
+ const handleRemoveVehicle = async (vehicleId, vehicleName) => {
     if (
       !window.confirm(
         `Are you sure you want to permanently remove ${vehicleName} from the fleet roster?`,
       )
     )
       return;
+      
     const { error } = await supabase
       .from("vehicles")
       .delete()
       .eq("id", vehicleId);
-    if (error) showToast(`Database Error: ${error.message}`, "error");
-    else setVehs((prev) => prev.filter((v) => v.id !== vehicleId));
-  };
+      
+    if (error) {
+      showToast(`Database Error: ${error.message}`, "error");
+    } else {
+      await logAction(
+        user.id,
+        user.email,
+        "FLEET_STATUS_CHANGE",
+        `Permanently purged vehicle asset record "${vehicleName}" (ID: ${vehicleId}) from the company fleet roster.`,
+        { deleted_vehicle_id: vehicleId, deleted_vehicle_name: vehicleName },
+        "fleet"
+      );
 
+      setVehs((prev) => prev.filter((v) => v.id !== vehicleId));
+      showToast("Vehicle successfully removed from roster.", "success");
+    }
+  };
   const vReqs = sel
     ? reqs.filter((r) => r.vid === sel.id && r.status !== "completed")
     : [];

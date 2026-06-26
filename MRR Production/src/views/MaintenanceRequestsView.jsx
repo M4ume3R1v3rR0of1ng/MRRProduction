@@ -14,6 +14,7 @@ import {
 } from "../components/UIPrimitives";
 import { sendEmail } from "../utils/email";
 import { useNotify } from "../context/NotificationContext";
+import { logAction } from "../utils/logger";
 
 export default function MaintenanceRequestsView({
   reqs,
@@ -22,8 +23,10 @@ export default function MaintenanceRequestsView({
   users,
   user,
   perms,
+  curUser,
 }) {
   const { showToast } = useNotify();
+  const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com", name: "Crew Member" };
 
   const [filt, setFilt] = useState("all");
   const [sel, setSel] = useState(null);
@@ -32,7 +35,7 @@ export default function MaintenanceRequestsView({
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTicket, setNewTicket] = useState({
     vehicleId: "",
-    type: [], // 🟢 FIXED: Changed to an array to handle multiple option checkboxes
+    type: [], 
     urgency: "standard",
     notes: "",
     photo: null,
@@ -49,7 +52,6 @@ export default function MaintenanceRequestsView({
       showToast("Please select a vehicle.", "error");
       return;
     }
-    // 🟢 FIXED: Check array selection count instead of a blank string
     if (!Array.isArray(newTicket.type) || newTicket.type.length === 0) {
       showToast("Please select at least one issue or classification checkbox.", "error");
       return;
@@ -91,12 +93,23 @@ export default function MaintenanceRequestsView({
     }
 
     const createdRecord = data && data[0] ? data[0] : requestPayload;
+
+    // ── 🟢 AUDIT LOG: NEW TICKET CREATED ──
+    await logAction(
+      user.id,
+      user.email,
+      "MAINTENANCE_REQUEST_CREATE",
+      `Filed new maintenance request for vehicle: ${vehicleName} (Urgency: ${newTicket.urgency.toUpperCase()})`,
+      { ticket_id: createdRecord.id || "N/A", vehicle_id: newTicket.vehicleId, issue_types: newTicket.type },
+      "maintenance"
+    );
+
     setReqs((prev) => [createdRecord, ...prev]);
     showToast("Maintenance request filed successfully!", "success");
 
     setNewTicket({
       vehicleId: "",
-      type: [], // 🟢 FIXED: Flushes checkbox state on clear
+      type: [], 
       urgency: "standard",
       notes: "",
       photo: null,
@@ -123,6 +136,19 @@ export default function MaintenanceRequestsView({
       return;
     }
 
+    const currentTicket = reqs.find((r) => r.id === id);
+    const vehicleLabel = currentTicket ? currentTicket.vname : `Ticket ID: ${id}`;
+
+    // ── 🟢 AUDIT LOG: STATUS CHANGE WORKFLOW ──
+    await logAction(
+      user.id,
+      user.email,
+      status === "completed" ? "FLEET_MAINTENANCE" : "INV_MUTATION", 
+      `Updated vehicle request status for "${vehicleLabel}" to: ${status.toUpperCase()}`,
+      { ticket_id: id, status_transition: status, scheduler_notes: whNotes },
+      "maintenance"
+    );
+
     setReqs((p) =>
       p.map((r) =>
         r.id === id ? { ...r, status, wh_notes: whNotes, scheduled_date: scheduledDate, completed_at: completedAt } : r,
@@ -138,6 +164,9 @@ export default function MaintenanceRequestsView({
       return;
     }
 
+    const targetTicket = reqs.find((r) => r.id === id);
+    const targetLabel = targetTicket ? targetTicket.vname : `ID: ${id}`;
+
     const { error } = await supabase
       .from("maintenance_requests")
       .delete()
@@ -147,6 +176,16 @@ export default function MaintenanceRequestsView({
       showToast("Failed to delete request: " + error.message, "error");
       return;
     }
+
+    // ── 🟢 AUDIT LOG: REQUEST REMOVED / DELETED ──
+    await logAction(
+      user.id,
+      user.email,
+      "FLEET_STATUS_CHANGE",
+      `Permanently purged maintenance request ticket file for vehicle: "${targetLabel}"`,
+      { purged_ticket_id: id, metadata_backup: targetTicket || {} },
+      "maintenance"
+    );
 
     setReqs((p) => p.filter((r) => r.id !== id));
     setSel(null);
@@ -273,7 +312,6 @@ export default function MaintenanceRequestsView({
                     Review →
                   </Btn>
                   
-                  {/* Quick-Trash Shortcut for Admin Roles */}
                   {perms.maint_manage && (
                     <button
                       onClick={(e) => {
@@ -315,7 +353,6 @@ export default function MaintenanceRequestsView({
               </Sel>
             </Fld>
 
-            {/* ── 🟢 FIXED: DROPDOWN CONVERTED TO A MULTI-SELECT CHECKBOX GRID ── */}
             <Fld label="Issue Classification (Select all that apply) *">
               <div style={{ 
                 display: "grid", 
@@ -367,7 +404,6 @@ export default function MaintenanceRequestsView({
               <TA placeholder="Describe exactly what is wrong..." value={newTicket.notes} onChange={(e) => setNewTicket({ ...newTicket, notes: e.target.value })} />
             </Fld>
 
-            {/* ── 🟢 FIXED: PROP MAP CORRECTED FROM value/onChange TO current/onUpload ── */}
             <Fld label="Visual Evidence / Broken Equipment Reference Photo*">
               <PhotoUpload 
                 current={newTicket.photo} 

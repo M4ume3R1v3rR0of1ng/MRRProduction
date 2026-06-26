@@ -1,9 +1,9 @@
 // src/views/DashboardView.jsx
-import { useState, useEffect } from "react"; // 🟢 Added useState and useEffect here
+import { useState, useEffect } from "react"; 
 import { C, displayName } from "../utils/helpers";
-import { Bdg, Btn, Modal } from "../components/UIPrimitives"; // 🟢 Imported Modal here
+import { Bdg, Btn, Modal } from "../components/UIPrimitives"; 
 import RecentActivityFeed from "../components/RecentActivityFeed";
-import { supabase } from "../utils/supabase"; // 🟢 Imported supabase client configuration
+import { supabase } from "../utils/supabase"; 
 import { translations } from "../utils/translations";
 
 export default function DashboardView({
@@ -24,23 +24,20 @@ export default function DashboardView({
   const low = inv.filter((i) => tot(i) <= i.alrt);
   const pendingReqs = reqs.filter((r) => r.status === "pending");
   
-  // ── 🟢 REALIGNED TRACKING MECHANISMS TO EXACT BACKEND FIELDS ──
   const myJobs = jobs.filter((j) => (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "completed");
   const newJobs = myJobs.filter((j) => j.newforassigned || j.newForAssigned);
 
   const [newJobAlert, setNewJobAlert] = useState(null);
 
-  // ── 🟢 MONITOR ASSIGNMENT ENGINES LIVE ──
   useEffect(() => {
     if (newJobs.length > 0 && !newJobAlert) {
-      setNewJobAlert(newJobs[0]); // Stage the first unacknowledged assignment popup box
+      setNewJobAlert(newJobs[0]); 
     }
   }, [jobs, newJobs, newJobAlert]);
 
   const acknowledgeJob = async () => {
     if (!newJobAlert) return;
     try {
-      // Clear the alert status in the database so it stops prompting
       const { error } = await supabase
         .from("jobs")
         .update({ newforassigned: false, newForAssigned: false })
@@ -48,7 +45,6 @@ export default function DashboardView({
 
       if (error) throw error;
 
-      // Clean local array states instantly 
       if (setJobs) {
         setJobs((p) =>
           p.map((j) => (j.id === newJobAlert.id ? { ...j, newforassigned: false, newForAssigned: false } : j))
@@ -133,7 +129,6 @@ export default function DashboardView({
   );
 
   const hour = new Date().getHours();
-
   const greeting =
     hour < 12 ? t.goodMorning : hour < 17 ? t.goodAfternoon : t.goodEvening;
 
@@ -145,51 +140,46 @@ export default function DashboardView({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <SC label="My Assigned Jobs" value={myJobs.length} color={C.tl} icon="📋" onClick={() => onNav("pull")} />
-          <SC label="Active Builds" value={myJobs.filter((j) => j.status === "active").length} color={C.am} icon="🔄" onClick={() => onNav("pull")} />
-          <SC label="My Open Tickets" value={myOpenTickets.length} color={C.pu} icon="🔧" onClick={() => onNav("requests")} />
+          <SC label={t.myAssignedJobs} value={myJobs.length} color={C.tl} icon="📋" onClick={() => onNav("pull")} />
+          <SC label={t.activeBuilds} value={myJobs.filter((j) => j.status === "active").length} color={C.am} icon="🔄" onClick={() => onNav("pull")} />
+          <SC label={t.myOpenTickets} value={myOpenTickets.length} color={C.pu} icon="🔧" onClick={() => onNav("requests")} />
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14, alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>📅 My Active Agenda</h3>
+              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>📅 {t.activeAgenda}</h3>
               {myJobs.length === 0 ? (
-                <p style={{ color: C.sub, fontSize: 12, margin: 0 }}>No upcoming roof builds assigned to you today.</p>
+                <p style={{ color: C.sub, fontSize: 12, margin: 0 }}>{t.noJobs}</p>
               ) : (
                 myJobs.map((j) => (
                   <div key={j.id} style={{ padding: "10px", background: C.lg, borderRadius: 8, marginBottom: 6, fontSize: 12, borderLeft: `3px solid ${C.tl}` }}>
-                    <div style={{ fontWeight: 700, color: C.navy }}>{j.name}</div>
-                    <div style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>📍 {j.address}</div>
+                    <div style={{ fontWeight: 700, color: C.navy }}>{j.title || j.name}</div>
+                    <div style={{ color: C.sub, fontSize: 10, marginTop: 2 }}>📍 {j.addr || j.address}</div>
                   </div>
                 ))
               )}
             </div>
 
             <div style={{ background: C.w, borderRadius: 12, padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>🚛 Assigned Fleet Truck</h3>
-              {/* ── 🚛 VEHICLE CHASSIS REGISTRY BLOCK SPECIFIC FIX ── */}
-{myVehicle ? (
-  <div style={{ background: C.w, padding: 16, borderRadius: 12, boxShadow: "0 2px 6px rgba(0,0,0,0.04)" }}>
-    <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, textTransform: "uppercase", marginBottom: 4 }}>
-      🚛 Your Assigned Fleet Truck
-    </div>
-    
-    {/* 🟢 CHANGED v.make and v.model OVER TO myVehicle */}
-    <div style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>
-      {myVehicle.make} {myVehicle.model}
-    </div>
-    
-    {/* 🟢 CHANGED v.plates OVER TO myVehicle */}
-    <div style={{ fontSize: 13, color: C.blue, fontWeight: 700, marginTop: 2 }}>
-      Plate ID: {myVehicle.plates || "No Plate Registered"}
-    </div>
-  </div>
-) : (
-  <div style={{ fontSize: 13, color: C.sub, fontStyle: "italic", padding: "12px 0" }}>
-    No company vehicle assigned to your crew profile for this current shift window.
-  </div>
-)}
+              <h3 style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 800, color: C.navy }}>🚛 {t.assignedTruck}</h3>
+              {myVehicle ? (
+                <div style={{ background: C.w, padding: 16, borderRadius: 12, boxShadow: "0 2px 6px rgba(0,0,0,0.04)" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, textTransform: "uppercase", marginBottom: 4 }}>
+                    {t.assignedTruck}
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>
+                    {myVehicle.make} {myVehicle.model}
+                  </div>
+                  <div style={{ fontSize: 13, color: C.blue, fontWeight: 700, marginTop: 2 }}>
+                    Plate ID: {myVehicle.plates || "No Plate Registered"}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontSize: 13, color: C.sub, fontStyle: "italic", padding: "12px 0" }}>
+                  {t.noTruck}
+                </div>
+              )}
             </div>
           </div>
           <RecentActivityFeed limit={5} />
@@ -251,9 +241,6 @@ export default function DashboardView({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          
-          
-          {/* ── 🟢 FIXED: ATTACHED DYNAMIC LOCAL DICTIONARY KEYS TO ALL PRIMITIVES ── */}
           <SC label={t.activeProjects} value={activeJobsList.length} color={C.am} icon="🔄" onClick={() => onNav("pull")} />
           <SC label={t.fleetDisruptions} value={deadlinedTrucks.length} color={deadlinedTrucks.length > 0 ? C.rd : C.gr} icon="🚛" onClick={() => onNav("fleet")} />
           <SC label={t.holdingValuation} value={`$${Math.round(totalInventoryCost).toLocaleString()}`} color={C.blue} icon="💰" onClick={() => onNav("reports")} />
@@ -293,7 +280,7 @@ export default function DashboardView({
         </h1>
         <p style={{ margin: "3px 0 0", color: C.sub, fontSize: 12 }}>
           Saint Joe Road Warehouse ·{" "}
-          {new Date().toLocaleDateString("en-US", {
+          {new Date().toLocaleDateString(lang === "es" ? "es-ES" : "en-US", {
             weekday: "long",
             month: "long",
             day: "numeric",
@@ -309,9 +296,9 @@ export default function DashboardView({
           style={{ background: C.tB, border: `2px solid ${C.tl}`, borderRadius: 10, padding: "12px 16px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
         >
           <div style={{ fontWeight: 700, color: C.tl, fontSize: 13 }}>
-            🎉 {newJobs.length} new job{newJobs.length !== 1 ? "s" : ""} assigned to you!
+            🎉 {newJobs.length} {t.newAssignments}
           </div>
-          <Btn v="teal" sz="sm">View →</Btn>
+          <Btn v="teal" sz="sm">{t.view} →</Btn>
         </div>
       )}
       {perms.maint_manage && pendingReqs.length > 0 && (
@@ -320,25 +307,19 @@ export default function DashboardView({
           style={{ background: C.pB, border: `2px solid ${C.pu}`, borderRadius: 10, padding: "12px 16px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
         >
           <div style={{ fontWeight: 700, color: C.pu, fontSize: 13 }}>
-            🔔 {pendingReqs.length} pending maintenance request{pendingReqs.length !== 1 ? "s" : ""}
+            🔔 {pendingReqs.length} {t.pendingMaint}
           </div>
-          <Btn v="purple" sz="sm">View →</Btn>
+          <Btn v="purple" sz="sm">{t.view} →</Btn>
         </div>
       )}
       {low.length > 0 && (
         <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 12, color: C.am, fontWeight: 600 }}>
-          ⚠️ {low.length} item(s) at or below low stock threshold.
+          ⚠️ {low.length} {t.lowStockAlert}
         </div>
       )}
 
-      {/* ── 🟢 FIXED: ATTACHED TRANSLATED STRINGS INTO QUICK ACTIONS PANEL ── */}
-      <div style={{
-        display: "flex",
-        gap: 12,
-        flexWrap: "wrap",
-        marginBottom: 20,
-        width: "100%"
-      }}>
+      {/* Quick Action Grid Panel */}
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20, width: "100%" }}>
         <QuickActionCard 
           title={t.pull} 
           subtitle={lang === "es" ? "Preparar materiales para cargar" : "Stage materials for loading"} 
@@ -380,9 +361,9 @@ export default function DashboardView({
         return renderFieldDashboard();
       })()}
       
-    {/* ── 🟢 NEW: INJECT DYNAMICS DIRECT CONSOLE NOTIFICATION MODAL ── */}
+      {/* Live Assignment Modal Overlay */}
       {newJobAlert && (
-        <Modal title="🚨 New Project Assignment Received" onClose={() => {}} disableCloseButton>
+        <Modal title={`🚨 ${t.newAssignments}`} onClose={() => {}} disableCloseButton>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
             <div style={{ fontSize: 42, marginBottom: 10 }}>🏗️</div>
             <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: 900, fontSize: 16 }}>
@@ -393,16 +374,16 @@ export default function DashboardView({
             </p>
             
             <div style={{ background: "#f8fafc", padding: 12, borderRadius: 8, textAlign: "left", fontSize: 12, border: `1px solid ${C.bd}`, marginBottom: 16 }}>
-              <strong>📍 Dispatch Address:</strong> {newJobAlert.addr || newJobAlert.address || "No Location Specified"}
+              <strong>📍 {lang === "es" ? "Dirección de Despacho" : "Dispatch Address"}:</strong> {newJobAlert.addr || newJobAlert.address || "No Location Specified"}
               {newJobAlert.notes && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
-                  <strong>📝 Crew Instructions:</strong> {newJobAlert.notes}
+                  <strong>📝 {lang === "es" ? "Instrucciones para la Cuadrilla" : "Crew Instructions"}:</strong> {newJobAlert.notes}
                 </div>
               )}
             </div>
 
             <Btn v="teal" onClick={acknowledgeJob} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
-              Got It, Open Job Materials Checklist →
+              {lang === "es" ? "Entendido, Abrir Lista de Materiales →" : "Got It, Open Job Materials Checklist →"}
             </Btn>
           </div>
         </Modal>

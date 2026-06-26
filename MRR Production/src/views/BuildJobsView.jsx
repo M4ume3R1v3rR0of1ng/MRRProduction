@@ -7,8 +7,7 @@ import { supabase } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
 import CrewCalendar from "../components/CrewCalendar";
 import { generatePDF } from "../utils/pdfGenerator";
-
-
+import { logAction } from "../utils/logger";
 
 export default function BuildJobs({
   jobs = [],
@@ -16,12 +15,14 @@ export default function BuildJobs({
   inv = [],
   users = [],
   user,
+  curUser,
   perms,
   jSC,
   onNav,
   acculynxConfig,
 }) {
   const { showToast } = useNotify();
+  const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com" };
   const [subView, setSubView] = useState("list");
   const [filt, setFilt] = useState("all");
   const [modal, setModal] = useState(null);
@@ -45,7 +46,6 @@ export default function BuildJobs({
 
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
-  const jobId = uid();
 
   const fieldUsers = users.filter(
     (u) => (u.role === "field" || u.role === "Site Supervisor") && u.active,
@@ -157,22 +157,20 @@ export default function BuildJobs({
 
     setSaving(true);
     const now = new Date().toISOString();
-    const jobId = uid();
+    const targetJobId = uid();
     const job = {
-      id: jobId,
+      id: targetJobId,
       po: wPO.po,
-
-      title: wPO.name,       // Maps your name input to the 'title' column
+      title: wPO.name,       
       addr: wPO.addr,
       notes: wPO.notes,
       scheduledDate: wPO.scheduledDate || new Date().toISOString().split("T")[0],
       status: asDraft ? "draft" : "approved",
-      assignedto: wAssign,   // Changed from assignedTo -> assignedto
-      created: now,          // Changed from createdAt -> created
-      approved: asDraft ? "" : now, // Changed from approvedAt -> approved
-      completed: "",         // Changed from completedAt -> completed
-
-      newforassigned: !asDraft && !!wAssign, // Changed from newForAssigned -> newforassigned
+      assignedto: wAssign,   
+      created: now,          
+      approved: asDraft ? "" : now, 
+      completed: "",         
+      newforassigned: !asDraft && !!wAssign, 
       syncStatus: null,
       syncedAt: "",
       syncPayload: null,
@@ -184,6 +182,16 @@ export default function BuildJobs({
       const { error } = await supabase.from("jobs").insert([job]);
       if (error) throw error;
       setJobs((p) => [...p, job]);
+
+      await logAction(
+        activeUser.id,
+        activeUser.email,
+        asDraft ? "JOB_BUILD_DRAFT" : "JOB_BUILD_CREATE",
+        `${asDraft ? "Drafted" : "Created & Approved"} a new roofing job build contract for: "${wPO.name}" (PO: ${wPO.po})`,
+        { job_id: targetJobId, po_number: wPO.po, material_count: wItems.length, assigned_supervisor_id: wAssign || "unassigned" },
+        "production"
+      );
+
       if (!asDraft && wAssign) {
         const assignedUser = users.find((u) => u.id === wAssign);
         if (assignedUser?.email) {
@@ -234,6 +242,15 @@ export default function BuildJobs({
         .eq("id", sel.id);
       if (error) throw error;
 
+      await logAction(
+        activeUser.id,
+        activeUser.email,
+        "JOB_BUILD_CREATE",
+        `Approved and deployed production job draft "${sel.name || sel.title}" (PO: ${sel.po}) to active field pipeline.`,
+        { job_id: sel.id, assigned_supervisor_id: apAssign, timestamp: approvedAtTime },
+        "production"
+      );
+
       setJobs((p) =>
         p.map((j) =>
           j.id === sel.id
@@ -248,19 +265,19 @@ export default function BuildJobs({
         ),
       );
 
-
       const assignedUser = users.find((u) => u.id === apAssign);
       if (assignedUser?.email) {
         sendEmail({
           to: assignedUser.email,
-          subject: `Job Approved & Assigned: ${sel.name}`,
+          subject: `Job Approved & Assigned: ${sel.name || sel.title}`,
           html: `<h2>A job has been approved and assigned to you</h2>
-                 <p><strong>Job:</strong> ${sel.name}</p>
+                 <p><strong>Job:</strong> ${sel.name || sel.title}</p>
                  <p><strong>PO:</strong> ${sel.po}</p>
                  <p><strong>Address:</strong> ${sel.addr || "N/A"}</p>
                  <p>Log in to pull inventory and get started.</p>`,
         });
       }
+
       showToast("Project successfully approved and assigned.", "success");
       setSel(null);
       setModal(null);
@@ -277,9 +294,22 @@ export default function BuildJobs({
   };
 
   const deleteJob = async (jobId) => {
+    const targetJob = jobs.find((j) => j.id === jobId);
+    const targetLabel = targetJob ? (targetJob.name || targetJob.title) : `ID: ${jobId}`;
+
     try {
       const { error } = await supabase.from("jobs").delete().eq("id", jobId);
       if (error) throw error;
+
+      await logAction(
+        activeUser.id,
+        activeUser.email,
+        "JOB_BUILD_DELETE",
+        `Permanently purged job contract "${targetLabel}" (PO: ${targetJob?.po || "—"}) from system registry.`,
+        { deleted_job_id: jobId, archive_backup: targetJob || {} },
+        "production"
+      );
+
       setJobs((p) => p.filter((j) => j.id !== jobId));
       if (sel?.id === jobId) setSel(null);
       showToast("Job track purged successfully.", "success");
@@ -300,6 +330,16 @@ export default function BuildJobs({
         .update({ status: "closed", closedAt })
         .eq("id", sel.id);
       if (error) throw error;
+
+      await logAction(
+        activeUser.id,
+        activeUser.email,
+        "JOB_BUILD_CLOSE",
+        `Archived and locked completed job contract file for: "${sel.name || sel.title}" (PO: ${sel.po})`,
+        { job_id: sel.id, archived_timestamp: closedAt },
+        "production"
+      );
+
       const updated = { ...sel, status: "closed", closedAt };
       setJobs((p) => p.map((j) => (j.id === sel.id ? updated : j)));
       setSel(updated);
@@ -317,6 +357,16 @@ export default function BuildJobs({
         .update({ status: "completed", closedAt: "" })
         .eq("id", sel.id);
       if (error) throw error;
+
+      await logAction(
+        activeUser.id,
+        activeUser.email,
+        "JOB_BUILD_REOPEN",
+        `Reopened archived job file back to active completion view: "${sel.name || sel.title}" (PO: ${sel.po})`,
+        { job_id: sel.id },
+        "production"
+      );
+
       const updated = { ...sel, status: "completed", closedAt: "" };
       setJobs((p) => p.map((j) => (j.id === sel.id ? updated : j)));
       setSel(updated);
@@ -359,7 +409,6 @@ export default function BuildJobs({
           </p>
         </div>
 
-        {/* Sub-navigation View Switchers */}
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <div style={{ display: "flex", background: C.lg, padding: 4, borderRadius: 8, marginRight: 8 }}>
             <button
@@ -390,7 +439,6 @@ export default function BuildJobs({
         </div>
       </div>
 
-      {/* ── 🔀 DYNAMIC ELEMENT CONTENT SWITCHER EDGE ── */}
       {subView === "calendar" ? (
         <CrewCalendar
           jobs={jobs}
@@ -403,7 +451,6 @@ export default function BuildJobs({
         />
       ) : (
         <>
-          {/* 🔍 Search Layer Panel */}
           <div
             style={{
               display: "flex",
@@ -431,7 +478,6 @@ export default function BuildJobs({
             )}
           </div>
 
-          {/* 🏷️ Status Filters Row */}
           <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
             {[
               ["all", "All Jobs"],
@@ -467,10 +513,9 @@ export default function BuildJobs({
             ))}
           </div>
 
-          {/* 📋 Pipeline Cards List Matrix Grid */}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {shown.map((job) => {
-              const sup = users.find((u) => u.id === job.assignedTo);
+              const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
               const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
               const pulledCount = currentItems.filter((i) => i && i.pulled > 0).length;
 
@@ -523,20 +568,22 @@ export default function BuildJobs({
                       {job.syncStatus === "failed" && <Bdg color="red">⚠️ Sync Failed</Bdg>}
                       {job.syncStatus === "manual" && <Bdg color="amber">📋 Sync Pending</Bdg>}
                     </div>
-                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 15, marginBottom: 2 }}>{job.name}</div>
+                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 15, marginBottom: 2 }}>{job.title || job.name}</div>
                     <div style={{ fontSize: 12, color: C.sub, marginBottom: 6 }}>{job.addr}</div>
                     <div style={{ display: "flex", gap: 14, fontSize: 11, color: C.sub, flexWrap: "wrap" }}>
-                      <span>📦 {Math.max((job.items || job.materials || []).length, 0)} items</span>                      {sup ? <span>👤 {sup.name}</span> : <span style={{ color: C.am }}>⚠️ Unassigned</span>}
-                      <span>Created {fd(job.createdAt)}</span>
+                      <span>📦 {Math.max(currentItems.length, 0)} items</span>
+                      {sup ? <span>👤 {sup.name}</span> : <span style={{ color: C.am }}>⚠️ Unassigned</span>}
+                      <span>Created {fd(job.created || job.createdAt)}</span>
                     </div>
                   </div>
 
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     {(job.status === "active" || job.status === "completed") && (
                       <div style={{ marginBottom: 8 }}>
-                        <div style={{ fontSize: 10, color: C.sub, marginBottom: 3 }}>{pulledCount}/{job.items.length} pulled</div>
+                        <div style={{ fontSize: 10, color: C.sub, marginBottom: 3 }}>{pulledCount}/{currentItems.length} pulled</div>
                         <div style={{ height: 5, width: 90, background: C.lg, borderRadius: 3 }}>
-<div style={{ height: "100%", width: `${currentItems.length > 0 ? (pulledCount / currentItems.length) * 100 : 0}%` }} />                        </div>
+                          <div style={{ height: "100%", width: `${currentItems.length > 0 ? (pulledCount / currentItems.length) * 100 : 0}%` }} />
+                        </div>
                       </div>
                     )}
                     {perms.jobs_approve && job.status === "draft" && (
@@ -546,7 +593,7 @@ export default function BuildJobs({
                         onClick={(e) => {
                           e.stopPropagation();
                           setSel(job);
-                          setApAssign(job.assignedTo || "");
+                          setApAssign(job.assignedto || job.assignedTo || "");
                           setModal("approve");
                         }}
                       >
@@ -595,7 +642,7 @@ export default function BuildJobs({
       {/* ── 📂 MODAL: DETAILS DRAWER VIEW ── */}
       {modal === "detail" && sel && (
         <Modal
-          title={`${sel.po} — ${sel.name}`}
+          title={`${sel.po} — ${sel.title || sel.name}`}
           onClose={() => {
             setModal(null);
             setSel(null);
@@ -608,7 +655,7 @@ export default function BuildJobs({
                 v="teal"
                 sz="sm"
                 onClick={() => {
-                  setApAssign(sel.assignedTo || "");
+                  setApAssign(sel.assignedto || sel.assignedTo || "");
                   setModal("approve");
                 }}
               >
@@ -655,12 +702,12 @@ export default function BuildJobs({
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: 8, marginBottom: 16 }}>
             {[
-              ["Status", <Bdg color={jSC[sel.status].c}>{jSC[sel.status].l}</Bdg>],
+              ["Status", <Bdg color={jSC[sel.status]?.c || "gray"}>{jSC[sel.status]?.l || sel.status}</Bdg>],
               ["PO", sel.po],
-              ["Assigned To", users.find((u) => u.id === sel.assignedTo)?.name || "Unassigned"],
-              ["Created", fd(sel.createdAt)],
-              ["Approved", fd(sel.approvedAt)],
-              ["Completed", fd(sel.completedAt)],
+              ["Assigned To", users.find((u) => u.id === sel.assignedto || u.id === sel.assignedTo)?.name || "Unassigned"],
+              ["Created", fd(sel.created || sel.createdAt)],
+              ["Approved", fd(sel.approved || sel.approvedAt)],
+              ["Completed", fd(sel.completed || sel.completedAt)],
             ].map(([k, v]) => (
               <div key={k} style={{ background: C.lg, borderRadius: 8, padding: 10 }}>
                 <div style={{ fontSize: 10, color: C.sub, fontWeight: 700, textTransform: "uppercase" }}>{k}</div>
@@ -678,7 +725,7 @@ export default function BuildJobs({
             </thead>
             <tbody>
               {((sel.items || sel.materials || [])).map((item) => {
-                if (!item) return null; // Safe guard against empty items
+                if (!item) return null;
                 return (
                   <tr key={item.iid || item.id || Math.random()} style={{ borderTop: `1px solid ${C.lg}` }}>
                     <td style={{ padding: "8px 10px", fontWeight: 700, color: C.navy }}>{item.iname || item.name || "—"}</td>
@@ -699,13 +746,13 @@ export default function BuildJobs({
 
       {/* ── 📂 MODAL: SUPERVISOR APPROVAL POPUP ── */}
       {modal === "approve" && sel && (
-        <Modal title={`Approve: ${sel.name}`} onClose={() => setModal(null)}>
+        <Modal title={`Approve: ${sel.title || sel.name}`} onClose={() => setModal(null)}>
           <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: C.tl, fontWeight: 600 }}>
             Approving will notify the assigned Site Supervisor.
           </div>
           <div style={{ background: C.lg, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12 }}>
-            <strong style={{ color: C.navy }}>{sel.po} — {sel.name}</strong>
-            <div style={{ color: C.sub, marginTop: 2 }}>{sel.items.length} items planned</div>
+            <strong style={{ color: C.navy }}>{sel.po} — {sel.title || sel.name}</strong>
+            <div style={{ color: C.sub, marginTop: 2 }}>{Math.max((sel.items || sel.materials || []).length, 0)} items planned</div>
           </div>
           <Fld label="Assign to Site Supervisor *">
             <Sel value={apAssign} onChange={(e) => setApAssign(e.target.value)} disabled={approving}>
@@ -802,10 +849,8 @@ export default function BuildJobs({
                   <Inp value={iSrch} onChange={(e) => setISrch(e.target.value)} placeholder="🔍 Search inventory..." style={{ marginBottom: 8 }} />
                   <div style={{ maxHeight: 300, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
                     {(filtInv || []).map((item) => {
-    if (!item) return null; // Skip any empty items safely
-    const added = (wItems || []).find((i) => i && i.iid === item.id);
-
-
+                      if (!item) return null;
+                      const added = (wItems || []).find((i) => i && i.iid === item.id);
 
                       return (
                         <div key={item.id} style={{ background: C.w, borderRadius: 8, padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", border: `1.5px solid ${added ? C.blue : "transparent"}`, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>

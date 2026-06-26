@@ -13,18 +13,22 @@ import {
 } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
+import { translations } from "../utils/translations";
 
-export default function InventoryView({
-  inv = [],
-  setInv,
-  users = [],
-  user,
-  perms,
-  invPhotos = {},
-  setInvPhotos,
-  inventorySearchQuery = "",
-  setInventorySearchQuery,
+
+export default function InventoryView({ 
+  inv = [], 
+  setInv, 
+  users, 
+  user, 
+  perms, 
+  inventorySearchQuery, 
+  setInventorySearchQuery, 
+  lang = "en",
+  invPhotos = [], 
+  setInvPhotos
 }) {
+  const t = translations[lang] || translations.en;
   const [saving, setSaving] = useState(false);
   const [srch, setSrch] = useState(inventorySearchQuery);
   const [cat, setCat] = useState("All");
@@ -104,13 +108,16 @@ export default function InventoryView({
 
       setInv((p) => [...p, record]);
 
-      // Fix 2: Null safety cascade checks applied on log definitions
+     // Fix 2: Null safety cascade checks applied on log definitions
       await logAction(
         user?.id ?? null,
         user?.email ?? null,
         "INV_MUTATION",
         `Created new catalog material item: "${record.name}"`,
         { item_id: record.id, category: record.cat, unit: record.unit },
+        
+        // ── 🟢 FIXED: ADDED THE 6TH PARAMETER STRATEGIC MODULE TAG ──
+        "inventory" 
       );
 
       showToast("Catalog item added successfully.", "success");
@@ -152,6 +159,9 @@ export default function InventoryView({
         "INV_MUTATION",
         `Modified catalog specifications for item: "${sel.name}"`,
         { item_id: sel.id, changes: updatedFields },
+        
+        // ── 🟢 FIXED: ADDED THE 6TH PARAMETER STRATEGIC MODULE TAG ──
+        "inventory"
       );
 
       showToast("Changes saved successfully.", "success");
@@ -349,39 +359,48 @@ export default function InventoryView({
   };
 
   return (
+    
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>📦 Inventory</h1>
-          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: 12 }}>{inv.length} catalog positions registered</p>
+          {/* ── 🟢 FIXED: TRANSLATED CORE MAIN HEADER TERMINALS ── */}
+          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>
+            📦 {t.inventory || "Inventory"}
+          </h1>
+          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: 12 }}>
+            {inv.length} {lang === "es" ? "posiciones de catálogo registradas" : "catalog positions registered"} ·{" "}
+            {lang === "es" ? "Niveles de stock en tiempo real" : "Real-time stock level counts"}
+          </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {perms.inv_bulk_receive && (
             <Btn v="gold" onClick={() => { setBulkItems([]); setBulkMeta({ date: new Date().toISOString().split("T")[0], po: "", vendor: "" }); setBulkSrch(""); setModal("bulk"); }}>
-              📦 Receive Bulk Order
+              {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
+              📦 {lang === "es" ? "Recibir Pedido en Bloque" : "Receive Bulk Order"}
             </Btn>
           )}
           {perms.inv_edit && (
             <Btn v="primary" onClick={() => { setModal("add"); setForm({ unit: "rolls", alrt: "10" }); }}>
-              + Add Item
+              {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
+              + {lang === "es" ? "Agregar Artículo" : "Add Item"}
             </Btn>
           )}
         </div>
       </div>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-    <Inp 
-      placeholder="🔍 Search items..." 
-      value={srch} 
-      onChange={(e) => {
-        setSrch(e.target.value);
-        // Sync back up to parent components to prevent data state mismatches on view changes
-        if (typeof setInventorySearchQuery === "function") {
-          setInventorySearchQuery(e.target.value);
-        }
-      }} 
-      style={{ flex: 1, minWidth: 160, maxWidth: 300 }} 
-    />
+        <Inp 
+          /* ── 🟢 FIXED: TRANSLATED SEARCH INPUT PLACEHOLDER ── */
+          placeholder={t.searchInventory || "🔍 Search items..."} 
+          value={srch} 
+          onChange={(e) => {
+            setSrch(e.target.value);
+            if (typeof setInventorySearchQuery === "function") {
+              setInventorySearchQuery(e.target.value);
+            }
+          }} 
+          style={{ flex: 1, minWidth: 160, maxWidth: 300 }} 
+        />
     <Sel value={cat} onChange={(e) => setCat(e.target.value)} style={{ width: "auto" }}>
       {cats.map((c) => (<option key={c} value={c}>{c}</option>))}
     </Sel>
@@ -406,6 +425,7 @@ export default function InventoryView({
           const stockStatus = getStockStatusMeta(stock, item.alrt);
 
           return (
+            
             <div
               key={item.id}
               onClick={() => { setSel(item); setForm({ name: item.name, cat: item.cat, unit: item.unit, alrt: item.alrt }); setModal("detail"); }}
