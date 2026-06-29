@@ -216,7 +216,8 @@ export default function SettingsView({
       });
 
       if (!response.ok) {
-        throw new Error("Handshake connection refused. Double check your API authentication key token string.");
+const errText = await response.text().catch(() => `HTTP ${response.status}`);
+throw new Error(errText);
       }
 
       showToast("AccuLynx Gateway synchronization confirmed and running successfully! 🔄", "success");
