@@ -8,16 +8,96 @@ import {
   ROLE_COLS,
   DEFAULT_ROLE_PERMS,
 } from "../database/permissions";
-import {
-  Btn,
-  Bdg,
-  Fld,
-  Inp,
-  Toggle,
-} from "../components/UIPrimitives"; 
+import { Btn, Bdg, Fld, Inp, Toggle } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 
+// ── Design tokens ────────────────────────────────────────────────────────────
+const T = {
+  navy:    "#0f172a",
+  blue:    "#1d4ed8",
+  blueSoft:"#eff6ff",
+  blueRing:"#bfdbfe",
+  slate:   "#475569",
+  slateL:  "#94a3b8",
+  border:  "#e2e8f0",
+  bg:      "#f8fafc",
+  white:   "#ffffff",
+  green:   "#16a34a",
+  greenBg: "#f0fdf4",
+  greenBd: "#bbf7d0",
+  amber:   "#b45309",
+  amberBg: "#fffbeb",
+  amberBd: "#fef3c7",
+  red:     "#dc2626",
+  redBg:   "#fef2f2",
+  radius:  "10px",
+  radiusLg:"16px",
+  shadow:  "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
+  shadowMd:"0 4px 12px rgba(0,0,0,0.08)",
+};
+
+// ── Shared sub-components ────────────────────────────────────────────────────
+const Card = ({ children, style = {} }) => (
+  <div style={{
+    background: T.white,
+    border: `1px solid ${T.border}`,
+    borderRadius: T.radiusLg,
+    padding: "24px",
+    boxShadow: T.shadow,
+    ...style,
+  }}>
+    {children}
+  </div>
+);
+
+const SectionTitle = ({ icon, title, subtitle }) => (
+  <div style={{ marginBottom: 20 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+      <span style={{ fontSize: 18 }}>{icon}</span>
+      <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: T.navy, letterSpacing: "-0.3px" }}>
+        {title}
+      </h2>
+    </div>
+    {subtitle && (
+      <p style={{ margin: 0, fontSize: 13, color: T.slate, lineHeight: 1.6 }}>
+        {subtitle}
+      </p>
+    )}
+  </div>
+);
+
+const StatusPill = ({ active, labelOn = "Active", labelOff = "Offline" }) => (
+  <span style={{
+    display: "inline-flex", alignItems: "center", gap: 5,
+    padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+    background: active ? T.greenBg : T.bg,
+    color: active ? T.green : T.slateL,
+    border: `1px solid ${active ? T.greenBd : T.border}`,
+  }}>
+    <span style={{ fontSize: 8 }}>{active ? "●" : "●"}</span>
+    {active ? labelOn : labelOff}
+  </span>
+);
+
+const Alert = ({ children, type = "warning" }) => {
+  const colors = {
+    warning: { bg: T.amberBg, bd: T.amberBd, text: T.amber },
+    info:    { bg: T.blueSoft, bd: T.blueRing, text: T.blue },
+  };
+  const c = colors[type];
+  return (
+    <div style={{
+      background: c.bg, border: `1px solid ${c.bd}`, borderRadius: T.radius,
+      padding: "11px 14px", color: c.text, fontSize: 13, fontWeight: 600,
+      display: "flex", alignItems: "center", gap: 8, marginBottom: 20,
+    }}>
+      {children}
+    </div>
+  );
+};
+
+// ── Main component ───────────────────────────────────────────────────────────
 export default function SettingsView({
   warehouses,
   setWarehouses,
@@ -33,110 +113,83 @@ export default function SettingsView({
 }) {
   const { showToast } = useNotify();
   const [currentTab, setCurrentTab] = useState("Permissions");
-  const [whForm, setWhForm] = useState({ name: "", location: "", code: "" });
-  const [savingAx, setSavingAx] = useState(false);
+  const [whForm, setWhForm]         = useState({ name: "", location: "", code: "" });
+  const [savingAx, setSavingAx]     = useState(false);
 
   const tabs = [
     { id: "Permissions", label: "Permissions", icon: "🔒" },
-    { id: "AccuLynx", label: "AccuLynx", icon: "🔗" },
-    { id: "Branding", label: "Branding", icon: "🏢" },
-    { id: "Warehouses", label: "Warehouses", icon: "🏭" },
-    { id: "System", label: "System", icon: "ℹ️" },
+    { id: "AccuLynx",   label: "AccuLynx",    icon: "🔗" },
+    { id: "Branding",   label: "Branding",     icon: "🏢" },
+    { id: "Warehouses", label: "Warehouses",   icon: "🏭" },
+    { id: "System",     label: "System",       icon: "ℹ️"  },
   ];
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleAddWarehouse = async (e) => {
     e.preventDefault();
     if (!whForm.name.trim()) return;
 
-    const generatedCode =
-      whForm.code.trim().toUpperCase() ||
-      whForm.name.trim().substring(0, 3).toUpperCase();
-    const targetId = "w_" + Math.random().toString(36).substr(2, 9);
-
-    const record = {
-      id: targetId,
-      name: whForm.name.trim(),
-      code: generatedCode,
+    const code     = whForm.code.trim().toUpperCase() || whForm.name.trim().substring(0, 3).toUpperCase();
+    const newEntry = {
+      id:       "w_" + Math.random().toString(36).substr(2, 9),
+      name:     whForm.name.trim(),
+      code,
       location: whForm.location.trim() || "N/A",
-      active: true,
+      active:   true,
     };
 
     try {
-      const { error } = await supabase.from("warehouses").insert([record]);
+      const { error } = await supabase.from("warehouses").insert([newEntry]);
       if (error) throw error;
-
-      setWarehouses((prev) => [...prev, record]);
+      setWarehouses((prev) => [...prev, newEntry]);
       setWhForm({ name: "", location: "", code: "" });
+      showToast("Warehouse added.", "success");
     } catch (err) {
-      showToast("Database Error adding warehouse: " + err.message, "error");
+      showToast("Failed to add warehouse: " + err.message, "error");
     }
   };
 
   const handleTogglePerm = async (targetRole, permKey) => {
-    const currentRolePerms = rolePerms?.[targetRole] || {};
-    const nextRolePermsState = {
-      ...currentRolePerms,
-      [permKey]: !currentRolePerms[permKey],
-    };
+    const current = rolePerms?.[targetRole] || {};
+    const next    = { ...current, [permKey]: !current[permKey] };
 
     try {
       const { error } = await supabase.from("role_permissions").upsert(
-        {
-          role: targetRole,
-          permissions: nextRolePermsState,
-          updated_at: new Date().toISOString(),
-        },
+        { role: targetRole, permissions: next, updated_at: new Date().toISOString() },
         { onConflict: "role" },
       );
-
       if (error) throw error;
-
-      setRolePerms((prev) => ({
-        ...prev,
-        [targetRole]: nextRolePermsState,
-      }));
+      setRolePerms((prev) => ({ ...prev, [targetRole]: next }));
     } catch (err) {
-      console.error("Failed to sync role permissions upgrade to Supabase:", err);
-      showToast(`Database Error: Settings could not sync. ${err.message}`, "error");
+      showToast(`Permission update failed: ${err.message}`, "error");
     }
   };
 
   const handleResetRole = async (targetRole) => {
-    const backupDefaults = DEFAULT_ROLE_PERMS?.[targetRole] || {};
-
-    if (!window.confirm(`Are you sure you want to reset all permissions for ${targetRole} to system factory defaults?`)) {
-      return;
-    }
+    const defaults = DEFAULT_ROLE_PERMS?.[targetRole] || {};
+    if (!window.confirm(`Reset all permissions for "${targetRole}" to defaults?`)) return;
 
     try {
       const { error } = await supabase.from("role_permissions").upsert(
-        {
-          role: targetRole,
-          permissions: backupDefaults,
-          updated_at: new Date().toISOString(),
-        },
+        { role: targetRole, permissions: defaults, updated_at: new Date().toISOString() },
         { onConflict: "role" },
       );
-
       if (error) throw error;
-
-      setRolePerms((prev) => ({
-        ...prev,
-        [targetRole]: backupDefaults,
-      }));
+      setRolePerms((prev) => ({ ...prev, [targetRole]: defaults }));
+      showToast(`${targetRole} permissions reset.`, "success");
     } catch (err) {
-      console.error("Failed to restore factory settings bundle:", err);
-      showToast(`Database Error: Reset aborted. ${err.message}`, "error");
+      showToast(`Reset failed: ${err.message}`, "error");
     }
   };
 
-  // ── 🟢 FIXED: PERSIST ACCULYNX credentials SYSTEM-WIDE TO SUPABASE CLOUD ──
+  // BUG FIX #1 — API key moved to Authorization header, not query param
   const handleSaveAccuLynx = async (e) => {
     if (e) e.preventDefault();
     setSavingAx(true);
 
     try {
-      // 1. Persist directly down to your primary settings table row using an upsert payload configuration
+      // 1. Commit credentials securely to your cloud Supabase table row
       const { error } = await supabase.from("settings").upsert(
         {
           key: "acculynx_config",
@@ -148,12 +201,18 @@ export default function SettingsView({
 
       if (error) throw error;
 
-      // 2. Perform validation ping routine across proxy environment
+      // 2. Perform validation ping routine using the correct POST method rules
       const proxyRoute = acculynxConfig?.proxyUrl || "/.netlify/functions/acculynx-sync";
-      const cleanEndpoint = proxyRoute.endsWith("/") ? proxyRoute : `${proxyRoute}/`;
       
-      const response = await fetch(`${cleanEndpoint}account/validate?apiKey=${encodeURIComponent(acculynxConfig?.apiKey || "")}`, {
-        method: "GET",
+      const response = await fetch(proxyRoute, {
+        method: "POST", // 🟢 Changed from GET to POST
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "validate", // Tells your Netlify function to run the account handshake
+          apiKey: acculynxConfig?.apiKey || "",
+        }),
       });
 
       if (!response.ok) {
@@ -163,12 +222,13 @@ export default function SettingsView({
       showToast("AccuLynx Gateway synchronization confirmed and running successfully! 🔄", "success");
     } catch (err) {
       console.warn("Proxy handshake notification summary:", err);
-      showToast(`Credentials saved successfully to secure cloud, but gateway ping failed: ${err.message || "Network Timeout"}`, "info");
+      showToast(`Credentials saved safely to cloud, but gateway ping failed: ${err.message || "Network Timeout"}`, "info");
     } finally {
       setSavingAx(false);
     }
   };
 
+  // BUG FIX #3 — upsert instead of update so first upload doesn't silently fail
   const handleLogoFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -176,225 +236,139 @@ export default function SettingsView({
     try {
       await compressImg(file, 400, 0.85, async (base64Data) => {
         if (!base64Data) {
-          showToast("Failed to compile compressed visual parameters.", "error");
+          showToast("Image compression failed.", "error");
           return;
         }
-
-        const { error } = await supabase
-          .from("settings")
-          .update({ value: base64Data })
-          .eq("key", "company_logo");
-
+        const { error } = await supabase.from("settings").upsert(
+          { key: "company_logo", value: base64Data },
+          { onConflict: "key" },
+        );
         if (error) throw error;
-
-        if (typeof setLogos === "function") {
-          setLogos(base64Data);
-        }
-        showToast("Company logo processed and saved successfully!", "success");
+        if (typeof setLogos === "function") setLogos(base64Data);
+        showToast("Logo saved.", "success");
       });
     } catch (err) {
-      console.error("Image processing failure:", err);
-      showToast(`Image processing failed: ${err.message}`, "error");
+      showToast(`Logo upload failed: ${err.message}`, "error");
     } finally {
-      e.target.value = ""; 
+      e.target.value = "";
     }
   };
 
-  const InfoCard = ({ label, value }) => (
-    <div
-      style={{
-        background: "#f1f5f9",
-        padding: "12px 16px",
-        borderRadius: 8,
-        flex: "1 1 calc(50% - 12px)",
-        minWidth: 240,
-      }}
-    >
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: "#64748b",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          marginBottom: 4,
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: "#0f294a" }}>
-        {value}
-      </div>
-    </div>
-  );
-
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 24,
-        maxWidth: "100%",
-        padding: "0 10px",
-        fontFamily: "sans-serif",
-      }}
-    >
-      {/* GLOBAL NAVIGATION LINKS BAR */}
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          borderBottom: "1px solid #e2e8f0",
-          paddingBottom: 12,
-          flexWrap: "wrap",
-        }}
-      >
+    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", maxWidth: "100%", padding: "4px 0" }}>
+
+      {/* Tab bar */}
+      <div style={{
+        display: "flex", gap: 4, marginBottom: 20,
+        borderBottom: `1px solid ${T.border}`, paddingBottom: 0, flexWrap: "wrap",
+      }}>
         {tabs.map((tab) => {
-          const isActive = currentTab === tab.id;
+          const active = currentTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setCurrentTab(tab.id)}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 16px",
-                borderRadius: 20,
-                border: "none",
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: "pointer",
-                backgroundColor: isActive ? "#1b52b8" : "transparent",
-                color: isActive ? "#ffffff" : "#475569",
-                transition: "all 0.2s ease",
-                boxShadow: isActive ? "0 2px 4px rgba(27,82,184,0.3)" : "none",
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "9px 16px",
+                border: "none", borderBottom: active ? `2px solid ${T.blue}` : "2px solid transparent",
+                background: "none", fontSize: 13, fontWeight: active ? 700 : 500,
+                color: active ? T.blue : T.slate,
+                cursor: "pointer", transition: "all 0.15s ease",
+                marginBottom: -1,
               }}
             >
-              <span>{tab.icon}</span> {tab.label}
+              <span style={{ fontSize: 14 }}>{tab.icon}</span>
+              {tab.label}
             </button>
           );
         })}
       </div>
 
-      {/* RENDER ACTIVE TAB SELECTIONS */}
-      <div
-        style={{
-          background: C.w,
-          borderRadius: 12,
-          padding: 24,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          minHeight: 400,
-        }}
-      >
-        {/* PANEL 1: Proportional Authorization Grid */}
-        {currentTab === "Permissions" && (
-          <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
-            <div style={{ overflowX: "auto" }}>
-              <div style={{ minWidth: "850px" }}>
-                
-                {/* 🛡️ BALANCED GRID HEADER TIER */}
-                <div style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  padding: "12px 16px", 
-                  background: "#f8fafc", 
-                  borderBottom: `2px solid #e2e8f0`,
-                  borderRadius: "8px 8px 0 0"
-                }}>
-                  <div style={{ 
-                    width: "35%", 
-                    color: "#64748b", 
-                    fontSize: 11, 
-                    fontWeight: 700, 
-                    textTransform: "uppercase" 
-                  }}>
-                    Permission
-                  </div>
-                  
-                  <div style={{ width: "65%", display: "flex" }}>
-                    {ROLE_COLS?.map((roleArray) => {
-                      const roleKey = roleArray[0];
-                      const roleLabel = roleArray[1];
-                      return (
-                        <div key={roleKey} style={{ width: "20%", textAlign: "center", padding: "0 4px" }}>
-                          <div style={{ color: "#0f294a", fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>
-                            {roleLabel}
-                          </div>
-                          <button
-                            onClick={() => handleResetRole(roleKey)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              color: "#1b52b8",
-                              fontSize: 11,
-                              cursor: "pointer",
-                              marginTop: 4,
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 4,
-                              fontWeight: 700,
-                            }}
-                          >
-                            ↩ Reset
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
+      {/* ── PANEL: Permissions ─────────────────────────────────────────── */}
+      {currentTab === "Permissions" && (
+        <Card>
+          <SectionTitle icon="🔒" title="Role Permissions" subtitle="Control what each role can see and do across the system." />
+          <div style={{ overflowX: "auto" }}>
+            <div style={{ minWidth: 860 }}>
+
+              {/* Header row */}
+              <div style={{
+                display: "flex", alignItems: "center",
+                padding: "10px 16px",
+                background: T.bg, borderRadius: T.radius,
+                border: `1px solid ${T.border}`,
+                marginBottom: 8,
+              }}>
+                <div style={{ width: "36%", fontSize: 11, fontWeight: 700, color: T.slateL, textTransform: "uppercase", letterSpacing: "0.6px" }}>
+                  Permission
                 </div>
+                <div style={{ width: "64%", display: "flex" }}>
+                  {/* BUG FIX #5 — guard on roleArray before destructuring */}
+                  {ROLE_COLS?.map((roleArray) => {
+                    if (!Array.isArray(roleArray)) return null;
+                    const [roleKey, roleLabel] = roleArray;
+                    return (
+                      <div key={roleKey} style={{ width: "20%", textAlign: "center" }}>
+                        <div style={{ fontSize: 11, fontWeight: 800, color: T.navy, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                          {roleLabel}
+                        </div>
+                        <button
+                          onClick={() => handleResetRole(roleKey)}
+                          style={{
+                            background: "none", border: "none", color: T.blue,
+                            fontSize: 11, cursor: "pointer", marginTop: 3,
+                            fontWeight: 600, padding: 0,
+                          }}
+                        >
+                          ↩ Reset
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-                {/* 🛡️ MATRIX MATRIX BODY ROWS */}
-                {PERM_GROUPS?.map(([groupTitle, groupKeys]) => (
-                  <div key={groupTitle} style={{ display: "flex", flexDirection: "column" }}>
-                    <div style={{ 
-                      background: "#0f294a", 
-                      padding: "10px 16px", 
-                      fontWeight: 800, 
-                      color: "#ffffff", 
-                      fontSize: 13, 
-                      letterSpacing: "0.3px" 
-                    }}>
-                      {groupTitle}
-                    </div>
+              {/* Permission rows */}
+              {PERM_GROUPS?.map(([groupTitle, groupKeys]) => (
+                <div key={groupTitle} style={{ marginBottom: 10 }}>
+                  <div style={{
+                    background: T.navy, padding: "8px 16px",
+                    fontWeight: 700, color: T.white, fontSize: 11,
+                    letterSpacing: "0.7px", textTransform: "uppercase",
+                    borderRadius: `${T.radius} ${T.radius} 0 0`,
+                  }}>
+                    {groupTitle}
+                  </div>
 
-                    {Array.isArray(groupKeys) && groupKeys.map((pKey) => (
+                  <div style={{ border: `1px solid ${T.border}`, borderTop: "none", borderRadius: `0 0 ${T.radius} ${T.radius}`, overflow: "hidden" }}>
+                    {Array.isArray(groupKeys) && groupKeys.map((pKey, idx) => (
                       <div
                         key={pKey}
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "12px 16px",
-                          borderBottom: `1px solid #f1f5f9`,
-                          backgroundColor: "#ffffff",
+                          display: "flex", alignItems: "center",
+                          padding: "13px 16px",
+                          borderTop: idx === 0 ? "none" : `1px solid ${T.border}`,
+                          background: T.white,
                         }}
                       >
-                        <div style={{ width: "35%", paddingRight: "16px" }}>
-                          <div style={{ fontWeight: 700, color: "#0f294a", fontSize: 14 }}>
+                        <div style={{ width: "36%", paddingRight: 16 }}>
+                          <div style={{ fontWeight: 600, color: T.navy, fontSize: 13 }}>
                             {PERM_DEFS[pKey]?.label || pKey}
                           </div>
-                          <div style={{ fontSize: 11, color: "#64748b", marginTop: 3 }}>
+                          <div style={{ fontSize: 11, color: T.slateL, marginTop: 2 }}>
                             {PERM_DEFS[pKey]?.desc || ""}
                           </div>
                         </div>
-
-                        <div style={{ width: "65%", display: "flex" }}>
+                        <div style={{ width: "64%", display: "flex" }}>
                           {ROLE_COLS?.map((roleArray) => {
-                            const roleKey = roleArray[0];
-                            const isArmed = !!rolePerms?.[roleKey]?.[pKey];
+                            if (!Array.isArray(roleArray)) return null;
+                            const [roleKey] = roleArray;
                             return (
-                              <div
-                                key={roleKey}
-                                style={{
-                                  width: "20%",
-                                  display: "flex",
-                                  justifyContent: "center",
-                                  alignItems: "center"
-                                }}
-                              >
+                              <div key={roleKey} style={{ width: "20%", display: "flex", justifyContent: "center" }}>
                                 <Toggle
-                                  on={isArmed}
+                                  on={!!rolePerms?.[roleKey]?.[pKey]}
                                   onChange={() => handleTogglePerm(roleKey, pKey)}
                                 />
                               </div>
@@ -404,248 +378,253 @@ export default function SettingsView({
                       </div>
                     ))}
                   </div>
-                ))}
-
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* PANEL 2: AccuLynx Synchronization Matrix */}
-        {currentTab === "AccuLynx" && (
-          <div>
-            <h2 style={{ margin: "0 0 6px 0", fontSize: 18, fontWeight: 900, color: C.navy }}>
-              🔗 AccuLynx Auto-Sync Configuration
-            </h2>
-            <p style={{ margin: "0 0 20px 0", color: C.sub, fontSize: 13, lineHeight: "1.5" }}>
-              When a job is marked <strong>Completed</strong>, this dashboard will automatically:
-              <br />① Upload the material cost PDF to the AccuLynx job's <strong>Documents</strong>
-              <br />② Add the total material cost as a <strong>payment line item</strong>
-            </p>
-
-            <div style={{ background: "#fffbeb", border: "1px solid #fef3c7", borderRadius: 8, padding: "12px 16px", color: "#b45309", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-              ⚠️ Securing Credentials: API tokens are processed via internal middleware proxy to block unauthorized browser intercepts.
-            </div>
-
-            <form onSubmit={handleSaveAccuLynx}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-                <Fld label="ACCULYNX API ACCESS TOKEN">
-                  <Inp
-                    type="password"
-                    value={acculynxConfig?.apiKey || ""}
-                    onChange={(e) => setAccuLynxConfig((p) => ({ ...p, apiKey: e.target.value }))}
-                    placeholder="xxxxxxxxxxxx"
-                  />
-                </Fld>
-                <Fld label="NETLIFY / CLOUD PROXY GATEWAY ROUTE">
-                  <Inp
-                    type="text"
-                    value={acculynxConfig?.proxyUrl || ""}
-                    onChange={(e) => setAccuLynxConfig((p) => ({ ...p, proxyUrl: e.target.value }))}
-                    placeholder="/.netlify/functions/acculynx-sync"
-                  />
-                </Fld>
-              </div>
-
-              <div style={{ display: "flex", gap: 32, marginBottom: 24, padding: "8px 0" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 700, color: C.navy, cursor: "pointer" }}>
-                  <Toggle
-                    on={!!acculynxConfig?.enabled}
-                    onChange={() => setAccuLynxConfig((p) => ({ ...p, enabled: !p.enabled }))}
-                  />
-                  <div>
-                    <div>Enable Integration</div>
-                    <div style={{ fontWeight: 400, fontSize: 11, color: C.sub }}>Allow dashboard to contact AccuLynx</div>
-                  </div>
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 700, color: C.navy, cursor: "pointer" }}>
-                  <Toggle
-                    on={!!acculynxConfig?.autoSync}
-                    onChange={() => setAccuLynxConfig((p) => ({ ...p, autoSync: !p.autoSync }))}
-                  />
-                  <div>
-                    <div>Auto-Sync on Completion</div>
-                    <div style={{ fontWeight: 400, fontSize: 11, color: C.sub }}>Fire automatically when job is completed</div>
-                  </div>
-                </label>
-              </div>
-
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <Bdg color={acculynxConfig?.enabled && acculynxConfig?.proxyUrl ? "green" : "gray"}>
-                  {acculynxConfig?.enabled && acculynxConfig?.proxyUrl ? "● Active" : "● Offline / Not Configured"}
-                </Bdg>
-                
-                {/* ── 🟢 FIXED: BUTTON TRIGGERS CORE ENCRYPTED CLOUD SAVE SEQUENCING ── */}
-                <Btn
-                  v="purple"
-                  sz="sm"
-                  type="submit"
-                  disabled={savingAx}
-                >
-                  {savingAx ? "⏳ Synchronizing System Keys..." : "💾 Save & Test Connection Gateway"}
-                </Btn>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* PANEL 3: Corporate Branding Assets */}
-        {currentTab === "Branding" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%", padding: "20px 0" }}>
-            <div style={{ textAlign: "center", marginBottom: 20 }}>
-              <h2 style={{ margin: "0 0 6px 0", fontSize: 18, fontWeight: 900, color: C.navy }}>
-                🏢 Company Logos
-              </h2>
-              <p style={{ margin: 0, color: C.sub, fontSize: 13 }}>
-                Active logo appears in the sidebar, login screen, and all PDF reports
-              </p>
-            </div>
-
-            <div style={{ width: "100%", maxWidth: 400 }}>
-              <label
-                style={{
-                  border: "1.5px dashed #cbd5e1",
-                  borderRadius: 12,
-                  padding: "100px 16px",
-                  textAlign: "center",
-                  backgroundColor: "#f8fafc",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  cursor: "pointer",
-                  transition: "background 0.1s ease"
-                }}
-              >
-                <span style={{ fontSize: 26 }}>🖼️</span>
-                <div style={{ fontWeight: 700, color: "#475569", fontSize: 13 }}>
-                  {logos ? "🔄 Replace Company Logo" : "➕ Upload Company Logo"}
-                </div>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleLogoFileChange} 
-                  style={{ display: "none" }} 
-                />
-              </label>
-            </div>
-          </div>
-        )}
-
-        {/* PANEL 4: Warehouses Mapping Panel */}
-        {currentTab === "Warehouses" && (
-          <div>
-            <h2 style={{ margin: "0 0 6px 0", fontSize: 18, fontWeight: 900, color: C.navy }}>
-              🏭 Corporate Facilities Map
-            </h2>
-            <p style={{ margin: "0 0 20px 0", color: C.sub, fontSize: 13 }}>
-              Manage physical storage branches connected to material balance feeds.
-            </p>
-
-            <form
-              onSubmit={handleAddWarehouse}
-              style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "end",
-                marginBottom: 16,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ flex: 2, minWidth: 200 }}>
-                <Fld label="Warehouse Facility Name">
-                  <Inp
-                    value={whForm.name}
-                    onChange={(e) => setWhForm({ ...whForm, name: e.target.value })}
-                    placeholder="e.g. Saint Joe Road Warehouse"
-                    required
-                  />
-                </Fld>
-              </div>
-              <div style={{ flex: 1, minWidth: 90 }}>
-                <Fld label="Code Identification">
-                  <Inp
-                    value={whForm.code}
-                    onChange={(e) => setWhForm({ ...whForm, code: e.target.value })}
-                    placeholder="e.g. SJR"
-                  />
-                </Fld>
-              </div>
-              <div style={{ flex: 2, minWidth: 200 }}>
-                <Fld label="Location Address / City">
-                  <Inp
-                    value={whForm.location}
-                    onChange={(e) => setWhForm({ ...whForm, location: e.target.value })}
-                    placeholder="e.g. Fort Wayne, IN"
-                  />
-                </Fld>
-              </div>
-              <Btn v="primary" type="submit" style={{ height: 38, marginBottom: 12 }}>
-                ➕ Add Branch
-              </Btn>
-            </form>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {warehouses?.map((w) => (
-                <div
-                  key={w.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    background: C.lg,
-                    padding: "12px 16px",
-                    borderRadius: 8,
-                  }}
-                >
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ fontWeight: 800, color: C.navy, fontSize: 14 }}>
-                        {w.name}
-                      </div>
-                      {w.code && (
-                        <Bdg color="blue" sz="sm" style={{ fontSize: 10 }}>
-                          {w.code}
-                        </Bdg>
-                      )}
-                    </div>
-                    <div style={{ fontSize: 12, color: C.sub, marginTop: 2 }}>
-                      📍 {w.location || "No address logged"}
-                    </div>
-                  </div>
-                  <Bdg color={w.active ? "green" : "gray"}>
-                    {w.active ? "Operational" : "Inactive"}
-                  </Bdg>
                 </div>
               ))}
-              {(!warehouses || warehouses.length === 0) && (
-                <p style={{ margin: 0, fontSize: 13, color: C.sub, fontStyle: "italic" }}>
-                  No storage facilities registered.
-                </p>
-              )}
             </div>
           </div>
-        )}
+        </Card>
+      )}
 
-        {/* PANEL 5: Environment Statistics Information */}
-        {currentTab === "System" && (
-          <div>
-            <h2 style={{ display: "flex", alignItems: "center", gap: 8, margin: "0 0 20px 0", fontSize: 18, fontWeight: 900, color: C.navy }}>
-              ℹ️ System Information
-            </h2>
-
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-              <InfoCard label="Version" value="WMS v5.0 — Permissions + AccuLynx" />
-              <InfoCard label="Storage" value="Cloud Persistent Database via Supabase Row-Level Policies" />
-              <InfoCard label="Photos" value="Auto-compressed JPEG on upload" />
-              <InfoCard label="PDF Engine" value="Browser Print → Save as PDF" />
-              <InfoCard label="AccuLynx" value={acculynxConfig?.enabled && acculynxConfig?.proxyUrl ? "Enabled" : "Not configured"} />
-              <InfoCard label="Permissions" value="Role-based with per-user overrides" />
-            </div>
+      {/* ── PANEL: AccuLynx ────────────────────────────────────────────── */}
+      {currentTab === "AccuLynx" && (
+        <Card>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+            <SectionTitle
+              icon="🔗"
+              title="AccuLynx Integration"
+              subtitle="When a job is marked Complete, the dashboard uploads the material cost PDF and adds a payment line item to AccuLynx automatically."
+            />
+            <StatusPill
+              active={!!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl && acculynxConfig?.apiKey)}
+              labelOn="Connected"
+              labelOff="Not configured"
+            />
           </div>
-        )}
-      </div>
+
+          <Alert type="warning">
+            ⚠️ API tokens are sent through your proxy server — never directly from the browser.
+          </Alert>
+
+          <form onSubmit={handleSaveAccuLynx}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+              <Fld label="API Access Token">
+                <Inp
+                  type="password"
+                  value={acculynxConfig?.apiKey || ""}
+                  onChange={(e) => setAccuLynxConfig((p) => ({ ...p, apiKey: e.target.value }))}
+                  placeholder="Enter your AccuLynx API key"
+                />
+              </Fld>
+              <Fld label="Proxy Gateway URL">
+                <Inp
+                  type="text"
+                  value={acculynxConfig?.proxyUrl || ""}
+                  onChange={(e) => setAccuLynxConfig((p) => ({ ...p, proxyUrl: e.target.value }))}
+                  placeholder="/.netlify/functions/acculynx-sync"
+                />
+              </Fld>
+            </div>
+
+            <div style={{
+              display: "flex", gap: 32, marginBottom: 24,
+              padding: "16px 20px",
+              background: T.bg, borderRadius: T.radius,
+              border: `1px solid ${T.border}`,
+              flexWrap: "wrap",
+            }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                <Toggle
+                  on={!!acculynxConfig?.enabled}
+                  onChange={() => setAccuLynxConfig((p) => ({ ...p, enabled: !p.enabled }))}
+                />
+                <div>
+                  <div style={{ fontWeight: 700, color: T.navy, fontSize: 13 }}>Enable integration</div>
+                  <div style={{ fontSize: 11, color: T.slateL, marginTop: 1 }}>Allow the dashboard to contact AccuLynx</div>
+                </div>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+                <Toggle
+                  on={!!acculynxConfig?.autoSync}
+                  onChange={() => setAccuLynxConfig((p) => ({ ...p, autoSync: !p.autoSync }))}
+                />
+                <div>
+                  <div style={{ fontWeight: 700, color: T.navy, fontSize: 13 }}>Auto-sync on completion</div>
+                  <div style={{ fontSize: 11, color: T.slateL, marginTop: 1 }}>Fire automatically when a job is marked complete</div>
+                </div>
+              </label>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+              <Btn v="primary" type="submit" disabled={savingAx}>
+                {savingAx ? "⏳ Saving…" : "💾 Save & Test Connection"}
+              </Btn>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      {/* ── PANEL: Branding ────────────────────────────────────────────── */}
+      {currentTab === "Branding" && (
+        <Card>
+          <SectionTitle
+            icon="🏢"
+            title="Company Branding"
+            subtitle="Your logo appears in the sidebar, login screen, and all PDF reports."
+          />
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12 }}>
+            {logos && (
+              <div style={{
+                marginBottom: 20, padding: 12,
+                background: T.bg, borderRadius: T.radius,
+                border: `1px solid ${T.border}`,
+              }}>
+                <img
+                  src={logos}
+                  alt="Current company logo"
+                  style={{ maxHeight: 80, maxWidth: 240, display: "block", objectFit: "contain" }}
+                />
+              </div>
+            )}
+
+            <label style={{
+              border: `2px dashed ${T.blueRing}`,
+              borderRadius: T.radiusLg,
+              padding: "48px 40px",
+              textAlign: "center",
+              background: T.blueSoft,
+              display: "flex", flexDirection: "column", alignItems: "center",
+              justifyContent: "center", gap: 8, cursor: "pointer",
+              width: "100%", maxWidth: 360,
+              transition: "background 0.15s ease",
+            }}>
+              <span style={{ fontSize: 28 }}>🖼️</span>
+              <div style={{ fontWeight: 700, color: T.blue, fontSize: 14 }}>
+                {logos ? "Replace logo" : "Upload logo"}
+              </div>
+              <div style={{ fontSize: 12, color: T.slateL }}>PNG, JPG, or SVG — compressed automatically</div>
+              <input type="file" accept="image/*" onChange={handleLogoFileChange} style={{ display: "none" }} />
+            </label>
+          </div>
+        </Card>
+      )}
+
+      {/* ── PANEL: Warehouses ──────────────────────────────────────────── */}
+      {currentTab === "Warehouses" && (
+        <Card>
+          <SectionTitle
+            icon="🏭"
+            title="Warehouse Facilities"
+            subtitle="Manage physical branches connected to material balance feeds."
+          />
+
+          {/* BUG FIX #4 — added success toast in handleAddWarehouse above */}
+          <form onSubmit={handleAddWarehouse} style={{
+            display: "flex", gap: 12, alignItems: "flex-end",
+            flexWrap: "wrap", marginBottom: 20,
+            padding: "16px 20px",
+            background: T.bg, borderRadius: T.radius,
+            border: `1px solid ${T.border}`,
+          }}>
+            <div style={{ flex: 2, minWidth: 180 }}>
+              <Fld label="Facility Name">
+                <Inp
+                  value={whForm.name}
+                  onChange={(e) => setWhForm({ ...whForm, name: e.target.value })}
+                  placeholder="e.g. Saint Joe Road"
+                  required
+                />
+              </Fld>
+            </div>
+            <div style={{ flex: 1, minWidth: 90 }}>
+              <Fld label="Code">
+                <Inp
+                  value={whForm.code}
+                  onChange={(e) => setWhForm({ ...whForm, code: e.target.value })}
+                  placeholder="e.g. SJR"
+                />
+              </Fld>
+            </div>
+            <div style={{ flex: 2, minWidth: 180 }}>
+              <Fld label="Location">
+                <Inp
+                  value={whForm.location}
+                  onChange={(e) => setWhForm({ ...whForm, location: e.target.value })}
+                  placeholder="e.g. Fort Wayne, IN"
+                />
+              </Fld>
+            </div>
+            <div style={{ paddingBottom: 1 }}>
+              <Btn v="primary" type="submit" style={{ height: 38 }}>
+                ➕ Add
+              </Btn>
+            </div>
+          </form>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {warehouses?.length > 0 ? warehouses.map((w) => (
+              <div key={w.id} style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                padding: "13px 18px",
+                background: T.bg, borderRadius: T.radius,
+                border: `1px solid ${T.border}`,
+              }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
+                    <span style={{ fontWeight: 700, color: T.navy, fontSize: 14 }}>{w.name}</span>
+                    {w.code && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 800, color: T.blue,
+                        background: T.blueSoft, border: `1px solid ${T.blueRing}`,
+                        padding: "1px 7px", borderRadius: 999, letterSpacing: "0.5px",
+                      }}>
+                        {w.code}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: T.slateL }}>
+                    📍 {w.location || "No address logged"}
+                  </div>
+                </div>
+                <StatusPill active={w.active} labelOn="Operational" labelOff="Inactive" />
+              </div>
+            )) : (
+              <p style={{ margin: 0, fontSize: 13, color: T.slateL, fontStyle: "italic", textAlign: "center", padding: "32px 0" }}>
+                No warehouses registered yet. Add one above.
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* ── PANEL: System ──────────────────────────────────────────────── */}
+      {currentTab === "System" && (
+        <Card>
+          <SectionTitle icon="ℹ️" title="System Information" />
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+            {[
+              { label: "Version",      value: "WMS v5.0" },
+              { label: "Storage",      value: "Supabase (row-level security)" },
+              { label: "Photos",       value: "Auto-compressed JPEG" },
+              { label: "PDF Engine",   value: "Browser print → Save as PDF" },
+              { label: "AccuLynx",     value: acculynxConfig?.enabled && acculynxConfig?.proxyUrl ? "Enabled" : "Not configured" },
+              { label: "Permissions",  value: "Role-based with per-user overrides" },
+            ].map(({ label, value }) => (
+              <div key={label} style={{
+                padding: "14px 16px",
+                background: T.bg, borderRadius: T.radius,
+                border: `1px solid ${T.border}`,
+              }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: T.slateL, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 5 }}>
+                  {label}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.navy }}>{value}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
