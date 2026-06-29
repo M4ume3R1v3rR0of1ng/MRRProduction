@@ -1,100 +1,120 @@
-// src/utils/accuLynxSync.js
+// netlify/functions/acculynx-sync.js
 
-export async function attemptAccuLynxSync(job, users, config, setJobs) {
-  // 🟢 FIXED 1: Support both camelCase and snake_case user assignments
-  const targetId = job.assignedTo || job.assignedto;
-  const sup = users.find(u => u.id === targetId);
-  
-  // 🟢 FIXED 2: Support all pricing fallbacks (priceAtPull, cost, or price)
-  const totalCost = job.items.reduce((s, i) => {
-    const itemPrice = i.priceAtPull !== undefined ? i.priceAtPull : (i.cost || i.price || 0);
-    return s + (i.pulled - i.returned) * itemPrice;
-  }, 0);
-  
-  // 🟢 FIXED 3: Safeguard missing completed date parameters
-  const dateFallback = job.completedAt || new Date().toISOString();
-  let cleanDateStr = 'PENDING';
-  try {
-    cleanDateStr = new Date(dateFallback).toISOString().split('T')[0];
-  } catch (e) {
-    cleanDateStr = new Date().toISOString().split('T')[0];
-  }
-  
-  // Format the structured API layout required by AccuLynx webhook schemas
-  const payload = {
-    acculynxJobReference: job.po || 'NO_PO',
-    jobName: job.name || job.title || 'Untitled Build',
-    address: job.addr || job.address || 'No Location Logged',
-    supervisor: sup?.full_name || sup?.name || 'N/A',
-    completedDate: dateFallback,
-    totalMaterialCost: parseFloat(totalCost.toFixed(2)),
-    actions: ['upload_pdf_document', 'add_payment_line_item'],
-    documentName: `Material_Cost_Report_${job.po || 'JOB'}_${cleanDateStr}.pdf`,
-    paymentDescription: `Material Cost — ${job.name || job.title || 'Job'}`,
-    lineItems: (job.items || []).filter(i => (i.pulled - i.returned) > 0).map(i => {
-      const itemPrice = i.priceAtPull !== undefined ? i.priceAtPull : (i.cost || i.price || 0);
-      return {
-        name: i.iname || i.name, 
-        category: i.icat || i.category || 'Materials', 
-        unit: i.unit || 'units',
-        planned: i.planned || 0, 
-        pulled: i.pulled || 0, 
-        returned: i.returned || 0,
-        used: i.pulled - i.returned, 
-        unitPrice: itemPrice,
-        totalCost: parseFloat(((i.pulled - i.returned) * itemPrice).toFixed(2)),
-      };
-    }),
+const ALLOWED_ORIGINS = [
+  "https://mrrproduction.netlify.app",      // production (no trailing slash)
+  "http://localhost:5173",                  // Vite dev
+  "http://localhost:3000",                  // CRA / fallback dev
+];
+
+function getCorsHeaders(requestOrigin) {
+  // Reflect the caller's origin if it's on the allowlist; otherwise fall back
+  // to the primary production origin so the function doesn't hard-fail.
+  const origin = ALLOWED_ORIGINS.includes(requestOrigin)
+    ? requestOrigin
+    : ALLOWED_ORIGINS[0];
+
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400", // cache preflight for 24 h
   };
+}
 
-  // If sync dashboard config properties are not armed, drop to manual pending state safely
-  if (!config || !config.enabled || !config.proxyUrl) {
-    if (typeof setJobs === 'function') {
-      setJobs(p => p.map(j => j.id === job.id ? { 
-        ...j, 
-        syncStatus: 'manual', 
-        syncPayload: payload, 
-        syncNote: 'Configure AccuLynx in Settings to enable auto-sync.' 
-      } : j));
-    }
-    return;
+exports.handler = async (event) => {
+  const requestOrigin = event.headers?.origin || event.headers?.Origin || "";
+  const corsHeaders = getCorsHeaders(requestOrigin);
+
+  // ── Handle CORS preflight ────────────────────────────────────────────────
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 204, headers: corsHeaders, body: "" };
   }
 
+  // ── Only allow POST ──────────────────────────────────────────────────────
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Method not allowed" }),
+    };
+  }
+
+  // ── Parse body ───────────────────────────────────────────────────────────
+  let body;
   try {
-    const res = await fetch(config.proxyUrl, { 
-      method: 'POST', 
-      headers: { 
-        'Content-Type': 'application/json', 
-        // Note: Payload includes apiKey within body; adding header backup for safety
-        'Authorization': `Bearer ${config.apiKey || ''}` 
-      }, 
-      body: JSON.stringify({
-        ...payload,
-        apiKey: config.apiKey || '' // Ensures your Netlify function captures verification
-      }) 
+    body = JSON.parse(event.body || "{}");
+  } catch {
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Invalid JSON body" }),
+    };
+  }
+
+  // ── Resolve API key: prefer env var, fall back to body (Settings ping only) ──
+  const apiKey = process.env.ACCULYNX_API_KEY || body.apiKey;
+
+  if (!apiKey) {
+    return {
+      statusCode: 401,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Missing AccuLynx API key" }),
+    };
+  }
+
+  // ── Validate / connection-test ping ─────────────────────────────────────
+  if (body.action === "validate") {
+    try {
+      const res = await fetch("https://api.acculynx.com/api/v2/jobs?page=1&pageSize=1", {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!res.ok) throw new Error(`AccuLynx responded with HTTP ${res.status}`);
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ ok: true, message: "Connection validated" }),
+      };
+    } catch (err) {
+      return {
+        statusCode: 502,
+        headers: corsHeaders,
+        body: JSON.stringify({ ok: false, error: err.message }),
+      };
+    }
+  }
+
+  // ── Real sync payload ────────────────────────────────────────────────────
+  try {
+    // Example: forward the full payload to AccuLynx webhook/API.
+    // Adjust the endpoint URL and body shape to match your AccuLynx setup.
+    const res = await fetch("https://api.acculynx.com/api/v2/your-endpoint", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
     });
 
-    if (res.ok) {
-      if (typeof setJobs === 'function') {
-        setJobs(p => p.map(j => j.id === job.id ? { 
-          ...j, 
-          syncStatus: 'synced', 
-          syncedAt: new Date().toISOString(), 
-          syncPayload: payload, 
-          syncNote: 'PDF uploaded & cost added to AccuLynx.' 
-        } : j));
-      }
-    } else {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    const text = await res.text();
+
+    if (!res.ok) throw new Error(`AccuLynx error ${res.status}: ${text}`);
+
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({ ok: true, acculynxResponse: text }),
+    };
   } catch (err) {
-    if (typeof setJobs === 'function') {
-      setJobs(p => p.map(j => j.id === job.id ? { 
-        ...j, 
-        syncStatus: 'failed', 
-        syncPayload: payload, 
-        syncNote: err.message 
-      } : j));
-    }
+    return {
+      statusCode: 502,
+      headers: corsHeaders,
+      body: JSON.stringify({ ok: false, error: err.message }),
+    };
   }
 };
