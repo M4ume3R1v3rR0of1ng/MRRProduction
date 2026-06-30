@@ -34,6 +34,7 @@ export default function BuildJobs({
     addr: "",
     notes: "",
     scheduledDate: "",
+    acculynxJobId: null, // Tracked target unique reference
   });
   const [wItems, setWItems] = useState([]);
   const [wAssign, setWAssign] = useState("");
@@ -46,6 +47,10 @@ export default function BuildJobs({
 
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
+
+  // ── 🆕 ACCULYNX ESTIMATE TRACKING STATE ───────────────────────────────────
+  const [axEstimateItems, setAxEstimateItems] = useState([]);
+  const [loadingEstimate, setLoadingEstimate] = useState(false);
 
   const fieldUsers = users.filter(
     (u) => (u.role === "field" || u.role === "Site Supervisor") && u.active,
@@ -79,12 +84,13 @@ export default function BuildJobs({
 
   const resetWiz = () => {
     setWStep(1);
-    setWPO({ po: "", name: "", addr: "", notes: "", scheduledDate: "" });
+    setWPO({ po: "", name: "", addr: "", notes: "", scheduledDate: "", acculynxJobId: null });
     setWItems([]);
     setWAssign("");
     setISrch("");
     setAxQ("");
     setAxR([]);
+    setAxEstimateItems([]);
   };
 
   const searchAX = async () => {
@@ -113,8 +119,15 @@ export default function BuildJobs({
         );
       const data = await response.json();
       if (!data.ok) throw new Error(data.error || "Search failed");
-      setAxR(Array.isArray(data.jobs) ? data.jobs : []);
-      showToast(`AccuLynx search completed successfully.`, "success");
+      const results = Array.isArray(data.jobs) ? data.jobs : [];
+      setAxR(results);
+      if (results.length === 0) {
+        const debugHint = data._debug ? ` (API keys: ${data._debug.map(d => d.keys.join(",")).join(" | ")})` : "";
+        showToast(`No AccuLynx jobs found for "${axQ.trim()}".${debugHint}`, "warning");
+        if (data._debug) console.warn("AccuLynx search debug:", data._debug);
+      } else {
+        showToast(`Found ${results.length} job${results.length !== 1 ? "s" : ""} in AccuLynx.`, "success");
+      }
     } catch (err) {
       console.error("AccuLynx Live Proxy Query Failure:", err);
       showToast(
@@ -124,6 +137,30 @@ export default function BuildJobs({
       setAxR([]);
     } finally {
       setAxL(false);
+    }
+  };
+
+  // ── 🆕 FETCH ESTIMATE DATA FROM THE INTEGRATED PROXY GATEWAY ──────────────
+  const fetchJobEstimateChecklist = async (targetId) => {
+    if (!targetId) return;
+    setLoadingEstimate(true);
+    try {
+      const response = await fetch(acculynxConfig.proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "getJob", acculynxJobId: targetId }),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      
+      // Look up items safely off the normalized job schema or raw contract payload records
+      const items = data?.job?._raw?.estimateItems || data?.job?.estimateItems || [];
+      setAxEstimateItems(Array.isArray(items) ? items : []);
+    } catch (err) {
+      console.warn("Failed fetching structural job blueprint lines:", err);
+      setAxEstimateItems([]);
+    } finally {
+      setLoadingEstimate(false);
     }
   };
 
@@ -167,12 +204,12 @@ export default function BuildJobs({
       approved: asDraft ? "" : now, 
       completed: "",         
       newforassigned: !asDraft && !!wAssign, 
-      acculynxJobId: wPO.acculynxJobId || null,
       syncStatus: null,
       syncedAt: "",
       syncPayload: null,
       syncNote: "",
       materials: wItems.map((i) => mkJI(i.iid, i.iname, i.icat, i.unit, i.qty)),
+      acculynx_job_id: wPO.acculynxJobId || null,
     };
 
     try {
@@ -813,6 +850,8 @@ export default function BuildJobs({
                       onClick={() => {
                         setWPO({ po: j.po, name: j.name, addr: j.addr, notes: "", scheduledDate: "", acculynxJobId: j.acculynxJobId });
                         setAxR([]);
+                        // Trigger async checklist query when selecting job profile
+                        fetchJobEstimateChecklist(j.acculynxJobId);
                       }}
                       style={{ padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${C.lg}`, background: C.w }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = C.lg)}
@@ -841,10 +880,58 @@ export default function BuildJobs({
               <div style={{ background: C.gL, border: `1.5px solid ${C.gold}`, borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: C.navy }}>
                 📋 {wPO.po} — {wPO.name}
               </div>
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                <div style={{ flex: 2, minWidth: 220 }}>
+              
+              {/* ── 🆕 OPTION 2: MULTI-COLUMN INTERACTIVE SIDE PANEL LAYOUT ── */}
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                
+                {/* Column A: AccuLynx Contract Blueprint Guidelines Checklist */}
+                <div style={{ flex: 1.2, minWidth: 200, background: C.bg || "#f8fafc", border: `1px solid ${C.bd}`, borderRadius: 10, padding: 12, maxHeight: 380, overflowY: "auto" }}>
+                  <h4 style={{ margin: "0 0 8px 0", color: C.navy, fontSize: 13, display: "flex", alignItems: "center", gap: 5 }}>
+                    📝 AccuLynx Order Roadmap
+                  </h4>
+                  <p style={{ margin: "0 0 10px 0", fontSize: 11, color: C.sub }}>
+                    Click items below to search your warehouse inventory for a matching component.
+                  </p>
+                  
+                  {loadingEstimate ? (
+                    <div style={{ fontSize: 12, color: C.sub, padding: "20px 0", textAlign: "center" }}>⏳ Pulling estimate manifest...</div>
+                  ) : axEstimateItems.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {axEstimateItems.map((item, idx) => (
+                        <div 
+                          key={idx}
+                          onClick={() => setISrch(item.name || "")}
+                          style={{
+                            background: C.w,
+                            padding: "8px 10px",
+                            borderRadius: 6,
+                            cursor: "pointer",
+                            border: `1px solid ${C.lg}`,
+                            fontSize: 11,
+                            transition: "all 0.15s ease"
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = C.blue}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = C.lg}
+                        >
+                          <div style={{ fontWeight: 700, color: C.navy }}>{item.name}</div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, color: C.sub, fontSize: 10 }}>
+                            <span>Qty: {item.quantity} {item.estimateUnit || "pcs"}</span>
+                            {item.type && <Bdg color="gray">{item.type}</Bdg>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 11, color: C.sub, fontStyle: "italic", textAlign: "center", padding: "30px 0" }}>
+                      No estimate item data mapped onto this project or contract profile.
+                    </div>
+                  )}
+                </div>
+
+                {/* Column B: Real WMS System Catalog Query Feed */}
+                <div style={{ flex: 2, minWidth: 240 }}>
                   <Inp value={iSrch} onChange={(e) => setISrch(e.target.value)} placeholder="🔍 Search inventory..." style={{ marginBottom: 8 }} />
-                  <div style={{ maxHeight: 300, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
+                  <div style={{ maxHeight: 330, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
                     {(filtInv || []).map((item) => {
                       if (!item) return null;
                       const added = (wItems || []).find((i) => i && i.iid === item.id);
@@ -861,7 +948,9 @@ export default function BuildJobs({
                     })}
                   </div>
                 </div>
-                <div style={{ flex: 1, minWidth: 170 }}>
+
+                {/* Column C: Current Jobs Staged Checklist Draft */}
+                <div style={{ flex: 1.5, minWidth: 190 }}>
                   <div style={{ background: C.w, borderRadius: 10, padding: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", position: "sticky", top: 0 }}>
                     <h4 style={{ margin: "0 0 10px", color: C.navy, fontSize: 13 }}>📦 Job List ({wItems.length})</h4>
                     {wItems.length === 0 ? (
@@ -882,6 +971,7 @@ export default function BuildJobs({
                     )}
                   </div>
                 </div>
+
               </div>
               <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
                 <Btn v="ghost" onClick={() => setWStep(1)} style={{ flex: 1, justifyContent: "center" }}>← Back</Btn>

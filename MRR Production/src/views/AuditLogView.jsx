@@ -85,7 +85,7 @@ export default function AuditLogView({ perms }) {
         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: C.navy }}>
           🏭 Audit Logs
         </h2>
-        <p style={{ margin: "3px 0 16px", color: C.sub, fontSize: 12 }}>
+        <p style={{ margin: "10px 0 16px", color: C.sub, fontSize: 12 }}>
           System-wide compliance event tracking. Administrative view only.
         </p>
       </div>
@@ -129,7 +129,7 @@ export default function AuditLogView({ perms }) {
           {/* ── 🆕 COMPACT INNER SCROLLBAR CONTAINER ────────────────────────── */}
           <div style={{ 
             overflowX: "auto", 
-            maxHeight: "600px", 
+            maxHeight: "850px", 
             overflowY: "auto", 
             border: `1px solid ${C.lg}`,
             borderRadius: "8px",
