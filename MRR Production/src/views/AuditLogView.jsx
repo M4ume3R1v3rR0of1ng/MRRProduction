@@ -1,8 +1,8 @@
 // src/views/AuditLogView.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
-import { Bdg, Sel, Inp } from "../components/UIPrimitives";
+import { Bdg, Sel, Inp, Btn } from "../components/UIPrimitives";
 
 export default function AuditLogView({ perms }) {
   const [logs, setLogs] = useState([]);
@@ -10,6 +10,10 @@ export default function AuditLogView({ perms }) {
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [activePayload, setActivePayload] = useState(null);
+
+  // ── 🆕 PAGINATION STATE ───────────────────────────────────────────────────
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
 
   useEffect(() => {
     async function loadLogs() {
@@ -26,6 +30,7 @@ export default function AuditLogView({ perms }) {
         const { data, error } = await query;
         if (error) throw error;
         setLogs(data || []);
+        setCurrentPage(1); // Reset to page 1 on filter changes
       } catch (err) {
         console.error("Audit view failed to fetch records:", err);
       } finally {
@@ -35,13 +40,23 @@ export default function AuditLogView({ perms }) {
     loadLogs();
   }, [actionFilter]);
 
-  const filteredLogs = logs.filter(
-    (l) =>
-      search === "" ||
-      l.user_email.toLowerCase().includes(search.toLowerCase()) ||
-      l.description.toLowerCase().includes(search.toLowerCase()) ||
-      (l.warehouse_code || "").toLowerCase().includes(search.toLowerCase()),
-  );
+  const filteredLogs = useMemo(() => {
+    return logs.filter(
+      (l) =>
+        search === "" ||
+        l.user_email.toLowerCase().includes(search.toLowerCase()) ||
+        l.description.toLowerCase().includes(search.toLowerCase()) ||
+        (l.warehouse_code || "").toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [logs, search]);
+
+  // ── 🆕 COMPUTE PAGINATED DATA SET ─────────────────────────────────────────
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ITEMS_PER_PAGE));
+  
+  const paginatedLogs = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredLogs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredLogs, currentPage]);
 
   const formatFullTimestamp = (rawDateString) => {
     if (!rawDateString) return "—";
@@ -80,7 +95,10 @@ export default function AuditLogView({ perms }) {
       >
         <Inp
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1); // Snap back to page 1 during keyword mutation searches
+          }}
           placeholder="Filter by email, keywords, or facility..."
           style={{ flex: 1, minWidth: 240 }}
         />
@@ -95,8 +113,6 @@ export default function AuditLogView({ perms }) {
           <option value="INVENTORY_PULL">INVENTORY_PULL</option>
           <option value="INV_MUTATION">INV_MUTATION</option>
           <option value="PERM_CHANGE">PERM_CHANGE</option>
-          
-          {/* ── 🟢 NEW: DROPDOWN OPTIONS FOR THE RECENTLY INJECTED MODULE FILTERS ── */}
           <option value="INVENTORY_ADJUST">INVENTORY_ADJUST</option>
           <option value="FLEET_STATUS_CHANGE">FLEET_STATUS_CHANGE</option>
           <option value="MAINTENANCE_REQUEST_CREATE">MAINTENANCE_REQUEST_CREATE</option>
@@ -109,116 +125,151 @@ export default function AuditLogView({ perms }) {
           Streaming audit packets...
         </div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: 13,
-              textAlign: "left",
-            }}
-          >
-            <thead>
-              <tr
-                style={{ background: C.lg, borderBottom: `2px solid ${C.bd}` }}
-              >
-                {[
-                  "Timestamp",
-                  "Operator",
-                  "Action Type",
-                  "Warehouse",
-                  "Activity Log narrative",
-                  "Inspect",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "12px 10px",
-                      color: C.sub,
-                      fontWeight: 700,
-                      fontSize: 11,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.map((l) => (
-                <tr key={l.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                  <td
-                    style={{
-                      padding: "12px 10px",
-                      whiteSpace: "nowrap",
-                      color: C.sub,
-                    }}
-                  >
-                    {formatFullTimestamp(l.created_at)}
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px 10px",
-                      fontWeight: 700,
-                      color: C.navy,
-                    }}
-                  >
-                    {l.user_email}
-                  </td>
-                  <td style={{ padding: "12px 10px" }}>
-                    <Bdg
-                      color={
-                        l.action_type === "PERM_CHANGE"
-                          ? "purple"
-                          : l.action_type === "INV_MUTATION" || l.action_type === "INVENTORY_ADJUST"
-                            ? "amber"
-                            : l.action_type === "JOB_BUILD_CREATE"
-                              ? "blue"
-                              : l.action_type === "FLEET_STATUS_CHANGE" || l.action_type === "MAINTENANCE_REQUEST_CREATE"
-                                ? "rose"
-                                : "teal"
-                      }
+        <>
+          {/* ── 🆕 COMPACT INNER SCROLLBAR CONTAINER ────────────────────────── */}
+          <div style={{ 
+            overflowX: "auto", 
+            maxHeight: "600px", 
+            overflowY: "auto", 
+            border: `1px solid ${C.lg}`,
+            borderRadius: "8px",
+            marginBottom: "16px"
+          }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 13,
+                textAlign: "left",
+              }}
+            >
+              <thead style={{ position: "sticky", top: 0, zIndex: 1, background: C.lg }}>
+                <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
+                  {[
+                    "Timestamp",
+                    "Operator",
+                    "Action Type",
+                    "Warehouse",
+                    "Activity Log narrative",
+                    "Inspect",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: "12px 10px",
+                        color: C.sub,
+                        fontWeight: 700,
+                        fontSize: 11,
+                        textTransform: "uppercase",
+                      }}
                     >
-                      {l.action_type}
-                    </Bdg>
-                  </td>
-                  <td style={{ padding: "12px 10px", fontWeight: 600 }}>
-                    🏭 {l.warehouse_code || "SJR"}
-                  </td>
-                  <td
-                    style={{
-                      padding: "12px 10px",
-                      color: "#334155",
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {l.description}
-                  </td>
-                  <td style={{ padding: "12px 10px" }}>
-                    {l.payload && Object.keys(l.payload).length > 0 ? (
-                      <button
-                        onClick={() => setActivePayload(l.payload)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: C.blue,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          fontSize: 12,
-                        }}
-                      >
-                        [{Object.keys(l.payload).length} keys]
-                      </button>
-                    ) : (
-                      <span style={{ color: C.sub }}>—</span>
-                    )}
-                  </td>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {paginatedLogs.length > 0 ? (
+                  paginatedLogs.map((l) => (
+                    <tr key={l.id} style={{ borderBottom: `1px solid ${C.lg}`, background: C.w }}>
+                      <td style={{ padding: "12px 10px", whiteSpace: "nowrap", color: C.sub }}>
+                        {formatFullTimestamp(l.created_at)}
+                      </td>
+                      <td style={{ padding: "12px 10px", fontWeight: 700, color: C.navy }}>
+                        {l.user_email}
+                      </td>
+                      <td style={{ padding: "12px 10px" }}>
+                        <Bdg
+                          color={
+                            l.action_type === "PERM_CHANGE"
+                              ? "purple"
+                              : l.action_type === "INV_MUTATION" || l.action_type === "INVENTORY_ADJUST"
+                                ? "amber"
+                                : l.action_type === "JOB_BUILD_CREATE"
+                                  ? "blue"
+                                  : l.action_type === "FLEET_STATUS_CHANGE" || l.action_type === "MAINTENANCE_REQUEST_CREATE"
+                                    ? "rose"
+                                    : "teal"
+                          }
+                        >
+                          {l.action_type}
+                        </Bdg>
+                      </td>
+                      <td style={{ padding: "12px 10px", fontWeight: 600 }}>
+                        🏭 {l.warehouse_code || "SJR"}
+                      </td>
+                      <td style={{ padding: "12px 10px", color: "#334155", lineHeight: 1.4 }}>
+                        {l.description}
+                      </td>
+                      <td style={{ padding: "12px 10px" }}>
+                        {l.payload && Object.keys(l.payload).length > 0 ? (
+                          <button
+                            onClick={() => setActivePayload(l.payload)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              color: C.blue,
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              fontSize: 12,
+                            }}
+                          >
+                            [{Object.keys(l.payload).length} keys]
+                          </button>
+                        ) : (
+                          <span style={{ color: C.sub }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: "center", padding: "32px 0", color: C.sub, fontStyle: "italic" }}>
+                      No matching historical logs found matching specified query conditions.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── 🆕 PAGINATION CONTROLS BOTTOM BAR ─────────────────────────── */}
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center", 
+            paddingTop: 8,
+            flexWrap: "wrap",
+            gap: 12
+          }}>
+            <div style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>
+              Showing {filteredLogs.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–
+              {Math.min(currentPage * ITEMS_PER_PAGE, filteredLogs.length)} of {filteredLogs.length} events
+            </div>
+            
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <Btn 
+                v="ghost" 
+                sz="sm" 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                ◀ Prev
+              </Btn>
+              <span style={{ fontSize: 12, fontWeight: 700, color: C.navy, padding: "0 8px" }}>
+                Page {currentPage} of {totalPages}
+              </span>
+              <Btn 
+                v="ghost" 
+                sz="sm" 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next ▶
+              </Btn>
+            </div>
+          </div>
+        </>
       )}
 
       {/* JSON Payload Inspector Modal */}

@@ -11,6 +11,8 @@ import {
 import { Btn, Bdg, Fld, Inp, Toggle } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
+// ── 🆕 IMPORT ADDED ──────────────────────────────────────────────────────────
+import { fetchAccuLynxJob } from "../utils/accuLynxSync";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -116,6 +118,11 @@ export default function SettingsView({
   const [whForm, setWhForm]         = useState({ name: "", location: "", code: "" });
   const [savingAx, setSavingAx]     = useState(false);
 
+  // ── 🆕 TEST LOOKUP LOCAL STATE ADDED ─────────────────────────────────────────
+  const [lookupPo, setLookupPo]         = useState("");
+  const [lookupResult, setLookupResult] = useState(null);
+  const [lookingUp, setLookingUp]       = useState(false);
+
   const tabs = [
     { id: "Permissions", label: "Permissions", icon: "🔒" },
     { id: "AccuLynx",   label: "AccuLynx",    icon: "🔗" },
@@ -216,8 +223,8 @@ export default function SettingsView({
       });
 
       if (!response.ok) {
-const errText = await response.text().catch(() => `HTTP ${response.status}`);
-throw new Error(errText);
+        const errText = await response.text().catch(() => `HTTP ${response.status}`);
+        throw new Error(errText);
       }
 
       showToast("AccuLynx Gateway synchronization confirmed and running successfully! 🔄", "success");
@@ -226,6 +233,21 @@ throw new Error(errText);
       showToast(`Credentials saved safely to cloud, but gateway ping failed: ${err.message || "Network Timeout"}`, "info");
     } finally {
       setSavingAx(false);
+    }
+  };
+
+  // ── 🆕 LOOKUP SUBMIT HANDLER ADDED ───────────────────────────────────────────
+  const handleTestLookup = async () => {
+    if (!lookupPo.trim()) return;
+    setLookingUp(true);
+    setLookupResult(null);
+    try {
+      const job = await fetchAccuLynxJob({ poNumber: lookupPo.trim() }, acculynxConfig);
+      setLookupResult({ ok: true, job });
+    } catch (err) {
+      setLookupResult({ ok: false, error: err.message });
+    } finally {
+      setLookingUp(false);
     }
   };
 
@@ -395,8 +417,9 @@ throw new Error(errText);
               title="AccuLynx Integration"
               subtitle="When a job is marked Complete, the dashboard uploads the material cost PDF and adds a payment line item to AccuLynx automatically."
             />
+            {/* 🟢 Status pill updated to seamlessly allow headless environment configurations */}
             <StatusPill
-              active={!!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl && acculynxConfig?.apiKey)}
+              active={!!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl)}
               labelOn="Connected"
               labelOff="Not configured"
             />
@@ -461,8 +484,29 @@ throw new Error(errText);
               </Btn>
             </div>
           </form>
+
+          {/* ── 🆕 TEST JOB LOOKUP SECTION ADDED ───────────────────────────────── */}
+          <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
+            <div style={{ fontWeight: 700, color: T.navy, fontSize: 13, marginBottom: 10 }}>Test job lookup</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Inp value={lookupPo} onChange={(e) => setLookupPo(e.target.value)} placeholder="Enter PO number" />
+              <Btn type="button" onClick={handleTestLookup} disabled={lookingUp}>
+                {lookingUp ? "⏳" : "🔍 Lookup"}
+              </Btn>
+            </div>
+            {lookupResult && (
+              <Alert type={lookupResult.ok ? "info" : "warning"}>
+                {lookupResult.ok
+                  ? `Found job: ${lookupResult.job?.jobNumber || lookupResult.job?.id}`
+                  : `Lookup failed: ${lookupResult.error}`}
+              </Alert>
+            )}
+          </div>
         </Card>
       )}
+
+
+      
 
       {/* ── PANEL: Branding ────────────────────────────────────────────── */}
       {currentTab === "Branding" && (

@@ -11,7 +11,7 @@ function getCorsHeaders(requestOrigin) {
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization", // 🟢 CORS allows Authorization headers
     "Access-Control-Max-Age": "86400",
   };
 }
@@ -36,9 +36,18 @@ exports.handler = async (event) => {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid JSON body" }) };
     }
 
-    const apiKey = process.env.ACCULYNX_API_KEY || body.apiKey; 
+    // ── 🟢 FIXED: Extract Key from Server-side Environment, fallback to header extraction ──
+    let apiKey = process.env.ACCULYNX_API_KEY;
+
+    if (!apiKey && event.headers?.authorization) {
+      const parts = event.headers.authorization.split(' ');
+      if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+        apiKey = parts[1];
+      }
+    }
+
     if (!apiKey) {
-      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Missing AccuLynx API key" }) };
+      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Missing AccuLynx API key configuration" }) };
     }
 
     // Connection validation handling
@@ -54,7 +63,32 @@ exports.handler = async (event) => {
       }
     }
 
-    // ── 🟢 FIX 1: Look up AccuLynx internal numeric Job ID via your specification query ──
+    // ── Search action: used by the Build Jobs "Find Job" wizard step ──
+    if (body.action === "search") {
+      const q = (body.query || "").trim();
+      if (!q) {
+        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Missing search query" }) };
+      }
+      try {
+        const searchRes = await fetch(
+          `https://api.acculynx.com/api/v2/jobs?search=${encodeURIComponent(q)}&page=1&pageSize=10`,
+          { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } }
+        );
+        if (!searchRes.ok) throw new Error(`AccuLynx search failed: HTTP ${searchRes.status}`);
+        const searchData = await searchRes.json();
+        const jobs = (searchData?.data || []).map((j) => ({
+          acculynxJobId: j.id,
+          po: j.jobNumber || j.poNumber || j.id,
+          name: j.jobName || j.customer?.name || "Untitled Job",
+          addr: j.address?.line1 ? `${j.address.line1}${j.address.city ? ", " + j.address.city : ""}` : "",
+        }));
+        return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, jobs }) };
+      } catch (err) {
+        return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ ok: false, error: err.message }) };
+      }
+    }
+
+    // ── FIX 1: Look up AccuLynx internal numeric Job ID via your specification query ──
     const searchRes = await fetch(
       `https://api.acculynx.com/api/v2/jobs?search=${encodeURIComponent(body.poNumber)}&page=1&pageSize=5`,
       {
@@ -71,7 +105,7 @@ exports.handler = async (event) => {
     }
 
     const searchData = await searchRes.json(); 
-    const acculynxJob = searchData?.data?.[0]; 
+    const acculynxJob = searchData?.data?.[0]; // Grab first array match
 
     if (!acculynxJob?.id) {
       return {
@@ -86,7 +120,7 @@ exports.handler = async (event) => {
 
     const acculynxJobId = acculynxJob.id; 
 
-    // ── 🟢 FIX 2: Send clean, precisely schema-matched body down to official endpoint ──
+    // ── FIX 2: Send clean, precisely schema-matched body down to official endpoint ──
     const lineItemRes = await fetch(
       `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/lineitems`, 
       {

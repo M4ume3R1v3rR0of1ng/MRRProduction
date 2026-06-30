@@ -20,9 +20,8 @@ export async function attemptAccuLynxSync(job, users, config, setJobs) {
       }, 0)
     : 0;
   
-  // ── 🟢 FIX 3: Clean up payload matching schema specifications exactly ──
   const payload = {
-    poNumber: job?.po || 'NO_PO', // Used by backend for search lookup 
+    poNumber: job?.po || 'NO_PO', 
     paymentDescription: `Material Cost — ${job?.name || job?.title || 'Job'}`, 
     totalMaterialCost: parseFloat(totalCost.toFixed(2)), 
     lineItems: Array.isArray(job?.items)
@@ -34,7 +33,7 @@ export async function attemptAccuLynxSync(job, users, config, setJobs) {
               name: i.iname || i.name || 'Unknown Material', 
               category: i.icat || i.category || 'Materials', 
               unit: i.unit || 'units', 
-              quantity: (i.pulled || 0) - (i.returned || 0), // 🟢 CRITICAL SCHEMA FIX: Expected by AccuLynx 
+              quantity: (i.pulled || 0) - (i.returned || 0), 
               unitPrice: itemPrice, 
               totalCost: parseFloat((((i.pulled || 0) - (i.returned || 0)) * itemPrice).toFixed(2)), 
             };
@@ -60,17 +59,18 @@ export async function attemptAccuLynxSync(job, users, config, setJobs) {
   try {
     const res = await fetchWithRetry(config.proxyUrl, { 
       method: 'POST', 
-      headers: { 'Content-Type': 'application/json' }, 
-      body: JSON.stringify({
-        ...payload,
-        apiKey: config.apiKey // Keeps backup safety lifeline connected
-      }), 
+      headers: { 
+        'Content-Type': 'application/json',
+        // ── 🟢 FIXED: The key is hidden inside the secure Authorization header ──
+        'Authorization': `Bearer ${config.apiKey || ''}`
+      }, 
+      body: JSON.stringify(payload), // 🟢 The JSON payload string is now completely clean of keys
       signal: controller.signal
     });
     
     clearTimeout(timeout);
 
-  const responseData = await res.json().catch(() => ({}));
+    const responseData = await res.json().catch(() => ({}));
 
     if (res.ok) {
       if (typeof setJobs === 'function') {
@@ -79,11 +79,12 @@ export async function attemptAccuLynxSync(job, users, config, setJobs) {
           syncStatus: 'synced', 
           syncedAt: new Date().toISOString(), 
           syncPayload: payload, 
-          syncNote: 'Cost data synchronized onto AccuLynx file record.' 
+          syncNote: responseData.message || 'Cost data synchronized onto AccuLynx file record.' 
         } : j));
       }
     } else {
-      throw new Error(`HTTP Error Status: ${res.status}`);
+      const upstreamError = responseData?.error || responseData?.message || `HTTP ${res.status}`;
+      throw new Error(upstreamError);
     }
   } catch (err) {
     clearTimeout(timeout);
@@ -96,5 +97,41 @@ export async function attemptAccuLynxSync(job, users, config, setJobs) {
         syncNote: errorMsg 
       } : j));
     }
+  }
+}
+
+// ── 🆕 ADDED: Fetch Job Data Helper ──────────────────────────────────────────
+export async function fetchAccuLynxJob({ poNumber, acculynxJobId }, config) {
+  if (!config?.enabled || !config?.proxyUrl) {
+    throw new Error("AccuLynx integration is not configured.");
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const res = await fetchWithRetry(config.proxyUrl, {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        // Maintained Authorization header parity for flexible/hybrid token architecture
+        "Authorization": `Bearer ${config.apiKey || ''}`
+      },
+      body: JSON.stringify({ action: "getJob", poNumber, acculynxJobId }),
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeout);
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.ok) {
+      throw new Error(data?.error || `HTTP ${res.status}`);
+    }
+
+    return data.job;
+  } catch (err) {
+    clearTimeout(timeout);
+    throw err;
   }
 }

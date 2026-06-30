@@ -201,7 +201,9 @@ export default function PullInventory({
 
       setTimeout(() => {
         generatePDF(updatedJob, users, activeLogo);
-        attemptAccuLynxSync(updatedJob, users, acculynxConfig, setJobs);
+        if (acculynxConfig?.autoSync) {
+          attemptAccuLynxSync(updatedJob, users, acculynxConfig, setJobs);
+        }
       }, 300);
 
       setSel(null);

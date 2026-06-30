@@ -102,22 +102,18 @@ export default function BuildJobs({
     }
     setAxL(true);
     try {
-      const targetUrl = `${acculynxConfig.proxyUrl}/api/acculynx/jobs?q=${encodeURIComponent(axQ.trim())}`;
-      const response = await fetch(targetUrl, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${acculynxConfig.apiKey}`,
-        },
+      const response = await fetch(acculynxConfig.proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "search", query: axQ.trim() }),
       });
       if (!response.ok)
         throw new Error(
           `Server returned HTTP Error Status: ${response.status}`,
         );
       const data = await response.json();
-      if (Array.isArray(data)) setAxR(data);
-      else if (data && Array.isArray(data.jobs)) setAxR(data.jobs);
-      else setAxR([]);
+      if (!data.ok) throw new Error(data.error || "Search failed");
+      setAxR(Array.isArray(data.jobs) ? data.jobs : []);
       showToast(`AccuLynx search completed successfully.`, "success");
     } catch (err) {
       console.error("AccuLynx Live Proxy Query Failure:", err);
@@ -171,6 +167,7 @@ export default function BuildJobs({
       approved: asDraft ? "" : now, 
       completed: "",         
       newforassigned: !asDraft && !!wAssign, 
+      acculynxJobId: wPO.acculynxJobId || null,
       syncStatus: null,
       syncedAt: "",
       syncPayload: null,
@@ -814,7 +811,7 @@ export default function BuildJobs({
                     <div
                       key={j.po}
                       onClick={() => {
-                        setWPO({ po: j.po, name: j.name, addr: j.addr, notes: "", scheduledDate: "" });
+                        setWPO({ po: j.po, name: j.name, addr: j.addr, notes: "", scheduledDate: "", acculynxJobId: j.acculynxJobId });
                         setAxR([]);
                       }}
                       style={{ padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${C.lg}`, background: C.w }}
