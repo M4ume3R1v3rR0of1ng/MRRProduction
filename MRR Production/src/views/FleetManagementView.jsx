@@ -231,6 +231,7 @@ export default function FleetManagementView({
   const [reqModal, setReqModal] = useState(false);
   const [reqVid, setReqVid] = useState("");
   const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [savingVehicleInfo, setSavingVehicleInfo] = useState(false);
   const [isInspectOpen, setIsInspectOpen] = useState(false);
   const [inspectSubmitting, setInspectSubmitting] = useState(false);
   const [inspectionForm, setInspectionForm] = useState({
@@ -406,6 +407,45 @@ export default function FleetManagementView({
       showToast(`Database Error: Could not add vehicle. ${err.message}`, "error");
     } finally {
       setAddVehicleSubmitting(false);
+    }
+  };
+
+  const saveVehicleInfo = async () => {
+    if (!sel) return;
+    setSavingVehicleInfo(true);
+
+    const changes = {
+      name: form.name,
+      yr: parseInt(form.yr) || sel.yr,
+      make: form.make,
+      model: form.model,
+      plate: form.plate,
+      type: form.type || sel.type,
+    };
+
+    try {
+      const { error } = await supabase.from("vehicles").update(changes).eq("id", sel.id);
+      if (error) throw error;
+
+      const updated = { ...sel, ...changes };
+      setVehs((p) => p.map((v) => (v.id === sel.id ? updated : v)));
+      setSel(updated);
+
+      await logAction(
+        user.id,
+        user.email,
+        "FLEET_STATUS_CHANGE",
+        `Updated vehicle details for "${updated.name}" (ID: ${sel.id})`,
+        { vehicle_id: sel.id, changes },
+        "fleet"
+      );
+
+      showToast("Vehicle details saved.", "success");
+      setIsEditingInfo(false);
+    } catch (err) {
+      showToast(`Database Error: Could not save vehicle changes. ${err.message}`, "error");
+    } finally {
+      setSavingVehicleInfo(false);
     }
   };
 
@@ -933,6 +973,7 @@ export default function FleetManagementView({
                     make: sel.make,
                     model: sel.model,
                     yr: sel.yr,
+                    type: sel.type,
                   });
                   setIsEditingInfo(!isEditingInfo);
                 }}
@@ -1002,30 +1043,27 @@ export default function FleetManagementView({
                   />
                 </Fld>
               </div>
-              <Fld label="License Plate">
-                <Inp
-                  value={form.plate || ""}
-                  onChange={(e) => setForm({ ...form, plate: e.target.value })}
-                />
-              </Fld>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <Fld label="License Plate">
+                  <Inp
+                    value={form.plate || ""}
+                    onChange={(e) => setForm({ ...form, plate: e.target.value })}
+                  />
+                </Fld>
+                <Fld label="Asset Type">
+                  <Sel value={form.type || "truck"} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                    <option value="truck">Truck</option>
+                    <option value="trailer">Trailer</option>
+                  </Sel>
+                </Fld>
+              </div>
               <Btn
                 v="green"
                 sz="sm"
-                onClick={() => {
-                  const updated = {
-                    ...sel,
-                    name: form.name,
-                    yr: parseInt(form.yr) || sel.yr,
-                    make: form.make,
-                    model: form.model,
-                    plate: form.plate,
-                  };
-                  setVehs((p) => p.map((v) => (v.id === sel.id ? updated : v)));
-                  setSel(updated);
-                  setIsEditingInfo(false);
-                }}
+                onClick={saveVehicleInfo}
+                disabled={savingVehicleInfo}
               >
-                Save Vehicle Changes
+                {savingVehicleInfo ? "⏳ Saving..." : "Save Vehicle Changes"}
               </Btn>
             </div>
           )}
