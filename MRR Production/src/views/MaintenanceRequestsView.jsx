@@ -474,6 +474,27 @@ export default function MaintenanceRequestsView({
               <div style={{ background: C.lg, padding: 12, borderRadius: 8, marginTop: 4, fontStyle: "italic" }}>
                 "{sel.notes}"
               </div>
+              {(() => {
+                const lastCompleted = reqs
+                  .filter((r) => r.vid === sel.vid && r.status === "completed" && r.id !== sel.id)
+                  .sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0))[0];
+                if (!lastCompleted) return null;
+                return (
+                  <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: 10, borderRadius: 8, marginTop: 8 }}>
+                    <strong style={{ fontSize: 11, color: "#166534", textTransform: "uppercase" }}>
+                      🕓 Last Completed Service — {sel.vname}
+                    </strong>
+                    <div style={{ fontSize: 12, color: "#166534", marginTop: 4 }}>
+                      {lastCompleted.wh_notes || "No resolution notes were recorded."}
+                    </div>
+                    {lastCompleted.completed_at && (
+                      <div style={{ fontSize: 10, color: C.sub, marginTop: 4 }}>
+                        Completed {new Date(lastCompleted.completed_at).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {sel.photo && (
