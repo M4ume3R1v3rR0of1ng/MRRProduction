@@ -114,6 +114,8 @@ export function compressImg(file, maxDim, quality, cb) {
 }
 
 // 10. The Standard First-In-First-Out (FIFO) Inventory Depletion Logic
+// Allows pulling past what's physically on hand — the remainder is tracked
+// as a negative synthetic batch instead of blocking the pull.
 export const doFifo = (item, qty) => {
   const s = [...item.batches].sort(
     (a, b) => new Date(a.rcvd) - new Date(b.rcvd),
@@ -127,7 +129,22 @@ export const doFifo = (item, qty) => {
     c += t * b.price;
     return { ...b, rem: b.rem - t };
   });
-  return r > 0 ? null : { batches: u, cost: c };
+
+  if (r > 0) {
+    const lastPrice = s.length > 0 ? s[s.length - 1].price : 0;
+    c += r * lastPrice;
+    u.push({
+      id: "neg_" + Math.random().toString(36).slice(2, 10),
+      rcvd: new Date().toISOString().split("T")[0],
+      qty: -r,
+      price: lastPrice,
+      by: "system",
+      rem: -r,
+      short: true,
+    });
+  }
+
+  return { batches: u, cost: c, shortfall: Math.max(0, r) };
 };
 
 // 11. Additional helper functions can be added here as needed for future features or utilities.

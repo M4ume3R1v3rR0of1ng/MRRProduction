@@ -2,6 +2,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { C, fd } from "../utils/helpers";
 import { Bdg, Btn } from "./UIPrimitives";
+import { supabase } from "../utils/supabase";
+import { useNotify } from "../context/NotificationContext";
 
 // ── Local date string helper (avoids UTC offset bug from toISOString()) ──
 const toLocalDateKey = (date) => {
@@ -30,7 +32,10 @@ const resolveStatusColor = (statusConfig) => {
   return colorMap[c] ?? c;
 };
 
-export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobClick }) {
+export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobClick, setJobs }) {
+  const { showToast } = useNotify();
+  const [draggingId, setDraggingId] = useState(null);
+  const [dragOverKey, setDragOverKey] = useState(null);
   // ── 📅 CALENDAR WINDOWING NAVIGATION STATE ──
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const d = new Date();
@@ -61,7 +66,7 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
       if (!rawDate) return;
       // Use local date parsing to avoid UTC offset issues
       const dateKey = rawDate.split("T")[0];
-      const userId = job.assignedTo || "__unassigned__";
+      const userId = job.assignedto || job.assignedTo || "__unassigned__";
       if (!index[dateKey]) index[dateKey] = {};
       if (!index[dateKey][userId]) index[dateKey][userId] = [];
       index[dateKey][userId].push(job);
@@ -85,6 +90,37 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
     d.setHours(0, 0, 0, 0);
     setCurrentWeekStart(d);
   }, []);
+
+  // ── 🖐️ DRAG-AND-DROP: RESCHEDULE / REASSIGN A JOB ──
+  const handleDropOnCell = async (dateKey, assigneeId) => {
+    const jobId = draggingId;
+    setDraggingId(null);
+    setDragOverKey(null);
+    if (!jobId || typeof setJobs !== "function") return;
+
+    const job = jobs.find((j) => j.id === jobId);
+    if (!job) return;
+
+    const prevScheduledDate = job.scheduledDate;
+    const prevAssignedTo = job.assignedto || job.assignedTo || "";
+    if (prevScheduledDate === dateKey && prevAssignedTo === (assigneeId || "")) return;
+
+    const updated = { ...job, scheduledDate: dateKey, assignedto: assigneeId || "" };
+    setJobs((p) => p.map((j) => (j.id === jobId ? updated : j)));
+
+    try {
+      const { error } = await supabase
+        .from("jobs")
+        .update({ scheduledDate: dateKey, assignedto: assigneeId || "" })
+        .eq("id", jobId);
+      if (error) throw error;
+    } catch (err) {
+      console.error("Failed to reschedule job:", err);
+      showToast?.(`Failed to reschedule job: ${err.message}`, "error");
+      // Revert the optimistic update since the write didn't actually persist.
+      setJobs((p) => p.map((j) => (j.id === jobId ? { ...job, scheduledDate: prevScheduledDate, assignedto: prevAssignedTo } : j)));
+    }
+  };
 
   // Consistent role filter matching the parent (field + Site Supervisor)
   const fieldPersonnelList = useMemo(() => {
@@ -114,10 +150,20 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
   const JobCard = ({ job }) => {
     const statusConfig = jSC[job.status] || { c: "gray", icon: "📋", l: job.status };
     const borderColor = resolveStatusColor(statusConfig);
+    const jobLabel = job.title || job.name || "Untitled Job";
 
     return (
       <div
         key={job.id}
+        draggable={typeof setJobs === "function"}
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          setDraggingId(job.id);
+        }}
+        onDragEnd={() => {
+          setDraggingId(null);
+          setDragOverKey(null);
+        }}
         onClick={() => onJobClick?.(job)}
         style={{
           background: C.w,
@@ -126,11 +172,12 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
           padding: "6px 8px",
           boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           cursor: onJobClick ? "pointer" : "default",
+          opacity: draggingId === job.id ? 0.4 : 1,
         }}
-        title={`${job.name}\nPO: ${job.po}\nAddress: ${job.addr || "N/A"}\nStatus: ${statusConfig.l || job.status}`}
+        title={`${jobLabel}\nPO: ${job.po}\nAddress: ${job.addr || "N/A"}\nStatus: ${statusConfig.l || job.status}`}
       >
         <div style={{ fontSize: 11, fontWeight: 800, color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {job.name}
+          {jobLabel}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: 10, color: C.sub }}>
           <span>📄 {job.po}</span>
@@ -206,13 +253,20 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
                   const isToday = dayKey === todayString;
                   const dayJobs = jobsByDateAndUser[dayKey]?.[crewLead.id] || [];
                   const isDoubleBooked = dayJobs.length > 1;
+                  const cellKey = `${crewLead.id}::${dayKey}`;
+                  const isDragOver = dragOverKey === cellKey;
 
                   return (
                     <td
                       key={dayKey}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverKey(cellKey); }}
+                      onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
+                      onDrop={(e) => { e.preventDefault(); handleDropOnCell(dayKey, crewLead.id); }}
                       style={{
                         padding: "6px", verticalAlign: "top",
-                        background: isToday ? "rgba(27, 82, 184, 0.01)" : "transparent",
+                        background: isDragOver ? "rgba(27, 82, 184, 0.12)" : isToday ? "rgba(27, 82, 184, 0.01)" : "transparent",
+                        outline: isDragOver ? `2px dashed ${C.blue}` : "none",
+                        outlineOffset: -2,
                         borderRight: `1px solid ${C.lg}`,
                         height: 90,
                       }}
@@ -231,8 +285,8 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
               </tr>
             ))}
 
-            {/* ── Unassigned jobs row ── */}
-            {unassignedThisWeek.length > 0 && (
+            {/* ── Unassigned jobs row (always rendered as a drop target for unassigning) ── */}
+            {(unassignedThisWeek.length > 0 || typeof setJobs === "function") && (
               <tr style={{ borderBottom: `1px solid ${C.lg}`, background: "rgba(251,191,36,0.04)" }}>
                 <td style={{ padding: "14px 10px", verticalAlign: "middle", borderRight: `1px solid ${C.lg}` }}>
                   <div style={{ fontWeight: 700, fontSize: 13, color: C.am }}>⚠️ Unassigned</div>
@@ -242,12 +296,19 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
                   const dayKey = toLocalDateKey(day);
                   const isToday = dayKey === todayString;
                   const dayJobs = jobsByDateAndUser[dayKey]?.["__unassigned__"] || [];
+                  const cellKey = `__unassigned__::${dayKey}`;
+                  const isDragOver = dragOverKey === cellKey;
                   return (
                     <td
                       key={dayKey}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverKey(cellKey); }}
+                      onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
+                      onDrop={(e) => { e.preventDefault(); handleDropOnCell(dayKey, ""); }}
                       style={{
                         padding: "6px", verticalAlign: "top",
-                        background: isToday ? "rgba(27, 82, 184, 0.01)" : "transparent",
+                        background: isDragOver ? "rgba(27, 82, 184, 0.12)" : isToday ? "rgba(27, 82, 184, 0.01)" : "transparent",
+                        outline: isDragOver ? `2px dashed ${C.blue}` : "none",
+                        outlineOffset: -2,
                         borderRight: `1px solid ${C.lg}`,
                         height: 90,
                       }}

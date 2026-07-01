@@ -68,8 +68,8 @@ export default function PullInventory({
     setPulling(true);
 
     const newInv = [...inv];
-    let ok = true;
     const updItems = [...(sel.items || sel.materials || [])];
+    const shortItems = [];
 
     for (const item of updItems) {
       if (!item) continue;
@@ -80,13 +80,8 @@ export default function PullInventory({
       if (idx < 0) continue;
 
       const res = doFifo(newInv[idx], qty);
-      if (!res) {
-        showToast(
-          `Not enough warehouse stock available for ${item.iname || item.name}. Please review staging allocations.`,
-          "error",
-        );
-        ok = false;
-        break;
+      if (res.shortfall > 0) {
+        shortItems.push(item.iname || item.name);
       }
 
       newInv[idx] = { ...newInv[idx], batches: res.batches };
@@ -102,9 +97,11 @@ export default function PullInventory({
       }
     }
 
-    if (!ok) {
-      setPulling(false);
-      return;
+    if (shortItems.length > 0) {
+      showToast(
+        `Pulled past available stock for: ${shortItems.join(", ")}. Warehouse balance is now negative for ${shortItems.length > 1 ? "these items" : "this item"} — reorder soon.`,
+        "warning",
+      );
     }
 
     const updatedJob = { ...sel, status: "active", items: updItems, materials: updItems };
@@ -453,7 +450,6 @@ export default function PullInventory({
                         type="number"
                         value={pullQtys[item.iid] ?? (item.planned || item.qty || 0)}
                         min="0"
-                        max={avail}
                         onChange={(e) =>
                           setPullQtys((p) => ({
                             ...p,

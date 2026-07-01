@@ -48,6 +48,12 @@ export default function BuildJobs({
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
 
+  // ── ✏️ EDIT JOB STATE ──────────────────────────────────────────────────────
+  const [editForm, setEditForm] = useState({});
+  const [editItems, setEditItems] = useState([]);
+  const [editItemSearch, setEditItemSearch] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
   // ── 🆕 ACCULYNX ESTIMATE TRACKING STATE ───────────────────────────────────
   const [axEstimateItems, setAxEstimateItems] = useState([]);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
@@ -421,6 +427,87 @@ export default function BuildJobs({
     (i?.name || "").toLowerCase().includes(iSrch.toLowerCase()),
   );
 
+  // ── ✏️ EDIT JOB HELPERS ────────────────────────────────────────────────────
+  const startEditJob = (job) => {
+    setEditForm({
+      po: job.po || "",
+      name: job.title || job.name || "",
+      addr: job.addr || "",
+      notes: job.notes || "",
+      scheduledDate: job.scheduledDate || "",
+      assignedto: job.assignedto || job.assignedTo || "",
+    });
+    setEditItems((job.items || job.materials || []).filter(Boolean));
+    setEditItemSearch("");
+    setModal("edit");
+  };
+
+  const editFiltInv = inv.filter(
+    (i) =>
+      (i?.name || "").toLowerCase().includes(editItemSearch.toLowerCase()) &&
+      !editItems.find((x) => x.iid === i.id),
+  );
+
+  const addEditItem = (item) => {
+    setEditItems((p) => [...p, mkJI(item.id, item.name, item.cat, item.unit, 1)]);
+  };
+
+  const updateEditItemQty = (iid, val) => {
+    setEditItems((p) => p.map((x) => (x.iid === iid ? { ...x, planned: Math.max(0, parseFloat(val) || 0) } : x)));
+  };
+
+  const removeEditItem = (item) => {
+    if (item.pulled > 0) {
+      if (!window.confirm(`"${item.iname}" already has ${item.pulled} ${item.unit || ""} pulled from the warehouse. Removing it here will NOT return that stock — it only removes it from this job's checklist. Continue?`)) {
+        return;
+      }
+    }
+    setEditItems((p) => p.filter((x) => x.iid !== item.iid));
+  };
+
+  const saveJobEdit = async () => {
+    if (!editForm.po || !editForm.name) {
+      showToast("PO and Job Name are strictly required fields.", "warning");
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const payload = {
+        po: editForm.po,
+        title: editForm.name,
+        addr: editForm.addr,
+        notes: editForm.notes,
+        scheduledDate: editForm.scheduledDate,
+        assignedto: editForm.assignedto,
+        items: editItems,
+        materials: editItems,
+      };
+
+      const { error } = await supabase.from("jobs").update(payload).eq("id", sel.id);
+      if (error) throw error;
+
+      await logAction(
+        activeUser.id,
+        activeUser.email,
+        "JOB_BUILD_EDIT",
+        `Edited job build details for "${editForm.name}" (PO: ${editForm.po})`,
+        { job_id: sel.id, material_count: editItems.length },
+        "production",
+      );
+
+      const updated = { ...sel, ...payload };
+      setJobs((p) => p.map((j) => (j.id === sel.id ? updated : j)));
+      setSel(updated);
+      showToast("Job build updated successfully.", "success");
+      setModal("detail");
+    } catch (err) {
+      console.error("Failed to save job edits:", err);
+      showToast(`Database Error: Could not save job edits. ${err.message}`, "error");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <div>
       {/* ── 🏗️ CORE APP ACTIONS MENU NAVIGATION ── */}
@@ -478,6 +565,7 @@ export default function BuildJobs({
           jobs={jobs}
           users={users}
           jSC={jSC}
+          setJobs={setJobs}
           onJobClick={(job) => {
             setSel(job);
             setModal("detail");
@@ -684,6 +772,11 @@ export default function BuildJobs({
           wide
         >
           <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+            {perms.jobs_build && sel.status !== "closed" && (
+              <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>
+                ✏️ Edit Job
+              </Btn>
+            )}
             {perms.jobs_approve && sel.status === "draft" && (
               <Btn
                 v="teal"
@@ -775,6 +868,103 @@ export default function BuildJobs({
               })}
             </tbody>
           </table>
+        </Modal>
+      )}
+
+      {/* ── 📂 MODAL: EDIT JOB BUILD ── */}
+      {modal === "edit" && sel && (
+        <Modal
+          title={`Edit Job — ${sel.po}`}
+          onClose={() => { if (!savingEdit) setModal("detail"); }}
+          wide
+        >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <Fld label="Job PO Number *">
+              <Inp value={editForm.po || ""} onChange={(e) => setEditForm({ ...editForm, po: e.target.value })} disabled={savingEdit} />
+            </Fld>
+            <Fld label="Job Name *">
+              <Inp value={editForm.name || ""} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} disabled={savingEdit} />
+            </Fld>
+          </div>
+          <Fld label="Job Address">
+            <Inp value={editForm.addr || ""} onChange={(e) => setEditForm({ ...editForm, addr: e.target.value })} disabled={savingEdit} />
+          </Fld>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <Fld label="Production Schedule Start Date">
+              <Inp type="date" value={editForm.scheduledDate || ""} onChange={(e) => setEditForm({ ...editForm, scheduledDate: e.target.value })} disabled={savingEdit} />
+            </Fld>
+            <Fld label="Assigned Site Supervisor">
+              <Sel value={editForm.assignedto || ""} onChange={(e) => setEditForm({ ...editForm, assignedto: e.target.value })} disabled={savingEdit}>
+                <option value="">— Unassigned —</option>
+                {fieldUsers.map((u) => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+              </Sel>
+            </Fld>
+          </div>
+          <Fld label="Notes">
+            <TA value={editForm.notes || ""} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} disabled={savingEdit} />
+          </Fld>
+
+          <h4 style={{ margin: "16px 0 8px", color: C.navy, fontSize: 12, textTransform: "uppercase" }}>Materials Checklist</h4>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+            {editItems.length === 0 ? (
+              <p style={{ color: C.sub, fontSize: 12, margin: 0 }}>No materials on this job.</p>
+            ) : (
+              editItems.map((item) => (
+                <div key={item.iid} style={{ display: "flex", alignItems: "center", gap: 8, background: C.lg, borderRadius: 7, padding: "7px 10px" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, color: C.navy, fontSize: 12 }}>{item.iname}</div>
+                    {item.pulled > 0 && (
+                      <div style={{ fontSize: 10, color: C.am }}>⚠️ {item.pulled} {item.unit} already pulled</div>
+                    )}
+                  </div>
+                  <Inp
+                    type="number"
+                    min="0"
+                    value={item.planned}
+                    onChange={(e) => updateEditItemQty(item.iid, e.target.value)}
+                    style={{ width: 70, padding: "4px 8px" }}
+                    disabled={savingEdit}
+                  />
+                  <span style={{ fontSize: 11, color: C.sub, width: 50 }}>{item.unit}</span>
+                  <button
+                    onClick={() => removeEditItem(item)}
+                    disabled={savingEdit}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: 16, lineHeight: 1 }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <Fld label="Add Material">
+            <Inp value={editItemSearch} onChange={(e) => setEditItemSearch(e.target.value)} placeholder="🔍 Search inventory..." disabled={savingEdit} />
+          </Fld>
+          {editItemSearch.trim() && (
+            <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: 8, maxHeight: 160, overflowY: "auto", marginBottom: 14 }}>
+              {editFiltInv.length === 0 ? (
+                <div style={{ padding: 10, fontSize: 12, color: C.sub, textAlign: "center" }}>No matching inventory items.</div>
+              ) : (
+                editFiltInv.map((item) => (
+                  <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderBottom: `1px solid ${C.lg}` }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{item.name}</span>
+                    <Btn v="primary" sz="sm" onClick={() => { addEditItem(item); setEditItemSearch(""); }}>+ Add</Btn>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+            <Btn v="ghost" onClick={() => setModal("detail")} style={{ flex: 1, justifyContent: "center" }} disabled={savingEdit}>Cancel</Btn>
+            <Btn v="primary" onClick={saveJobEdit} style={{ flex: 1, justifyContent: "center" }} disabled={savingEdit}>
+              {savingEdit ? "⏳ Saving..." : "💾 Save Changes"}
+            </Btn>
+          </div>
         </Modal>
       )}
 

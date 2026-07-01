@@ -52,6 +52,7 @@ export default function DashboardView({
         );
       }
       setNewJobAlert(null);
+      onNav("pull");
     } catch (err) {
       console.error("Failed to dismiss supervisor project warning banner:", err);
     }

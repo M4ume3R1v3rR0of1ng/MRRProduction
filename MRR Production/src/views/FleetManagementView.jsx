@@ -11,7 +11,7 @@ import {
   Modal,
   PhotoUpload,
 } from "../components/UIPrimitives";
-import { C } from "../utils/helpers";
+import { C, uid } from "../utils/helpers";
 import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
@@ -236,7 +236,20 @@ export default function FleetManagementView({
   const [inspectionForm, setInspectionForm] = useState({
     vehicleId: "",
     notes: "",
-    photos: [] 
+    photos: []
+  });
+  const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+  const [addVehicleSubmitting, setAddVehicleSubmitting] = useState(false);
+  const [avForm, setAvForm] = useState({
+    name: "",
+    type: "truck",
+    yr: "",
+    make: "",
+    model: "",
+    plate: "",
+    mi: "",
+    oii: "5000",
+    dii: "90",
   });
   const filtered = vehs.filter((v) => filt === "all" || v.type === filt);
   const setPhoto = (id, data) =>
@@ -344,6 +357,58 @@ export default function FleetManagementView({
     }
   };
 
+  const handleAddVehicle = async () => {
+    if (!avForm.name.trim() || !avForm.plate.trim()) {
+      showToast("Please enter at least a name/nickname and license plate.", "warning");
+      return;
+    }
+    setAddVehicleSubmitting(true);
+
+    const startMi = parseFloat(avForm.mi) || 0;
+    const newVehicle = {
+      id: "v_" + uid(),
+      name: avForm.name.trim(),
+      type: avForm.type,
+      yr: parseInt(avForm.yr) || new Date().getFullYear(),
+      make: avForm.make.trim(),
+      model: avForm.model.trim(),
+      plate: avForm.plate.trim(),
+      mi: startMi,
+      lomi: startMi,
+      oii: parseFloat(avForm.oii) || 5000,
+      dii: parseFloat(avForm.dii) || 90,
+      ldd: new Date().toISOString().split("T")[0],
+      mil: [],
+      sl: [],
+      assignedTo: "",
+      status: "active",
+    };
+
+    try {
+      const { error } = await supabase.from("vehicles").insert([newVehicle]);
+      if (error) throw error;
+
+      setVehs((p) => [...p, newVehicle]);
+
+      await logAction(
+        user.id,
+        user.email,
+        "FLEET_STATUS_CHANGE",
+        `Registered new fleet asset: "${newVehicle.name}" (${newVehicle.yr} ${newVehicle.make} ${newVehicle.model}, Plate: ${newVehicle.plate})`,
+        { vehicle_id: newVehicle.id },
+        "fleet"
+      );
+
+      showToast("Vehicle added to the fleet roster.", "success");
+      setIsAddVehicleOpen(false);
+      setAvForm({ name: "", type: "truck", yr: "", make: "", model: "", plate: "", mi: "", oii: "5000", dii: "90" });
+    } catch (err) {
+      showToast(`Database Error: Could not add vehicle. ${err.message}`, "error");
+    } finally {
+      setAddVehicleSubmitting(false);
+    }
+  };
+
  const handleRemoveVehicle = async (vehicleId, vehicleName) => {
     if (
       !window.confirm(
@@ -377,24 +442,74 @@ export default function FleetManagementView({
     ? reqs.filter((r) => r.vid === sel.id && r.status !== "completed")
     : [];
 
+  const addVehicleModal = isAddVehicleOpen && (
+    <Modal title="🚛 Register New Fleet Vehicle" onClose={() => { if (!addVehicleSubmitting) setIsAddVehicleOpen(false); }}>
+      <Fld label="Name / Nickname *">
+        <Inp value={avForm.name} onChange={(e) => setAvForm({ ...avForm, name: e.target.value })} placeholder="e.g. Truck 013" disabled={addVehicleSubmitting} />
+      </Fld>
+      <Fld label="Type">
+        <Sel value={avForm.type} onChange={(e) => setAvForm({ ...avForm, type: e.target.value })} disabled={addVehicleSubmitting}>
+          <option value="truck">Truck</option>
+          <option value="trailer">Trailer</option>
+        </Sel>
+      </Fld>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        <Fld label="Year">
+          <Inp type="number" value={avForm.yr} onChange={(e) => setAvForm({ ...avForm, yr: e.target.value })} disabled={addVehicleSubmitting} />
+        </Fld>
+        <Fld label="Make">
+          <Inp value={avForm.make} onChange={(e) => setAvForm({ ...avForm, make: e.target.value })} disabled={addVehicleSubmitting} />
+        </Fld>
+        <Fld label="Model">
+          <Inp value={avForm.model} onChange={(e) => setAvForm({ ...avForm, model: e.target.value })} disabled={addVehicleSubmitting} />
+        </Fld>
+      </div>
+      <Fld label="License Plate *">
+        <Inp value={avForm.plate} onChange={(e) => setAvForm({ ...avForm, plate: e.target.value })} disabled={addVehicleSubmitting} />
+      </Fld>
+      {avForm.type === "truck" && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <Fld label="Starting Mileage">
+            <Inp type="number" value={avForm.mi} onChange={(e) => setAvForm({ ...avForm, mi: e.target.value })} disabled={addVehicleSubmitting} />
+          </Fld>
+          <Fld label="Oil Change Interval (mi)">
+            <Inp type="number" value={avForm.oii} onChange={(e) => setAvForm({ ...avForm, oii: e.target.value })} disabled={addVehicleSubmitting} />
+          </Fld>
+        </div>
+      )}
+      <Fld label="Detail Interval (days)">
+        <Inp type="number" value={avForm.dii} onChange={(e) => setAvForm({ ...avForm, dii: e.target.value })} disabled={addVehicleSubmitting} />
+      </Fld>
+      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+        <Btn v="ghost" onClick={() => setIsAddVehicleOpen(false)} style={{ flex: 1, justifyContent: "center" }} disabled={addVehicleSubmitting}>Cancel</Btn>
+        <Btn v="primary" onClick={handleAddVehicle} style={{ flex: 1, justifyContent: "center" }} disabled={addVehicleSubmitting}>
+          {addVehicleSubmitting ? "⏳ Saving..." : "+ Add Vehicle"}
+        </Btn>
+      </div>
+    </Modal>
+  );
+
   if (vehs.length === 0) {
     return (
-      <div style={{ 
-        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        padding: "60px 20px", background: "#ffffff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-        textAlign: "center", marginTop: 10 
-      }}>
-        <span style={{ fontSize: "48px", marginBottom: 16 }}>🚛</span>
-        <h3 style={{ margin: "0 0 8px 0", color: "#0f294a", fontWeight: 800 }}>Fleet Registry Empty</h3>
-        <p style={{ margin: "0 0 20px 0", color: "#64748b", fontSize: 13, maxWidth: "340px" }}>
-          No company vehicles are currently configured for tracking at the Saint Joe Road Warehouse.
-        </p>
-        {perms.fleet_manage && (
-          <Btn v="gold" onClick={() => {}}>
-            + Register First Fleet Vehicle
-          </Btn>
-        )}
-      </div>
+      <>
+        <div style={{
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          padding: "60px 20px", background: "#ffffff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          textAlign: "center", marginTop: 10
+        }}>
+          <span style={{ fontSize: "48px", marginBottom: 16 }}>🚛</span>
+          <h3 style={{ margin: "0 0 8px 0", color: "#0f294a", fontWeight: 800 }}>Fleet Registry Empty</h3>
+          <p style={{ margin: "0 0 20px 0", color: "#64748b", fontSize: 13, maxWidth: "340px" }}>
+            No company vehicles are currently configured for tracking at the Saint Joe Road Warehouse.
+          </p>
+          {perms.fleet_edit && (
+            <Btn v="gold" onClick={() => setIsAddVehicleOpen(true)}>
+              + Register First Fleet Vehicle
+            </Btn>
+          )}
+        </div>
+        {addVehicleModal}
+      </>
     );
   }
 
@@ -440,6 +555,16 @@ export default function FleetManagementView({
             alignItems: "center",
           }}
         >
+          {perms.fleet_edit && (
+            <Btn
+              v="primary"
+              sz="sm"
+              onClick={() => setIsAddVehicleOpen(true)}
+              style={{ fontWeight: 800 }}
+            >
+              + Add Vehicle
+            </Btn>
+          )}
           {/* ── 🟢 ADD HERE: THE LOG INSPECTION TOGGLE ACTION BUTTON ── */}
           {(user.role === "admin" || user.name === "John" || user.name === "Adam" || perms.fleet_manage) && (
             <Btn
@@ -1277,6 +1402,8 @@ export default function FleetManagementView({
           </div>
         </Modal>
       )}
+
+      {addVehicleModal}
 
     </div>
   );
