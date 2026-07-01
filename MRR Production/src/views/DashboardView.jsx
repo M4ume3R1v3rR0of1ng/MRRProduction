@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react"; 
 import { C, displayName } from "../utils/helpers";
 import { Bdg, Btn, Modal } from "../components/UIPrimitives"; 
-import RecentActivityFeed from "../components/RecentActivityFeed";
+import TeamChatBox from "../components/TeamChatBox";
 import { supabase } from "../utils/supabase"; 
 import { translations } from "../utils/translations";
 
@@ -182,7 +182,7 @@ export default function DashboardView({
               )}
             </div>
           </div>
-          <RecentActivityFeed limit={5} />
+          <TeamChatBox user={user} limit={30} />
         </div>
       </div>
     );
@@ -226,7 +226,7 @@ export default function DashboardView({
               ))}
             </div>
           </div>
-          <RecentActivityFeed limit={5} />
+          <TeamChatBox user={user} limit={30} />
         </div>
       </div>
     );
@@ -265,7 +265,7 @@ export default function DashboardView({
               })}
             </div>
           </div>
-          <RecentActivityFeed limit={5} />
+          <TeamChatBox user={user} limit={30} />
         </div>
       </div>
     );
