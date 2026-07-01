@@ -223,6 +223,7 @@ export default function FleetManagementView({
   fd,
   fm,
 }) {
+  const { showToast } = useNotify();
   const [filt, setFilt] = useState("all");
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);

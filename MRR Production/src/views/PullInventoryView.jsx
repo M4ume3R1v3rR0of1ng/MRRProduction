@@ -73,7 +73,8 @@ export default function PullInventory({
 
     for (const item of updItems) {
       if (!item) continue;
-      const qty = parseFloat(pullQtys[item.iid]) ?? (item.planned || item.qty || 0);
+      const parsedQty = parseFloat(pullQtys[item.iid]);
+      const qty = Number.isNaN(parsedQty) ? (item.planned || item.qty || 0) : parsedQty;
       if (qty <= 0) continue;
       const idx = newInv.findIndex((i) => i.id === item.iid);
       if (idx < 0) continue;
@@ -440,7 +441,8 @@ export default function PullInventory({
               {(Array.isArray(sel.items) ? sel.items : (sel.materials || [])).map((item) => {
                 if (!item) return null;
                 const avail = tot(inv.find((i) => i.id === item.iid) || { batches: [] });
-                const actual = parseFloat(pullQtys[item.iid]) ?? (item.planned || item.qty || 0);
+                const parsedActual = parseFloat(pullQtys[item.iid]);
+                const actual = Number.isNaN(parsedActual) ? (item.planned || item.qty || 0) : parsedActual;
                 const short = actual > avail;
                 return (
                   <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}`, background: short ? C.rB : "transparent" }}>

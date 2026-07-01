@@ -1,8 +1,6 @@
-const RESEND_KEY = import.meta.env.VITE_RESEND_KEY;
+const proxyEndpoint = "/.netlify/functions/send-email";
 
 export async function sendEmail({ to, subject, html }) {
-  // Point to your function endpoint mapping (adjusting route matching to match your framework setup)
-
   try {
     const response = await fetch(proxyEndpoint, {
       method: "POST",

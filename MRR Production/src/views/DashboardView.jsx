@@ -17,8 +17,9 @@ export default function DashboardView({
   onNav,
   tot,
   jSC,
-  setJobs, 
-  lang = "en"
+  setJobs,
+  lang = "en",
+  onMarkChatRead
 }) {
   const t = translations[lang] || translations.en;
   const low = inv.filter((i) => tot(i) <= i.alrt);
@@ -182,7 +183,7 @@ export default function DashboardView({
               )}
             </div>
           </div>
-          <TeamChatBox user={user} limit={30} />
+          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} />
         </div>
       </div>
     );
@@ -226,7 +227,7 @@ export default function DashboardView({
               ))}
             </div>
           </div>
-          <TeamChatBox user={user} limit={30} />
+          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} />
         </div>
       </div>
     );
@@ -265,7 +266,7 @@ export default function DashboardView({
               })}
             </div>
           </div>
-          <TeamChatBox user={user} limit={30} />
+          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} />
         </div>
       </div>
     );

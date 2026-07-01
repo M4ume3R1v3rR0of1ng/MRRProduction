@@ -173,10 +173,75 @@ export function useAppData() {
     return () => window.removeEventListener("online", handleReconnect);
   }, [showToast]);
 
+  // ── 💬 TEAM CHAT UNREAD TRACKING ──
+  const [chatUnread, setChatUnread] = useState(0);
+
+  const markChatRead = async () => {
+    if (!curUser) return;
+    setChatUnread(0);
+    try {
+      await supabase.from("team_chat_reads").upsert(
+        { user_id: curUser.id, last_read_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
+    } catch (err) {
+      console.error("Failed to update chat read state:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!curUser) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data: readRow } = await supabase
+          .from("team_chat_reads")
+          .select("last_read_at")
+          .eq("user_id", curUser.id)
+          .maybeSingle();
+
+        if (!readRow?.last_read_at) {
+          // First time ever seeing chat — mark caught up instead of dumping the whole backlog as "unread".
+          await supabase.from("team_chat_reads").upsert(
+            { user_id: curUser.id, last_read_at: new Date().toISOString() },
+            { onConflict: "user_id" },
+          );
+          if (!cancelled) setChatUnread(0);
+          return;
+        }
+
+        const { count } = await supabase
+          .from("team_chat_messages")
+          .select("id", { count: "exact", head: true })
+          .gt("created_at", readRow.last_read_at)
+          .neq("user_id", curUser.id);
+
+        if (!cancelled) setChatUnread(count || 0);
+      } catch (err) {
+        console.error("Failed to compute chat unread count:", err);
+      }
+    })();
+
+    const channel = supabase
+      .channel("realtime-chat-unread")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "team_chat_messages" }, (payload) => {
+        if (payload.new.user_id !== curUser.id) {
+          setChatUnread((prev) => prev + 1);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [curUser]);
+
   // ── 📊 COMPUTED MEMO VALUES ──
   const pendingReqCount = useMemo(() => reqs.filter((r) => r.status === "pending").length, [reqs]);
   const lowStockCount = useMemo(() => inv.filter((i) => tot(i) <= i.alrt).length, [inv]);
-  const newJobsForMe = useMemo(() => curUser ? jobs.filter((j) => j.newForAssigned && j.assignedTo === curUser.id).length : 0, [jobs, curUser]);
+  const newJobsForMe = useMemo(() => curUser ? jobs.filter((j) => (j.newforassigned || j.newForAssigned) && (j.assignedto || j.assignedTo) === curUser.id).length : 0, [jobs, curUser]);
   const activeLogo = useMemo(() => {
     if (!logos || !Array.isArray(logos)) return null;
     return logos.find((l) => l.isActive)?.data || null;
@@ -216,6 +281,8 @@ export function useAppData() {
     setInvPhotos,
     vehPhotos,
     setVehPhotos,
+    chatUnread,
+    markChatRead,
     logos,
     setLogos,
     pendingReqCount,

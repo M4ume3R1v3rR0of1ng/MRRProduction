@@ -17,6 +17,7 @@ export default function Sidebar({
   pendingReqs,
   lowStock,
   newJobsForMe,
+  chatUnread,
   activeLogo,
   perms,
   // ── 🟢 NEW: ACCEPT LANG MATRIX CONTROL ARGS ──
@@ -27,7 +28,7 @@ export default function Sidebar({
 
   // ── 🟢 TRANSLATED DYNAMIC SIDEBAR Blueprints ──
  const navItems = [
-    { id: "dashboard", icon: "🏠", label: t.dashboard || "Dashboard" },
+    { id: "dashboard", icon: "🏠", label: t.dashboard || "Dashboard", badge: chatUnread, badgeColor: C.rd },
     ...(perms.jobs_build
       ? [{ id: "buildjobs", icon: "🏗️", label: t.buildjobs || "Build Jobs" }]
       : []),

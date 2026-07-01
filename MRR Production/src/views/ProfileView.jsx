@@ -4,6 +4,7 @@ import { supabase } from "../utils/supabase";
 import { C, displayName } from "../utils/helpers";
 import { Fld, Inp, Btn } from "../components/UIPrimitives";
 import { dispatchSMSAlert } from "../utils/helpers";
+import { sendEmail } from "../utils/email";
 
 export default function ProfileView({ user, onUpdateUser }) {
   // Identity Info States
@@ -106,18 +107,10 @@ export default function ProfileView({ user, onUpdateUser }) {
         "⚙️ MRR System Note: Your inventory alert subscription has been successfully updated! You will now receive notifications here whenever items drop below threshold values.";
 
       try {
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: "re_3b3r29Nt_3zSM8PQfcXkKXHYnib5bfWo6",
-          },
-          body: JSON.stringify({
-            from: "MRR Inventory Alerts <onboarding@resend.dev>",
-            to: [user.email],
-            subject: "✅ Notification Channels Confirmed",
-            text: confirmMessage,
-          }),
+        await sendEmail({
+          to: user.email,
+          subject: "✅ Notification Channels Confirmed",
+          html: `<p>${confirmMessage}</p>`,
         });
       } catch (err) {
         console.error(

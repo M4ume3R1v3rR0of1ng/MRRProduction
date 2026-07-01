@@ -1,9 +1,27 @@
 // src/components/TeamChatBox.jsx
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../utils/supabase';
-import { C, ft } from '../utils/helpers';
+import { C, ft, compressImg } from '../utils/helpers';
+import { Modal } from './UIPrimitives';
 
-export default function TeamChatBox({ user, limit = 30 }) {
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function renderWithMentions(text, names) {
+  if (!names.length) return text;
+  const pattern = new RegExp(`(@(?:${names.map(escapeRegex).join('|')}))(?![\\w'-])`, 'g');
+  const parts = text.split(pattern);
+  return parts.map((part, i) =>
+    names.some((n) => part === `@${n}`) ? (
+      <span key={i} style={{ color: C.blue, fontWeight: 700, background: 'rgba(27,82,184,0.1)', borderRadius: 4, padding: '0 3px' }}>
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+}
+
+export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState('');
@@ -11,9 +29,31 @@ export default function TeamChatBox({ user, limit = 30 }) {
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editDraft, setEditDraft] = useState('');
+  const [pendingPhoto, setPendingPhoto] = useState(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState(null);
   const scrollRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const senderName = user?.name || user?.full_name || user?.email || 'User';
+  const knownNames = useMemo(
+    () => [...new Set(users.map((u) => u.full_name || u.name).filter(Boolean))].sort((a, b) => b.length - a.length),
+    [users],
+  );
+
+  const mentionMatch = draft.match(/@([\w'-]*)$/);
+  const mentionQuery = mentionMatch ? mentionMatch[1].toLowerCase() : null;
+  const mentionCandidates =
+    mentionQuery !== null
+      ? users
+          .filter((u) => u.id !== user?.id)
+          .filter((u) => (u.full_name || u.name || '').toLowerCase().includes(mentionQuery))
+          .slice(0, 5)
+      : [];
+
+  const selectMention = (u) => {
+    const name = u.full_name || u.name;
+    setDraft((d) => d.replace(/@([\w'-]*)$/, `@${name} `));
+  };
 
   const addMessage = (msg) => {
     setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg].slice(-limit)));
@@ -70,15 +110,30 @@ export default function TeamChatBox({ user, limit = 30 }) {
     }
   }, [messages]);
 
+  // Mounting this box (i.e. viewing the Dashboard) means the user is caught up.
+  useEffect(() => {
+    if (typeof onMarkRead === 'function') onMarkRead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
+
+  const attachPhoto = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    compressImg(file, 800, 0.75, (base64) => setPendingPhoto(base64));
+    e.target.value = '';
+  };
+
   const send = async () => {
     const text = draft.trim();
-    if (!text || sending) return;
+    if ((!text && !pendingPhoto) || sending) return;
     setSending(true);
     setDraft('');
+    const photoToSend = pendingPhoto;
+    setPendingPhoto(null);
     try {
       const { data, error: sendError } = await supabase
         .from('team_chat_messages')
-        .insert([{ user_id: user?.id || null, user_name: senderName, message: text }])
+        .insert([{ user_id: user?.id || null, user_name: senderName, message: text, photo: photoToSend || null }])
         .select()
         .single();
       if (sendError) throw sendError;
@@ -88,6 +143,7 @@ export default function TeamChatBox({ user, limit = 30 }) {
       console.error('Failed to send chat message:', err);
       setError(err.message || 'Failed to send message.');
       setDraft(text);
+      setPendingPhoto(photoToSend);
     } finally {
       setSending(false);
     }
@@ -216,7 +272,15 @@ export default function TeamChatBox({ user, limit = 30 }) {
                     lineHeight: 1.4,
                     wordBreak: 'break-word',
                   }}>
-                    {m.message}
+                    {m.photo && (
+                      <img
+                        src={m.photo}
+                        alt="Attachment"
+                        onClick={() => setLightboxPhoto(m.photo)}
+                        style={{ display: 'block', maxWidth: '100%', maxHeight: 160, borderRadius: 8, marginBottom: m.message ? 6 : 0, cursor: 'pointer' }}
+                      />
+                    )}
+                    {m.message && renderWithMentions(m.message, knownNames)}
                   </div>
                 )}
 
@@ -245,22 +309,64 @@ export default function TeamChatBox({ user, limit = 30 }) {
         </div>
       )}
 
+      {mentionCandidates.length > 0 && (
+        <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: 8, marginBottom: 8, overflow: 'hidden', background: C.w, boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}>
+          {mentionCandidates.map((u) => (
+            <div
+              key={u.id}
+              onClick={() => selectMention(u)}
+              style={{ padding: '6px 10px', fontSize: 12, fontWeight: 600, color: C.navy, cursor: 'pointer' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = C.lg)}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              @{u.full_name || u.name}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {pendingPhoto && (
+        <div style={{ position: 'relative', width: 60, height: 60, marginBottom: 8 }}>
+          <img src={pendingPhoto} alt="Pending attachment" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: `1.5px solid ${C.bd}` }} />
+          <button
+            onClick={() => setPendingPhoto(null)}
+            style={{ position: 'absolute', top: -6, right: -6, background: C.rd, color: C.w, border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 11, cursor: 'pointer', lineHeight: 1 }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 8 }}>
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={attachPhoto} style={{ display: 'none' }} />
+        <button
+          onClick={() => fileInputRef.current.click()}
+          title="Attach a photo"
+          style={{ background: C.lg, border: 'none', borderRadius: 8, padding: '9px 12px', fontSize: 14, cursor: 'pointer' }}
+        >
+          📷
+        </button>
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder="Type a message... (@ to mention)"
           style={{ flex: 1, padding: '9px 11px', border: `1.5px solid ${C.bd}`, borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}
         />
         <button
           onClick={send}
-          disabled={!draft.trim() || sending}
-          style={{ background: C.blue, color: C.w, border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: draft.trim() ? 'pointer' : 'default', opacity: draft.trim() ? 1 : 0.6 }}
+          disabled={(!draft.trim() && !pendingPhoto) || sending}
+          style={{ background: C.blue, color: C.w, border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: draft.trim() || pendingPhoto ? 'pointer' : 'default', opacity: draft.trim() || pendingPhoto ? 1 : 0.6 }}
         >
           Send
         </button>
       </div>
+
+      {lightboxPhoto && (
+        <Modal title="📷 Attachment" onClose={() => setLightboxPhoto(null)}>
+          <img src={lightboxPhoto} alt="Full size attachment" style={{ width: '100%', borderRadius: 8 }} />
+        </Modal>
+      )}
     </div>
   );
 }

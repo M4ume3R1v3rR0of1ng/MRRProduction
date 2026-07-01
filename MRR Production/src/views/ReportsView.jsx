@@ -42,7 +42,7 @@ function JobProfitabilityReport({ jobs }) {
       let topItemName = "None";
       let maxQty = 0;
 
-      j.items?.forEach((i) => {
+      (j.items || j.materials || []).forEach((i) => {
         const fallbackPrice = i.priceAtPull || 0;
         const pulledQty = parseFloat(i.pulled) || 0;
         const returnedQty = parseFloat(i.returned) || 0;
@@ -97,7 +97,7 @@ function JobProfitabilityReport({ jobs }) {
               let topItemName = "None";
               let maxQty = 0;
 
-              job.items?.forEach((i) => {
+              (job.items || job.materials || []).forEach((i) => {
                 const price = i.priceAtPull || 0;
                 const netUsed = (parseFloat(i.pulled) || 0) - (parseFloat(i.returned) || 0);
                 estCost += (parseFloat(i.planned) || 0) * price;
@@ -631,7 +631,7 @@ export default function Reports({
   const historicalTotalMaterialSpend = completedJobs.reduce(
     (s, j) =>
       s +
-      j.items.reduce(
+      (j.items || j.materials || []).reduce(
         (a, i) =>
           a +
           ((parseFloat(i.pulled) || 0) - (parseFloat(i.returned) || 0)) *
