@@ -15,6 +15,7 @@ import {
 import { sendEmail } from "../utils/email";
 import { useNotify } from "../context/NotificationContext";
 import { logAction } from "../utils/logger";
+import MaintenanceCalendar from "../components/MaintenanceCalendar";
 
 export default function MaintenanceRequestsView({
   reqs,
@@ -31,6 +32,7 @@ export default function MaintenanceRequestsView({
   const [filt, setFilt] = useState("all");
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
+  const [subView, setSubView] = useState("list");
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTicket, setNewTicket] = useState({
@@ -211,12 +213,30 @@ export default function MaintenanceRequestsView({
               🔔 {pendingCount} awaiting scheduling
             </div>
           )}
+          <div style={{ display: "flex", background: "#f1f5f9", padding: 4, borderRadius: 8, marginRight: 4 }}>
+            <button
+              onClick={() => setSubView("list")}
+              style={{ padding: "6px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: subView === "list" ? "#fff" : "transparent", color: subView === "list" ? "#0f172a" : "#64748b", boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+            >
+              📋 Request List
+            </button>
+            <button
+              onClick={() => setSubView("calendar")}
+              style={{ padding: "6px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: subView === "calendar" ? "#fff" : "transparent", color: subView === "calendar" ? "#0f172a" : "#64748b", boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+            >
+              📅 Schedule Calendar
+            </button>
+          </div>
           <Btn v="primary" sz="sm" onClick={() => setIsCreateOpen(true)} style={{ fontWeight: 800 }}>
             ➕ New Request
           </Btn>
         </div>
       </div>
 
+      {subView === "calendar" ? (
+        <MaintenanceCalendar reqs={reqs} vehs={vehs} user={activeUser} setReqs={setReqs} onRequestClick={(r) => setSel(r)} />
+      ) : (
+      <>
       {/* Filter Tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 16, background: "#f1f5f9", padding: 4, borderRadius: 8, width: "fit-content" }}>
         {[
@@ -339,6 +359,8 @@ export default function MaintenanceRequestsView({
           })
         )}
       </div>
+      </>
+      )}
 
       {/* Create Modal Form Layout */}
       {isCreateOpen && (
