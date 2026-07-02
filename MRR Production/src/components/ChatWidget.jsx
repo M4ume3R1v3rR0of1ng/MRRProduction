@@ -1,16 +1,37 @@
 // src/components/ChatWidget.jsx
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../utils/supabase";
-import { C } from "../utils/helpers";
-import { LoadingState } from "./UIPrimitives";
+import { C, compressImg } from "../utils/helpers";
+import { LoadingState, Modal } from "./UIPrimitives";
+
+// data:image/jpeg;base64,XXXX -> { media_type: "image/jpeg", data: "XXXX" }
+function parseDataUrl(dataUrl) {
+  const match = /^data:(image\/[a-zA-Z]+);base64,(.+)$/.exec(dataUrl || "");
+  if (!match) return null;
+  return { media_type: match[1], data: match[2] };
+}
+
+function toApiContent(msg) {
+  const blocks = [];
+  if (msg.image) {
+    const parsed = parseDataUrl(msg.image);
+    if (parsed) blocks.push({ type: "image", source: { type: "base64", ...parsed } });
+  }
+  if (msg.text) blocks.push({ type: "text", text: msg.text });
+  return blocks.length === 1 && blocks[0].type === "text" ? blocks[0].text : blocks;
+}
 
 export default function ChatWidget({ user }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
+  const [pendingPhoto, setPendingPhoto] = useState(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState(null);
   const scrollRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -18,14 +39,22 @@ export default function ChatWidget({ user }) {
     }
   }, [messages, sending]);
 
-  const send = async () => {
-    const text = draft.trim();
-    if (!text || sending) return;
+  const attachPhoto = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    compressImg(file, 800, 0.75, (base64) => setPendingPhoto(base64));
+    e.target.value = "";
+  };
+
+  const sendFrom = async (baseMessages, text, image) => {
+    if ((!text && !image) || sending) return;
     setError("");
     setSending(true);
     setDraft("");
+    setPendingPhoto(null);
+    setEditingIndex(null);
 
-    const nextMessages = [...messages, { role: "user", content: text }];
+    const nextMessages = [...baseMessages, { role: "user", text, image }];
     setMessages(nextMessages);
 
     try {
@@ -38,14 +67,14 @@ export default function ChatWidget({ user }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           accessToken,
-          messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+          messages: nextMessages.map((m) => ({ role: m.role, content: toApiContent(m) })),
         }),
       });
 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`);
 
-      setMessages((prev) => [...prev, { role: "assistant", content: result.reply }]);
+      setMessages((prev) => [...prev, { role: "assistant", text: result.reply }]);
     } catch (err) {
       console.error("Chat widget error:", err);
       setError(err.message || "Something went wrong.");
@@ -54,10 +83,41 @@ export default function ChatWidget({ user }) {
     }
   };
 
+  const send = () => sendFrom(messages, draft.trim(), pendingPhoto);
+
+  const startEdit = (index) => {
+    const msg = messages[index];
+    if (msg.role !== "user" || sending) return;
+    setEditingIndex(index);
+    setDraft(msg.text || "");
+    setPendingPhoto(msg.image || null);
+  };
+
+  const cancelEdit = () => {
+    setEditingIndex(null);
+    setDraft("");
+    setPendingPhoto(null);
+  };
+
+  const saveEdit = () => {
+    const text = draft.trim();
+    if (!text && !pendingPhoto) return;
+    // Re-send from the point of the edited message — everything after it (including
+    // the old reply) is discarded, since it was a response to the un-edited version.
+    sendFrom(messages.slice(0, editingIndex), text, pendingPhoto);
+  };
+
+  const deleteMessage = (index) => {
+    if (!window.confirm("Delete this message?")) return;
+    setMessages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      send();
+      editingIndex !== null ? saveEdit() : send();
+    } else if (e.key === "Escape" && editingIndex !== null) {
+      cancelEdit();
     }
   };
 
@@ -67,7 +127,7 @@ export default function ChatWidget({ user }) {
         <div
           style={{
             width: 340,
-            height: 460,
+            height: 500,
             background: C.w,
             borderRadius: "var(--radius-2xl)",
             boxShadow: "0 12px 32px rgba(0,0,0,0.25)",
@@ -114,26 +174,66 @@ export default function ChatWidget({ user }) {
                 Ask me about jobs, inventory, fleet status, or maintenance requests.
               </p>
             )}
-            {messages.map((m, i) => (
-              <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "85%" }}>
-                <div
-                  style={{
-                    background: m.role === "user" ? C.blue : C.lg,
-                    color: m.role === "user" ? C.w : C.navy,
-                    borderRadius: "var(--radius-xl)",
-                    borderBottomRightRadius: m.role === "user" ? 3 : "var(--radius-xl)",
-                    borderBottomLeftRadius: m.role === "user" ? "var(--radius-xl)" : 3,
-                    padding: "var(--space-3) var(--space-5)",
-                    fontSize: "var(--text-base)",
-                    lineHeight: 1.4,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {m.content}
+            {messages.map((m, i) => {
+              const mine = m.role === "user";
+              const isEditing = editingIndex === i;
+              return (
+                <div key={i} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "85%" }}>
+                  {!isEditing && (
+                    <div
+                      style={{
+                        background: mine ? C.blue : C.lg,
+                        color: mine ? C.w : C.navy,
+                        borderRadius: "var(--radius-xl)",
+                        borderBottomRightRadius: mine ? 3 : "var(--radius-xl)",
+                        borderBottomLeftRadius: mine ? "var(--radius-xl)" : 3,
+                        padding: "var(--space-3) var(--space-5)",
+                        fontSize: "var(--text-base)",
+                        lineHeight: 1.4,
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                      }}
+                    >
+                      {m.image && (
+                        <img
+                          src={m.image}
+                          alt="Attachment"
+                          onClick={() => setLightboxPhoto(m.image)}
+                          style={{ display: "block", maxWidth: "100%", maxHeight: 160, borderRadius: "var(--radius-md)", marginBottom: m.text ? "var(--space-2)" : 0, cursor: "pointer" }}
+                        />
+                      )}
+                      {m.text}
+                    </div>
+                  )}
+
+                  {isEditing && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                      {pendingPhoto && (
+                        <img src={pendingPhoto} alt="Attachment" style={{ maxWidth: 120, borderRadius: "var(--radius-md)" }} />
+                      )}
+                      <input
+                        autoFocus
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        style={{ padding: "7px 10px", border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", boxSizing: "border-box" }}
+                      />
+                      <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
+                        <button onClick={cancelEdit} style={{ background: "none", border: "none", color: C.sub, cursor: "pointer", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Cancel</button>
+                        <button onClick={saveEdit} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Save &amp; Resend</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {mine && !isEditing && (
+                    <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 2, justifyContent: "flex-end" }}>
+                      <button onClick={() => startEdit(i)} disabled={sending} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: "var(--weight-bold)", padding: 0 }}>Edit</button>
+                      <button onClick={() => deleteMessage(i)} disabled={sending} style={{ background: "none", border: "none", color: C.rd, cursor: "pointer", fontSize: 10, fontWeight: "var(--weight-bold)", padding: 0 }}>Delete</button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {sending && <LoadingState label="Thinking..." compact />}
           </div>
 
@@ -143,18 +243,39 @@ export default function ChatWidget({ user }) {
             </div>
           )}
 
+          {pendingPhoto && editingIndex === null && (
+            <div style={{ position: "relative", width: 52, height: 52, margin: "var(--space-2) 0 0 var(--space-4)" }}>
+              <img src={pendingPhoto} alt="Pending attachment" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "var(--radius-md)", border: `1.5px solid ${C.bd}` }} />
+              <button
+                onClick={() => setPendingPhoto(null)}
+                style={{ position: "absolute", top: -6, right: -6, background: C.rd, color: C.w, border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: 10, cursor: "pointer", lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: "var(--space-2)", padding: "var(--space-4)", borderTop: `1px solid ${C.lg}` }}>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={attachPhoto} style={{ display: "none" }} />
+            <button
+              onClick={() => fileInputRef.current.click()}
+              disabled={sending || editingIndex !== null}
+              title="Attach a photo"
+              style={{ background: C.lg, border: "none", borderRadius: "var(--radius-md)", padding: "9px var(--space-4)", fontSize: "var(--text-md)", cursor: "pointer" }}
+            >
+              📷
+            </button>
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask a question..."
-              disabled={sending}
+              disabled={sending || editingIndex !== null}
               style={{ flex: 1, padding: "9px 11px", border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", boxSizing: "border-box" }}
             />
             <button
               onClick={send}
-              disabled={sending || !draft.trim()}
+              disabled={sending || editingIndex !== null || (!draft.trim() && !pendingPhoto)}
               style={{
                 background: C.blue,
                 color: C.w,
@@ -163,8 +284,8 @@ export default function ChatWidget({ user }) {
                 padding: "9px var(--space-6)",
                 fontSize: "var(--text-base)",
                 fontWeight: "var(--weight-bold)",
-                cursor: draft.trim() ? "pointer" : "default",
-                opacity: draft.trim() ? 1 : 0.6,
+                cursor: draft.trim() || pendingPhoto ? "pointer" : "default",
+                opacity: draft.trim() || pendingPhoto ? 1 : 0.6,
               }}
             >
               Send
@@ -193,6 +314,12 @@ export default function ChatWidget({ user }) {
       >
         {open ? "×" : "🤖"}
       </button>
+
+      {lightboxPhoto && (
+        <Modal title="📷 Attachment" onClose={() => setLightboxPhoto(null)}>
+          <img src={lightboxPhoto} alt="Full size attachment" style={{ width: "100%", borderRadius: "var(--radius-md)" }} />
+        </Modal>
+      )}
     </div>
   );
 }
