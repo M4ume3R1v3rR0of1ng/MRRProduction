@@ -1,7 +1,7 @@
 // src/views/BuildJobsView.jsx
 import { useState, useMemo } from "react";
 import { C, uid, fd, fm, tot, mkJI } from "../utils/helpers";
-import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "../components/UIPrimitives";
+import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, LoadingState } from "../components/UIPrimitives";
 import { sendEmail } from "../utils/email";
 import { supabase } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
@@ -1084,7 +1084,7 @@ export default function BuildJobs({
                   </p>
                   
                   {loadingEstimate ? (
-                    <div style={{ fontSize: "var(--text-sm)", color: C.sub, padding: "20px 0", textAlign: "center" }}>⏳ Pulling estimate manifest...</div>
+                    <LoadingState label="Pulling estimate manifest..." compact />
                   ) : axEstimateItems.length > 0 ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                       {axEstimateItems.map((item, idx) => (

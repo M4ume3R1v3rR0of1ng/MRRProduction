@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C, fd, fm, tot, newestPrice } from "../utils/helpers";
-import { Btn, Sel, Bdg, Modal } from "../components/UIPrimitives"; // Added Modal wrapper primitives
+import { Btn, Sel, Bdg, Modal, LoadingState } from "../components/UIPrimitives"; // Added Modal wrapper primitives
 
 // ── 🔄 SHARED NATIVE SPREADSHEET DOWNLOAD ENGINE ──
 const triggerNativeDownload = (filename, headers, rows) => {
@@ -412,7 +412,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
         <p style={{ margin: "0 0 16px 0", fontSize: "var(--text-sm)", color: C.sub }}>Condition log packages and provider diagnostic sheets uploaded by department managers.</p>
         
         {loadingInspect ? (
-          <div style={{ padding: 20, textAlign: "center", color: C.sub, fontSize: "var(--text-base)" }}>Streaming condition metrics ledger...</div>
+          <LoadingState label="Streaming condition metrics ledger..." />
         ) : inspections.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", background: C.lg, borderRadius: "var(--radius-md)" }}>No inspection files or reports submitted this period.</div>
         ) : (
@@ -587,7 +587,7 @@ function AuditTrailReport() {
         <Btn v="green" sz="sm" onClick={handleExportAuditExcel}>⬇ Export Audit Excel</Btn>
       </div>
       {loading ? (
-        <div style={{ padding: 24, textAlign: "center", color: C.sub }}>Loading audit stream records...</div>
+        <LoadingState label="Loading audit stream records..." />
       ) : (
         <div style={{ overflowX: "auto", maxHeight: 400, overflowY: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>

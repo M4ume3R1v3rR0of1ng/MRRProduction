@@ -44,3 +44,10 @@
   --radius-2xl: 16px;
   --radius-pill: 999px;
 }
+
+/* ── Shared loading spinner animation (see LoadingState in UIPrimitives.jsx) ── */
+@keyframes mrr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

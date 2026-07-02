@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
-import { Bdg, Sel, Inp, Btn } from "../components/UIPrimitives";
+import { Bdg, Sel, Inp, Btn, LoadingState } from "../components/UIPrimitives";
 
 export default function AuditLogView({ perms }) {
   const [logs, setLogs] = useState([]);
@@ -121,9 +121,7 @@ export default function AuditLogView({ perms }) {
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: "center", color: C.sub }}>
-          Streaming audit packets...
-        </div>
+        <LoadingState label="Streaming audit packets..." />
       ) : (
         <>
           {/* ── 🆕 COMPACT INNER SCROLLBAR CONTAINER ────────────────────────── */}

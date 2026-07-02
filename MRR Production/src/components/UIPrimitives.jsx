@@ -3,6 +3,40 @@ import { C } from '../utils/helpers';
 import { ROLES } from '../database/permissions';
 import { compressImg } from '../utils/helpers';
 
+export function Spinner({ size = 18, color }) {
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        border: `2.5px solid ${color ? `${color}33` : 'rgba(27,82,184,0.15)'}`,
+        borderTopColor: color || C.blue,
+        animation: 'mrr-spin 0.7s linear infinite',
+        flexShrink: 0,
+      }}
+    />
+  );
+}
+
+export function LoadingState({ label = 'Loading...', compact = false }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 'var(--space-3)',
+        padding: compact ? 'var(--space-5) 0' : 'var(--space-9) 0',
+      }}
+    >
+      <Spinner size={compact ? 16 : 22} />
+      <span style={{ fontSize: 'var(--text-sm)', color: C.sub, fontWeight: 'var(--weight-semibold)' }}>{label}</span>
+    </div>
+  );
+}
+
 export function Modal({ title, onClose, children, wide, extraWide }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,45,107,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-5)' }}>

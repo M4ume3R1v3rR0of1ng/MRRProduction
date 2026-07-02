@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '../utils/supabase';
 import { C, ft, compressImg } from '../utils/helpers';
-import { Modal } from './UIPrimitives';
+import { Modal, LoadingState } from './UIPrimitives';
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -233,7 +233,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
         }}
       >
         {loading ? (
-          <div style={{ color: C.sub, fontSize: "var(--text-base)" }}>Loading messages...</div>
+          <LoadingState label="Loading messages..." compact />
         ) : messages.length === 0 ? (
           <p style={{ color: C.sub, fontSize: "var(--text-base)", margin: 0, textAlign: 'center', padding: '20px 0' }}>No messages yet. Say hello 👋</p>
         ) : (
