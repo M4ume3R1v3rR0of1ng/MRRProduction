@@ -5,6 +5,7 @@ import OmniSearch from "./components/OmniSearch";
 import SyncIndicator from "./components/SyncIndicator";
 import { RoleBdg } from "./components/UIPrimitives";
 import IdleTimeoutWrapper from "./components/IdleTimeoutWrapper";
+import ChatWidget from "./components/ChatWidget";
 
 // Centralized Stateless Calculation & Helper Utilities
 import { C, tot, oilSt, predDays, detSt, fd, fm } from "./utils/helpers";
@@ -258,6 +259,7 @@ return (
 
         </div>
       </div>
+      <ChatWidget user={app.curUser} />
     </IdleTimeoutWrapper>
   );
 }
