@@ -71,12 +71,12 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
         style={{
           background: C.pB,
           border: `1.5px solid ${C.pu}`,
-          borderRadius: 8,
+          borderRadius: "var(--radius-md)",
           padding: "10px 14px",
           marginBottom: 14,
-          fontSize: 12,
+          fontSize: "var(--text-sm)",
           color: C.pu,
-          fontWeight: 600,
+          fontWeight: "var(--weight-semibold)",
         }}
       >
         Your request will be sent to the Warehouse Manager for scheduling.
@@ -106,7 +106,7 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
               gap: "10px", 
               background: "#f8fafc", 
               padding: 12, 
-              borderRadius: 8,
+              borderRadius: "var(--radius-md)",
               border: `1px solid ${C.bd || "#e2e8f0"}` 
             }}>
               {(selV.type === "truck"
@@ -133,7 +133,7 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
               ).map((t) => {
                 const isChecked = Array.isArray(form.type) && form.type.includes(t);
                 return (
-                  <label key={t} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: C.navy, cursor: "pointer" }}>
+                  <label key={t} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: C.navy, cursor: "pointer" }}>
                     <input
                       type="checkbox"
                       checked={isChecked}
@@ -186,7 +186,7 @@ export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
           </Fld>
         </>
       )}
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: "var(--space-4)" }}>
         <Btn
           v="ghost"
           onClick={onClose}
@@ -493,7 +493,7 @@ export default function FleetManagementView({
           <option value="trailer">Trailer</option>
         </Sel>
       </Fld>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-3)" }}>
         <Fld label="Year">
           <Inp type="number" value={avForm.yr} onChange={(e) => setAvForm({ ...avForm, yr: e.target.value })} disabled={addVehicleSubmitting} />
         </Fld>
@@ -508,7 +508,7 @@ export default function FleetManagementView({
         <Inp value={avForm.plate} onChange={(e) => setAvForm({ ...avForm, plate: e.target.value })} disabled={addVehicleSubmitting} />
       </Fld>
       {avForm.type === "truck" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
           <Fld label="Starting Mileage">
             <Inp type="number" value={avForm.mi} onChange={(e) => setAvForm({ ...avForm, mi: e.target.value })} disabled={addVehicleSubmitting} />
           </Fld>
@@ -520,7 +520,7 @@ export default function FleetManagementView({
       <Fld label="Detail Interval (days)">
         <Inp type="number" value={avForm.dii} onChange={(e) => setAvForm({ ...avForm, dii: e.target.value })} disabled={addVehicleSubmitting} />
       </Fld>
-      <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+      <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
         <Btn v="ghost" onClick={() => setIsAddVehicleOpen(false)} style={{ flex: 1, justifyContent: "center" }} disabled={addVehicleSubmitting}>Cancel</Btn>
         <Btn v="primary" onClick={handleAddVehicle} style={{ flex: 1, justifyContent: "center" }} disabled={addVehicleSubmitting}>
           {addVehicleSubmitting ? "⏳ Saving..." : "+ Add Vehicle"}
@@ -538,8 +538,8 @@ export default function FleetManagementView({
           textAlign: "center", marginTop: 10
         }}>
           <span style={{ fontSize: "48px", marginBottom: 16 }}>🚛</span>
-          <h3 style={{ margin: "0 0 8px 0", color: "#0f294a", fontWeight: 800 }}>Fleet Registry Empty</h3>
-          <p style={{ margin: "0 0 20px 0", color: "#64748b", fontSize: 13, maxWidth: "340px" }}>
+          <h3 style={{ margin: "0 0 8px 0", color: "#0f294a", fontWeight: "var(--weight-extrabold)" }}>Fleet Registry Empty</h3>
+          <p style={{ margin: "0 0 20px 0", color: "#64748b", fontSize: "var(--text-base)", maxWidth: "340px" }}>
             No company vehicles are currently configured for tracking at the Saint Joe Road Warehouse.
           </p>
           {perms.fleet_edit && (
@@ -572,17 +572,17 @@ export default function FleetManagementView({
           alignItems: "center",
           marginBottom: 16,
           flexWrap: "wrap",
-          gap: 10,
+          gap: "var(--space-4)",
           flexShrink: 0
         }}
       >
         <div>
           <h1
-            style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}
+            style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}
           >
             Base Fleet Management
           </h1>
-          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: 12 }}>
+          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
             {vehs.filter((v) => v.type === "truck").length} trucks ·{" "}
             {vehs.filter((v) => v.type === "trailer").length} trailers
           </p>
@@ -590,7 +590,7 @@ export default function FleetManagementView({
         <div
           style={{
             display: "flex",
-            gap: 8,
+            gap: "var(--space-3)",
             flexWrap: "wrap",
             alignItems: "center",
           }}
@@ -600,7 +600,7 @@ export default function FleetManagementView({
               v="primary"
               sz="sm"
               onClick={() => setIsAddVehicleOpen(true)}
-              style={{ fontWeight: 800 }}
+              style={{ fontWeight: "var(--weight-extrabold)" }}
             >
               + Add Vehicle
             </Btn>
@@ -611,7 +611,7 @@ export default function FleetManagementView({
               v="gold"
               sz="sm"
               onClick={() => setIsInspectOpen(true)}
-              style={{ fontWeight: 800 }}
+              style={{ fontWeight: "var(--weight-extrabold)" }}
             >
               📋 Log Inspection
             </Btn>
@@ -660,7 +660,7 @@ export default function FleetManagementView({
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fill, minmax(265px, 1fr))",
-            gap: 14,
+            gap: "var(--space-6)",
           }}
         >
           {filtered.map((v) => {
@@ -703,7 +703,7 @@ export default function FleetManagementView({
                 onClick={() => setSel(v)}
                 style={{
                   background: C.w,
-                  borderRadius: 12,
+                  borderRadius: "var(--radius-xl)",
                   overflow: "hidden",
                   cursor: "pointer",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
@@ -714,9 +714,9 @@ export default function FleetManagementView({
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 4,
+                    gap: "var(--space-1)",
                     fontSize: "11px",
-                    fontWeight: 800,
+                    fontWeight: "var(--weight-extrabold)",
                     color: fleetStatus.color,
                     padding: "8px 12px 4px"
                   }}
@@ -757,9 +757,9 @@ export default function FleetManagementView({
                           background: C.pu,
                           color: C.w,
                           borderRadius: 20,
-                          fontSize: 10,
+                          fontSize: "var(--text-2xs)",
                           padding: "2px 8px",
-                          fontWeight: 800,
+                          fontWeight: "var(--weight-extrabold)",
                         }}
                       >
                         {vOpenReqs.length} req
@@ -778,16 +778,16 @@ export default function FleetManagementView({
                   >
                     <div
                       style={{
-                        fontWeight: 800,
+                        fontWeight: "var(--weight-extrabold)",
                         color: photo ? C.w : C.navy,
-                        fontSize: 14,
+                        fontSize: "var(--text-md)",
                     }}
                     >
                       {v.name}
                     </div>
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: "var(--text-2xs)",
                         color: photo ? "rgba(255,255,255,0.8)" : C.sub,
                       }}
                     >
@@ -799,9 +799,9 @@ export default function FleetManagementView({
                   {asgn && (
                     <div
                       style={{
-                        fontSize: 10,
+                        fontSize: "var(--text-2xs)",
                         color: C.blue,
-                        fontWeight: 700,
+                        fontWeight: "var(--weight-bold)",
                         marginBottom: 6,
                       }}
                     >
@@ -814,12 +814,12 @@ export default function FleetManagementView({
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
-                          fontSize: 11,
+                          fontSize: "var(--text-xs)",
                           marginBottom: 3,
                         }}
                       >
                         <span style={{ color: C.sub }}>Mileage</span>
-                        <span style={{ fontWeight: 700, color: C.navy }}>
+                        <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
                           {v.mi.toLocaleString()} mi
                         </span>
                       </div>
@@ -846,7 +846,7 @@ export default function FleetManagementView({
                         />
                       </div>
                       <div
-                        style={{ fontSize: 10, color: oLeft <= 0 ? C.rd : C.sub }}
+                        style={{ fontSize: "var(--text-2xs)", color: oLeft <= 0 ? C.rd : C.sub }}
                       >
                         {oLeft <= 0
                           ? "🚨 Oil overdue!"
@@ -914,7 +914,7 @@ export default function FleetManagementView({
           <div
             style={{
               display: "flex",
-              gap: 8,
+              gap: "var(--space-3)",
               marginBottom: 14,
               flexWrap: "wrap",
             }}
@@ -1003,7 +1003,7 @@ export default function FleetManagementView({
               style={{
                 background: C.lg,
                 padding: 14,
-                borderRadius: 10,
+                borderRadius: "var(--radius-lg)",
                 marginBottom: 14,
                 border: `1.5px solid ${C.bd}`,
               }}
@@ -1018,7 +1018,7 @@ export default function FleetManagementView({
                 style={{
                   display: "grid",
                   gridTemplateColumns: "1fr 1fr 1fr",
-                  gap: 8,
+                  gap: "var(--space-3)",
                 }}
               >
                 <Fld label="Year">
@@ -1043,7 +1043,7 @@ export default function FleetManagementView({
                   />
                 </Fld>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
                 <Fld label="License Plate">
                   <Inp
                     value={form.plate || ""}
@@ -1085,7 +1085,7 @@ export default function FleetManagementView({
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))",
-              gap: 8,
+              gap: "var(--space-3)",
               marginBottom: 16,
             }}
           >
@@ -1107,13 +1107,13 @@ export default function FleetManagementView({
             ].map(([k, v]) => (
               <div
                 key={k}
-                style={{ background: C.lg, borderRadius: 8, padding: 10 }}
+                style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}
               >
                 <div
                   style={{
-                    fontSize: 10,
+                    fontSize: "var(--text-2xs)",
                     color: C.sub,
-                    fontWeight: 700,
+                    fontWeight: "var(--weight-bold)",
                     textTransform: "uppercase",
                   }}
                 >
@@ -1121,8 +1121,8 @@ export default function FleetManagementView({
                 </div>
                 <div
                   style={{
-                    fontSize: 12,
-                    fontWeight: 800,
+                    fontSize: "var(--text-sm)",
+                    fontWeight: "var(--weight-extrabold)",
                     color: C.navy,
                     marginTop: 1,
                   }}
@@ -1137,14 +1137,14 @@ export default function FleetManagementView({
             style={{
               margin: "0 0 8px",
               color: C.navy,
-              fontSize: 12,
+              fontSize: "var(--text-sm)",
               textTransform: "uppercase",
             }}
           >
             Service History
           </h4>
           {sel.sl.length === 0 ? (
-            <p style={{ color: C.sub, fontSize: 12, margin: 0 }}>
+            <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
               No service records.
             </p>
           ) : (
@@ -1156,7 +1156,7 @@ export default function FleetManagementView({
                   style={{
                     padding: "10px 14px",
                     background: C.lg,
-                    borderRadius: 8,
+                    borderRadius: "var(--radius-md)",
                     marginBottom: 8,
                   }}
                 >
@@ -1165,7 +1165,7 @@ export default function FleetManagementView({
                       display: "flex",
                       justifyContent: "space-between",
                       flexWrap: "wrap",
-                      gap: 8,
+                      gap: "var(--space-3)",
                     }}
                   >
                     <div>
@@ -1174,21 +1174,21 @@ export default function FleetManagementView({
                       </Bdg>
                       <div
                         style={{
-                          fontWeight: 700,
+                          fontWeight: "var(--weight-bold)",
                           color: C.navy,
                           marginTop: 4,
-                          fontSize: 13,
+                          fontSize: "var(--text-base)",
                         }}
                       >
                         {fd(s.dt)}
                       </div>
-                      <div style={{ fontSize: 11, color: C.sub }}>
+                      <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>
                         {s.by}
                         {s.mi ? ` · ${s.mi.toLocaleString()} mi` : ""}
                       </div>
                     </div>
                     {s.cost > 0 && (
-                      <div style={{ fontWeight: 800, color: C.blue }}>
+                      <div style={{ fontWeight: "var(--weight-extrabold)", color: C.blue }}>
                         {fm(s.cost)}
                       </div>
                     )}
@@ -1219,7 +1219,7 @@ export default function FleetManagementView({
                 ))}
             </Sel>
           </Fld>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn
               v="ghost"
               onClick={() => setModal(null)}
@@ -1246,10 +1246,10 @@ export default function FleetManagementView({
           <div
             style={{
               background: C.lg,
-              borderRadius: 8,
+              borderRadius: "var(--radius-md)",
               padding: 10,
               marginBottom: 12,
-              fontSize: 12,
+              fontSize: "var(--text-sm)",
               color: C.sub,
             }}
           >
@@ -1269,7 +1269,7 @@ export default function FleetManagementView({
               onChange={(e) => setForm({ ...form, mi: e.target.value })}
             />
           </Fld>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn
               v="ghost"
               onClick={() => setModal(null)}
@@ -1348,7 +1348,7 @@ export default function FleetManagementView({
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
           </Fld>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn
               v="ghost"
               onClick={() => setModal(null)}
@@ -1382,7 +1382,7 @@ export default function FleetManagementView({
 
 {isInspectOpen && (
         <Modal title="📋 File Vehicle Condition & Inspection Report" onClose={() => setIsInspectOpen(false)} wide>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
             
             <Fld label="Select Fleet Vehicle *">
               <Sel 
@@ -1407,7 +1407,7 @@ export default function FleetManagementView({
             </Fld>
 
             <Fld label="Upload Inspection Pictures / Condition Evidence">
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                 <PhotoUpload 
                   current={null} 
                   onUpload={(base64) => setInspectionForm(prev => ({ ...prev, photos: [...prev.photos, base64] }))} 
@@ -1415,13 +1415,13 @@ export default function FleetManagementView({
                   quality={0.80}
                 />
                 {inspectionForm.photos.length > 0 && (
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+                  <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: 8 }}>
                     {inspectionForm.photos.map((img, idx) => (
-                      <div key={idx} style={{ position: "relative", width: 70, height: 70, borderRadius: 6, overflow: "hidden", border: "1px solid #cbd5e1" }}>
+                      <div key={idx} style={{ position: "relative", width: 70, height: 70, borderRadius: "var(--radius-sm)", overflow: "hidden", border: "1px solid #cbd5e1" }}>
                         <img src={img} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         <button 
                           onClick={() => setInspectionForm(prev => ({ ...prev, photos: prev.photos.filter((_, i) => i !== idx) }))}
-                          style={{ position: "absolute", top: 2, right: 2, background: "rgba(15,23,42,0.8)", color: "#fff", border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                          style={{ position: "absolute", top: 2, right: 2, background: "rgba(15,23,42,0.8)", color: "#fff", border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: "var(--text-2xs)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                         >✕</button>
                       </div>
                     ))}
@@ -1430,7 +1430,7 @@ export default function FleetManagementView({
               </div>
             </Fld>
 
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 12 }}>
               <Btn v="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setIsInspectOpen(false)} disabled={inspectSubmitting}>Cancel</Btn>
               <Btn v="gold" style={{ flex: 1, justifyContent: "center" }} onClick={handleCreateInspection} disabled={inspectSubmitting}>
                 {inspectSubmitting ? "⏳ Saving Log Entry..." : "💾 Commit Inspection Log"}

@@ -361,18 +361,18 @@ export default function InventoryView({
   return (
     
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: "var(--space-4)" }}>
         <div>
           {/* ── 🟢 FIXED: TRANSLATED CORE MAIN HEADER TERMINALS ── */}
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>
+          <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
             📦 {t.inventory || "Inventory"}
           </h1>
-          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: 12 }}>
+          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
             {inv.length} {lang === "es" ? "posiciones de catálogo registradas" : "catalog positions registered"} ·{" "}
             {lang === "es" ? "Niveles de stock en tiempo real" : "Real-time stock level counts"}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
           {perms.inv_bulk_receive && (
             <Btn v="gold" onClick={() => { setBulkItems([]); setBulkMeta({ date: new Date().toISOString().split("T")[0], po: "", vendor: "" }); setBulkSrch(""); setModal("bulk"); }}>
               {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
@@ -388,7 +388,7 @@ export default function InventoryView({
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "var(--space-4)", marginBottom: 14, flexWrap: "wrap" }}>
         <Inp 
           /* ── 🟢 FIXED: TRANSLATED SEARCH INPUT PLACEHOLDER ── */
           placeholder={t.searchInventory || "🔍 Search items..."} 
@@ -406,7 +406,7 @@ export default function InventoryView({
     </Sel>
   </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "var(--space-5)" }}>
         {filtered.map((item) => {
           const stock = tot(item);
           const photo = invPhotos[item.id];
@@ -431,7 +431,7 @@ export default function InventoryView({
               onClick={() => { setSel(item); setForm({ name: item.name, cat: item.cat, unit: item.unit, alrt: item.alrt }); setModal("detail"); }}
               style={{
                 background: C.w,
-                borderRadius: 12,
+                borderRadius: "var(--radius-xl)",
                 overflow: "hidden",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
                 border: `2px solid ${stockStatus.color}`, // Dynamic border accent tracking stock state
@@ -441,7 +441,7 @@ export default function InventoryView({
               {photo ? (
                 <div style={{ height: 110, overflow: "hidden", background: C.lg, position: "relative" }}>
                   <img src={photo} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.65)", color: C.w, borderRadius: 20, fontSize: 10, padding: "2px 8px", fontWeight: 700 }}>
+                  <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.65)", color: C.w, borderRadius: 20, fontSize: "var(--text-2xs)", padding: "2px 8px", fontWeight: "var(--weight-bold)" }}>
                     {stockStatus.dot} {stockStatus.label}
                   </div>
                 </div>
@@ -453,28 +453,28 @@ export default function InventoryView({
                 <div style={{ display: "flex", justifyGroup: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     {!photo && (
-                      <div style={{ fontSize: 10, fontWeight: 800, color: stockStatus.color, textTransform: "uppercase", marginBottom: 2 }}>
+                      <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-extrabold)", color: stockStatus.color, textTransform: "uppercase", marginBottom: 2 }}>
                         {stockStatus.dot} {stockStatus.label}
                       </div>
                     )}
-                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
-                    <div style={{ fontSize: 11, color: C.sub }}>{item.cat}</div>
+                    <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-base)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{item.cat}</div>
                   </div>
                   {stockStatus.color === C.rd && <span style={{ fontSize: 15, marginLeft: 4 }}>🚨</span>}
                 </div>
                 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <div style={{ fontSize: 22, fontWeight: 900, color: stockStatus.color }}>{stock}</div>
-                    <div style={{ fontSize: 11, color: C.sub }}>{item.unit} available</div>
+                    <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color: stockStatus.color }}>{stock}</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{item.unit} available</div>
                   </div>
                   {perms.inv_pricing_view ? (
                     <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: C.blue }}>{fm(newestPrice(item))}</div>
-                      <div style={{ fontSize: 10, color: C.sub }}>per {item.unit?.replace(/s$/, "") || "unit"}</div>
+                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.blue }}>{fm(newestPrice(item))}</div>
+                      <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>per {item.unit?.replace(/s$/, "") || "unit"}</div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: 11, color: C.sub }}>Pricing restricted</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>Pricing restricted</div>
                   )}
                 </div>
                 
@@ -484,7 +484,7 @@ export default function InventoryView({
                   </div>
                 )}
                 
-                <div style={{ fontSize: 10, color: C.sub, marginTop: 6, display: "flex", justifyContent: "space-between" }}>
+                <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 6, display: "flex", justifyContent: "space-between" }}>
                   <span>Min Alert: {item.alrt} {item.unit}</span>
                   <span>{(item.batches || []).length} batch{(item.batches || []).length !== 1 ? "es" : ""}</span>
                 </div>
@@ -496,14 +496,14 @@ export default function InventoryView({
 
       {modal === "detail" && sel && (
         <Modal title={sel.name} onClose={() => setModal(null)} wide>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-7)", marginBottom: 16 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Product Photo</div>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Product Photo</div>
               <PhotoUpload current={invPhotos[sel.id] || null} onUpload={(data) => setPhoto(sel.id, data)} label="Upload product photo" previewHeight={180} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Item Details</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Item Details</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {[
                   ["Total Stock", `${tot(sel)} ${sel.unit}`],
                   ["Category", sel.cat],
@@ -516,13 +516,13 @@ export default function InventoryView({
                     : [["Low Alert", `${sel.alrt} ${sel.unit}`]]),
                   ["Batches", (sel.batches || []).length],
                 ].map(([k, v]) => (
-                  <div key={k} style={{ background: C.lg, borderRadius: 8, padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 11, color: C.sub, fontWeight: 700, textTransform: "uppercase" }}>{k}</span>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>{v}</span>
+                  <div key={k} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>{k}</span>
+                    <span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{v}</span>
                   </div>
                 ))}
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 12, flexWrap: "wrap" }}>
                 {perms.inv_edit && (
                   <Btn v="outline" sz="sm" onClick={() => { setForm({ name: sel.name, cat: sel.cat, unit: sel.unit, alrt: sel.alrt }); setModal("edit"); }}>✏️ Edit Specifications</Btn>
                 )}
@@ -546,27 +546,27 @@ export default function InventoryView({
             </div>
           </div>
           
-          <h4 style={{ margin: "0 0 8px", color: C.navy, fontSize: 12, textTransform: "uppercase" }}>Batch History (FIFO)</h4>
+          <h4 style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>Batch History (FIFO)</h4>
           {[...(sel.batches || [])]
             .sort((a, b) => new Date(a.rcvd) - new Date(b.rcvd))
             .map((b, i) => (
-              <div key={b.id} style={{ padding: "10px 14px", background: i === 0 && b.rem > 0 ? "rgba(27,82,184,0.08)" : C.lg, borderRadius: 8, border: i === 0 && b.rem > 0 ? `1.5px solid ${C.blue}` : "none", marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+              <div key={b.id} style={{ padding: "10px 14px", background: i === 0 && b.rem > 0 ? "rgba(27,82,184,0.08)" : C.lg, borderRadius: "var(--radius-md)", border: i === 0 && b.rem > 0 ? `1.5px solid ${C.blue}` : "none", marginBottom: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)" }}>
                   <div>
-                    <div style={{ fontWeight: 700, color: C.navy, fontSize: 12 }}>
+                    <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>
                       {i === 0 && b.rem > 0 && <span style={{ color: C.blue }}>▶ ACTIVE · </span>}
                       {fd(b.rcvd)}{b.vendor && <span style={{ color: C.sub }}> · {b.vendor}</span>}{b.ref && <span style={{ color: C.tl }}> · {b.ref}</span>}
                     </div>
-                    <div style={{ fontSize: 11, color: C.sub }}>By: {users.find((u) => u.id === b.by)?.name || "Unknown"}</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>By: {users.find((u) => u.id === b.by)?.name || "Unknown"}</div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: 800, color: b.rem === 0 ? C.sub : C.gr, fontSize: 12 }}>{b.rem}/{b.qty} remaining</div>
-                    {perms.inv_pricing_view && <div style={{ fontSize: 11, color: C.blue, fontWeight: 700 }}>{fm(b.price)} ea.</div>}
+                    <div style={{ fontWeight: "var(--weight-extrabold)", color: b.rem === 0 ? C.sub : C.gr, fontSize: "var(--text-sm)" }}>{b.rem}/{b.qty} remaining</div>
+                    {perms.inv_pricing_view && <div style={{ fontSize: "var(--text-xs)", color: C.blue, fontWeight: "var(--weight-bold)" }}>{fm(b.price)} ea.</div>}
                   </div>
                 </div>
               </div>
             ))}
-          {(sel.batches || []).length === 0 && <p style={{ color: C.sub, fontSize: 13 }}>No receipt stacks logged yet.</p>}
+          {(sel.batches || []).length === 0 && <p style={{ color: C.sub, fontSize: "var(--text-base)" }}>No receipt stacks logged yet.</p>}
         </Modal>
       )}
 
@@ -580,7 +580,7 @@ export default function InventoryView({
             <Sel value={form.unit || "rolls"} onChange={(e) => setForm({ ...form, unit: e.target.value })}>{["rolls", "boxes", "each", "tubes", "bundles", "packs", "sheets", "gallons", "lbs"].map((u) => (<option key={u} value={u}>{u}</option>))}</Sel>
           </Fld>
           <Fld label="Low Alert Threshold"><Inp type="number" value={form.alrt || ""} onChange={(e) => setForm({ ...form, alrt: e.target.value })} /></Fld>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
             <Btn v="primary" onClick={addItem} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Creating..." : "Add Position"}</Btn>
           </div>
@@ -597,7 +597,7 @@ export default function InventoryView({
             <Sel value={form.unit || "rolls"} onChange={(e) => setForm({ ...form, unit: e.target.value })}>{["rolls", "boxes", "each", "tubes", "bundles", "packs", "sheets", "gallons", "lbs"].map((u) => (<option key={u} value={u}>{u}</option>))}</Sel>
           </Fld>
           <Fld label="Low Threshold Alert Level"><Inp type="number" value={form.alrt || ""} onChange={(e) => setForm({ ...form, alrt: e.target.value })} /></Fld>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
             <Btn v="primary" onClick={editItem} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Saving..." : "Save Changes"}</Btn>
           </div>
@@ -613,11 +613,11 @@ export default function InventoryView({
               <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}>$</span><Inp type="number" step="0.01" value={form.price || ""} onChange={(e) => setForm({ ...form, price: e.target.value })} style={{ paddingLeft: 22 }} /></div>
             </Fld>
           ) : (
-            <div style={{ background: C.aB, border: `1px solid ${C.am}`, borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 12, color: C.am }}>
+            <div style={{ background: C.aB, border: `1px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "8px 12px", marginBottom: 12, fontSize: "var(--text-sm)", color: C.am }}>
               Pricing is lock-restricted. Last batch unit valuations will automatically cycle carry over.
             </div>
           )}
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
             <Btn v="primary" onClick={rcvBatch} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Processing..." : "Receive Batch"}</Btn>
           </div>
@@ -626,32 +626,32 @@ export default function InventoryView({
 
       {modal === "bulk" && perms.inv_bulk_receive && (
         <Modal title="📦 Receive Bulk Order Manifest" onClose={() => { setModal(null); setBulkItems([]); setBulkSrch(""); }} wide>
-          <div style={{ background: C.gL, border: `1.5px solid ${C.gold}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: C.navy }}>
+          <div style={{ background: C.gL, border: `1.5px solid ${C.gold}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.navy }}>
             ⭐ <strong>Inbound Accounting:</strong> FIFO indices update automatically. Each item maps a standalone discrete batch vector tracking vendor origins.
           </div>
           
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, padding: 14, background: C.lg, borderRadius: 10, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)", padding: 14, background: C.lg, borderRadius: "var(--radius-lg)", marginBottom: 16 }}>
             <Fld label="Date Received *"><Inp type="date" value={bulkMeta.date} onChange={(e) => setBulkMeta({ ...bulkMeta, date: e.target.value })} /></Fld>
             <Fld label="PO / Order #"><Inp value={bulkMeta.po} onChange={(e) => setBulkMeta({ ...bulkMeta, po: e.target.value })} placeholder="e.g. PO-2025-100" /></Fld>
             <Fld label="Vendor / Supplier"><Inp value={bulkMeta.vendor} onChange={(e) => setBulkMeta({ ...bulkMeta, vendor: e.target.value })} placeholder="e.g. ABC Supply" /></Fld>
           </div>
           
-          <div style={{ display: "flex", gap: 14, marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: "var(--space-6)", marginBottom: 16 }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Select Items to Receive</div>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Select Items to Receive</div>
               <Inp value={bulkSrch} onChange={(e) => setBulkSrch(e.target.value)} placeholder="🔍 Search inventory..." style={{ marginBottom: 8 }} />
               <div style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
                 {bulkFiltered.map((item) => (
-                  <div key={item.id} style={{ background: C.w, border: `1.5px solid ${C.bd}`, borderRadius: 8, padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div key={item.id} style={{ background: C.w, border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <div style={{ fontWeight: 700, color: C.navy, fontSize: 12 }}>{item.name}</div>
-                      <div style={{ fontSize: 10, color: C.sub }}>{item.cat} · {tot(item)} {item.unit} available</div>
+                      <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.name}</div>
+                      <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{item.cat} · {tot(item)} {item.unit} available</div>
                     </div>
                     <Btn v="primary" sz="sm" onClick={() => addToBulk(item)}>+ Add</Btn>
                   </div>
                 ))}
                 {bulkFiltered.length === 0 && (
-                  <div style={{ padding: 20, textAlign: "center", color: C.sub, fontSize: 12, background: C.lg, borderRadius: 8 }}>
+                  <div style={{ padding: 20, textAlign: "center", color: C.sub, fontSize: "var(--text-sm)", background: C.lg, borderRadius: "var(--radius-md)" }}>
                     {bulkItems.length > 0 ? "All items matched ✓" : "No matching inventory items found"}
                   </div>
                 )}
@@ -660,36 +660,36 @@ export default function InventoryView({
             
             <div style={{ flex: "0 0 380px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px" }}>Manifest Queue {bulkItems.length > 0 && `(${bulkItems.length})`}</div>
-                {bulkItems.length > 0 && <button onClick={() => setBulkItems([])} style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: 11, fontWeight: 700 }}>Clear All</button>}
+                <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px" }}>Manifest Queue {bulkItems.length > 0 && `(${bulkItems.length})`}</div>
+                {bulkItems.length > 0 && <button onClick={() => setBulkItems([])} style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Clear All</button>}
               </div>
               
               {bulkItems.length === 0 ? (
-                <div style={{ height: 200, background: C.lg, borderRadius: 8, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: C.sub, gap: 8 }}>
+                <div style={{ height: 200, background: C.lg, borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: C.sub, gap: "var(--space-3)" }}>
                   <span style={{ fontSize: 32 }}>📋</span>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>Manifest queue is empty</span>
+                  <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>Manifest queue is empty</span>
                 </div>
               ) : (
                 <>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto", marginBottom: 10 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxHeight: 280, overflowY: "auto", marginBottom: 10 }}>
                     {bulkItems.map((b) => {
                       const sub = (parseFloat(b.qty) || 0) * (parseFloat(b.price) || 0);
                       return (
-                        <div key={b.iid} style={{ background: C.w, border: `1.5px solid ${C.bd}`, borderRadius: 8, padding: "10px 12px" }}>
+                        <div key={b.iid} style={{ background: C.w, border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
-                            <span style={{ fontWeight: 700, color: C.navy, fontSize: 12 }}>{b.iname}</span>
-                            <button onClick={() => removeBulk(b.iid)} style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: 18, lineHeight: 1 }}>×</button>
+                            <span style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{b.iname}</span>
+                            <button onClick={() => removeBulk(b.iid)} style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-xl)", lineHeight: 1 }}>×</button>
                           </div>
                           
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 8, alignItems: "end" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "var(--space-3)", alignItems: "end" }}>
                             <div>
-                              <div style={{ fontSize: 9, color: C.sub, fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Qty ({b.unit})</div>
+                              <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Qty ({b.unit})</div>
                               <Inp type="number" min="1" value={b.qty} onChange={(e) => updateBulk(b.iid, "qty", e.target.value)} placeholder="0" style={{ padding: "5px 8px" }} />
                             </div>
                             <div>
-                              <div style={{ fontSize: 9, color: C.sub, fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Unit Price</div>
+                              <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Unit Price</div>
                               <div style={{ position: "relative" }}>
-                                <span style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", color: C.sub, fontSize: 11 }}>$</span>
+                                <span style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", color: C.sub, fontSize: "var(--text-xs)" }}>$</span>
                                 {perms.inv_pricing_edit ? (
                                   <Inp type="number" step="0.01" min="0" value={b.price} onChange={(e) => updateBulk(b.iid, "price", e.target.value)} placeholder="0.00" style={{ padding: "5px 8px", paddingLeft: 16 }} />
                                 ) : (
@@ -698,8 +698,8 @@ export default function InventoryView({
                               </div>
                             </div>
                             <div style={{ paddingBottom: 2, textAlign: "right" }}>
-                              <div style={{ fontSize: 9, color: C.sub, fontWeight: 700, textTransform: "uppercase", marginBottom: 3 }}>Subtotal</div>
-                              <div style={{ fontSize: 13, fontWeight: 800, color: sub > 0 ? C.gr : C.sub }}>{fm(sub)}</div>
+                              <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Subtotal</div>
+                              <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: sub > 0 ? C.gr : C.sub }}>{fm(sub)}</div>
                             </div>
                           </div>
                         </div>
@@ -707,21 +707,21 @@ export default function InventoryView({
                     })}
                   </div>
                   
-                  <div style={{ background: C.navy, borderRadius: 8, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ background: C.navy, borderRadius: "var(--radius-md)", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
-                      <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 10, fontWeight: 700, textTransform: "uppercase" }}>Manifest Valuation</div>
-                      <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, marginTop: 2 }}>
+                      <div style={{ color: "rgba(255,255,255,0.55)", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>Manifest Valuation</div>
+                      <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "var(--text-xs)", marginTop: 2 }}>
                         {bulkItems.filter((b) => parseFloat(b.qty) > 0).length} valid item positions
                       </div>
                     </div>
-                    <div style={{ fontWeight: 900, fontSize: 22, color: C.gold }}>{fm(bulkTotal)}</div>
+                    <div style={{ fontWeight: "var(--weight-black)", fontSize: "var(--text-3xl)", color: C.gold }}>{fm(bulkTotal)}</div>
                   </div>
                 </>
               )}
             </div>
           </div>
           
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => { setModal(null); setBulkItems([]); setBulkSrch(""); }} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
             <Btn v="gold" sz="lg" onClick={confirmBulk} style={{ flex: 2, justifyContent: "center" }} disabled={saving}>
               {saving ? "⏳ Logging Operation..." : `✅ Commit Manifest (${bulkItems.filter((b) => parseFloat(b.qty) > 0).length} Items)`}

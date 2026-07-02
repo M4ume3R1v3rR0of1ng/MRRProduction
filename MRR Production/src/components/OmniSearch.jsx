@@ -114,7 +114,7 @@ export default function OmniSearch({
           border: `1px solid ${C.bd || "#cbd5e1"}`,
           background: "#f8fafc",
           fontSize: "13px",
-          fontWeight: 600,
+          fontWeight: "var(--weight-semibold)",
           color: C.navy,
           outline: "none",
           transition: "all 0.2s",
@@ -148,7 +148,7 @@ export default function OmniSearch({
                     style={{
                       padding: "6px 14px",
                       fontSize: "11px",
-                      fontWeight: 700,
+                      fontWeight: "var(--weight-bold)",
                       color: "#64748b",
                       textTransform: "uppercase",
                       background: "#f8fafc",
@@ -174,7 +174,7 @@ export default function OmniSearch({
                         (e.target.style.background = "transparent")
                       }
                     >
-                      <div style={{ fontWeight: 600 }}>{j.name}</div>
+                      <div style={{ fontWeight: "var(--weight-semibold)" }}>{j.name}</div>
                       <div style={{ fontSize: "11px", color: "#64748b" }}>
                         PO: {j.poNumber || "N/A"} · {j.address}
                       </div>
@@ -190,7 +190,7 @@ export default function OmniSearch({
                     style={{
                       padding: "6px 14px",
                       fontSize: "11px",
-                      fontWeight: 700,
+                      fontWeight: "var(--weight-bold)",
                       color: "#64748b",
                       textTransform: "uppercase",
                       background: "#f8fafc",
@@ -216,7 +216,7 @@ export default function OmniSearch({
                         (e.target.style.background = "transparent")
                       }
                     >
-                      <div style={{ fontWeight: 600 }}>{u.full_name}</div>
+                      <div style={{ fontWeight: "var(--weight-semibold)" }}>{u.full_name}</div>
                       <div style={{ fontSize: "11px", color: "#64748b" }}>
                         {u.email} ·{" "}
                         <span style={{ textTransform: "capitalize" }}>
@@ -235,7 +235,7 @@ export default function OmniSearch({
                     style={{
                       padding: "6px 14px",
                       fontSize: "11px",
-                      fontWeight: 700,
+                      fontWeight: "var(--weight-bold)",
                       color: "#64748b",
                       textTransform: "uppercase",
                       background: "#f8fafc",
@@ -261,7 +261,7 @@ export default function OmniSearch({
                         (e.target.style.background = "transparent")
                       }
                     >
-                      <div style={{ fontWeight: 600 }}>
+                      <div style={{ fontWeight: "var(--weight-semibold)" }}>
                         {v.make} {v.model}
                       </div>
                       <div style={{ fontSize: "11px", color: "#64748b" }}>
@@ -280,7 +280,7 @@ export default function OmniSearch({
                     style={{
                       padding: "6px 14px",
                       fontSize: "11px",
-                      fontWeight: 700,
+                      fontWeight: "var(--weight-bold)",
                       color: "#64748b",
                       textTransform: "uppercase",
                       background: "#f8fafc",
@@ -306,13 +306,13 @@ export default function OmniSearch({
                         (e.target.style.background = "transparent")
                       }
                     >
-                      <div style={{ fontWeight: 600 }}>{r.issue}</div>
+                      <div style={{ fontWeight: "var(--weight-semibold)" }}>{r.issue}</div>
                       <div style={{ fontSize: "11px", color: "#64748b" }}>
                         Status:{" "}
                         <span
                           style={{
                             textTransform: "uppercase",
-                            fontWeight: 700,
+                            fontWeight: "var(--weight-bold)",
                           }}
                         >
                           {r.status}
@@ -331,7 +331,7 @@ export default function OmniSearch({
                     style={{
                       padding: "6px 14px",
                       fontSize: "11px",
-                      fontWeight: 700,
+                      fontWeight: "var(--weight-bold)",
                       color: "#64748b",
                       textTransform: "uppercase",
                       background: "#f8fafc",
@@ -366,7 +366,7 @@ export default function OmniSearch({
                         (e.target.style.background = "transparent")
                       }
                     >
-                      <div style={{ fontWeight: 600 }}>{i.name}</div>
+                      <div style={{ fontWeight: "var(--weight-semibold)" }}>{i.name}</div>
                       <div style={{ fontSize: "11px", color: "#64748b" }}>
                         Category: {i.cat || "General"} · SKU: {i.sku || "N/A"}
                       </div>

@@ -55,14 +55,14 @@ const Card = ({ children, style = {} }) => (
 
 const SectionTitle = ({ icon, title, subtitle }) => (
   <div style={{ marginBottom: 20 }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-      <span style={{ fontSize: 18 }}>{icon}</span>
-      <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: T.navy, letterSpacing: "-0.3px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 4 }}>
+      <span style={{ fontSize: "var(--text-xl)" }}>{icon}</span>
+      <h2 style={{ margin: 0, fontSize: 17, fontWeight: "var(--weight-extrabold)", color: T.navy, letterSpacing: "-0.3px" }}>
         {title}
       </h2>
     </div>
     {subtitle && (
-      <p style={{ margin: 0, fontSize: 13, color: T.slate, lineHeight: 1.6 }}>
+      <p style={{ margin: 0, fontSize: "var(--text-base)", color: T.slate, lineHeight: 1.6 }}>
         {subtitle}
       </p>
     )}
@@ -72,7 +72,7 @@ const SectionTitle = ({ icon, title, subtitle }) => (
 const StatusPill = ({ active, labelOn = "Active", labelOff = "Offline" }) => (
   <span style={{
     display: "inline-flex", alignItems: "center", gap: 5,
-    padding: "3px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700,
+    padding: "3px 10px", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)",
     background: active ? T.greenBg : T.bg,
     color: active ? T.green : T.slateL,
     border: `1px solid ${active ? T.greenBd : T.border}`,
@@ -91,8 +91,8 @@ const Alert = ({ children, type = "warning" }) => {
   return (
     <div style={{
       background: c.bg, border: `1px solid ${c.bd}`, borderRadius: T.radius,
-      padding: "11px 14px", color: c.text, fontSize: 13, fontWeight: 600,
-      display: "flex", alignItems: "center", gap: 8, marginBottom: 20,
+      padding: "11px 14px", color: c.text, fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)",
+      display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 20,
     }}>
       {children}
     </div>
@@ -283,7 +283,7 @@ export default function SettingsView({
 
       {/* Tab bar */}
       <div style={{
-        display: "flex", gap: 4, marginBottom: 20,
+        display: "flex", gap: "var(--space-1)", marginBottom: 20,
         borderBottom: `1px solid ${T.border}`, paddingBottom: 0, flexWrap: "wrap",
       }}>
         {tabs.map((tab) => {
@@ -293,16 +293,16 @@ export default function SettingsView({
               key={tab.id}
               onClick={() => setCurrentTab(tab.id)}
               style={{
-                display: "flex", alignItems: "center", gap: 6,
+                display: "flex", alignItems: "center", gap: "var(--space-2)",
                 padding: "9px 16px",
                 border: "none", borderBottom: active ? `2px solid ${T.blue}` : "2px solid transparent",
-                background: "none", fontSize: 13, fontWeight: active ? 700 : 500,
+                background: "none", fontSize: "var(--text-base)", fontWeight: active ? 700 : 500,
                 color: active ? T.blue : T.slate,
                 cursor: "pointer", transition: "all 0.15s ease",
                 marginBottom: -1,
               }}
             >
-              <span style={{ fontSize: 14 }}>{tab.icon}</span>
+              <span style={{ fontSize: "var(--text-md)" }}>{tab.icon}</span>
               {tab.label}
             </button>
           );
@@ -324,7 +324,7 @@ export default function SettingsView({
                 border: `1px solid ${T.border}`,
                 marginBottom: 8,
               }}>
-                <div style={{ width: "36%", fontSize: 11, fontWeight: 700, color: T.slateL, textTransform: "uppercase", letterSpacing: "0.6px" }}>
+                <div style={{ width: "36%", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: T.slateL, textTransform: "uppercase", letterSpacing: "0.6px" }}>
                   Permission
                 </div>
                 <div style={{ width: "64%", display: "flex" }}>
@@ -334,15 +334,15 @@ export default function SettingsView({
                     const [roleKey, roleLabel] = roleArray;
                     return (
                       <div key={roleKey} style={{ width: "20%", textAlign: "center" }}>
-                        <div style={{ fontSize: 11, fontWeight: 800, color: T.navy, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: T.navy, textTransform: "uppercase", letterSpacing: "0.4px" }}>
                           {roleLabel}
                         </div>
                         <button
                           onClick={() => handleResetRole(roleKey)}
                           style={{
                             background: "none", border: "none", color: T.blue,
-                            fontSize: 11, cursor: "pointer", marginTop: 3,
-                            fontWeight: 600, padding: 0,
+                            fontSize: "var(--text-xs)", cursor: "pointer", marginTop: 3,
+                            fontWeight: "var(--weight-semibold)", padding: 0,
                           }}
                         >
                           ↩ Reset
@@ -358,7 +358,7 @@ export default function SettingsView({
                 <div key={groupTitle} style={{ marginBottom: 10 }}>
                   <div style={{
                     background: T.navy, padding: "8px 16px",
-                    fontWeight: 700, color: T.white, fontSize: 11,
+                    fontWeight: "var(--weight-bold)", color: T.white, fontSize: "var(--text-xs)",
                     letterSpacing: "0.7px", textTransform: "uppercase",
                     borderRadius: `${T.radius} ${T.radius} 0 0`,
                   }}>
@@ -377,10 +377,10 @@ export default function SettingsView({
                         }}
                       >
                         <div style={{ width: "36%", paddingRight: 16 }}>
-                          <div style={{ fontWeight: 600, color: T.navy, fontSize: 13 }}>
+                          <div style={{ fontWeight: "var(--weight-semibold)", color: T.navy, fontSize: "var(--text-base)" }}>
                             {PERM_DEFS[pKey]?.label || pKey}
                           </div>
-                          <div style={{ fontSize: 11, color: T.slateL, marginTop: 2 }}>
+                          <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 2 }}>
                             {PERM_DEFS[pKey]?.desc || ""}
                           </div>
                         </div>
@@ -411,7 +411,7 @@ export default function SettingsView({
       {/* ── PANEL: AccuLynx ────────────────────────────────────────────── */}
       {currentTab === "AccuLynx" && (
         <Card>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
             <SectionTitle
               icon="🔗"
               title="AccuLynx Integration"
@@ -430,7 +430,7 @@ export default function SettingsView({
           </Alert>
 
           <form onSubmit={handleSaveAccuLynx}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-7)", marginBottom: 20 }}>
               <Fld label="API Access Token">
                 <Inp
                   type="password"
@@ -450,30 +450,30 @@ export default function SettingsView({
             </div>
 
             <div style={{
-              display: "flex", gap: 32, marginBottom: 24,
+              display: "flex", gap: "var(--space-10)", marginBottom: 24,
               padding: "16px 20px",
               background: T.bg, borderRadius: T.radius,
               border: `1px solid ${T.border}`,
               flexWrap: "wrap",
             }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", cursor: "pointer" }}>
                 <Toggle
                   on={!!acculynxConfig?.enabled}
                   onChange={() => setAccuLynxConfig((p) => ({ ...p, enabled: !p.enabled }))}
                 />
                 <div>
-                  <div style={{ fontWeight: 700, color: T.navy, fontSize: 13 }}>Enable integration</div>
-                  <div style={{ fontSize: 11, color: T.slateL, marginTop: 1 }}>Allow the dashboard to contact AccuLynx</div>
+                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)" }}>Enable integration</div>
+                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>Allow the dashboard to contact AccuLynx</div>
                 </div>
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", cursor: "pointer" }}>
                 <Toggle
                   on={!!acculynxConfig?.autoSync}
                   onChange={() => setAccuLynxConfig((p) => ({ ...p, autoSync: !p.autoSync }))}
                 />
                 <div>
-                  <div style={{ fontWeight: 700, color: T.navy, fontSize: 13 }}>Auto-sync on completion</div>
-                  <div style={{ fontSize: 11, color: T.slateL, marginTop: 1 }}>Fire automatically when a job is marked complete</div>
+                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)" }}>Auto-sync on completion</div>
+                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>Fire automatically when a job is marked complete</div>
                 </div>
               </label>
             </div>
@@ -487,8 +487,8 @@ export default function SettingsView({
 
           {/* ── 🆕 TEST JOB LOOKUP SECTION ADDED ───────────────────────────────── */}
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
-            <div style={{ fontWeight: 700, color: T.navy, fontSize: 13, marginBottom: 10 }}>Test job lookup</div>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)", marginBottom: 10 }}>Test job lookup</div>
+            <div style={{ display: "flex", gap: "var(--space-3)" }}>
               <Inp value={lookupPo} onChange={(e) => setLookupPo(e.target.value)} placeholder="Enter PO number" />
               <Btn type="button" onClick={handleTestLookup} disabled={lookingUp}>
                 {lookingUp ? "⏳" : "🔍 Lookup"}
@@ -539,15 +539,15 @@ export default function SettingsView({
               textAlign: "center",
               background: T.blueSoft,
               display: "flex", flexDirection: "column", alignItems: "center",
-              justifyContent: "center", gap: 8, cursor: "pointer",
+              justifyContent: "center", gap: "var(--space-3)", cursor: "pointer",
               width: "100%", maxWidth: 360,
               transition: "background 0.15s ease",
             }}>
               <span style={{ fontSize: 28 }}>🖼️</span>
-              <div style={{ fontWeight: 700, color: T.blue, fontSize: 14 }}>
+              <div style={{ fontWeight: "var(--weight-bold)", color: T.blue, fontSize: "var(--text-md)" }}>
                 {logos ? "Replace logo" : "Upload logo"}
               </div>
-              <div style={{ fontSize: 12, color: T.slateL }}>PNG, JPG, or SVG — compressed automatically</div>
+              <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>PNG, JPG, or SVG — compressed automatically</div>
               <input type="file" accept="image/*" onChange={handleLogoFileChange} style={{ display: "none" }} />
             </label>
           </div>
@@ -565,7 +565,7 @@ export default function SettingsView({
 
           {/* BUG FIX #4 — added success toast in handleAddWarehouse above */}
           <form onSubmit={handleAddWarehouse} style={{
-            display: "flex", gap: 12, alignItems: "flex-end",
+            display: "flex", gap: "var(--space-5)", alignItems: "flex-end",
             flexWrap: "wrap", marginBottom: 20,
             padding: "16px 20px",
             background: T.bg, borderRadius: T.radius,
@@ -606,7 +606,7 @@ export default function SettingsView({
             </div>
           </form>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             {warehouses?.length > 0 ? warehouses.map((w) => (
               <div key={w.id} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -615,26 +615,26 @@ export default function SettingsView({
                 border: `1px solid ${T.border}`,
               }}>
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                    <span style={{ fontWeight: 700, color: T.navy, fontSize: 14 }}>{w.name}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 3 }}>
+                    <span style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-md)" }}>{w.name}</span>
                     {w.code && (
                       <span style={{
-                        fontSize: 10, fontWeight: 800, color: T.blue,
+                        fontSize: "var(--text-2xs)", fontWeight: "var(--weight-extrabold)", color: T.blue,
                         background: T.blueSoft, border: `1px solid ${T.blueRing}`,
-                        padding: "1px 7px", borderRadius: 999, letterSpacing: "0.5px",
+                        padding: "1px 7px", borderRadius: "var(--radius-pill)", letterSpacing: "0.5px",
                       }}>
                         {w.code}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 12, color: T.slateL }}>
+                  <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>
                     📍 {w.location || "No address logged"}
                   </div>
                 </div>
                 <StatusPill active={w.active} labelOn="Operational" labelOff="Inactive" />
               </div>
             )) : (
-              <p style={{ margin: 0, fontSize: 13, color: T.slateL, fontStyle: "italic", textAlign: "center", padding: "32px 0" }}>
+              <p style={{ margin: 0, fontSize: "var(--text-base)", color: T.slateL, fontStyle: "italic", textAlign: "center", padding: "32px 0" }}>
                 No warehouses registered yet. Add one above.
               </p>
             )}
@@ -647,7 +647,7 @@ export default function SettingsView({
         <Card>
           <SectionTitle icon="ℹ️" title="System Information" />
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "var(--space-5)" }}>
             {[
               { label: "Version",      value: "WMS v5.0" },
               { label: "Storage",      value: "Supabase (row-level security)" },
@@ -661,10 +661,10 @@ export default function SettingsView({
                 background: T.bg, borderRadius: T.radius,
                 border: `1px solid ${T.border}`,
               }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: T.slateL, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 5 }}>
+                <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: T.slateL, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 5 }}>
                   {label}
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.navy }}>{value}</div>
+                <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", color: T.navy }}>{value}</div>
               </div>
             ))}
           </div>

@@ -168,7 +168,7 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
         style={{
           background: C.w,
           borderLeft: `4px solid ${borderColor}`,
-          borderRadius: 6,
+          borderRadius: "var(--radius-sm)",
           padding: "6px 8px",
           boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           cursor: onJobClick ? "pointer" : "default",
@@ -176,10 +176,10 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
         }}
         title={`${jobLabel}\nPO: ${job.po}\nAddress: ${job.addr || "N/A"}\nStatus: ${statusConfig.l || job.status}`}
       >
-        <div style={{ fontSize: 11, fontWeight: 800, color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {jobLabel}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: 10, color: C.sub }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}>
           <span>📄 {job.po}</span>
           <span>{statusConfig.icon}</span>
         </div>
@@ -188,18 +188,18 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", marginTop: 16 }}>
+    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)", marginTop: 16 }}>
 
       {/* ── HEADER ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>📅 Weekly Production Crew & Shift Calendar</h2>
-          <p style={{ margin: "2px 0 0", fontSize: 11, color: C.sub }}>Visual dispatcher mapping active staging jobs across operational project rows.</p>
+          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📅 Weekly Production Crew & Shift Calendar</h2>
+          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>Visual dispatcher mapping active staging jobs across operational project rows.</p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
           <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>◀ Prev</Btn>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, minWidth: 200, textAlign: "center" }}>
+          <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", color: C.navy, minWidth: 200, textAlign: "center" }}>
             {weekLabel}
           </div>
           <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>Next ▶</Btn>
@@ -214,7 +214,7 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}>
           <thead>
             <tr style={{ background: C.lg }}>
-              <th style={{ width: 150, padding: "12px 10px", textAlign: "left", color: C.sub, fontSize: 11, fontWeight: 700, borderBottom: `2px solid ${C.bd}` }}>
+              <th style={{ width: 150, padding: "12px 10px", textAlign: "left", color: C.sub, fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", borderBottom: `2px solid ${C.bd}` }}>
                 👷 Assigned Crew Lead
               </th>
               {weekDays.map((day) => {
@@ -225,13 +225,13 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
                     style={{
                       padding: "10px", textAlign: "center",
                       color: isToday ? C.blue : C.navy,
-                      fontWeight: 800, fontSize: 12,
+                      fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-sm)",
                       borderBottom: isToday ? `3px solid ${C.blue}` : `2px solid ${C.bd}`,
                       background: isToday ? "rgba(27, 82, 184, 0.03)" : "transparent",
                     }}
                   >
                     <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
-                    <div style={{ fontSize: 14, marginTop: 2 }}>{day.getDate()}</div>
+                    <div style={{ fontSize: "var(--text-md)", marginTop: 2 }}>{day.getDate()}</div>
                   </th>
                 );
               })}
@@ -242,8 +242,8 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
             {fieldPersonnelList.map((crewLead) => (
               <tr key={crewLead.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
                 <td style={{ padding: "14px 10px", verticalAlign: "middle", borderRight: `1px solid ${C.lg}` }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: C.navy }}>{crewLead.name}</div>
-                  <div style={{ fontSize: 10, color: C.sub, textTransform: "capitalize", marginTop: 2 }}>
+                  <div style={{ fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: C.navy }}>{crewLead.name}</div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textTransform: "capitalize", marginTop: 2 }}>
                     🛡️ {crewLead.role}
                   </div>
                 </td>
@@ -271,10 +271,10 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
                         height: 90,
                       }}
                     >
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                         {dayJobs.map((job) => <JobCard key={job.id} job={job} />)}
                         {isDoubleBooked && (
-                          <div style={{ fontSize: 10, fontWeight: 700, color: C.rd, background: C.rB, padding: "2px 6px", borderRadius: 4, textAlign: "center" }}>
+                          <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.rd, background: C.rB, padding: "2px 6px", borderRadius: "var(--radius-xs)", textAlign: "center" }}>
                             ⚠️ {dayJobs.length} jobs — double-booked
                           </div>
                         )}
@@ -289,8 +289,8 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
             {(unassignedThisWeek.length > 0 || typeof setJobs === "function") && (
               <tr style={{ borderBottom: `1px solid ${C.lg}`, background: "rgba(251,191,36,0.04)" }}>
                 <td style={{ padding: "14px 10px", verticalAlign: "middle", borderRight: `1px solid ${C.lg}` }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: C.am }}>⚠️ Unassigned</div>
-                  <div style={{ fontSize: 10, color: C.sub, marginTop: 2 }}>No supervisor set</div>
+                  <div style={{ fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: C.am }}>⚠️ Unassigned</div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>No supervisor set</div>
                 </td>
                 {weekDays.map((day) => {
                   const dayKey = toLocalDateKey(day);
@@ -313,7 +313,7 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
                         height: 90,
                       }}
                     >
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                         {dayJobs.map((job) => <JobCard key={job.id} job={job} />)}
                       </div>
                     </td>
@@ -324,7 +324,7 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
 
             {fieldPersonnelList.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ padding: 32, textAlign: "center", color: C.sub, fontSize: 13, fontStyle: "italic" }}>
+                <td colSpan={8} style={{ padding: 32, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", fontStyle: "italic" }}>
                   No field operational crews registered to map schedule lines.
                 </td>
               </tr>

@@ -113,7 +113,7 @@ export default function Sidebar({
           padding: collapsed ? "12px 0" : "12px 14px",
           display: "flex",
           alignItems: "center",
-          gap: 10,
+          gap: "var(--space-4)",
           borderBottom: "1px solid rgba(255,255,255,0.1)",
           justifyContent: collapsed ? "center" : "flex-start",
           minHeight: 62,
@@ -140,7 +140,7 @@ export default function Sidebar({
         </div>
         {!collapsed && (
           <div>
-            <div style={{ fontSize: 11, fontWeight: 900, color: C.gold, lineHeight: 1.1 }}>MAUMEE RIVER</div>
+            <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-black)", color: C.gold, lineHeight: 1.1 }}>MAUMEE RIVER</div>
             <div style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", letterSpacing: "0.5px" }}>ROOFING</div>
           </div>
         )}
@@ -161,7 +161,7 @@ export default function Sidebar({
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
-              gap: 8,
+              gap: "var(--space-3)",
               marginBottom: 2,
               color: cur === item.id ? C.gold : "rgba(255,255,255,0.65)",
               justifyContent: collapsed ? "center" : "flex-start",
@@ -170,12 +170,12 @@ export default function Sidebar({
           >
             <span style={{ fontSize: 17 }}>{item.icon}</span>
             {!collapsed && (
-              <span style={{ fontSize: 13, fontWeight: cur === item.id ? 700 : 500, flex: 1, textAlign: "left" }}>
+              <span style={{ fontSize: "var(--text-base)", fontWeight: cur === item.id ? 700 : 500, flex: 1, textAlign: "left" }}>
                 {item.label}
               </span>
             )}
             {(item.badge || 0) > 0 && !collapsed && (
-              <span style={{ background: item.badgeColor || C.rd, color: C.w, borderRadius: 20, fontSize: 10, padding: "1px 6px", fontWeight: 800 }}>
+              <span style={{ background: item.badgeColor || C.rd, color: C.w, borderRadius: 20, fontSize: "var(--text-2xs)", padding: "1px 6px", fontWeight: "var(--weight-extrabold)" }}>
                 {item.badge}
               </span>
             )}
@@ -195,7 +195,7 @@ export default function Sidebar({
           border: "none",
           cursor: "pointer",
           color: "rgba(255,255,255,0.4)",
-          fontSize: 16,
+          fontSize: "var(--text-lg)",
           textAlign: "center",
         }}
       >
@@ -210,7 +210,7 @@ export default function Sidebar({
         justifyContent: collapsed ? "center" : "space-between",
         borderTop: "1px solid rgba(255,255,255,0.05)"
       }}>
-        {!collapsed && <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 800 }}>🌐 {t.language}:</span>}
+        {!collapsed && <span style={{ fontSize: "var(--text-2xs)", color: "rgba(255,255,255,0.4)", fontWeight: "var(--weight-extrabold)" }}>🌐 {t.language}:</span>}
         <div style={{ display: "flex", background: "rgba(0,0,0,0.2)", borderRadius: 15, padding: 2, border: "1px solid rgba(255,255,255,0.1)" }}>
           {[
             { id: "en", label: "EN" },
@@ -225,10 +225,10 @@ export default function Sidebar({
                   background: active ? C.gold : "transparent",
                   color: active ? C.navy : "rgba(255,255,255,0.6)",
                   border: "none",
-                  borderRadius: 12,
+                  borderRadius: "var(--radius-xl)",
                   padding: collapsed ? "4px 6px" : "3px 8px",
-                  fontSize: 10,
-                  fontWeight: 900,
+                  fontSize: "var(--text-2xs)",
+                  fontWeight: "var(--weight-black)",
                   cursor: "pointer",
                   transition: "all 0.15s"
                 }}
@@ -258,15 +258,15 @@ export default function Sidebar({
           }}
           title="Click to manage profile settings"
         >
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: rColor(user.role), display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", fontSize: 13, fontWeight: 900, color: C.w, flexShrink: 0 }}>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: rColor(user.role), display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", fontSize: "var(--text-base)", fontWeight: "var(--weight-black)", color: C.w, flexShrink: 0 }}>
             {user.name ? user.name[0] : user.full_name ? user.full_name[0] : "U"}
           </div>
           {!collapsed && (
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {user.name || user.full_name || "Active User"}
               </div>
-              <div style={{ fontSize: 9, color: rColor(user.role), textTransform: "capitalize", fontWeight: 600 }}>
+              <div style={{ fontSize: 9, color: rColor(user.role), textTransform: "capitalize", fontWeight: "var(--weight-semibold)" }}>
                 {ROLES[user.role]?.label || user.role || "Employee"}
               </div>
             </div>
@@ -274,7 +274,7 @@ export default function Sidebar({
         </div>
 
         {!collapsed && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, padding: "0 4px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", padding: "0 4px" }}>
             <button
               onClick={onLogout}
               style={{
@@ -285,8 +285,8 @@ export default function Sidebar({
                 borderRadius: 5,
                 cursor: "pointer",
                 color: "rgba(255,255,255,0.4)",
-                fontSize: 11,
-                fontWeight: 600,
+                fontSize: "var(--text-xs)",
+                fontWeight: "var(--weight-semibold)",
               }}
             >
               {t.signout}

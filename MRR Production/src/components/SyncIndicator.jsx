@@ -31,7 +31,7 @@ export default function SyncIndicator() {
 
   if (isOnline) {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "12px", fontWeight: 700, color: C.gr }}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "12px", fontWeight: "var(--weight-bold)", color: C.gr }}>
         <span>🟢</span> Connected
       </span>
     );
@@ -42,9 +42,9 @@ export default function SyncIndicator() {
       style={{ 
         display: "inline-flex", 
         alignItems: "center", 
-        gap: 6, 
+        gap: "var(--space-2)", 
         fontSize: "12px", 
-        fontWeight: 700, 
+        fontWeight: "var(--weight-bold)", 
         color: C.am,
         background: C.aB || "rgba(245,158,11,0.1)",
         padding: "4px 10px",

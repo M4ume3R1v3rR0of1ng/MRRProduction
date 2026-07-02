@@ -187,7 +187,7 @@ export default function ProfileView({ user, onUpdateUser }) {
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 20,
+        gap: "var(--space-8)",
         maxWidth: 500,
         margin: "20px auto",
       }}
@@ -196,7 +196,7 @@ export default function ProfileView({ user, onUpdateUser }) {
       <div
         style={{
           background: C.w,
-          borderRadius: 12,
+          borderRadius: "var(--radius-xl)",
           padding: 24,
           boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
         }}
@@ -204,14 +204,14 @@ export default function ProfileView({ user, onUpdateUser }) {
         <h1
           style={{
             margin: "0 0 6px",
-            fontSize: 20,
-            fontWeight: 900,
+            fontSize: "var(--text-2xl)",
+            fontWeight: "var(--weight-black)",
             color: C.navy,
           }}
         >
           👤 Personal Profile
         </h1>
-        <p style={{ margin: "0 0 20px", color: C.sub, fontSize: 13 }}>
+        <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>
           Manage your account identity details
         </p>
 
@@ -243,9 +243,9 @@ export default function ProfileView({ user, onUpdateUser }) {
                 border: `1px solid ${C.gold}`,
                 color: C.navy,
                 padding: "8px 12px",
-                borderRadius: 6,
-                fontSize: 13,
-                fontWeight: 700,
+                borderRadius: "var(--radius-sm)",
+                fontSize: "var(--text-base)",
+                fontWeight: "var(--weight-bold)",
                 textTransform: "capitalize",
               }}
             >
@@ -258,10 +258,10 @@ export default function ProfileView({ user, onUpdateUser }) {
                 background: profileMsg.isError ? C.rB : C.gB,
                 color: profileMsg.isError ? C.rd : C.gr,
                 padding: "10px 14px",
-                borderRadius: 8,
-                fontSize: 13,
+                borderRadius: "var(--radius-md)",
+                fontSize: "var(--text-base)",
                 marginBottom: 16,
-                fontWeight: 600,
+                fontWeight: "var(--weight-semibold)",
               }}
             >
               {profileMsg.text}
@@ -282,7 +282,7 @@ export default function ProfileView({ user, onUpdateUser }) {
       <div
         style={{
           background: C.w,
-          borderRadius: 12,
+          borderRadius: "var(--radius-xl)",
           padding: 24,
           boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
         }}
@@ -291,18 +291,18 @@ export default function ProfileView({ user, onUpdateUser }) {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: "var(--space-4)",
             marginBottom: 6,
           }}
         >
-          <span style={{ fontSize: 20 }}>🔔</span>
+          <span style={{ fontSize: "var(--text-2xl)" }}>🔔</span>
           <h3
-            style={{ margin: 0, fontSize: 18, fontWeight: 900, color: C.navy }}
+            style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: "var(--weight-black)", color: C.navy }}
           >
             Inventory Alert Preferences
           </h3>
         </div>
-        <p style={{ margin: "0 0 20px 0", color: C.sub, fontSize: 13 }}>
+        <p style={{ margin: "0 0 20px 0", color: C.sub, fontSize: "var(--text-base)" }}>
           Choose how you want to be notified when items hit low-stock
           thresholds.
         </p>
@@ -321,8 +321,8 @@ export default function ProfileView({ user, onUpdateUser }) {
         <div style={{ marginBottom: 16 }}>
           <div
             style={{
-              fontSize: 11,
-              fontWeight: 700,
+              fontSize: "var(--text-xs)",
+              fontWeight: "var(--weight-bold)",
               color: C.navy,
               textTransform: "uppercase",
               letterSpacing: "0.5px",
@@ -335,8 +335,8 @@ export default function ProfileView({ user, onUpdateUser }) {
             style={{
               background: C.lg,
               padding: "10px 14px",
-              borderRadius: 8,
-              fontSize: 13,
+              borderRadius: "var(--radius-md)",
+              fontSize: "var(--text-base)",
               color: C.sub,
               fontFamily: "monospace",
               border: `1.5px solid ${C.bd}`,
@@ -351,7 +351,7 @@ export default function ProfileView({ user, onUpdateUser }) {
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 12,
+            gap: "var(--space-5)",
             marginBottom: 20,
           }}
         >
@@ -359,9 +359,9 @@ export default function ProfileView({ user, onUpdateUser }) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
-              fontSize: 13,
-              fontWeight: 600,
+              gap: "var(--space-4)",
+              fontSize: "var(--text-base)",
+              fontWeight: "var(--weight-semibold)",
               color: C.navy,
               cursor: "pointer",
             }}
@@ -379,9 +379,9 @@ export default function ProfileView({ user, onUpdateUser }) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 10,
-              fontSize: 13,
-              fontWeight: 600,
+              gap: "var(--space-4)",
+              fontSize: "var(--text-base)",
+              fontWeight: "var(--weight-semibold)",
               color: C.navy,
               cursor: "pointer",
             }}
@@ -402,10 +402,10 @@ export default function ProfileView({ user, onUpdateUser }) {
               background: alertMsg.isError ? C.rB : C.gB,
               color: alertMsg.isError ? C.rd : C.gr,
               padding: "10px 14px",
-              borderRadius: 8,
-              fontSize: 13,
+              borderRadius: "var(--radius-md)",
+              fontSize: "var(--text-base)",
               marginBottom: 16,
-              fontWeight: 600,
+              fontWeight: "var(--weight-semibold)",
             }}
           >
             {alertMsg.text}
@@ -426,7 +426,7 @@ export default function ProfileView({ user, onUpdateUser }) {
       <div
         style={{
           background: C.w,
-          borderRadius: 12,
+          borderRadius: "var(--radius-xl)",
           padding: 24,
           boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
         }}
@@ -434,14 +434,14 @@ export default function ProfileView({ user, onUpdateUser }) {
         <h2
           style={{
             margin: "0 0 6px",
-            fontSize: 18,
-            fontWeight: 900,
+            fontSize: "var(--text-xl)",
+            fontWeight: "var(--weight-black)",
             color: C.navy,
           }}
         >
           🔐 Access Credentials
         </h2>
-        <p style={{ margin: "0 0 20px", color: C.sub, fontSize: 13 }}>
+        <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>
           Change your current login security details
         </p>
 
@@ -483,10 +483,10 @@ export default function ProfileView({ user, onUpdateUser }) {
                 background: passMsg.isError ? C.rB : C.gB,
                 color: passMsg.isError ? C.rd : C.gr,
                 padding: "10px 14px",
-                borderRadius: 8,
-                fontSize: 13,
+                borderRadius: "var(--radius-md)",
+                fontSize: "var(--text-base)",
                 marginBottom: 16,
-                fontWeight: 600,
+                fontWeight: "var(--weight-semibold)",
               }}
             >
               {passMsg.text}

@@ -12,7 +12,7 @@ function renderWithMentions(text, names) {
   const parts = text.split(pattern);
   return parts.map((part, i) =>
     names.some((n) => part === `@${n}`) ? (
-      <span key={i} style={{ color: C.blue, fontWeight: 700, background: 'rgba(27,82,184,0.1)', borderRadius: 4, padding: '0 3px' }}>
+      <span key={i} style={{ color: C.blue, fontWeight: "var(--weight-bold)", background: 'rgba(27,82,184,0.1)', borderRadius: "var(--radius-xs)", padding: '0 3px' }}>
         {part}
       </span>
     ) : (
@@ -209,10 +209,10 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
   };
 
   return (
-    <div style={{ background: C.w, borderRadius: 12, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', display: 'flex', flexDirection: 'column', height: 420 }}>
+    <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', display: 'flex', flexDirection: 'column', height: 420 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: C.navy }}>💬 Team Chat</h3>
-        <button onClick={fetchMessages} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}>
+        <h3 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-black)", color: C.navy }}>💬 Team Chat</h3>
+        <button onClick={fetchMessages} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>
           🔄 Refresh
         </button>
       </div>
@@ -225,7 +225,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: 10,
+          gap: "var(--space-4)",
           paddingRight: 4,
           marginBottom: 12,
           scrollbarWidth: 'thin',
@@ -233,42 +233,42 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
         }}
       >
         {loading ? (
-          <div style={{ color: C.sub, fontSize: 13 }}>Loading messages...</div>
+          <div style={{ color: C.sub, fontSize: "var(--text-base)" }}>Loading messages...</div>
         ) : messages.length === 0 ? (
-          <p style={{ color: C.sub, fontSize: 13, margin: 0, textAlign: 'center', padding: '20px 0' }}>No messages yet. Say hello 👋</p>
+          <p style={{ color: C.sub, fontSize: "var(--text-base)", margin: 0, textAlign: 'center', padding: '20px 0' }}>No messages yet. Say hello 👋</p>
         ) : (
           messages.map((m) => {
             const mine = !!(m.user_id && user?.id && m.user_id === user.id);
             const isEditing = editingId === m.id;
             return (
               <div key={m.id} style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
-                <div style={{ fontSize: 11, color: C.sub, fontWeight: 700, marginBottom: 2, textAlign: mine ? 'right' : 'left' }}>
+                <div style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-bold)", marginBottom: 2, textAlign: mine ? 'right' : 'left' }}>
                   {m.user_name || 'Teammate'}
                 </div>
 
                 {isEditing ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: "var(--space-2)" }}>
                     <input
                       autoFocus
                       value={editDraft}
                       onChange={(e) => setEditDraft(e.target.value)}
                       onKeyDown={handleEditKeyDown}
-                      style={{ padding: '7px 10px', border: `1.5px solid ${C.bd}`, borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}
+                      style={{ padding: '7px 10px', border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", boxSizing: 'border-box' }}
                     />
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                      <button onClick={cancelEdit} style={{ background: 'none', border: 'none', color: C.sub, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>Cancel</button>
-                      <button onClick={saveEdit} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>Save</button>
+                    <div style={{ display: 'flex', gap: "var(--space-3)", justifyContent: 'flex-end' }}>
+                      <button onClick={cancelEdit} style={{ background: 'none', border: 'none', color: C.sub, cursor: 'pointer', fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Cancel</button>
+                      <button onClick={saveEdit} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Save</button>
                     </div>
                   </div>
                 ) : (
                   <div style={{
                     background: mine ? C.blue : C.lg,
                     color: mine ? C.w : C.navy,
-                    borderRadius: 12,
+                    borderRadius: "var(--radius-xl)",
                     borderBottomRightRadius: mine ? 3 : 12,
                     borderBottomLeftRadius: mine ? 12 : 3,
                     padding: '8px 12px',
-                    fontSize: 13,
+                    fontSize: "var(--text-base)",
                     lineHeight: 1.4,
                     wordBreak: 'break-word',
                   }}>
@@ -277,7 +277,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
                         src={m.photo}
                         alt="Attachment"
                         onClick={() => setLightboxPhoto(m.photo)}
-                        style={{ display: 'block', maxWidth: '100%', maxHeight: 160, borderRadius: 8, marginBottom: m.message ? 6 : 0, cursor: 'pointer' }}
+                        style={{ display: 'block', maxWidth: '100%', maxHeight: 160, borderRadius: "var(--radius-md)", marginBottom: m.message ? 6 : 0, cursor: 'pointer' }}
                       />
                     )}
                     {m.message && renderWithMentions(m.message, knownNames)}
@@ -285,14 +285,14 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
                 )}
 
                 {!isEditing && (
-                  <div style={{ display: 'flex', gap: 8, marginTop: 2, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-                    <span style={{ fontSize: 10, color: C.sub }}>
+                  <div style={{ display: 'flex', gap: "var(--space-3)", marginTop: 2, justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                    <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
                       {ft(m.created_at)}{m.edited_at ? ' · edited' : ''}
                     </span>
                     {mine && (
                       <>
-                        <button onClick={() => startEdit(m)} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: 0 }}>Edit</button>
-                        <button onClick={() => deleteMessage(m)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', fontSize: 10, fontWeight: 700, padding: 0 }}>Delete</button>
+                        <button onClick={() => startEdit(m)} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", padding: 0 }}>Edit</button>
+                        <button onClick={() => deleteMessage(m)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", padding: 0 }}>Delete</button>
                       </>
                     )}
                   </div>
@@ -304,18 +304,18 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
       </div>
 
       {error && (
-        <div style={{ color: C.rd, background: C.rB, borderRadius: 8, padding: '6px 10px', fontSize: 12, fontWeight: 600, marginBottom: 8 }}>
+        <div style={{ color: C.rd, background: C.rB, borderRadius: "var(--radius-md)", padding: '6px 10px', fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", marginBottom: 8 }}>
           ⚠️ {error}
         </div>
       )}
 
       {mentionCandidates.length > 0 && (
-        <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: 8, marginBottom: 8, overflow: 'hidden', background: C.w, boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}>
+        <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", marginBottom: 8, overflow: 'hidden', background: C.w, boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}>
           {mentionCandidates.map((u) => (
             <div
               key={u.id}
               onClick={() => selectMention(u)}
-              style={{ padding: '6px 10px', fontSize: 12, fontWeight: 600, color: C.navy, cursor: 'pointer' }}
+              style={{ padding: '6px 10px', fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: C.navy, cursor: 'pointer' }}
               onMouseEnter={(e) => (e.currentTarget.style.background = C.lg)}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
@@ -327,22 +327,22 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
 
       {pendingPhoto && (
         <div style={{ position: 'relative', width: 60, height: 60, marginBottom: 8 }}>
-          <img src={pendingPhoto} alt="Pending attachment" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, border: `1.5px solid ${C.bd}` }} />
+          <img src={pendingPhoto} alt="Pending attachment" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: "var(--radius-md)", border: `1.5px solid ${C.bd}` }} />
           <button
             onClick={() => setPendingPhoto(null)}
-            style={{ position: 'absolute', top: -6, right: -6, background: C.rd, color: C.w, border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 11, cursor: 'pointer', lineHeight: 1 }}
+            style={{ position: 'absolute', top: -6, right: -6, background: C.rd, color: C.w, border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: "var(--text-xs)", cursor: 'pointer', lineHeight: 1 }}
           >
             ✕
           </button>
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', gap: "var(--space-3)" }}>
         <input ref={fileInputRef} type="file" accept="image/*" onChange={attachPhoto} style={{ display: 'none' }} />
         <button
           onClick={() => fileInputRef.current.click()}
           title="Attach a photo"
-          style={{ background: C.lg, border: 'none', borderRadius: 8, padding: '9px 12px', fontSize: 14, cursor: 'pointer' }}
+          style={{ background: C.lg, border: 'none', borderRadius: "var(--radius-md)", padding: '9px 12px', fontSize: "var(--text-md)", cursor: 'pointer' }}
         >
           📷
         </button>
@@ -351,12 +351,12 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message... (@ to mention)"
-          style={{ flex: 1, padding: '9px 11px', border: `1.5px solid ${C.bd}`, borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}
+          style={{ flex: 1, padding: '9px 11px', border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", boxSizing: 'border-box' }}
         />
         <button
           onClick={send}
           disabled={(!draft.trim() && !pendingPhoto) || sending}
-          style={{ background: C.blue, color: C.w, border: 'none', borderRadius: 8, padding: '9px 16px', fontSize: 13, fontWeight: 700, cursor: draft.trim() || pendingPhoto ? 'pointer' : 'default', opacity: draft.trim() || pendingPhoto ? 1 : 0.6 }}
+          style={{ background: C.blue, color: C.w, border: 'none', borderRadius: "var(--radius-md)", padding: '9px 16px', fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", cursor: draft.trim() || pendingPhoto ? 'pointer' : 'default', opacity: draft.trim() || pendingPhoto ? 1 : 0.6 }}
         >
           Send
         </button>
@@ -364,7 +364,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
 
       {lightboxPhoto && (
         <Modal title="📷 Attachment" onClose={() => setLightboxPhoto(null)}>
-          <img src={lightboxPhoto} alt="Full size attachment" style={{ width: '100%', borderRadius: 8 }} />
+          <img src={lightboxPhoto} alt="Full size attachment" style={{ width: '100%', borderRadius: "var(--radius-md)" }} />
         </Modal>
       )}
     </div>

@@ -203,7 +203,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 16,
+              gap: "var(--space-7)",
               marginBottom: 12,
             }}
           >
@@ -212,7 +212,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
                 width: 64,
                 height: 64,
                 background: activeLogo ? "transparent" : C.gold,
-                borderRadius: 16,
+                borderRadius: "var(--radius-2xl)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -242,13 +242,13 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               )}
             </div>
             <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color: C.navy, letterSpacing: "0.5px" }}>
+              <div style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy, letterSpacing: "0.5px" }}>
                 MAUMEE RIVER
               </div>
               <div
                 style={{
-                  fontSize: 14,
-                  fontWeight: 700,
+                  fontSize: "var(--text-md)",
+                  fontWeight: "var(--weight-bold)",
                   color: C.blue,
                   letterSpacing: "1.5px",
                 }}
@@ -257,7 +257,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               </div>
             </div>
           </div>
-          <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>
+          <div style={{ fontSize: "var(--text-base)", color: C.sub, marginTop: 4 }}>
             {mode === "login"
               ? "Warehouse & Fleet Management System"
               : `Register with ${COMPANY_DOMAIN}`}
@@ -271,10 +271,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               border: "1.5px solid #10b981",
               color: "#065f46",
               padding: "16px",
-              borderRadius: 8,
-              fontSize: 14,
+              borderRadius: "var(--radius-md)",
+              fontSize: "var(--text-md)",
               marginBottom: 20,
-              fontWeight: 600,
+              fontWeight: "var(--weight-semibold)",
               lineHeight: "1.4",
             }}
           >
@@ -293,7 +293,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
                 width: "100%",
                 padding: "12px 14px",
                 border: `1.5px solid ${C.bd}`,
-                borderRadius: 8,
+                borderRadius: "var(--radius-md)",
                 fontSize: 15,
                 boxSizing: "border-box",
               }}
@@ -311,7 +311,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               width: "100%",
               padding: "12px 14px",
               border: `1.5px solid ${C.bd}`,
-              borderRadius: 8,
+              borderRadius: "var(--radius-md)",
               fontSize: 15,
               boxSizing: "border-box",
             }}
@@ -333,7 +333,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               width: "100%",
               padding: "12px 14px",
               border: `1.5px solid ${C.bd}`,
-              borderRadius: 8,
+              borderRadius: "var(--radius-md)",
               fontSize: 15,
               boxSizing: "border-box",
             }}
@@ -352,7 +352,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
                 width: "100%",
                 padding: "12px 14px",
                 border: `1.5px solid ${C.bd}`,
-                borderRadius: 8,
+                borderRadius: "var(--radius-md)",
                 fontSize: 15,
                 boxSizing: "border-box",
               }}
@@ -364,7 +364,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
         {/* ── 🟢 NEW: REMEMBER ME CHECKBOX SWITCH TOGGLE TIER ── */}
         {mode === "login" && (
           <div style={{ display: "flex", alignItems: "center", marginBottom: 16, marginTop: -4 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.navy, fontWeight: 700, cursor: "pointer" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: "var(--text-base)", color: C.navy, fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
               <input 
                 type="checkbox" 
                 checked={rememberMe} 
@@ -383,8 +383,8 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               background: C.rB,
               color: C.rd,
               padding: "10px 14px",
-              borderRadius: 8,
-              fontSize: 13,
+              borderRadius: "var(--radius-md)",
+              fontSize: "var(--text-base)",
               marginBottom: 16,
             }}
           >
@@ -400,9 +400,9 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             background: submitting ? C.bd : C.gold,
             color: C.navy,
             border: "none",
-            borderRadius: 8,
-            fontSize: 16,
-            fontWeight: 800,
+            borderRadius: "var(--radius-md)",
+            fontSize: "var(--text-lg)",
+            fontWeight: "var(--weight-extrabold)",
             cursor: submitting ? "not-allowed" : "pointer",
             marginBottom: 16,
             opacity: submitting ? 0.7 : 1,
@@ -422,7 +422,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            fontSize: 13,
+            fontSize: "var(--text-base)",
             color: C.sub,
             marginTop: 20,
           }}
@@ -439,7 +439,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               color: C.blue,
               cursor: "pointer",
               padding: 0,
-              fontWeight: 700,
+              fontWeight: "var(--weight-bold)",
             }}
             disabled={submitting}
           >

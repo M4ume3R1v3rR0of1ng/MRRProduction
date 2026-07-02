@@ -164,7 +164,7 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
         style={{
           background: C.w,
           borderLeft: `4px solid ${meta.color}`,
-          borderRadius: 6,
+          borderRadius: "var(--radius-sm)",
           padding: "6px 8px",
           boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
           cursor: onRequestClick ? "pointer" : "default",
@@ -172,27 +172,27 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
         }}
         title={`${req.vname}\nType: ${req.type}\nUrgency: ${req.urgency}\n${req.notes || ""}`}
       >
-        <div style={{ fontSize: 11, fontWeight: 800, color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {req.vname}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: 10, color: C.sub }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{req.type}</span>
-          <span style={{ color: meta.color, fontWeight: 700, flexShrink: 0, marginLeft: 4 }}>{meta.label}</span>
+          <span style={{ color: meta.color, fontWeight: "var(--weight-bold)", flexShrink: 0, marginLeft: 4 }}>{meta.label}</span>
         </div>
       </div>
     );
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", marginTop: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
+    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)", marginTop: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>📅 Weekly Maintenance Schedule</h2>
-          <p style={{ margin: "2px 0 0", fontSize: 11, color: C.sub }}>Drag a request onto a day to schedule or reschedule it.</p>
+          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📅 Weekly Maintenance Schedule</h2>
+          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>Drag a request onto a day to schedule or reschedule it.</p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
           <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>◀ Prev</Btn>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy, minWidth: 200, textAlign: "center" }}>{weekLabel}</div>
+          <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", color: C.navy, minWidth: 200, textAlign: "center" }}>{weekLabel}</div>
           <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>Next ▶</Btn>
           {!isCurrentWeek && <Btn v="primary" sz="sm" onClick={handleGoToToday}>Today</Btn>}
         </div>
@@ -206,18 +206,18 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
         style={{
           border: `2px dashed ${dragOverKey === "__unscheduled__" ? C.blue : C.bd}`,
           background: dragOverKey === "__unscheduled__" ? "rgba(27, 82, 184, 0.06)" : "#f8fafc",
-          borderRadius: 10,
+          borderRadius: "var(--radius-lg)",
           padding: 12,
           marginBottom: 20,
         }}
       >
-        <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", marginBottom: 8 }}>
+        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: C.sub, textTransform: "uppercase", marginBottom: 8 }}>
           📥 Awaiting Scheduling {unscheduledReqs.length > 0 && `(${unscheduledReqs.length})`}
         </div>
         {unscheduledReqs.length === 0 ? (
-          <div style={{ fontSize: 12, color: C.sub, fontStyle: "italic" }}>Nothing waiting — drag a scheduled request here to unschedule it.</div>
+          <div style={{ fontSize: "var(--text-sm)", color: C.sub, fontStyle: "italic" }}>Nothing waiting — drag a scheduled request here to unschedule it.</div>
         ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
             {unscheduledReqs.map((r) => (
               <div key={r.id} style={{ width: 180 }}>
                 <RequestCard req={r} />
@@ -231,7 +231,7 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}>
           <thead>
             <tr style={{ background: C.lg }}>
-              <th style={{ width: 170, padding: "12px 10px", textAlign: "left", color: C.sub, fontSize: 11, fontWeight: 700, borderBottom: `2px solid ${C.bd}` }}>
+              <th style={{ width: 170, padding: "12px 10px", textAlign: "left", color: C.sub, fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", borderBottom: `2px solid ${C.bd}` }}>
                 🚛 Vehicle
               </th>
               {weekDays.map((day) => {
@@ -242,13 +242,13 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
                     style={{
                       padding: "10px", textAlign: "center",
                       color: isToday ? C.blue : C.navy,
-                      fontWeight: 800, fontSize: 12,
+                      fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-sm)",
                       borderBottom: isToday ? `3px solid ${C.blue}` : `2px solid ${C.bd}`,
                       background: isToday ? "rgba(27, 82, 184, 0.03)" : "transparent",
                     }}
                   >
                     <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
-                    <div style={{ fontSize: 14, marginTop: 2 }}>{day.getDate()}</div>
+                    <div style={{ fontSize: "var(--text-md)", marginTop: 2 }}>{day.getDate()}</div>
                   </th>
                 );
               })}
@@ -259,8 +259,8 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
             {vehicleRows.map((v) => (
               <tr key={v.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
                 <td style={{ padding: "14px 10px", verticalAlign: "middle", borderRight: `1px solid ${C.lg}` }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: C.navy }}>{v.name}</div>
-                  <div style={{ fontSize: 10, color: C.sub, marginTop: 2 }}>#{v.plate || v.plates || "—"}</div>
+                  <div style={{ fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: C.navy }}>{v.name}</div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>#{v.plate || v.plates || "—"}</div>
                 </td>
 
                 {weekDays.map((day) => {
@@ -286,10 +286,10 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
                         height: 90,
                       }}
                     >
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                         {dayReqs.map((r) => <RequestCard key={r.id} req={r} />)}
                         {isDoubleBooked && (
-                          <div style={{ fontSize: 10, fontWeight: 700, color: C.rd, background: C.rB, padding: "2px 6px", borderRadius: 4, textAlign: "center" }}>
+                          <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.rd, background: C.rB, padding: "2px 6px", borderRadius: "var(--radius-xs)", textAlign: "center" }}>
                             ⚠️ {dayReqs.length} requests
                           </div>
                         )}
@@ -302,7 +302,7 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
 
             {vehicleRows.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ padding: 32, textAlign: "center", color: C.sub, fontSize: 13, fontStyle: "italic" }}>
+                <td colSpan={8} style={{ padding: 32, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", fontStyle: "italic" }}>
                   No active maintenance requests to schedule this week.
                 </td>
               </tr>

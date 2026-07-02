@@ -221,27 +221,27 @@ export default function Users({
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>👥 User Management</h1>
+        <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>👥 User Management</h1>
         <Btn v="primary" onClick={() => { setForm({ role: "field" }); setEditing(null); setModal("user"); }}>+ Add User</Btn>
       </div>
       
-      <div style={{ background: C.gL, border: `1px solid ${C.gold}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: C.navy, lineHeight: 1.7 }}>
+      <div style={{ background: C.gL, border: `1px solid ${C.gold}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.navy, lineHeight: 1.7 }}>
         Role permissions are set in <strong>Settings → Role Permissions</strong>. You can also give individual users custom permission overrides here using the 🔒 button.
       </div>
       
-      <div style={{ background: C.w, borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+      <div style={{ background: C.w, borderRadius: "var(--radius-xl)", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
           <thead>
             <tr style={{ background: C.lg }}>
               {["Name", "Email", "Role", "Status", ""].map((h) => (
-                <th key={h} style={{ padding: "12px 14px", textAlign: "left", color: C.sub, fontWeight: 700, fontSize: 11, textTransform: "uppercase" }}>{h}</th>
+                <th key={h} style={{ padding: "12px 14px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id} style={{ borderBottom: `1px solid ${C.lg}`, background: u.active ? "transparent" : "#fafafa" }}>
-                <td style={{ padding: "14px 14px", fontWeight: 700, color: C.navy }}>{u.full_name || u.name || "—"}</td>
+                <td style={{ padding: "14px 14px", fontWeight: "var(--weight-bold)", color: C.navy }}>{u.full_name || u.name || "—"}</td>
                 <td style={{ padding: "14px 14px", color: C.sub }}>{u.email || "—"}</td>
                 <td style={{ padding: "14px 14px" }}>
                   <Bdg color={u.role === "admin" ? "red" : u.role === "manager" ? "purple" : "blue"}>{u.role}</Bdg>
@@ -250,7 +250,7 @@ export default function Users({
                   <Bdg color={u.active ? "green" : "gray"}>{u.active ? "Active" : "Inactive"}</Bdg>
                 </td>
                 <td style={{ padding: "14px 14px", textAlign: "right" }}>
-                  <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "flex-end", alignItems: "center" }}>
                     <Btn v="ghost" sz="sm" onClick={() => handleOpenPermissionOverrides(u)} title="Configure individual user permission overrides">
                       🔒 Override
                     </Btn>
@@ -287,7 +287,7 @@ export default function Users({
               <option value="employee">Employee / Field Staff</option>
             </Sel>
           </Fld>
-          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
             <Btn v="ghost" onClick={() => { setModal(null); setEditing(null); setForm({}); }} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
             <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }}>{editing ? "Save Changes" : "Add User"}</Btn>
           </div>
@@ -296,7 +296,7 @@ export default function Users({
 
       {modal === "perms" && permUser && (
         <Modal title={`Custom Permissions — ${permUser.name}`} onClose={() => { setModal(null); setPermUser(null); }} extraWide>
-          <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: C.am, fontWeight: 600 }}>
+          <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.am, fontWeight: "var(--weight-semibold)" }}>
             ⚠️ Overrides apply <em>on top of</em> the <strong>{ROLES[permUser.role]?.label || permUser.role}</strong> role permissions and only affect <strong>{permUser.name}</strong>.
           </div>
           {userOverrides[permUser.id] && Object.keys(userOverrides[permUser.id]).length > 0 && (
@@ -305,18 +305,18 @@ export default function Users({
             </div>
           )}
           <div style={{ overflowX: "auto", maxHeight: "380px" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
               <thead>
                 <tr style={{ background: C.lg }}>
-                  <th style={{ padding: "10px 14px", textAlign: "left", color: C.sub, fontWeight: 700, fontSize: 11, textTransform: "uppercase", minWidth: 220 }}>Permission</th>
-                  <th style={{ padding: "10px 14px", textAlign: "center", color: C.sub, fontWeight: 700, fontSize: 11, textTransform: "uppercase", width: 110 }}>Role Default</th>
-                  <th style={{ padding: "10px 14px", textAlign: "center", color: C.sub, fontWeight: 700, fontSize: 11, textTransform: "uppercase", width: 110 }}>This User</th>
+                  <th style={{ padding: "10px 14px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", minWidth: 220 }}>Permission</th>
+                  <th style={{ padding: "10px 14px", textAlign: "center", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", width: 110 }}>Role Default</th>
+                  <th style={{ padding: "10px 14px", textAlign: "center", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", width: 110 }}>This User</th>
                 </tr>
               </thead>
               {PERM_GROUPS.map(([groupName, keys]) => (
                 <tbody key={groupName}>
                   <tr>
-                    <td colSpan={3} style={{ padding: "8px 14px", fontWeight: 900, color: C.w, background: C.navy, fontSize: 12 }}>{groupName}</td>
+                    <td colSpan={3} style={{ padding: "8px 14px", fontWeight: "var(--weight-black)", color: C.w, background: C.navy, fontSize: "var(--text-sm)" }}>{groupName}</td>
                   </tr>
                   {keys.map((key) => {
                     const baseVal = (rolePerms[permUser.role] || {})[key] || false;
@@ -326,11 +326,11 @@ export default function Users({
                     return (
                       <tr key={key} style={{ borderTop: `1px solid ${C.lg}`, background: hasOverride ? "rgba(217,119,6,0.07)" : "transparent" }}>
                         <td style={{ padding: "10px 14px" }}>
-                          <div style={{ fontWeight: 700, color: C.navy, fontSize: 12 }}>
+                          <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>
                             {PERM_DEFS[key]?.label || key}
-                            {hasOverride && <span style={{ marginLeft: 6, fontSize: 10, color: C.am, fontWeight: 700 }}>OVERRIDDEN</span>}
+                            {hasOverride && <span style={{ marginLeft: 6, fontSize: "var(--text-2xs)", color: C.am, fontWeight: "var(--weight-bold)" }}>OVERRIDDEN</span>}
                           </div>
-                          <div style={{ fontSize: 10, color: C.sub, marginTop: 2 }}>{PERM_DEFS[key]?.desc || ""}</div>
+                          <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>{PERM_DEFS[key]?.desc || ""}</div>
                         </td>
                         <td style={{ padding: "10px 14px", textAlign: "center" }}>
                           <div style={{ display: "flex", justifyContent: "center" }}><Toggle on={baseVal} disabled={true} /></div>

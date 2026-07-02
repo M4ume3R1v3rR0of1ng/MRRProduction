@@ -282,13 +282,13 @@ export default function PullInventory({
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>📋 Pull Inventory</h1>
-        <p style={{ margin: "2px 0 0", color: C.sub, fontSize: 12 }}>
+        <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>📋 Pull Inventory</h1>
+        <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
           {isField ? "Your assigned jobs" : "All active jobs in pipeline"}
         </p>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {myJobs.map((job) => {
           if (!job) return null;
           const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
@@ -307,25 +307,25 @@ export default function PullInventory({
               key={job.id}
               style={{
                 background: C.w,
-                borderRadius: 12,
+                borderRadius: "var(--radius-xl)",
                 padding: 16,
                 boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
                 border: `2px solid ${isNew ? C.tl : job.status === "active" ? C.am : "transparent"}`,
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, flexWrap: "wrap", gap: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, flexWrap: "wrap", gap: "var(--space-4)" }}>
                 <div>
                   <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 5, flexWrap: "wrap" }}>
                     <Bdg color={st.c}>{st.icon} {st.l}</Bdg>
                     {isNew && <Bdg color="teal">🔔 NEW</Bdg>}
-                    <span style={{ fontSize: 12, color: C.sub }}>{job.po || "No PO #"}</span>
+                    <span style={{ fontSize: "var(--text-sm)", color: C.sub }}>{job.po || "No PO #"}</span>
                     {syncBadge(job)}
                   </div>
-                  <div style={{ fontWeight: 800, color: C.navy, fontSize: 15, marginBottom: 2 }}>
+                  <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2 }}>
                     {job.title || job.name}
                   </div>
-                  <div style={{ fontSize: 12, color: C.sub, marginBottom: 4 }}>{job.addr || job.address}</div>
-                  {!isField && sup && <div style={{ fontSize: 11, color: C.blue, fontWeight: 700 }}>👤 {sup.name}</div>}
+                  <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 4 }}>{job.addr || job.address}</div>
+                  {!isField && sup && <div style={{ fontSize: "var(--text-xs)", color: C.blue, fontWeight: "var(--weight-bold)" }}>👤 {sup.name}</div>}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 7, alignItems: "flex-end" }}>
                   {perms.jobs_pull && job.status === "approved" && (
@@ -364,7 +364,7 @@ export default function PullInventory({
                     </Btn>
                   )}
                   {job.status === "completed" && (
-                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
                       <Btn v="green" sz="sm" onClick={() => generatePDF(job, users, activeLogo)}>📄 PDF</Btn>
                       <Btn v="sky" sz="sm" onClick={() => setSyncModal(job)}>☁️ Sync Status</Btn>
                     </div>
@@ -372,7 +372,7 @@ export default function PullInventory({
                   <Btn v="ghost" sz="sm" onClick={() => openJob(job)}>Details</Btn>
                 </div>
               </div>
-              <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 10, display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+              <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 10, display: "flex", gap: "var(--space-3)", overflowX: "auto", paddingBottom: 4 }}>
                 {currentItems.slice(0, 6).map((item) => {
                   if (!item) return null;
                   return (
@@ -386,8 +386,8 @@ export default function PullInventory({
                         border: item.pulled > 0 ? `1px solid ${C.gr}` : "none",
                       }}
                     >
-                      <div style={{ fontSize: 10, fontWeight: 700, color: C.navy, whiteSpace: "nowrap" }}>{item.iname || item.name}</div>
-                      <div style={{ fontSize: 10, color: C.sub }}>
+                      <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.navy, whiteSpace: "nowrap" }}>{item.iname || item.name}</div>
+                      <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
                         {item.pulled > 0
                           ? `${(item.pulled || 0) - (item.returned || 0)} used`
                           : `${item.planned || item.qty || 0} ${item.unit || ""} planned`}
@@ -396,14 +396,14 @@ export default function PullInventory({
                   );
                 })}
                 {currentItems.length > 6 && (
-                  <div style={{ background: C.lg, borderRadius: 7, padding: "5px 10px", flexShrink: 0, display: "flex", alignItems: "center", fontSize: 10, color: C.sub }}>
+                  <div style={{ background: C.lg, borderRadius: 7, padding: "5px 10px", flexShrink: 0, display: "flex", alignItems: "center", fontSize: "var(--text-2xs)", color: C.sub }}>
                     +{currentItems.length - 6} more
                   </div>
                 )}
               </div>
               {perms.inv_pricing_view && job.status === "completed" && totalCost > 0 && (
                 <div style={{ marginTop: 8, borderTop: `1px solid ${C.lg}`, paddingTop: 8, display: "flex", justifyContent: "flex-end" }}>
-                  <span style={{ fontWeight: 900, fontSize: 15, color: C.gr }}>Total: {fm(totalCost)}</span>
+                  <span style={{ fontWeight: "var(--weight-black)", fontSize: 15, color: C.gr }}>Total: {fm(totalCost)}</span>
                 </div>
               )}
             </div>
@@ -423,14 +423,14 @@ export default function PullInventory({
           }}
           wide
         >
-          <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: C.tl, fontWeight: 600 }}>
+          <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.tl, fontWeight: "var(--weight-semibold)" }}>
             Adjust quantities if needed. Confirm to deduct from warehouse inventory (FIFO).
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Item", "Planned", "Actual to Pull", "Available"].map((h) => (
-                  <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: 700, fontSize: 11 }}>{h}</th>
+                  <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -443,7 +443,7 @@ export default function PullInventory({
                 const short = actual > avail;
                 return (
                   <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}`, background: short ? C.rB : "transparent" }}>
-                    <td style={{ padding: "9px 10px", fontWeight: 700, color: C.navy }}>{item.iname || item.name}</td>
+                    <td style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name}</td>
                     <td style={{ padding: "9px 10px" }}>{item.planned || item.qty || 0} {item.unit || ""}</td>
                     <td style={{ padding: "9px 10px" }}>
                       <Inp
@@ -460,7 +460,7 @@ export default function PullInventory({
                         disabled={pulling}
                       />
                     </td>
-                    <td style={{ padding: "9px 10px", color: short ? C.rd : C.gr, fontWeight: 700 }}>
+                    <td style={{ padding: "9px 10px", color: short ? C.rd : C.gr, fontWeight: "var(--weight-bold)" }}>
                       {avail} {item.unit || ""}
                       {short && " ⚠️"}
                     </td>
@@ -469,7 +469,7 @@ export default function PullInventory({
               })}
             </tbody>
           </table>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => { setModal(null); setSel(null); setPullQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={pulling}>Cancel</Btn>
             <Btn v="teal" sz="lg" onClick={confirmPull} style={{ flex: 2, justifyContent: "center" }} disabled={pulling}>
               {pulling ? "⏳ Allocation Sync In Progress..." : "✅ Confirm Pull from Warehouse"}
@@ -484,14 +484,14 @@ export default function PullInventory({
           onClose={() => { if (!returning) { setModal(null); setRetQtys({}); } }}
           wide
         >
-          <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: C.am, fontWeight: 600 }}>
+          <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.am, fontWeight: "var(--weight-semibold)" }}>
             Enter quantities being returned. PDF report + AccuLynx sync will trigger on completion.
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Item", "Pulled", "Returning", "Will Be Used"].map((h) => (
-                  <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: 700, fontSize: 11 }}>{h}</th>
+                  <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -503,7 +503,7 @@ export default function PullInventory({
                   const used = (item.pulled || 0) - ret;
                   return (
                     <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
-                      <td style={{ padding: "9px 10px", fontWeight: 700, color: C.navy }}>{item.iname || item.name}</td>
+                      <td style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name}</td>
                       <td style={{ padding: "9px 10px" }}>{item.pulled} {item.unit || ""}</td>
                       <td style={{ padding: "9px 10px" }}>
                         <Inp
@@ -521,7 +521,7 @@ export default function PullInventory({
                           disabled={returning}
                         />
                       </td>
-                      <td style={{ padding: "9px 10px", fontWeight: 800, color: used > 0 ? C.navy : C.sub }}>
+                      <td style={{ padding: "9px 10px", fontWeight: "var(--weight-extrabold)", color: used > 0 ? C.navy : C.sub }}>
                         {used} {item.unit || ""}
                       </td>
                     </tr>
@@ -531,8 +531,8 @@ export default function PullInventory({
             {perms.inv_pricing_view && (
               <tfoot>
                 <tr style={{ borderTop: `2px solid ${C.navy}` }}>
-                  <td colSpan={3} style={{ padding: "9px 10px", fontWeight: 700, color: C.navy }}>Estimated Cost</td>
-                  <td style={{ padding: "9px 10px", fontWeight: 900, color: C.gr, fontSize: 15 }}>
+                  <td colSpan={3} style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>Estimated Cost</td>
+                  <td style={{ padding: "9px 10px", fontWeight: "var(--weight-black)", color: C.gr, fontSize: 15 }}>
                     {fm(
                       (Array.isArray(sel.items) ? sel.items : (sel.materials || []))
                         .filter((i) => i && (i.pulled || 0) > 0)
@@ -546,7 +546,7 @@ export default function PullInventory({
               </tfoot>
             )}
           </table>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => { setModal(null); setRetQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={returning}>Cancel</Btn>
             <Btn v="green" sz="lg" onClick={confirmReturn} style={{ flex: 2, justifyContent: "center" }} disabled={returning}>
               {returning ? "⏳ Compiling Core Assets..." : "🏁 Complete Job & Generate PDF"}
@@ -558,20 +558,20 @@ export default function PullInventory({
       {modal === null && sel && (
         <Modal title={`${sel.po || "No PO"} — ${sel.title || sel.name}`} onClose={() => setSel(null)} wide>
           <div style={{ marginTop: 18, borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
-            <h3 style={{ margin: "0 0 12px 0", fontSize: 13, fontWeight: 800, color: C.navy }}>📸 Visual Production Accountability Media</h3>
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+            <h3 style={{ margin: "0 0 12px 0", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📸 Visual Production Accountability Media</h3>
+            <div style={{ display: "flex", gap: "var(--space-6)", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 4 }}>Before Photo (Site Prep / Decking)</div>
+                <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.sub, marginBottom: 4 }}>Before Photo (Site Prep / Decking)</div>
                 <PhotoUpload current={currentJobPhotos.before} onUpload={(base64) => handleStagePhoto("before", base64)} />
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 4 }}>After Photo (Finished Shingles / Clean)</div>
+                <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.sub, marginBottom: 4 }}>After Photo (Finished Shingles / Clean)</div>
                 <PhotoUpload current={currentJobPhotos.after} onUpload={(base64) => handleStagePhoto("after", base64)} />
               </div>
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: 8, marginBottom: 14, marginTop: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: "var(--space-3)", marginBottom: 14, marginTop: 14 }}>
             {[
               ["Status", <Bdg color={(jSC[sel.status] || {c:"gray"}).c}>{(jSC[sel.status] || {l:sel.status}).l}</Bdg>],
               ["PO", sel.po || "—"],
@@ -579,17 +579,17 @@ export default function PullInventory({
               ["Approved", fd(sel.approved || sel.approvedAt)],
               ["Completed", fd(sel.completed || sel.completedAt)],
             ].map(([k, v]) => (
-              <div key={k} style={{ background: C.lg, borderRadius: 8, padding: 10 }}>
-                <div style={{ fontSize: 10, color: C.sub, fontWeight: 700, textTransform: "uppercase" }}>{k}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginTop: 2 }}>{v}</div>
+              <div key={k} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}>
+                <div style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>{k}</div>
+                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy, marginTop: 2 }}>{v}</div>
               </div>
             ))}
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Item", "Planned", "Pulled", "Returned", "Used", ...(perms.inv_pricing_view ? ["Cost"] : [])].map((h) => (
-                  <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
+                  <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -600,13 +600,13 @@ export default function PullInventory({
                 const rQty = item.returned || 0;
                 return (
                   <tr key={item.iid || item.id} style={{ borderTop: `1px solid ${C.lg}` }}>
-                    <td style={{ padding: "8px 10px", fontWeight: 700, color: C.navy }}>{item.iname || item.name}</td>
+                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name}</td>
                     <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0}</td>
                     <td style={{ padding: "8px 10px", color: pQty > 0 ? C.gr : C.sub }}>{pQty}</td>
                     <td style={{ padding: "8px 10px", color: rQty > 0 ? C.am : C.sub }}>{rQty}</td>
-                    <td style={{ padding: "8px 10px", fontWeight: 700 }}>{pQty - rQty}</td>
+                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>{pQty - rQty}</td>
                     {perms.inv_pricing_view && (
-                      <td style={{ padding: "8px 10px", color: C.blue, fontWeight: 700 }}>
+                      <td style={{ padding: "8px 10px", color: C.blue, fontWeight: "var(--weight-bold)" }}>
                         {item.pullCost > 0 ? fm((pQty - rQty) * (item.priceAtPull || 0)) : "—"}
                       </td>
                     )}
@@ -616,7 +616,7 @@ export default function PullInventory({
             </tbody>
           </table>
           {sel.status === "completed" && (
-            <div style={{ marginTop: 10, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <div style={{ marginTop: 10, display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
               <Btn v="green" onClick={() => generatePDF(sel, users, activeLogo)}>📄 PDF</Btn>
               <Btn v="sky" onClick={() => setSyncModal(sel)}>☁️ AccuLynx Sync</Btn>
             </div>
@@ -628,36 +628,36 @@ export default function PullInventory({
         <Modal title={`AccuLynx Sync — ${syncModal.po || "No PO #"}`} onClose={() => setSyncModal(null)}>
           <div style={{ marginBottom: 14 }}>
             {syncModal.syncStatus === "synced" && (
-              <div style={{ background: C.sB, border: `1.5px solid ${C.sl}`, borderRadius: 8, padding: "12px 14px" }}>
-                <div style={{ fontWeight: 700, color: C.sl, marginBottom: 4 }}>☁️ Successfully Synced to AccuLynx</div>
-                <div style={{ fontSize: 12, color: C.sub }}>{syncModal.syncNote}</div>
-                {syncModal.syncedAt && <div style={{ fontSize: 11, color: C.sub, marginTop: 4 }}>Synced: {ft(syncModal.syncedAt)}</div>}
+              <div style={{ background: C.sB, border: `1.5px solid ${C.sl}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.sl, marginBottom: 4 }}>☁️ Successfully Synced to AccuLynx</div>
+                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{syncModal.syncNote}</div>
+                {syncModal.syncedAt && <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 4 }}>Synced: {ft(syncModal.syncedAt)}</div>}
               </div>
             )}
             {syncModal.syncStatus === "failed" && (
-              <div style={{ background: C.rB, border: `1.5px solid ${C.rd}`, borderRadius: 8, padding: "12px 14px" }}>
-                <div style={{ fontWeight: 700, color: C.rd, marginBottom: 4 }}>⚠️ Sync Failed</div>
-                <div style={{ fontSize: 12, color: C.sub }}>{syncModal.syncNote}</div>
+              <div style={{ background: C.rB, border: `1.5px solid ${C.rd}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.rd, marginBottom: 4 }}>⚠️ Sync Failed</div>
+                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{syncModal.syncNote}</div>
               </div>
             )}
             {(syncModal.syncStatus === "manual" || !syncModal.syncStatus) && (
-              <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: 8, padding: "12px 14px" }}>
-                <div style={{ fontWeight: 700, color: C.am, marginBottom: 4 }}>📋 Auto-Sync Not Configured</div>
-                <div style={{ fontSize: 12, color: C.navy }}>Configure AccuLynx in Settings → AccuLynx to enable automatic document upload and cost entry.</div>
+              <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.am, marginBottom: 4 }}>📋 Auto-Sync Not Configured</div>
+                <div style={{ fontSize: "var(--text-sm)", color: C.navy }}>Configure AccuLynx in Settings → AccuLynx to enable automatic document upload and cost entry.</div>
               </div>
             )}
           </div>
           {syncModal.syncPayload && (
             <>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.navy, textTransform: "uppercase", marginBottom: 6 }}>Payload Sent to AccuLynx</div>
-              <div style={{ background: "#1A202C", borderRadius: 8, padding: 12, overflowX: "auto", marginBottom: 12 }}>
-                <pre style={{ margin: 0, fontSize: 10, color: "#68D391", fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", marginBottom: 6 }}>Payload Sent to AccuLynx</div>
+              <div style={{ background: "#1A202C", borderRadius: "var(--radius-md)", padding: 12, overflowX: "auto", marginBottom: 12 }}>
+                <pre style={{ margin: 0, fontSize: "var(--text-2xs)", color: "#68D391", fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
                   {JSON.stringify(syncModal.syncPayload, null, 2)}
                 </pre>
               </div>
             </>
           )}
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: "var(--space-3)" }}>
             {(syncModal.syncStatus === "failed" || syncModal.syncStatus === "manual") && (
               <Btn v="sky" onClick={() => { attemptAccuLynxSync(syncModal, users, acculynxConfig, setJobs); setSyncModal(null); }} style={{ flex: 1, justifyContent: "center" }}>🔄 Retry Sync</Btn>
             )}

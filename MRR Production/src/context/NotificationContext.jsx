@@ -30,7 +30,7 @@ export function NotificationProvider({ children }) {
       {children}
       
       {/* Floating Toast Portal Container Layout */}
-      <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 360 }}>
+      <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, display: 'flex', flexDirection: 'column', gap: "var(--space-4)", maxWidth: 360 }}>
         {toasts.map((t) => {
           const style = getToastStyle(t.type);
           return (
@@ -41,9 +41,9 @@ export function NotificationProvider({ children }) {
                 borderLeft: `5px solid ${style.border}`,
                 color: style.color,
                 padding: '12px 16px',
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 700,
+                borderRadius: "var(--radius-md)",
+                fontSize: "var(--text-base)",
+                fontWeight: "var(--weight-bold)",
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 animation: 'slideIn 0.2s ease',
                 display: 'flex',
@@ -55,7 +55,7 @@ export function NotificationProvider({ children }) {
               <div>{t.message}</div>
               <button
                 onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
-                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: 900, padding: 0, fontSize: 14, lineHeight: 1 }}
+                style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontWeight: "var(--weight-black)", padding: 0, fontSize: "var(--text-md)", lineHeight: 1 }}
               >
                 ×
               </button>

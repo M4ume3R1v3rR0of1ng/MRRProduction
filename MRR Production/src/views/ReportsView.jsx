@@ -76,17 +76,17 @@ function JobProfitabilityReport({ jobs }) {
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>📈 Job Profitability & Material Allocation Trends</h2>
+        <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📈 Job Profitability & Material Allocation Trends</h2>
         <Btn v="green" sz="sm" onClick={handleExportExcel}>⬇ Export Profitability Excel</Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
           <thead>
             <tr style={{ background: C.lg }}>
               {["PO Code", "Project Profile Name", "Estimated Contract Revenue", "Realized Material Cost", "Projected Gross Profit", "Gross Profit Margin", "Primary Material Consumed"].map((h) => (
-                <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
+                <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -116,15 +116,15 @@ function JobProfitabilityReport({ jobs }) {
 
               return (
                 <tr key={job.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                  <td style={{ padding: "10px 12px", fontWeight: 700 }}>{job.po}</td>
+                  <td style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)" }}>{job.po}</td>
                   <td style={{ padding: "10px 12px" }}>{job.name}</td>
                   <td style={{ padding: "10px 12px", color: C.sub }}>{fm(revenueVal)}</td>
                   <td style={{ padding: "10px 12px", color: C.navy }}>{fm(actCost)}</td>
-                  <td style={{ padding: "10px 12px", color: C.gr, fontWeight: 700 }}>{fm(grossProfit)}</td>
+                  <td style={{ padding: "10px 12px", color: C.gr, fontWeight: "var(--weight-bold)" }}>{fm(grossProfit)}</td>
                   <td style={{ padding: "10px 12px" }}>
                     <Bdg color={healthyMargin ? "green" : "amber"}>{marginPercentage}% {healthyMargin ? "🏆" : "⚠️"}</Bdg>
                   </td>
-                  <td style={{ padding: "10px 12px", fontSize: 12, color: C.blue, fontWeight: 600 }}>{topItemName}</td>
+                  <td style={{ padding: "10px 12px", fontSize: "var(--text-sm)", color: C.blue, fontWeight: "var(--weight-semibold)" }}>{topItemName}</td>
                 </tr>
               );
             })}
@@ -180,11 +180,11 @@ function InventoryCostTrendsReport({ inv }) {
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: "var(--space-4)" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🏭 Structural Vendor Material Cost Trends</h2>
-          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🏭 Structural Vendor Material Cost Trends</h2>
+          <div style={{ display: "flex", gap: "var(--space-2)", marginTop: 8 }}>
             {[["all", "All Trends"], ["rising", "⚠️ Cost Increasing"], ["dropping", "📉 Savings Traps"]].map(([k, l]) => (
               <Btn key={k} v={trendFilter === k ? "primary" : "ghost"} sz="sm" onClick={() => setTrendFilter(k)}>{l}</Btn>
             ))}
@@ -193,26 +193,26 @@ function InventoryCostTrendsReport({ inv }) {
         <Btn v="green" sz="sm" onClick={handleExportInventoryCSV}>⬇ Export Cost Trends Excel</Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
           <thead>
             <tr style={{ background: C.lg }}>
               {["Material Profile Name", "Category Group", "Stock Available", "Historical Mean Cost", "Most Recent Invoice Price", "Price Fluctuation Vector", "FIFO Asset Holding Cost"].map((h) => (
-                <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
+                <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {filteredTrends.map((item) => (
               <tr key={item.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                <td style={{ padding: "10px 12px", fontWeight: 600, color: C.navy }}>{item.name}</td>
+                <td style={{ padding: "10px 12px", fontWeight: "var(--weight-semibold)", color: C.navy }}>{item.name}</td>
                 <td style={{ padding: "10px 12px", color: C.sub }}>{item.cat}</td>
-                <td style={{ padding: "10px 12px", fontWeight: 700 }}>{item.totalQtyOnHand} {item.unit}</td>
+                <td style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)" }}>{item.totalQtyOnHand} {item.unit}</td>
                 <td style={{ padding: "10px 12px" }}>{fm(item.averageBatchCost)}</td>
-                <td style={{ padding: "10px 12px", fontWeight: 600 }}>{fm(item.currentPrice)}</td>
+                <td style={{ padding: "10px 12px", fontWeight: "var(--weight-semibold)" }}>{fm(item.currentPrice)}</td>
                 <td style={{ padding: "10px 12px" }}>
                   <Bdg color={item.trendColor}>{item.trendDirection}</Bdg>
                 </td>
-                <td style={{ padding: "10px 12px", fontWeight: 700, color: C.blue }}>{fm(item.warehouseAssetCapital)}</td>
+                <td style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)", color: C.blue }}>{fm(item.warehouseAssetCapital)}</td>
               </tr>
             ))}
           </tbody>
@@ -305,22 +305,22 @@ const handleDeleteInspection = async (id, vehicleName) => {
 };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
       {/* UPPER REVENUE METER LEVEL */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-7)" }}>
         
         {/* PANEL A */}
-        <div style={{ background: C.w, borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-          <h3 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: C.navy }}>📊 Expense Burn Footprint</h3>
-          <p style={{ margin: "0 0 16px 0", fontSize: 11, color: C.sub }}>Relative cost breakdown bar chart scaled against a standard \$2,500 lifecycle tier.</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          <h3 style={{ margin: "0 0 4px 0", fontSize: "var(--text-md)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📊 Expense Burn Footprint</h3>
+          <p style={{ margin: "0 0 16px 0", fontSize: "var(--text-xs)", color: C.sub }}>Relative cost breakdown bar chart scaled against a standard \$2,500 lifecycle tier.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
             {fleetMetrics.slice(0, 5).map((v) => {
               const barPercent = Math.min(100, (v.totalRepairInvestment / 2500) * 100);
               return (
                 <div key={v.id}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                    <span style={{ fontWeight: 600, color: C.navy }}>{v.make} {v.name}</span>
-                    <span style={{ fontWeight: 700 }}>{fm(v.totalRepairInvestment)}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", marginBottom: 4 }}>
+                    <span style={{ fontWeight: "var(--weight-semibold)", color: C.navy }}>{v.make} {v.name}</span>
+                    <span style={{ fontWeight: "var(--weight-bold)" }}>{fm(v.totalRepairInvestment)}</span>
                   </div>
                   <div style={{ width: "100%", height: 6, background: C.lg, borderRadius: 3, overflow: "hidden" }}>
                     <div style={{ width: `${barPercent}%`, height: "100%", background: v.totalRepairInvestment > 2500 ? C.rd : C.blue, borderRadius: 3 }} />
@@ -332,54 +332,54 @@ const handleDeleteInspection = async (id, vehicleName) => {
         </div>
 
         {/* PANEL B */}
-        <div style={{ background: C.w, borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-          <h3 style={{ margin: "0 0 4px 0", fontSize: 14, fontWeight: 800, color: C.navy }}>🚨 Fleet Maintenance Compliance Monitor</h3>
-          <p style={{ margin: "0 0 12px 0", fontSize: 11, color: C.sub }}>Vehicles requiring mechanical interval adjustments or detailing maintenance sweeps.</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 180, overflowY: "auto" }}>
+        <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          <h3 style={{ margin: "0 0 4px 0", fontSize: "var(--text-md)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🚨 Fleet Maintenance Compliance Monitor</h3>
+          <p style={{ margin: "0 0 12px 0", fontSize: "var(--text-xs)", color: C.sub }}>Vehicles requiring mechanical interval adjustments or detailing maintenance sweeps.</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", maxHeight: 180, overflowY: "auto" }}>
             {fleetMetrics.filter(v => v.isOilOverdue || v.isDetailOverdue).map((v) => (
-              <div key={v.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.lg, padding: "8px 12px", borderRadius: 8 }}>
+              <div key={v.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.lg, padding: "8px 12px", borderRadius: "var(--radius-md)" }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{v.make} {v.name}</div>
-                  <div style={{ fontSize: 10, color: C.sub, marginTop: 2 }}>Odo: {v.currentMileage.toLocaleString()} mi</div>
+                  <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy }}>{v.make} {v.name}</div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>Odo: {v.currentMileage.toLocaleString()} mi</div>
                 </div>
-                <div style={{ display: "flex", gap: 4 }}>
+                <div style={{ display: "flex", gap: "var(--space-1)" }}>
                   {v.isOilOverdue && <Bdg color="red">🔧 Oil Overdue</Bdg>}
                   {v.isDetailOverdue && <Bdg color="amber">🧹 Detailing</Bdg>}
                 </div>
               </div>
             ))}
             {fleetMetrics.filter(v => v.isOilOverdue || v.isDetailOverdue).length === 0 && (
-              <div style={{ textAlign: "center", color: C.gr, fontSize: 12, fontWeight: 700, padding: "20px 0" }}>✨ All system fleet assets are 100% compliant.</div>
+              <div style={{ textAlign: "center", color: C.gr, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", padding: "20px 0" }}>✨ All system fleet assets are 100% compliant.</div>
             )}
           </div>
         </div>
       </div>
 
       {/* DETAILED LEDGER GRID */}
-      <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+      <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🚛 Operational Fleet Lifecycle & Maintenance Cost Centers</h2>
+          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🚛 Operational Fleet Lifecycle & Maintenance Cost Centers</h2>
           <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>⬇ Export Fleet Analytics</Btn>
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Vehicle Fleet Identifier", "Classification Asset Class", "Plate ID", "Resolved Work Requests", "Cumulative Maintenance Cost", "Lifecycle Warning Index"].map((h) => (
-                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {fleetMetrics.map((v) => (
                 <tr key={v.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                  <td style={{ padding: "10px 12px", fontWeight: 700, color: C.navy }}>
-                    {v.name || "Fleet Truck"} <span style={{ fontWeight: 400, color: C.sub, fontSize: 11 }}>{v.yr} {v.make}</span>
+                  <td style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)", color: C.navy }}>
+                    {v.name || "Fleet Truck"} <span style={{ fontWeight: "var(--weight-normal)", color: C.sub, fontSize: "var(--text-xs)" }}>{v.yr} {v.make}</span>
                   </td>
                   <td style={{ padding: "10px 12px", textTransform: "capitalize" }}>{v.type}</td>
                   <td style={{ padding: "10px 12px", fontFamily: "monospace", color: C.sub }}>{v.plates || v.plate || "—"}</td>
                   <td style={{ padding: "10px 12px" }}>{v.serviceLogsCount} resolved repairs</td>
-                  <td style={{ padding: "10px 12px", fontWeight: 700, color: v.totalRepairInvestment > 0 ? C.navy : C.sub }}>
+                  <td style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)", color: v.totalRepairInvestment > 0 ? C.navy : C.sub }}>
                     {v.totalRepairInvestment > 0 ? fm(v.totalRepairInvestment) : "—"}
                   </td>
                   <td style={{ padding: "10px 12px" }}>
@@ -390,8 +390,8 @@ const handleDeleteInspection = async (id, vehicleName) => {
             </tbody>
             <tfoot>
               <tr style={{ background: "rgba(15, 23, 42, 0.05)" }}>
-                <td colSpan={4} style={{ padding: "12px", fontWeight: 800, color: C.navy }}>Sum Total Fleet Portfolio Capital Maintenance Expenditures</td>
-                <td colSpan={2} style={{ padding: "12px", fontWeight: 900, color: C.navy, fontSize: 15 }}>{fm(cumulativeFleetExpenditures)}</td>
+                <td colSpan={4} style={{ padding: "12px", fontWeight: "var(--weight-extrabold)", color: C.navy }}>Sum Total Fleet Portfolio Capital Maintenance Expenditures</td>
+                <td colSpan={2} style={{ padding: "12px", fontWeight: "var(--weight-black)", color: C.navy, fontSize: 15 }}>{fm(cumulativeFleetExpenditures)}</td>
               </tr>
             </tfoot>
           </table>
@@ -403,18 +403,18 @@ const handleDeleteInspection = async (id, vehicleName) => {
         style={{ 
           background: C.w, 
           padding: 20, 
-          borderRadius: 12, 
+          borderRadius: "var(--radius-xl)", 
           boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
           border: `1px solid ${C.lg}`
         }}
       >
-        <h3 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 800, color: C.navy }}>📋 Historical Vehicle Inspection Logs</h3>
-        <p style={{ margin: "0 0 16px 0", fontSize: 12, color: C.sub }}>Condition log packages and provider diagnostic sheets uploaded by department managers.</p>
+        <h3 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: "var(--weight-extrabold)", color: C.navy }}>📋 Historical Vehicle Inspection Logs</h3>
+        <p style={{ margin: "0 0 16px 0", fontSize: "var(--text-sm)", color: C.sub }}>Condition log packages and provider diagnostic sheets uploaded by department managers.</p>
         
         {loadingInspect ? (
-          <div style={{ padding: 20, textAlign: "center", color: C.sub, fontSize: 13 }}>Streaming condition metrics ledger...</div>
+          <div style={{ padding: 20, textAlign: "center", color: C.sub, fontSize: "var(--text-base)" }}>Streaming condition metrics ledger...</div>
         ) : inspections.length === 0 ? (
-          <div style={{ padding: 24, textAlign: "center", color: C.sub, fontSize: 13, background: C.lg, borderRadius: 8 }}>No inspection files or reports submitted this period.</div>
+          <div style={{ padding: 24, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", background: C.lg, borderRadius: "var(--radius-md)" }}>No inspection files or reports submitted this period.</div>
         ) : (
           /* ── SCROLL CONTAINER BOUNDARY CONTROLLER ── */
           <div 
@@ -423,7 +423,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
               overflowY: "auto", 
               display: "flex", 
               flexDirection: "column", 
-              gap: 10,
+              gap: "var(--space-4)",
               paddingRight: 4,
               scrollbarWidth: "thin"
             }}
@@ -433,39 +433,39 @@ const handleDeleteInspection = async (id, vehicleName) => {
                 key={log.id} 
                 style={{ 
                   background: "#f8fafc", 
-                  borderRadius: 10, 
+                  borderRadius: "var(--radius-lg)", 
                   padding: 14, 
                   borderLeft: `4px solid ${log.photos?.length > 0 ? "#1b52b8" : "#e2e8f0"}`,
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
-                  gap: 16,
+                  gap: "var(--space-7)",
                   flexWrap: "wrap"
                 }}
               >
                 <div style={{ flex: 1, minWidth: 240 }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4, flexWrap: "wrap" }}>
-                    <span style={{ fontWeight: 800, color: C.navy, fontSize: 13 }}>{log.vehicle_name}</span>
-                    <span style={{ fontSize: 11, color: C.sub }}>· {new Date(log.created_at).toLocaleDateString()}</span>
+                  <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", marginBottom: 4, flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-base)" }}>{log.vehicle_name}</span>
+                    <span style={{ fontSize: "var(--text-xs)", color: C.sub }}>· {new Date(log.created_at).toLocaleDateString()}</span>
                   </div>
-                  <p style={{ margin: "0 0 6px 0", fontSize: 13, color: "#334155", lineHeight: 1.4 }}>
+                  <p style={{ margin: "0 0 6px 0", fontSize: "var(--text-base)", color: "#334155", lineHeight: 1.4 }}>
                     {log.notes || <span style={{ fontStyle: "italic", color: C.sub }}>No supplementary text or provider notes attached.</span>}
                   </p>
-                  <div style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>
+                  <div style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>
                     🕵️‍♂️ Inspector: <span style={{ color: C.navy }}>{log.inspector_name}</span>
                   </div>
                 </div>
 
                 {/* Picture Array Thumbnails Box */}
                 {log.photos && log.photos.length > 0 && (
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
                     {log.photos.map((pic, idx) => (
                       <img
                         key={idx}
                         src={pic}
                         alt="Inspection thumbnail proof"
                         onClick={() => setLightboxPic(pic)}
-                        style={{ width: 48, height: 48, borderRadius: 6, objectFit: "cover", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                        style={{ width: 48, height: 48, borderRadius: "var(--radius-sm)", objectFit: "cover", cursor: "pointer", border: "1px solid #cbd5e1" }}
                         title="Expand Image"
                       />
                     ))}
@@ -479,7 +479,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
                     border: "none",
                     color: C.rd,
                     cursor: "pointer",
-                    fontSize: 16,
+                    fontSize: "var(--text-lg)",
                     padding: "4px 8px",
                     display: "flex",
                     alignItems: "center",
@@ -502,7 +502,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
       {lightboxPic && (
         <Modal title="🔍 Full Resolution Condition Reference" onClose={() => setLightboxPic(null)} wide>
           <div style={{ textAlign: "center", padding: 4 }}>
-            <img src={lightboxPic} alt="Condition full view" style={{ maxWidth: "100%", maxHeight: "68vh", borderRadius: 8, objectFit: "contain", background: "#000" }} />
+            <img src={lightboxPic} alt="Condition full view" style={{ maxWidth: "100%", maxHeight: "68vh", borderRadius: "var(--radius-md)", objectFit: "contain", background: "#000" }} />
             <Btn v="primary" style={{ width: "100%", marginTop: 12, justifyContent: "center" }} onClick={() => setLightboxPic(null)}>Close Screen Review</Btn>
           </div>
         </Modal>
@@ -570,12 +570,12 @@ function AuditTrailReport() {
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
+    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: "var(--space-4)" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: C.navy }}>🔒 Historical Operations Audit Trail</h2>
+          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🔒 Historical Operations Audit Trail</h2>
           <div style={{ marginTop: 8 }}>
-            <Sel value={actionTypeFilter} onChange={(e) => setActionTypeFilter(e.target.value)} style={{ padding: "4px 8px", fontSize: 12 }}>
+            <Sel value={actionTypeFilter} onChange={(e) => setActionTypeFilter(e.target.value)} style={{ padding: "4px 8px", fontSize: "var(--text-sm)" }}>
               <option value="all">Filter by Action Type (All)</option>
               <option value="INVENTORY_PULL">INVENTORY_PULL</option>
               <option value="PERM_CHANGE">PERM_CHANGE</option>
@@ -590,11 +590,11 @@ function AuditTrailReport() {
         <div style={{ padding: 24, textAlign: "center", color: C.sub }}>Loading audit stream records...</div>
       ) : (
         <div style={{ overflowX: "auto", maxHeight: 400, overflowY: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
             <thead>
               <tr style={{ background: C.lg, position: "sticky", top: 0, zIndex: 1 }}>
                 {["Timestamp", "User Email", "Action Code", "Audit Narrative Description"].map((h) => (
-                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: 700, background: C.lg }}>{h}</th>
+                  <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", background: C.lg }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -602,7 +602,7 @@ function AuditTrailReport() {
               {logs.map((log) => (
                 <tr key={log.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
                   <td style={{ padding: "8px 12px", whiteSpace: "nowrap", color: C.sub }}>{formatFullTimestamp(log.created_at)}</td>
-                  <td style={{ padding: "8px 12px", fontWeight: 600 }}>{log.user_email}</td>
+                  <td style={{ padding: "8px 12px", fontWeight: "var(--weight-semibold)" }}>{log.user_email}</td>
                   <td><Bdg color={log.action_type === "PERM_CHANGE" ? "purple" : "teal"}>{log.action_type}</Bdg></td>
                   <td style={{ padding: "8px 12px", color: C.navy }}>{log.description}</td>
                 </tr>
@@ -651,28 +651,28 @@ export default function Reports({
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>📊 Corporate Intelligence Trends & Analytics</h1>
-        <p style={{ margin: "3px 0 0", color: C.sub, fontSize: 12 }}>Saint Joe Road Warehouse · Structural Material Gross Margin Auditing</p>
+        <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>📊 Corporate Intelligence Trends & Analytics</h1>
+        <p style={{ margin: "3px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>Saint Joe Road Warehouse · Structural Material Gross Margin Auditing</p>
       </div>
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 20 }}>
-        <div style={{ background: C.w, borderRadius: 12, padding: 14, borderLeft: `5px solid ${C.blue}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 160 }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: C.blue }}>{jobs.length}</div>
-          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Total Pipelines Tracked</div>
+      <div style={{ display: "flex", gap: "var(--space-5)", flexWrap: "wrap", marginBottom: 20 }}>
+        <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 14, borderLeft: `5px solid ${C.blue}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 160 }}>
+          <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color: C.blue }}>{jobs.length}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>Total Pipelines Tracked</div>
         </div>
-        <div style={{ background: C.w, borderRadius: 12, padding: 14, borderLeft: `5px solid ${C.gr}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 160 }}>
-          <div style={{ fontSize: 22, fontWeight: 900, color: C.gr }}>{completedJobs.length}</div>
-          <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Finalized Projects Built</div>
+        <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 14, borderLeft: `5px solid ${C.gr}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 160 }}>
+          <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color: C.gr }}>{completedJobs.length}</div>
+          <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>Finalized Projects Built</div>
         </div>
         {perms.inv_pricing_view && (
-          <div style={{ background: C.w, borderRadius: 12, padding: 14, borderLeft: `5px solid ${C.gr}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 200 }}>
-            <div style={{ fontSize: 20, fontWeight: 900, color: C.gr }}>{fm(historicalTotalMaterialSpend)}</div>
-            <div style={{ fontSize: 11, color: C.sub, marginTop: 3 }}>Total Material Procurement Allocation Value</div>
+          <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 14, borderLeft: `5px solid ${C.gr}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.gr }}>{fm(historicalTotalMaterialSpend)}</div>
+            <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>Total Material Procurement Allocation Value</div>
           </div>
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 10, borderBottom: `1px solid ${C.lg}`, paddingBottom: 12, marginBottom: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "var(--space-4)", borderBottom: `1px solid ${C.lg}`, paddingBottom: 12, marginBottom: 20, flexWrap: "wrap" }}>
         {tabOptions.map((t) => {
           const active = activeTab === t.id;
           return (
@@ -682,12 +682,12 @@ export default function Reports({
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
+                gap: "var(--space-2)",
                 padding: "8px 16px",
                 borderRadius: 20,
                 border: "none",
-                fontSize: 13,
-                fontWeight: 700,
+                fontSize: "var(--text-base)",
+                fontWeight: "var(--weight-bold)",
                 cursor: "pointer",
                 backgroundColor: active ? "#1b52b8" : "transparent",
                 color: active ? "#ffffff" : "#475569",

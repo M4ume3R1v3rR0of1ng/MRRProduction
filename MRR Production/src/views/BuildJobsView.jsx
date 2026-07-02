@@ -518,29 +518,29 @@ export default function BuildJobs({
           alignItems: "center",
           marginBottom: 16,
           flexWrap: "wrap",
-          gap: 10,
+          gap: "var(--space-4)",
         }}
       >
         <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: C.navy }}>
+          <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
             🏗️ Build Jobs
           </h1>
-          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: 12 }}>
+          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
             Plan inventory, assign site supervisors, manage the pipeline
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ display: "flex", background: C.lg, padding: 4, borderRadius: 8, marginRight: 8 }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
+          <div style={{ display: "flex", background: C.lg, padding: 4, borderRadius: "var(--radius-md)", marginRight: 8 }}>
             <button
               onClick={() => setSubView("list")}
-              style={{ padding: "6px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: subView === "list" ? C.w : "transparent", color: subView === "list" ? C.navy : C.sub, boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+              style={{ padding: "6px 12px", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", cursor: "pointer", background: subView === "list" ? C.w : "transparent", color: subView === "list" ? C.navy : C.sub, boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
             >
               📋 Pipeline List
             </button>
             <button
               onClick={() => setSubView("calendar")}
-              style={{ padding: "6px 12px", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer", background: subView === "calendar" ? C.w : "transparent", color: subView === "calendar" ? C.navy : C.sub, boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+              style={{ padding: "6px 12px", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", cursor: "pointer", background: subView === "calendar" ? C.w : "transparent", color: subView === "calendar" ? C.navy : C.sub, boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
             >
               📅 Shift Timeline
             </button>
@@ -576,7 +576,7 @@ export default function BuildJobs({
           <div
             style={{
               display: "flex",
-              gap: 10,
+              gap: "var(--space-4)",
               marginBottom: 10,
               flexWrap: "wrap",
               alignItems: "center",
@@ -594,13 +594,13 @@ export default function BuildJobs({
               </Btn>
             )}
             {srch && (
-              <span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>
+              <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>
                 {shown.length} result{shown.length !== 1 ? "s" : ""}
               </span>
             )}
           </div>
 
-          <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: 14, flexWrap: "wrap" }}>
             {[
               ["all", "All Jobs"],
               ["draft", "Drafts"],
@@ -623,9 +623,9 @@ export default function BuildJobs({
                       background: filt === k ? "rgba(255,255,255,0.3)" : C.lg,
                       color: filt === k ? C.w : C.sub,
                       borderRadius: 20,
-                      fontSize: 10,
+                      fontSize: "var(--text-2xs)",
                       padding: "1px 6px",
-                      fontWeight: 800,
+                      fontWeight: "var(--weight-extrabold)",
                     }}
                   >
                     {counts[k]}
@@ -635,7 +635,7 @@ export default function BuildJobs({
             ))}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
             {shown.map((job) => {
               const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
               const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
@@ -667,7 +667,7 @@ export default function BuildJobs({
                   }}
                   style={{
                     background: C.w,
-                    borderRadius: 12,
+                    borderRadius: "var(--radius-xl)",
                     padding: 16,
                     cursor: "pointer",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
@@ -675,24 +675,24 @@ export default function BuildJobs({
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "flex-start",
-                    gap: 12,
+                    gap: "var(--space-5)",
                     flexWrap: "wrap",
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 800, color: statusMeta.color }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: statusMeta.color }}>
                         <span>{statusMeta.dot}</span>
                         <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
                       </span>
-                      <span style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>· {job.po}</span>
+                      <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>· {job.po}</span>
                       {job.syncStatus === "synced" && <Bdg color="sky">☁️ AccuLynx Synced</Bdg>}
                       {job.syncStatus === "failed" && <Bdg color="red">⚠️ Sync Failed</Bdg>}
                       {job.syncStatus === "manual" && <Bdg color="amber">📋 Sync Pending</Bdg>}
                     </div>
-                    <div style={{ fontWeight: 800, color: C.navy, fontSize: 15, marginBottom: 2 }}>{job.title || job.name}</div>
-                    <div style={{ fontSize: 12, color: C.sub, marginBottom: 6 }}>{job.addr}</div>
-                    <div style={{ display: "flex", gap: 14, fontSize: 11, color: C.sub, flexWrap: "wrap" }}>
+                    <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2 }}>{job.title || job.name}</div>
+                    <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 6 }}>{job.addr}</div>
+                    <div style={{ display: "flex", gap: "var(--space-6)", fontSize: "var(--text-xs)", color: C.sub, flexWrap: "wrap" }}>
                       <span>📦 {Math.max(currentItems.length, 0)} items</span>
                       {sup ? <span>👤 {sup.name}</span> : <span style={{ color: C.am }}>⚠️ Unassigned</span>}
                       <span>Created {fd(job.created || job.createdAt)}</span>
@@ -702,7 +702,7 @@ export default function BuildJobs({
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
                     {(job.status === "active" || job.status === "completed") && (
                       <div style={{ marginBottom: 8 }}>
-                        <div style={{ fontSize: 10, color: C.sub, marginBottom: 3 }}>{pulledCount}/{currentItems.length} pulled</div>
+                        <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginBottom: 3 }}>{pulledCount}/{currentItems.length} pulled</div>
                         <div style={{ height: 5, width: 90, background: C.lg, borderRadius: 3 }}>
                           <div style={{ height: "100%", width: `${currentItems.length > 0 ? (pulledCount / currentItems.length) * 100 : 0}%` }} />
                         </div>
@@ -753,7 +753,7 @@ export default function BuildJobs({
               );
             })}
             {shown.length === 0 && (
-              <div style={{ background: C.w, borderRadius: 12, padding: 30, textAlign: "center", color: C.sub, fontSize: 13, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+              <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 30, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
                 No {filt === "all" ? "" : filt + " "}jobs. {perms.jobs_build && filt === "all" && ' Click "+ New Job" to get started.'}
               </div>
             )}
@@ -771,7 +771,7 @@ export default function BuildJobs({
           }}
           wide
         >
-          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: 14, flexWrap: "wrap" }}>
             {perms.jobs_build && sel.status !== "closed" && (
               <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>
                 ✏️ Edit Job
@@ -827,7 +827,7 @@ export default function BuildJobs({
               </Btn>
             )}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: 8, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: "var(--space-3)", marginBottom: 16 }}>
             {[
               ["Status", <Bdg color={jSC[sel.status]?.c || "gray"}>{jSC[sel.status]?.l || sel.status}</Bdg>],
               ["PO", sel.po],
@@ -836,17 +836,17 @@ export default function BuildJobs({
               ["Approved", fd(sel.approved || sel.approvedAt)],
               ["Completed", fd(sel.completed || sel.completedAt)],
             ].map(([k, v]) => (
-              <div key={k} style={{ background: C.lg, borderRadius: 8, padding: 10 }}>
-                <div style={{ fontSize: 10, color: C.sub, fontWeight: 700, textTransform: "uppercase" }}>{k}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginTop: 2 }}>{v}</div>
+              <div key={k} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}>
+                <div style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>{k}</div>
+                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy, marginTop: 2 }}>{v}</div>
               </div>
             ))}
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Item", "Category", "Planned", "Pulled", "Used", ...(perms.inv_pricing_view ? ["Cost"] : [])].map((h) => (
-                  <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: 700 }}>{h}</th>
+                  <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -855,13 +855,13 @@ export default function BuildJobs({
                 if (!item) return null;
                 return (
                   <tr key={item.iid || item.id || Math.random()} style={{ borderTop: `1px solid ${C.lg}` }}>
-                    <td style={{ padding: "8px 10px", fontWeight: 700, color: C.navy }}>{item.iname || item.name || "—"}</td>
+                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name || "—"}</td>
                     <td style={{ padding: "8px 10px", color: C.sub }}>{item.icat || item.cat || "—"}</td>
                     <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0} {item.unit || ""}</td>
                     <td style={{ padding: "8px 10px", color: item.pulled > 0 ? C.gr : C.sub }}>{item.pulled || 0}</td>
-                    <td style={{ padding: "8px 10px", fontWeight: 700 }}>{Math.max((item.pulled || 0) - (item.returned || 0), 0)}</td>
+                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>{Math.max((item.pulled || 0) - (item.returned || 0), 0)}</td>
                     {perms.inv_pricing_view && (
-                      <td style={{ padding: "8px 10px", fontWeight: 700, color: C.blue }}>{item.pullCost > 0 ? fm(item.pullCost) : "—"}</td>
+                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.blue }}>{item.pullCost > 0 ? fm(item.pullCost) : "—"}</td>
                     )}
                   </tr>
                 );
@@ -878,7 +878,7 @@ export default function BuildJobs({
           onClose={() => { if (!savingEdit) setModal("detail"); }}
           wide
         >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
             <Fld label="Job PO Number *">
               <Inp value={editForm.po || ""} onChange={(e) => setEditForm({ ...editForm, po: e.target.value })} disabled={savingEdit} />
             </Fld>
@@ -889,7 +889,7 @@ export default function BuildJobs({
           <Fld label="Job Address">
             <Inp value={editForm.addr || ""} onChange={(e) => setEditForm({ ...editForm, addr: e.target.value })} disabled={savingEdit} />
           </Fld>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
             <Fld label="Production Schedule Start Date">
               <Inp type="date" value={editForm.scheduledDate || ""} onChange={(e) => setEditForm({ ...editForm, scheduledDate: e.target.value })} disabled={savingEdit} />
             </Fld>
@@ -906,18 +906,18 @@ export default function BuildJobs({
             <TA value={editForm.notes || ""} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} disabled={savingEdit} />
           </Fld>
 
-          <h4 style={{ margin: "16px 0 8px", color: C.navy, fontSize: 12, textTransform: "uppercase" }}>Materials Checklist</h4>
+          <h4 style={{ margin: "16px 0 8px", color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>Materials Checklist</h4>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 10 }}>
             {editItems.length === 0 ? (
-              <p style={{ color: C.sub, fontSize: 12, margin: 0 }}>No materials on this job.</p>
+              <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>No materials on this job.</p>
             ) : (
               editItems.map((item) => (
-                <div key={item.iid} style={{ display: "flex", alignItems: "center", gap: 8, background: C.lg, borderRadius: 7, padding: "7px 10px" }}>
+                <div key={item.iid} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: C.lg, borderRadius: 7, padding: "7px 10px" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, color: C.navy, fontSize: 12 }}>{item.iname}</div>
+                    <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.iname}</div>
                     {item.pulled > 0 && (
-                      <div style={{ fontSize: 10, color: C.am }}>⚠️ {item.pulled} {item.unit} already pulled</div>
+                      <div style={{ fontSize: "var(--text-2xs)", color: C.am }}>⚠️ {item.pulled} {item.unit} already pulled</div>
                     )}
                   </div>
                   <Inp
@@ -928,11 +928,11 @@ export default function BuildJobs({
                     style={{ width: 70, padding: "4px 8px" }}
                     disabled={savingEdit}
                   />
-                  <span style={{ fontSize: 11, color: C.sub, width: 50 }}>{item.unit}</span>
+                  <span style={{ fontSize: "var(--text-xs)", color: C.sub, width: 50 }}>{item.unit}</span>
                   <button
                     onClick={() => removeEditItem(item)}
                     disabled={savingEdit}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: 16, lineHeight: 1 }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-lg)", lineHeight: 1 }}
                   >
                     ×
                   </button>
@@ -945,13 +945,13 @@ export default function BuildJobs({
             <Inp value={editItemSearch} onChange={(e) => setEditItemSearch(e.target.value)} placeholder="🔍 Search inventory..." disabled={savingEdit} />
           </Fld>
           {editItemSearch.trim() && (
-            <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: 8, maxHeight: 160, overflowY: "auto", marginBottom: 14 }}>
+            <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", maxHeight: 160, overflowY: "auto", marginBottom: 14 }}>
               {editFiltInv.length === 0 ? (
-                <div style={{ padding: 10, fontSize: 12, color: C.sub, textAlign: "center" }}>No matching inventory items.</div>
+                <div style={{ padding: 10, fontSize: "var(--text-sm)", color: C.sub, textAlign: "center" }}>No matching inventory items.</div>
               ) : (
                 editFiltInv.map((item) => (
                   <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderBottom: `1px solid ${C.lg}` }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{item.name}</span>
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.name}</span>
                     <Btn v="primary" sz="sm" onClick={() => { addEditItem(item); setEditItemSearch(""); }}>+ Add</Btn>
                   </div>
                 ))
@@ -959,7 +959,7 @@ export default function BuildJobs({
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
             <Btn v="ghost" onClick={() => setModal("detail")} style={{ flex: 1, justifyContent: "center" }} disabled={savingEdit}>Cancel</Btn>
             <Btn v="primary" onClick={saveJobEdit} style={{ flex: 1, justifyContent: "center" }} disabled={savingEdit}>
               {savingEdit ? "⏳ Saving..." : "💾 Save Changes"}
@@ -971,10 +971,10 @@ export default function BuildJobs({
       {/* ── 📂 MODAL: SUPERVISOR APPROVAL POPUP ── */}
       {modal === "approve" && sel && (
         <Modal title={`Approve: ${sel.title || sel.name}`} onClose={() => setModal(null)}>
-          <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: C.tl, fontWeight: 600 }}>
+          <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.tl, fontWeight: "var(--weight-semibold)" }}>
             Approving will notify the assigned Site Supervisor.
           </div>
-          <div style={{ background: C.lg, borderRadius: 8, padding: "10px 14px", marginBottom: 14, fontSize: 12 }}>
+          <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)" }}>
             <strong style={{ color: C.navy }}>{sel.po} — {sel.title || sel.name}</strong>
             <div style={{ color: C.sub, marginTop: 2 }}>{Math.max((sel.items || sel.materials || []).length, 0)} items planned</div>
           </div>
@@ -986,7 +986,7 @@ export default function BuildJobs({
               ))}
             </Sel>
           </Fld>
-          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+          <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
             <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }} disabled={approving}>Cancel</Btn>
             <Btn v="teal" onClick={doApprove} style={{ flex: 1, justifyContent: "center" }} disabled={approving}>
               {approving ? "⏳ Approving..." : "✅ Approve & Notify"}
@@ -1007,7 +1007,7 @@ export default function BuildJobs({
           }}
           wide
         >
-          <div style={{ display: "flex", gap: 0, marginBottom: 18, background: C.lg, borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", gap: 0, marginBottom: 18, background: C.lg, borderRadius: "var(--radius-md)", overflow: "hidden" }}>
             {["1. Find Job", "2. Add Inventory", "3. Assign & Save"].map((s, i) => (
               <div
                 key={s}
@@ -1015,8 +1015,8 @@ export default function BuildJobs({
                   flex: 1,
                   padding: "9px 6px",
                   textAlign: "center",
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontSize: "var(--text-xs)",
+                  fontWeight: "var(--weight-bold)",
                   background: wStep === i + 1 ? C.blue : wStep > i + 1 ? C.gB : "transparent",
                   color: wStep === i + 1 ? C.w : wStep > i + 1 ? C.gr : C.sub,
                 }}
@@ -1028,12 +1028,12 @@ export default function BuildJobs({
 
           {wStep === 1 && (
             <div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+              <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: 10 }}>
                 <Inp value={axQ} onChange={(e) => setAxQ(e.target.value)} placeholder="Search AccuLynx job name or PO..." onKeyDown={(e) => e.key === "Enter" && !axL && searchAX()} style={{ flex: 1 }} disabled={axL} />
                 <Btn v="primary" onClick={searchAX} disabled={axL}>{axL ? "Searching..." : "🔍 Search"}</Btn>
               </div>
               {axR.length > 0 && (
-                <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: 8, overflow: "hidden", marginBottom: 14 }}>
+                <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", overflow: "hidden", marginBottom: 14 }}>
                   {axR.map((j) => (
                     <div
                       key={j.po}
@@ -1047,8 +1047,8 @@ export default function BuildJobs({
                       onMouseEnter={(e) => (e.currentTarget.style.background = C.lg)}
                       onMouseLeave={(e) => (e.currentTarget.style.background = C.w)}
                     >
-                      <div style={{ fontWeight: 700, color: C.navy }}>{j.name}</div>
-                      <div style={{ fontSize: 11, color: C.sub }}>{j.po} · {j.addr}</div>
+                      <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{j.name}</div>
+                      <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{j.po} · {j.addr}</div>
                     </div>
                   ))}
                 </div>
@@ -1067,26 +1067,26 @@ export default function BuildJobs({
 
           {wStep === 2 && (
             <div>
-              <div style={{ background: C.gL, border: `1.5px solid ${C.gold}`, borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 12, fontWeight: 700, color: C.navy }}>
+              <div style={{ background: C.gL, border: `1.5px solid ${C.gold}`, borderRadius: "var(--radius-md)", padding: "8px 12px", marginBottom: 12, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy }}>
                 📋 {wPO.po} — {wPO.name}
               </div>
               
               {/* ── 🆕 OPTION 2: MULTI-COLUMN INTERACTIVE SIDE PANEL LAYOUT ── */}
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "var(--space-7)", flexWrap: "wrap" }}>
                 
                 {/* Column A: AccuLynx Contract Blueprint Guidelines Checklist */}
-                <div style={{ flex: 1.2, minWidth: 200, background: C.bg || "#f8fafc", border: `1px solid ${C.bd}`, borderRadius: 10, padding: 12, maxHeight: 380, overflowY: "auto" }}>
-                  <h4 style={{ margin: "0 0 8px 0", color: C.navy, fontSize: 13, display: "flex", alignItems: "center", gap: 5 }}>
+                <div style={{ flex: 1.2, minWidth: 200, background: C.bg || "#f8fafc", border: `1px solid ${C.bd}`, borderRadius: "var(--radius-lg)", padding: 12, maxHeight: 380, overflowY: "auto" }}>
+                  <h4 style={{ margin: "0 0 8px 0", color: C.navy, fontSize: "var(--text-base)", display: "flex", alignItems: "center", gap: 5 }}>
                     📝 AccuLynx Order Roadmap
                   </h4>
-                  <p style={{ margin: "0 0 10px 0", fontSize: 11, color: C.sub }}>
+                  <p style={{ margin: "0 0 10px 0", fontSize: "var(--text-xs)", color: C.sub }}>
                     Click items below to search your warehouse inventory for a matching component.
                   </p>
                   
                   {loadingEstimate ? (
-                    <div style={{ fontSize: 12, color: C.sub, padding: "20px 0", textAlign: "center" }}>⏳ Pulling estimate manifest...</div>
+                    <div style={{ fontSize: "var(--text-sm)", color: C.sub, padding: "20px 0", textAlign: "center" }}>⏳ Pulling estimate manifest...</div>
                   ) : axEstimateItems.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                       {axEstimateItems.map((item, idx) => (
                         <div 
                           key={idx}
@@ -1094,17 +1094,17 @@ export default function BuildJobs({
                           style={{
                             background: C.w,
                             padding: "8px 10px",
-                            borderRadius: 6,
+                            borderRadius: "var(--radius-sm)",
                             cursor: "pointer",
                             border: `1px solid ${C.lg}`,
-                            fontSize: 11,
+                            fontSize: "var(--text-xs)",
                             transition: "all 0.15s ease"
                           }}
                           onMouseEnter={(e) => e.currentTarget.style.borderColor = C.blue}
                           onMouseLeave={(e) => e.currentTarget.style.borderColor = C.lg}
                         >
-                          <div style={{ fontWeight: 700, color: C.navy }}>{item.name}</div>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, color: C.sub, fontSize: 10 }}>
+                          <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{item.name}</div>
+                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, color: C.sub, fontSize: "var(--text-2xs)" }}>
                             <span>Qty: {item.quantity} {item.estimateUnit || "pcs"}</span>
                             {item.type && <Bdg color="gray">{item.type}</Bdg>}
                           </div>
@@ -1112,7 +1112,7 @@ export default function BuildJobs({
                       ))}
                     </div>
                   ) : (
-                    <div style={{ fontSize: 11, color: C.sub, fontStyle: "italic", textAlign: "center", padding: "30px 0" }}>
+                    <div style={{ fontSize: "var(--text-xs)", color: C.sub, fontStyle: "italic", textAlign: "center", padding: "30px 0" }}>
                       No estimate item data mapped onto this project or contract profile.
                     </div>
                   )}
@@ -1127,10 +1127,10 @@ export default function BuildJobs({
                       const added = (wItems || []).find((i) => i && i.iid === item.id);
 
                       return (
-                        <div key={item.id} style={{ background: C.w, borderRadius: 8, padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", border: `1.5px solid ${added ? C.blue : "transparent"}`, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                        <div key={item.id} style={{ background: C.w, borderRadius: "var(--radius-md)", padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", border: `1.5px solid ${added ? C.blue : "transparent"}`, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                           <div>
-                            <div style={{ fontWeight: 700, color: C.navy, fontSize: 12 }}>{item.name}</div>
-                            <div style={{ fontSize: 10, color: C.sub }}>{tot(item)} {item.unit} available</div>
+                            <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.name}</div>
+                            <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{tot(item)} {item.unit} available</div>
                           </div>
                           {added ? <Bdg color="blue">Added ✓</Bdg> : <Btn v="primary" sz="sm" onClick={() => addWItem(item)}>+ Add</Btn>}
                         </div>
@@ -1141,19 +1141,19 @@ export default function BuildJobs({
 
                 {/* Column C: Current Jobs Staged Checklist Draft */}
                 <div style={{ flex: 1.5, minWidth: 190 }}>
-                  <div style={{ background: C.w, borderRadius: 10, padding: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", position: "sticky", top: 0 }}>
-                    <h4 style={{ margin: "0 0 10px", color: C.navy, fontSize: 13 }}>📦 Job List ({wItems.length})</h4>
+                  <div style={{ background: C.w, borderRadius: "var(--radius-lg)", padding: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", position: "sticky", top: 0 }}>
+                    <h4 style={{ margin: "0 0 10px", color: C.navy, fontSize: "var(--text-base)" }}>📦 Job List ({wItems.length})</h4>
                     {wItems.length === 0 ? (
-                      <p style={{ color: C.sub, fontSize: 12, margin: 0 }}>Add items from the list</p>
+                      <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>Add items from the list</p>
                     ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                         {wItems.map((i) => (
                           <div key={i.iid} style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}>
-                            <div style={{ fontWeight: 700, color: C.navy, fontSize: 11, marginBottom: 4 }}>{i.iname}</div>
+                            <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-xs)", marginBottom: 4 }}>{i.iname}</div>
                             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                               <Inp type="number" value={i.qty} min="1" max={i.avail} onChange={(e) => setWItems((p) => p.map((x) => x.iid === i.iid ? { ...x, qty: Math.max(1, parseInt(e.target.value) || 1) } : x))} style={{ width: 55, padding: "3px 6px" }} />
-                              <span style={{ fontSize: 10, color: C.sub }}>{i.unit}</span>
-                              <button onClick={() => setWItems((p) => p.filter((x) => x.iid !== i.iid))} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: 16, lineHeight: 1 }}>×</button>
+                              <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{i.unit}</span>
+                              <button onClick={() => setWItems((p) => p.filter((x) => x.iid !== i.iid))} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-lg)", lineHeight: 1 }}>×</button>
                             </div>
                           </div>
                         ))}
@@ -1163,7 +1163,7 @@ export default function BuildJobs({
                 </div>
 
               </div>
-              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
                 <Btn v="ghost" onClick={() => setWStep(1)} style={{ flex: 1, justifyContent: "center" }}>← Back</Btn>
                 <Btn v="primary" onClick={() => { if (wItems.length === 0) { showToast("Add at least one workflow material item to build a job checklist.", "warning"); return; } setWStep(3); }} style={{ flex: 1, justifyContent: "center" }}>Continue →</Btn>
               </div>
@@ -1172,9 +1172,9 @@ export default function BuildJobs({
 
           {wStep === 3 && (
             <div>
-              <div style={{ background: C.lg, borderRadius: 8, padding: "10px 14px", marginBottom: 14 }}>
-                <div style={{ fontWeight: 700, color: C.navy }}>{wPO.po} — {wPO.name}</div>
-                <div style={{ fontSize: 12, color: C.sub }}>{wItems.length} items planned</div>
+              <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14 }}>
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{wPO.po} — {wPO.name}</div>
+                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{wItems.length} items planned</div>
               </div>
               <Fld label="Assign to Site Supervisor" hint="Leave blank to save as draft and assign later.">
                 <Sel value={wAssign} onChange={(e) => setWAssign(e.target.value)} disabled={saving}>
@@ -1184,10 +1184,10 @@ export default function BuildJobs({
                   ))}
                 </Sel>
               </Fld>
-              <div style={{ background: wAssign ? C.tB : C.aB, border: `1px solid ${wAssign ? C.tl : C.am}`, borderRadius: 8, padding: "8px 12px", marginBottom: 14, fontSize: 12, color: wAssign ? C.tl : C.am, fontWeight: 600 }}>
+              <div style={{ background: wAssign ? C.tB : C.aB, border: `1px solid ${wAssign ? C.tl : C.am}`, borderRadius: "var(--radius-md)", padding: "8px 12px", marginBottom: 14, fontSize: "var(--text-sm)", color: wAssign ? C.tl : C.am, fontWeight: "var(--weight-semibold)" }}>
                 {wAssign ? `✅ ${users.find((u) => u.id === wAssign)?.name} will be notified when you approve.` : "⚠️ No supervisor assigned — will save as draft."}
               </div>
-              <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+              <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
                 <Btn v="ghost" onClick={() => setWStep(2)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>← Back</Btn>
                 <Btn v="ghost" onClick={() => saveJob(true)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{saving ? "⏳ Caching..." : "💾 Save Draft"}</Btn>
                 <Btn v="teal" onClick={() => saveJob(false)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{saving ? "⏳ Submitting..." : "✅ Approve & Notify"}</Btn>

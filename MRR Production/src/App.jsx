@@ -74,10 +74,10 @@ export default function App() {
   // ── ⏳ HARDENED PROGRESS BAR LOADING FALLBACK ──
   if (app.loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", minHeight: "100vh", background: C.bg, flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", minHeight: "100vh", background: C.bg, flexDirection: "column", gap: "var(--space-6)" }}>
         <img src={mrrpic} alt="Maumee River Roofing Mascot" style={{ width: "160px", height: "auto", maxHeight: "120px", objectFit: "contain", marginBottom: 4 }} />
         
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, width: "100%", maxWidth: "240px" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-3)", width: "100%", maxWidth: "240px" }}>
           {/* External Track Container */}
           <div style={{ width: "100%", height: "6px", backgroundColor: "#cbd5e1", borderRadius: "10px", overflow: "hidden" }}>
             {/* Dynamic Colored Bar Indicator */}
@@ -92,7 +92,7 @@ export default function App() {
             />
           </div>
           
-          <div style={{ color: C.navy, fontWeight: 700, fontSize: 13, letterSpacing: "0.5px", marginTop: 4 }}>
+          <div style={{ color: C.navy, fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", letterSpacing: "0.5px", marginTop: 4 }}>
             Syncing System Data Matrix... {app.loadingProgress}%
           </div>
         </div>
@@ -133,8 +133,8 @@ return (
         {/* 📱 MOBILE HEADER NAVIGATION BAR */}
         {isMobile && (
           <div style={{ background: "#0f172a", color: "#fff", padding: "0 20px", height: 50, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 13 }}>🏗️ MAUMEE RIVER ROOFING</div>
-            <button onClick={() => setMobileMenuOpen((o) => !o)} style={{ background: "transparent", border: "none", color: "#fff", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>
+            <div style={{ fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)" }}>🏗️ MAUMEE RIVER ROOFING</div>
+            <button onClick={() => setMobileMenuOpen((o) => !o)} style={{ background: "transparent", border: "none", color: "#fff", fontSize: "var(--text-3xl)", cursor: "pointer", lineHeight: 1 }}>
               {mobileMenuOpen ? "✕" : "☰"}
             </button>
           </div>
@@ -176,7 +176,7 @@ return (
         }}>
           {!isMobile && (
             <div style={{ background: C.w, padding: "0 20px", height: 56, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.lg}`, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flexShrink: 0 }}>
-              <div style={{ fontSize: 12, color: C.sub, flexShrink: 0, marginRight: 24 }}>
+              <div style={{ fontSize: "var(--text-sm)", color: C.sub, flexShrink: 0, marginRight: 24 }}>
                 Maumee River Roofing · Saint Joe Road Warehouse
               </div>
 
@@ -192,20 +192,20 @@ return (
                 />
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, marginLeft: 24 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", flexShrink: 0, marginLeft: 24 }}>
                 <SyncIndicator />
                 {app.newJobsForMe > 0 && (
-                  <div onClick={() => navigateTo("pull")} style={{ background: C.tB, color: C.tl, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                  <div onClick={() => navigateTo("pull")} style={{ background: C.tB, color: C.tl, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
                     🎉 {app.newJobsForMe} new job{app.newJobsForMe !== 1 ? "s" : ""}
                   </div>
                 )}
                 {app.pendingReqCount > 0 && app.userPerms.maint_manage && (
-                  <div onClick={() => navigateTo("requests")} style={{ background: C.pB, color: C.pu, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                  <div onClick={() => navigateTo("requests")} style={{ background: C.pB, color: C.pu, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
                     🔧 {app.pendingReqCount} pending
                   </div>
                 )}
                 {app.lowStockCount > 0 && app.userPerms.inv_view && (
-                  <div onClick={() => navigateTo("inventory")} style={{ background: C.aB, color: C.am, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                  <div onClick={() => navigateTo("inventory")} style={{ background: C.aB, color: C.am, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
                     ⚠️ {app.lowStockCount} low stock
                   </div>
                 )}

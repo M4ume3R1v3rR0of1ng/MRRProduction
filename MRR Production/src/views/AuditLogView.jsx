@@ -76,22 +76,22 @@ export default function AuditLogView({ perms }) {
     <div
       style={{
         background: C.w,
-        borderRadius: 12,
+        borderRadius: "var(--radius-xl)",
         padding: 24,
         boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
       }}
     >
       <div>
-        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: C.navy }}>
+        <h2 style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
           🏭 Audit Logs
         </h2>
-        <p style={{ margin: "10px 0 16px", color: C.sub, fontSize: 12 }}>
+        <p style={{ margin: "10px 0 16px", color: C.sub, fontSize: "var(--text-sm)" }}>
           System-wide compliance event tracking. Administrative view only.
         </p>
       </div>
 
       <div
-        style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}
+        style={{ display: "flex", gap: "var(--space-5)", marginBottom: 16, flexWrap: "wrap" }}
       >
         <Inp
           value={search}
@@ -139,7 +139,7 @@ export default function AuditLogView({ perms }) {
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
-                fontSize: 13,
+                fontSize: "var(--text-base)",
                 textAlign: "left",
               }}
             >
@@ -158,8 +158,8 @@ export default function AuditLogView({ perms }) {
                       style={{
                         padding: "12px 10px",
                         color: C.sub,
-                        fontWeight: 700,
-                        fontSize: 11,
+                        fontWeight: "var(--weight-bold)",
+                        fontSize: "var(--text-xs)",
                         textTransform: "uppercase",
                       }}
                     >
@@ -175,7 +175,7 @@ export default function AuditLogView({ perms }) {
                       <td style={{ padding: "12px 10px", whiteSpace: "nowrap", color: C.sub }}>
                         {formatFullTimestamp(l.created_at)}
                       </td>
-                      <td style={{ padding: "12px 10px", fontWeight: 700, color: C.navy }}>
+                      <td style={{ padding: "12px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>
                         {l.user_email}
                       </td>
                       <td style={{ padding: "12px 10px" }}>
@@ -195,7 +195,7 @@ export default function AuditLogView({ perms }) {
                           {l.action_type}
                         </Bdg>
                       </td>
-                      <td style={{ padding: "12px 10px", fontWeight: 600 }}>
+                      <td style={{ padding: "12px 10px", fontWeight: "var(--weight-semibold)" }}>
                         🏭 {l.warehouse_code || "SJR"}
                       </td>
                       <td style={{ padding: "12px 10px", color: "#334155", lineHeight: 1.4 }}>
@@ -209,9 +209,9 @@ export default function AuditLogView({ perms }) {
                               background: "none",
                               border: "none",
                               color: C.blue,
-                              fontWeight: 700,
+                              fontWeight: "var(--weight-bold)",
                               cursor: "pointer",
-                              fontSize: 12,
+                              fontSize: "var(--text-sm)",
                             }}
                           >
                             [{Object.keys(l.payload).length} keys]
@@ -242,12 +242,12 @@ export default function AuditLogView({ perms }) {
             flexWrap: "wrap",
             gap: 12
           }}>
-            <div style={{ fontSize: 12, color: C.sub, fontWeight: 600 }}>
+            <div style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>
               Showing {filteredLogs.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–
               {Math.min(currentPage * ITEMS_PER_PAGE, filteredLogs.length)} of {filteredLogs.length} events
             </div>
             
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
               <Btn 
                 v="ghost" 
                 sz="sm" 
@@ -256,7 +256,7 @@ export default function AuditLogView({ perms }) {
               >
                 ◀ Prev
               </Btn>
-              <span style={{ fontSize: 12, fontWeight: 700, color: C.navy, padding: "0 8px" }}>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy, padding: "0 8px" }}>
                 Page {currentPage} of {totalPages}
               </span>
               <Btn 
@@ -292,7 +292,7 @@ export default function AuditLogView({ perms }) {
           <div
             style={{
               background: "#ffffff",
-              borderRadius: 12,
+              borderRadius: "var(--radius-xl)",
               padding: 24,
               maxWidth: 500,
               width: "100%",
@@ -306,7 +306,7 @@ export default function AuditLogView({ perms }) {
               style={{
                 background: "#1e293b",
                 padding: 14,
-                borderRadius: 8,
+                borderRadius: "var(--radius-md)",
                 maxHeight: 300,
                 overflowY: "auto",
                 marginBottom: 16,
@@ -317,7 +317,7 @@ export default function AuditLogView({ perms }) {
                   margin: 0,
                   color: "#38bdf8",
                   fontFamily: "monospace",
-                  fontSize: 11,
+                  fontSize: "var(--text-xs)",
                   whiteSpace: "pre-wrap",
                 }}
               >
@@ -332,8 +332,8 @@ export default function AuditLogView({ perms }) {
                 background: C.navy,
                 color: "#fff",
                 border: "none",
-                borderRadius: 6,
-                fontWeight: 700,
+                borderRadius: "var(--radius-sm)",
+                fontWeight: "var(--weight-bold)",
                 cursor: "pointer",
               }}
             >
