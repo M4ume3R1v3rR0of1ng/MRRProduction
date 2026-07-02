@@ -515,7 +515,6 @@ export default function MaintenanceRequestsView({
                 </Fld>
                 <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 10 }}>
                   <Btn v="primary" style={{ flex: 1, justifyContent: "center" }} onClick={() => updateStatus(sel.id, "scheduled", form.whNotes)}>🗓️ Approve & Schedule</Btn>
-                  <Btn v="green" style={{ flex: 1, justifyContent: "center" }} onClick={() => updateStatus(sel.id, "completed", form.whNotes)}>✅ Resolve Instantly</Btn>
                 </div>
               </div>
             )}
