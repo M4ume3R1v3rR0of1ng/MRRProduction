@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
+import { detectChronicIssues, detectFleetTrends } from "../utils/patterns";
 import {
   Btn,
   Bdg,
@@ -196,6 +197,8 @@ export default function MaintenanceRequestsView({
   };
 
   const pendingCount = reqs.filter((r) => r.status === "pending").length;
+  const chronicIssues = perms.maint_manage ? detectChronicIssues(reqs) : [];
+  const trendingIssues = perms.maint_manage ? detectFleetTrends(reqs) : [];
 
   return (
     <div style={{ fontFamily: "system-ui, sans-serif" }}>
@@ -232,6 +235,28 @@ export default function MaintenanceRequestsView({
           </Btn>
         </div>
       </div>
+
+      {(chronicIssues.length > 0 || trendingIssues.length > 0) && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+          {chronicIssues.map((c) => (
+            <div
+              key={`${c.vid}::${c.issueType}`}
+              style={{ background: "#fef2f2", border: "1px solid #fee2e2", color: "#991b1b", padding: "8px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}
+            >
+              🔁 {c.vname} — "{c.issueType}" reported {c.count}x in the last 60 days
+            </div>
+          ))}
+          {trendingIssues.map((t) => (
+            <div
+              key={t.issueType}
+              style={{ background: "#fffbeb", border: "1px solid #fef3c7", color: "#92400e", padding: "8px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}
+            >
+              📈 "{t.issueType}" requests trending up fleet-wide — {t.recentCount} in the last 30 days
+              {!t.isNew && ` (${t.ratio}x baseline rate)`}
+            </div>
+          ))}
+        </div>
+      )}
 
       {subView === "calendar" ? (
         <MaintenanceCalendar reqs={reqs} vehs={vehs} user={activeUser} setReqs={setReqs} onRequestClick={(r) => setSel(r)} />

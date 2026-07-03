@@ -20,6 +20,7 @@ export function useAppData() {
   const [vehs, setVehs] = useState(SEED_V);
   const [reqs, setReqs] = useState([]);
   const [jobs, setJobs] = useState(SEED_JOBS);
+  const [jobTrailers, setJobTrailers] = useState([]);
   const [jobPhotos, setJobPhotos] = useState({});
   const [rolePerms, setRolePerms] = useState({
     warehouse: { ...DEFAULT_ROLE_PERMS.warehouse },
@@ -105,6 +106,12 @@ export function useAppData() {
             if (error) setReqs([]);
             else if (data && data.length > 0) setReqs(data.sort((a, b) => new Date(b.at) - new Date(a.at)));
             else setReqs([]);
+            trackProgress(9);
+          })(),
+          (async () => {
+            const { data, error } = await supabase.from("job_trailers").select("*");
+            if (error) setJobTrailers([]);
+            else setJobTrailers(data || []);
             trackProgress(9);
           })(),
           (async () => {
@@ -269,6 +276,8 @@ export function useAppData() {
     setReqs,
     jobs,
     setJobs,
+    jobTrailers,
+    setJobTrailers,
     jobPhotos,
     setJobPhotos,
     rolePerms,

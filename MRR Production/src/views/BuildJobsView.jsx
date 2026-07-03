@@ -13,6 +13,9 @@ export default function BuildJobs({
   jobs = [],
   setJobs,
   inv = [],
+  vehs = [],
+  jobTrailers = [],
+  setJobTrailers,
   users = [],
   user,
   curUser,
@@ -38,6 +41,7 @@ export default function BuildJobs({
   });
   const [wItems, setWItems] = useState([]);
   const [wAssign, setWAssign] = useState("");
+  const [wTrailers, setWTrailers] = useState([]);
   const [iSrch, setISrch] = useState("");
   const [axQ, setAxQ] = useState("");
   const [axR, setAxR] = useState([]);
@@ -93,6 +97,7 @@ export default function BuildJobs({
     setWPO({ po: "", name: "", addr: "", notes: "", scheduledDate: "", acculynxJobId: null });
     setWItems([]);
     setWAssign("");
+    setWTrailers([]);
     setISrch("");
     setAxQ("");
     setAxR([]);
@@ -223,6 +228,18 @@ export default function BuildJobs({
       if (error) throw error;
       setJobs((p) => [...p, job]);
 
+      if (wTrailers.length > 0) {
+        const trailerRows = wTrailers.map((tid) => ({ id: uid(), job_id: targetJobId, trailer_id: tid }));
+        try {
+          const { error: jtError } = await supabase.from("job_trailers").insert(trailerRows);
+          if (jtError) throw jtError;
+          setJobTrailers?.((p) => [...p, ...trailerRows]);
+        } catch (jtErr) {
+          console.error("Failed to book trailers for job:", jtErr);
+          showToast(`Job saved, but trailer booking failed: ${jtErr.message}`, "warning");
+        }
+      }
+
       await logAction(
         activeUser.id,
         activeUser.email,
@@ -351,6 +368,7 @@ export default function BuildJobs({
       );
 
       setJobs((p) => p.filter((j) => j.id !== jobId));
+      setJobTrailers?.((p) => p.filter((jt) => jt.job_id !== jobId));
       if (sel?.id === jobId) setSel(null);
       showToast("Job track purged successfully.", "success");
     } catch (err) {
@@ -359,6 +377,38 @@ export default function BuildJobs({
         `Database Error: Could not delete job record. ${err.message}`,
         "error",
       );
+    }
+  };
+
+  const toggleJobTrailer = async (jobId, trailerId) => {
+    if (typeof setJobTrailers !== "function") return;
+    const job = jobs.find((j) => j.id === jobId);
+    const trailerName = vehs.find((v) => v.id === trailerId)?.name || trailerId;
+    const existing = jobTrailers.find((jt) => jt.job_id === jobId && jt.trailer_id === trailerId);
+
+    if (existing) {
+      setJobTrailers((p) => p.filter((jt) => jt.id !== existing.id));
+      try {
+        const { error } = await supabase.from("job_trailers").delete().eq("id", existing.id);
+        if (error) throw error;
+        await logAction(activeUser.id, activeUser.email, "JOB_BUILD_EDIT", `Removed trailer "${trailerName}" from job "${job?.title || job?.name}"`, { job_id: jobId, trailer_id: trailerId }, "production");
+      } catch (err) {
+        console.error("Failed to remove trailer from job:", err);
+        showToast(`Failed to remove trailer: ${err.message}`, "error");
+        setJobTrailers((p) => [...p, existing]);
+      }
+    } else {
+      const newRow = { id: uid(), job_id: jobId, trailer_id: trailerId };
+      setJobTrailers((p) => [...p, newRow]);
+      try {
+        const { error } = await supabase.from("job_trailers").insert([newRow]);
+        if (error) throw error;
+        await logAction(activeUser.id, activeUser.email, "JOB_BUILD_EDIT", `Assigned trailer "${trailerName}" to job "${job?.title || job?.name}"`, { job_id: jobId, trailer_id: trailerId }, "production");
+      } catch (err) {
+        console.error("Failed to assign trailer to job:", err);
+        showToast(`Failed to assign trailer: ${err.message}`, "error");
+        setJobTrailers((p) => p.filter((jt) => jt.id !== newRow.id));
+      }
     }
   };
 
@@ -835,6 +885,7 @@ export default function BuildJobs({
               ["Created", fd(sel.created || sel.createdAt)],
               ["Approved", fd(sel.approved || sel.approvedAt)],
               ["Completed", fd(sel.completed || sel.completedAt)],
+              ["🚚 Trailers", jobTrailers.filter((jt) => jt.job_id === sel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || "None assigned"],
             ].map(([k, v]) => (
               <div key={k} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}>
                 <div style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>{k}</div>
@@ -842,6 +893,22 @@ export default function BuildJobs({
               </div>
             ))}
           </div>
+          {perms.jobs_build && vehs.some((v) => v.type === "trailer") && (
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 6 }}>🚚 Assign Trailers</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+                {vehs.filter((v) => v.type === "trailer").map((v) => {
+                  const checked = jobTrailers.some((jt) => jt.job_id === sel.id && jt.trailer_id === v.id);
+                  return (
+                    <label key={v.id} style={{ display: "flex", alignItems: "center", gap: 5, background: checked ? C.tB : C.lg, border: `1px solid ${checked ? C.tl : C.bd}`, borderRadius: "var(--radius-pill)", padding: "5px 12px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: checked ? C.tl : C.navy, cursor: "pointer" }}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleJobTrailer(sel.id, v.id)} style={{ margin: 0 }} />
+                      {v.name}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
@@ -1187,6 +1254,26 @@ export default function BuildJobs({
               <div style={{ background: wAssign ? C.tB : C.aB, border: `1px solid ${wAssign ? C.tl : C.am}`, borderRadius: "var(--radius-md)", padding: "8px 12px", marginBottom: 14, fontSize: "var(--text-sm)", color: wAssign ? C.tl : C.am, fontWeight: "var(--weight-semibold)" }}>
                 {wAssign ? `✅ ${users.find((u) => u.id === wAssign)?.name} will be notified when you approve.` : "⚠️ No supervisor assigned — will save as draft."}
               </div>
+              {vehs.some((v) => v.type === "trailer") && (
+                <Fld label="Trailers Needed" hint="Select any trailers this job needs — the site supervisor will see this list.">
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+                    {vehs.filter((v) => v.type === "trailer").map((v) => {
+                      const checked = wTrailers.includes(v.id);
+                      return (
+                        <label key={v.id} style={{ display: "flex", alignItems: "center", gap: 5, background: checked ? C.tB : C.lg, border: `1px solid ${checked ? C.tl : C.bd}`, borderRadius: "var(--radius-pill)", padding: "5px 12px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: checked ? C.tl : C.navy, cursor: "pointer" }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => setWTrailers((p) => (p.includes(v.id) ? p.filter((id) => id !== v.id) : [...p, v.id]))}
+                            style={{ margin: 0 }}
+                          />
+                          {v.name}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </Fld>
+              )}
               <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
                 <Btn v="ghost" onClick={() => setWStep(2)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>← Back</Btn>
                 <Btn v="ghost" onClick={() => saveJob(true)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{saving ? "⏳ Caching..." : "💾 Save Draft"}</Btn>

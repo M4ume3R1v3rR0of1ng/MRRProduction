@@ -12,9 +12,11 @@ import {
   PhotoUpload,
 } from "../components/UIPrimitives";
 import { C, uid } from "../utils/helpers";
+import { learnServiceIntervals } from "../utils/patterns";
 import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
+import TrailerCalendar from "../components/TrailerCalendar";
 
 // ── SUB-COMPONENT: ReqModal (Named Export) ─────────
 export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
@@ -212,6 +214,11 @@ export default function FleetManagementView({
   setVehs,
   reqs,
   setReqs,
+  jobs,
+  setJobs,
+  jobTrailers,
+  setJobTrailers,
+  jSC,
   users,
   user,
   perms,
@@ -224,6 +231,8 @@ export default function FleetManagementView({
   fm,
 }) {
   const { showToast } = useNotify();
+  const [subView, setSubView] = useState("list");
+  const [calSel, setCalSel] = useState(null);
   const [filt, setFilt] = useState("all");
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
@@ -232,6 +241,7 @@ export default function FleetManagementView({
   const [reqVid, setReqVid] = useState("");
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [savingVehicleInfo, setSavingVehicleInfo] = useState(false);
+  const predictedServices = sel ? learnServiceIntervals(sel) : [];
   const [isInspectOpen, setIsInspectOpen] = useState(false);
   const [inspectSubmitting, setInspectSubmitting] = useState(false);
   const [inspectionForm, setInspectionForm] = useState({
@@ -628,24 +638,54 @@ export default function FleetManagementView({
               🔧 Request Maintenance
             </Btn>
           )}
+          {subView === "list" && (
+            <div style={{ display: "flex", gap: 5 }}>
+              {["all", "truck", "trailer"].map((f) => (
+                <Btn
+                  key={f}
+                  v={filt === f ? "primary" : "ghost"}
+                  sz="sm"
+                  onClick={() => setFilt(f)}
+                  style={{ textTransform: "capitalize" }}
+                >
+                  {f === "all" ? "All" : f + "s"}
+                </Btn>
+              ))}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 5 }}>
-            {["all", "truck", "trailer"].map((f) => (
+            {[["list", "📋 List"], ["calendar", "📅 Trailer Calendar"]].map(([v, label]) => (
               <Btn
-                key={f}
-                v={filt === f ? "primary" : "ghost"}
+                key={v}
+                v={subView === v ? "primary" : "ghost"}
                 sz="sm"
-                onClick={() => setFilt(f)}
-                style={{ textTransform: "capitalize" }}
+                onClick={() => setSubView(v)}
               >
-                {f === "all" ? "All" : f + "s"}
+                {label}
               </Btn>
             ))}
           </div>
         </div>
       </div>
 
+      {subView === "calendar" ? (
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: 6, paddingBottom: 24 }}>
+          <TrailerCalendar
+            vehs={vehs}
+            jobs={jobs}
+            jobTrailers={jobTrailers}
+            setJobTrailers={setJobTrailers}
+            setJobs={setJobs}
+            jSC={jSC}
+            user={user}
+            perms={perms}
+            onJobClick={(job) => setCalSel(job)}
+          />
+        </div>
+      ) : (
+      <>
       {/* ── 🟢 2. INJECT ENCLOSED SCROLL TRACK CONTAINER FOR INTERIOR ELEMENTS ONLY ── */}
-      <div 
+      <div
         style={{
           flex: 1,
           overflowY: "auto",
@@ -900,6 +940,23 @@ export default function FleetManagementView({
           })}
         </div>
       </div>
+      </>
+      )}
+
+      {calSel && (
+        <Modal title={calSel.title || calSel.name || "Job Details"} onClose={() => setCalSel(null)}>
+          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>PO:</strong> {calSel.po}</p>
+          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>Address:</strong> {calSel.addr || "N/A"}</p>
+          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>Scheduled:</strong> {calSel.scheduledDate || "N/A"}</p>
+          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}>
+            <strong>Site Supervisor:</strong> {users.find((u) => u.id === (calSel.assignedto || calSel.assignedTo))?.name || "Unassigned"}
+          </p>
+          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: C.sub }}>
+            <strong>Trailers:</strong>{" "}
+            {jobTrailers.filter((jt) => jt.job_id === calSel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || "None assigned"}
+          </p>
+        </Modal>
+      )}
 
       {/* ── MODALS ELEMENT LAYERS RENDERED DOWN BELOW ONLY ── */}
       {sel && (
@@ -1132,6 +1189,45 @@ export default function FleetManagementView({
               </div>
             ))}
           </div>
+
+          {predictedServices.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <h4
+                style={{
+                  margin: "0 0 8px",
+                  color: C.navy,
+                  fontSize: "var(--text-sm)",
+                  textTransform: "uppercase",
+                }}
+              >
+                🔧 Predicted Next Service
+              </h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {predictedServices.map((p) => (
+                  <div
+                    key={p.type}
+                    style={{
+                      background: C.pB,
+                      border: `1px solid ${C.pu}`,
+                      borderRadius: "var(--radius-md)",
+                      padding: "8px 12px",
+                      fontSize: "var(--text-sm)",
+                    }}
+                  >
+                    <div style={{ fontWeight: "var(--weight-extrabold)", color: C.pu }}>
+                      {p.type} — ~{fd(p.predictedNextDate)}
+                      {p.predictedNextMileage !== null && ` · ${p.predictedNextMileage.toLocaleString()} mi`}
+                    </div>
+                    <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                      Based on {p.sampleSize} past service{p.sampleSize === 1 ? "" : "s"} · every ~
+                      {p.avgIntervalDays}d
+                      {p.avgIntervalMiles !== null && ` / ${p.avgIntervalMiles.toLocaleString()} mi`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <h4
             style={{
