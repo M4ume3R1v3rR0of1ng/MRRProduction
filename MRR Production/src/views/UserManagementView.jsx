@@ -283,7 +283,7 @@ export default function Users({
               <option value="manager">Operations Manager</option>
               <option value="coordinator">Production Coordinator</option>
               <option value="warehouse">Warehouse Manager</option>
-              <option value="Site Supervisor">Site Supervisor</option>
+              <option value="field">Site Supervisor</option>
               <option value="employee">Employee / Field Staff</option>
             </Sel>
           </Fld>
