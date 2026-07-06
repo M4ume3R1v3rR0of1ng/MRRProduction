@@ -135,6 +135,17 @@ export function useAppData() {
             if (!error && data?.value) setLogos(data.value);
             trackProgress(7);
           })(),
+          (async () => {
+            const { data, error } = await supabase.from("settings").select("value").eq("key", "acculynx_config").maybeSingle();
+            if (!error && data?.value) {
+              try {
+                setAccuLynxConfig((p) => ({ ...p, ...JSON.parse(data.value) }));
+              } catch (e) {
+                console.error("Failed to parse stored AccuLynx config:", e);
+              }
+            }
+            trackProgress(7);
+          })(),
         ]);
 
         setLoadingProgress(100);
