@@ -19,13 +19,14 @@ export default function DashboardView({
   tot,
   jSC,
   setJobs,
+  setReqs,
   lang = "en",
   onMarkChatRead
 }) {
   const t = translations[lang] || translations.en;
   const low = inv.filter((i) => tot(i) <= i.alrt);
   const pendingReqs = reqs.filter((r) => r.status === "pending");
-  
+
   const myJobs = jobs.filter((j) => (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "completed");
   const newJobs = myJobs.filter((j) => j.newforassigned || j.newForAssigned);
 
@@ -40,7 +41,7 @@ export default function DashboardView({
 
   useEffect(() => {
     if (newJobs.length > 0 && !newJobAlert) {
-      setNewJobAlert(newJobs[0]); 
+      setNewJobAlert(newJobs[0]);
     }
   }, [jobs, newJobs, newJobAlert]);
 
@@ -63,6 +64,42 @@ export default function DashboardView({
       onNav("pull");
     } catch (err) {
       console.error("Failed to dismiss supervisor project warning banner:", err);
+    }
+  };
+
+  // ── 🔔 NEW MAINTENANCE REQUEST ALERT (pops for anyone with maint_manage, same pattern as new-job alert) ──
+  // Requires a `acked_by` jsonb column on maintenance_requests (array of user ids who've dismissed it),
+  // since — unlike jobs, which have one assignedto supervisor — a request can be relevant to several managers.
+  const newMaintForMe = perms.maint_manage
+    ? reqs.filter((r) => r.status === "pending" && !(Array.isArray(r.acked_by) && r.acked_by.includes(user.id)))
+    : [];
+
+  const [maintAlert, setMaintAlert] = useState(null);
+
+  useEffect(() => {
+    if (newMaintForMe.length > 0 && !maintAlert) {
+      setMaintAlert(newMaintForMe[0]);
+    }
+  }, [reqs, newMaintForMe, maintAlert]);
+
+  const acknowledgeMaint = async () => {
+    if (!maintAlert) return;
+    try {
+      const nextAcked = Array.isArray(maintAlert.acked_by) ? [...maintAlert.acked_by, user.id] : [user.id];
+      const { error } = await supabase
+        .from("maintenance_requests")
+        .update({ acked_by: nextAcked })
+        .eq("id", maintAlert.id);
+
+      if (error) throw error;
+
+      if (setReqs) {
+        setReqs((p) => p.map((r) => (r.id === maintAlert.id ? { ...r, acked_by: nextAcked } : r)));
+      }
+      setMaintAlert(null);
+      onNav("requests");
+    } catch (err) {
+      console.error("Failed to dismiss maintenance request alert:", err);
     }
   };
   
@@ -400,6 +437,33 @@ export default function DashboardView({
 
             <Btn v="teal" onClick={acknowledgeJob} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
               {lang === "es" ? "Entendido, Abrir Lista de Materiales →" : "Got It, Open Job Materials Checklist →"}
+            </Btn>
+          </div>
+        </Modal>
+      )}
+
+      {/* New Maintenance Request Alert Overlay — only one blocking modal at a time; job alerts take priority */}
+      {!newJobAlert && maintAlert && (
+        <Modal title="🔔 New Maintenance Request" onClose={() => {}} disableCloseButton>
+          <div style={{ textAlign: "center", padding: "8px 0" }}>
+            <div style={{ fontSize: 42, marginBottom: 10 }}>🔧</div>
+            <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: "var(--weight-black)", fontSize: "var(--text-lg)" }}>
+              {maintAlert.vname || "Unknown Vehicle"}
+            </h3>
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
+              {maintAlert.urgency === "urgent" && <Bdg color="red">🚨 URGENT</Bdg>}
+              <Bdg color="gray">{maintAlert.type}</Bdg>
+            </div>
+
+            <div style={{ background: "#f8fafc", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
+              <strong>📝 Reported Issue:</strong> {maintAlert.notes || "No description provided"}
+              <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
+                <strong>👤 Submitted By:</strong> {maintAlert.uname || "Unknown"}
+              </div>
+            </div>
+
+            <Btn v="purple" onClick={acknowledgeMaint} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
+              Got It, Open Maintenance Requests →
             </Btn>
           </div>
         </Modal>

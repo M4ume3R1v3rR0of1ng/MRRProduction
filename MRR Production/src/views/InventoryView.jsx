@@ -79,6 +79,28 @@ export default function InventoryView({
     return C.gr;
   };
 
+  const toggleSpecial = async (item, e) => {
+    e.stopPropagation();
+    if (!perms.inv_edit) return;
+    const special = !item.special;
+    try {
+      const { error } = await supabase.from("inventory").update({ special }).eq("id", item.id);
+      if (error) throw error;
+      setInv((p) => p.map((i) => (i.id === item.id ? { ...i, special } : i)));
+      setSel((p) => (p && p.id === item.id ? { ...p, special } : p));
+      await logAction(
+        user?.id ?? null,
+        user?.email ?? null,
+        "INV_MUTATION",
+        `${special ? "Marked" : "Unmarked"} "${item.name}" as special`,
+        { item_id: item.id, special },
+        "inventory",
+      );
+    } catch (err) {
+      showToast(`Failed to update special status: ${err.message}`, "error");
+    }
+  };
+
   const setPhoto = async (id, data) => {
     try {
       const photo_url = data ? await uploadPhotoToBucket("inventory-photos", id, data) : null;
@@ -210,12 +232,14 @@ export default function InventoryView({
       const updatedItem = { ...sel, batches: updatedBatches };
 
       if (tot(updatedItem) <= updatedItem.alrt) {
+        // Only notify users who've opted in via Profile → Inventory Alert Preferences.
         const managers = users.filter(
           (u) =>
             (u.role === "manager" ||
               u.role === "coordinator" ||
               u.role === "warehouse") &&
-            u.active,
+            u.active &&
+            u.receive_email_alerts,
         );
         managers.forEach((mgr) => {
           if (mgr.email) {
@@ -509,14 +533,43 @@ export default function InventoryView({
                 borderRadius: "var(--radius-xl)",
                 overflow: "hidden",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-                border: `2px solid ${stockStatus.color}`, // Dynamic border accent tracking stock state
+                border: item.special ? `2px solid ${C.gold}` : `2px solid ${stockStatus.color}`, // Dynamic border accent tracking stock state
                 cursor: "pointer",
+                position: "relative",
               }}
             >
+              {(perms.inv_edit || item.special) && (
+                <button
+                  onClick={(e) => toggleSpecial(item, e)}
+                  disabled={!perms.inv_edit}
+                  title={item.special ? "Remove from Special" : "Mark as Special"}
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    zIndex: 2,
+                    width: 26,
+                    height: 26,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: "rgba(0,0,0,0.45)",
+                    border: "none",
+                    borderRadius: "50%",
+                    fontSize: 14,
+                    lineHeight: 1,
+                    padding: 0,
+                    color: C.w,
+                    cursor: perms.inv_edit ? "pointer" : "default",
+                  }}
+                >
+                  {item.special ? "⭐" : "☆"}
+                </button>
+              )}
               {photo ? (
                 <div style={{ height: 110, overflow: "hidden", background: C.lg, position: "relative" }}>
                   <img src={photo} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.65)", color: C.w, borderRadius: 20, fontSize: "var(--text-2xs)", padding: "2px 8px", fontWeight: "var(--weight-bold)" }}>
+                  <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.65)", color: C.w, borderRadius: 20, fontSize: "var(--text-2xs)", padding: "2px 8px", fontWeight: "var(--weight-bold)" }}>
                     {stockStatus.dot} {stockStatus.label}
                   </div>
                 </div>

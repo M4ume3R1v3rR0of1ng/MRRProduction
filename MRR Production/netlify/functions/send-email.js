@@ -38,7 +38,7 @@ export async function handler(event, context) {
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: "Maumee River Roofing <notifications@yourdomain.com>", // TODO: replace yourdomain.com with your verified Resend sending domain
+        from: "Maumee River Roofing <notifications@maumeeriverroofing.com>",
         to: Array.isArray(to) ? to : [to],
         subject: subject,
         html: html,

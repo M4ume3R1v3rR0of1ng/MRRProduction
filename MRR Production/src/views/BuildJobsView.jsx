@@ -198,6 +198,10 @@ export default function BuildJobs({
       );
       return;
     }
+    if (!wPO.notes || !wPO.notes.trim()) {
+      showToast("Please add a job description/notes before saving.", "warning");
+      return;
+    }
 
     setSaving(true);
     const now = new Date().toISOString();
@@ -1281,6 +1285,14 @@ export default function BuildJobs({
                 <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{wPO.po} — {wPO.name}</div>
                 <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{wItems.length} items planned</div>
               </div>
+              <Fld label="Job Notes / Description *" hint="Required — describe the scope of work for the crew.">
+                <TA
+                  value={wPO.notes}
+                  onChange={(e) => setWPO({ ...wPO, notes: e.target.value })}
+                  placeholder="e.g., Full tear-off and reroof, 30sq, GAF Timberline HDZ shingles..."
+                  disabled={saving}
+                />
+              </Fld>
               <Fld label="Assign to Site Supervisor" hint="Leave blank to save as draft and assign later.">
                 <Sel value={wAssign} onChange={(e) => setWAssign(e.target.value)} disabled={saving}>
                   <option value="">— Assign later (save as draft) —</option>

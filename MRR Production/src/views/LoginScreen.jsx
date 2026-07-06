@@ -4,12 +4,14 @@ import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { Fld } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
+import { translations } from "../utils/translations";
 import backgroundImage from "../assets/image_79f79a.jpg";
 import mrrpic from "../assets/mrrpic.jpg";
 
 const COMPANY_DOMAIN = "@maumeeriverroofing.com";
 
-export default function LoginScreen({ onLogin, activeLogo }) {
+export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang }) {
+  const t = translations[lang] || translations.en;
   const [mode, setMode] = useState("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -50,7 +52,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
       authData = result.data;
       authError = result.error;
     } catch (e) {
-      return setErr("An unexpected network error interrupted authentication.");
+      return setErr(t.errNetworkAuth);
     } finally {
       if (authError || !authData?.user) {
         setSubmitting(false);
@@ -71,12 +73,12 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           .single();
 
         if (profileError) {
-          setErr("Failed to verify user profile access.");
+          setErr(t.errProfileAccess);
           setSubmitting(false);
           return;
         }
         if (!profileData.active) {
-          setErr("This account has been deactivated by an administrator.");
+          setErr(t.errAccountDeactivated);
           setSubmitting(false);
           return;
         }
@@ -107,7 +109,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           active: profileData.active,
         });
       } catch (profileCatchError) {
-        setErr("Profile resolution failed.");
+        setErr(t.errProfileResolution);
         setSubmitting(false);
       }
     }
@@ -118,13 +120,13 @@ export default function LoginScreen({ onLogin, activeLogo }) {
     setSuccessMsg("");
     const trimmedEmail = email.trim().toLowerCase();
 
-    if (!name.trim()) return setErr("Please enter your full name.");
+    if (!name.trim()) return setErr(t.errEnterFullName);
     if (!trimmedEmail.endsWith(COMPANY_DOMAIN))
-      return setErr(`Use your ${COMPANY_DOMAIN} email address.`);
-    if (!pass) return setErr("Please choose a password.");
+      return setErr(t.errUseCompanyEmail.replace("{domain}", COMPANY_DOMAIN));
+    if (!pass) return setErr(t.errChoosePassword);
     if (pass.length < 8)
-      return setErr("Password must be at least 8 characters.");
-    if (pass !== confirm) return setErr("Passwords do not match.");
+      return setErr(t.errPasswordLength);
+    if (pass !== confirm) return setErr(t.errPasswordMismatch);
 
     setSubmitting(true);
     try {
@@ -140,9 +142,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
       }
 
       if (authData?.user?.identities?.length === 0) {
-        setErr(
-          "An account with this email address already exists. Please navigate back to sign in.",
-        );
+        setErr(t.errAccountExists);
         return;
       }
 
@@ -156,16 +156,14 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           "signup",
         );
 
-        setSuccessMsg(
-          "Registration successful! Your corporate profile is live. Go ahead and sign in below.",
-        );
+        setSuccessMsg(t.signupSuccess);
         setName("");
         setPass("");
         setConfirm("");
-        setMode("login"); 
+        setMode("login");
       }
     } catch (e) {
-      setErr("Database transaction aborted during registration processing.");
+      setErr(t.errRegistrationAborted);
     } finally {
       setSubmitting(false);
     }
@@ -259,10 +257,39 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           </div>
           <div style={{ fontSize: "var(--text-base)", color: C.sub, marginTop: 4 }}>
             {mode === "login"
-              ? "Warehouse & Fleet Management System"
-              : `Register with ${COMPANY_DOMAIN}`}
+              ? t.loginSubtitle
+              : `${t.loginRegisterWith} ${COMPANY_DOMAIN}`}
           </div>
         </div>
+
+        {setLang && (
+          <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 20 }}>
+            {[
+              { id: "en", label: "EN" },
+              { id: "es", label: "ES" },
+            ].map((langObj) => {
+              const active = lang === langObj.id;
+              return (
+                <button
+                  key={langObj.id}
+                  onClick={() => setLang(langObj.id)}
+                  style={{
+                    background: active ? C.gold : "transparent",
+                    color: active ? C.navy : C.sub,
+                    border: `1px solid ${active ? C.gold : C.bd}`,
+                    borderRadius: "var(--radius-xl)",
+                    padding: "3px 10px",
+                    fontSize: "var(--text-2xs)",
+                    fontWeight: "var(--weight-black)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {langObj.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {successMsg && (
           <div
@@ -283,12 +310,12 @@ export default function LoginScreen({ onLogin, activeLogo }) {
         )}
 
         {mode === "signup" && (
-          <Fld label="Full Name">
+          <Fld label={t.fullName}>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Your full name"
+              placeholder={t.fullNamePlaceholder}
               style={{
                 width: "100%",
                 padding: "12px 14px",
@@ -301,7 +328,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             />
           </Fld>
         )}
-        <Fld label="Email">
+        <Fld label={t.email}>
           <input
             type="email"
             value={email}
@@ -318,7 +345,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             disabled={submitting}
           />
         </Fld>
-        <Fld label="Password">
+        <Fld label={t.password}>
           <input
             type="password"
             value={pass}
@@ -328,7 +355,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
               !submitting &&
               (mode === "login" ? tryLogin() : trySignup())
             }
-            placeholder="Password"
+            placeholder={t.password}
             style={{
               width: "100%",
               padding: "12px 14px",
@@ -341,13 +368,13 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           />
         </Fld>
         {mode === "signup" && (
-          <Fld label="Confirm Password">
+          <Fld label={t.confirmPassword}>
             <input
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !submitting && trySignup()}
-              placeholder="Confirm password"
+              placeholder={t.confirmPasswordPlaceholder}
               style={{
                 width: "100%",
                 padding: "12px 14px",
@@ -372,7 +399,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
                 style={{ transform: "scale(1.15)", cursor: "pointer", accentColor: C.gold }}
                 disabled={submitting}
               />
-              Remember Me
+              {t.rememberMe}
             </label>
           </div>
         )}
@@ -411,10 +438,10 @@ export default function LoginScreen({ onLogin, activeLogo }) {
           disabled={submitting}
         >
           {submitting
-            ? "Processing Secure Query..."
+            ? t.processingQuery
             : mode === "login"
-              ? "Sign In →"
-              : "Create Account →"}
+              ? t.signIn
+              : t.createAccountBtn}
         </button>
 
         <div
@@ -443,7 +470,7 @@ export default function LoginScreen({ onLogin, activeLogo }) {
             }}
             disabled={submitting}
           >
-            {mode === "login" ? "Create an account" : "Back to sign in"}
+            {mode === "login" ? t.createAccountLink : t.backToSignIn}
           </button>
           <span style={{ opacity: 0.7 }}>{COMPANY_DOMAIN}</span>
         </div>

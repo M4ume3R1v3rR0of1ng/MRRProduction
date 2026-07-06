@@ -110,6 +110,8 @@ export default function App() {
           navigateTo("dashboard");
         }}
         activeLogo={app.activeLogo}
+        lang={lang}
+        setLang={setLang}
       />
     );
   }
@@ -226,7 +228,7 @@ return (
             }}
           >
             {view === "dashboard" && (
-              <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} />
+              <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} setReqs={app.setReqs} />
             )}
             {view === "buildjobs" && app.userPerms.jobs_build && (
               <BuildJobsView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} />
@@ -254,6 +256,15 @@ return (
             )}
             {view === "logs" && app.userPerms.users_manage && (
               <AuditLogView perms={app.userPerms} />
+            )}
+            {view === "profile" && (
+              <ProfileView
+                user={app.curUser}
+                onUpdateUser={(updated) => {
+                  app.setCurUser(updated);
+                  app.setUsers((p) => p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)));
+                }}
+              />
             )}
           </div>
 
