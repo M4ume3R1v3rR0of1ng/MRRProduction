@@ -252,6 +252,7 @@ export default function BuildJobs({
       if (!asDraft && wAssign) {
         const assignedUser = users.find((u) => u.id === wAssign);
         if (assignedUser?.email) {
+          const trailerNames = wTrailers.map((tid) => vehs.find((v) => v.id === tid)?.name).filter(Boolean);
           sendEmail({
             to: assignedUser.email,
             subject: `New Job Assigned: ${wPO.name}`,
@@ -260,6 +261,7 @@ export default function BuildJobs({
                 <p><strong>PO:</strong> ${wPO.po}</p>
                 <p><strong>Address:</strong> ${wPO.addr}</p>
                 ${wPO.notes ? `<p><strong>Notes:</strong> ${wPO.notes}</p>` : ""}
+                ${trailerNames.length > 0 ? `<p><strong>🚚 Trailer(s) to bring:</strong> ${trailerNames.join(", ")}</p>` : ""}
                 <p>Log in to pull inventory and get started.</p>`,
           });
         }
@@ -324,6 +326,10 @@ export default function BuildJobs({
 
       const assignedUser = users.find((u) => u.id === apAssign);
       if (assignedUser?.email) {
+        const trailerNames = jobTrailers
+          .filter((jt) => jt.job_id === sel.id)
+          .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
+          .filter(Boolean);
         sendEmail({
           to: assignedUser.email,
           subject: `Job Approved & Assigned: ${sel.name || sel.title}`,
@@ -331,6 +337,7 @@ export default function BuildJobs({
                  <p><strong>Job:</strong> ${sel.name || sel.title}</p>
                  <p><strong>PO:</strong> ${sel.po}</p>
                  <p><strong>Address:</strong> ${sel.addr || "N/A"}</p>
+                 ${trailerNames.length > 0 ? `<p><strong>🚚 Trailer(s) to bring:</strong> ${trailerNames.join(", ")}</p>` : ""}
                  <p>Log in to pull inventory and get started.</p>`,
         });
       }
@@ -385,6 +392,35 @@ export default function BuildJobs({
     const job = jobs.find((j) => j.id === jobId);
     const trailerName = vehs.find((v) => v.id === trailerId)?.name || trailerId;
     const existing = jobTrailers.find((jt) => jt.job_id === jobId && jt.trailer_id === trailerId);
+    const supervisorId = job?.assignedto || job?.assignedTo;
+    const isLive = !!(job && supervisorId && job.status !== "draft");
+
+    const notifySupervisorOfTrailerChange = async (action) => {
+      if (!isLive) return;
+      try {
+        const { error } = await supabase
+          .from("jobs")
+          .update({ newforassigned: true, newForAssigned: true })
+          .eq("id", jobId);
+        if (error) throw error;
+        setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, newforassigned: true, newForAssigned: true } : j)));
+      } catch (err) {
+        console.error("Failed to flag job for trailer update notification:", err);
+      }
+
+      const assignedUser = users.find((u) => u.id === supervisorId);
+      if (assignedUser?.email) {
+        sendEmail({
+          to: assignedUser.email,
+          subject: `Trailer Update — ${job.title || job.name} (PO: ${job.po})`,
+          html: `<h2>Trailer requirement updated for your job</h2>
+                 <p><strong>Job:</strong> ${job.title || job.name}</p>
+                 <p><strong>PO:</strong> ${job.po}</p>
+                 <p>🚚 Trailer <strong>${trailerName}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
+        });
+      }
+      showToast(`${assignedUser?.name || "Supervisor"} notified that trailer was ${action}.`, "success");
+    };
 
     if (existing) {
       setJobTrailers((p) => p.filter((jt) => jt.id !== existing.id));
@@ -392,6 +428,7 @@ export default function BuildJobs({
         const { error } = await supabase.from("job_trailers").delete().eq("id", existing.id);
         if (error) throw error;
         await logAction(activeUser.id, activeUser.email, "JOB_BUILD_EDIT", `Removed trailer "${trailerName}" from job "${job?.title || job?.name}"`, { job_id: jobId, trailer_id: trailerId }, "production");
+        await notifySupervisorOfTrailerChange("removed");
       } catch (err) {
         console.error("Failed to remove trailer from job:", err);
         showToast(`Failed to remove trailer: ${err.message}`, "error");
@@ -404,6 +441,7 @@ export default function BuildJobs({
         const { error } = await supabase.from("job_trailers").insert([newRow]);
         if (error) throw error;
         await logAction(activeUser.id, activeUser.email, "JOB_BUILD_EDIT", `Assigned trailer "${trailerName}" to job "${job?.title || job?.name}"`, { job_id: jobId, trailer_id: trailerId }, "production");
+        await notifySupervisorOfTrailerChange("added");
       } catch (err) {
         console.error("Failed to assign trailer to job:", err);
         showToast(`Failed to assign trailer: ${err.message}`, "error");
@@ -958,7 +996,7 @@ export default function BuildJobs({
           </Fld>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
             <Fld label="Production Schedule Start Date">
-              <Inp type="date" value={editForm.scheduledDate || ""} onChange={(e) => setEditForm({ ...editForm, scheduledDate: e.target.value })} disabled={savingEdit} />
+              <Inp type="date" aria-label="Production Schedule Start Date" value={editForm.scheduledDate || ""} onChange={(e) => setEditForm({ ...editForm, scheduledDate: e.target.value })} disabled={savingEdit} />
             </Fld>
             <Fld label="Assigned Site Supervisor">
               <Sel value={editForm.assignedto || ""} onChange={(e) => setEditForm({ ...editForm, assignedto: e.target.value })} disabled={savingEdit}>
@@ -1125,7 +1163,7 @@ export default function BuildJobs({
                 <Fld label="Job Name *"><Inp value={wPO.name} onChange={(e) => setWPO({ ...wPO, name: e.target.value })} placeholder="Customer / Project Name" /></Fld>
                 <Fld label="Job Address *"><Inp value={wPO.addr} onChange={(e) => setWPO({ ...wPO, addr: e.target.value })} placeholder="123 Main St, Toledo OH" /></Fld>
                 <Fld label="Production Schedule Start Date">
-                  <Inp type="date" value={wPO.scheduledDate || ""} onChange={(e) => setWPO({ ...wPO, scheduledDate: e.target.value })} />
+                  <Inp type="date" aria-label="Production Schedule Start Date" value={wPO.scheduledDate || ""} onChange={(e) => setWPO({ ...wPO, scheduledDate: e.target.value })} />
                 </Fld>
               </div>
               <Btn v="primary" sz="lg" onClick={() => { if (!wPO.po || !wPO.name) { showToast("PO and Job Name are strictly required fields.", "warning"); return; } setWStep(2); }} style={{ width: "100%", justifyContent: "center", marginTop: 10 }}>Continue →</Btn>

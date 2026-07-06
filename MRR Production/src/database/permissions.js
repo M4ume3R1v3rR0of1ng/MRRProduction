@@ -8,6 +8,7 @@ export const PERM_DEFS = {
   inv_bulk_receive: { label: 'Receive Bulk Orders', desc: 'Multi-item bulk order receiving', g: '📦 Inventory' },
   inv_pricing_view: { label: 'View Pricing', desc: 'See purchase prices & batch costs', g: '📦 Inventory' },
   inv_pricing_edit: { label: 'Edit Pricing', desc: 'Change & set item pricing', g: '📦 Inventory' },
+  inv_adjust: { label: 'Adjust Stock', desc: 'Manually correct on-hand quantities', g: '📦 Inventory' },
   fleet_view: { label: 'View Fleet', desc: 'View vehicles & service history', g: '🚛 Fleet' },
   fleet_edit: { label: 'Manage Fleet', desc: 'Log service, assign drivers, photos', g: '🚛 Fleet' },
   fleet_log_mi: { label: 'Log Mileage', desc: 'Submit vehicle mileage readings', g: '🚛 Fleet' },
@@ -17,6 +18,7 @@ export const PERM_DEFS = {
   jobs_build: { label: 'Build Jobs', desc: 'Create & edit jobs, plan materials', g: '🏗️ Jobs' },
   jobs_approve: { label: 'Approve & Assign', desc: 'Approve jobs & assign supervisors', g: '🏗️ Jobs' },
   jobs_pull: { label: 'Pull Inventory', desc: 'Pull materials from approved jobs', g: '🏗️ Jobs' },
+  jobs_edit_pull: { label: 'Edit Job (Pull Inventory)', desc: 'Edit job info & reassign site supervisor from Pull Inventory', g: '🏗️ Jobs' },
   jobs_complete: { label: 'Complete Jobs', desc: 'Return inventory & mark jobs done', g: '🏗️ Jobs' },
   reports_view: { label: 'View Reports', desc: 'Access reports & analytics', g: '📊 Reports' },
   users_manage: { label: 'Manage Users', desc: 'Add, edit & deactivate user accounts', g: '⚙️ Admin' },
@@ -25,10 +27,10 @@ export const PERM_DEFS = {
 
 // 2. Navigation & Settings Groupings Map
 export const PERM_GROUPS = [
-  ['📦 Inventory', ['inv_view', 'inv_edit', 'inv_receive', 'inv_bulk_receive', 'inv_pricing_view', 'inv_pricing_edit']],
+  ['📦 Inventory', ['inv_view', 'inv_edit', 'inv_receive', 'inv_bulk_receive', 'inv_pricing_view', 'inv_pricing_edit', 'inv_adjust']],
   ['🚛 Fleet', ['fleet_view', 'fleet_edit', 'fleet_log_mi']],
   ['🔧 Maintenance', ['maint_submit', 'maint_manage']],
-  ['🏗️ Jobs', ['jobs_view', 'jobs_build', 'jobs_approve', 'jobs_pull', 'jobs_complete']],
+  ['🏗️ Jobs', ['jobs_view', 'jobs_build', 'jobs_approve', 'jobs_pull', 'jobs_edit_pull', 'jobs_complete']],
   ['📊 Reports', ['reports_view']],
   ['⚙️ Admin', ['users_manage', 'settings_manage']]
 ];
@@ -46,10 +48,10 @@ export const ROLE_COLS = [
 
 // 4. Baseline Corporate Safety Rules Matrix
 export const DEFAULT_ROLE_PERMS = {
-  warehouse: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: false, fleet_view: true, fleet_edit: true, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_complete: true, reports_view: true, users_manage: false, settings_manage: false },
-  coordinator: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, fleet_view: true, fleet_edit: true, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_complete: true, reports_view: true, users_manage: false, settings_manage: false },
-  manager: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, fleet_view: true, fleet_edit: false, fleet_log_mi: false, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_complete: true, reports_view: true, users_manage: false, settings_manage: false },
-  field: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: false, inv_pricing_view: false, inv_pricing_edit: false, fleet_view: true, fleet_edit: false, fleet_log_mi: true, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_complete: true, reports_view: false, users_manage: false, settings_manage: false },
+  warehouse: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: false, inv_adjust: false, fleet_view: true, fleet_edit: true, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_edit_pull: false, jobs_complete: true, reports_view: true, users_manage: false, settings_manage: false },
+  coordinator: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, inv_adjust: false, fleet_view: true, fleet_edit: true, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, reports_view: true, users_manage: false, settings_manage: false },
+  manager: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, inv_adjust: true, fleet_view: true, fleet_edit: false, fleet_log_mi: false, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, reports_view: true, users_manage: false, settings_manage: false },
+  field: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: false, inv_pricing_view: false, inv_pricing_edit: false, inv_adjust: true, fleet_view: true, fleet_edit: false, fleet_log_mi: true, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, reports_view: false, users_manage: false, settings_manage: false },
 };
 
 // 5. Global Roles Map Interface

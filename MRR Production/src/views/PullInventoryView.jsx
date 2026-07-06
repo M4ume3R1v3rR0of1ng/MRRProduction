@@ -1,28 +1,30 @@
 // src/views/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
 import { useState } from "react";
-import { C, fd, fm, doFifo, uid, tot, ft } from "../utils/helpers";
+import { C, fd, fm, doFifo, uid, tot, ft, mkJI } from "../utils/helpers";
 import { generatePDF } from "../utils/pdfGenerator";
 import { attemptAccuLynxSync } from "../utils/accuLynxSync";
-import { Btn, Bdg, Modal, Fld, TA, Inp, PhotoUpload } from "../components/UIPrimitives";
+import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { supabase } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
-import { uploadPhotoToBucket } from "../utils/storageBucketUpload"; 
+import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
+import { sendEmail } from "../utils/email";
 
 export default function PullInventory({
   jobs = [],
   setJobs,
   inv = [],
   setInv,
+  vehs = [],
+  jobTrailers = [],
+  setJobTrailers,
   users = [],
   user,
   perms,
   activeLogo,
   acculynxConfig,
   jSC,
-  jobPhotos,
-  setJobPhotos,
 }) {
   const { showToast } = useNotify();
   const [sel, setSel] = useState(null);
@@ -33,9 +35,177 @@ export default function PullInventory({
 
   const [pulling, setPulling] = useState(false);
   const [returning, setReturning] = useState(false);
+  const [editForm, setEditForm] = useState({});
+  const [editItems, setEditItems] = useState([]);
+  const [editItemSearch, setEditItemSearch] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const isField = user.role === "field";
+
+  const fieldUsers = users.filter(
+    (u) => (u.role === "field" || u.role === "Site Supervisor") && u.active,
+  );
+
+  const startEditJob = (job) => {
+    setEditForm({
+      po: job.po || "",
+      name: job.title || job.name || "",
+      addr: job.addr || "",
+      notes: job.notes || "",
+      scheduledDate: job.scheduledDate || "",
+      assignedto: job.assignedto || job.assignedTo || "",
+    });
+    setEditItems((job.items || job.materials || []).filter(Boolean));
+    setEditItemSearch("");
+    setModal("edit");
+  };
+
+  const editFiltInv = inv.filter(
+    (i) =>
+      (i?.name || "").toLowerCase().includes(editItemSearch.toLowerCase()) &&
+      !editItems.find((x) => x.iid === i.id),
+  );
+
+  const addEditItem = (item) => {
+    setEditItems((p) => [...p, mkJI(item.id, item.name, item.cat, item.unit, 1)]);
+  };
+
+  const updateEditItemQty = (iid, val) => {
+    setEditItems((p) => p.map((x) => (x.iid === iid ? { ...x, planned: Math.max(0, parseFloat(val) || 0) } : x)));
+  };
+
+  const removeEditItem = (item) => {
+    if (item.pulled > 0) {
+      if (!window.confirm(`"${item.iname}" already has ${item.pulled} ${item.unit || ""} pulled from the warehouse. Removing it here will NOT return that stock — it only removes it from this job's checklist. Continue?`)) {
+        return;
+      }
+    }
+    setEditItems((p) => p.filter((x) => x.iid !== item.iid));
+  };
+
+  const saveJobEdit = async () => {
+    if (!sel) return;
+    setSavingEdit(true);
+    const prevAssignedTo = sel.assignedto || sel.assignedTo || "";
+    const reassigned = editForm.assignedto && editForm.assignedto !== prevAssignedTo;
+
+    const payload = {
+      po: editForm.po,
+      title: editForm.name,
+      addr: editForm.addr,
+      notes: editForm.notes,
+      scheduledDate: editForm.scheduledDate,
+      assignedto: editForm.assignedto,
+      items: editItems,
+      materials: editItems,
+      ...(reassigned ? { newforassigned: true } : {}),
+    };
+
+    try {
+      const { error } = await supabase.from("jobs").update(payload).eq("id", sel.id);
+      if (error) throw error;
+
+      const updated = { ...sel, ...payload };
+      setJobs((p) => p.map((j) => (j.id === sel.id ? updated : j)));
+      setSel(updated);
+
+      await logAction(
+        user.id,
+        user.email,
+        "JOB_BUILD_EDIT",
+        `Edited job details for "${editForm.name}" (PO: ${editForm.po}) from Pull Inventory`,
+        { job_id: sel.id, changes: payload },
+        "production",
+      );
+
+      if (reassigned) {
+        const assignedUser = users.find((u) => u.id === editForm.assignedto);
+        if (assignedUser?.email) {
+          sendEmail({
+            to: assignedUser.email,
+            subject: `Job Reassigned to You: ${editForm.name}`,
+            html: `<h2>A job has been reassigned to you</h2>
+                   <p><strong>Job:</strong> ${editForm.name}</p>
+                   <p><strong>PO:</strong> ${editForm.po}</p>
+                   <p><strong>Address:</strong> ${editForm.addr || "N/A"}</p>
+                   <p>Log in to view details and pull inventory.</p>`,
+          });
+        }
+      }
+
+      showToast("Job details saved.", "success");
+      setModal(null);
+    } catch (err) {
+      console.error("Failed to save job edit:", err);
+      showToast(`Database Error: Could not save job. ${err.message}`, "error");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
   
+  const toggleJobTrailer = async (jobId, trailerId) => {
+    if (typeof setJobTrailers !== "function") return;
+    const job = jobs.find((j) => j.id === jobId) || sel;
+    const trailerName = vehs.find((v) => v.id === trailerId)?.name || trailerId;
+    const existing = jobTrailers.find((jt) => jt.job_id === jobId && jt.trailer_id === trailerId);
+    const supervisorId = job?.assignedto || job?.assignedTo;
+    const isLive = !!(job && supervisorId && job.status !== "draft");
+
+    const notifySupervisorOfTrailerChange = async (action) => {
+      if (!isLive) return;
+      try {
+        const { error } = await supabase
+          .from("jobs")
+          .update({ newforassigned: true, newForAssigned: true })
+          .eq("id", jobId);
+        if (error) throw error;
+        setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, newforassigned: true, newForAssigned: true } : j)));
+      } catch (err) {
+        console.error("Failed to flag job for trailer update notification:", err);
+      }
+
+      const assignedUser = users.find((u) => u.id === supervisorId);
+      if (assignedUser?.email) {
+        sendEmail({
+          to: assignedUser.email,
+          subject: `Trailer Update — ${job.title || job.name} (PO: ${job.po})`,
+          html: `<h2>Trailer requirement updated for your job</h2>
+                 <p><strong>Job:</strong> ${job.title || job.name}</p>
+                 <p><strong>PO:</strong> ${job.po}</p>
+                 <p>🚚 Trailer <strong>${trailerName}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
+        });
+      }
+      showToast(`${assignedUser?.name || "Supervisor"} notified that trailer was ${action}.`, "success");
+    };
+
+    if (existing) {
+      setJobTrailers((p) => p.filter((jt) => jt.id !== existing.id));
+      try {
+        const { error } = await supabase.from("job_trailers").delete().eq("id", existing.id);
+        if (error) throw error;
+        await logAction(user.id, user.email, "JOB_BUILD_EDIT", `Removed trailer "${trailerName}" from job "${job?.title || job?.name}"`, { job_id: jobId, trailer_id: trailerId }, "production");
+        await notifySupervisorOfTrailerChange("removed");
+      } catch (err) {
+        console.error("Failed to remove trailer from job:", err);
+        showToast(`Failed to remove trailer: ${err.message}`, "error");
+        setJobTrailers((p) => [...p, existing]);
+      }
+    } else {
+      const newRow = { id: uid(), job_id: jobId, trailer_id: trailerId };
+      setJobTrailers((p) => [...p, newRow]);
+      try {
+        const { error } = await supabase.from("job_trailers").insert([newRow]);
+        if (error) throw error;
+        await logAction(user.id, user.email, "JOB_BUILD_EDIT", `Assigned trailer "${trailerName}" to job "${job?.title || job?.name}"`, { job_id: jobId, trailer_id: trailerId }, "production");
+        await notifySupervisorOfTrailerChange("added");
+      } catch (err) {
+        console.error("Failed to assign trailer to job:", err);
+        showToast(`Failed to assign trailer: ${err.message}`, "error");
+        setJobTrailers((p) => p.filter((jt) => jt.id !== newRow.id));
+      }
+    }
+  };
+
   // ── 🟢 SAFEGUARD PIPELINE MAPPING TO CORRECT DATABASE SHARDS ──
   const myJobs = isField
     ? jobs.filter((j) => j && (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "draft")
@@ -233,51 +403,31 @@ export default function PullInventory({
 
   const handleStagePhoto = async (phase, base64Data) => {
     if (!sel) return;
-    
-    if (!base64Data) {
-      if (typeof setJobPhotos === "function") {
-        setJobPhotos((prev) => ({
-          ...prev,
-          [sel.id]: {
-            ...(prev[sel.id] || { before: null, after: null }),
-            [phase]: null,
-          },
-        }));
-      }
-      return;
-    }
+    const columnToUpdate = phase === "before" ? "photo_before_url" : "photo_after_url";
 
     try {
-      showToast(`Uploading ${phase} photo asset securely to cloud...`, "info");
-      const cloudPublicUrl = await uploadPhotoToBucket("job-attachments", sel.id, base64Data);
-      if (!cloudPublicUrl) throw new Error("Cloud engine failed to return a valid URL.");
+      const url = base64Data ? await uploadPhotoToBucket("job-attachments", sel.id, base64Data) : null;
+      if (base64Data && !url) throw new Error("Cloud engine failed to return a valid URL.");
 
-      if (typeof setJobPhotos === "function") {
-        setJobPhotos((prev) => ({
-          ...prev,
-          [sel.id]: {
-            ...(prev[sel.id] || { before: null, after: null }),
-            [phase]: cloudPublicUrl,
-          },
-        }));
-      }
-
-      const columnToUpdate = phase === "before" ? "photo_before_url" : "photo_after_url";
       const { error: dbError } = await supabase
         .from("jobs")
-        .update({ [columnToUpdate]: cloudPublicUrl })
+        .update({ [columnToUpdate]: url })
         .eq("id", sel.id);
-
       if (dbError) throw dbError;
-      showToast(`${phase === "before" ? "Before" : "After"} photo synchronized to cloud storage!`, "success");
+
+      setJobs((p) => p.map((j) => (j.id === sel.id ? { ...j, [columnToUpdate]: url } : j)));
+      setSel((p) => (p ? { ...p, [columnToUpdate]: url } : p));
+
+      if (url) {
+        showToast(`${phase === "before" ? "Before" : "After"} photo synchronized to cloud storage!`, "success");
+      }
     } catch (err) {
       console.error("[Storage Upload Failure]:", err);
       showToast(`Upload failed: ${err.message || "Network timeout error."}`, "error");
     }
   };
 
-  const parsedJobPhotos = typeof jobPhotos !== "undefined" && jobPhotos ? jobPhotos : {};
-  const currentJobPhotos = sel ? (parsedJobPhotos[sel.id] || { before: null, after: null }) : { before: null, after: null };
+  const currentJobPhotos = sel ? { before: sel.photo_before_url || null, after: sel.photo_after_url || null } : { before: null, after: null };
 
   return (
     <div>
@@ -292,6 +442,10 @@ export default function PullInventory({
         {myJobs.map((job) => {
           if (!job) return null;
           const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
+          const jobTrailerNames = jobTrailers
+            .filter((jt) => jt.job_id === job.id)
+            .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
+            .filter(Boolean);
           const st = jSC[job.status] || { c: "gray", icon: "📋", l: job.status };
           const isNew = (job.newforassigned || job.newForAssigned) && (job.assignedto === user.id || job.assignedTo === user.id);
           
@@ -326,6 +480,11 @@ export default function PullInventory({
                   </div>
                   <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 4 }}>{job.addr || job.address}</div>
                   {!isField && sup && <div style={{ fontSize: "var(--text-xs)", color: C.blue, fontWeight: "var(--weight-bold)" }}>👤 {sup.name}</div>}
+                  {jobTrailerNames.length > 0 && (
+                    <div style={{ fontSize: "var(--text-xs)", color: C.am, fontWeight: "var(--weight-bold)", marginTop: 2 }}>
+                      🚚 Bring trailer: {jobTrailerNames.join(", ")}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 7, alignItems: "flex-end" }}>
                   {perms.jobs_pull && job.status === "approved" && (
@@ -555,8 +714,115 @@ export default function PullInventory({
         </Modal>
       )}
 
+      {modal === "edit" && sel && perms.jobs_edit_pull && (
+        <Modal title={`Edit Job — ${sel.po}`} onClose={() => { if (!savingEdit) setModal(null); }} wide>
+          <Fld label="Job PO Number *">
+            <Inp value={editForm.po || ""} onChange={(e) => setEditForm({ ...editForm, po: e.target.value })} disabled={savingEdit} />
+          </Fld>
+          <Fld label="Job Name *">
+            <Inp value={editForm.name || ""} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} disabled={savingEdit} />
+          </Fld>
+          <Fld label="Address">
+            <Inp value={editForm.addr || ""} onChange={(e) => setEditForm({ ...editForm, addr: e.target.value })} disabled={savingEdit} />
+          </Fld>
+          <Fld label="Scheduled Date">
+            <Inp type="date" aria-label="Scheduled Date" value={editForm.scheduledDate || ""} onChange={(e) => setEditForm({ ...editForm, scheduledDate: e.target.value })} disabled={savingEdit} />
+          </Fld>
+          <Fld label="Assigned Site Supervisor">
+            <Sel value={editForm.assignedto || ""} onChange={(e) => setEditForm({ ...editForm, assignedto: e.target.value })} disabled={savingEdit}>
+              <option value="">— Unassigned —</option>
+              {fieldUsers.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </Sel>
+          </Fld>
+          <Fld label="Notes">
+            <TA value={editForm.notes || ""} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} disabled={savingEdit} />
+          </Fld>
+
+          {vehs.some((v) => v.type === "trailer") && (
+            <Fld label="🚚 Trailers Needed" hint="Toggling a trailer here notifies the assigned supervisor immediately.">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+                {vehs.filter((v) => v.type === "trailer").map((v) => {
+                  const checked = jobTrailers.some((jt) => jt.job_id === sel.id && jt.trailer_id === v.id);
+                  return (
+                    <label key={v.id} style={{ display: "flex", alignItems: "center", gap: 5, background: checked ? C.tB : C.lg, border: `1px solid ${checked ? C.tl : C.bd}`, borderRadius: "var(--radius-pill)", padding: "5px 12px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: checked ? C.tl : C.navy, cursor: "pointer" }}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleJobTrailer(sel.id, v.id)} disabled={savingEdit} style={{ margin: 0 }} />
+                      {v.name}
+                    </label>
+                  );
+                })}
+              </div>
+            </Fld>
+          )}
+
+          <h4 style={{ margin: "16px 0 8px", color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>Materials Checklist</h4>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 10 }}>
+            {editItems.length === 0 ? (
+              <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>No materials on this job.</p>
+            ) : (
+              editItems.map((item) => (
+                <div key={item.iid} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: C.lg, borderRadius: 7, padding: "7px 10px" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.iname}</div>
+                    {item.pulled > 0 && (
+                      <div style={{ fontSize: "var(--text-2xs)", color: C.am }}>⚠️ {item.pulled} {item.unit} already pulled</div>
+                    )}
+                  </div>
+                  <Inp
+                    type="number"
+                    min="0"
+                    value={item.planned}
+                    onChange={(e) => updateEditItemQty(item.iid, e.target.value)}
+                    style={{ width: 70, padding: "4px 8px" }}
+                    disabled={savingEdit}
+                  />
+                  <span style={{ fontSize: "var(--text-xs)", color: C.sub, width: 50 }}>{item.unit}</span>
+                  <button
+                    onClick={() => removeEditItem(item)}
+                    disabled={savingEdit}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-lg)", lineHeight: 1 }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          <Fld label="Add Material">
+            <Inp value={editItemSearch} onChange={(e) => setEditItemSearch(e.target.value)} placeholder="🔍 Search inventory..." disabled={savingEdit} />
+          </Fld>
+          {editItemSearch.trim() && (
+            <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", maxHeight: 160, overflowY: "auto", marginBottom: 14 }}>
+              {editFiltInv.length === 0 ? (
+                <div style={{ padding: 10, fontSize: "var(--text-sm)", color: C.sub, textAlign: "center" }}>No matching inventory items.</div>
+              ) : (
+                editFiltInv.map((item) => (
+                  <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderBottom: `1px solid ${C.lg}` }}>
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.name}</span>
+                    <Btn v="primary" sz="sm" onClick={() => { addEditItem(item); setEditItemSearch(""); }}>+ Add</Btn>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+            <Btn v="ghost" onClick={() => setModal(null)} disabled={savingEdit} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
+            <Btn v="primary" onClick={saveJobEdit} disabled={savingEdit} style={{ flex: 1, justifyContent: "center" }}>{savingEdit ? "Saving..." : "Save Changes"}</Btn>
+          </div>
+        </Modal>
+      )}
+
       {modal === null && sel && (
         <Modal title={`${sel.po || "No PO"} — ${sel.title || sel.name}`} onClose={() => setSel(null)} wide>
+          {perms.jobs_edit_pull && (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+              <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>✏️ Edit Job</Btn>
+            </div>
+          )}
           <div style={{ marginTop: 18, borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
             <h3 style={{ margin: "0 0 12px 0", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📸 Visual Production Accountability Media</h3>
             <div style={{ display: "flex", gap: "var(--space-6)", flexWrap: "wrap" }}>
@@ -576,6 +842,7 @@ export default function PullInventory({
               ["Status", <Bdg color={(jSC[sel.status] || {c:"gray"}).c}>{(jSC[sel.status] || {l:sel.status}).l}</Bdg>],
               ["PO", sel.po || "—"],
               ["Assigned To", users.find((u) => u.id === sel.assignedto || u.id === sel.assignedTo)?.name || "—"],
+              ["🚚 Trailer", jobTrailers.filter((jt) => jt.job_id === sel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || "None needed"],
               ["Approved", fd(sel.approved || sel.approvedAt)],
               ["Completed", fd(sel.completed || sel.completedAt)],
             ].map(([k, v]) => (

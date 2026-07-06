@@ -8,12 +8,14 @@ import {
   Fld,
   Inp,
   Sel,
+  TA,
   Modal,
   PhotoUpload,
 } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 import { translations } from "../utils/translations";
+import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 
 
 export default function InventoryView({ 
@@ -23,10 +25,8 @@ export default function InventoryView({
   user, 
   perms, 
   inventorySearchQuery, 
-  setInventorySearchQuery, 
+  setInventorySearchQuery,
   lang = "en",
-  invPhotos = [], 
-  setInvPhotos
 }) {
   const t = translations[lang] || translations.en;
   const [saving, setSaving] = useState(false);
@@ -79,12 +79,17 @@ export default function InventoryView({
     return C.gr;
   };
 
-  const setPhoto = (id, data) =>
-    setInvPhotos((p) =>
-      data
-        ? { ...p, [id]: data }
-        : Object.fromEntries(Object.entries(p).filter(([k]) => k !== id)),
-    );
+  const setPhoto = async (id, data) => {
+    try {
+      const photo_url = data ? await uploadPhotoToBucket("inventory-photos", id, data) : null;
+      const { error } = await supabase.from("inventory").update({ photo_url }).eq("id", id);
+      if (error) throw error;
+      setInv((p) => p.map((i) => (i.id === id ? { ...i, photo_url } : i)));
+      setSel((p) => (p && p.id === id ? { ...p, photo_url } : p));
+    } catch (err) {
+      showToast(`Failed to save item photo: ${err.message}`, "error");
+    }
+  };
 
   const addItem = async () => {
     if (!form.name || !form.cat || !form.unit) {
@@ -243,6 +248,76 @@ export default function InventoryView({
     } catch (err) {
       console.error(err);
       showToast(`Database Error posting receipt batch: ${err.message}`, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const adjustStock = async () => {
+    if (!sel || form.newQty === undefined || form.newQty === "") {
+      showToast("Please enter the corrected quantity.", "warning");
+      return;
+    }
+    const newQty = parseFloat(form.newQty);
+    if (isNaN(newQty) || newQty < 0) {
+      showToast("Quantity must be a valid non-negative number.", "warning");
+      return;
+    }
+    const current = tot(sel);
+    const delta = newQty - current;
+    if (delta === 0) {
+      showToast("No change — quantity already matches.", "info");
+      return;
+    }
+
+    setSaving(true);
+    const reasonSuffix = form.reason?.trim() ? ` — ${form.reason.trim()}` : "";
+    let updatedBatches;
+
+    if (delta > 0) {
+      const correctionBatch = {
+        id: "b_" + uid(),
+        rcvd: new Date().toISOString().split("T")[0],
+        qty: delta,
+        price: newestPrice(sel) || 0,
+        by: user?.id || "system",
+        rem: delta,
+        ref: `Manual Adjustment${reasonSuffix}`,
+      };
+      updatedBatches = [...(sel.batches || []), correctionBatch];
+    } else {
+      let deficit = Math.abs(delta);
+      const sorted = [...(sel.batches || [])].sort((a, b) => new Date(a.rcvd) - new Date(b.rcvd));
+      updatedBatches = sorted.map((b) => {
+        if (deficit <= 0) return b;
+        const take = Math.min(parseFloat(b.rem) || 0, deficit);
+        deficit -= take;
+        return { ...b, rem: (parseFloat(b.rem) || 0) - take };
+      });
+    }
+
+    try {
+      const { error } = await supabase.from("inventory").update({ batches: updatedBatches }).eq("id", sel.id);
+      if (error) throw error;
+
+      setInv((p) => p.map((i) => (i.id === sel.id ? { ...i, batches: updatedBatches } : i)));
+      setSel((p) => (p ? { ...p, batches: updatedBatches } : p));
+
+      await logAction(
+        user?.id ?? null,
+        user?.email ?? null,
+        "INV_MUTATION",
+        `Manually adjusted stock for "${sel.name}" from ${current} to ${newQty} ${sel.unit}${reasonSuffix}`,
+        { item_id: sel.id, previous_total: current, new_total: newQty, delta },
+        "inventory",
+      );
+
+      showToast("Stock quantity corrected.", "success");
+      setModal(null);
+      setForm({});
+    } catch (err) {
+      console.error(err);
+      showToast(`Database Error adjusting stock: ${err.message}`, "error");
     } finally {
       setSaving(false);
     }
@@ -409,7 +484,7 @@ export default function InventoryView({
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "var(--space-5)" }}>
         {filtered.map((item) => {
           const stock = tot(item);
-          const photo = invPhotos[item.id];
+          const photo = item.photo_url;
           
           // Added User Interface Color Optimization Mapping
           const getStockStatusMeta = (currentStock, alertThreshold) => {
@@ -499,7 +574,7 @@ export default function InventoryView({
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-7)", marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Product Photo</div>
-              <PhotoUpload current={invPhotos[sel.id] || null} onUpload={(data) => setPhoto(sel.id, data)} label="Upload product photo" previewHeight={180} />
+              <PhotoUpload current={sel.photo_url || null} onUpload={(data) => setPhoto(sel.id, data)} label="Upload product photo" previewHeight={180} />
             </div>
             <div>
               <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Item Details</div>
@@ -524,10 +599,13 @@ export default function InventoryView({
               </div>
               <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 12, flexWrap: "wrap" }}>
                 {perms.inv_edit && (
-                  <Btn v="outline" sz="sm" onClick={() => { setForm({ name: sel.name, cat: sel.cat, unit: sel.unit, alrt: sel.alrt }); setModal("edit"); }}>✏️ Edit Specifications</Btn>
+                  <Btn v="outline" sz="sm" onClick={() => { setForm({ name: sel.name, cat: sel.cat, unit: sel.unit, alrt: sel.alrt }); setModal("edit"); }}>✏️ Edit Materials</Btn>
                 )}
                 {perms.inv_receive && (
                   <Btn v="primary" sz="sm" onClick={() => { setForm({ date: new Date().toISOString().split("T")[0], qty: "", price: "" }); setModal("rcv"); }}>+ Receive Batch</Btn>
+                )}
+                {perms.inv_adjust && (
+                  <Btn v="gold" sz="sm" onClick={() => { setForm({ newQty: String(tot(sel)), reason: "" }); setModal("adjust"); }}>🔧 Adjust Stock</Btn>
                 )}
                 {perms.inv_edit && (
                   <Btn v="danger" sz="sm" onClick={async () => {
@@ -620,6 +698,24 @@ export default function InventoryView({
           <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
             <Btn v="primary" onClick={rcvBatch} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Processing..." : "Receive Batch"}</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {modal === "adjust" && sel && (
+        <Modal title={`Adjust Stock: ${sel.name}`} onClose={() => setModal(null)}>
+          <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "8px 12px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.sub }}>
+            Current on-hand: <strong style={{ color: C.navy }}>{tot(sel)} {sel.unit}</strong>
+          </div>
+          <Fld label={`Corrected Quantity (${sel.unit})`}>
+            <Inp type="number" min="0" value={form.newQty ?? ""} onChange={(e) => setForm({ ...form, newQty: e.target.value })} />
+          </Fld>
+          <Fld label="Reason for Correction" hint="e.g. physical count, damaged goods, miscount">
+            <TA value={form.reason || ""} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
+          </Fld>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
+            <Btn v="gold" onClick={adjustStock} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Saving..." : "Save Correction"}</Btn>
           </div>
         </Modal>
       )}

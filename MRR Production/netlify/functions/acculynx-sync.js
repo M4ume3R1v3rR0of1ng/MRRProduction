@@ -13,6 +13,7 @@ function getCorsHeaders(requestOrigin) {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization", // 🟢 CORS allows Authorization headers
     "Access-Control-Max-Age": "86400",
+    "X-Content-Type-Options": "nosniff",
   };
 }
 
@@ -64,41 +65,30 @@ exports.handler = async (event) => {
     }
 
     // ── Search action: used by the Build Jobs "Find Job" wizard step ──
+    // AccuLynx has no `search`/`jobNumber` filter on GET /jobs — real full-text search
+    // is a separate endpoint: POST /jobs/search with { searchTerm } in the body.
     if (body.action === "search") {
       const q = (body.query || "").trim();
       if (!q) {
         return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Missing search query" }) };
       }
       try {
-        // Run a name search and, if query looks numeric, a parallel job-number search
-        const nameUrl = `https://api.acculynx.com/api/v2/jobs?search=${encodeURIComponent(q)}&page=1&pageSize=10`;
-        const requests = [
-          fetch(nameUrl, { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } }),
-        ];
-        const isNumeric = /^\d+$/.test(q);
-        if (isNumeric) {
-          const numUrl = `https://api.acculynx.com/api/v2/jobs?jobNumber=${encodeURIComponent(q)}&page=1&pageSize=10`;
-          requests.push(fetch(numUrl, { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } }));
-        }
-        const rawResponses = [];
-        const responses = await Promise.all(requests);
-        const dataArrays = await Promise.all(
-          responses.map(async (r) => {
-            if (!r.ok) return [];
-            const d = await r.json();
-            rawResponses.push({ keys: Object.keys(d || {}), status: r.status, sample: JSON.stringify(d).slice(0, 500) });
-            console.log("AccuLynx raw response:", JSON.stringify(d));
-            return d?.data || d?.items || d?.jobs || d?.results || (Array.isArray(d) ? d : []);
-          })
+        const res = await fetch(
+          `https://api.acculynx.com/api/v2/jobs/search?pageSize=10&recordStartIndex=0`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ searchTerm: q }),
+          }
         );
-        // Merge and deduplicate by id
-        const seen = new Set();
-        const merged = dataArrays.flat().filter((j) => {
-          if (!j?.id || seen.has(j.id)) return false;
-          seen.add(j.id);
-          return true;
-        });
-        const jobs = merged.map((j) => {
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`AccuLynx job search failed: HTTP ${res.status} ${txt}`);
+        }
+        const d = await res.json();
+        console.log("AccuLynx raw response:", JSON.stringify(d));
+        const rawJobs = d?.data || d?.items || d?.jobs || d?.results || (Array.isArray(d) ? d : []);
+        const jobs = rawJobs.map((j) => {
           const loc = j.locationAddress || {};
           const addrParts = [loc.street1, loc.city].filter(Boolean);
           return {
@@ -109,7 +99,8 @@ exports.handler = async (event) => {
           };
         });
         if (jobs.length === 0) {
-          return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, jobs: [], _debug: rawResponses }) };
+          const debugInfo = [{ keys: Object.keys(d || {}), status: res.status, sample: JSON.stringify(d).slice(0, 500) }];
+          return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, jobs: [], _debug: debugInfo }) };
         }
         return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, jobs }) };
       } catch (err) {
@@ -131,24 +122,20 @@ exports.handler = async (event) => {
           const jobData = await jobRes.json();
           rawJob = jobData?.data ? jobData.data : jobData;
         } else if (poNumber) {
-          // Try jobNumber filter first (exact match), then fall back to text search
-          const byNum = await fetch(
-            `https://api.acculynx.com/api/v2/jobs?jobNumber=${encodeURIComponent(poNumber)}&page=1&pageSize=1`,
-            { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } }
-          );
-          if (byNum.ok) {
-            const numData = await byNum.json();
-            rawJob = numData?.data?.[0] || numData?.items?.[0] || null;
-          }
-          if (!rawJob) {
-            const bySearch = await fetch(
-              `https://api.acculynx.com/api/v2/jobs?search=${encodeURIComponent(poNumber)}&page=1&pageSize=1`,
-              { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } }
-            );
-            if (bySearch.ok) {
-              const searchData = await bySearch.json();
-              rawJob = searchData?.data?.[0] || searchData?.items?.[0] || null;
+          // Real full-text search lives on POST /jobs/search with { searchTerm } — prefer an
+          // exact jobNumber match among results, fall back to the top hit.
+          const searchRes = await fetch(
+            `https://api.acculynx.com/api/v2/jobs/search?pageSize=10&recordStartIndex=0`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ searchTerm: poNumber }),
             }
+          );
+          if (searchRes.ok) {
+            const searchData = await searchRes.json();
+            const candidates = searchData?.data || searchData?.items || searchData?.jobs || searchData?.results || (Array.isArray(searchData) ? searchData : []);
+            rawJob = candidates.find((j) => String(j.jobNumber) === String(poNumber)) || candidates[0] || null;
           }
         } else {
           return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Provide acculynxJobId or poNumber" }) };
@@ -174,24 +161,27 @@ exports.handler = async (event) => {
       }
     }
 
-    // ── FIX 1: Look up AccuLynx internal numeric Job ID via your specification query ──
+    // ── Look up AccuLynx internal numeric Job ID via the real search endpoint ──
     const searchRes = await fetch(
-      `https://api.acculynx.com/api/v2/jobs?search=${encodeURIComponent(body.poNumber)}&page=1&pageSize=5`,
+      `https://api.acculynx.com/api/v2/jobs/search?pageSize=5&recordStartIndex=0`,
       {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${apiKey}`, 
-          'Content-Type': 'application/json', 
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ searchTerm: body.poNumber }),
       }
     );
 
     if (!searchRes.ok) {
       const txt = await searchRes.text();
-      throw new Error(`AccuLynx job lookup failed ${searchRes.status}: ${txt}`); 
+      throw new Error(`AccuLynx job lookup failed ${searchRes.status}: ${txt}`);
     }
 
-    const searchData = await searchRes.json(); 
-    const acculynxJob = searchData?.data?.[0]; // Grab first array match
+    const searchData = await searchRes.json();
+    const searchCandidates = searchData?.data || searchData?.items || searchData?.jobs || searchData?.results || (Array.isArray(searchData) ? searchData : []);
+    const acculynxJob = searchCandidates.find((j) => String(j.jobNumber) === String(body.poNumber)) || searchCandidates[0];
 
     if (!acculynxJob?.id) {
       return {

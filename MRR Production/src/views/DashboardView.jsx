@@ -11,6 +11,7 @@ export default function DashboardView({
   vehs,
   reqs,
   jobs,
+  jobTrailers = [],
   users,
   user,
   perms,
@@ -29,6 +30,13 @@ export default function DashboardView({
   const newJobs = myJobs.filter((j) => j.newforassigned || j.newForAssigned);
 
   const [newJobAlert, setNewJobAlert] = useState(null);
+
+  const alertTrailerNames = newJobAlert
+    ? jobTrailers
+        .filter((jt) => jt.job_id === newJobAlert.id)
+        .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
+        .filter(Boolean)
+    : [];
 
   useEffect(() => {
     if (newJobs.length > 0 && !newJobAlert) {
@@ -383,6 +391,12 @@ export default function DashboardView({
                 </div>
               )}
             </div>
+
+            {alertTrailerNames.length > 0 && (
+              <div style={{ background: "#fff7ed", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1.5px solid ${C.am}`, marginBottom: 16, fontWeight: "var(--weight-bold)", color: C.am }}>
+                🚚 {lang === "es" ? "Debe llevar remolque(s)" : "Bring trailer(s)"}: {alertTrailerNames.join(", ")}
+              </div>
+            )}
 
             <Btn v="teal" onClick={acknowledgeJob} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
               {lang === "es" ? "Entendido, Abrir Lista de Materiales →" : "Got It, Open Job Materials Checklist →"}

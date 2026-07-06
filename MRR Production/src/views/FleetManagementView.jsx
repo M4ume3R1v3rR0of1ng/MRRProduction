@@ -17,6 +17,7 @@ import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 import TrailerCalendar from "../components/TrailerCalendar";
+import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 
 // ── SUB-COMPONENT: ReqModal (Named Export) ─────────
 export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
@@ -222,8 +223,6 @@ export default function FleetManagementView({
   users,
   user,
   perms,
-  vehPhotos,
-  setVehPhotos,
   oilSt,
   detSt,
   predDays,
@@ -263,12 +262,17 @@ export default function FleetManagementView({
     dii: "90",
   });
   const filtered = vehs.filter((v) => filt === "all" || v.type === filt);
-  const setPhoto = (id, data) =>
-    setVehPhotos((p) =>
-      data
-        ? { ...p, [id]: data }
-        : Object.fromEntries(Object.entries(p).filter(([k]) => k !== id)),
-    );
+  const setPhoto = async (id, data) => {
+    try {
+      const photo_url = data ? await uploadPhotoToBucket("vehicle-photos", id, data) : null;
+      const { error } = await supabase.from("vehicles").update({ photo_url }).eq("id", id);
+      if (error) throw error;
+      setVehs((p) => p.map((v) => (v.id === id ? { ...v, photo_url } : v)));
+      setSel((p) => (p && p.id === id ? { ...p, photo_url } : p));
+    } catch (err) {
+      showToast(`Failed to save vehicle photo: ${err.message}`, "error");
+    }
+  };
 
   const logMi = () => {
     if (!form.mi || !form.date) return;
@@ -736,7 +740,7 @@ export default function FleetManagementView({
               (r) => r.vid === v.id && r.status !== "completed",
             );
             const asgn = users.find((u) => u.id === v.assignedTo);
-            const photo = vehPhotos[v.id];
+            const photo = v.photo_url;
             return (
               <div
                 key={v.id}
@@ -1128,7 +1132,7 @@ export default function FleetManagementView({
           <div style={{ marginBottom: 16 }}>
             <Fld label="Vehicle Photo">
               <PhotoUpload
-                current={vehPhotos[sel.id] || null}
+                current={sel.photo_url || null}
                 onUpload={(data) => setPhoto(sel.id, data)}
                 label="Upload vehicle photo"
                 maxDim={600}

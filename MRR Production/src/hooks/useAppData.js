@@ -21,7 +21,6 @@ export function useAppData() {
   const [reqs, setReqs] = useState([]);
   const [jobs, setJobs] = useState(SEED_JOBS);
   const [jobTrailers, setJobTrailers] = useState([]);
-  const [jobPhotos, setJobPhotos] = useState({});
   const [rolePerms, setRolePerms] = useState({
     warehouse: { ...DEFAULT_ROLE_PERMS.warehouse },
     coordinator: { ...DEFAULT_ROLE_PERMS.coordinator },
@@ -36,10 +35,8 @@ export function useAppData() {
     autoSync: true,
     proxyUrl: "",
   });
-  const [invPhotos, setInvPhotos] = useState({});
-  const [vehPhotos, setVehPhotos] = useState({});
-  const [logos, setLogos] = useState([]);
-  
+  const [logos, setLogos] = useState(null);
+
   const { showToast } = useNotify();
 
   // ── ⚙️ UNIFIED DATA INITIALIZATION ENGINE ──
@@ -49,28 +46,11 @@ export function useAppData() {
       try {
         setLoadingProgress(10); // Start cache extraction step[cite: 6]
 
-        const [ip, vp, lg, ax, jp] = await Promise.all([
-          storage.get("mrr-v7-inv-photos").catch(() => null),
-          storage.get("mrr-v7-veh-photos").catch(() => null),
-          storage.get("mrr-v7-logos").catch(() => null),
+        const [ax] = await Promise.all([
           storage.get("mrr-v7-acculynx").catch(() => null),
-          storage.get("mrr-v7-job-photos").catch(() => null),
         ]);
 
-        if (ip?.value) setInvPhotos(JSON.parse(ip.value));
-        if (vp?.value) setVehPhotos(JSON.parse(vp.value));
         if (ax?.value) setAccuLynxConfig((p) => ({ ...p, ...JSON.parse(ax.value) }));
-        if (jp?.value) setJobPhotos(JSON.parse(jp.value));
-
-        if (lg?.value) {
-          try {
-            const parsedLogos = JSON.parse(lg.value);
-            if (Array.isArray(parsedLogos)) setLogos(parsedLogos);
-            else setLogos([]);
-          } catch (e) {
-            setLogos([]);
-          }
-        }
 
         setLoadingProgress(25); // Cache verified, starting database lookups[cite: 6]
 
@@ -150,6 +130,11 @@ export function useAppData() {
             }
             trackProgress(7);
           })(),
+          (async () => {
+            const { data, error } = await supabase.from("settings").select("value").eq("key", "company_logo").maybeSingle();
+            if (!error && data?.value) setLogos(data.value);
+            trackProgress(7);
+          })(),
         ]);
 
         setLoadingProgress(100);
@@ -164,13 +149,9 @@ export function useAppData() {
   }, []);
 
   // ── 💾 BACKGROUND STORAGE SYNCHRONIZER EFFECTS ──
-  useEffect(() => { if (!loading) storage.set("mrr-v7-inv-photos", JSON.stringify(invPhotos)).catch(() => {}); }, [invPhotos, loading]);
-  useEffect(() => { if (!loading) storage.set("mrr-v7-veh-photos", JSON.stringify(vehPhotos)).catch(() => {}); }, [vehPhotos, loading]);
-  useEffect(() => { if (!loading) storage.set("mrr-v7-logos", JSON.stringify(logos)).catch(() => {}); }, [logos, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-roleperms", JSON.stringify(rolePerms)).catch(() => {}); }, [rolePerms, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-userov", JSON.stringify(userOverrides)).catch(() => {}); }, [userOverrides, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-acculynx", JSON.stringify(acculynxConfig)).catch(() => {}); }, [acculynxConfig, loading]);
-  useEffect(() => { if (!loading) storage.set("mrr-v7-job-photos", JSON.stringify(jobPhotos)).catch(() => {}); }, [jobPhotos, loading]);
 
   // ── 📡 OFFLINE BACKEND RETRY LISTENER ──
   useEffect(() => {
@@ -249,10 +230,7 @@ export function useAppData() {
   const pendingReqCount = useMemo(() => reqs.filter((r) => r.status === "pending").length, [reqs]);
   const lowStockCount = useMemo(() => inv.filter((i) => tot(i) <= i.alrt).length, [inv]);
   const newJobsForMe = useMemo(() => curUser ? jobs.filter((j) => (j.newforassigned || j.newForAssigned) && (j.assignedto || j.assignedTo) === curUser.id).length : 0, [jobs, curUser]);
-  const activeLogo = useMemo(() => {
-    if (!logos || !Array.isArray(logos)) return null;
-    return logos.find((l) => l.isActive)?.data || null;
-  }, [logos]);
+  const activeLogo = logos || null;
 
   const userPerms = useMemo(() => {
     if (!curUser) return {};
@@ -278,18 +256,12 @@ export function useAppData() {
     setJobs,
     jobTrailers,
     setJobTrailers,
-    jobPhotos,
-    setJobPhotos,
     rolePerms,
     setRolePerms,
     userOverrides,
     setUserOverrides,
     acculynxConfig,
     setAccuLynxConfig,
-    invPhotos,
-    setInvPhotos,
-    vehPhotos,
-    setVehPhotos,
     chatUnread,
     markChatRead,
     logos,
