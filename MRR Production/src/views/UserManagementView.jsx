@@ -1,6 +1,6 @@
 // src/views/UserManagementView.jsx
 import { useState } from "react";
-import { supabase } from "../utils/supabase";
+import { supabase, getAccessToken } from "../utils/supabase";
 import { C, uid } from "../utils/helpers";
 import {
   PERM_DEFS,
@@ -33,6 +33,7 @@ export default function Users({
   const [form, setForm] = useState({});
   const [editing, setEditing] = useState(null);
   const [permUser, setPermUser] = useState(null);
+  const [pwForm, setPwForm] = useState({});
 
   const { showToast } = useNotify();
 
@@ -40,13 +41,13 @@ export default function Users({
     if (!form.name || !form.email || !form.role) return;
 
     // ✅ Map input cleanly to match your actual profiles table columns
-    const profilePayload = { 
+    const profilePayload = {
       name: form.name.trim(),
-      full_name: form.name.trim(), 
-      email: form.email.trim(), 
-      role: form.role 
+      full_name: form.name.trim(),
+      email: form.email.trim(),
+      role: form.role
     };
-    
+
     try {
       if (editing) {
         // ✅ Fixed: Now passing profilePayload containing full_name directly to Supabase
@@ -61,20 +62,28 @@ export default function Users({
         );
         showToast("User updates saved successfully.", "success");
       } else {
-        const newUserId = crypto.randomUUID();
-        const newUserPayload = {
-          id: newUserId,
-          active: true,
-          ...profilePayload
-        };
+        if (!form.password || form.password.length < 8) {
+          showToast("Set a temporary password of at least 8 characters.", "warning");
+          return;
+        }
+        if (form.password !== form.confirmPassword) {
+          showToast("Passwords don't match.", "warning");
+          return;
+        }
+        // Creates a real Supabase Auth user directly (no invite email) so the
+        // auth.users -> profiles trigger fires with a real, FK-valid id — a
+        // fabricated client-side UUID can never satisfy profiles_id_fkey.
+        const accessToken = await getAccessToken();
+        const response = await fetch("/.netlify/functions/create-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken, password: form.password, ...profilePayload }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
 
-        const { error } = await supabase
-          .from("profiles")
-          .insert([newUserPayload]);
-        if (error) throw error;
-
-        setUsers((p) => [...p, newUserPayload]);
-        showToast("New user added successfully.", "success");
+        setUsers((p) => [...p, { id: result.id, active: true, ...profilePayload }]);
+        showToast("User created — share the temporary password with them directly.", "success");
       }
       setModal(null);
       setForm({});
@@ -151,6 +160,41 @@ export default function Users({
     setModal("perms");
   };
 
+  const submitResetPassword = async () => {
+    if (!pwForm.password || pwForm.password.length < 8) {
+      showToast("Set a temporary password of at least 8 characters.", "warning");
+      return;
+    }
+    if (pwForm.password !== pwForm.confirmPassword) {
+      showToast("Passwords don't match.", "warning");
+      return;
+    }
+
+    try {
+      const accessToken = await getAccessToken();
+      const response = await fetch("/.netlify/functions/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken, targetUserId: editing, password: pwForm.password }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+
+      await logAction(
+        currentUser?.id ?? null,
+        currentUser?.email ?? null,
+        "USER_MANAGEMENT",
+        `Reset password for user: ${form.email}`,
+      );
+
+      showToast("Temporary password set — share it with the user directly.", "success");
+      setPwForm({});
+    } catch (err) {
+      console.error("Failed to reset password:", err);
+      showToast(`Database Error: Password reset failed. ${err.message}`, "error");
+    }
+  };
+
   const handleEditUser = (targetUser) => {
     setForm({
       name: targetUser.full_name || targetUser.name || "",
@@ -158,49 +202,44 @@ export default function Users({
       role: targetUser.role || "field"
     });
     setEditing(targetUser.id);
+    setPwForm({});
     setModal("user");
   };
 
-  const handleDeactivateUser = async (targetUserId) => {
+  const handleRemoveUser = async (targetUserId) => {
     if (targetUserId === currentUser?.id) {
-      showToast("Security Violation: You cannot lock your own profile session!", "warning");
+      showToast("Security Violation: You cannot remove your own account!", "warning");
       return;
     }
 
     const matchedUser = users.find(u => u.id === targetUserId);
     if (!matchedUser) return;
 
-    const nextActiveState = !matchedUser.active;
-    const msg = nextActiveState 
-      ? `Reactivate permissions access for ${matchedUser.name || 'this user'}?`
-      : `Deactivate ${matchedUser.name || 'this user'}? They will immediately lose WMS system clearance.`;
-
-    if (!window.confirm(msg)) return;
+    if (!window.confirm(`Permanently remove ${matchedUser.name || 'this user'}? This deletes their account entirely and cannot be undone.`)) return;
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ active: nextActiveState })
-        .eq("id", targetUserId);
-      if (error) throw error;
+      const accessToken = await getAccessToken();
+      const response = await fetch("/.netlify/functions/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken, targetUserId }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
 
-      setUsers((p) =>
-        p.map((x) =>
-          x.id === targetUserId ? { ...x, active: nextActiveState } : x,
-        ),
-      );
+      setUsers((p) => p.filter((x) => x.id !== targetUserId));
 
       await logAction(
         currentUser?.id ?? null,
         currentUser?.email ?? null,
         "USER_MANAGEMENT",
-        `Set profile active state to ${nextActiveState} for user: ${matchedUser.email}`
+        `Permanently removed user account: ${matchedUser.email}`
       );
-      
-      showToast(nextActiveState ? "User profile reactivated." : "User account deactivated.", "success");
+
+      showToast("User removed.", "success");
     } catch (err) {
-      console.error("Failed to change user status metrics:", err);
-      showToast(`Database Error: Status update failed. ${err.message}`, "error");
+      console.error("Failed to remove user:", err);
+      showToast(`Database Error: Removal failed. ${err.message}`, "error");
     }
   };
 
@@ -257,13 +296,13 @@ export default function Users({
                     <Btn v="ghost" sz="sm" onClick={() => handleEditUser(u)}>
                       Edit
                     </Btn>
-                    <Btn 
-                      v={u.active ? "danger-ghost" : "primary-ghost"} 
-                      sz="sm" 
-                      onClick={() => handleDeactivateUser(u.id)}
+                    <Btn
+                      v="danger"
+                      sz="sm"
+                      onClick={() => handleRemoveUser(u.id)}
                       style={{ minWidth: 95, textAlign: "center" }}
                     >
-                      {u.active ? "Deactivate" : "Activate"}
+                      🗑️ Remove
                     </Btn>
                   </div>
                 </td>
@@ -274,7 +313,7 @@ export default function Users({
       </div>
 
       {modal === "user" && (
-        <Modal title={editing ? "Edit User" : "Add New User"} onClose={() => { setModal(null); setEditing(null); setForm({}); }}>
+        <Modal title={editing ? "Edit User" : "Add New User"} onClose={() => { setModal(null); setEditing(null); setForm({}); setPwForm({}); }}>
           <Fld label="Full Name *"><Inp value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Fld>
           <Fld label="Email Address"><Inp type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="user@maumeeriverroofing.com" /></Fld>
           <Fld label="Role *">
@@ -288,10 +327,38 @@ export default function Users({
               <option value="bookkeeper">Book Keeper</option>
             </Sel>
           </Fld>
+          {!editing && (
+            <>
+              <Fld label="Temporary Password *" hint="Share this with the new user directly">
+                <Inp type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="At least 8 characters" />
+              </Fld>
+              <Fld label="Confirm Password *">
+                <Inp type="password" value={form.confirmPassword || ""} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
+              </Fld>
+            </>
+          )}
           <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-            <Btn v="ghost" onClick={() => { setModal(null); setEditing(null); setForm({}); }} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
+            <Btn v="ghost" onClick={() => { setModal(null); setEditing(null); setForm({}); setPwForm({}); }} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
             <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }}>{editing ? "Save Changes" : "Add User"}</Btn>
           </div>
+
+          {editing && (
+            <div style={{ marginTop: 22, paddingTop: 18, borderTop: `1px solid ${C.lg}` }}>
+              <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)", marginBottom: 8 }}>
+                🔑 Reset Password
+              </div>
+              <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 10 }}>
+                Forgot their password? Set a new temporary one here. Share it with them directly and they will be prompted to change it on next login.
+              </div>
+              <Fld label="New Temporary Password" hint="At least 8 characters">
+                <Inp type="password" value={pwForm.password || ""} onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })} placeholder="At least 8 characters" />
+              </Fld>
+              <Fld label="Confirm New Password">
+                <Inp type="password" value={pwForm.confirmPassword || ""} onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })} />
+              </Fld>
+              <Btn v="outline" onClick={submitResetPassword} style={{ width: "100%", justifyContent: "center" }}>Set New Password</Btn>
+            </div>
+          )}
         </Modal>
       )}
 

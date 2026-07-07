@@ -174,6 +174,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
         .from('team_chat_messages')
         .update({ message: text, edited_at: new Date().toISOString() })
         .eq('id', editingId)
+        .eq('user_id', user?.id)
         .select()
         .single();
       if (editError) throw editError;
@@ -198,7 +199,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
   const deleteMessage = async (m) => {
     if (!window.confirm('Delete this message?')) return;
     try {
-      const { error: deleteError } = await supabase.from('team_chat_messages').delete().eq('id', m.id);
+      const { error: deleteError } = await supabase.from('team_chat_messages').delete().eq('id', m.id).eq('user_id', user?.id);
       if (deleteError) throw deleteError;
       setError('');
       removeMessage(m.id);

@@ -206,33 +206,39 @@ export default function SettingsView({
         { onConflict: "key" }
       );
 
-      if (error) throw error;
-
-      // 2. Perform validation ping routine using the correct POST method rules
-      const proxyRoute = acculynxConfig?.proxyUrl || "/.netlify/functions/acculynx-sync";
-      const accessToken = await getAccessToken();
-
-      const response = await fetch(proxyRoute, {
-        method: "POST", // 🟢 Changed from GET to POST
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "validate", // Tells your Netlify function to run the account handshake
-          apiKey: acculynxConfig?.apiKey || "",
-          accessToken,
-        }),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text().catch(() => `HTTP ${response.status}`);
-        throw new Error(errText);
+      if (error) {
+        showToast(`Failed to save AccuLynx credentials: ${error.message}`, "error");
+        return;
       }
 
-      showToast("AccuLynx Gateway synchronization confirmed and running successfully! 🔄", "success");
-    } catch (err) {
-      console.warn("Proxy handshake notification summary:", err);
-      showToast(`Credentials saved safely to cloud, but gateway ping failed: ${err.message || "Network Timeout"}`, "info");
+      // 2. Perform validation ping routine using the correct POST method rules
+      try {
+        const proxyRoute = acculynxConfig?.proxyUrl || "/.netlify/functions/acculynx-sync";
+        const accessToken = await getAccessToken();
+
+        const response = await fetch(proxyRoute, {
+          method: "POST", // 🟢 Changed from GET to POST
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "validate", // Tells your Netlify function to run the account handshake
+            apiKey: acculynxConfig?.apiKey || "",
+            accessToken,
+          }),
+        });
+
+        if (!response.ok) {
+          const errText = await response.text().catch(() => `HTTP ${response.status}`);
+          throw new Error(errText);
+        }
+
+        showToast("AccuLynx Gateway synchronization confirmed and running successfully! 🔄", "success");
+      } catch (pingErr) {
+        // The credentials above did save successfully — only the connection test failed.
+        console.warn("Proxy handshake notification summary:", pingErr);
+        showToast(`Credentials saved, but the gateway test failed: ${pingErr.message || "Network Timeout"}`, "warning");
+      }
     } finally {
       setSavingAx(false);
     }

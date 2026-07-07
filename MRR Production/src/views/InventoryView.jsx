@@ -204,15 +204,27 @@ export default function InventoryView({
 
   const rcvBatch = async () => {
     if (!form.qty || !form.price || !form.date || !sel) return;
+    const qty = parseFloat(form.qty);
+    const price = parseFloat(form.price);
+    // Negative qty/price are allowed intentionally — temporary corrections ahead
+    // of a later batch that zeroes them back out. Only reject non-numeric input.
+    if (isNaN(qty)) {
+      showToast("Quantity must be a valid number.", "warning");
+      return;
+    }
+    if (isNaN(price)) {
+      showToast("Price must be a valid number.", "warning");
+      return;
+    }
     setSaving(true);
 
     const b = {
       id: "b_" + uid(),
       rcvd: form.date,
-      qty: parseFloat(form.qty),
-      price: parseFloat(form.price) || newestPrice(sel),
+      qty,
+      price: price || newestPrice(sel),
       by: user?.id || "system",
-      rem: parseFloat(form.qty),
+      rem: qty,
     };
 
     // Fix 4: Safeguard against non-iterable batches array states using a defensive fallback array
@@ -381,9 +393,14 @@ export default function InventoryView({
       showToast("Please set a received date.", "info");
       return;
     }
-    const valid = bulkItems.filter((b) => parseFloat(b.qty) > 0);
+    // Negative qty/price are allowed intentionally — temporary corrections ahead
+    // of a later batch that zeroes them back out. Only exclude zero/non-numeric rows.
+    const valid = bulkItems.filter((b) => {
+      const qty = parseFloat(b.qty);
+      return !isNaN(qty) && qty !== 0;
+    });
     if (valid.length === 0) {
-      showToast("Add at least one item with a quantity > 0.", "info");
+      showToast("Add at least one item with a non-zero quantity.", "info");
       return;
     }
 
@@ -835,14 +852,14 @@ export default function InventoryView({
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "var(--space-3)", alignItems: "end" }}>
                             <div>
                               <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Qty ({b.unit})</div>
-                              <Inp type="number" min="1" value={b.qty} onChange={(e) => updateBulk(b.iid, "qty", e.target.value)} placeholder="0" style={{ padding: "5px 8px" }} />
+                              <Inp type="number" value={b.qty} onChange={(e) => updateBulk(b.iid, "qty", e.target.value)} placeholder="0" style={{ padding: "5px 8px" }} />
                             </div>
                             <div>
                               <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Unit Price</div>
                               <div style={{ position: "relative" }}>
                                 <span style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", color: C.sub, fontSize: "var(--text-xs)" }}>$</span>
                                 {perms.inv_pricing_edit ? (
-                                  <Inp type="number" step="0.01" min="0" value={b.price} onChange={(e) => updateBulk(b.iid, "price", e.target.value)} placeholder="0.00" style={{ padding: "5px 8px", paddingLeft: 16 }} />
+                                  <Inp type="number" step="0.01" value={b.price} onChange={(e) => updateBulk(b.iid, "price", e.target.value)} placeholder="0.00" style={{ padding: "5px 8px", paddingLeft: 16 }} />
                                 ) : (
                                   <Inp value={b.price} readOnly style={{ padding: "5px 8px", paddingLeft: 16, color: C.sub, background: C.lg }} />
                                 )}
@@ -862,7 +879,7 @@ export default function InventoryView({
                     <div>
                       <div style={{ color: "rgba(255,255,255,0.55)", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>Manifest Valuation</div>
                       <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "var(--text-xs)", marginTop: 2 }}>
-                        {bulkItems.filter((b) => parseFloat(b.qty) > 0).length} valid item positions
+                        {bulkItems.filter((b) => { const q = parseFloat(b.qty); return !isNaN(q) && q !== 0; }).length} valid item positions
                       </div>
                     </div>
                     <div style={{ fontWeight: "var(--weight-black)", fontSize: "var(--text-3xl)", color: C.gold }}>{fm(bulkTotal)}</div>
@@ -875,7 +892,7 @@ export default function InventoryView({
           <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => { setModal(null); setBulkItems([]); setBulkSrch(""); }} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
             <Btn v="gold" sz="lg" onClick={confirmBulk} style={{ flex: 2, justifyContent: "center" }} disabled={saving}>
-              {saving ? "⏳ Logging Operation..." : `✅ Commit Manifest (${bulkItems.filter((b) => parseFloat(b.qty) > 0).length} Items)`}
+              {saving ? "⏳ Logging Operation..." : `✅ Commit Manifest (${bulkItems.filter((b) => { const q = parseFloat(b.qty); return !isNaN(q) && q !== 0; }).length} Items)`}
             </Btn>
           </div>
         </Modal>

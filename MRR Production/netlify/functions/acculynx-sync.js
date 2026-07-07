@@ -5,6 +5,7 @@ const { createClient } = require("@supabase/supabase-js");
 const ALLOWED_ORIGINS = [
   "https://mrrproduction.netlify.app",
   "http://localhost:5173",
+  "http://localhost:8888",
   "http://localhost:3000",
 ];
 
@@ -180,67 +181,99 @@ exports.handler = async (event) => {
       }
     }
 
-    // ── Look up AccuLynx internal numeric Job ID via the real search endpoint ──
-    const searchRes = await fetch(
-      `https://api.acculynx.com/api/v2/jobs/search?pageSize=5&recordStartIndex=0`,
+    // ── Default action: record material costs on the AccuLynx job ──
+    if (!body.acculynxJobId && (!body.poNumber || body.poNumber === "NO_PO")) {
+      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Job has no PO number to match against AccuLynx" }) };
+    }
+
+    const amount = Math.round(Number(body.totalMaterialCost) * 100) / 100;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ ok: true, skipped: true, message: "No material cost to sync (net pulled quantity is zero)." }),
+      };
+    }
+
+    // Jobs linked through the Build Jobs wizard carry the AccuLynx job id
+    // directly; only fall back to a PO-number lookup for unlinked jobs.
+    let acculynxJob = body.acculynxJobId ? { id: body.acculynxJobId } : null;
+
+    if (!acculynxJob) {
+      const searchRes = await fetch(
+        `https://api.acculynx.com/api/v2/jobs/search?pageSize=25&recordStartIndex=0`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ searchTerm: body.poNumber }),
+        }
+      );
+
+      if (!searchRes.ok) {
+        const txt = await searchRes.text();
+        throw new Error(`AccuLynx job lookup failed ${searchRes.status}: ${txt}`);
+      }
+
+      const searchData = await searchRes.json();
+      const searchCandidates = searchData?.data || searchData?.items || searchData?.jobs || searchData?.results || (Array.isArray(searchData) ? searchData : []);
+      // Exact jobNumber match only — costs are written to the job, so a
+      // best-guess fallback would silently post expenses onto the wrong file.
+      acculynxJob = searchCandidates.find((j) => String(j.jobNumber) === String(body.poNumber));
+    }
+
+    if (!acculynxJob?.id) {
+      return {
+        statusCode: 404,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          ok: false,
+          error: `No AccuLynx job with job number "${body.poNumber}" — sync skipped to avoid posting costs to the wrong job`
+        }),
+      };
+    }
+
+    const acculynxJobId = acculynxJob.id;
+
+    // AccuLynx has no /lineitems endpoint; material costs are recorded as an
+    // Additional Job Expense payment. The per-item breakdown goes in `notes`.
+    const itemLines = Array.isArray(body.lineItems)
+      ? body.lineItems.map((li) =>
+          `${li.name} — ${li.quantity} ${li.unit} @ $${Number(li.unitPrice || 0).toFixed(2)} = $${Number(li.totalCost || 0).toFixed(2)}`
+        )
+      : [];
+    let notes = [body.paymentDescription, ...itemLines].filter(Boolean).join("\n");
+    if (notes.length > 1900) notes = `${notes.slice(0, 1900)}…`;
+
+    const expenseRes = await fetch(
+      `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/payments/expense`,
       {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ searchTerm: body.poNumber }),
-      }
-    );
-
-    if (!searchRes.ok) {
-      const txt = await searchRes.text();
-      throw new Error(`AccuLynx job lookup failed ${searchRes.status}: ${txt}`);
-    }
-
-    const searchData = await searchRes.json();
-    const searchCandidates = searchData?.data || searchData?.items || searchData?.jobs || searchData?.results || (Array.isArray(searchData) ? searchData : []);
-    const acculynxJob = searchCandidates.find((j) => String(j.jobNumber) === String(body.poNumber)) || searchCandidates[0];
-
-    if (!acculynxJob?.id) {
-      return {
-        statusCode: 404,
-        headers: corsHeaders,
-        body: JSON.stringify({ 
-          ok: false, 
-          error: `No AccuLynx job found matching PO: ${body.poNumber}` 
-        }),
-      };
-    }
-
-    const acculynxJobId = acculynxJob.id; 
-
-    // ── FIX 2: Send clean, precisely schema-matched body down to official endpoint ──
-    const lineItemRes = await fetch(
-      `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/lineitems`, 
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`, 
-          'Content-Type': 'application/json', 
-        },
         body: JSON.stringify({
-          description: body.paymentDescription,
-          amount: body.totalMaterialCost, 
-          lineItems: body.lineItems, 
+          to: body.paidTo || "MRR Warehouse",
+          amount,
+          notes,
+          isPaid: true,
+          refNumber: body.poNumber && body.poNumber !== "NO_PO" ? String(body.poNumber).slice(0, 255) : undefined,
         }),
       }
     );
 
-    if (!lineItemRes.ok) {
-      const txt = await lineItemRes.text(); 
-      throw new Error(`AccuLynx line item error ${lineItemRes.status}: ${txt}`); 
+    if (!expenseRes.ok) {
+      const txt = await expenseRes.text();
+      throw new Error(`AccuLynx expense error ${expenseRes.status}: ${txt}`);
     }
 
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: JSON.stringify({ ok: true, acculynxJobId }), 
+      body: JSON.stringify({ ok: true, acculynxJobId, message: "Material costs recorded in AccuLynx as an additional job expense." }),
     };
 
   } catch (globalError) {

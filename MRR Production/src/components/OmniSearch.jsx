@@ -8,6 +8,7 @@ export default function OmniSearch({
   vehs = [],
   reqs = [],
   inv = [],
+  perms = {},
   onNavigate,
   onInventorySearch,
 }) {
@@ -32,56 +33,66 @@ export default function OmniSearch({
     if (!txt) return null;
 
     return {
-      // 🏗️ 1. Pipeline Contracts
-      jobs: jobs
-        .filter(
-          (j) =>
-            j.name?.toLowerCase().includes(txt) ||
-            j.poNumber?.toLowerCase().includes(txt) ||
-            j.address?.toLowerCase().includes(txt),
-        )
-        .slice(0, 3),
+      // 🏗️ 1. Pipeline Contracts — only for users who can view jobs
+      jobs: !perms.jobs_view
+        ? []
+        : jobs
+            .filter(
+              (j) =>
+                j.name?.toLowerCase().includes(txt) ||
+                j.poNumber?.toLowerCase().includes(txt) ||
+                j.address?.toLowerCase().includes(txt),
+            )
+            .slice(0, 3),
 
-      // 👥 2. Corporate Team Members
-      users: users
-        .filter(
-          (u) =>
-            u.full_name?.toLowerCase().includes(txt) ||
-            u.email?.toLowerCase().includes(txt) ||
-            u.role?.toLowerCase().includes(txt),
-        )
-        .slice(0, 3),
+      // 👥 2. Corporate Team Members — only for user management
+      users: !perms.users_manage
+        ? []
+        : users
+            .filter(
+              (u) =>
+                u.full_name?.toLowerCase().includes(txt) ||
+                u.email?.toLowerCase().includes(txt) ||
+                u.role?.toLowerCase().includes(txt),
+            )
+            .slice(0, 3),
 
-      // 🚛 3. Fleet Operations Registry
-      vehicles: vehs
-        .filter(
-          (v) =>
-            v.make?.toLowerCase().includes(txt) ||
-            v.model?.toLowerCase().includes(txt) ||
-            v.plates?.toLowerCase().includes(txt) ||
-            v.assigned_to?.toLowerCase().includes(txt),
-        )
-        .slice(0, 3),
+      // 🚛 3. Fleet Operations Registry — only for fleet viewers
+      vehicles: !perms.fleet_view
+        ? []
+        : vehs
+            .filter(
+              (v) =>
+                v.make?.toLowerCase().includes(txt) ||
+                v.model?.toLowerCase().includes(txt) ||
+                v.plates?.toLowerCase().includes(txt) ||
+                v.assigned_to?.toLowerCase().includes(txt),
+            )
+            .slice(0, 3),
 
-      // 🔧 4. Maintenance Work Orders
-      requests: reqs
-        .filter(
-          (r) =>
-            r.issue?.toLowerCase().includes(txt) ||
-            r.status?.toLowerCase().includes(txt) ||
-            r.priority?.toLowerCase().includes(txt),
-        )
-        .slice(0, 3),
+      // 🔧 4. Maintenance Work Orders — only for submit/manage
+      requests: !(perms.maint_submit || perms.maint_manage)
+        ? []
+        : reqs
+            .filter(
+              (r) =>
+                r.issue?.toLowerCase().includes(txt) ||
+                r.status?.toLowerCase().includes(txt) ||
+                r.priority?.toLowerCase().includes(txt),
+            )
+            .slice(0, 3),
 
-      // 📦 5. Warehouse Inventory Metrics
-      inventory: inv
-        .filter(
-          (i) =>
-            i.name?.toLowerCase().includes(txt) ||
-            i.sku?.toLowerCase().includes(txt) ||
-            i.cat?.toLowerCase().includes(txt),
-        )
-        .slice(0, 3),
+      // 📦 5. Warehouse Inventory Metrics — only for inventory viewers
+      inventory: !perms.inv_view
+        ? []
+        : inv
+            .filter(
+              (i) =>
+                i.name?.toLowerCase().includes(txt) ||
+                i.sku?.toLowerCase().includes(txt) ||
+                i.cat?.toLowerCase().includes(txt),
+            )
+            .slice(0, 3),
     };
   };
 

@@ -22,7 +22,8 @@ export async function attemptAccuLynxSync(job, users, config, setJobs) {
     : 0;
   
   const payload = {
-    poNumber: job?.po || 'NO_PO', 
+    poNumber: job?.po || 'NO_PO',
+    acculynxJobId: job?.acculynx_job_id || null, // Direct target when the job was linked via the wizard
     paymentDescription: `Material Cost — ${job?.name || job?.title || 'Job'}`, 
     totalMaterialCost: parseFloat(totalCost.toFixed(2)), 
     lineItems: Array.isArray(job?.items)

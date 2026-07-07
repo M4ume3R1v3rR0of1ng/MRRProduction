@@ -11,6 +11,7 @@ const { createClient } = require("@supabase/supabase-js");
 const ALLOWED_ORIGINS = [
   "https://mrrproduction.netlify.app",
   "http://localhost:5173",
+  "http://localhost:8888",
   "http://localhost:3000",
 ];
 
@@ -191,6 +192,7 @@ async function getEffectivePerms(admin, userId, role) {
 async function executeTool(admin, perms, name, input) {
   switch (name) {
     case "search_jobs": {
+      if (!perms.jobs_view) return { error: "This user does not have permission to view jobs." };
       let q = admin.from("jobs").select("po, title, name, addr, status, materials, items").limit(30);
       if (input.status) q = q.eq("status", input.status);
       const { data, error } = await q;

@@ -96,10 +96,12 @@ export default function Sidebar({
         {},
         "auth"
       );
-      await supabase.auth.signOut();
     } catch (err) {
       console.error("Secure logout trace interrupted:", err);
     }
+    // onLogout (from App.jsx) actually terminates the Supabase session — this
+    // button previously only cleared local UI state, leaving the auth token valid.
+    onLogout();
   };
 
   return (
@@ -283,7 +285,7 @@ export default function Sidebar({
         {!collapsed && (
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", padding: "0 4px" }}>
             <button
-              onClick={onLogout}
+              onClick={handleSignOut}
               style={{
                 width: "100%",
                 padding: 5,

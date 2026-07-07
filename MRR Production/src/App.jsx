@@ -1,5 +1,6 @@
 // src/App.jsx
 import { useState, useEffect } from "react";
+import { supabase } from "./utils/supabase";
 import { useAppData } from "./hooks/useAppData";
 import OmniSearch from "./components/OmniSearch";
 import SyncIndicator from "./components/SyncIndicator";
@@ -70,6 +71,19 @@ export default function App() {
     window.history.pushState({ view: nextView }, "", "");
   };
 
+  // Clearing curUser alone left the underlying Supabase session (and its token
+  // in localStorage) valid and reusable — logout/idle-timeout must actually
+  // invalidate it server-side too.
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error("Sign-out failed:", err);
+    } finally {
+      app.setCurUser(null);
+    }
+  };
+
   const [lang, setLang] = useState("en");
   
   // ── ⏳ HARDENED PROGRESS BAR LOADING FALLBACK ──
@@ -119,7 +133,7 @@ export default function App() {
 return (
 <IdleTimeoutWrapper 
       isAuthenticated={!!app.curUser} 
-      onLogout={() => app.setCurUser(null)}
+      onLogout={handleLogout}
       timeout={1800000}
     >    {/* ── 🟢 1. LOCK THE ROOT CONTAINER VIEWPORT TO SCREEN HEIGHT ── */}
     <div style={{
@@ -153,7 +167,7 @@ return (
               if (isMobile) setMobileMenuOpen(false);
             }}
             user={app.curUser}
-            onLogout={() => app.setCurUser(null)}
+            onLogout={handleLogout}
             collapsed={isMobile ? false : collapsed}
             setCollapsed={setCollapsed}
             pendingReqs={app.pendingReqCount}
@@ -191,6 +205,7 @@ return (
                   reqs={app.reqs}
                   inv={app.inv}
                   vehs={app.vehs}
+                  perms={app.userPerms}
                   onNavigate={navigateTo}
                   onInventorySearch={setInventorySearchQuery}
                 />
