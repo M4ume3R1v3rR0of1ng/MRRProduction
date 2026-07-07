@@ -26,11 +26,9 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
   // ── 🟢 EFFECT: AUTO-LOAD DISPATCH SAVED CREDENTIALS ON MOUNT ──
   useEffect(() => {
     const savedEmail = localStorage.getItem("mrr_remember_email") || "";
-    const savedPassword = localStorage.getItem("mrr_remember_pass") || "";
-    
+
     if (savedEmail) {
       setEmail(savedEmail);
-      setPass(savedPassword);
       setRememberMe(true);
     }
   }, []);
@@ -84,13 +82,14 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
         }
 
         // ── 🟢 SAVING STRATEGY EVALUATION ──
+        // Only the email is remembered — Supabase's own session persistence handles
+        // staying logged in, so the raw password never needs to touch localStorage.
         if (rememberMe) {
           localStorage.setItem("mrr_remember_email", email.trim().toLowerCase());
-          localStorage.setItem("mrr_remember_pass", pass);
         } else {
           localStorage.removeItem("mrr_remember_email");
-          localStorage.removeItem("mrr_remember_pass");
         }
+        localStorage.removeItem("mrr_remember_pass");
 
         await logAction(
           authData.user.id,

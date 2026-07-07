@@ -1,6 +1,6 @@
 // src/views/SettingsView.jsx
 import React, { useState } from "react";
-import { supabase } from "../utils/supabase";
+import { supabase, getAccessToken } from "../utils/supabase";
 import { C, compressImg } from "../utils/helpers";
 import {
   PERM_DEFS,
@@ -210,7 +210,8 @@ export default function SettingsView({
 
       // 2. Perform validation ping routine using the correct POST method rules
       const proxyRoute = acculynxConfig?.proxyUrl || "/.netlify/functions/acculynx-sync";
-      
+      const accessToken = await getAccessToken();
+
       const response = await fetch(proxyRoute, {
         method: "POST", // 🟢 Changed from GET to POST
         headers: {
@@ -219,6 +220,7 @@ export default function SettingsView({
         body: JSON.stringify({
           action: "validate", // Tells your Netlify function to run the account handshake
           apiKey: acculynxConfig?.apiKey || "",
+          accessToken,
         }),
       });
 

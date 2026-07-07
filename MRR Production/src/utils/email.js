@@ -1,13 +1,16 @@
+import { getAccessToken } from "./supabase";
+
 const proxyEndpoint = "/.netlify/functions/send-email";
 
 export async function sendEmail({ to, subject, html }) {
   try {
+    const accessToken = await getAccessToken();
     const response = await fetch(proxyEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ to, subject, html }),
+      body: JSON.stringify({ to, subject, html, accessToken }),
     });
 
     const result = await response.json();

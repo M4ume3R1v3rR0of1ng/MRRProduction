@@ -8,3 +8,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Current user's Supabase session token, sent to Netlify functions so they can
+// verify the caller server-side instead of trusting an unauthenticated request.
+export async function getAccessToken() {
+  const { data: { session } = {} } = await supabase.auth.getSession();
+  return session?.access_token || null;
+}

@@ -1,4 +1,5 @@
 // src/utils/accuLynxSync.js
+import { getAccessToken } from './supabase';
 
 async function fetchWithRetry(url, options, retries = 2) {
   for (let i = 0; i <= retries; i++) {
@@ -57,14 +58,15 @@ export async function attemptAccuLynxSync(job, users, config, setJobs) {
   const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const res = await fetchWithRetry(config.proxyUrl, { 
-      method: 'POST', 
-      headers: { 
+    const accessToken = await getAccessToken();
+    const res = await fetchWithRetry(config.proxyUrl, {
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/json',
         // ── 🟢 FIXED: The key is hidden inside the secure Authorization header ──
         'Authorization': `Bearer ${config.apiKey || ''}`
-      }, 
-      body: JSON.stringify(payload), // 🟢 The JSON payload string is now completely clean of keys
+      },
+      body: JSON.stringify({ ...payload, accessToken }), // 🟢 The JSON payload string is now completely clean of keys
       signal: controller.signal
     });
     
@@ -110,14 +112,15 @@ export async function fetchAccuLynxJob({ poNumber, acculynxJobId }, config) {
   const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
+    const accessToken = await getAccessToken();
     const res = await fetchWithRetry(config.proxyUrl, {
       method: "POST",
-      headers: { 
+      headers: {
         "Content-Type": "application/json",
         // Maintained Authorization header parity for flexible/hybrid token architecture
         "Authorization": `Bearer ${config.apiKey || ''}`
       },
-      body: JSON.stringify({ action: "getJob", poNumber, acculynxJobId }),
+      body: JSON.stringify({ action: "getJob", poNumber, acculynxJobId, accessToken }),
       signal: controller.signal,
     });
     

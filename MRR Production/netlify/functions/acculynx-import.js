@@ -14,7 +14,7 @@ const { createClient } = require('@supabase/supabase-js');
 const ACCULYNX_BASE = 'https://api.acculynx.com/api/v2';
 
 const supabase = createClient(
-  process.env.SUPABASE_URL,
+  process.env.VITE_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 

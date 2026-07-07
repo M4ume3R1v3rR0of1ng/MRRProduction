@@ -3,7 +3,7 @@ import { useState, useMemo } from "react";
 import { C, uid, fd, fm, tot, mkJI } from "../utils/helpers";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, LoadingState } from "../components/UIPrimitives";
 import { sendEmail } from "../utils/email";
-import { supabase } from "../utils/supabase";
+import { supabase, getAccessToken } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
 import CrewCalendar from "../components/CrewCalendar";
 import { generatePDF } from "../utils/pdfGenerator";
@@ -121,10 +121,11 @@ export default function BuildJobs({
     }
     setAxL(true);
     try {
+      const accessToken = await getAccessToken();
       const response = await fetch(acculynxConfig.proxyUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "search", query: axQ.trim() }),
+        body: JSON.stringify({ action: "search", query: axQ.trim(), accessToken }),
       });
       if (!response.ok)
         throw new Error(
@@ -158,10 +159,11 @@ export default function BuildJobs({
     if (!targetId) return;
     setLoadingEstimate(true);
     try {
+      const accessToken = await getAccessToken();
       const response = await fetch(acculynxConfig.proxyUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "getJob", acculynxJobId: targetId }),
+        body: JSON.stringify({ action: "getJob", acculynxJobId: targetId, accessToken }),
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();

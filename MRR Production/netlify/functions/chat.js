@@ -330,7 +330,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
     // Service-role client used for both verifying the caller's token and the
     // actual reads — RLS is bypassed intentionally because permission
     // enforcement happens explicitly below, per verified user.

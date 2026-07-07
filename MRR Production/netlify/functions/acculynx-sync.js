@@ -1,5 +1,7 @@
 // netlify/functions/acculynx-sync.js
 
+const { createClient } = require("@supabase/supabase-js");
+
 const ALLOWED_ORIGINS = [
   "https://mrrproduction.netlify.app",
   "http://localhost:5173",
@@ -35,6 +37,23 @@ exports.handler = async (event) => {
       body = JSON.parse(event.body || "{}");
     } catch {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid JSON body" }) };
+    }
+
+    // ── Require a verified, active Supabase session for every action ──
+    // Previously this only checked that the *server* had an AccuLynx key configured,
+    // meaning any unauthenticated request could search AccuLynx job/customer data
+    // or (via the default action) post fabricated line items into real jobs.
+    if (!body.accessToken) {
+      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Not authenticated" }) };
+    }
+    const admin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const { data: authData, error: authError } = await admin.auth.getUser(body.accessToken);
+    if (authError || !authData?.user) {
+      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Not authenticated" }) };
+    }
+    const { data: callerProfile } = await admin.from("profiles").select("active").eq("id", authData.user.id).single();
+    if (!callerProfile || callerProfile.active === false) {
+      return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Account inactive" }) };
     }
 
     // ── 🟢 FIXED: Extract Key from Server-side Environment, fallback to header extraction ──

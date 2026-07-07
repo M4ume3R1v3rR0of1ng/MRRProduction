@@ -1,6 +1,6 @@
 // src/views/InventoryView.jsx
 import { useState, useMemo, useEffect } from "react";
-import { supabase } from "../utils/supabase";
+import { supabase, getAccessToken } from "../utils/supabase";
 import { C, uid, fd, fm, tot, newestPrice } from "../utils/helpers";
 import {
   Btn,
@@ -241,6 +241,7 @@ export default function InventoryView({
             u.active &&
             u.receive_email_alerts,
         );
+        const alertAccessToken = await getAccessToken();
         managers.forEach((mgr) => {
           if (mgr.email) {
             fetch("/.netlify/functions/send-alert", {
@@ -252,6 +253,7 @@ export default function InventoryView({
                 currentStock: tot(updatedItem),
                 unit: updatedItem.unit,
                 alertThreshold: updatedItem.alrt,
+                accessToken: alertAccessToken,
               }),
             }).catch((err) => console.error("Email processing error:", err));
           }

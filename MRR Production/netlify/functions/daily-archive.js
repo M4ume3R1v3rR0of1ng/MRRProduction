@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'; // 🟢 FIXED: Using the o
 export const handler = async (event, context) => {
   // Initialize the authenticated admin client instance using your secure environment keys
   const supabaseAdmin = createClient(
-    process.env.SUPABASE_URL,
+    process.env.VITE_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY // Safely overrides standard RLS write boundaries
   );
 
