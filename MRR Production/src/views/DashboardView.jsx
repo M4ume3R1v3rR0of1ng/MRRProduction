@@ -45,7 +45,10 @@ export default function DashboardView({
     }
   }, [jobs, newJobs, newJobAlert]);
 
-  const acknowledgeJob = async () => {
+  // openChecklist: the teal button acknowledges AND jumps to Pull Inventory;
+  // the × acknowledges but stays on the dashboard. Both must clear the DB flag,
+  // otherwise the alert effect immediately re-opens the modal.
+  const acknowledgeJob = async (openChecklist) => {
     if (!newJobAlert) return;
     try {
       const { error } = await supabase
@@ -61,7 +64,7 @@ export default function DashboardView({
         );
       }
       setNewJobAlert(null);
-      onNav("pull");
+      if (openChecklist) onNav("pull");
     } catch (err) {
       console.error("Failed to dismiss supervisor project warning banner:", err);
     }
@@ -82,7 +85,7 @@ export default function DashboardView({
     }
   }, [reqs, newMaintForMe, maintAlert]);
 
-  const acknowledgeMaint = async () => {
+  const acknowledgeMaint = async (openRequests) => {
     if (!maintAlert) return;
     try {
       const nextAcked = Array.isArray(maintAlert.acked_by) ? [...maintAlert.acked_by, user.id] : [user.id];
@@ -97,7 +100,7 @@ export default function DashboardView({
         setReqs((p) => p.map((r) => (r.id === maintAlert.id ? { ...r, acked_by: nextAcked } : r)));
       }
       setMaintAlert(null);
-      onNav("requests");
+      if (openRequests) onNav("requests");
     } catch (err) {
       console.error("Failed to dismiss maintenance request alert:", err);
     }
@@ -410,7 +413,7 @@ export default function DashboardView({
       
       {/* Live Assignment Modal Overlay */}
       {newJobAlert && (
-        <Modal title={`🚨 ${t.newAssignments}`} onClose={() => {}} disableCloseButton>
+        <Modal title={`🚨 ${t.newAssignments}`} onClose={() => acknowledgeJob(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
             <div style={{ fontSize: 42, marginBottom: 10 }}>🏗️</div>
             <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: "var(--weight-black)", fontSize: "var(--text-lg)" }}>
@@ -435,7 +438,7 @@ export default function DashboardView({
               </div>
             )}
 
-            <Btn v="teal" onClick={acknowledgeJob} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
+            <Btn v="teal" onClick={() => acknowledgeJob(true)} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
               {lang === "es" ? "Entendido, Abrir Lista de Materiales →" : "Got It, Open Job Materials Checklist →"}
             </Btn>
           </div>
@@ -444,7 +447,7 @@ export default function DashboardView({
 
       {/* New Maintenance Request Alert Overlay — only one blocking modal at a time; job alerts take priority */}
       {!newJobAlert && maintAlert && (
-        <Modal title="🔔 New Maintenance Request" onClose={() => {}} disableCloseButton>
+        <Modal title="🔔 New Maintenance Request" onClose={() => acknowledgeMaint(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
             <div style={{ fontSize: 42, marginBottom: 10 }}>🔧</div>
             <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: "var(--weight-black)", fontSize: "var(--text-lg)" }}>
@@ -462,7 +465,7 @@ export default function DashboardView({
               </div>
             </div>
 
-            <Btn v="purple" onClick={acknowledgeMaint} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
+            <Btn v="purple" onClick={() => acknowledgeMaint(true)} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
               Got It, Open Maintenance Requests →
             </Btn>
           </div>

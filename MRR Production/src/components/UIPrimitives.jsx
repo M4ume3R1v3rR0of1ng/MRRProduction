@@ -37,13 +37,15 @@ export function LoadingState({ label = 'Loading...', compact = false }) {
   );
 }
 
-export function Modal({ title, onClose, children, wide, extraWide }) {
+export function Modal({ title, onClose, children, wide, extraWide, disableCloseButton }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,45,107,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-5)' }}>
       <div style={{ background: C.w, borderRadius: 'var(--radius-2xl)', width: '100%', maxWidth: extraWide ? 900 : wide ? 740 : 480, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 24px 60px rgba(0,0,0,0.35)' }}>
         <div style={{ padding: 'var(--space-7) var(--space-8)', borderBottom: `3px solid ${C.gold}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: C.w, zIndex: 1 }}>
           <h2 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-extrabold)', color: C.navy }}>{title}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: C.sub, lineHeight: 1, padding: 'var(--space-1)' }}>×</button>
+          {!disableCloseButton && (
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 24, color: C.sub, lineHeight: 1, padding: 'var(--space-1)' }}>×</button>
+          )}
         </div>
         <div style={{ padding: 'var(--space-8)' }}>{children}</div>
       </div>
