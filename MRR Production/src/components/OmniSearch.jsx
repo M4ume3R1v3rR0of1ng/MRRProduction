@@ -1,6 +1,10 @@
 // src/components/OmniSearch.jsx
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { C } from "../utils/helpers";
+
+// Case-insensitive match across any of the given string fields
+const match = (txt, ...fields) =>
+  fields.some((f) => typeof f === "string" && f.toLowerCase().includes(txt));
 
 export default function OmniSearch({
   jobs = [],
@@ -27,84 +31,170 @@ export default function OmniSearch({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ── 🔍 THE SEARCH FILTER MATRIX ──
-  const getFilteredResults = () => {
-    const txt = query.trim().toLowerCase();
-    if (!txt) return null;
-
-    return {
-      // 🏗️ 1. Pipeline Contracts — only for users who can view jobs
-      jobs: !perms.jobs_view
-        ? []
-        : jobs
-            .filter(
-              (j) =>
-                j.name?.toLowerCase().includes(txt) ||
-                j.poNumber?.toLowerCase().includes(txt) ||
-                j.address?.toLowerCase().includes(txt),
-            )
-            .slice(0, 3),
-
-      // 👥 2. Corporate Team Members — only for user management
-      users: !perms.users_manage
-        ? []
-        : users
-            .filter(
-              (u) =>
-                u.full_name?.toLowerCase().includes(txt) ||
-                u.email?.toLowerCase().includes(txt) ||
-                u.role?.toLowerCase().includes(txt),
-            )
-            .slice(0, 3),
-
-      // 🚛 3. Fleet Operations Registry — only for fleet viewers
-      vehicles: !perms.fleet_view
-        ? []
-        : vehs
-            .filter(
-              (v) =>
-                v.make?.toLowerCase().includes(txt) ||
-                v.model?.toLowerCase().includes(txt) ||
-                v.plates?.toLowerCase().includes(txt) ||
-                v.assigned_to?.toLowerCase().includes(txt),
-            )
-            .slice(0, 3),
-
-      // 🔧 4. Maintenance Work Orders — only for submit/manage
-      requests: !(perms.maint_submit || perms.maint_manage)
-        ? []
-        : reqs
-            .filter(
-              (r) =>
-                r.issue?.toLowerCase().includes(txt) ||
-                r.status?.toLowerCase().includes(txt) ||
-                r.priority?.toLowerCase().includes(txt),
-            )
-            .slice(0, 3),
-
-      // 📦 5. Warehouse Inventory Metrics — only for inventory viewers
-      inventory: !perms.inv_view
-        ? []
-        : inv
-            .filter(
-              (i) =>
-                i.name?.toLowerCase().includes(txt) ||
-                i.sku?.toLowerCase().includes(txt) ||
-                i.cat?.toLowerCase().includes(txt),
-            )
-            .slice(0, 3),
-    };
-  };
-
-  const results = getFilteredResults();
-  const hasResults =
-    results && Object.values(results).some((arr) => arr.length > 0);
-
   const handleSelection = (targetView) => {
     onNavigate(targetView);
     setQuery("");
     setIsOpen(false);
   };
+
+  const userName = (id) => {
+    const u = users.find((x) => x.id === id);
+    return u?.full_name || u?.name || "";
+  };
+
+  const txt = query.trim().toLowerCase();
+
+  // ── 🔍 THE SEARCH FILTER MATRIX ──
+  // Every category is gated by the same permission that controls its page in
+  // the Sidebar, so users only ever see results they are allowed to open.
+  const results = useMemo(() => {
+    if (!txt) return null;
+
+    // Pages, mirroring the Sidebar's visibility rules
+    const pages = [
+      { id: "dashboard", icon: "🏠", label: "Dashboard", keywords: "home overview team chat", show: true },
+      { id: "buildjobs", icon: "🏗️", label: "Build Jobs", keywords: "create job wizard acculynx close po", show: !!(perms.jobs_build || perms.jobs_close) },
+      { id: "pull", icon: "📋", label: "Pull Inventory", keywords: "jobs pull materials return complete", show: true },
+      { id: "inventory", icon: "📦", label: "Inventory", keywords: "stock materials receive batches sku", show: !!perms.inv_view },
+      { id: "fleet", icon: "🚛", label: "Fleet", keywords: "trucks trailers vehicles mileage plates", show: !!perms.fleet_view },
+      { id: "requests", icon: "🔧", label: "Maintenance", keywords: "requests tickets repair service oil", show: !!(perms.maint_submit || perms.maint_manage) },
+      { id: "reports", icon: "📊", label: "Reports", keywords: "analytics costs charts export", show: !!perms.reports_view },
+      { id: "users", icon: "👥", label: "Users", keywords: "staff team accounts profiles roles", show: !!perms.users_manage },
+      { id: "logs", icon: "📜", label: "Audit Logs", keywords: "history activity audit trail", show: !!perms.users_manage },
+      { id: "settings", icon: "⚙️", label: "Settings", keywords: "acculynx permissions api logo config", show: !!perms.settings_manage },
+    ];
+
+    return {
+      // 🧭 0. Direct page navigation
+      pages: pages
+        .filter((p) => p.show && match(txt, p.label, p.keywords))
+        .slice(0, 4),
+
+      // 🏗️ 1. Jobs — rows may carry legacy (name/items) or current
+      // (title/materials) column names, so check both. Material lines are
+      // searchable too, so a job can be found by what's loaded on it.
+      jobs: !perms.jobs_view
+        ? []
+        : jobs
+            .filter((j) => {
+              const lines = j.materials || j.items;
+              return (
+                match(txt, j.title, j.name, j.po, j.addr, j.notes, j.status, j.customer_name) ||
+                (Array.isArray(lines) && lines.some((m) => match(txt, m.iname, m.icat)))
+              );
+            })
+            .slice(0, 4),
+
+      // 👥 2. Team members — only for user management
+      users: !perms.users_manage
+        ? []
+        : users
+            .filter((u) => match(txt, u.full_name, u.name, u.email, u.role, u.phone_number))
+            .slice(0, 4),
+
+      // 🚛 3. Fleet — only for fleet viewers
+      vehicles: !perms.fleet_view
+        ? []
+        : vehs
+            .filter((v) =>
+              match(
+                txt,
+                v.name,
+                v.plate,
+                v.make,
+                v.model,
+                String(v.year || v.yr || ""),
+                v.driver,
+                userName(v.assignedTo),
+                v.fuel_card,
+                v.vehicle_class,
+                v.type,
+              ),
+            )
+            .slice(0, 4),
+
+      // 🔧 4. Maintenance tickets — only for submit/manage
+      requests: !(perms.maint_submit || perms.maint_manage)
+        ? []
+        : reqs
+            .filter((r) => match(txt, r.type, r.vname, r.notes, r.urgency, r.status, r.uname))
+            .slice(0, 4),
+
+      // 📦 5. Inventory — only for inventory viewers
+      inventory: !perms.inv_view
+        ? []
+        : inv
+            .filter((i) => match(txt, i.name, i.cat, i.sku, i.unit))
+            .slice(0, 4),
+    };
+  }, [txt, jobs, users, vehs, reqs, inv, perms]);
+
+  const hasResults =
+    results && Object.values(results).some((arr) => arr.length > 0);
+
+  // ── 🗂️ CATEGORY RENDER CONFIG ──
+  const sections = results
+    ? [
+        {
+          key: "pages",
+          header: "🧭 Go To",
+          items: results.pages,
+          title: (p) => `${p.icon} ${p.label}`,
+          sub: () => "Open page",
+          onClick: (p) => handleSelection(p.id),
+        },
+        {
+          key: "jobs",
+          header: "🏗️ Jobs",
+          items: results.jobs,
+          title: (j) => j.title || j.name || "Untitled Job",
+          sub: (j) =>
+            `PO: ${j.po || "N/A"} · ${j.addr || "No address"}${j.status ? ` · ${j.status}` : ""}`,
+          onClick: () =>
+            handleSelection(perms.jobs_build || perms.jobs_close ? "buildjobs" : "pull"),
+        },
+        {
+          key: "users",
+          header: "👥 Staff & Profiles",
+          items: results.users,
+          title: (u) => u.full_name || u.name || u.email,
+          sub: (u) => `${u.email || "No email"} · ${u.role || "No role"}`,
+          onClick: () => handleSelection("users"),
+        },
+        {
+          key: "vehicles",
+          header: "🚛 Fleet Vehicles",
+          items: results.vehicles,
+          title: (v) => v.name || `${v.make || ""} ${v.model || ""}`.trim() || "Vehicle",
+          sub: (v) =>
+            `Plate: ${v.plate || "—"} · Driver: ${v.driver || userName(v.assignedTo) || "Unassigned"}`,
+          onClick: () => handleSelection("fleet"),
+        },
+        {
+          key: "requests",
+          header: "🔧 Maintenance Tickets",
+          items: results.requests,
+          title: (r) => `${r.type || "Request"}${r.vname ? ` — ${r.vname}` : ""}`,
+          sub: (r) => `Status: ${(r.status || "?").toUpperCase()} · Urgency: ${r.urgency || "normal"}`,
+          onClick: () => handleSelection("requests"),
+        },
+        {
+          key: "inventory",
+          header: "📦 Materials & Inventory",
+          items: results.inventory,
+          title: (i) => i.name,
+          sub: (i) => `Category: ${i.cat || "General"} · Unit: ${i.unit || "—"}`,
+          onClick: (i) => {
+            onNavigate("inventory");
+            if (typeof onInventorySearch === "function") {
+              onInventorySearch(i.name);
+            }
+            setQuery("");
+            setIsOpen(false);
+          },
+        },
+      ]
+    : [];
 
   return (
     <div ref={containerRef} style={{ position: "relative", width: "100%" }}>
@@ -117,7 +207,7 @@ export default function OmniSearch({
           setIsOpen(true);
         }}
         onFocus={() => setIsOpen(true)}
-        placeholder="Search jobs, staff, trucks, tickets, materials..."
+        placeholder="Search jobs, staff, trucks, tickets, materials, pages..."
         style={{
           width: "100%",
           padding: "10px 14px 10px 12px",
@@ -132,7 +222,7 @@ export default function OmniSearch({
         }}
       />
 
-      {/* ── 🗺️ RECONSTRUCTED INTERACTION RESULT PANEL ── */}
+      {/* ── 🗺️ RESULT PANEL ── */}
       {isOpen && results && (
         <div
           style={{
@@ -151,241 +241,51 @@ export default function OmniSearch({
           }}
         >
           {hasResults ? (
-            <>
-              {/* 🏗️ Category Block: Jobs Pipeline */}
-              {results.jobs.length > 0 && (
-                <div>
-                  <div
-                    style={{
-                      padding: "6px 14px",
-                      fontSize: "11px",
-                      fontWeight: "var(--weight-bold)",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      background: "#f8fafc",
-                    }}
-                  >
-                    🏗️ Pipeline Contracts
-                  </div>
-                  {results.jobs.map((j) => (
+            sections.map(
+              (s) =>
+                s.items.length > 0 && (
+                  <div key={s.key}>
                     <div
-                      key={j.id}
-                      onClick={() => handleSelection("pull")}
                       style={{
-                        padding: "10px 14px",
-                        cursor: "pointer",
-                        fontSize: "13px",
-                        color: "#0f172a",
-                        transition: "background 0.15s",
+                        padding: "6px 14px",
+                        fontSize: "11px",
+                        fontWeight: "var(--weight-bold)",
+                        color: "#64748b",
+                        textTransform: "uppercase",
+                        background: "#f8fafc",
                       }}
-                      onMouseEnter={(e) =>
-                        (e.target.style.background = "#f1f5f9")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.target.style.background = "transparent")
-                      }
                     >
-                      <div style={{ fontWeight: "var(--weight-semibold)" }}>{j.name}</div>
-                      <div style={{ fontSize: "11px", color: "#64748b" }}>
-                        PO: {j.poNumber || "N/A"} · {j.address}
-                      </div>
+                      {s.header}
                     </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 👥 Category Block: Users / Staff */}
-              {results.users.length > 0 && (
-                <div>
-                  <div
-                    style={{
-                      padding: "6px 14px",
-                      fontSize: "11px",
-                      fontWeight: "var(--weight-bold)",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      background: "#f8fafc",
-                    }}
-                  >
-                    👥 Staff & Profiles
-                  </div>
-                  {results.users.map((u) => (
-                    <div
-                      key={u.id}
-                      onClick={() => handleSelection("users")}
-                      style={{
-                        padding: "10px 14px",
-                        cursor: "pointer",
-                        fontSize: "13px",
-                        color: "#0f172a",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.target.style.background = "#f1f5f9")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.target.style.background = "transparent")
-                      }
-                    >
-                      <div style={{ fontWeight: "var(--weight-semibold)" }}>{u.full_name}</div>
-                      <div style={{ fontSize: "11px", color: "#64748b" }}>
-                        {u.email} ·{" "}
-                        <span style={{ textTransform: "capitalize" }}>
-                          {u.role}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 🚛 Category Block: Vehicles */}
-              {results.vehicles.length > 0 && (
-                <div>
-                  <div
-                    style={{
-                      padding: "6px 14px",
-                      fontSize: "11px",
-                      fontWeight: "var(--weight-bold)",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      background: "#f8fafc",
-                    }}
-                  >
-                    🚛 Fleet Vehicles
-                  </div>
-                  {results.vehicles.map((v) => (
-                    <div
-                      key={v.id}
-                      onClick={() => handleSelection("fleet")}
-                      style={{
-                        padding: "10px 14px",
-                        cursor: "pointer",
-                        fontSize: "13px",
-                        color: "#0f172a",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.target.style.background = "#f1f5f9")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.target.style.background = "transparent")
-                      }
-                    >
-                      <div style={{ fontWeight: "var(--weight-semibold)" }}>
-                        {v.make} {v.model}
-                      </div>
-                      <div style={{ fontSize: "11px", color: "#64748b" }}>
-                        Plates: {v.plates || "No Plate Info"} · Driver:{" "}
-                        {v.assigned_to || "Unassigned"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 🔧 Category Block: Maintenance Tickets */}
-              {results.requests.length > 0 && (
-                <div>
-                  <div
-                    style={{
-                      padding: "6px 14px",
-                      fontSize: "11px",
-                      fontWeight: "var(--weight-bold)",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      background: "#f8fafc",
-                    }}
-                  >
-                    🔧 Maintenance Tickets
-                  </div>
-                  {results.requests.map((r) => (
-                    <div
-                      key={r.id}
-                      onClick={() => handleSelection("requests")}
-                      style={{
-                        padding: "10px 14px",
-                        cursor: "pointer",
-                        fontSize: "13px",
-                        color: "#0f172a",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.target.style.background = "#f1f5f9")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.target.style.background = "transparent")
-                      }
-                    >
-                      <div style={{ fontWeight: "var(--weight-semibold)" }}>{r.issue}</div>
-                      <div style={{ fontSize: "11px", color: "#64748b" }}>
-                        Status:{" "}
-                        <span
-                          style={{
-                            textTransform: "uppercase",
-                            fontWeight: "var(--weight-bold)",
-                          }}
-                        >
-                          {r.status}
-                        </span>{" "}
-                        · Priority: {r.priority}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 📦 Category Block: Inventory Stock */}
-              {results.inventory.length > 0 && (
-                <div>
-                  <div
-                    style={{
-                      padding: "6px 14px",
-                      fontSize: "11px",
-                      fontWeight: "var(--weight-bold)",
-                      color: "#64748b",
-                      textTransform: "uppercase",
-                      background: "#f8fafc",
-                    }}
-                  >
-                    📦 Materials & Inventory
-                  </div>
-                  {results.inventory.map((i) => (
-                    <div
-                      key={i.id}
-                      onClick={() => {
-                        // 1. Force the layout navigator tab to switch over to Inventory
-                        onNavigate("inventory");
-                        // 2. Push the item name up into the global search state
-                        if (typeof onInventorySearch === "function") {
-                          onInventorySearch(i.name);
+                    {s.items.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        onClick={() => s.onClick(item)}
+                        style={{
+                          padding: "10px 14px",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          color: "#0f172a",
+                          transition: "background 0.15s",
+                        }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.background = "#f1f5f9")
                         }
-                        setQuery("");
-                        setIsOpen(false);
-                      }}
-                      style={{
-                        padding: "10px 14px",
-                        cursor: "pointer",
-                        fontSize: "13px",
-                        color: "#0f172a",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.target.style.background = "#f1f5f9")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.target.style.background = "transparent")
-                      }
-                    >
-                      <div style={{ fontWeight: "var(--weight-semibold)" }}>{i.name}</div>
-                      <div style={{ fontSize: "11px", color: "#64748b" }}>
-                        Category: {i.cat || "General"} · SKU: {i.sku || "N/A"}
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.background = "transparent")
+                        }
+                      >
+                        <div style={{ fontWeight: "var(--weight-semibold)" }}>
+                          {s.title(item)}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#64748b" }}>
+                          {s.sub(item)}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
+                    ))}
+                  </div>
+                ),
+            )
           ) : (
             <div
               style={{ padding: "20px", textAlign: "center", color: "#94a3b8" }}
