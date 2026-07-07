@@ -27,7 +27,9 @@ export default function BuildJobs({
   const { showToast } = useNotify();
   const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com" };
   const [subView, setSubView] = useState("list");
-  const [filt, setFilt] = useState("all");
+  // Bookkeeper-only users (jobs_close without jobs_build) land straight on the
+  // completed/awaiting-close queue instead of the full pipeline.
+  const [filt, setFilt] = useState(!perms.jobs_build && perms.jobs_close ? "completed" : "all");
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
   const [wStep, setWStep] = useState(1);
@@ -454,27 +456,28 @@ export default function BuildJobs({
     }
   };
 
-  const closeJob = async () => {
+  const closeJob = async (job = sel) => {
+    if (!job) return;
     const closedAt = new Date().toISOString();
     try {
       const { error } = await supabase
         .from("jobs")
         .update({ status: "closed", closedAt })
-        .eq("id", sel.id);
+        .eq("id", job.id);
       if (error) throw error;
 
       await logAction(
         activeUser.id,
         activeUser.email,
         "JOB_BUILD_CLOSE",
-        `Archived and locked completed job contract file for: "${sel.name || sel.title}" (PO: ${sel.po})`,
-        { job_id: sel.id, archived_timestamp: closedAt },
+        `Archived and locked completed job contract file for: "${job.name || job.title}" (PO: ${job.po})`,
+        { job_id: job.id, archived_timestamp: closedAt },
         "production"
       );
 
-      const updated = { ...sel, status: "closed", closedAt };
-      setJobs((p) => p.map((j) => (j.id === sel.id ? updated : j)));
-      setSel(updated);
+      const updated = { ...job, status: "closed", closedAt };
+      setJobs((p) => p.map((j) => (j.id === job.id ? updated : j)));
+      setSel((p) => (p && p.id === job.id ? updated : p));
       showToast("Project closed and archived from pipeline.", "success");
     } catch (err) {
       console.error("Failed to close job:", err);
@@ -482,26 +485,27 @@ export default function BuildJobs({
     }
   };
 
-  const reopenJob = async () => {
+  const reopenJob = async (job = sel) => {
+    if (!job) return;
     try {
       const { error } = await supabase
         .from("jobs")
         .update({ status: "completed", closedAt: "" })
-        .eq("id", sel.id);
+        .eq("id", job.id);
       if (error) throw error;
 
       await logAction(
         activeUser.id,
         activeUser.email,
         "JOB_BUILD_REOPEN",
-        `Reopened archived job file back to active completion view: "${sel.name || sel.title}" (PO: ${sel.po})`,
-        { job_id: sel.id },
+        `Reopened archived job file back to active completion view: "${job.name || job.title}" (PO: ${job.po})`,
+        { job_id: job.id },
         "production"
       );
 
-      const updated = { ...sel, status: "completed", closedAt: "" };
-      setJobs((p) => p.map((j) => (j.id === sel.id ? updated : j)));
-      setSel(updated);
+      const updated = { ...job, status: "completed", closedAt: "" };
+      setJobs((p) => p.map((j) => (j.id === job.id ? updated : j)));
+      setSel((p) => (p && p.id === job.id ? updated : p));
       showToast(
         "Job successfully returned to active completed view.",
         "success",
@@ -826,6 +830,20 @@ export default function BuildJobs({
                         📄 PDF
                       </Btn>
                     )}
+                    {perms.jobs_close && job.status === "completed" && (
+                      <Btn
+                        v="purple"
+                        sz="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm("Close this job? It will be moved to the Closed list and archived from active work.")) {
+                            closeJob(job);
+                          }
+                        }}
+                      >
+                        🔒 Close
+                      </Btn>
+                    )}
                     {perms.jobs_approve && (
                       <Btn
                         v="danger"
@@ -886,7 +904,7 @@ export default function BuildJobs({
                 📄 Download PDF Report
               </Btn>
             )}
-            {perms.jobs_approve && sel.status === "completed" && (
+            {perms.jobs_close && sel.status === "completed" && (
               <Btn
                 v="purple"
                 sz="sm"
@@ -899,8 +917,8 @@ export default function BuildJobs({
                 🔒 Close Job
               </Btn>
             )}
-            {perms.jobs_approve && sel.status === "closed" && (
-              <Btn v="ghost" sz="sm" onClick={reopenJob}>
+            {perms.jobs_close && sel.status === "closed" && (
+              <Btn v="ghost" sz="sm" onClick={() => reopenJob()}>
                 ↩ Reopen
               </Btn>
             )}

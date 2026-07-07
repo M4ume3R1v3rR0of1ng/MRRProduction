@@ -20,6 +20,7 @@ export const PERM_DEFS = {
   jobs_pull: { label: 'Pull Inventory', desc: 'Pull materials from approved jobs', g: '🏗️ Jobs' },
   jobs_edit_pull: { label: 'Edit Job (Pull Inventory)', desc: 'Edit job info & reassign site supervisor from Pull Inventory', g: '🏗️ Jobs' },
   jobs_complete: { label: 'Complete Jobs', desc: 'Return inventory & mark jobs done', g: '🏗️ Jobs' },
+  jobs_close: { label: 'Close Completed Jobs', desc: 'Archive completed jobs once payment is confirmed in AccuLynx', g: '🏗️ Jobs' },
   reports_view: { label: 'View Reports', desc: 'Access reports & analytics', g: '📊 Reports' },
   users_manage: { label: 'Manage Users', desc: 'Add, edit & deactivate user accounts', g: '⚙️ Admin' },
   settings_manage: { label: 'System Settings', desc: 'Settings, permissions & API config', g: '⚙️ Admin' },
@@ -30,7 +31,7 @@ export const PERM_GROUPS = [
   ['📦 Inventory', ['inv_view', 'inv_edit', 'inv_receive', 'inv_bulk_receive', 'inv_pricing_view', 'inv_pricing_edit', 'inv_adjust']],
   ['🚛 Fleet', ['fleet_view', 'fleet_edit', 'fleet_log_mi']],
   ['🔧 Maintenance', ['maint_submit', 'maint_manage']],
-  ['🏗️ Jobs', ['jobs_view', 'jobs_build', 'jobs_approve', 'jobs_pull', 'jobs_edit_pull', 'jobs_complete']],
+  ['🏗️ Jobs', ['jobs_view', 'jobs_build', 'jobs_approve', 'jobs_pull', 'jobs_edit_pull', 'jobs_complete', 'jobs_close']],
   ['📊 Reports', ['reports_view']],
   ['⚙️ Admin', ['users_manage', 'settings_manage']]
 ];
@@ -39,29 +40,32 @@ export const ALL_PERM_KEYS = Object.keys(PERM_DEFS);
 
 // 3. User Roster System Display Mapping Array
 export const ROLE_COLS = [
-  ['warehouse', 'Warehouse Mgr'], 
-  ['coordinator', 'Coordinator'], 
-  ['manager', 'Manager'], 
-  ['field', 'Site Supervisor'], 
-  ['employee', 'Employee']
+  ['warehouse', 'Warehouse Mgr'],
+  ['coordinator', 'Coordinator'],
+  ['manager', 'Manager'],
+  ['field', 'Site Supervisor'],
+  ['employee', 'Employee'],
+  ['bookkeeper', 'Book Keeper']
 ];
 
 // 4. Baseline Corporate Safety Rules Matrix
 export const DEFAULT_ROLE_PERMS = {
-  warehouse: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: false, inv_adjust: false, fleet_view: true, fleet_edit: true, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_edit_pull: false, jobs_complete: true, reports_view: true, users_manage: false, settings_manage: false },
-  coordinator: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, inv_adjust: false, fleet_view: true, fleet_edit: true, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, reports_view: true, users_manage: false, settings_manage: false },
-  manager: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, inv_adjust: true, fleet_view: true, fleet_edit: false, fleet_log_mi: false, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, reports_view: true, users_manage: false, settings_manage: false },
-  field: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: false, inv_pricing_view: false, inv_pricing_edit: false, inv_adjust: true, fleet_view: true, fleet_edit: false, fleet_log_mi: true, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, reports_view: false, users_manage: false, settings_manage: false },
+  warehouse: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: false, inv_adjust: false, fleet_view: true, fleet_edit: true, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_edit_pull: false, jobs_complete: true, jobs_close: false, reports_view: true, users_manage: false, settings_manage: false },
+  coordinator: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, inv_adjust: false, fleet_view: true, fleet_edit: true, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, jobs_close: true, reports_view: true, users_manage: false, settings_manage: false },
+  manager: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, inv_adjust: true, fleet_view: true, fleet_edit: false, fleet_log_mi: false, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, jobs_close: true, reports_view: true, users_manage: false, settings_manage: false },
+  field: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: false, inv_pricing_view: false, inv_pricing_edit: false, inv_adjust: true, fleet_view: true, fleet_edit: false, fleet_log_mi: true, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, jobs_close: false, reports_view: false, users_manage: false, settings_manage: false },
+  bookkeeper: { inv_view: false, inv_edit: false, inv_receive: false, inv_bulk_receive: false, inv_pricing_view: true, inv_pricing_edit: false, inv_adjust: false, fleet_view: false, fleet_edit: false, fleet_log_mi: false, maint_submit: false, maint_manage: false, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: false, jobs_edit_pull: false, jobs_complete: false, jobs_close: true, reports_view: true, users_manage: false, settings_manage: false },
 };
 
 // 5. Global Roles Map Interface
-export const ROLES = { 
-  admin: { label: 'Admin', color: 'red' }, 
-  warehouse: { label: 'Warehouse Mgr', color: 'purple' }, 
-  coordinator: { label: 'Coordinator', color: 'blue' }, 
-  manager: { label: 'Manager', color: 'amber' }, 
-  field: { label: 'Site Supervisor', color: 'green' }, 
-  employee: { label: 'Employee', color: 'gray' } 
+export const ROLES = {
+  admin: { label: 'Admin', color: 'red' },
+  warehouse: { label: 'Warehouse Mgr', color: 'purple' },
+  coordinator: { label: 'Coordinator', color: 'blue' },
+  manager: { label: 'Manager', color: 'amber' },
+  field: { label: 'Site Supervisor', color: 'green' },
+  employee: { label: 'Employee', color: 'gray' },
+  bookkeeper: { label: 'Book Keeper', color: 'teal' }
 };
 
 // 6. Real-time Security Access Resolver Function

@@ -159,6 +159,7 @@ return (
             pendingReqs={app.pendingReqCount}
             lowStock={app.lowStockCount}
             newJobsForMe={app.newJobsForMe}
+            jobsAwaitingClose={app.jobsAwaitingCloseCount}
             chatUnread={app.chatUnread}
             activeLogo={app.activeLogo}
             perms={app.userPerms} 
@@ -212,6 +213,11 @@ return (
                     ⚠️ {app.lowStockCount} low stock
                   </div>
                 )}
+                {app.jobsAwaitingCloseCount > 0 && app.userPerms.jobs_close && (
+                  <div onClick={() => navigateTo("buildjobs")} style={{ background: C.tB, color: C.tl, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
+                    🧾 {app.jobsAwaitingCloseCount} awaiting close
+                  </div>
+                )}
                 <RoleBdg role={app.curUser.role} />
               </div>
             </div>
@@ -230,7 +236,7 @@ return (
             {view === "dashboard" && (
               <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} setReqs={app.setReqs} />
             )}
-            {view === "buildjobs" && app.userPerms.jobs_build && (
+            {view === "buildjobs" && (app.userPerms.jobs_build || app.userPerms.jobs_close) && (
               <BuildJobsView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} />
             )}
             {view === "pull" && (

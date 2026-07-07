@@ -17,6 +17,7 @@ export default function Sidebar({
   pendingReqs,
   lowStock,
   newJobsForMe,
+  jobsAwaitingClose,
   chatUnread,
   activeLogo,
   perms,
@@ -29,8 +30,14 @@ export default function Sidebar({
   // ── 🟢 TRANSLATED DYNAMIC SIDEBAR Blueprints ──
  const navItems = [
     { id: "dashboard", icon: "🏠", label: t.dashboard || "Dashboard", badge: chatUnread, badgeColor: C.rd },
-    ...(perms.jobs_build
-      ? [{ id: "buildjobs", icon: "🏗️", label: t.buildjobs || "Build Jobs" }]
+    ...(perms.jobs_build || perms.jobs_close
+      ? [{
+          id: "buildjobs",
+          icon: "🏗️",
+          label: t.buildjobs || "Build Jobs",
+          badge: perms.jobs_close ? jobsAwaitingClose : 0,
+          badgeColor: C.tl,
+        }]
       : []),
     {
       id: "pull",

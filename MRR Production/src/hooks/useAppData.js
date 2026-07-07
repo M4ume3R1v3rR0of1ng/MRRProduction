@@ -26,6 +26,7 @@ export function useAppData() {
     coordinator: { ...DEFAULT_ROLE_PERMS.coordinator },
     manager: { ...DEFAULT_ROLE_PERMS.manager },
     field: { ...DEFAULT_ROLE_PERMS.field },
+    bookkeeper: { ...DEFAULT_ROLE_PERMS.bookkeeper },
   });
 
   const [userOverrides, setUserOverrides] = useState({});
@@ -241,12 +242,30 @@ export function useAppData() {
   const pendingReqCount = useMemo(() => reqs.filter((r) => r.status === "pending").length, [reqs]);
   const lowStockCount = useMemo(() => inv.filter((i) => tot(i) <= i.alrt).length, [inv]);
   const newJobsForMe = useMemo(() => curUser ? jobs.filter((j) => (j.newforassigned || j.newForAssigned) && (j.assignedto || j.assignedTo) === curUser.id).length : 0, [jobs, curUser]);
+  const jobsAwaitingCloseCount = useMemo(() => jobs.filter((j) => j.status === "completed").length, [jobs]);
   const activeLogo = logos || null;
 
   const userPerms = useMemo(() => {
     if (!curUser) return {};
     return getEffectivePerms(curUser, rolePerms, userOverrides);
   }, [curUser, rolePerms, userOverrides]);
+
+  // ── 🔔 SIGN-IN ALERT: tell whoever can close jobs how many are waiting ──
+  useEffect(() => {
+    if (!curUser) return;
+    const perms = getEffectivePerms(curUser, rolePerms, userOverrides);
+    if (!perms.jobs_close) return;
+    const count = jobs.filter((j) => j.status === "completed").length;
+    if (count > 0) {
+      showToast(
+        `🧾 ${count} completed job${count !== 1 ? "s" : ""} waiting to be closed out once AccuLynx pricing is confirmed.`,
+        "warning",
+        8000,
+      );
+    }
+    // Fires once per sign-in (curUser.id change), not on every jobs/rolePerms update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [curUser?.id]);
 
   return {
     loading,
@@ -280,6 +299,7 @@ export function useAppData() {
     pendingReqCount,
     lowStockCount,
     newJobsForMe,
+    jobsAwaitingCloseCount,
     activeLogo,
     userPerms
   };

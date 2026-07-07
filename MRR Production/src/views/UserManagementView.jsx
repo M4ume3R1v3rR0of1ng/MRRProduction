@@ -244,7 +244,7 @@ export default function Users({
                 <td style={{ padding: "14px 14px", fontWeight: "var(--weight-bold)", color: C.navy }}>{u.full_name || u.name || "—"}</td>
                 <td style={{ padding: "14px 14px", color: C.sub }}>{u.email || "—"}</td>
                 <td style={{ padding: "14px 14px" }}>
-                  <Bdg color={u.role === "admin" ? "red" : u.role === "manager" ? "purple" : "blue"}>{u.role}</Bdg>
+                  <RoleBdg role={u.role} />
                 </td>
                 <td style={{ padding: "14px 14px" }}>
                   <Bdg color={u.active ? "green" : "gray"}>{u.active ? "Active" : "Inactive"}</Bdg>
@@ -285,6 +285,7 @@ export default function Users({
               <option value="warehouse">Warehouse Manager</option>
               <option value="field">Site Supervisor</option>
               <option value="employee">Employee / Field Staff</option>
+              <option value="bookkeeper">Book Keeper</option>
             </Sel>
           </Fld>
           <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
