@@ -1,0 +1,17 @@
+# Local Netlify folder
+.netlify
+
+# Dependencies — never commit installed packages
+node_modules/
+
+# Personal projects living in Documents that should stay out of this repo
+vuln-scanner/
+App
+Baseline/
+Home-SOC-Project/
+Internship/
+Keylogger/
+phishing-url-detector/
+
+# Archives
+*.zip
