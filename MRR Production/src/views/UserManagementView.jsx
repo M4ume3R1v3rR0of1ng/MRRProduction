@@ -318,7 +318,7 @@ export default function Users({
           <Fld label="Email Address"><Inp type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="user@maumeeriverroofing.com" /></Fld>
           <Fld label="Role *">
             <Sel value={form.role || "field"} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-              <option value="admin">Administrator (Full Access)</option>
+              <option value="admin">Administrator</option>
               <option value="manager">Operations Manager</option>
               <option value="coordinator">Production Coordinator</option>
               <option value="warehouse">Warehouse Manager</option>

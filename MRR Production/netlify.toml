@@ -1,0 +1,21 @@
+# HTTP security headers. Build settings are configured in the Netlify UI, so this
+# file intentionally only defines headers and does not override the build config.
+#
+# The CSP below is scoped to what the app actually loads:
+#   - script-src 'self'                 → only the app's own bundled JS
+#   - connect-src Supabase REST + wss   → database reads/writes + realtime
+#   - style/font-src Google Fonts       → the Inter webfont imported in tokens.css
+#   - img-src data:/blob:/supabase      → base64 photo uploads + Supabase storage
+# If a flow breaks, the browser console names the exact directive to adjust. To roll
+# out cautiously, rename the header key to "Content-Security-Policy-Report-Only"
+# first (it reports violations without blocking), then switch back once it's clean.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://qdwtdrezwfrpdfsxjhps.supabase.co; connect-src 'self' https://qdwtdrezwfrpdfsxjhps.supabase.co wss://qdwtdrezwfrpdfsxjhps.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"

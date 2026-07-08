@@ -2,6 +2,18 @@ import { getAccessToken } from "./supabase";
 
 const proxyEndpoint = "/.netlify/functions/send-email";
 
+// Escape user-controlled values before interpolating them into email HTML, so a
+// job name / address / note like "<a href=...>" can't inject markup or links into
+// the email a coworker receives.
+export function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function sendEmail({ to, subject, html }) {
   try {
     const accessToken = await getAccessToken();

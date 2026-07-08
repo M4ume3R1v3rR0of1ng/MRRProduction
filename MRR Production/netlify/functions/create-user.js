@@ -52,6 +52,11 @@ exports.handler = async (event) => {
   if (!password || password.length < 8) {
     return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Password must be at least 8 characters" }) };
   }
+  // Never trust an arbitrary role string, even from an admin — pin it to the known set.
+  const VALID_ROLES = ["admin", "warehouse", "coordinator", "manager", "field", "employee", "bookkeeper"];
+  if (!VALID_ROLES.includes(role)) {
+    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid role" }) };
+  }
 
   const admin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
@@ -67,19 +72,30 @@ exports.handler = async (event) => {
       return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Admin access required" }) };
     }
 
-    // Same metadata shape self-signup passes, so the existing auth.users -> profiles
-    // trigger creates a real, FK-valid row with this role pre-set (rather than "employee").
-    // email_confirm: true — the admin is vouching for this account directly, so it's
-    // usable immediately with the password just set, no confirmation email needed.
+    // Creating the auth user fires the handle_new_user trigger, which inserts the
+    // profile row with a safe DEFAULT role (it deliberately ignores metadata role so
+    // untrusted self-signups can't pick their own). email_confirm: true — the admin is
+    // vouching for this account, so it's usable immediately with the password just set.
     const { data: createData, error: createError } = await admin.auth.admin.createUser({
       email: email.trim().toLowerCase(),
       password,
       email_confirm: true,
-      user_metadata: { full_name: name.trim(), role },
+      user_metadata: { full_name: name.trim() },
     });
 
     if (createError) {
       return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: createError.message }) };
+    }
+
+    // Apply the admin-chosen role explicitly with the service-role client (bypasses RLS).
+    // The trigger only sets a default; without this step every admin-created user would
+    // keep that default regardless of the role the admin selected.
+    const { error: roleError } = await admin
+      .from("profiles")
+      .update({ role })
+      .eq("id", createData.user.id);
+    if (roleError) {
+      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: `User created but role assignment failed: ${roleError.message}` }) };
     }
 
     return {

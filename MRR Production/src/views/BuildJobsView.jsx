@@ -2,7 +2,7 @@
 import { useState, useMemo } from "react";
 import { C, uid, fd, fm, tot, mkJI } from "../utils/helpers";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, LoadingState } from "../components/UIPrimitives";
-import { sendEmail } from "../utils/email";
+import { sendEmail, escapeHtml as esc } from "../utils/email";
 import { supabase, getAccessToken } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
 import CrewCalendar from "../components/CrewCalendar";
@@ -265,11 +265,11 @@ export default function BuildJobs({
             to: assignedUser.email,
             subject: `New Job Assigned: ${wPO.name}`,
             html: `<h2>You've been assigned a new job</h2>
-                <p><strong>Job:</strong> ${wPO.name}</p>
-                <p><strong>PO:</strong> ${wPO.po}</p>
-                <p><strong>Address:</strong> ${wPO.addr}</p>
-                ${wPO.notes ? `<p><strong>Notes:</strong> ${wPO.notes}</p>` : ""}
-                ${trailerNames.length > 0 ? `<p><strong>🚚 Trailer(s) to bring:</strong> ${trailerNames.join(", ")}</p>` : ""}
+                <p><strong>Job:</strong> ${esc(wPO.name)}</p>
+                <p><strong>PO:</strong> ${esc(wPO.po)}</p>
+                <p><strong>Address:</strong> ${esc(wPO.addr)}</p>
+                ${wPO.notes ? `<p><strong>Notes:</strong> ${esc(wPO.notes)}</p>` : ""}
+                ${trailerNames.length > 0 ? `<p><strong>🚚 Trailer(s) to bring:</strong> ${trailerNames.map(esc).join(", ")}</p>` : ""}
                 <p>Log in to pull inventory and get started.</p>`,
           });
         }
@@ -342,10 +342,10 @@ export default function BuildJobs({
           to: assignedUser.email,
           subject: `Job Approved & Assigned: ${sel.name || sel.title}`,
           html: `<h2>A job has been approved and assigned to you</h2>
-                 <p><strong>Job:</strong> ${sel.name || sel.title}</p>
-                 <p><strong>PO:</strong> ${sel.po}</p>
-                 <p><strong>Address:</strong> ${sel.addr || "N/A"}</p>
-                 ${trailerNames.length > 0 ? `<p><strong>🚚 Trailer(s) to bring:</strong> ${trailerNames.join(", ")}</p>` : ""}
+                 <p><strong>Job:</strong> ${esc(sel.name || sel.title)}</p>
+                 <p><strong>PO:</strong> ${esc(sel.po)}</p>
+                 <p><strong>Address:</strong> ${esc(sel.addr || "N/A")}</p>
+                 ${trailerNames.length > 0 ? `<p><strong>🚚 Trailer(s) to bring:</strong> ${trailerNames.map(esc).join(", ")}</p>` : ""}
                  <p>Log in to pull inventory and get started.</p>`,
         });
       }
@@ -422,9 +422,9 @@ export default function BuildJobs({
           to: assignedUser.email,
           subject: `Trailer Update — ${job.title || job.name} (PO: ${job.po})`,
           html: `<h2>Trailer requirement updated for your job</h2>
-                 <p><strong>Job:</strong> ${job.title || job.name}</p>
-                 <p><strong>PO:</strong> ${job.po}</p>
-                 <p>🚚 Trailer <strong>${trailerName}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
+                 <p><strong>Job:</strong> ${esc(job.title || job.name)}</p>
+                 <p><strong>PO:</strong> ${esc(job.po)}</p>
+                 <p>🚚 Trailer <strong>${esc(trailerName)}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
         });
       }
       showToast(`${assignedUser?.name || "Supervisor"} notified that trailer was ${action}.`, "success");

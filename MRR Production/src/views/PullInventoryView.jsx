@@ -9,7 +9,7 @@ import { logAction } from "../utils/logger";
 import { supabase } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
-import { sendEmail } from "../utils/email";
+import { sendEmail, escapeHtml as esc } from "../utils/email";
 
 export default function PullInventory({
   jobs = [],
@@ -125,9 +125,9 @@ export default function PullInventory({
             to: assignedUser.email,
             subject: `Job Reassigned to You: ${editForm.name}`,
             html: `<h2>A job has been reassigned to you</h2>
-                   <p><strong>Job:</strong> ${editForm.name}</p>
-                   <p><strong>PO:</strong> ${editForm.po}</p>
-                   <p><strong>Address:</strong> ${editForm.addr || "N/A"}</p>
+                   <p><strong>Job:</strong> ${esc(editForm.name)}</p>
+                   <p><strong>PO:</strong> ${esc(editForm.po)}</p>
+                   <p><strong>Address:</strong> ${esc(editForm.addr || "N/A")}</p>
                    <p>Log in to view details and pull inventory.</p>`,
           });
         }
@@ -170,9 +170,9 @@ export default function PullInventory({
           to: assignedUser.email,
           subject: `Trailer Update — ${job.title || job.name} (PO: ${job.po})`,
           html: `<h2>Trailer requirement updated for your job</h2>
-                 <p><strong>Job:</strong> ${job.title || job.name}</p>
-                 <p><strong>PO:</strong> ${job.po}</p>
-                 <p>🚚 Trailer <strong>${trailerName}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
+                 <p><strong>Job:</strong> ${esc(job.title || job.name)}</p>
+                 <p><strong>PO:</strong> ${esc(job.po)}</p>
+                 <p>🚚 Trailer <strong>${esc(trailerName)}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
         });
       }
       showToast(`${assignedUser?.name || "Supervisor"} notified that trailer was ${action}.`, "success");

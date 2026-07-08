@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { C, displayName } from "../utils/helpers";
 import { Bdg, Btn, Modal } from "../components/UIPrimitives"; 
 import TeamChatBox from "../components/TeamChatBox";
+import WeatherCard from "../components/WeatherCard";
 import { supabase } from "../utils/supabase"; 
 import { translations } from "../utils/translations";
 
@@ -426,6 +427,11 @@ export default function DashboardView({
           color="#f43f5e" 
           onClick={() => onNav("fleet")} 
         />
+      </div>
+
+      {/* Warehouse weather — relevant to scheduling roof work; shown for all roles */}
+      <div style={{ marginBottom: 20 }}>
+        <WeatherCard />
       </div>
 
       {/* Core Evaluation Router Branch */}

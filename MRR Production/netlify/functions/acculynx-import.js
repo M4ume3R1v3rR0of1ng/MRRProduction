@@ -4,7 +4,8 @@
 //   ACCULYNX_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 // Plus a new one to protect this endpoint (anyone with the URL can trigger a full pull otherwise):
 //   ACCULYNX_IMPORT_SECRET
-// Call it with either header `x-import-secret: <value>` or query param `?secret=<value>`.
+// Call it with the header `x-import-secret: <value>` (query-param secrets are not
+// accepted — they leak into logs and history).
 // Defaults to pulling only "completed" milestone jobs. Pass ?milestones=all to pull every
 // stage, or ?milestones=<stage> for a specific one (lead, prospect, approved, completed,
 // invoiced, closed, cancelled, dead). Paginate with ?page=<recordStartIndex>.
@@ -84,10 +85,11 @@ exports.handler = async (event) => {
     const params = event.queryStringParameters || {};
 
     // ── Shared-secret guard: without this, anyone with the URL could trigger a full AccuLynx pull ──
+    // Header only — never accept the secret via query string, which leaks into
+    // access logs, proxies, and browser history.
     const providedSecret =
       event.headers?.['x-import-secret'] ||
       event.headers?.['X-Import-Secret'] ||
-      params.secret ||
       null;
 
     if (!process.env.ACCULYNX_IMPORT_SECRET || providedSecret !== process.env.ACCULYNX_IMPORT_SECRET) {
