@@ -184,7 +184,7 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)", marginTop: 16 }}>
+    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)", marginTop: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📅 Weekly Maintenance Schedule</h2>

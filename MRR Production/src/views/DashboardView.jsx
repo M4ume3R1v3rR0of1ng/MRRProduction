@@ -105,27 +105,65 @@ export default function DashboardView({
       console.error("Failed to dismiss maintenance request alert:", err);
     }
   };
-  
+
+  // ── 🛠️ MAINTENANCE STATUS UPDATE ALERT (pops for the requester when a manager moves their ticket,
+  // same pattern as the supervisor new-job alert). Requires a `newforrequester` boolean column on
+  // maintenance_requests, set by updateStatus in MaintenanceRequestsView and cleared here on acknowledge.
+  const myStatusUpdates = reqs.filter(
+    (r) => (r.newforrequester || r.newForRequester) && String(r.uid) === String(user.id)
+  );
+
+  const [statusAlert, setStatusAlert] = useState(null);
+
+  useEffect(() => {
+    if (myStatusUpdates.length > 0 && !statusAlert) {
+      setStatusAlert(myStatusUpdates[0]);
+    }
+  }, [reqs, myStatusUpdates, statusAlert]);
+
+  const acknowledgeStatusUpdate = async (openRequests) => {
+    if (!statusAlert) return;
+    try {
+      const { error } = await supabase
+        .from("maintenance_requests")
+        .update({ newforrequester: false })
+        .eq("id", statusAlert.id);
+
+      if (error) throw error;
+
+      if (setReqs) {
+        setReqs((p) =>
+          p.map((r) => (r.id === statusAlert.id ? { ...r, newforrequester: false, newForRequester: false } : r))
+        );
+      }
+      setStatusAlert(null);
+      if (openRequests) onNav("requests");
+    } catch (err) {
+      console.error("Failed to dismiss maintenance status update alert:", err);
+    }
+  };
+
   // Reusable Metric Card Primitive
   const SC = ({ label, value, color, icon, onClick, sub }) => (
     <div
       onClick={onClick}
+      className={onClick ? "mrr-card mrr-card-click" : "mrr-card"}
       style={{
         background: C.w,
         borderRadius: "var(--radius-xl)",
-        padding: 14,
-        cursor: onClick ? "pointer" : "default",
-        borderLeft: `5px solid ${color}`,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+        padding: 16,
+        border: `1px solid ${C.bd}`,
         flex: 1,
         minWidth: 140,
       }}
     >
-      <div style={{ fontSize: "var(--text-3xl)", marginBottom: 4 }}>{icon}</div>
-      <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color, lineHeight: 1 }}>
+      <div style={{ width: 38, height: 38, borderRadius: "var(--radius-lg)", background: `${color}14`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-xl)", marginBottom: 10 }}>
+        {icon}
+      </div>
+      <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-extrabold)", color, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
         {value}
       </div>
-      <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>{label}</div>
+      <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 6, fontWeight: "var(--weight-semibold)" }}>{label}</div>
       {sub && (
         <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>{sub}</div>
       )}
@@ -136,26 +174,16 @@ export default function DashboardView({
   const QuickActionCard = ({ title, subtitle, icon, color, onClick }) => (
     <div
       onClick={onClick}
+      className="mrr-card mrr-card-click"
       style={{
         background: C.w,
         borderRadius: "var(--radius-xl)",
         padding: "16px 20px",
-        cursor: "pointer",
-        boxShadow: "0 4px 12px rgba(15, 23, 42, 0.05)",
-        border: "1px solid #e2e8f0",
+        border: `1px solid ${C.bd}`,
         display: "flex",
         alignItems: "center",
         gap: "var(--space-7)",
         flex: "1 1 220px",
-        transition: "transform 0.15s ease, box-shadow 0.15s ease",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 6px 16px rgba(15, 23, 42, 0.1)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 23, 42, 0.05)";
       }}
     >
       <div style={{
@@ -197,7 +225,7 @@ export default function DashboardView({
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-6)", alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📅 {t.activeAgenda}</h3>
               {myJobs.length === 0 ? (
                 <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>{t.noJobs}</p>
@@ -211,10 +239,10 @@ export default function DashboardView({
               )}
             </div>
 
-            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🚛 {t.assignedTruck}</h3>
               {myVehicle ? (
-                <div style={{ background: C.w, padding: 16, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 6px rgba(0,0,0,0.04)" }}>
+                <div style={{ background: C.lg, padding: 16, borderRadius: "var(--radius-lg)" }}>
                   <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.sub, textTransform: "uppercase", marginBottom: 4 }}>
                     {t.assignedTruck}
                   </div>
@@ -252,7 +280,7 @@ export default function DashboardView({
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-6)", alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🚨 {t.lowStockWatch}</h3>
               {low.length === 0 ? (
                 <p style={{ color: C.gr, fontSize: "var(--text-sm)", margin: 0 }}>✅ {t.allStockSafe}</p>
@@ -266,7 +294,7 @@ export default function DashboardView({
               )}
             </div>
 
-            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📦 {t.stagedOrders}</h3>
               {pendingPulls.slice(0, 4).map((p) => (
                 <div key={p.id} onClick={() => onNav("pull")} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: C.lg, borderRadius: 7, marginBottom: 6, fontSize: "var(--text-sm)", cursor: "pointer" }}>
@@ -298,7 +326,7 @@ export default function DashboardView({
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-6)", alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
               <h3 style={{ margin: "0 0 12px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📋 {t.masterPipeline}</h3>
               {jobs.filter((j) => j.status !== "completed").slice(0, 4).map((j) => {
                 const sup = users.find((u) => u.id === j.assignedto || u.id === j.assignedTo);
@@ -467,6 +495,47 @@ export default function DashboardView({
 
             <Btn v="purple" onClick={() => acknowledgeMaint(true)} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
               Got It, Open Maintenance Requests →
+            </Btn>
+          </div>
+        </Modal>
+      )}
+
+      {/* Maintenance Status Update Alert Overlay — tells the requester their ticket moved (scheduled/completed) */}
+      {!newJobAlert && !maintAlert && statusAlert && (
+        <Modal title="🔔 Maintenance Update" onClose={() => acknowledgeStatusUpdate(false)}>
+          <div style={{ textAlign: "center", padding: "8px 0" }}>
+            <div style={{ fontSize: 42, marginBottom: 10 }}>{statusAlert.status === "completed" ? "✅" : "🗓️"}</div>
+            <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: "var(--weight-black)", fontSize: "var(--text-lg)" }}>
+              {statusAlert.vname || "Unknown Vehicle"}
+            </h3>
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
+              <Bdg color={statusAlert.status === "pending" ? "amber" : statusAlert.status === "scheduled" ? "blue" : "green"}>
+                {(statusAlert.status || "updated").toUpperCase()}
+              </Bdg>
+              <Bdg color="gray">{statusAlert.type}</Bdg>
+            </div>
+
+            <div style={{ background: "#f8fafc", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
+              <strong>🔧 Your maintenance request is now {statusAlert.status}.</strong>
+              {statusAlert.status === "scheduled" && statusAlert.scheduled_date && (
+                <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
+                  <strong>🗓️ Scheduled for:</strong> {new Date(statusAlert.scheduled_date).toLocaleDateString()}
+                </div>
+              )}
+              {statusAlert.status === "completed" && statusAlert.completed_at && (
+                <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
+                  <strong>🏁 Completed on:</strong> {new Date(statusAlert.completed_at).toLocaleDateString()}
+                </div>
+              )}
+              {statusAlert.wh_notes && (
+                <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
+                  <strong>📝 Shop Notes:</strong> {statusAlert.wh_notes}
+                </div>
+              )}
+            </div>
+
+            <Btn v="teal" onClick={() => acknowledgeStatusUpdate(true)} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
+              Got It, View My Requests →
             </Btn>
           </div>
         </Modal>

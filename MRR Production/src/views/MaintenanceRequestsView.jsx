@@ -124,6 +124,11 @@ export default function MaintenanceRequestsView({
     const scheduledDate = form.scheduledDate || "";
     const completedAt = status === "completed" ? new Date().toISOString() : "";
 
+    const currentTicket = reqs.find((r) => r.id === id);
+    // Flag the change so the requester gets a dashboard alert (same pattern as jobs.newforassigned);
+    // skipped when someone updates their own ticket so they don't alert themselves.
+    const notifyRequester = !!currentTicket && String(currentTicket.uid) !== String(user.id);
+
     const { error } = await supabase
       .from("maintenance_requests")
       .update({
@@ -131,6 +136,7 @@ export default function MaintenanceRequestsView({
         wh_notes: whNotes,
         scheduled_date: scheduledDate,
         completed_at: completedAt,
+        newforrequester: notifyRequester,
       })
       .eq("id", id);
 
@@ -139,7 +145,6 @@ export default function MaintenanceRequestsView({
       return;
     }
 
-    const currentTicket = reqs.find((r) => r.id === id);
     const vehicleLabel = currentTicket ? currentTicket.vname : `Ticket ID: ${id}`;
 
     // ── 🟢 AUDIT LOG: STATUS CHANGE WORKFLOW ──
@@ -154,7 +159,7 @@ export default function MaintenanceRequestsView({
 
     setReqs((p) =>
       p.map((r) =>
-        r.id === id ? { ...r, status, wh_notes: whNotes, scheduled_date: scheduledDate, completed_at: completedAt } : r,
+        r.id === id ? { ...r, status, wh_notes: whNotes, scheduled_date: scheduledDate, completed_at: completedAt, newforrequester: notifyRequester } : r,
       ),
     );
     setSel(null);
@@ -201,7 +206,7 @@ export default function MaintenanceRequestsView({
   const trendingIssues = perms.maint_manage ? detectFleetTrends(reqs) : [];
 
   return (
-    <div style={{ fontFamily: "system-ui, sans-serif" }}>
+    <div>
       
       {/* Header Bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
@@ -303,12 +308,13 @@ export default function MaintenanceRequestsView({
             return (
               <div
                 key={r.id}
+                className="mrr-card-hover"
                 style={{
                   background: isUrgent ? "#fff5f5" : "#fff",
                   borderRadius: "var(--radius-xl)",
                   padding: 16,
                   border: isUrgent ? "1px solid #fecaca" : "1px solid #e2e8f0",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                  boxShadow: "var(--shadow-xs)",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",

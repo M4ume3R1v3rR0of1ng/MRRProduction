@@ -1,5 +1,5 @@
 // src/hooks/useAppData.js
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "../utils/supabase";
 import { storage } from "../utils/storage";
 import { useNotify } from "../context/NotificationContext";
@@ -40,12 +40,19 @@ export function useAppData() {
 
   const { showToast } = useNotify();
 
+  // Records which auth identity (user id, or null for anonymous) the last data load ran
+  // under, so the auth listener below only refetches on a genuine identity change.
+  const loadedAuthIdRef = useRef(null);
+
   // ── ⚙️ UNIFIED DATA INITIALIZATION ENGINE ──
-  useEffect(() => {
-    async function load() {
+  async function load() {
       console.log("🚀 Initializing Maumee River Roofing WMS Boot Sequence via useAppData...");
       try {
+        setLoading(true);
         setLoadingProgress(10); // Start cache extraction step[cite: 6]
+
+        const { data: { session } = {} } = await supabase.auth.getSession();
+        loadedAuthIdRef.current = session?.user?.id || null;
 
         const [ax] = await Promise.all([
           storage.get("mrr-v7-acculynx").catch(() => null),
@@ -156,8 +163,31 @@ export function useAppData() {
       } finally {
         setLoading(false);
       }
-    }
+  }
+
+  useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── 🔐 POST-LOGIN DATA REFETCH ──
+  // The boot load above can run before anyone is signed in; RLS then returns zero rows
+  // and every table falls back to seed data. Re-run the full load whenever a different
+  // identity signs in. The id guard skips the SIGNED_IN echoes supabase emits on tab
+  // refocus, so this only fires on real anonymous→user or user→user transitions.
+  useEffect(() => {
+    const { data: { subscription } = {} } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        loadedAuthIdRef.current = null;
+        return;
+      }
+      if (event === "SIGNED_IN" && session?.user && session.user.id !== loadedAuthIdRef.current) {
+        loadedAuthIdRef.current = session.user.id;
+        load();
+      }
+    });
+    return () => subscription?.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── 💾 BACKGROUND STORAGE SYNCHRONIZER EFFECTS ──

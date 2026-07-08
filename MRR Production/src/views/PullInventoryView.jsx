@@ -459,11 +459,12 @@ export default function PullInventory({
           return (
             <div
               key={job.id}
+              className="mrr-card-hover"
               style={{
                 background: C.w,
                 borderRadius: "var(--radius-xl)",
                 padding: 16,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                boxShadow: "var(--shadow-sm)",
                 border: `2px solid ${isNew ? C.tl : job.status === "active" ? C.am : "transparent"}`,
               }}
             >
@@ -585,7 +586,7 @@ export default function PullInventory({
           <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.tl, fontWeight: "var(--weight-semibold)" }}>
             Adjust quantities if needed. Confirm to deduct from warehouse inventory (FIFO).
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
+          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Item", "Planned", "Actual to Pull", "Available"].map((h) => (
@@ -646,7 +647,7 @@ export default function PullInventory({
           <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.am, fontWeight: "var(--weight-semibold)" }}>
             Enter quantities being returned. PDF report + AccuLynx sync will trigger on completion.
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
+          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Item", "Pulled", "Returning", "Will Be Used"].map((h) => (
@@ -852,7 +853,7 @@ export default function PullInventory({
               </div>
             ))}
           </div>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Item", "Planned", "Pulled", "Returned", "Used", ...(perms.inv_pricing_view ? ["Cost"] : [])].map((h) => (

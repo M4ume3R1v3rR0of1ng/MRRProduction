@@ -744,13 +744,14 @@ export default function FleetManagementView({
             return (
               <div
                 key={v.id}
+                className="mrr-card-click"
                 onClick={() => setSel(v)}
                 style={{
                   background: C.w,
                   borderRadius: "var(--radius-xl)",
                   overflow: "hidden",
                   cursor: "pointer",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                  boxShadow: "var(--shadow-sm)",
                   border: `2px solid ${bc}`,
                 }}
               >

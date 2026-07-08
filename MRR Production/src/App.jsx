@@ -142,7 +142,7 @@ return (
       height: "100vh", // Force the layout wrapper to freeze at exactly screen height
       maxHeight: "100vh",
       background: C.bg,
-      fontFamily: "'Segoe UI',system-ui,sans-serif",
+      fontFamily: "var(--font-sans)",
       width: "100vw",
       overflow: "hidden" // Prevents the whole browser page from ever scrolling
     }}>
@@ -193,7 +193,7 @@ return (
           overflow: "hidden" 
         }}>
           {!isMobile && (
-            <div style={{ background: C.w, padding: "0 20px", height: 56, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.lg}`, boxShadow: "0 1px 4px rgba(0,0,0,0.06)", flexShrink: 0 }}>
+            <div style={{ background: C.w, padding: "0 20px", height: 56, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)", flexShrink: 0 }}>
               <div style={{ fontSize: "var(--text-sm)", color: C.sub, flexShrink: 0, marginRight: 24 }}>
                 Maumee River Roofing · Saint Joe Road Warehouse
               </div>

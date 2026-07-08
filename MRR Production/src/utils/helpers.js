@@ -2,17 +2,17 @@ import { supabase } from "./supabase";
 
 // 1. Global UI Color Theme Utility
 export const C = {
-  blue: "#1B52B8",
+  blue: "#2563EB",
   navy: "#0E2D6B",
   gold: "#F5A800",
   gL: "#FFFBEB",
   w: "#fff",
-  bg: "#EEF2FA",
+  bg: "#F6F8FC",
   lg: "#F1F5F9",
-  bd: "#D1D9E6",
+  bd: "#E3E9F2",
   sub: "#64748B",
-  gr: "#16A34A",
-  gB: "#DCFCE7",
+  gr: "#059669",
+  gB: "#D1FAE5",
   rd: "#DC2626",
   rB: "#FEE2E2",
   am: "#D97706",

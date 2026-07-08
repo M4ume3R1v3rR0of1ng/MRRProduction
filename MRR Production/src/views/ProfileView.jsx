@@ -198,7 +198,7 @@ export default function ProfileView({ user, onUpdateUser }) {
           background: C.w,
           borderRadius: "var(--radius-xl)",
           padding: 24,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+          boxShadow: "var(--shadow-sm)",
         }}
       >
         <h1
@@ -284,7 +284,7 @@ export default function ProfileView({ user, onUpdateUser }) {
           background: C.w,
           borderRadius: "var(--radius-xl)",
           padding: 24,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+          boxShadow: "var(--shadow-sm)",
         }}
       >
         <div
@@ -428,7 +428,7 @@ export default function ProfileView({ user, onUpdateUser }) {
           background: C.w,
           borderRadius: "var(--radius-xl)",
           padding: 24,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+          boxShadow: "var(--shadow-sm)",
         }}
       >
         <h2

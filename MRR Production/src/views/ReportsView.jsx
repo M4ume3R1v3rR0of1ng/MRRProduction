@@ -76,13 +76,13 @@ function JobProfitabilityReport({ jobs }) {
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📈 Job Profitability & Material Allocation Trends</h2>
         <Btn v="green" sz="sm" onClick={handleExportExcel}>⬇ Export Profitability Excel</Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
+        <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
           <thead>
             <tr style={{ background: C.lg }}>
               {["PO Code", "Project Profile Name", "Estimated Contract Revenue", "Realized Material Cost", "Projected Gross Profit", "Gross Profit Margin", "Primary Material Consumed"].map((h) => (
@@ -180,7 +180,7 @@ function InventoryCostTrendsReport({ inv }) {
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: "var(--space-4)" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🏭 Structural Vendor Material Cost Trends</h2>
@@ -193,7 +193,7 @@ function InventoryCostTrendsReport({ inv }) {
         <Btn v="green" sz="sm" onClick={handleExportInventoryCSV}>⬇ Export Cost Trends Excel</Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
+        <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
           <thead>
             <tr style={{ background: C.lg }}>
               {["Material Profile Name", "Category Group", "Stock Available", "Historical Mean Cost", "Most Recent Invoice Price", "Price Fluctuation Vector", "FIFO Asset Holding Cost"].map((h) => (
@@ -356,13 +356,13 @@ const handleDeleteInspection = async (id, vehicleName) => {
       </div>
 
       {/* DETAILED LEDGER GRID */}
-      <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+      <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🚛 Operational Fleet Lifecycle & Maintenance Cost Centers</h2>
           <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>⬇ Export Fleet Analytics</Btn>
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
+          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Vehicle Fleet Identifier", "Classification Asset Class", "Plate ID", "Resolved Work Requests", "Cumulative Maintenance Cost", "Lifecycle Warning Index"].map((h) => (
@@ -404,7 +404,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
           background: C.w, 
           padding: 20, 
           borderRadius: "var(--radius-xl)", 
-          boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+          boxShadow: "var(--shadow-sm)",
           border: `1px solid ${C.lg}`
         }}
       >
@@ -570,7 +570,7 @@ function AuditTrailReport() {
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: "var(--space-4)" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🔒 Historical Operations Audit Trail</h2>
@@ -590,7 +590,7 @@ function AuditTrailReport() {
         <LoadingState label="Loading audit stream records..." />
       ) : (
         <div style={{ overflowX: "auto", maxHeight: 400, overflowY: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
             <thead>
               <tr style={{ background: C.lg, position: "sticky", top: 0, zIndex: 1 }}>
                 {["Timestamp", "User Email", "Action Code", "Audit Narrative Description"].map((h) => (

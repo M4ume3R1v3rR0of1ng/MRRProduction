@@ -210,7 +210,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
   };
 
   return (
-    <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', display: 'flex', flexDirection: 'column', height: 420 }}>
+    <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 20, boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column', height: 420 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h3 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-black)", color: C.navy }}>💬 Team Chat</h3>
         <button onClick={fetchMessages} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>

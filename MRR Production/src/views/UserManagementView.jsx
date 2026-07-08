@@ -268,8 +268,8 @@ export default function Users({
         Role permissions are set in <strong>Settings → Role Permissions</strong>. You can also give individual users custom permission overrides here using the 🔒 button.
       </div>
       
-      <div style={{ background: C.w, borderRadius: "var(--radius-xl)", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
+      <div style={{ background: C.w, borderRadius: "var(--radius-xl)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+        <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
           <thead>
             <tr style={{ background: C.lg }}>
               {["Name", "Email", "Role", "Status", ""].map((h) => (
@@ -279,7 +279,7 @@ export default function Users({
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} style={{ borderBottom: `1px solid ${C.lg}`, background: u.active ? "transparent" : "#fafafa" }}>
+              <tr key={u.id} style={{ borderBottom: `1px solid ${C.lg}`, ...(u.active ? {} : { background: "#fafafa" }) }}>
                 <td style={{ padding: "14px 14px", fontWeight: "var(--weight-bold)", color: C.navy }}>{u.full_name || u.name || "—"}</td>
                 <td style={{ padding: "14px 14px", color: C.sub }}>{u.email || "—"}</td>
                 <td style={{ padding: "14px 14px" }}>
@@ -373,7 +373,7 @@ export default function Users({
             </div>
           )}
           <div style={{ overflowX: "auto", maxHeight: "380px" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+            <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
               <thead>
                 <tr style={{ background: C.lg }}>
                   <th style={{ padding: "10px 14px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", minWidth: 220 }}>Permission</th>

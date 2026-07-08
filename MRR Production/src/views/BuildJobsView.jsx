@@ -759,6 +759,7 @@ export default function BuildJobs({
               return (
                 <div
                   key={job.id}
+                  className="mrr-card-click"
                   onClick={() => {
                     setSel(job);
                     setModal("detail");
@@ -768,7 +769,7 @@ export default function BuildJobs({
                     borderRadius: "var(--radius-xl)",
                     padding: 16,
                     cursor: "pointer",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                    boxShadow: "var(--shadow-sm)",
                     border: `2px solid ${statusMeta.color}`,
                     display: "flex",
                     justifyContent: "space-between",
@@ -865,7 +866,7 @@ export default function BuildJobs({
               );
             })}
             {shown.length === 0 && (
-              <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 30, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", boxShadow: "0 2px 8px rgba(0,0,0,0.07)" }}>
+              <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 30, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", boxShadow: "var(--shadow-sm)" }}>
                 No {filt === "all" ? "" : filt + " "}jobs. {perms.jobs_build && filt === "all" && ' Click "+ New Job" to get started.'}
               </div>
             )}
@@ -971,7 +972,7 @@ export default function BuildJobs({
               </div>
             </div>
           )}
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Item", "Category", "Planned", "Pulled", "Used", ...(perms.inv_pricing_view ? ["Cost"] : [])].map((h) => (
@@ -1270,7 +1271,7 @@ export default function BuildJobs({
 
                 {/* Column C: Current Jobs Staged Checklist Draft */}
                 <div style={{ flex: 1.5, minWidth: 190 }}>
-                  <div style={{ background: C.w, borderRadius: "var(--radius-lg)", padding: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.07)", position: "sticky", top: 0 }}>
+                  <div style={{ background: C.w, borderRadius: "var(--radius-lg)", padding: 12, boxShadow: "var(--shadow-sm)", position: "sticky", top: 0 }}>
                     <h4 style={{ margin: "0 0 10px", color: C.navy, fontSize: "var(--text-base)" }}>📦 Job List ({wItems.length})</h4>
                     {wItems.length === 0 ? (
                       <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>Add items from the list</p>

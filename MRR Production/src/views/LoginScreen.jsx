@@ -311,6 +311,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
         {mode === "signup" && (
           <Fld label={t.fullName}>
             <input
+              className="mrr-input"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -329,6 +330,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
         )}
         <Fld label={t.email}>
           <input
+            className="mrr-input"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -346,6 +348,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
         </Fld>
         <Fld label={t.password}>
           <input
+            className="mrr-input"
             type="password"
             value={pass}
             onChange={(e) => setPass(e.target.value)}
@@ -369,6 +372,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
         {mode === "signup" && (
           <Fld label={t.confirmPassword}>
             <input
+              className="mrr-input"
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
@@ -419,6 +423,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
         )}
 
         <button
+          className="mrr-btn"
           onClick={() => (mode === "login" ? tryLogin() : trySignup())}
           style={{
             width: "100%",

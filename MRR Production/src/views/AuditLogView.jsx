@@ -78,7 +78,7 @@ export default function AuditLogView({ perms }) {
         background: C.w,
         borderRadius: "var(--radius-xl)",
         padding: 24,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+        boxShadow: "var(--shadow-sm)",
       }}
     >
       <div>
@@ -134,6 +134,7 @@ export default function AuditLogView({ perms }) {
             marginBottom: "16px"
           }}>
             <table
+              className="mrr-table"
               style={{
                 width: "100%",
                 borderCollapse: "collapse",
@@ -169,7 +170,7 @@ export default function AuditLogView({ perms }) {
               <tbody>
                 {paginatedLogs.length > 0 ? (
                   paginatedLogs.map((l) => (
-                    <tr key={l.id} style={{ borderBottom: `1px solid ${C.lg}`, background: C.w }}>
+                    <tr key={l.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
                       <td style={{ padding: "12px 10px", whiteSpace: "nowrap", color: C.sub }}>
                         {formatFullTimestamp(l.created_at)}
                       </td>

@@ -161,18 +161,17 @@ export default function Sidebar({
           <button
             key={item.id}
             onClick={() => onNav(item.id)}
+            className={cur === item.id ? "mrr-nav-btn active" : "mrr-nav-btn"}
             style={{
               width: "100%",
               padding: collapsed ? "11px" : "9px 10px",
-              background: cur === item.id ? "rgba(245,168,0,0.2)" : "transparent",
               border: "none",
-              borderRadius: 7,
+              borderRadius: "var(--radius-md)",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               gap: "var(--space-3)",
               marginBottom: 2,
-              color: cur === item.id ? C.gold : "rgba(255,255,255,0.65)",
               justifyContent: collapsed ? "center" : "flex-start",
               position: "relative",
             }}
@@ -286,14 +285,12 @@ export default function Sidebar({
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", padding: "0 4px" }}>
             <button
               onClick={handleSignOut}
+              className="mrr-signout"
               style={{
                 width: "100%",
-                padding: 5,
-                background: "none",
-                border: "1px solid rgba(255,255,255,0.15)",
-                borderRadius: 5,
+                padding: 6,
+                borderRadius: "var(--radius-sm)",
                 cursor: "pointer",
-                color: "rgba(255,255,255,0.4)",
                 fontSize: "var(--text-xs)",
                 fontWeight: "var(--weight-semibold)",
               }}

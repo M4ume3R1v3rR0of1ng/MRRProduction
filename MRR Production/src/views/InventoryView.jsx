@@ -546,12 +546,13 @@ export default function InventoryView({
             
             <div
               key={item.id}
+              className="mrr-card-click"
               onClick={() => { setSel(item); setForm({ name: item.name, cat: item.cat, unit: item.unit, alrt: item.alrt }); setModal("detail"); }}
               style={{
                 background: C.w,
                 borderRadius: "var(--radius-xl)",
                 overflow: "hidden",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+                boxShadow: "var(--shadow-sm)",
                 border: item.special ? `2px solid ${C.gold}` : `2px solid ${stockStatus.color}`, // Dynamic border accent tracking stock state
                 cursor: "pointer",
                 position: "relative",

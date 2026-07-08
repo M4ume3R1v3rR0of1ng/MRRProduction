@@ -4,7 +4,12 @@
    these aren't invented numbers, they formalize the sizes/weights/radii
    that were already the de facto standard, just applied inconsistently. */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 :root {
+  /* ── Typeface ── */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
   /* ── Typography scale ── */
   --text-2xs: 10px;
   --text-xs: 11px;
@@ -43,11 +48,240 @@
   --radius-xl: 12px;
   --radius-2xl: 16px;
   --radius-pill: 999px;
+
+  /* ── Elevation scale (soft layered shadows) ── */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 2px 6px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 4px 12px rgba(15, 23, 42, 0.08), 0 16px 48px rgba(15, 23, 42, 0.14);
+  --shadow-ring: 0 0 0 3px rgba(37, 99, 235, 0.16);
+}
+
+/* ── Global base ── */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Form controls and buttons don't inherit fonts by default — force the app typeface */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.02em;
+}
+
+/* ── Interaction feel: every button transitions smoothly and gives press feedback ── */
+button {
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.15s ease,
+    filter 0.15s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+/* ── Btn primitive: hover lift + elevation ── */
+.mrr-btn {
+  box-shadow: var(--shadow-xs);
+}
+
+.mrr-btn:hover {
+  filter: brightness(1.07);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.mrr-btn:active {
+  transform: translateY(0) scale(0.98);
+  filter: brightness(0.97);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ── Input primitives: focus ring + hover affordance ──
+   (!important is required to override the primitives' inline border colors) */
+.mrr-input {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mrr-input:hover {
+  border-color: #AFBCCF !important;
+}
+
+.mrr-input:focus {
+  outline: none;
+  border-color: #2563EB !important;
+  box-shadow: var(--shadow-ring);
+}
+
+/* ── Modal: blurred backdrop fade + panel pop-in ── */
+@keyframes mrr-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes mrr-pop-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.mrr-backdrop {
+  animation: mrr-fade-in 0.18s ease-out;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.mrr-modal {
+  animation: mrr-pop-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mrr-close {
+  border-radius: var(--radius-md);
+}
+
+.mrr-close:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+/* ── Toast entrance (NotificationContext references this by name) ── */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Sidebar navigation ── */
+.mrr-nav-btn {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.mrr-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.mrr-nav-btn.active {
+  background: rgba(245, 168, 0, 0.16);
+  color: #F5A800;
+  box-shadow: inset 3px 0 0 #F5A800;
+}
+
+.mrr-signout {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.mrr-signout:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Cards ── */
+.mrr-card {
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/* .mrr-card-click = clickable card; .mrr-card-hover = same lift for cards whose actions live inside */
+.mrr-card-click,
+.mrr-card-hover {
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.mrr-card-click {
+  cursor: pointer;
+}
+
+/* !important lets the hover elevation win over cards that set their resting shadow inline */
+.mrr-card-click:hover,
+.mrr-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* ── Data tables ── */
+.mrr-table thead th {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.mrr-table tbody tr {
+  transition: background 0.12s ease;
+}
+
+.mrr-table tbody tr:hover {
+  background: #F8FAFC;
+}
+
+/* ── Modern thin scrollbars ── */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C3CEDD;
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A4B3C8;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 /* ── Shared loading spinner animation (see LoadingState in UIPrimitives.jsx) ── */
 @keyframes mrr-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* ── Accessibility: honor reduced-motion preference ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
