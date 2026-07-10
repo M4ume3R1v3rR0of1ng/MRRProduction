@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase, getAccessToken } from "../utils/supabase";
 import { C, uid, fd, fm, tot, newestPrice } from "../utils/helpers";
+import { fetchJobTemplates, saveJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
 import {
   Btn,
   Bdg,
@@ -48,6 +49,68 @@ export default function InventoryView({
   
   const [bulkSrch, setBulkSrch] = useState("");
   const { showToast } = useNotify();
+
+  // ── 🧰 JOB MATERIAL TEMPLATES MANAGER ──
+  const [tpls, setTpls] = useState([]);
+  const [tplEditing, setTplEditing] = useState(null); // template object being edited
+  const [tplSrch, setTplSrch] = useState("");
+  const [tplLoading, setTplLoading] = useState(false);
+  const [tplSaving, setTplSaving] = useState(false);
+
+  const openTemplates = async () => {
+    setModal("tpl");
+    setTplEditing(null);
+    setTplSrch("");
+    setTplLoading(true);
+    try {
+      const saved = await fetchJobTemplates();
+      setTpls(saved || resolveDefaultTemplates(inv));
+    } catch (err) {
+      showToast(`Could not load templates: ${err.message}`, "error");
+      setTpls(resolveDefaultTemplates(inv));
+    } finally {
+      setTplLoading(false);
+    }
+  };
+
+  const persistTemplates = async (next) => {
+    setTplSaving(true);
+    try {
+      await saveJobTemplates(next);
+      setTpls(next);
+      return true;
+    } catch (err) {
+      showToast(`Database Error: Could not save templates. ${err.message}`, "error");
+      return false;
+    } finally {
+      setTplSaving(false);
+    }
+  };
+
+  const saveTplEdit = async () => {
+    if (!tplEditing.name.trim()) {
+      showToast("Template name is required.", "warning");
+      return;
+    }
+    if (tplEditing.items.length === 0) {
+      showToast("Add at least one material to the template.", "warning");
+      return;
+    }
+    const cleaned = { ...tplEditing, name: tplEditing.name.trim() };
+    const exists = tpls.find((t) => t.id === cleaned.id);
+    const next = exists ? tpls.map((t) => (t.id === cleaned.id ? cleaned : t)) : [...tpls, cleaned];
+    if (await persistTemplates(next)) {
+      showToast(`Template "${cleaned.name}" saved.`, "success");
+      setTplEditing(null);
+    }
+  };
+
+  const deleteTpl = async (tpl) => {
+    if (!window.confirm(`Delete the "${tpl.name}" template? Jobs already built with it are not affected.`)) return;
+    if (await persistTemplates(tpls.filter((t) => t.id !== tpl.id))) {
+      showToast(`Template "${tpl.name}" deleted.`, "success");
+    }
+  };
 
   // Fix 8: Memoize categories array computation so it only evaluates if inv updates
   const cats = useMemo(() => {
@@ -552,6 +615,11 @@ export default function InventoryView({
             </Btn>
           )}
           {perms.inv_edit && (
+            <Btn v="outline" onClick={openTemplates}>
+              🧰 {lang === "es" ? "Plantillas" : "Templates"}
+            </Btn>
+          )}
+          {perms.inv_edit && (
             <Btn v="primary" onClick={() => { setModal("add"); setForm({ unit: "rolls", alrt: "10" }); }}>
               {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
               + {lang === "es" ? "Agregar Artículo" : "Add Item"}
@@ -820,6 +888,138 @@ export default function InventoryView({
             <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
             <Btn v="primary" onClick={editItem} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Saving..." : "Save Changes"}</Btn>
           </div>
+        </Modal>
+      )}
+
+      {/* ── 🧰 JOB MATERIAL TEMPLATES MANAGER ── */}
+      {modal === "tpl" && (
+        <Modal
+          title="🧰 Job Material Templates"
+          onClose={() => { if (!tplSaving) { setModal(null); setTplEditing(null); } }}
+          wide
+        >
+          {tplLoading ? (
+            <p style={{ color: C.sub, textAlign: "center", padding: "20px 0" }}>Loading templates...</p>
+          ) : tplEditing ? (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "90px 1fr", gap: "var(--space-3)" }}>
+                <Fld label="Icon">
+                  <Inp value={tplEditing.icon || ""} onChange={(e) => setTplEditing({ ...tplEditing, icon: e.target.value })} placeholder="🏠" disabled={tplSaving} />
+                </Fld>
+                <Fld label="Template Name *">
+                  <Inp value={tplEditing.name} onChange={(e) => setTplEditing({ ...tplEditing, name: e.target.value })} placeholder="e.g. Economy Roof" disabled={tplSaving} />
+                </Fld>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-5)" }}>
+                <div>
+                  <h4 style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)" }}>📦 Materials ({tplEditing.items.length})</h4>
+                  {tplEditing.items.length === 0 ? (
+                    <p style={{ color: C.sub, fontSize: "var(--text-sm)" }}>Add materials from the catalog on the right.</p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxHeight: 260, overflowY: "auto" }}>
+                      {tplEditing.items.map((t, idx) => {
+                        const inCatalog = t.iid && inv.find((i) => i && i.id === t.iid);
+                        return (
+                          <div key={t.iid || `x_${idx}`} style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}>
+                            <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-xs)", marginBottom: 4 }}>
+                              {t.iname} {!inCatalog && <span style={{ color: C.am }}>⚠ not in catalog</span>}
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                              <Inp
+                                type="number"
+                                value={t.qty}
+                                min="1"
+                                onChange={(e) => {
+                                  const qty = Math.max(1, parseInt(e.target.value) || 1);
+                                  setTplEditing((p) => ({ ...p, items: p.items.map((x, i2) => (i2 === idx ? { ...x, qty } : x)) }));
+                                }}
+                                style={{ width: 55, padding: "3px 6px" }}
+                                disabled={tplSaving}
+                              />
+                              <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>default qty</span>
+                              <button
+                                onClick={() => setTplEditing((p) => ({ ...p, items: p.items.filter((_, i2) => i2 !== idx) }))}
+                                style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-lg)", lineHeight: 1 }}
+                                disabled={tplSaving}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <Inp value={tplSrch} onChange={(e) => setTplSrch(e.target.value)} placeholder="🔍 Search catalog..." style={{ marginBottom: 8 }} disabled={tplSaving} />
+                  <div style={{ maxHeight: 260, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
+                    {inv
+                      .filter((i) => i && (i.name || "").toLowerCase().includes(tplSrch.toLowerCase()) && !tplEditing.items.find((t) => t.iid === i.id))
+                      .slice(0, 40)
+                      .map((item) => (
+                        <div key={item.id} style={{ background: C.w, borderRadius: "var(--radius-md)", padding: "8px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                          <div>
+                            <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-xs)" }}>{item.name}</div>
+                            <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{tot(item)} {item.unit} available</div>
+                          </div>
+                          <Btn
+                            v="primary"
+                            sz="sm"
+                            onClick={() => setTplEditing((p) => ({ ...p, items: [...p.items, { iid: item.id, iname: item.name, qty: 1 }] }))}
+                            disabled={tplSaving}
+                          >
+                            + Add
+                          </Btn>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
+                <Btn v="ghost" onClick={() => setTplEditing(null)} style={{ flex: 1, justifyContent: "center" }} disabled={tplSaving}>← Back</Btn>
+                <Btn v="primary" onClick={saveTplEdit} style={{ flex: 1, justifyContent: "center" }} disabled={tplSaving}>
+                  {tplSaving ? "⏳ Saving..." : "💾 Save Template"}
+                </Btn>
+              </div>
+            </>
+          ) : (
+            <>
+              <p style={{ margin: "0 0 12px", fontSize: "var(--text-sm)", color: C.sub }}>
+                These material packages appear in the Build Jobs wizard (Step 2) for one-click job lists.
+              </p>
+              {tpls.length === 0 && (
+                <p style={{ color: C.sub, fontSize: "var(--text-sm)", textAlign: "center", padding: "16px 0" }}>No templates yet — create your first one below.</p>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", maxHeight: 320, overflowY: "auto" }}>
+                {tpls.map((tpl) => (
+                  <div key={tpl.id} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-sm)" }}>{tpl.icon} {tpl.name}</div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <Btn v="outline" sz="sm" onClick={() => { setTplSrch(""); setTplEditing({ ...tpl, items: [...(tpl.items || [])] }); }} disabled={tplSaving}>✏️ Edit</Btn>
+                        <Btn v="danger" sz="sm" onClick={() => deleteTpl(tpl)} disabled={tplSaving}>🗑️</Btn>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: "var(--text-2xs)", color: C.sub, lineHeight: 1.7 }}>
+                      {(tpl.items || []).map((t) => t.iname + (t.qty > 1 ? ` ×${t.qty}` : "")).join(" · ") || "No materials"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
+                <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }} disabled={tplSaving}>Close</Btn>
+                <Btn
+                  v="primary"
+                  onClick={() => { setTplSrch(""); setTplEditing({ id: "tpl_" + uid(), name: "", icon: "🧰", items: [] }); }}
+                  style={{ flex: 1, justifyContent: "center" }}
+                  disabled={tplSaving}
+                >
+                  + New Template
+                </Btn>
+              </div>
+            </>
+          )}
         </Modal>
       )}
 

@@ -9,40 +9,7 @@ import CrewCalendar from "../components/CrewCalendar";
 import { generatePDF } from "../utils/pdfGenerator";
 import { logAction } from "../utils/logger";
 
-// ── 🧰 JOB MATERIAL TEMPLATES ──
-// One-click material packages for the wizard. Each entry matches a live
-// inventory item by keywords (every keyword must appear in the item name,
-// case-insensitive) so renamed catalog items keep matching.
-const JOB_TEMPLATES = [
-  {
-    name: "Economy Roof",
-    icon: "🏠",
-    materials: [
-      { label: "Atlas Ice and Water", match: ["ice", "water"] },
-      { label: "Summit Underlayment", match: ["underlayment"] },
-      { label: "Atlas Pro Ridgevent", match: ["ridge"] },
-      { label: "Box Vents — Brown", match: ["box vent", "brown"] },
-      { label: "Box Vents — Black", match: ["box vent", "black"] },
-      { label: "Stinger Cap Nails", match: ["stinger"] },
-      { label: "OSB", match: ["osb"] },
-      { label: "Smooth Shank Coil Nails", match: ["smooth shank"] },
-    ],
-  },
-  {
-    name: "Elite Roof",
-    icon: "⭐",
-    materials: [
-      { label: "Atlas Ice and Water", match: ["ice", "water"] },
-      { label: "Summit Underlayment", match: ["underlayment"] },
-      { label: "Atlas Pro Ridgevent", match: ["ridge"] },
-      { label: "Box Vents — Brown", match: ["box vent", "brown"] },
-      { label: "Box Vents — Black", match: ["box vent", "black"] },
-      { label: "Stinger Cap Nails", match: ["stinger"] },
-      { label: "OSB", match: ["osb"] },
-      { label: "Ring Shank Coil Nails", match: ["ring shank"] },
-    ],
-  },
-];
+import { fetchJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
 
 export default function BuildJobs({
   jobs = [],
@@ -60,6 +27,7 @@ export default function BuildJobs({
   acculynxConfig,
   openItemId,
   onOpenItemHandled,
+  activeLogo,
 }) {
   const { showToast } = useNotify();
   const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com" };
@@ -252,17 +220,32 @@ export default function BuildJobs({
     ]);
   };
 
-  // Apply a material template: match each entry against live inventory and
+  // Job material templates: saved ones from the DB (managed in Inventory →
+  // 🧰 Templates), falling back to the built-in starter packages.
+  const [savedTemplates, setSavedTemplates] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const saved = await fetchJobTemplates();
+        if (!cancelled && saved) setSavedTemplates(saved);
+      } catch (err) {
+        console.error("Failed to load job templates:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+  const jobTemplates = savedTemplates || resolveDefaultTemplates(inv);
+
+  // Apply a material template: resolve each entry against live inventory and
   // add everything not already on the job list in one shot.
   const applyTemplate = (tpl) => {
     const missing = [];
     const additions = [];
-    tpl.materials.forEach((m) => {
-      const item = inv.find(
-        (i) => i && m.match.every((kw) => (i.name || "").toLowerCase().includes(kw)),
-      );
+    (tpl.items || []).forEach((t) => {
+      const item = inv.find((i) => i && i.id === t.iid);
       if (!item) {
-        missing.push(m.label);
+        missing.push(t.iname);
         return;
       }
       if (wItems.find((x) => x.iid === item.id) || additions.find((x) => x.iid === item.id)) return;
@@ -271,7 +254,7 @@ export default function BuildJobs({
         iname: item.name,
         icat: item.cat,
         unit: item.unit,
-        qty: 1,
+        qty: Math.max(1, parseInt(t.qty) || 1),
         avail: tot(item),
       });
     });
@@ -931,7 +914,7 @@ export default function BuildJobs({
                         sz="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          generatePDF(job, users);
+                          generatePDF(job, users, activeLogo);
                         }}
                       >
                         📄 PDF
@@ -1007,7 +990,7 @@ export default function BuildJobs({
               </Btn>
             )}
             {(sel.status === "completed" || sel.status === "closed") && (
-              <Btn v="green" sz="sm" onClick={() => generatePDF(sel, users)}>
+              <Btn v="green" sz="sm" onClick={() => generatePDF(sel, users, activeLogo)}>
                 📄 Download PDF Report
               </Btn>
             )}
@@ -1321,8 +1304,13 @@ export default function BuildJobs({
                     One-click material packages. Apply one, then fine-tune quantities in the Job List.
                   </p>
                   <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                    {JOB_TEMPLATES.map((tpl) => (
-                      <div key={tpl.name} style={{ background: C.w, border: `1px solid ${C.lg}`, borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
+                    {jobTemplates.length === 0 && (
+                      <p style={{ fontSize: "var(--text-xs)", color: C.sub, fontStyle: "italic", margin: 0 }}>
+                        No templates yet — create them in Inventory → 🧰 Templates.
+                      </p>
+                    )}
+                    {jobTemplates.map((tpl) => (
+                      <div key={tpl.id || tpl.name} style={{ background: C.w, border: `1px solid ${C.lg}`, borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 6 }}>
                           <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-sm)" }}>
                             {tpl.icon} {tpl.name}
@@ -1330,11 +1318,14 @@ export default function BuildJobs({
                           <Btn v="primary" sz="sm" onClick={() => applyTemplate(tpl)}>+ Apply</Btn>
                         </div>
                         <div style={{ fontSize: "var(--text-2xs)", color: C.sub, lineHeight: 1.7 }}>
-                          {tpl.materials.map((m) => m.label).join(" · ")}
+                          {(tpl.items || []).map((t) => t.iname + (t.qty > 1 ? ` ×${t.qty}` : "")).join(" · ")}
                         </div>
                       </div>
                     ))}
                   </div>
+                  <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: C.sub }}>
+                    ✏️ Manage these in Inventory → 🧰 Templates
+                  </p>
                 </div>
 
                 {/* Column B: Real WMS System Catalog Query Feed */}
