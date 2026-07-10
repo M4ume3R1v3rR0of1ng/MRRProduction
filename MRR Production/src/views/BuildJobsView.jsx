@@ -9,6 +9,41 @@ import CrewCalendar from "../components/CrewCalendar";
 import { generatePDF } from "../utils/pdfGenerator";
 import { logAction } from "../utils/logger";
 
+// ── 🧰 JOB MATERIAL TEMPLATES ──
+// One-click material packages for the wizard. Each entry matches a live
+// inventory item by keywords (every keyword must appear in the item name,
+// case-insensitive) so renamed catalog items keep matching.
+const JOB_TEMPLATES = [
+  {
+    name: "Economy Roof",
+    icon: "🏠",
+    materials: [
+      { label: "Atlas Ice and Water", match: ["ice", "water"] },
+      { label: "Summit Underlayment", match: ["underlayment"] },
+      { label: "Atlas Pro Ridgevent", match: ["ridge"] },
+      { label: "Box Vents — Brown", match: ["box vent", "brown"] },
+      { label: "Box Vents — Black", match: ["box vent", "black"] },
+      { label: "Stinger Cap Nails", match: ["stinger"] },
+      { label: "OSB", match: ["osb"] },
+      { label: "Smooth Shank Coil Nails", match: ["smooth shank"] },
+    ],
+  },
+  {
+    name: "Elite Roof",
+    icon: "⭐",
+    materials: [
+      { label: "Atlas Ice and Water", match: ["ice", "water"] },
+      { label: "Summit Underlayment", match: ["underlayment"] },
+      { label: "Atlas Pro Ridgevent", match: ["ridge"] },
+      { label: "Box Vents — Brown", match: ["box vent", "brown"] },
+      { label: "Box Vents — Black", match: ["box vent", "black"] },
+      { label: "Stinger Cap Nails", match: ["stinger"] },
+      { label: "OSB", match: ["osb"] },
+      { label: "Ring Shank Coil Nails", match: ["ring shank"] },
+    ],
+  },
+];
+
 export default function BuildJobs({
   jobs = [],
   setJobs,
@@ -215,6 +250,44 @@ export default function BuildJobs({
         avail: tot(item),
       },
     ]);
+  };
+
+  // Apply a material template: match each entry against live inventory and
+  // add everything not already on the job list in one shot.
+  const applyTemplate = (tpl) => {
+    const missing = [];
+    const additions = [];
+    tpl.materials.forEach((m) => {
+      const item = inv.find(
+        (i) => i && m.match.every((kw) => (i.name || "").toLowerCase().includes(kw)),
+      );
+      if (!item) {
+        missing.push(m.label);
+        return;
+      }
+      if (wItems.find((x) => x.iid === item.id) || additions.find((x) => x.iid === item.id)) return;
+      additions.push({
+        iid: item.id,
+        iname: item.name,
+        icat: item.cat,
+        unit: item.unit,
+        qty: 1,
+        avail: tot(item),
+      });
+    });
+
+    if (additions.length > 0) setWItems((p) => [...p, ...additions]);
+
+    if (missing.length > 0) {
+      showToast(
+        `"${tpl.name}" applied — ${additions.length} item${additions.length === 1 ? "" : "s"} added. Not found in inventory: ${missing.join(", ")}. Add those manually.`,
+        "warning",
+      );
+    } else if (additions.length === 0) {
+      showToast(`Everything in "${tpl.name}" is already on the job list.`, "info");
+    } else {
+      showToast(`"${tpl.name}" template applied — ${additions.length} item${additions.length === 1 ? "" : "s"} added. Adjust quantities in the Job List.`, "success");
+    }
   };
 
   const saveJob = async (asDraft) => {
@@ -1239,48 +1312,29 @@ export default function BuildJobs({
               {/* ── 🆕 OPTION 2: MULTI-COLUMN INTERACTIVE SIDE PANEL LAYOUT ── */}
               <div style={{ display: "flex", gap: "var(--space-7)", flexWrap: "wrap" }}>
                 
-                {/* Column A: AccuLynx Contract Blueprint Guidelines Checklist */}
+                {/* Column A: Job Material Templates */}
                 <div style={{ flex: 1.2, minWidth: 200, background: C.bg || "#f8fafc", border: `1px solid ${C.bd}`, borderRadius: "var(--radius-lg)", padding: 12, maxHeight: 380, overflowY: "auto" }}>
                   <h4 style={{ margin: "0 0 8px 0", color: C.navy, fontSize: "var(--text-base)", display: "flex", alignItems: "center", gap: 5 }}>
-                    📝 AccuLynx Order Roadmap
+                    🧰 Job Templates
                   </h4>
                   <p style={{ margin: "0 0 10px 0", fontSize: "var(--text-xs)", color: C.sub }}>
-                    Click items below to search your warehouse inventory for a matching component.
+                    One-click material packages. Apply one, then fine-tune quantities in the Job List.
                   </p>
-                  
-                  {loadingEstimate ? (
-                    <LoadingState label="Pulling estimate manifest..." compact />
-                  ) : axEstimateItems.length > 0 ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                      {axEstimateItems.map((item, idx) => (
-                        <div 
-                          key={idx}
-                          onClick={() => setISrch(item.name || "")}
-                          style={{
-                            background: C.w,
-                            padding: "8px 10px",
-                            borderRadius: "var(--radius-sm)",
-                            cursor: "pointer",
-                            border: `1px solid ${C.lg}`,
-                            fontSize: "var(--text-xs)",
-                            transition: "all 0.15s ease"
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.borderColor = C.blue}
-                          onMouseLeave={(e) => e.currentTarget.style.borderColor = C.lg}
-                        >
-                          <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{item.name}</div>
-                          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, color: C.sub, fontSize: "var(--text-2xs)" }}>
-                            <span>Qty: {item.quantity} {item.estimateUnit || "pcs"}</span>
-                            {item.type && <Bdg color="gray">{item.type}</Bdg>}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                    {JOB_TEMPLATES.map((tpl) => (
+                      <div key={tpl.name} style={{ background: C.w, border: `1px solid ${C.lg}`, borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                          <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-sm)" }}>
+                            {tpl.icon} {tpl.name}
                           </div>
+                          <Btn v="primary" sz="sm" onClick={() => applyTemplate(tpl)}>+ Apply</Btn>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: "var(--text-xs)", color: C.sub, fontStyle: "italic", textAlign: "center", padding: "30px 0" }}>
-                      No estimate item data mapped onto this project or contract profile.
-                    </div>
-                  )}
+                        <div style={{ fontSize: "var(--text-2xs)", color: C.sub, lineHeight: 1.7 }}>
+                          {tpl.materials.map((m) => m.label).join(" · ")}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Column B: Real WMS System Catalog Query Feed */}
