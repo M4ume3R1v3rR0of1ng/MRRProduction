@@ -300,25 +300,31 @@ export default function FleetManagementView({
     }
   };
 
-  const logMi = () => {
+  const logMi = async () => {
     if (!form.mi || !form.date) return;
     const mi = parseFloat(form.mi);
     if (mi < sel.mi) {
       showToast("Cannot be less than current mileage.", "info");
       return;
     }
-    const up = {
-      ...sel,
+    const changes = {
       mi,
-      mil: [...sel.mil, { dt: form.date, mi, by: user.id }],
+      mil: [...(sel.mil || []), { dt: form.date, mi, by: user.id }],
     };
-    setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
-    setSel(up);
-    setModal(null);
-    setForm({});
+    try {
+      const { error } = await supabase.from("vehicles").update(changes).eq("id", sel.id);
+      if (error) throw error;
+      const up = { ...sel, ...changes };
+      setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
+      setSel(up);
+      setModal(null);
+      setForm({});
+    } catch (err) {
+      showToast(`Database Error: Could not log mileage. ${err.message}`, "error");
+    }
   };
 
-  const logSvc = () => {
+  const logSvc = async () => {
     if (!form.type || !form.date) return;
     const e = {
       id: Math.random().toString(36).slice(2, 10),
@@ -329,24 +335,46 @@ export default function FleetManagementView({
       notes: form.notes || "",
       cost: parseFloat(form.cost) || 0,
     };
-    const up = {
-      ...sel,
-      sl: [...sel.sl, e],
+    const changes = {
+      sl: [...(sel.sl || []), e],
       ...(form.type === "Oil Change" ? { lomi: e.mi } : {}),
       ...(form.type === "Detail" ? { ldd: form.date } : {}),
     };
-    setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
-    setSel(up);
-    setModal(null);
-    setForm({});
+    try {
+      const { error } = await supabase.from("vehicles").update(changes).eq("id", sel.id);
+      if (error) throw error;
+      const up = { ...sel, ...changes };
+      setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
+      setSel(up);
+      setModal(null);
+      setForm({});
+
+      await logAction(
+        user.id,
+        user.email,
+        "FLEET_MAINTENANCE",
+        `Logged service for "${sel.name}": ${e.type} @ ${e.mi} mi${e.cost ? ` ($${e.cost})` : ""}`,
+        { vehicle_id: sel.id, service: e },
+        "fleet"
+      );
+    } catch (err) {
+      showToast(`Database Error: Could not log service record. ${err.message}`, "error");
+    }
   };
 
-  const assignUser = () => {
-    const up = { ...sel, assignedTo: form.assignedTo || "" };
-    setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
-    setSel(up);
-    setModal(null);
-    setForm({});
+  const assignUser = async () => {
+    const assignedTo = form.assignedTo || "";
+    try {
+      const { error } = await supabase.from("vehicles").update({ assignedTo }).eq("id", sel.id);
+      if (error) throw error;
+      const up = { ...sel, assignedTo };
+      setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
+      setSel(up);
+      setModal(null);
+      setForm({});
+    } catch (err) {
+      showToast(`Database Error: Could not save assignment. ${err.message}`, "error");
+    }
   };
 
   // Persist service requests filed from the fleet page — mirrors the insert

@@ -473,7 +473,7 @@ export default function InventoryView({
     });
 
     try {
-      await Promise.all(
+      const results = await Promise.all(
         valid.map((bi) => {
           const matchingItem = inv.find((i) => i.id === bi.iid);
           const nb = {
@@ -492,6 +492,11 @@ export default function InventoryView({
             .eq("id", bi.iid);
         }),
       );
+
+      // Supabase calls resolve (never throw) with an { error } payload — an
+      // unchecked failure here would show success while nothing was saved.
+      const firstError = results.map((r) => r?.error).find(Boolean);
+      if (firstError) throw firstError;
 
       setInv(stateSnapshot);
 

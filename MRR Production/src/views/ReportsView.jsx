@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C, fd, fm, tot, newestPrice } from "../utils/helpers";
 import { Btn, Sel, Bdg, Modal, LoadingState } from "../components/UIPrimitives"; // Added Modal wrapper primitives
+import { useNotify } from "../context/NotificationContext";
 
 // ── 🔄 SHARED NATIVE SPREADSHEET DOWNLOAD ENGINE ──
 const triggerNativeDownload = (filename, headers, rows) => {
@@ -228,6 +229,7 @@ function FleetCostTrendsReport({ vehs, reqs }) {
   const [inspections, setInspections] = useState([]);
   const [loadingInspect, setLoadingInspect] = useState(true);
   const [lightboxPic, setLightboxPic] = useState(null);
+  const { showToast } = useNotify();
 
   useEffect(() => {
     async function getHistory() {
@@ -299,8 +301,10 @@ const handleDeleteInspection = async (id, vehicleName) => {
       .eq("id", id);
     if (error) throw error;
     setInspections((prev) => prev.filter((log) => log.id !== id));
+    showToast("Inspection record deleted.", "success");
   } catch (err) {
     console.error("Failed to delete inspection:", err);
+    showToast(`Database Error: Could not delete inspection. ${err.message}`, "error");
   }
 };
 
