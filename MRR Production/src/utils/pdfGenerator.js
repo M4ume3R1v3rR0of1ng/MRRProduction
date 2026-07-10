@@ -1,6 +1,6 @@
 // src/utils/pdfGenerator.js
 
-import { fd, fm } from './helpers';
+import { fd, fm, newestPrice } from './helpers';
 
 // Job/item fields below (name, PO, address, notes, item names) are free text set by
 // warehouse/coordinator/manager users, then rendered via document.write() into a
@@ -16,7 +16,7 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-export function generatePDF(job, users, activeLogo) {
+export function generatePDF(job, users, activeLogo, inv = []) {
   const sup = users.find(u => u.id === (job.assignedto || job.assignedTo));
   const cats = {};
 
@@ -24,18 +24,26 @@ export function generatePDF(job, users, activeLogo) {
   // Guard every numeric field: legacy/imported items can be missing
   // pulled/returned/priceAtPull, and unguarded math (even 0 * NaN) prints
   // a bogus cost for fully-returned items instead of $0.00.
+  // Unit price prefers the item's current inventory price so later price
+  // corrections show on the report; the pull-time snapshot is only a fallback
+  // for items that no longer exist in inventory (or have no priced batches).
   (job.items || job.materials || []).forEach(item => {
     if (!item) return;
     const pulled = parseFloat(item.pulled) || 0;
     const returned = parseFloat(item.returned) || 0;
-    const priceAtPull = parseFloat(item.priceAtPull) || 0;
+    const invItem = inv.find(x => x && x.id === item.iid);
+    const livePrice = invItem ? newestPrice(invItem) : 0;
+    const unitPrice = livePrice > 0 ? livePrice : (parseFloat(item.priceAtPull) || 0);
     const used = Math.max(0, pulled - returned);
-    const total = used * priceAtPull;
+    const total = used * unitPrice;
     if (!cats[item.icat]) cats[item.icat] = [];
-    cats[item.icat].push({ ...item, pulled, returned, priceAtPull, used, total });
+    cats[item.icat].push({ ...item, pulled, returned, unitPrice, used, total });
   });
   
+  const SALES_TAX_RATE = 0.07; // Indiana sales tax
   const grandTotal = Object.values(cats).flat().reduce((s, i) => s + i.total, 0);
+  const salesTax = grandTotal * SALES_TAX_RATE;
+  const totalWithTax = grandTotal + salesTax;
   const fp = n => '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   
   const catRows = Object.entries(cats).map(([cat, items]) => {
@@ -51,7 +59,7 @@ export function generatePDF(job, users, activeLogo) {
           <td style="padding:7px 14px;text-align:center">${i.pulled}</td>
           <td style="padding:7px 14px;text-align:center">${i.returned}</td>
           <td style="padding:7px 14px;text-align:center;font-weight:700;color:#0E2D6B">${i.used}</td>
-          <td style="padding:7px 14px;text-align:right">$${i.priceAtPull.toFixed(2)}</td>
+          <td style="padding:7px 14px;text-align:right">$${i.unitPrice.toFixed(2)}</td>
           <td style="padding:7px 14px;text-align:right;font-weight:700;color:#16A34A">$${i.total.toFixed(2)}</td>
         </tr>
       `).join('')}
@@ -87,7 +95,7 @@ export function generatePDF(job, users, activeLogo) {
           <div style="font-size:20px;font-weight:900;color:#0E2D6B">MAUMEE RIVER ROOFING</div>
           <div style="font-size:12px;color:#64748B;letter-spacing:1px">JOB COMPLETION REPORT</div>
         </div>
-        <button class="no-print" onclick="window.print()" style="padding:10px 20px;background:#F5A800;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">🖨️ Save as PDF</button>
+        <button id="mrr-print-btn" class="no-print" style="padding:10px 20px;background:#F5A800;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">🖨️ Save as PDF</button>
       </div>
       <hr style="border:2px solid #F5A800;margin-bottom:24px">
       <table style="margin-top:0;width:auto;min-width:400px">
@@ -115,9 +123,17 @@ export function generatePDF(job, users, activeLogo) {
           ${catRows}
         </tbody>
         <tfoot>
+          <tr style="background:#F1F5F9">
+            <td colspan="6" style="padding:10px 14px;font-weight:700;text-align:right">Materials Subtotal:</td>
+            <td style="padding:10px 14px;text-align:right;font-weight:700">${fp(grandTotal)}</td>
+          </tr>
+          <tr style="background:#F1F5F9">
+            <td colspan="6" style="padding:10px 14px;font-weight:700;text-align:right">Indiana Sales Tax (7%):</td>
+            <td style="padding:10px 14px;text-align:right;font-weight:700">${fp(salesTax)}</td>
+          </tr>
           <tr style="background:#0E2D6B">
             <td colspan="6" style="padding:14px;font-weight:900;font-size:15px;color:#fff;letter-spacing:.5px;border:none">TOTAL MATERIAL COST</td>
-            <td style="padding:14px;text-align:right;font-weight:900;font-size:20px;color:#F5A800;border:none">${fp(grandTotal)}</td>
+            <td style="padding:14px;text-align:right;font-weight:900;font-size:20px;color:#F5A800;border:none">${fp(totalWithTax)}</td>
           </tr>
         </tfoot>
       </table>
@@ -127,5 +143,12 @@ export function generatePDF(job, users, activeLogo) {
   `;
   
   const win = window.open('', '_blank', 'width=1000,height=750');
-  if (win) { win.document.write(html); win.document.close(); }
+  if (!win) return false; // popup blocked — let the caller warn the user
+
+  win.document.write(html);
+  win.document.close();
+  // The popup inherits this app's CSP (script-src 'self', no 'unsafe-inline'),
+  // which blocks inline onclick handlers — bind the print action from here instead.
+  win.document.getElementById('mrr-print-btn')?.addEventListener('click', () => win.print());
+  return true;
 };

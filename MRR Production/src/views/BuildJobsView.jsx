@@ -1,6 +1,6 @@
 // src/views/BuildJobsView.jsx
 import { useState, useMemo, useEffect } from "react";
-import { C, uid, fd, fm, tot, mkJI } from "../utils/helpers";
+import { C, uid, fd, fm, tot, mkJI, newestPrice } from "../utils/helpers";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, LoadingState } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
 import { supabase, getAccessToken } from "../utils/supabase";
@@ -27,7 +27,7 @@ export default function BuildJobs({
   acculynxConfig,
   openItemId,
   onOpenItemHandled,
-  activeLogo={logos},
+  activeLogo,
 }) {
   const { showToast } = useNotify();
   const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com" };
@@ -914,7 +914,9 @@ export default function BuildJobs({
                         sz="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          generatePDF(job, users, activeLogo);
+                          if (!generatePDF(job, users, activeLogo, inv)) {
+                            showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning");
+                          }
                         }}
                       >
                         📄 PDF
@@ -990,7 +992,15 @@ export default function BuildJobs({
               </Btn>
             )}
             {(sel.status === "completed" || sel.status === "closed") && (
-              <Btn v="green" sz="sm" onClick={() => generatePDF(sel, users, activeLogo)}>
+              <Btn
+                v="green"
+                sz="sm"
+                onClick={() => {
+                  if (!generatePDF(sel, users, activeLogo, inv)) {
+                    showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning");
+                  }
+                }}
+              >
                 📄 Download PDF Report
               </Btn>
             )}
@@ -1072,8 +1082,12 @@ export default function BuildJobs({
                 if (!item) return null;
                 // Cost reflects what was actually used (pulled minus returned),
                 // not the raw pull cost — fully-returned items must read $0.00.
+                // Priced from current inventory (matching the PDF report) so
+                // later price corrections show; pull-time snapshot is the fallback.
                 const used = Math.max((item.pulled || 0) - (item.returned || 0), 0);
-                const usedCost = used * (parseFloat(item.priceAtPull) || 0);
+                const invItem = inv.find((x) => x && x.id === item.iid);
+                const livePrice = invItem ? newestPrice(invItem) : 0;
+                const usedCost = used * (livePrice > 0 ? livePrice : parseFloat(item.priceAtPull) || 0);
                 return (
                   <tr key={item.iid || item.id || Math.random()} style={{ borderTop: `1px solid ${C.lg}` }}>
                     <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name || "—"}</td>

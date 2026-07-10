@@ -389,7 +389,9 @@ export default function PullInventory({
       setRetQtys({});
 
       setTimeout(() => {
-        generatePDF(updatedJob, users, activeLogo);
+        if (!generatePDF(updatedJob, users, activeLogo, newInv)) {
+          showToast("Popup blocked — allow popups for this site, then use the 📄 PDF button to open the report.", "warning");
+        }
         if (acculynxConfig?.autoSync) {
           attemptAccuLynxSync(updatedJob, users, acculynxConfig, setJobs);
         }
@@ -561,7 +563,7 @@ export default function PullInventory({
                   )}
                   {job.status === "completed" && (
                     <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                      <Btn v="green" sz="sm" onClick={() => generatePDF(job, users, activeLogo)}>📄 PDF</Btn>
+                      <Btn v="green" sz="sm" onClick={() => { if (!generatePDF(job, users, activeLogo, inv)) showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning"); }}>📄 PDF</Btn>
                       <Btn v="sky" sz="sm" onClick={() => setSyncModal(job)}>☁️ Sync Status</Btn>
                     </div>
                   )}
@@ -921,7 +923,7 @@ export default function PullInventory({
           </table>
           {sel.status === "completed" && (
             <div style={{ marginTop: 10, display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
-              <Btn v="green" onClick={() => generatePDF(sel, users, activeLogo)}>📄 PDF</Btn>
+              <Btn v="green" onClick={() => { if (!generatePDF(sel, users, activeLogo, inv)) showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning"); }}>📄 PDF</Btn>
               <Btn v="sky" onClick={() => setSyncModal(sel)}>☁️ AccuLynx Sync</Btn>
             </div>
           )}
