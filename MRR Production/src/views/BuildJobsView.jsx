@@ -52,6 +52,7 @@ export default function BuildJobs({
   const [axL, setAxL] = useState(false);
   const [apAssign, setApAssign] = useState("");
   const [srch, setSrch] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
 
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
@@ -96,17 +97,25 @@ export default function BuildJobs({
 
   const shown = useMemo(() => {
     const q = srch.toLowerCase().trim();
+    const sorters = {
+      newest: (a, b) => new Date(b.created || b.createdAt || 0) - new Date(a.created || a.createdAt || 0),
+      oldest: (a, b) => new Date(a.created || a.createdAt || 0) - new Date(b.created || b.createdAt || 0),
+      name_az: (a, b) => (a.title || a.name || "").localeCompare(b.title || b.name || "", undefined, { numeric: true }),
+      name_za: (a, b) => (b.title || b.name || "").localeCompare(a.title || a.name || "", undefined, { numeric: true }),
+      po: (a, b) => String(a.po || "").localeCompare(String(b.po || ""), undefined, { numeric: true }),
+      status: (a, b) => (a.status || "").localeCompare(b.status || ""),
+    };
     return jobs
       .filter(
         (j) =>
           (filt === "all" || j.status === filt) &&
           (q === "" ||
             (j.po || "").toLowerCase().includes(q) ||
-            (j.name || "").toLowerCase().includes(q) ||
+            (j.title || j.name || "").toLowerCase().includes(q) ||
             (j.addr || "").toLowerCase().includes(q)),
       )
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [jobs, filt, srch]);
+      .sort(sorters[sortBy] || sorters.newest);
+  }, [jobs, filt, srch, sortBy]);
 
   const resetWiz = () => {
     setWStep(1);
@@ -700,6 +709,14 @@ export default function BuildJobs({
               placeholder="🔍 Search by PO #, job name, or addresses..."
               style={{ flex: 1, minWidth: 220, maxWidth: 380 }}
             />
+            <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort jobs" style={{ width: "auto" }}>
+              <option value="newest">↕ Date Created — Newest</option>
+              <option value="oldest">↕ Date Created — Oldest</option>
+              <option value="name_az">↕ Job Name — A to Z</option>
+              <option value="name_za">↕ Job Name — Z to A</option>
+              <option value="po">↕ PO Number</option>
+              <option value="status">↕ Status</option>
+            </Sel>
             {srch && (
               <Btn v="ghost" sz="sm" onClick={() => setSrch("")}>
                 ✕ Clear

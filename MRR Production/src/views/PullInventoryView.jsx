@@ -37,6 +37,7 @@ export default function PullInventory({
 
   const [pulling, setPulling] = useState(false);
   const [returning, setReturning] = useState(false);
+  const [sortBy, setSortBy] = useState("newest");
   const [editForm, setEditForm] = useState({});
   const [editItems, setEditItems] = useState([]);
   const [editItemSearch, setEditItemSearch] = useState("");
@@ -209,11 +210,18 @@ export default function PullInventory({
   };
 
   // ── 🟢 SAFEGUARD PIPELINE MAPPING TO CORRECT DATABASE SHARDS ──
-  const myJobs = isField
+  const jobSorters = {
+    newest: (a, b) => new Date(b.created || b.createdAt || 0) - new Date(a.created || a.createdAt || 0),
+    oldest: (a, b) => new Date(a.created || a.createdAt || 0) - new Date(b.created || b.createdAt || 0),
+    name_az: (a, b) => (a.title || a.name || "").localeCompare(b.title || b.name || "", undefined, { numeric: true }),
+    name_za: (a, b) => (b.title || b.name || "").localeCompare(a.title || a.name || "", undefined, { numeric: true }),
+    po: (a, b) => String(a.po || "").localeCompare(String(b.po || ""), undefined, { numeric: true }),
+    status: (a, b) => (a.status || "").localeCompare(b.status || ""),
+  };
+  const myJobs = (isField
     ? jobs.filter((j) => j && (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "draft")
-    : jobs
-        .filter((j) => j && j.status !== "draft")
-        .sort((a, b) => new Date(b.created || b.createdAt || 0) - new Date(a.created || a.createdAt || 0));
+    : jobs.filter((j) => j && j.status !== "draft")
+  ).sort(jobSorters[sortBy] || jobSorters.newest);
 
   const openJob = async (j) => {
     if (!j) return;
@@ -441,11 +449,21 @@ export default function PullInventory({
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>📋 Pull Inventory</h1>
-        <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-          {isField ? "Your assigned jobs" : "All active jobs in pipeline"}
-        </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: 16 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>📋 Pull Inventory</h1>
+          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
+            {isField ? "Your assigned jobs" : "All active jobs in pipeline"}
+          </p>
+        </div>
+        <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort jobs" style={{ width: "auto" }}>
+          <option value="newest">↕ Date Created — Newest</option>
+          <option value="oldest">↕ Date Created — Oldest</option>
+          <option value="name_az">↕ Job Name — A to Z</option>
+          <option value="name_za">↕ Job Name — Z to A</option>
+          <option value="po">↕ PO Number</option>
+          <option value="status">↕ Status</option>
+        </Sel>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>

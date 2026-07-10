@@ -235,6 +235,7 @@ export default function FleetManagementView({
   const [subView, setSubView] = useState("list");
   const [calSel, setCalSel] = useState(null);
   const [filt, setFilt] = useState("all");
+  const [sortBy, setSortBy] = useState("name_az");
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
@@ -263,7 +264,17 @@ export default function FleetManagementView({
     oii: "5000",
     dii: "90",
   });
-  const filtered = vehs.filter((v) => filt === "all" || v.type === filt);
+  const vehSorters = {
+    name_az: (a, b) => (a.name || "").localeCompare(b.name || "", undefined, { numeric: true }),
+    name_za: (a, b) => (b.name || "").localeCompare(a.name || "", undefined, { numeric: true }),
+    year_new: (a, b) => (b.yr || 0) - (a.yr || 0),
+    year_old: (a, b) => (a.yr || 0) - (b.yr || 0),
+    mi_high: (a, b) => (b.mi || 0) - (a.mi || 0),
+    mi_low: (a, b) => (a.mi || 0) - (b.mi || 0),
+  };
+  const filtered = vehs
+    .filter((v) => filt === "all" || v.type === filt)
+    .sort(vehSorters[sortBy] || vehSorters.name_az);
 
   // Deep-link from OmniSearch: open the matching vehicle card on arrival
   useEffect(() => {
@@ -336,6 +347,47 @@ export default function FleetManagementView({
     setSel(up);
     setModal(null);
     setForm({});
+  };
+
+  // Persist service requests filed from the fleet page — mirrors the insert
+  // shape used by MaintenanceRequestsView (DB generates the id).
+  const saveServiceRequest = async (r) => {
+    const payload = {
+      vid: r.vid,
+      vname: r.vname,
+      vtype: r.vtype,
+      type: r.type,
+      urgency: r.urgency,
+      notes: r.notes,
+      mileage: r.mileage === "" || r.mileage == null ? null : r.mileage,
+      uid: r.uid,
+      uname: r.uname,
+      status: r.status || "pending",
+      at: r.at,
+    };
+    try {
+      const { data, error } = await supabase
+        .from("maintenance_requests")
+        .insert([payload])
+        .select();
+      if (error) throw error;
+
+      const created = data && data[0] ? data[0] : payload;
+      setReqs((p) => [created, ...p]);
+
+      await logAction(
+        user.id,
+        user.email,
+        "MAINTENANCE_REQUEST_CREATE",
+        `Filed new maintenance request for vehicle: ${r.vname} (Urgency: ${(r.urgency || "normal").toUpperCase()})`,
+        { ticket_id: created.id || "N/A", vehicle_id: r.vid, issue_types: r.type },
+        "maintenance"
+      );
+
+      showToast("Maintenance request filed successfully!", "success");
+    } catch (err) {
+      showToast(`Database Error: Could not file request. ${err.message}`, "error");
+    }
   };
 
 // ── 🟢 ADD HERE: DATABASE CONTROLLER FOR VEHICLE INSPECTION SUBMISSIONS ──
@@ -658,7 +710,7 @@ export default function FleetManagementView({
             </Btn>
           )}
           {subView === "list" && (
-            <div style={{ display: "flex", gap: 5 }}>
+            <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
               {["all", "truck", "trailer"].map((f) => (
                 <Btn
                   key={f}
@@ -670,6 +722,14 @@ export default function FleetManagementView({
                   {f === "all" ? "All" : f + "s"}
                 </Btn>
               ))}
+              <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort vehicles" style={{ width: "auto" }}>
+                <option value="name_az">↕ Name — A to Z</option>
+                <option value="name_za">↕ Name — Z to A</option>
+                <option value="year_new">↕ Year — Newest</option>
+                <option value="year_old">↕ Year — Oldest</option>
+                <option value="mi_high">↕ Mileage — High to Low</option>
+                <option value="mi_low">↕ Mileage — Low to High</option>
+              </Sel>
             </div>
           )}
           <div style={{ display: "flex", gap: 5 }}>
@@ -1488,7 +1548,7 @@ export default function FleetManagementView({
           vehs={vehs}
           user={user}
           preVid={reqVid}
-          onSave={(r) => setReqs((p) => [r, ...p])}
+          onSave={saveServiceRequest}
           onClose={() => {
             setReqModal(false);
             setReqVid("");

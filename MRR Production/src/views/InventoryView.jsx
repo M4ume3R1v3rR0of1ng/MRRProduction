@@ -32,6 +32,7 @@ export default function InventoryView({
   const [saving, setSaving] = useState(false);
   const [srch, setSrch] = useState(inventorySearchQuery);
   const [cat, setCat] = useState("All");
+  const [sortBy, setSortBy] = useState("name_az");
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
@@ -56,12 +57,23 @@ export default function InventoryView({
 
   // Fix 3 & 8: Memoize filtered inventory grid search with comprehensive null-protection fallbacks
   const filtered = useMemo(() => {
-    return inv.filter(
-      (i) =>
-        (i?.name || "").toLowerCase().includes(srch.toLowerCase()) &&
-        (cat === "All" || i?.cat === cat),
-    );
-  }, [inv, srch, cat]);
+    const sorters = {
+      name_az: (a, b) => (a?.name || "").localeCompare(b?.name || "", undefined, { numeric: true }),
+      name_za: (a, b) => (b?.name || "").localeCompare(a?.name || "", undefined, { numeric: true }),
+      cat_az: (a, b) => (a?.cat || "").localeCompare(b?.cat || ""),
+      stock_low: (a, b) => tot(a) - tot(b),
+      stock_high: (a, b) => tot(b) - tot(a),
+      price_low: (a, b) => newestPrice(a) - newestPrice(b),
+      price_high: (a, b) => newestPrice(b) - newestPrice(a),
+    };
+    return inv
+      .filter(
+        (i) =>
+          (i?.name || "").toLowerCase().includes(srch.toLowerCase()) &&
+          (cat === "All" || i?.cat === cat),
+      )
+      .sort(sorters[sortBy] || sorters.name_az);
+  }, [inv, srch, cat, sortBy]);
 
   // Fix 3 & 8: Memoize bulk filtering to avoid redundant rendering computations
   const bulkFiltered = useMemo(() => {
@@ -558,6 +570,15 @@ export default function InventoryView({
         />
     <Sel value={cat} onChange={(e) => setCat(e.target.value)} style={{ width: "auto" }}>
       {cats.map((c) => (<option key={c} value={c}>{c}</option>))}
+    </Sel>
+    <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort inventory" style={{ width: "auto" }}>
+      <option value="name_az">↕ Name — A to Z</option>
+      <option value="name_za">↕ Name — Z to A</option>
+      <option value="cat_az">↕ Category — A to Z</option>
+      <option value="stock_low">↕ Stock — Low to High</option>
+      <option value="stock_high">↕ Stock — High to Low</option>
+      {perms.inv_pricing_view && <option value="price_low">↕ Price — Low to High</option>}
+      {perms.inv_pricing_view && <option value="price_high">↕ Price — High to Low</option>}
     </Sel>
   </div>
 

@@ -33,6 +33,7 @@ export default function MaintenanceRequestsView({
   const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com", name: "Crew Member" };
 
   const [filt, setFilt] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
   const [subView, setSubView] = useState("list");
@@ -46,11 +47,22 @@ export default function MaintenanceRequestsView({
     photo: null,
   });
 
-  const filtered = reqs.filter((r) => {
-    if (filt === "all") return true;
-    if (filt === "active") return r.status === "pending" || r.status === "scheduled";
-    return r.status === filt;
-  });
+  const urgencyRank = { urgent: 3, high: 3, priority: 2, standard: 2, normal: 2, low: 1 };
+  const reqSorters = {
+    newest: (a, b) => new Date(b.at || 0) - new Date(a.at || 0),
+    oldest: (a, b) => new Date(a.at || 0) - new Date(b.at || 0),
+    vehicle_az: (a, b) => (a.vname || "").localeCompare(b.vname || "", undefined, { numeric: true }),
+    vehicle_za: (a, b) => (b.vname || "").localeCompare(a.vname || "", undefined, { numeric: true }),
+    urgency: (a, b) => (urgencyRank[(b.urgency || "").toLowerCase()] || 0) - (urgencyRank[(a.urgency || "").toLowerCase()] || 0),
+    status: (a, b) => (a.status || "").localeCompare(b.status || ""),
+  };
+  const filtered = reqs
+    .filter((r) => {
+      if (filt === "all") return true;
+      if (filt === "active") return r.status === "pending" || r.status === "scheduled";
+      return r.status === filt;
+    })
+    .sort(reqSorters[sortBy] || reqSorters.newest);
 
   // Deep-link from OmniSearch: open the matching ticket card on arrival
   useEffect(() => {
@@ -280,33 +292,43 @@ export default function MaintenanceRequestsView({
         <MaintenanceCalendar reqs={reqs} vehs={vehs} user={activeUser} setReqs={setReqs} onRequestClick={(r) => setSel(r)} />
       ) : (
       <>
-      {/* Filter Tabs */}
-      <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: 16, background: "#f1f5f9", padding: 4, borderRadius: "var(--radius-md)", width: "fit-content" }}>
-        {[
-          ["all", "All"],
-          ["active", "Active"],
-          ["pending", "Pending"],
-          ["scheduled", "Scheduled"],
-          ["completed", "Completed"]
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setFilt(key)}
-            style={{
-              padding: "6px 14px",
-              borderRadius: "var(--radius-sm)",
-              border: "none",
-              fontSize: "var(--text-sm)",
-              fontWeight: "var(--weight-bold)",
-              cursor: "pointer",
-              background: filt === key ? "#7c3aed" : "transparent",
-              color: filt === key ? "#fff" : "#475569",
-              transition: "all 0.15s"
-            }}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Filter Tabs + Sort */}
+      <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-2)", background: "#f1f5f9", padding: 4, borderRadius: "var(--radius-md)", width: "fit-content" }}>
+          {[
+            ["all", "All"],
+            ["active", "Active"],
+            ["pending", "Pending"],
+            ["scheduled", "Scheduled"],
+            ["completed", "Completed"]
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setFilt(key)}
+              style={{
+                padding: "6px 14px",
+                borderRadius: "var(--radius-sm)",
+                border: "none",
+                fontSize: "var(--text-sm)",
+                fontWeight: "var(--weight-bold)",
+                cursor: "pointer",
+                background: filt === key ? "#7c3aed" : "transparent",
+                color: filt === key ? "#fff" : "#475569",
+                transition: "all 0.15s"
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort requests" style={{ width: "auto" }}>
+          <option value="newest">↕ Date Filed — Newest</option>
+          <option value="oldest">↕ Date Filed — Oldest</option>
+          <option value="urgency">↕ Urgency — Highest First</option>
+          <option value="vehicle_az">↕ Vehicle — A to Z</option>
+          <option value="vehicle_za">↕ Vehicle — Z to A</option>
+          <option value="status">↕ Status</option>
+        </Sel>
       </div>
 
       {/* Cards Stream Canvas */}
