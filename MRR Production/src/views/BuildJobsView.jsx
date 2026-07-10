@@ -27,7 +27,7 @@ export default function BuildJobs({
   acculynxConfig,
   openItemId,
   onOpenItemHandled,
-  activeLogo,
+  activeLogo={logos},
 }) {
   const { showToast } = useNotify();
   const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com" };
