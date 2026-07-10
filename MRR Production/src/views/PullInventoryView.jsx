@@ -218,9 +218,12 @@ export default function PullInventory({
     po: (a, b) => String(a.po || "").localeCompare(String(b.po || ""), undefined, { numeric: true }),
     status: (a, b) => (a.status || "").localeCompare(b.status || ""),
   };
+  // Completed/closed jobs drop off this view — Pull Inventory is a work queue,
+  // and finished jobs remain reachable from Build Jobs (PDF, close-out).
+  const isOpenJob = (j) => j && j.status !== "draft" && j.status !== "completed" && j.status !== "closed";
   const myJobs = (isField
-    ? jobs.filter((j) => j && (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "draft")
-    : jobs.filter((j) => j && j.status !== "draft")
+    ? jobs.filter((j) => isOpenJob(j) && (j.assignedto === user.id || j.assignedTo === user.id))
+    : jobs.filter(isOpenJob)
   ).sort(jobSorters[sortBy] || jobSorters.newest);
 
   const openJob = async (j) => {
@@ -467,6 +470,11 @@ export default function PullInventory({
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+        {myJobs.length === 0 && (
+          <div style={{ background: C.w, padding: 32, borderRadius: "var(--radius-xl)", textAlign: "center", color: C.sub, boxShadow: "var(--shadow-sm)" }}>
+            🏁 All caught up — no open jobs right now. Completed jobs live in Build Jobs.
+          </div>
+        )}
         {myJobs.map((job) => {
           if (!job) return null;
           const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
