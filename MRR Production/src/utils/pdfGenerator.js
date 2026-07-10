@@ -17,15 +17,22 @@ function escapeHtml(value) {
 }
 
 export function generatePDF(job, users, activeLogo) {
-  const sup = users.find(u => u.id === job.assignedTo);
+  const sup = users.find(u => u.id === (job.assignedto || job.assignedTo));
   const cats = {};
-  
-  // Group pulled materials by their categories dynamically
-  job.items.forEach(item => {
-    const used = item.pulled - item.returned;
-    const total = used * item.priceAtPull;
+
+  // Group pulled materials by their categories dynamically.
+  // Guard every numeric field: legacy/imported items can be missing
+  // pulled/returned/priceAtPull, and unguarded math (even 0 * NaN) prints
+  // a bogus cost for fully-returned items instead of $0.00.
+  (job.items || job.materials || []).forEach(item => {
+    if (!item) return;
+    const pulled = parseFloat(item.pulled) || 0;
+    const returned = parseFloat(item.returned) || 0;
+    const priceAtPull = parseFloat(item.priceAtPull) || 0;
+    const used = Math.max(0, pulled - returned);
+    const total = used * priceAtPull;
     if (!cats[item.icat]) cats[item.icat] = [];
-    cats[item.icat].push({ ...item, used, total });
+    cats[item.icat].push({ ...item, pulled, returned, priceAtPull, used, total });
   });
   
   const grandTotal = Object.values(cats).flat().reduce((s, i) => s + i.total, 0);
@@ -40,7 +47,7 @@ export function generatePDF(job, users, activeLogo) {
       ${items.map(i => `
         <tr>
           <td style="padding:7px 14px">${escapeHtml(i.iname)}</td>
-          <td style="padding:7px 14px;text-align:center">${i.planned}</td>
+          <td style="padding:7px 14px;text-align:center">${parseFloat(i.planned) || 0}</td>
           <td style="padding:7px 14px;text-align:center">${i.pulled}</td>
           <td style="padding:7px 14px;text-align:center">${i.returned}</td>
           <td style="padding:7px 14px;text-align:center;font-weight:700;color:#0E2D6B">${i.used}</td>
@@ -84,11 +91,11 @@ export function generatePDF(job, users, activeLogo) {
       </div>
       <hr style="border:2px solid #F5A800;margin-bottom:24px">
       <table style="margin-top:0;width:auto;min-width:400px">
-        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Job Name</td><td style="border:none;font-weight:700;font-size:14px">${escapeHtml(job.name)}</td></tr>
+        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Job Name</td><td style="border:none;font-weight:700;font-size:14px">${escapeHtml(job.title || job.name)}</td></tr>
         <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">PO Number</td><td style="border:none">${escapeHtml(job.po)}</td></tr>
         <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Address</td><td style="border:none">${escapeHtml(job.addr)}</td></tr>
         <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Site Supervisor</td><td style="border:none">${escapeHtml(sup ? sup.name : 'N/A')}</td></tr>
-        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Date Completed</td><td style="border:none">${new Date(job.completedAt).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</td></tr>
+        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Date Completed</td><td style="border:none">${new Date(job.completedAt || job.completed || Date.now()).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</td></tr>
         ${job.notes ? `<tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Notes</td><td style="border:none">${escapeHtml(job.notes)}</td></tr>` : ''}
       </table>
       <h3 style="margin:28px 0 4px;color:#0E2D6B;font-size:14px;text-transform:uppercase;letter-spacing:.5px">Materials Used — Pulled minus Returned</h3>

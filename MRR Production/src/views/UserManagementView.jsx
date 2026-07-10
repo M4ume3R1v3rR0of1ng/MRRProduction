@@ -1,5 +1,5 @@
 // src/views/UserManagementView.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase, getAccessToken } from "../utils/supabase";
 import { C, uid } from "../utils/helpers";
 import {
@@ -28,6 +28,8 @@ export default function Users({
   rolePerms = {},
   userOverrides = {},
   setUserOverrides,
+  openItemId,
+  onOpenItemHandled,
 }) {
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
@@ -205,6 +207,14 @@ export default function Users({
     setPwForm({});
     setModal("user");
   };
+
+  // Deep-link from OmniSearch: open the matching user's edit card on arrival
+  useEffect(() => {
+    if (!openItemId) return;
+    const target = users.find((u) => String(u.id) === String(openItemId));
+    if (target) handleEditUser(target);
+    onOpenItemHandled?.();
+  }, [openItemId]);
 
   const handleRemoveUser = async (targetUserId) => {
     if (targetUserId === currentUser?.id) {

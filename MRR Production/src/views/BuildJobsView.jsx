@@ -1,5 +1,5 @@
 // src/views/BuildJobsView.jsx
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { C, uid, fd, fm, tot, mkJI } from "../utils/helpers";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, LoadingState } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
@@ -23,6 +23,8 @@ export default function BuildJobs({
   jSC,
   onNav,
   acculynxConfig,
+  openItemId,
+  onOpenItemHandled,
 }) {
   const { showToast } = useNotify();
   const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com" };
@@ -67,6 +69,18 @@ export default function BuildJobs({
   const fieldUsers = users.filter(
     (u) => (u.role === "field" || u.role === "Site Supervisor") && u.active,
   );
+
+  // Deep-link from OmniSearch: open the matching job card on arrival
+  useEffect(() => {
+    if (!openItemId) return;
+    const target = jobs.find((j) => String(j.id) === String(openItemId));
+    if (target) {
+      setSubView("list");
+      setSel(target);
+      setModal("detail");
+    }
+    onOpenItemHandled?.();
+  }, [openItemId]);
 
   const counts = {
     all: jobs.length,
@@ -983,15 +997,19 @@ export default function BuildJobs({
             <tbody>
               {((sel.items || sel.materials || [])).map((item) => {
                 if (!item) return null;
+                // Cost reflects what was actually used (pulled minus returned),
+                // not the raw pull cost — fully-returned items must read $0.00.
+                const used = Math.max((item.pulled || 0) - (item.returned || 0), 0);
+                const usedCost = used * (parseFloat(item.priceAtPull) || 0);
                 return (
                   <tr key={item.iid || item.id || Math.random()} style={{ borderTop: `1px solid ${C.lg}` }}>
                     <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name || "—"}</td>
                     <td style={{ padding: "8px 10px", color: C.sub }}>{item.icat || item.cat || "—"}</td>
                     <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0} {item.unit || ""}</td>
                     <td style={{ padding: "8px 10px", color: item.pulled > 0 ? C.gr : C.sub }}>{item.pulled || 0}</td>
-                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>{Math.max((item.pulled || 0) - (item.returned || 0), 0)}</td>
+                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>{used}</td>
                     {perms.inv_pricing_view && (
-                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.blue }}>{item.pullCost > 0 ? fm(item.pullCost) : "—"}</td>
+                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.blue }}>{(item.pulled || 0) > 0 ? fm(usedCost) : "—"}</td>
                     )}
                   </tr>
                 );

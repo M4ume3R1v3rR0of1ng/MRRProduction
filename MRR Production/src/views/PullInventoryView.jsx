@@ -1,6 +1,6 @@
 // src/views/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { C, fd, fm, doFifo, uid, tot, ft, mkJI } from "../utils/helpers";
 import { generatePDF } from "../utils/pdfGenerator";
 import { attemptAccuLynxSync } from "../utils/accuLynxSync";
@@ -25,6 +25,8 @@ export default function PullInventory({
   activeLogo,
   acculynxConfig,
   jSC,
+  openItemId,
+  onOpenItemHandled,
 }) {
   const { showToast } = useNotify();
   const [sel, setSel] = useState(null);
@@ -232,6 +234,14 @@ export default function PullInventory({
       }
     }
   };
+
+  // Deep-link from OmniSearch: open the matching job card on arrival
+  useEffect(() => {
+    if (!openItemId) return;
+    const target = jobs.find((j) => String(j.id) === String(openItemId));
+    if (target) openJob(target);
+    onOpenItemHandled?.();
+  }, [openItemId]);
 
   const confirmPull = async () => {
     if (!sel) return;

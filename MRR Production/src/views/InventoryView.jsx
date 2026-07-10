@@ -168,6 +168,33 @@ export default function InventoryView({
       alrt: parseInt(form.alrt) || sel.alrt,
     };
 
+    // Current price lives on the newest batch, so a price change rewrites it
+    // there (or seeds a zero-qty batch when no receipt history exists yet).
+    const oldPrice = newestPrice(sel);
+    const newPrice = parseFloat(form.price);
+    const priceChanged =
+      perms.inv_pricing_edit && form.price !== "" && form.price != null && !isNaN(newPrice) && newPrice !== oldPrice;
+    if (priceChanged) {
+      const batches = [...(sel.batches || [])];
+      if (batches.length > 0) {
+        let newest = 0;
+        batches.forEach((b, i) => {
+          if (new Date(b.rcvd) - new Date(batches[newest].rcvd) > 0) newest = i;
+        });
+        batches[newest] = { ...batches[newest], price: newPrice };
+      } else {
+        batches.push({
+          id: "b_" + uid(),
+          rcvd: new Date().toISOString().split("T")[0],
+          qty: 0,
+          price: newPrice,
+          by: user?.id || "system",
+          rem: 0,
+        });
+      }
+      updatedFields.batches = batches;
+    }
+
     try {
       const { error } = await supabase
         .from("inventory")
@@ -179,14 +206,24 @@ export default function InventoryView({
       setInv((p) =>
         p.map((i) => (i.id === sel.id ? { ...i, ...updatedFields } : i)),
       );
+      setSel((p) => (p && p.id === sel.id ? { ...p, ...updatedFields } : p));
 
       await logAction(
         user?.id ?? null,
         user?.email ?? null,
         "INV_MUTATION",
-        `Modified catalog specifications for item: "${sel.name}"`,
-        { item_id: sel.id, changes: updatedFields },
-        
+        `Modified catalog specifications for item: "${sel.name}"${priceChanged ? ` (price ${fm(oldPrice)} → ${fm(newPrice)})` : ""}`,
+        {
+          item_id: sel.id,
+          changes: {
+            name: updatedFields.name,
+            cat: updatedFields.cat,
+            unit: updatedFields.unit,
+            alrt: updatedFields.alrt,
+            ...(priceChanged ? { price: { from: oldPrice, to: newPrice } } : {}),
+          },
+        },
+
         // ── 🟢 FIXED: ADDED THE 6TH PARAMETER STRATEGIC MODULE TAG ──
         "inventory"
       );
@@ -672,7 +709,7 @@ export default function InventoryView({
               </div>
               <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 12, flexWrap: "wrap" }}>
                 {perms.inv_edit && (
-                  <Btn v="outline" sz="sm" onClick={() => { setForm({ name: sel.name, cat: sel.cat, unit: sel.unit, alrt: sel.alrt }); setModal("edit"); }}>✏️ Edit Materials</Btn>
+                  <Btn v="outline" sz="sm" onClick={() => { setForm({ name: sel.name, cat: sel.cat, unit: sel.unit, alrt: sel.alrt, price: newestPrice(sel) ? String(newestPrice(sel)) : "" }); setModal("edit"); }}>✏️ Edit Materials</Btn>
                 )}
                 {perms.inv_receive && (
                   <Btn v="primary" sz="sm" onClick={() => { setForm({ date: new Date().toISOString().split("T")[0], qty: "", price: "" }); setModal("rcv"); }}>+ Receive Batch</Btn>
@@ -748,6 +785,11 @@ export default function InventoryView({
             <Sel value={form.unit || "rolls"} onChange={(e) => setForm({ ...form, unit: e.target.value })}>{["rolls", "boxes", "each", "tubes", "bundles", "packs", "sheets", "gallons", "lbs"].map((u) => (<option key={u} value={u}>{u}</option>))}</Sel>
           </Fld>
           <Fld label="Low Threshold Alert Level"><Inp type="number" value={form.alrt || ""} onChange={(e) => setForm({ ...form, alrt: e.target.value })} /></Fld>
+          {perms.inv_pricing_edit && (
+            <Fld label="Current Price Per Unit">
+              <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}>$</span><Inp type="number" step="0.01" value={form.price || ""} onChange={(e) => setForm({ ...form, price: e.target.value })} style={{ paddingLeft: 22 }} /></div>
+            </Fld>
+          )}
           <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
             <Btn v="primary" onClick={editItem} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Saving..." : "Save Changes"}</Btn>

@@ -14,6 +14,7 @@ export default function OmniSearch({
   inv = [],
   perms = {},
   onNavigate,
+  onOpenItem,
   onInventorySearch,
 }) {
   const [query, setQuery] = useState("");
@@ -31,8 +32,14 @@ export default function OmniSearch({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSelection = (targetView) => {
-    onNavigate(targetView);
+  // Navigate to the tab — and when a specific record was clicked, tell the
+  // destination view to open that record's card too.
+  const handleSelection = (targetView, itemId = null) => {
+    if (itemId != null && typeof onOpenItem === "function") {
+      onOpenItem(targetView, itemId);
+    } else {
+      onNavigate(targetView);
+    }
     setQuery("");
     setIsOpen(false);
   };
@@ -150,8 +157,8 @@ export default function OmniSearch({
           title: (j) => j.title || j.name || "Untitled Job",
           sub: (j) =>
             `PO: ${j.po || "N/A"} · ${j.addr || "No address"}${j.status ? ` · ${j.status}` : ""}`,
-          onClick: () =>
-            handleSelection(perms.jobs_build || perms.jobs_close ? "buildjobs" : "pull"),
+          onClick: (j) =>
+            handleSelection(perms.jobs_build || perms.jobs_close ? "buildjobs" : "pull", j.id),
         },
         {
           key: "users",
@@ -159,7 +166,7 @@ export default function OmniSearch({
           items: results.users,
           title: (u) => u.full_name || u.name || u.email,
           sub: (u) => `${u.email || "No email"} · ${u.role || "No role"}`,
-          onClick: () => handleSelection("users"),
+          onClick: (u) => handleSelection("users", u.id),
         },
         {
           key: "vehicles",
@@ -168,7 +175,7 @@ export default function OmniSearch({
           title: (v) => v.name || `${v.make || ""} ${v.model || ""}`.trim() || "Vehicle",
           sub: (v) =>
             `Plate: ${v.plate || "—"} · Driver: ${v.driver || userName(v.assignedTo) || "Unassigned"}`,
-          onClick: () => handleSelection("fleet"),
+          onClick: (v) => handleSelection("fleet", v.id),
         },
         {
           key: "requests",
@@ -176,7 +183,7 @@ export default function OmniSearch({
           items: results.requests,
           title: (r) => `${r.type || "Request"}${r.vname ? ` — ${r.vname}` : ""}`,
           sub: (r) => `Status: ${(r.status || "?").toUpperCase()} · Urgency: ${r.urgency || "normal"}`,
-          onClick: () => handleSelection("requests"),
+          onClick: (r) => handleSelection("requests", r.id),
         },
         {
           key: "inventory",

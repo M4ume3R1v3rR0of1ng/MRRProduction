@@ -1,5 +1,5 @@
 // src/views/FleetManagementView.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import {
   Btn,
@@ -228,6 +228,8 @@ export default function FleetManagementView({
   predDays,
   fd,
   fm,
+  openItemId,
+  onOpenItemHandled,
 }) {
   const { showToast } = useNotify();
   const [subView, setSubView] = useState("list");
@@ -262,6 +264,19 @@ export default function FleetManagementView({
     dii: "90",
   });
   const filtered = vehs.filter((v) => filt === "all" || v.type === filt);
+
+  // Deep-link from OmniSearch: open the matching vehicle card on arrival
+  useEffect(() => {
+    if (!openItemId) return;
+    const target = vehs.find((v) => String(v.id) === String(openItemId));
+    if (target) {
+      setSubView("list");
+      setSel(target);
+      setIsEditingInfo(false);
+    }
+    onOpenItemHandled?.();
+  }, [openItemId]);
+
   const setPhoto = async (id, data) => {
     try {
       const photo_url = data ? await uploadPhotoToBucket("vehicle-photos", id, data) : null;

@@ -45,6 +45,8 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [inventorySearchQuery, setInventorySearchQuery] = useState("");
+  // Deep-link from OmniSearch: which record the destination view should open
+  const [searchOpenTarget, setSearchOpenTarget] = useState(null); // { view, id }
 
   // ── 🟢 CONSUME DECOUPLED CUSTOM STATE INFRASTRUCTURE HOOK ──
   const app = useAppData();
@@ -70,6 +72,13 @@ export default function App() {
     setView(nextView);
     window.history.pushState({ view: nextView }, "", "");
   };
+
+  const openSearchResult = (targetView, itemId) => {
+    setSearchOpenTarget({ view: targetView, id: itemId });
+    navigateTo(targetView);
+  };
+  const searchTargetFor = (v) => (searchOpenTarget?.view === v ? searchOpenTarget.id : null);
+  const clearSearchTarget = () => setSearchOpenTarget(null);
 
   // Clearing curUser alone left the underlying Supabase session (and its token
   // in localStorage) valid and reusable — logout/idle-timeout must actually
@@ -207,6 +216,7 @@ return (
                   vehs={app.vehs}
                   perms={app.userPerms}
                   onNavigate={navigateTo}
+                  onOpenItem={openSearchResult}
                   onInventorySearch={setInventorySearchQuery}
                 />
               </div>
@@ -252,25 +262,25 @@ return (
               <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} setReqs={app.setReqs} />
             )}
             {view === "buildjobs" && (app.userPerms.jobs_build || app.userPerms.jobs_close) && (
-              <BuildJobsView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} />
+              <BuildJobsView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} openItemId={searchTargetFor("buildjobs")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "pull" && (
-              <PullInventoryView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} activeLogo={app.activeLogo} acculynxConfig={app.acculynxConfig} jSC={jSC} lang={lang} setLang={setLang} />
+              <PullInventoryView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} activeLogo={app.activeLogo} acculynxConfig={app.acculynxConfig} jSC={jSC} lang={lang} setLang={setLang} openItemId={searchTargetFor("pull")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "inventory" && app.userPerms.inv_view && (
               <InventoryView inv={app.inv} setInv={app.setInv} users={app.users} user={app.curUser} perms={app.userPerms} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} />
             )}
             {view === "fleet" && app.userPerms.fleet_view && (
-              <FleetManagementView vehs={app.vehs} setVehs={app.setVehs} reqs={app.reqs} setReqs={app.setReqs} jobs={app.jobs} setJobs={app.setJobs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} jSC={jSC} users={app.users} user={app.curUser} perms={app.userPerms} oilSt={oilSt} detSt={detSt} predDays={predDays} fd={fd} fm={fm} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} />
+              <FleetManagementView vehs={app.vehs} setVehs={app.setVehs} reqs={app.reqs} setReqs={app.setReqs} jobs={app.jobs} setJobs={app.setJobs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} jSC={jSC} users={app.users} user={app.curUser} perms={app.userPerms} oilSt={oilSt} detSt={detSt} predDays={predDays} fd={fd} fm={fm} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} openItemId={searchTargetFor("fleet")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "requests" && (app.userPerms.maint_submit || app.userPerms.maint_manage) && (
-              <MaintenanceRequestsView reqs={app.reqs} setReqs={app.setReqs} vehs={app.vehs} users={app.users} user={app.curUser} perms={app.userPerms} lang={lang} setLang={setLang} />
+              <MaintenanceRequestsView reqs={app.reqs} setReqs={app.setReqs} vehs={app.vehs} users={app.users} user={app.curUser} perms={app.userPerms} lang={lang} setLang={setLang} openItemId={searchTargetFor("requests")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "reports" && app.userPerms.reports_view && (
               <ReportsView jobs={app.jobs} users={app.users} user={app.curUser} perms={app.userPerms} inv={app.inv} vehs={app.vehs} reqs={app.reqs} lang={lang} setLang={setLang} />
             )}
             {view === "users" && app.userPerms.users_manage && (
-              <UserManagementView users={app.users} setUsers={app.setUsers} currentUser={app.curUser} rolePerms={app.rolePerms} userOverrides={app.userOverrides} setUserOverrides={app.setUserOverrides} lang={lang} setLang={setLang} />
+              <UserManagementView users={app.users} setUsers={app.setUsers} currentUser={app.curUser} rolePerms={app.rolePerms} userOverrides={app.userOverrides} setUserOverrides={app.setUserOverrides} lang={lang} setLang={setLang} openItemId={searchTargetFor("users")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "settings" && app.userPerms.settings_manage && (
               <SettingsView warehouses={app.warehouses} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} />

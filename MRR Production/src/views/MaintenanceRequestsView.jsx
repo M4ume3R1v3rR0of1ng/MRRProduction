@@ -1,5 +1,5 @@
 // src/views/MaintenanceRequestsView.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { detectChronicIssues, detectFleetTrends } from "../utils/patterns";
@@ -26,6 +26,8 @@ export default function MaintenanceRequestsView({
   user,
   perms,
   curUser,
+  openItemId,
+  onOpenItemHandled,
 }) {
   const { showToast } = useNotify();
   const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com", name: "Crew Member" };
@@ -49,6 +51,17 @@ export default function MaintenanceRequestsView({
     if (filt === "active") return r.status === "pending" || r.status === "scheduled";
     return r.status === filt;
   });
+
+  // Deep-link from OmniSearch: open the matching ticket card on arrival
+  useEffect(() => {
+    if (!openItemId) return;
+    const target = reqs.find((r) => String(r.id) === String(openItemId));
+    if (target) {
+      setSubView("list");
+      setSel(target);
+    }
+    onOpenItemHandled?.();
+  }, [openItemId]);
 
   const handleCreateRequest = async () => {
     if (!newTicket.vehicleId) {
