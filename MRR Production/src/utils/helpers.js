@@ -157,6 +157,26 @@ export const doFifo = (item, qty) => {
   return { batches: u, cost: c, shortfall: Math.max(0, r) };
 };
 
+// Carry live pull-tracking fields over an edited job item list, so a stale
+// editor (open since before a crew pulled materials) can't erase what was
+// actually pulled/returned. The editor wins on planning fields; the recorded
+// pull history survives.
+export const mergePullTracking = (editedItems, liveItems) => {
+  const liveById = new Map(
+    (liveItems || []).filter(Boolean).map((i) => [i.iid, i]),
+  );
+  return (editedItems || []).map((item) => {
+    if (!item) return item;
+    const live = liveById.get(item.iid);
+    if (!live) return item;
+    const keep = {};
+    ["pulled", "priceAtPull", "pullCost", "returned"].forEach((k) => {
+      if (live[k] !== undefined) keep[k] = live[k];
+    });
+    return { ...item, ...keep };
+  });
+};
+
 // 11. Additional helper functions can be added here as needed for future features or utilities.
 export const predDays = (v) => {
   if (v.type !== "truck" || !v.mil || v.mil.length < 2) return null;

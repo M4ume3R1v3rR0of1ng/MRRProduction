@@ -7,6 +7,9 @@ import { Bdg, Sel, Inp, Btn, LoadingState } from "../components/UIPrimitives";
 export default function AuditLogView({ perms }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  // A failed fetch must not render as "no history" — that reads as innocence.
+  const [loadError, setLoadError] = useState(null);
+  const [retryTick, setRetryTick] = useState(0);
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [activePayload, setActivePayload] = useState(null);
@@ -18,6 +21,7 @@ export default function AuditLogView({ perms }) {
   useEffect(() => {
     async function loadLogs() {
       setLoading(true);
+      setLoadError(null);
       try {
         let query = supabase
           .from("audit_logs")
@@ -33,19 +37,23 @@ export default function AuditLogView({ perms }) {
         setCurrentPage(1); // Reset to page 1 on filter changes
       } catch (err) {
         console.error("Audit view failed to fetch records:", err);
+        setLoadError(err.message || "Request failed");
+        setLogs([]);
       } finally {
         setLoading(false);
       }
     }
     loadLogs();
-  }, [actionFilter]);
+  }, [actionFilter, retryTick]);
 
   const filteredLogs = useMemo(() => {
+    // user_email/description can be null on system-generated entries — an
+    // unguarded .toLowerCase() here crashed the whole view on search.
     return logs.filter(
       (l) =>
         search === "" ||
-        l.user_email.toLowerCase().includes(search.toLowerCase()) ||
-        l.description.toLowerCase().includes(search.toLowerCase()) ||
+        (l.user_email || "").toLowerCase().includes(search.toLowerCase()) ||
+        (l.description || "").toLowerCase().includes(search.toLowerCase()) ||
         (l.warehouse_code || "").toLowerCase().includes(search.toLowerCase()),
     );
   }, [logs, search]);
@@ -122,6 +130,16 @@ export default function AuditLogView({ perms }) {
 
       {loading ? (
         <LoadingState label="Streaming audit packets..." />
+      ) : loadError ? (
+        <div style={{ background: "#fee2e2", border: "1.5px solid #ef4444", borderRadius: "var(--radius-lg)", padding: "24px", textAlign: "center", color: "#991b1b" }}>
+          <div style={{ fontSize: "var(--text-md)", fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
+            ⚠️ Couldn't load the audit history
+          </div>
+          <div style={{ fontSize: "var(--text-sm)", marginBottom: 14 }}>
+            The log below is NOT empty — it just couldn't be fetched. ({loadError})
+          </div>
+          <Btn v="primary" sz="sm" onClick={() => setRetryTick((t) => t + 1)}>🔄 Retry</Btn>
+        </div>
       ) : (
         <>
           {/* ── 🆕 COMPACT INNER SCROLLBAR CONTAINER ────────────────────────── */}

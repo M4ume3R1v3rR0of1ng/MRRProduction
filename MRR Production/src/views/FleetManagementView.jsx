@@ -304,18 +304,33 @@ export default function FleetManagementView({
     }
   };
 
+  // Current log arrays for one vehicle straight from the database — appending
+  // to this device's copy (loaded once at sign-in) silently erased entries
+  // other devices logged since. Same disease the inventory batches had.
+  const fetchLiveVehicle = async (id, cols) => {
+    const { data, error } = await supabase
+      .from("vehicles")
+      .select(cols)
+      .eq("id", id)
+      .single();
+    if (error) throw error;
+    return data || {};
+  };
+
   const logMi = async () => {
     if (!form.mi || !form.date) return;
     const mi = parseFloat(form.mi);
-    if (mi < sel.mi) {
-      showToast("Cannot be less than current mileage.", "info");
-      return;
-    }
-    const changes = {
-      mi,
-      mil: [...(sel.mil || []), { dt: form.date, mi, by: user.id }],
-    };
     try {
+      const live = await fetchLiveVehicle(sel.id, "mi,mil");
+      // Validate against the live odometer, not this device's snapshot.
+      if (mi < (parseFloat(live.mi) || 0)) {
+        showToast("Cannot be less than current mileage.", "info");
+        return;
+      }
+      const changes = {
+        mi,
+        mil: [...(live.mil || []), { dt: form.date, mi, by: user.id }],
+      };
       const { error } = await updateRowStrict("vehicles", sel.id, changes);
       if (error) throw error;
       const up = { ...sel, ...changes };
@@ -339,12 +354,15 @@ export default function FleetManagementView({
       notes: form.notes || "",
       cost: parseFloat(form.cost) || 0,
     };
-    const changes = {
-      sl: [...(sel.sl || []), e],
-      ...(form.type === "Oil Change" ? { lomi: e.mi } : {}),
-      ...(form.type === "Detail" ? { ldd: form.date } : {}),
-    };
     try {
+      // Append to the service history currently in the database, not this
+      // device's copy — see fetchLiveVehicle.
+      const live = await fetchLiveVehicle(sel.id, "sl");
+      const changes = {
+        sl: [...(live.sl || []), e],
+        ...(form.type === "Oil Change" ? { lomi: e.mi } : {}),
+        ...(form.type === "Detail" ? { ldd: form.date } : {}),
+      };
       const { error } = await updateRowStrict("vehicles", sel.id, changes);
       if (error) throw error;
       const up = { ...sel, ...changes };

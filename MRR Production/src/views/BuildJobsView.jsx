@@ -1,6 +1,6 @@
 // src/views/BuildJobsView.jsx
 import { useState, useMemo, useEffect } from "react";
-import { C, uid, fd, fm, tot, mkJI, newestPrice } from "../utils/helpers";
+import { C, uid, fd, fm, tot, mkJI, newestPrice, mergePullTracking } from "../utils/helpers";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, LoadingState } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
 import { supabase, getAccessToken, updateRowStrict } from "../utils/supabase";
@@ -640,6 +640,16 @@ export default function BuildJobs({
     }
     setSavingEdit(true);
     try {
+      // A crew may have pulled materials while this edit was open — merge the
+      // live pull-tracking onto the edited list so it can't be erased.
+      const { data: liveJob, error: liveErr } = await supabase
+        .from("jobs")
+        .select("items, materials")
+        .eq("id", sel.id)
+        .single();
+      if (liveErr) throw liveErr;
+      const mergedItems = mergePullTracking(editItems, liveJob?.items || liveJob?.materials);
+
       const payload = {
         po: editForm.po,
         title: editForm.name,
@@ -647,8 +657,8 @@ export default function BuildJobs({
         notes: editForm.notes,
         scheduledDate: editForm.scheduledDate,
         assignedto: editForm.assignedto,
-        items: editItems,
-        materials: editItems,
+        items: mergedItems,
+        materials: mergedItems,
       };
 
       const { error } = await updateRowStrict("jobs", sel.id, payload);

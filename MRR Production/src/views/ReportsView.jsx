@@ -242,6 +242,7 @@ function FleetCostTrendsReport({ vehs, reqs }) {
         setInspections(data || []);
       } catch (err) {
         console.error("Failed syncing condition history reports:", err);
+        showToast("Couldn't load inspection history — the list below may be incomplete. Refresh to retry.", "warning");
       } finally {
         setLoadingInspect(false);
       }
@@ -520,11 +521,15 @@ const handleDeleteInspection = async (id, vehicleName) => {
 function AuditTrailReport() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  // A failed fetch must not render as "no history" — that reads as innocence.
+  const [loadError, setLoadError] = useState(null);
+  const [retryTick, setRetryTick] = useState(0);
   const [actionTypeFilter, setActionTypeFilter] = useState("all");
 
   useEffect(() => {
     async function getLogs() {
       setLoading(true);
+      setLoadError(null);
       try {
         let query = supabase
           .from("audit_logs")
@@ -539,12 +544,14 @@ function AuditTrailReport() {
         setLogs(data || []);
       } catch (err) {
         console.error("Failed fetching audit files:", err);
+        setLoadError(err.message || "Request failed");
+        setLogs([]);
       } finally {
         setLoading(false);
       }
     }
     getLogs();
-  }, [actionTypeFilter]);
+  }, [actionTypeFilter, retryTick]);
 
   const formatFullTimestamp = (rawDateString) => {
     if (!rawDateString) return "—";
@@ -592,6 +599,12 @@ function AuditTrailReport() {
       </div>
       {loading ? (
         <LoadingState label="Loading audit stream records..." />
+      ) : loadError ? (
+        <div style={{ background: "#fee2e2", border: "1.5px solid #ef4444", borderRadius: "var(--radius-lg)", padding: "20px", textAlign: "center", color: "#991b1b" }}>
+          <div style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>⚠️ Couldn't load the audit history</div>
+          <div style={{ fontSize: "var(--text-sm)", marginBottom: 12 }}>The trail is NOT empty — it just couldn't be fetched. ({loadError})</div>
+          <Btn v="primary" sz="sm" onClick={() => setRetryTick((t) => t + 1)}>🔄 Retry</Btn>
+        </div>
       ) : (
         <div style={{ overflowX: "auto", maxHeight: 400, overflowY: "auto" }}>
           <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>

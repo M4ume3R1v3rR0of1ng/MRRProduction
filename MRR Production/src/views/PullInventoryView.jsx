@@ -1,7 +1,7 @@
 // src/views/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
 import { useState, useEffect } from "react";
-import { C, fd, fm, doFifo, uid, tot, ft, mkJI } from "../utils/helpers";
+import { C, fd, fm, doFifo, uid, tot, ft, mkJI, mergePullTracking } from "../utils/helpers";
 import { generatePDF } from "../utils/pdfGenerator";
 import { attemptAccuLynxSync } from "../utils/accuLynxSync";
 import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "../components/UIPrimitives";
@@ -106,6 +106,18 @@ export default function PullInventory({
     };
 
     try {
+      // A crew may have pulled materials while this edit was open — merge the
+      // live pull-tracking onto the edited list so it can't be erased.
+      const { data: liveJob, error: liveErr } = await supabase
+        .from("jobs")
+        .select("items, materials")
+        .eq("id", sel.id)
+        .single();
+      if (liveErr) throw liveErr;
+      const mergedItems = mergePullTracking(editItems, liveJob?.items || liveJob?.materials);
+      payload.items = mergedItems;
+      payload.materials = mergedItems;
+
       const { error } = await updateRowStrict("jobs", sel.id, payload);
       if (error) throw error;
 
