@@ -1,6 +1,6 @@
 // src/views/MaintenanceRequestsView.jsx
 import { useState, useEffect } from "react";
-import { supabase } from "../utils/supabase";
+import { supabase, updateRowStrict } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { detectChronicIssues, detectFleetTrends } from "../utils/patterns";
 import {
@@ -154,16 +154,13 @@ export default function MaintenanceRequestsView({
     // skipped when someone updates their own ticket so they don't alert themselves.
     const notifyRequester = !!currentTicket && String(currentTicket.uid) !== String(user.id);
 
-    const { error } = await supabase
-      .from("maintenance_requests")
-      .update({
-        status,
-        wh_notes: whNotes,
-        scheduled_date: scheduledDate,
-        completed_at: completedAt,
-        newforrequester: notifyRequester,
-      })
-      .eq("id", id);
+    const { error } = await updateRowStrict("maintenance_requests", id, {
+      status,
+      wh_notes: whNotes,
+      scheduled_date: scheduledDate,
+      completed_at: completedAt,
+      newforrequester: notifyRequester,
+    });
 
     if (error) {
       showToast("Error updating request: " + error.message, "error");

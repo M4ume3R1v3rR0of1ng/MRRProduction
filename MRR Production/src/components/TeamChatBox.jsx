@@ -119,7 +119,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
   const attachPhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    compressImg(file, 800, 0.75, (base64) => setPendingPhoto(base64));
+    compressImg(file, 800, 0.75, (base64) => setPendingPhoto(base64), (msg) => setError(msg));
     e.target.value = '';
   };
 

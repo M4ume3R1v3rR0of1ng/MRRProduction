@@ -199,8 +199,21 @@ return (
           minWidth: 0, 
           height: "100%", // Inherit frozen screen layout constraints
           marginTop: isMobile ? 50 : 0,
-          overflow: "hidden" 
+          overflow: "hidden"
         }}>
+          {app.loadErrors.length > 0 && (
+            <div style={{ background: "#fee2e2", borderBottom: "2px solid #ef4444", color: "#991b1b", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", flexShrink: 0, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>
+              <span>
+                ⚠️ Live data failed to load: {app.loadErrors.join(", ")}. Those sections are shown empty rather than with possibly-wrong data — don't make changes until this clears.
+              </span>
+              <button
+                onClick={() => app.reload()}
+                style={{ background: "#991b1b", color: "#fff", border: "none", borderRadius: "var(--radius-md)", padding: "6px 14px", cursor: "pointer", fontWeight: "var(--weight-bold)", fontSize: "var(--text-sm)", flexShrink: 0 }}
+              >
+                🔄 Retry
+              </button>
+            </div>
+          )}
           {!isMobile && (
             <div style={{ background: C.w, padding: "0 20px", height: 56, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)", flexShrink: 0 }}>
               <div style={{ fontSize: "var(--text-sm)", color: C.sub, flexShrink: 0, marginRight: 24 }}>

@@ -31,6 +31,10 @@ export function useAppData() {
   });
 
   const [userOverrides, setUserOverrides] = useState({});
+  // Table loads that errored during the last load() run. Non-empty triggers the
+  // red "live data failed to load" banner in App — the affected lists are left
+  // empty on purpose; plausible-looking seed data hid real outages.
+  const [loadErrors, setLoadErrors] = useState([]);
   const [acculynxConfig, setAccuLynxConfig] = useState({
     apiKey: "",
     enabled: false,
@@ -68,58 +72,67 @@ export function useAppData() {
           setLoadingProgress((prev) => Math.min(prev + incrementValue, 95));
         };
 
+        // Seeds are for a genuinely empty table (fresh install / pre-login RLS)
+        // only. A FAILED query leaves the list empty and records the failure so
+        // the UI can say so — fake data that looks real is worse than none.
+        const failedTables = [];
+
         await Promise.all([
           (async () => {
             const { data, error } = await supabase.from("inventory").select("*");
-            if (error) setInv(SEED_I);
+            if (error) { failedTables.push("Inventory"); setInv([]); }
             else if (data && data.length > 0) setInv(data);
             else setInv(SEED_I);
             trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("vehicles").select("*");
-            if (error) setVehs(SEED_V);
+            if (error) { failedTables.push("Fleet"); setVehs([]); }
             else if (data && data.length > 0) setVehs(data);
             else setVehs(SEED_V);
             trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("jobs").select("*");
-            if (error) setJobs(SEED_JOBS);
+            if (error) { failedTables.push("Jobs"); setJobs([]); }
             else if (data && data.length > 0) setJobs(data);
             else setJobs(SEED_JOBS);
             trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("maintenance_requests").select("*");
-            if (error) setReqs([]);
+            if (error) { failedTables.push("Maintenance Requests"); setReqs([]); }
             else if (data && data.length > 0) setReqs(data.sort((a, b) => new Date(b.at) - new Date(a.at)));
             else setReqs([]);
             trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("job_trailers").select("*");
-            if (error) setJobTrailers([]);
+            if (error) { failedTables.push("Trailer Assignments"); setJobTrailers([]); }
             else setJobTrailers(data || []);
             trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("warehouses").select("*");
-            if (error) setWH(SEED_W);
+            if (error) { failedTables.push("Warehouses"); setWH([]); }
             else if (data && data.length > 0) setWH(data);
             else setWH(SEED_W);
             trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("profiles").select("*");
-            if (error) setUsers(SEED_U);
+            if (error) { failedTables.push("Users"); setUsers([]); }
             else if (data && data.length > 0) setUsers(data);
             else setUsers(SEED_U);
             trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("role_permissions").select("*");
-            if (data && data.length > 0) {
+            // On failure the safe DEFAULT_ROLE_PERMS stay in effect, but the
+            // user is told — admin-customized permissions silently reverting
+            // to defaults is otherwise invisible.
+            if (error) failedTables.push("Permissions");
+            else if (data && data.length > 0) {
               const formattedRolePerms = {};
               data.forEach((row) => {
                 // Layer stored perms over defaults so perm keys added after the
@@ -133,7 +146,8 @@ export function useAppData() {
           })(),
           (async () => {
             const { data, error } = await supabase.from("user_permission_overrides").select("*");
-            if (data && data.length > 0) {
+            if (error) failedTables.push("User Permission Overrides");
+            else if (data && data.length > 0) {
               const formattedUserOv = {};
               data.forEach((row) => {
                 formattedUserOv[row.user_id] = row.overrides;
@@ -160,10 +174,12 @@ export function useAppData() {
           })(),
         ]);
 
+        setLoadErrors(failedTables);
         setLoadingProgress(100);
         console.log("🏁 Core synchronization complete. Hook environment primed.");
       } catch (e) {
         console.error("🚨 Critical failure during app instantiation sequence:", e);
+        setLoadErrors(["App Startup"]);
       } finally {
         setLoading(false);
       }
@@ -304,6 +320,8 @@ export function useAppData() {
   return {
     loading,
     loadingProgress, // Safely exposed to App.jsx for visual tracking
+    loadErrors,
+    reload: load,
     curUser,
     setCurUser,
     users,

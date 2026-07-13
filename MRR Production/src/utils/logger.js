@@ -32,14 +32,31 @@ export const logAction = async (userId, userEmail, actionType, description, meta
     console.log(`📝 [AUDIT LOG]: ${actionType}`, payload);
 
     // Write packet straight to the immutable database block
-    const { error } = await supabase
+    let { error } = await supabase
       .from('audit_logs')
       .insert([payload]);
 
+    // One immediate retry — a transient network blip shouldn't cost the trail
+    if (error) {
+      ({ error } = await supabase.from('audit_logs').insert([payload]));
+    }
+
     if (error) {
       console.error("❌ Supabase Audit Log Database Error:", error.message);
+      reportAuditFailure(error.message);
     }
   } catch (err) {
     console.error("❌ Critical Failure inside Logger Utility:", err.message);
+    reportAuditFailure(err.message);
   }
 };
+
+// The audit log is the recovery net when data goes missing — if it stops
+// recording, someone must find out the day it breaks, not the day it's needed.
+// Surfaced once per session as a toast via NotificationProvider's listener.
+let auditFailureAnnounced = false;
+function reportAuditFailure(message) {
+  if (auditFailureAnnounced || typeof window === 'undefined') return;
+  auditFailureAnnounced = true;
+  window.dispatchEvent(new CustomEvent('mrr-audit-log-failure', { detail: message }));
+}

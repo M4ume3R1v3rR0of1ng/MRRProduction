@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { C } from '../utils/helpers';
 
 const NotificationContext = createContext();
@@ -9,11 +9,26 @@ export function NotificationProvider({ children }) {
   const showToast = (message, type = 'error', duration = 4000) => {
     const id = Math.random().toString(36).substring(2, 9);
     setToasts((prev) => [...prev, { id, message, type }]);
-    
+
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, duration);
   };
+
+  // The audit logger (utils/logger.js) has no access to this context, so it
+  // announces a persistent failure via a window event — once per session.
+  useEffect(() => {
+    const onAuditFailure = () => {
+      showToast(
+        '⚠️ Activity logging is failing — actions are not being recorded in the audit log. Let your admin know.',
+        'warning',
+        10000,
+      );
+    };
+    window.addEventListener('mrr-audit-log-failure', onAuditFailure);
+    return () => window.removeEventListener('mrr-audit-log-failure', onAuditFailure);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Maps notification types to cohesive operational design tokens
   const getToastStyle = (type) => {

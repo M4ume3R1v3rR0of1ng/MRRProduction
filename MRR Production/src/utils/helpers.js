@@ -86,10 +86,20 @@ export const oilSt = (v) => {
 };
 
 // 9. Canvas Downsampler for Compressed Image Uploads
-export function compressImg(file, maxDim, quality, cb) {
+// onError is optional; without it decode failures only hit the console — the
+// original silent-failure mode. Pass it so the user learns their photo didn't
+// take (HEIC and other formats the browser can't decode are common on phones).
+export function compressImg(file, maxDim, quality, cb, onError) {
+  const fail = (msg) => {
+    console.error("Image processing failed:", msg);
+    onError?.(msg);
+  };
   const reader = new FileReader();
+  reader.onerror = () => fail("That file could not be read — try selecting the photo again.");
   reader.onload = (ev) => {
     const img = new Image();
+    img.onerror = () =>
+      fail("That photo format isn't supported here — try a different photo, or take a screenshot of it and upload that.");
     img.onload = () => {
       let w = img.width,
         h = img.height;

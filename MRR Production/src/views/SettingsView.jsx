@@ -277,7 +277,7 @@ export default function SettingsView({
         if (error) throw error;
         if (typeof setLogos === "function") setLogos(base64Data);
         showToast("Logo saved.", "success");
-      });
+      }, (msg) => showToast(msg, "error"));
     } catch (err) {
       showToast(`Logo upload failed: ${err.message}`, "error");
     } finally {

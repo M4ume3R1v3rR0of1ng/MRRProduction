@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { C, uid, fd, fm, tot, mkJI, newestPrice } from "../utils/helpers";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, LoadingState } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
-import { supabase, getAccessToken } from "../utils/supabase";
+import { supabase, getAccessToken, updateRowStrict } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
 import CrewCalendar from "../components/CrewCalendar";
 import { generatePDF } from "../utils/pdfGenerator";
@@ -377,15 +377,12 @@ export default function BuildJobs({
     setApproving(true);
     const approvedAtTime = new Date().toISOString();
     try {
-      const { error } = await supabase
-        .from("jobs")
-        .update({
-          status: "approved",
-          approved: approvedAtTime,
-          assignedto: apAssign,
-          newforassigned: true,
-        })
-        .eq("id", sel.id);
+      const { error } = await updateRowStrict("jobs", sel.id, {
+        status: "approved",
+        approved: approvedAtTime,
+        assignedto: apAssign,
+        newforassigned: true,
+      });
       if (error) throw error;
 
       await logAction(
@@ -541,10 +538,7 @@ export default function BuildJobs({
     if (!job) return;
     const closedAt = new Date().toISOString();
     try {
-      const { error } = await supabase
-        .from("jobs")
-        .update({ status: "closed", closedAt })
-        .eq("id", job.id);
+      const { error } = await updateRowStrict("jobs", job.id, { status: "closed", closedAt });
       if (error) throw error;
 
       await logAction(
@@ -569,10 +563,7 @@ export default function BuildJobs({
   const reopenJob = async (job = sel) => {
     if (!job) return;
     try {
-      const { error } = await supabase
-        .from("jobs")
-        .update({ status: "completed", closedAt: "" })
-        .eq("id", job.id);
+      const { error } = await updateRowStrict("jobs", job.id, { status: "completed", closedAt: "" });
       if (error) throw error;
 
       await logAction(
@@ -660,7 +651,7 @@ export default function BuildJobs({
         materials: editItems,
       };
 
-      const { error } = await supabase.from("jobs").update(payload).eq("id", sel.id);
+      const { error } = await updateRowStrict("jobs", sel.id, payload);
       if (error) throw error;
 
       await logAction(

@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { C } from '../utils/helpers';
 import { ROLES } from '../database/permissions';
 import { compressImg } from '../utils/helpers';
+import { useNotify } from '../context/NotificationContext';
 
 export function Spinner({ size = 18, color }) {
   return (
@@ -102,7 +103,12 @@ export function Toggle({ on, onChange, disabled = false }) {
 
 export function PhotoUpload({ current, onUpload, maxDim = 350, quality = 0.72, label = 'Upload Photo', previewHeight = 160, canRemove = true }) {
   const ref = useRef();
-  const handle = e => { const f = e.target.files[0]; if (f) compressImg(f, maxDim, quality, onUpload); e.target.value = ''; };
+  const notify = useNotify();
+  const handle = e => {
+    const f = e.target.files[0];
+    if (f) compressImg(f, maxDim, quality, onUpload, (msg) => notify?.showToast?.(msg, 'error'));
+    e.target.value = '';
+  };
   return (
     <div>
       {current ? (

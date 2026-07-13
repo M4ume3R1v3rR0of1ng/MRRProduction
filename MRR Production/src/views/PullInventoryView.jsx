@@ -6,7 +6,8 @@ import { generatePDF } from "../utils/pdfGenerator";
 import { attemptAccuLynxSync } from "../utils/accuLynxSync";
 import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
-import { supabase } from "../utils/supabase";
+import { supabase, updateRowStrict } from "../utils/supabase";
+import { sendLowStockAlerts } from "../utils/lowStockAlerts";
 import { useNotify } from "../context/NotificationContext";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
@@ -105,7 +106,7 @@ export default function PullInventory({
     };
 
     try {
-      const { error } = await supabase.from("jobs").update(payload).eq("id", sel.id);
+      const { error } = await updateRowStrict("jobs", sel.id, payload);
       if (error) throw error;
 
       const updated = { ...sel, ...payload };
@@ -313,23 +314,32 @@ export default function PullInventory({
 
       const updatedJob = { ...sel, status: "active", items: updItems, materials: updItems };
 
-      const jobRes = await supabase
-        .from("jobs")
-        .update({ status: "active", items: updItems, materials: updItems })
-        .eq("id", sel.id);
+      const jobRes = await updateRowStrict("jobs", sel.id, { status: "active", items: updItems, materials: updItems });
       if (jobRes.error) throw jobRes.error;
 
       for (const [itemId, batches] of changedBatches) {
-        const invRes = await supabase
-          .from("inventory")
-          .update({ batches })
-          .eq("id", itemId);
+        const invRes = await updateRowStrict("inventory", itemId, { batches });
         if (invRes.error) throw invRes.error;
       }
 
       setInv((p) => p.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i)));
       setJobs((p) => p.map((j) => (j.id === sel.id ? updatedJob : j)));
       setSel(updatedJob);
+
+      // Pulls are the main way stock drops below threshold — alert the
+      // opted-in managers when this pull crosses an item's alert line.
+      sendLowStockAlerts(
+        [...changedBatches]
+          .map(([iid, batches]) => {
+            const item = inv.find((i) => i.id === iid);
+            return item
+              ? { item, prevTotal: tot({ batches: freshById.get(iid) || [] }), newTotal: tot({ batches }) }
+              : null;
+          })
+          .filter(Boolean),
+        users,
+        showToast,
+      );
 
       await handlePullMaterials(sel.id, updItems);
       showToast("Materials successfully pulled from warehouse staging.", "success");
@@ -395,17 +405,11 @@ export default function PullInventory({
         materials: updItems,
       };
 
-      const jobRes = await supabase
-        .from("jobs")
-        .update({ status: "completed", completed: completedAt, completedAt, items: updItems, materials: updItems })
-        .eq("id", sel.id);
+      const jobRes = await updateRowStrict("jobs", sel.id, { status: "completed", completed: completedAt, completedAt, items: updItems, materials: updItems });
       if (jobRes.error) throw jobRes.error;
 
       for (const [itemId, batches] of changedBatches) {
-        const invRes = await supabase
-          .from("inventory")
-          .update({ batches })
-          .eq("id", itemId);
+        const invRes = await updateRowStrict("inventory", itemId, { batches });
         if (invRes.error) throw invRes.error;
       }
 
@@ -460,10 +464,7 @@ export default function PullInventory({
       const url = base64Data ? await uploadPhotoToBucket("job-attachments", sel.id, base64Data) : null;
       if (base64Data && !url) throw new Error("Cloud engine failed to return a valid URL.");
 
-      const { error: dbError } = await supabase
-        .from("jobs")
-        .update({ [columnToUpdate]: url })
-        .eq("id", sel.id);
+      const { error: dbError } = await updateRowStrict("jobs", sel.id, { [columnToUpdate]: url });
       if (dbError) throw dbError;
 
       setJobs((p) => p.map((j) => (j.id === sel.id ? { ...j, [columnToUpdate]: url } : j)));

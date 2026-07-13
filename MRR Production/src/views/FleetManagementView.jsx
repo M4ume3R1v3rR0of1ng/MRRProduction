@@ -1,6 +1,6 @@
 // src/views/FleetManagementView.jsx
 import { useState, useEffect } from "react";
-import { supabase } from "../utils/supabase";
+import { supabase, updateRowStrict } from "../utils/supabase";
 import {
   Btn,
   Bdg,
@@ -295,7 +295,7 @@ export default function FleetManagementView({
     }
     try {
       const photo_url = data ? await uploadPhotoToBucket("vehicle-photos", id, data) : null;
-      const { error } = await supabase.from("vehicles").update({ photo_url }).eq("id", id);
+      const { error } = await updateRowStrict("vehicles", id, { photo_url });
       if (error) throw error;
       setVehs((p) => p.map((v) => (v.id === id ? { ...v, photo_url } : v)));
       setSel((p) => (p && p.id === id ? { ...p, photo_url } : p));
@@ -316,7 +316,7 @@ export default function FleetManagementView({
       mil: [...(sel.mil || []), { dt: form.date, mi, by: user.id }],
     };
     try {
-      const { error } = await supabase.from("vehicles").update(changes).eq("id", sel.id);
+      const { error } = await updateRowStrict("vehicles", sel.id, changes);
       if (error) throw error;
       const up = { ...sel, ...changes };
       setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
@@ -345,7 +345,7 @@ export default function FleetManagementView({
       ...(form.type === "Detail" ? { ldd: form.date } : {}),
     };
     try {
-      const { error } = await supabase.from("vehicles").update(changes).eq("id", sel.id);
+      const { error } = await updateRowStrict("vehicles", sel.id, changes);
       if (error) throw error;
       const up = { ...sel, ...changes };
       setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
@@ -369,7 +369,7 @@ export default function FleetManagementView({
   const assignUser = async () => {
     const assignedTo = form.assignedTo || "";
     try {
-      const { error } = await supabase.from("vehicles").update({ assignedTo }).eq("id", sel.id);
+      const { error } = await updateRowStrict("vehicles", sel.id, { assignedTo });
       if (error) throw error;
       const up = { ...sel, assignedTo };
       setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
@@ -537,7 +537,7 @@ export default function FleetManagementView({
     };
 
     try {
-      const { error } = await supabase.from("vehicles").update(changes).eq("id", sel.id);
+      const { error } = await updateRowStrict("vehicles", sel.id, changes);
       if (error) throw error;
 
       const updated = { ...sel, ...changes };
@@ -719,7 +719,7 @@ export default function FleetManagementView({
             </Btn>
           )}
           {/* ── 🟢 ADD HERE: THE LOG INSPECTION TOGGLE ACTION BUTTON ── */}
-          {(user.role === "admin" || user.name === "John" || user.name === "Adam" || perms.fleet_manage) && (
+          {perms.fleet_log_inspection && (
             <Btn
               v="gold"
               sz="sm"

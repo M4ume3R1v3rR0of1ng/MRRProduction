@@ -1,6 +1,7 @@
 // src/views/InventoryView.jsx
 import { useState, useMemo, useEffect } from "react";
-import { supabase, getAccessToken } from "../utils/supabase";
+import { supabase, updateRowStrict } from "../utils/supabase";
+import { sendLowStockAlerts } from "../utils/lowStockAlerts";
 import { C, uid, fd, fm, tot, newestPrice } from "../utils/helpers";
 import { fetchJobTemplates, saveJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
 import {
@@ -159,7 +160,7 @@ export default function InventoryView({
     if (!perms.inv_edit) return;
     const special = !item.special;
     try {
-      const { error } = await supabase.from("inventory").update({ special }).eq("id", item.id);
+      const { error } = await updateRowStrict("inventory", item.id, { special });
       if (error) throw error;
       setInv((p) => p.map((i) => (i.id === item.id ? { ...i, special } : i)));
       setSel((p) => (p && p.id === item.id ? { ...p, special } : p));
@@ -179,7 +180,7 @@ export default function InventoryView({
   const setPhoto = async (id, data) => {
     try {
       const photo_url = data ? await uploadPhotoToBucket("inventory-photos", id, data) : null;
-      const { error } = await supabase.from("inventory").update({ photo_url }).eq("id", id);
+      const { error } = await updateRowStrict("inventory", id, { photo_url });
       if (error) throw error;
       setInv((p) => p.map((i) => (i.id === id ? { ...i, photo_url } : i)));
       setSel((p) => (p && p.id === id ? { ...p, photo_url } : p));
@@ -271,10 +272,7 @@ export default function InventoryView({
         updatedFields.batches = batches;
       }
 
-      const { error } = await supabase
-        .from("inventory")
-        .update(updatedFields)
-        .eq("id", sel.id);
+      const { error } = await updateRowStrict("inventory", sel.id, updatedFields);
 
       if (error) throw error;
 
@@ -353,11 +351,9 @@ export default function InventoryView({
     };
 
     try {
-      const updatedBatches = [...(await fetchLiveBatches(sel.id)), b];
-      const { error } = await supabase
-        .from("inventory")
-        .update({ batches: updatedBatches })
-        .eq("id", sel.id);
+      const liveBatches = await fetchLiveBatches(sel.id);
+      const updatedBatches = [...liveBatches, b];
+      const { error } = await updateRowStrict("inventory", sel.id, { batches: updatedBatches });
 
       if (error) throw error;
 
@@ -366,34 +362,13 @@ export default function InventoryView({
       );
       const updatedItem = { ...sel, batches: updatedBatches };
 
-      if (tot(updatedItem) <= updatedItem.alrt) {
-        // Only notify users who've opted in via Profile → Inventory Alert Preferences.
-        const managers = users.filter(
-          (u) =>
-            (u.role === "manager" ||
-              u.role === "coordinator" ||
-              u.role === "warehouse") &&
-            u.active &&
-            u.receive_email_alerts,
-        );
-        const alertAccessToken = await getAccessToken();
-        managers.forEach((mgr) => {
-          if (mgr.email) {
-            fetch("/.netlify/functions/send-alert", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email: mgr.email,
-                itemName: updatedItem.name,
-                currentStock: tot(updatedItem),
-                unit: updatedItem.unit,
-                alertThreshold: updatedItem.alrt,
-                accessToken: alertAccessToken,
-              }),
-            }).catch((err) => console.error("Email processing error:", err));
-          }
-        });
-      }
+      // Fires only when this change pushes the item below its threshold —
+      // e.g. a negative correction batch. Normal receives raise stock.
+      sendLowStockAlerts(
+        [{ item: updatedItem, prevTotal: tot({ batches: liveBatches }), newTotal: tot(updatedItem) }],
+        users,
+        showToast,
+      );
 
       await logAction(
         user?.id ?? null,
@@ -462,11 +437,17 @@ export default function InventoryView({
         });
       }
 
-      const { error } = await supabase.from("inventory").update({ batches: updatedBatches }).eq("id", sel.id);
+      const { error } = await updateRowStrict("inventory", sel.id, { batches: updatedBatches });
       if (error) throw error;
 
       setInv((p) => p.map((i) => (i.id === sel.id ? { ...i, batches: updatedBatches } : i)));
       setSel((p) => (p ? { ...p, batches: updatedBatches } : p));
+
+      sendLowStockAlerts(
+        [{ item: sel, prevTotal: current, newTotal: newQty }],
+        users,
+        showToast,
+      );
 
       await logAction(
         user?.id ?? null,
@@ -561,7 +542,7 @@ export default function InventoryView({
 
       const results = await Promise.all(
         [...changedBatches].map(([iid, batches]) =>
-          supabase.from("inventory").update({ batches }).eq("id", iid),
+          updateRowStrict("inventory", iid, { batches }),
         ),
       );
 
@@ -571,6 +552,21 @@ export default function InventoryView({
       if (firstError) throw firstError;
 
       setInv((p) => p.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i)));
+
+      // Bulk rows can carry negative correction quantities, so a threshold
+      // crossing is possible here too.
+      sendLowStockAlerts(
+        [...changedBatches]
+          .map(([iid, batches]) => {
+            const item = inv.find((i) => i.id === iid);
+            return item
+              ? { item, prevTotal: tot({ batches: freshById.get(iid) }), newTotal: tot({ batches }) }
+              : null;
+          })
+          .filter(Boolean),
+        users,
+        showToast,
+      );
 
       await logAction(
         user?.id ?? null,
