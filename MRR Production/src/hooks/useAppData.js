@@ -25,6 +25,7 @@ export function useAppData() {
     warehouse: { ...DEFAULT_ROLE_PERMS.warehouse },
     coordinator: { ...DEFAULT_ROLE_PERMS.coordinator },
     manager: { ...DEFAULT_ROLE_PERMS.manager },
+    employee: { ...DEFAULT_ROLE_PERMS.employee },
     field: { ...DEFAULT_ROLE_PERMS.field },
     bookkeeper: { ...DEFAULT_ROLE_PERMS.bookkeeper },
   });

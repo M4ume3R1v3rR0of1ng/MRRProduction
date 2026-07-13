@@ -1103,7 +1103,7 @@ export default function FleetManagementView({
                 📍 Log Mileage
               </Btn>
             )}
-            {perms.fleet_edit && (
+            {perms.fleet_log_service && (
               <Btn
                 v="outline"
                 sz="sm"
@@ -1497,7 +1497,7 @@ export default function FleetManagementView({
         </Modal>
       )}
 
-      {modal === "svc" && sel && (
+      {modal === "svc" && sel && perms.fleet_log_service && (
         <Modal
           title={`Log Service — ${sel.name}`}
           onClose={() => setModal(null)}
