@@ -289,6 +289,10 @@ export default function FleetManagementView({
   }, [openItemId]);
 
   const setPhoto = async (id, data) => {
+    if (!data && !perms.fleet_photo_delete) {
+      showToast("Only managers or admins can delete vehicle photos.", "error");
+      return;
+    }
     try {
       const photo_url = data ? await uploadPhotoToBucket("vehicle-photos", id, data) : null;
       const { error } = await supabase.from("vehicles").update({ photo_url }).eq("id", id);
@@ -1238,6 +1242,7 @@ export default function FleetManagementView({
               <PhotoUpload
                 current={sel.photo_url || null}
                 onUpload={(data) => setPhoto(sel.id, data)}
+                canRemove={!!perms.fleet_photo_delete}
                 label="Upload vehicle photo"
                 maxDim={600}
                 quality={0.75}

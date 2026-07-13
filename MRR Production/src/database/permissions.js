@@ -11,6 +11,7 @@ export const PERM_DEFS = {
   inv_adjust: { label: 'Adjust Stock', desc: 'Manually correct on-hand quantities', g: '📦 Inventory' },
   fleet_view: { label: 'View Fleet', desc: 'View vehicles & service history', g: '🚛 Fleet' },
   fleet_edit: { label: 'Manage Fleet', desc: 'Log service, assign drivers, photos', g: '🚛 Fleet' },
+  fleet_photo_delete: { label: 'Delete Vehicle Photos', desc: 'Remove or replace truck & trailer photos', g: '🚛 Fleet' },
   fleet_log_mi: { label: 'Log Mileage', desc: 'Submit vehicle mileage readings', g: '🚛 Fleet' },
   maint_submit: { label: 'Submit Requests', desc: 'Submit maintenance & service requests', g: '🔧 Maintenance' },
   maint_manage: { label: 'Manage Requests', desc: 'Schedule & close maintenance requests', g: '🔧 Maintenance' },
@@ -29,7 +30,7 @@ export const PERM_DEFS = {
 // 2. Navigation & Settings Groupings Map
 export const PERM_GROUPS = [
   ['📦 Inventory', ['inv_view', 'inv_edit', 'inv_receive', 'inv_bulk_receive', 'inv_pricing_view', 'inv_pricing_edit', 'inv_adjust']],
-  ['🚛 Fleet', ['fleet_view', 'fleet_edit', 'fleet_log_mi']],
+  ['🚛 Fleet', ['fleet_view', 'fleet_edit', 'fleet_photo_delete', 'fleet_log_mi']],
   ['🔧 Maintenance', ['maint_submit', 'maint_manage']],
   ['🏗️ Jobs', ['jobs_view', 'jobs_build', 'jobs_approve', 'jobs_pull', 'jobs_edit_pull', 'jobs_complete', 'jobs_close']],
   ['📊 Reports', ['reports_view']],
@@ -50,11 +51,11 @@ export const ROLE_COLS = [
 
 // 4. Baseline Corporate Safety Rules Matrix
 export const DEFAULT_ROLE_PERMS = {
-  warehouse: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: false, inv_adjust: false, fleet_view: true, fleet_edit: true, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_edit_pull: false, jobs_complete: true, jobs_close: false, reports_view: true, users_manage: false, settings_manage: false },
-  coordinator: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, inv_adjust: false, fleet_view: true, fleet_edit: true, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, jobs_close: true, reports_view: true, users_manage: false, settings_manage: false },
-  manager: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, inv_adjust: true, fleet_view: true, fleet_edit: false, fleet_log_mi: false, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, jobs_close: true, reports_view: true, users_manage: false, settings_manage: false },
-  field: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: false, inv_pricing_view: false, inv_pricing_edit: false, inv_adjust: true, fleet_view: true, fleet_edit: false, fleet_log_mi: true, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, jobs_close: false, reports_view: false, users_manage: false, settings_manage: false },
-  bookkeeper: { inv_view: false, inv_edit: false, inv_receive: false, inv_bulk_receive: false, inv_pricing_view: true, inv_pricing_edit: false, inv_adjust: false, fleet_view: false, fleet_edit: false, fleet_log_mi: false, maint_submit: false, maint_manage: false, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: false, jobs_edit_pull: false, jobs_complete: false, jobs_close: true, reports_view: true, users_manage: false, settings_manage: false },
+  warehouse: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: false, inv_adjust: false, fleet_view: true, fleet_edit: true, fleet_photo_delete: false, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_edit_pull: false, jobs_complete: true, jobs_close: false, reports_view: true, users_manage: false, settings_manage: false },
+  coordinator: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, inv_adjust: false, fleet_view: true, fleet_edit: true, fleet_photo_delete: false, fleet_log_mi: true, maint_submit: true, maint_manage: true, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, jobs_close: true, reports_view: true, users_manage: false, settings_manage: false },
+  manager: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: true, inv_pricing_view: true, inv_pricing_edit: true, inv_adjust: true, fleet_view: true, fleet_edit: false, fleet_photo_delete: true, fleet_log_mi: false, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: true, jobs_approve: true, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, jobs_close: true, reports_view: true, users_manage: false, settings_manage: false },
+  field: { inv_view: true, inv_edit: true, inv_receive: true, inv_bulk_receive: false, inv_pricing_view: false, inv_pricing_edit: false, inv_adjust: true, fleet_view: true, fleet_edit: false, fleet_photo_delete: false, fleet_log_mi: true, maint_submit: true, maint_manage: false, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: true, jobs_edit_pull: true, jobs_complete: true, jobs_close: false, reports_view: false, users_manage: false, settings_manage: false },
+  bookkeeper: { inv_view: false, inv_edit: false, inv_receive: false, inv_bulk_receive: false, inv_pricing_view: true, inv_pricing_edit: false, inv_adjust: false, fleet_view: false, fleet_edit: false, fleet_photo_delete: false, fleet_log_mi: false, maint_submit: false, maint_manage: false, jobs_view: true, jobs_build: false, jobs_approve: false, jobs_pull: false, jobs_edit_pull: false, jobs_complete: false, jobs_close: true, reports_view: true, users_manage: false, settings_manage: false },
 };
 
 // 5. Global Roles Map Interface

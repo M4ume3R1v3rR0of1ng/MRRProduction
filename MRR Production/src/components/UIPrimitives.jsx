@@ -100,7 +100,7 @@ export function Toggle({ on, onChange, disabled = false }) {
   );
 }
 
-export function PhotoUpload({ current, onUpload, maxDim = 350, quality = 0.72, label = 'Upload Photo', previewHeight = 160 }) {
+export function PhotoUpload({ current, onUpload, maxDim = 350, quality = 0.72, label = 'Upload Photo', previewHeight = 160, canRemove = true }) {
   const ref = useRef();
   const handle = e => { const f = e.target.files[0]; if (f) compressImg(f, maxDim, quality, onUpload); e.target.value = ''; };
   return (
@@ -108,7 +108,9 @@ export function PhotoUpload({ current, onUpload, maxDim = 350, quality = 0.72, l
       {current ? (
         <div style={{ position: 'relative', marginBottom: 'var(--space-4)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: `1.5px solid ${C.bd}` }}>
           <img src={current} alt="" style={{ width: '100%', height: previewHeight, objectFit: 'cover', display: 'block' }} />
-          <button onClick={() => onUpload(null)} style={{ position: 'absolute', top: 'var(--space-2)', right: 'var(--space-2)', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '50%', width: 26, height: 26, cursor: 'pointer', fontSize: 'var(--text-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          {canRemove && (
+            <button onClick={() => onUpload(null)} style={{ position: 'absolute', top: 'var(--space-2)', right: 'var(--space-2)', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '50%', width: 26, height: 26, cursor: 'pointer', fontSize: 'var(--text-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+          )}
         </div>
       ) : (
         <div style={{ height: previewHeight, background: C.lg, borderRadius: 'var(--radius-lg)', border: `2px dashed ${C.bd}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--space-4)', cursor: 'pointer', gap: 'var(--space-2)' }} onClick={() => ref.current.click()}>

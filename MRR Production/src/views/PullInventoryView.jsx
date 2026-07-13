@@ -258,61 +258,76 @@ export default function PullInventory({
     if (!sel) return;
     setPulling(true);
 
-    const newInv = [...inv];
     const updItems = [...(sel.items || sel.materials || [])];
     const shortItems = [];
-
-    for (const item of updItems) {
-      if (!item) continue;
-      const parsedQty = parseFloat(pullQtys[item.iid]);
-      const qty = Number.isNaN(parsedQty) ? (item.planned || item.qty || 0) : parsedQty;
-      if (qty <= 0) continue;
-      const idx = newInv.findIndex((i) => i.id === item.iid);
-      if (idx < 0) continue;
-
-      const res = doFifo(newInv[idx], qty);
-      if (res.shortfall > 0) {
-        shortItems.push(item.iname || item.name);
-      }
-
-      newInv[idx] = { ...newInv[idx], batches: res.batches };
-      const ppu = qty > 0 ? res.cost / qty : 0;
-      const ji = updItems.findIndex((i) => i && i.iid === item.iid);
-      if (ji >= 0) {
-        updItems[ji] = {
-          ...updItems[ji],
-          pulled: qty,
-          priceAtPull: ppu,
-          pullCost: res.cost,
-        };
-      }
-    }
-
-    if (shortItems.length > 0) {
-      showToast(
-        `Pulled past available stock for: ${shortItems.join(", ")}. Warehouse balance is now negative for ${shortItems.length > 1 ? "these items" : "this item"} — reorder soon.`,
-        "warning",
-      );
-    }
-
-    const updatedJob = { ...sel, status: "active", items: updItems, materials: updItems };
+    // Batches touched by this pull, keyed by inventory id. Only these rows get
+    // written back — writing the whole in-memory list here used to overwrite
+    // stock other devices had received since this session loaded.
+    const changedBatches = new Map();
 
     try {
+      // Re-read current batches for the job's items so FIFO deducts from
+      // what's actually in the warehouse now, not this device's snapshot.
+      const pullIds = updItems.filter(Boolean).map((i) => i.iid);
+      let freshById = new Map();
+      if (pullIds.length > 0) {
+        const { data: freshRows, error: freshErr } = await supabase
+          .from("inventory")
+          .select("id,batches")
+          .in("id", pullIds);
+        if (freshErr) throw freshErr;
+        freshById = new Map((freshRows || []).map((r) => [r.id, r.batches || []]));
+      }
+
+      for (const item of updItems) {
+        if (!item) continue;
+        const parsedQty = parseFloat(pullQtys[item.iid]);
+        const qty = Number.isNaN(parsedQty) ? (item.planned || item.qty || 0) : parsedQty;
+        if (qty <= 0) continue;
+        if (!freshById.has(item.iid)) continue;
+
+        const res = doFifo({ batches: freshById.get(item.iid) }, qty);
+        if (res.shortfall > 0) {
+          shortItems.push(item.iname || item.name);
+        }
+
+        changedBatches.set(item.iid, res.batches);
+        const ppu = qty > 0 ? res.cost / qty : 0;
+        const ji = updItems.findIndex((i) => i && i.iid === item.iid);
+        if (ji >= 0) {
+          updItems[ji] = {
+            ...updItems[ji],
+            pulled: qty,
+            priceAtPull: ppu,
+            pullCost: res.cost,
+          };
+        }
+      }
+
+      if (shortItems.length > 0) {
+        showToast(
+          `Pulled past available stock for: ${shortItems.join(", ")}. Warehouse balance is now negative for ${shortItems.length > 1 ? "these items" : "this item"} — reorder soon.`,
+          "warning",
+        );
+      }
+
+      const updatedJob = { ...sel, status: "active", items: updItems, materials: updItems };
+
       const jobRes = await supabase
         .from("jobs")
         .update({ status: "active", items: updItems, materials: updItems })
         .eq("id", sel.id);
       if (jobRes.error) throw jobRes.error;
 
-      for (const updatedItem of newInv) {
+      for (const [itemId, batches] of changedBatches) {
         const invRes = await supabase
           .from("inventory")
-          .update({ batches: updatedItem.batches })
-          .eq("id", updatedItem.id);
+          .update({ batches })
+          .eq("id", itemId);
         if (invRes.error) throw invRes.error;
       }
 
-      setInv(newInv);
+      setInv((p) => p.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i)));
       setJobs((p) => p.map((j) => (j.id === sel.id ? updatedJob : j)));
       setSel(updatedJob);
 
@@ -332,14 +347,31 @@ export default function PullInventory({
     if (!sel) return;
     setReturning(true);
 
-    const newInv = [...inv];
     const rawItems = sel.items || sel.materials || [];
-    const updItems = rawItems.map((item) => {
-      if (!item) return null;
-      const ret = Math.min(parseFloat(retQtys[item.iid]) || 0, item.pulled || 0);
-      if (ret > 0) {
-        const idx = newInv.findIndex((i) => i.id === item.iid);
-        if (idx >= 0) {
+
+    try {
+      // Re-read current batches for the items being returned so the return
+      // batch stacks on top of live warehouse data. Only these rows get
+      // written back — writing the whole in-memory list here used to
+      // overwrite stock other devices had received since this session loaded.
+      const returnIds = rawItems
+        .filter((i) => i && Math.min(parseFloat(retQtys[i.iid]) || 0, i.pulled || 0) > 0)
+        .map((i) => i.iid);
+      let freshById = new Map();
+      if (returnIds.length > 0) {
+        const { data: freshRows, error: freshErr } = await supabase
+          .from("inventory")
+          .select("id,batches")
+          .in("id", returnIds);
+        if (freshErr) throw freshErr;
+        freshById = new Map((freshRows || []).map((r) => [r.id, r.batches || []]));
+      }
+
+      const changedBatches = new Map();
+      const updItems = rawItems.map((item) => {
+        if (!item) return null;
+        const ret = Math.min(parseFloat(retQtys[item.iid]) || 0, item.pulled || 0);
+        if (ret > 0 && freshById.has(item.iid)) {
           const nb = {
             id: uid(),
             rcvd: new Date().toISOString().split("T")[0],
@@ -348,40 +380,36 @@ export default function PullInventory({
             by: user.id,
             rem: ret,
           };
-          newInv[idx] = {
-            ...newInv[idx],
-            batches: [...(newInv[idx].batches || []), nb],
-          };
+          changedBatches.set(item.iid, [...freshById.get(item.iid), nb]);
         }
-      }
-      return { ...item, returned: ret };
-    }).filter(Boolean);
+        return { ...item, returned: ret };
+      }).filter(Boolean);
 
-    const completedAt = new Date().toISOString();
-    const updatedJob = {
-      ...sel,
-      status: "completed",
-      completed: completedAt,
-      completedAt,
-      items: updItems,
-      materials: updItems,
-    };
+      const completedAt = new Date().toISOString();
+      const updatedJob = {
+        ...sel,
+        status: "completed",
+        completed: completedAt,
+        completedAt,
+        items: updItems,
+        materials: updItems,
+      };
 
-    try {
       const jobRes = await supabase
         .from("jobs")
         .update({ status: "completed", completed: completedAt, completedAt, items: updItems, materials: updItems })
         .eq("id", sel.id);
       if (jobRes.error) throw jobRes.error;
 
-      for (const updatedItem of newInv) {
+      for (const [itemId, batches] of changedBatches) {
         const invRes = await supabase
           .from("inventory")
-          .update({ batches: updatedItem.batches })
-          .eq("id", updatedItem.id);
+          .update({ batches })
+          .eq("id", itemId);
         if (invRes.error) throw invRes.error;
       }
 
+      const newInv = inv.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i));
       setInv(newInv);
       setJobs((p) => p.map((j) => (j.id === sel.id ? updatedJob : j)));
       showToast("Job logistics completed. Generating material manifest report.", "success");

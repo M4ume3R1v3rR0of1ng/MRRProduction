@@ -121,7 +121,10 @@ export function useAppData() {
             if (data && data.length > 0) {
               const formattedRolePerms = {};
               data.forEach((row) => {
-                formattedRolePerms[row.role] = row.permissions;
+                // Layer stored perms over defaults so perm keys added after the
+                // row was saved (e.g. fleet_photo_delete) resolve to their default
+                // instead of undefined/false until an admin toggles them.
+                formattedRolePerms[row.role] = { ...(DEFAULT_ROLE_PERMS[row.role] || {}), ...row.permissions };
               });
               setRolePerms((p) => ({ ...p, ...formattedRolePerms }));
             }

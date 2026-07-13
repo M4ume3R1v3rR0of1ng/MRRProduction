@@ -249,28 +249,28 @@ export default function InventoryView({
     const newPrice = parseFloat(form.price);
     const priceChanged =
       perms.inv_pricing_edit && form.price !== "" && form.price != null && !isNaN(newPrice) && newPrice !== oldPrice;
-    if (priceChanged) {
-      const batches = [...(sel.batches || [])];
-      if (batches.length > 0) {
-        let newest = 0;
-        batches.forEach((b, i) => {
-          if (new Date(b.rcvd) - new Date(batches[newest].rcvd) > 0) newest = i;
-        });
-        batches[newest] = { ...batches[newest], price: newPrice };
-      } else {
-        batches.push({
-          id: "b_" + uid(),
-          rcvd: new Date().toISOString().split("T")[0],
-          qty: 0,
-          price: newPrice,
-          by: user?.id || "system",
-          rem: 0,
-        });
-      }
-      updatedFields.batches = batches;
-    }
-
     try {
+      if (priceChanged) {
+        const batches = [...(await fetchLiveBatches(sel.id))];
+        if (batches.length > 0) {
+          let newest = 0;
+          batches.forEach((b, i) => {
+            if (new Date(b.rcvd) - new Date(batches[newest].rcvd) > 0) newest = i;
+          });
+          batches[newest] = { ...batches[newest], price: newPrice };
+        } else {
+          batches.push({
+            id: "b_" + uid(),
+            rcvd: new Date().toISOString().split("T")[0],
+            qty: 0,
+            price: newPrice,
+            by: user?.id || "system",
+            rem: 0,
+          });
+        }
+        updatedFields.batches = batches;
+      }
+
       const { error } = await supabase
         .from("inventory")
         .update(updatedFields)
@@ -314,6 +314,19 @@ export default function InventoryView({
     }
   };
 
+  // Current batches for one item straight from the database. Local state can
+  // be hours old (it loads once at sign-in), so batch mutations must build on
+  // this instead of the in-memory copy or they erase other devices' changes.
+  const fetchLiveBatches = async (itemId) => {
+    const { data, error } = await supabase
+      .from("inventory")
+      .select("batches")
+      .eq("id", itemId)
+      .single();
+    if (error) throw error;
+    return data?.batches || [];
+  };
+
   const rcvBatch = async () => {
     if (!form.qty || !form.price || !form.date || !sel) return;
     const qty = parseFloat(form.qty);
@@ -339,10 +352,8 @@ export default function InventoryView({
       rem: qty,
     };
 
-    // Fix 4: Safeguard against non-iterable batches array states using a defensive fallback array
-    const updatedBatches = [...(sel.batches || []), b];
-
     try {
+      const updatedBatches = [...(await fetchLiveBatches(sel.id)), b];
       const { error } = await supabase
         .from("inventory")
         .update({ batches: updatedBatches })
@@ -413,40 +424,44 @@ export default function InventoryView({
       showToast("Quantity must be a valid non-negative number.", "warning");
       return;
     }
-    const current = tot(sel);
-    const delta = newQty - current;
-    if (delta === 0) {
+    if (newQty === tot(sel)) {
       showToast("No change — quantity already matches.", "info");
       return;
     }
 
     setSaving(true);
     const reasonSuffix = form.reason?.trim() ? ` — ${form.reason.trim()}` : "";
-    let updatedBatches;
-
-    if (delta > 0) {
-      const correctionBatch = {
-        id: "b_" + uid(),
-        rcvd: new Date().toISOString().split("T")[0],
-        qty: delta,
-        price: newestPrice(sel) || 0,
-        by: user?.id || "system",
-        rem: delta,
-        ref: `Manual Adjustment${reasonSuffix}`,
-      };
-      updatedBatches = [...(sel.batches || []), correctionBatch];
-    } else {
-      let deficit = Math.abs(delta);
-      const sorted = [...(sel.batches || [])].sort((a, b) => new Date(a.rcvd) - new Date(b.rcvd));
-      updatedBatches = sorted.map((b) => {
-        if (deficit <= 0) return b;
-        const take = Math.min(parseFloat(b.rem) || 0, deficit);
-        deficit -= take;
-        return { ...b, rem: (parseFloat(b.rem) || 0) - take };
-      });
-    }
 
     try {
+      // Correct against live batches so the final total lands on newQty even
+      // if other devices changed stock since this session loaded.
+      const liveBatches = await fetchLiveBatches(sel.id);
+      const current = tot({ batches: liveBatches });
+      const delta = newQty - current;
+      let updatedBatches;
+
+      if (delta > 0) {
+        const correctionBatch = {
+          id: "b_" + uid(),
+          rcvd: new Date().toISOString().split("T")[0],
+          qty: delta,
+          price: newestPrice({ batches: liveBatches }) || newestPrice(sel) || 0,
+          by: user?.id || "system",
+          rem: delta,
+          ref: `Manual Adjustment${reasonSuffix}`,
+        };
+        updatedBatches = [...liveBatches, correctionBatch];
+      } else {
+        let deficit = Math.abs(delta);
+        const sorted = [...liveBatches].sort((a, b) => new Date(a.rcvd) - new Date(b.rcvd));
+        updatedBatches = sorted.map((b) => {
+          if (deficit <= 0) return b;
+          const take = Math.min(parseFloat(b.rem) || 0, deficit);
+          deficit -= take;
+          return { ...b, rem: (parseFloat(b.rem) || 0) - take };
+        });
+      }
+
       const { error } = await supabase.from("inventory").update({ batches: updatedBatches }).eq("id", sel.id);
       if (error) throw error;
 
@@ -518,42 +533,36 @@ export default function InventoryView({
 
     setSaving(true);
 
-    const stateSnapshot = inv.map((item) => {
-      const bi = valid.find((b) => b.iid === item.id);
-      if (!bi) return item;
-      const nb = {
-        id: "b_" + uid(),
-        rcvd: bulkMeta.date,
-        qty: parseFloat(bi.qty),
-        price: parseFloat(bi.price) || 0,
-        by: user?.id || "system",
-        rem: parseFloat(bi.qty),
-        ref: bulkMeta.po || "",
-        vendor: bulkMeta.vendor || "",
-      };
-      // Fix 4: Safeguard nested batch appends as well against undefined structures
-      return { ...item, batches: [...(item.batches || []), nb] };
-    });
-
     try {
+      // Append each receipt to the batches currently in the database — the
+      // in-memory list may predate receipts/pulls from other devices.
+      const { data: freshRows, error: freshErr } = await supabase
+        .from("inventory")
+        .select("id,batches")
+        .in("id", valid.map((b) => b.iid));
+      if (freshErr) throw freshErr;
+      const freshById = new Map((freshRows || []).map((r) => [r.id, r.batches || []]));
+
+      const changedBatches = new Map();
+      for (const bi of valid) {
+        if (!freshById.has(bi.iid)) continue;
+        const nb = {
+          id: "b_" + uid(),
+          rcvd: bulkMeta.date,
+          qty: parseFloat(bi.qty),
+          price: parseFloat(bi.price) || 0,
+          by: user?.id || "system",
+          rem: parseFloat(bi.qty),
+          ref: bulkMeta.po || "",
+          vendor: bulkMeta.vendor || "",
+        };
+        changedBatches.set(bi.iid, [...freshById.get(bi.iid), nb]);
+      }
+
       const results = await Promise.all(
-        valid.map((bi) => {
-          const matchingItem = inv.find((i) => i.id === bi.iid);
-          const nb = {
-            id: "b_" + uid(),
-            rcvd: bulkMeta.date,
-            qty: parseFloat(bi.qty),
-            price: parseFloat(bi.price) || 0,
-            by: user?.id || "system",
-            rem: parseFloat(bi.qty),
-            ref: bulkMeta.po || "",
-            vendor: bulkMeta.vendor || "",
-          };
-          return supabase
-            .from("inventory")
-            .update({ batches: [...(matchingItem?.batches || []), nb] })
-            .eq("id", bi.iid);
-        }),
+        [...changedBatches].map(([iid, batches]) =>
+          supabase.from("inventory").update({ batches }).eq("id", iid),
+        ),
       );
 
       // Supabase calls resolve (never throw) with an { error } payload — an
@@ -561,7 +570,7 @@ export default function InventoryView({
       const firstError = results.map((r) => r?.error).find(Boolean);
       if (firstError) throw firstError;
 
-      setInv(stateSnapshot);
+      setInv((p) => p.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i)));
 
       await logAction(
         user?.id ?? null,
