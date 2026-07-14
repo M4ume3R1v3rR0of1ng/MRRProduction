@@ -179,7 +179,7 @@ export default function InventoryView({
 
   const setPhoto = async (id, data) => {
     try {
-      const photo_url = data ? await uploadPhotoToBucket("inventory-photos", id, data) : null;
+      const photo_url = data ? await uploadPhotoToBucket("inventory-photos", user.companyId, id, data) : null;
       const { error } = await updateRowStrict("inventory", id, { photo_url });
       if (error) throw error;
       setInv((p) => p.map((i) => (i.id === id ? { ...i, photo_url } : i)));

@@ -14,12 +14,16 @@ export function useAppData() {
   const [loadingProgress, setLoadingProgress] = useState(0);
   
   const [curUser, setCurUser] = useState(null);
-  const [users, setUsers] = useState(SEED_U);
-  const [warehouses, setWH] = useState(SEED_W);
-  const [inv, setInv] = useState(SEED_I);
-  const [vehs, setVehs] = useState(SEED_V);
+  // Start empty, not seeded. Seeding the initial state meant Maumee River's trucks
+  // and staff were the first thing rendered for EVERY company, for the moment before
+  // the real fetch resolved. In a multi-tenant app that is another company's data on
+  // screen, however briefly.
+  const [users, setUsers] = useState([]);
+  const [warehouses, setWH] = useState([]);
+  const [inv, setInv] = useState([]);
+  const [vehs, setVehs] = useState([]);
   const [reqs, setReqs] = useState([]);
-  const [jobs, setJobs] = useState(SEED_JOBS);
+  const [jobs, setJobs] = useState([]);
   const [jobTrailers, setJobTrailers] = useState([]);
   const [rolePerms, setRolePerms] = useState({
     warehouse: { ...DEFAULT_ROLE_PERMS.warehouse },
@@ -42,6 +46,8 @@ export function useAppData() {
     proxyUrl: "",
   });
   const [logos, setLogos] = useState(null);
+  // The company this session is working in: { id, name, slug, branding }.
+  const [company, setCompany] = useState(null);
 
   const { showToast } = useNotify();
 
@@ -59,6 +65,44 @@ export function useAppData() {
         const { data: { session } = {} } = await supabase.auth.getSession();
         loadedAuthIdRef.current = session?.user?.id || null;
 
+        // ── Restore the signed-in user from the persisted session ──
+        // Supabase keeps the session alive across reloads, but curUser was never
+        // rehydrated from it — so a refresh dumped you back on the login screen even
+        // though you were still authenticated. That also broke the company switcher,
+        // which reloads the page on purpose.
+        //
+        // Identity now comes from the MEMBERSHIP (role is per-company), not from the
+        // deprecated profiles.role.
+        if (session?.user) {
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("full_name, active, active_company_id")
+            .eq("id", session.user.id)
+            .maybeSingle();
+
+          if (prof?.active && prof.active_company_id) {
+            const { data: membership } = await supabase
+              .from("memberships")
+              .select("role, company_id, companies ( name )")
+              .eq("user_id", session.user.id)
+              .eq("company_id", prof.active_company_id)
+              .eq("active", true)
+              .maybeSingle();
+
+            if (membership) {
+              setCurUser({
+                id: session.user.id,
+                email: session.user.email,
+                name: prof.full_name,
+                role: membership.role,
+                active: true,
+                companyId: membership.company_id,
+                companyName: membership.companies?.name || null,
+              });
+            }
+          }
+        }
+
         const [ax] = await Promise.all([
           storage.get("mrr-v7-acculynx").catch(() => null),
         ]);
@@ -72,31 +116,37 @@ export function useAppData() {
           setLoadingProgress((prev) => Math.min(prev + incrementValue, 95));
         };
 
-        // Seeds are for a genuinely empty table (fresh install / pre-login RLS)
-        // only. A FAILED query leaves the list empty and records the failure so
-        // the UI can say so — fake data that looks real is worse than none.
+        // ⚠️ NO SEED FALLBACK ON EMPTY. This used to fall back to SEED_I / SEED_V /
+        // SEED_JOBS / SEED_W / SEED_U whenever a table came back with zero rows.
+        // That was defensible with one company; it is a serious bug with several.
+        //
+        // An empty table is the NORMAL state for a company that just signed up. With
+        // the old behaviour, his brother's very first login would have shown him
+        // Maumee River's trucks ('Truck 001'), warehouses, and staff ('Sam', 'Ian')
+        // as though they were his own — real-looking data belonging to another
+        // company, presented as his.
+        //
+        // Empty now renders empty. A FAILED query still records the failure so the UI
+        // can say so, because fake data that looks real is worse than none.
         const failedTables = [];
 
         await Promise.all([
           (async () => {
             const { data, error } = await supabase.from("inventory").select("*");
             if (error) { failedTables.push("Inventory"); setInv([]); }
-            else if (data && data.length > 0) setInv(data);
-            else setInv(SEED_I);
+            else setInv(data || []);
             trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("vehicles").select("*");
             if (error) { failedTables.push("Fleet"); setVehs([]); }
-            else if (data && data.length > 0) setVehs(data);
-            else setVehs(SEED_V);
+            else setVehs(data || []);
             trackProgress(9);
           })(),
           (async () => {
             const { data, error } = await supabase.from("jobs").select("*");
             if (error) { failedTables.push("Jobs"); setJobs([]); }
-            else if (data && data.length > 0) setJobs(data);
-            else setJobs(SEED_JOBS);
+            else setJobs(data || []);
             trackProgress(9);
           })(),
           (async () => {
@@ -115,15 +165,33 @@ export function useAppData() {
           (async () => {
             const { data, error } = await supabase.from("warehouses").select("*");
             if (error) { failedTables.push("Warehouses"); setWH([]); }
-            else if (data && data.length > 0) setWH(data);
-            else setWH(SEED_W);
+            else setWH(data || []);
             trackProgress(9);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("profiles").select("*");
+            // RLS scopes both of these to the active company: profiles to people who
+            // share it, memberships to that company's rows. So the join below is
+            // already tenant-safe without any explicit filter.
+            //
+            // The role shown must be the MEMBERSHIP role, not profiles.role — the
+            // latter is deprecated and, for someone who works at two companies, holds
+            // whichever role was written last. Overlaying it here keeps the `users`
+            // shape the rest of the app expects.
+            const [{ data, error }, { data: mems }] = await Promise.all([
+              supabase.from("profiles").select("*"),
+              supabase.from("memberships").select("user_id, role, active"),
+            ]);
+
             if (error) { failedTables.push("Users"); setUsers([]); }
-            else if (data && data.length > 0) setUsers(data);
-            else setUsers(SEED_U);
+            else {
+              const roleByUser = Object.fromEntries((mems || []).map((m) => [m.user_id, m]));
+              setUsers(
+                (data || []).map((p) => {
+                  const m = roleByUser[p.id];
+                  return m ? { ...p, role: m.role, active: m.active } : p;
+                }),
+              );
+            }
             trackProgress(9);
           })(),
           (async () => {
@@ -157,8 +225,16 @@ export function useAppData() {
             trackProgress(7);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("settings").select("value").eq("key", "company_logo").maybeSingle();
-            if (!error && data?.value) setLogos(data.value);
+            // Branding (logo, colors, name) lives on the company row now. A user can
+            // belong to several companies, so this goes through my_company() — which
+            // returns exactly the ACTIVE one — rather than selecting from `companies`
+            // and hoping there's only one row.
+            const { data, error } = await supabase.rpc("my_company");
+            const row = Array.isArray(data) ? data[0] : data;
+            if (!error && row) {
+              setCompany(row);
+              if (row.branding?.logo) setLogos(row.branding.logo);
+            }
             trackProgress(7);
           })(),
           (async () => {
@@ -169,6 +245,12 @@ export function useAppData() {
               } catch (e) {
                 console.error("Failed to parse stored AccuLynx config:", e);
               }
+            }
+            // The API key itself is not readable by the browser (column privileges),
+            // so ask whether one is configured rather than trying to read it back.
+            const { data: status } = await supabase.rpc("company_integration_status");
+            if (status?.acculynxConfigured) {
+              setAccuLynxConfig((p) => ({ ...p, apiKeyConfigured: true }));
             }
             trackProgress(7);
           })(),
@@ -230,9 +312,12 @@ export function useAppData() {
     if (!curUser) return;
     setChatUnread(0);
     try {
+      // company_id is omitted on purpose — the column DEFAULTs to active_company_id(),
+      // so Postgres fills it before resolving the conflict. The PK is (company_id,
+      // user_id) now, and the conflict target has to match it exactly.
       await supabase.from("team_chat_reads").upsert(
         { user_id: curUser.id, last_read_at: new Date().toISOString() },
-        { onConflict: "user_id" },
+        { onConflict: "company_id,user_id" },
       );
     } catch (err) {
       console.error("Failed to update chat read state:", err);
@@ -348,6 +433,7 @@ export function useAppData() {
     markChatRead,
     logos,
     setLogos,
+    company,
     pendingReqCount,
     lowStockCount,
     newJobsForMe,

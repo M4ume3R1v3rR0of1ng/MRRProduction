@@ -473,7 +473,7 @@ export default function PullInventory({
     const columnToUpdate = phase === "before" ? "photo_before_url" : "photo_after_url";
 
     try {
-      const url = base64Data ? await uploadPhotoToBucket("job-attachments", sel.id, base64Data) : null;
+      const url = base64Data ? await uploadPhotoToBucket("job-attachments", user.companyId, sel.id, base64Data) : null;
       if (base64Data && !url) throw new Error("Cloud engine failed to return a valid URL.");
 
       const { error: dbError } = await updateRowStrict("jobs", sel.id, { [columnToUpdate]: url });

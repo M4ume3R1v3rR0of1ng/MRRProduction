@@ -4,11 +4,32 @@
    these aren't invented numbers, they formalize the sizes/weights/radii
    that were already the de facto standard, just applied inconsistently. */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+/* Steadwerk — Direction 02, "The Raising".
+   Space Grotesk for display (Swiss grotesque, engineer's personality), Inter for UI,
+   IBM Plex Mono for data. All three are on Google Fonts, which netlify.toml's CSP
+   already allows via style-src/font-src — no header change needed. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
 
 :root {
   /* ── Typeface ── */
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Wordmark, headlines, stat numbers. */
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  /* PO numbers, mileage, prices, timestamps — used sparingly, it makes data feel exact. */
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* ── Brand — Direction 02, "The Raising" ──
+     Barn raising: forty people, one day, zero confusion. Weathered barnwood and
+     harvest amber. Note there is NO RED in this brand: destructive actions use
+     --brand-rust (a muted sienna) so they still read as danger without breaking it. */
+  --brand-barnwood:  #23282D;
+  --brand-amber:     #C97B2D;
+  --brand-amber-deep:#A8641F;
+  --brand-leather:   #8A5A2B;
+  --brand-pasture:   #4A7A5C;
+  --brand-homespun:  #EDE6DA;
+  --brand-plowshare: #6E7780;
+  --brand-rust:      #A34E28;
 
   /* ── Typography scale ── */
   --text-2xs: 10px;

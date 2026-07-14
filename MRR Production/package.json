@@ -1,7 +1,8 @@
 {
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "netlify dev",
+    "dev:ui-only": "vite",
     "build": "vite build --mode production",
     "preview": "vite preview"
   },

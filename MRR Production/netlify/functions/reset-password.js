@@ -1,76 +1,85 @@
 // netlify/functions/reset-password.js
-// Admin-only: sets a new temporary password on a user's existing Supabase Auth
-// account, so admins can recover locked-out users without needing their old password.
+// Admin-only: sets a new password for a user in the CALLER'S company.
+//
+// ⚠️ This one needs more care than it looks like it does.
+//
+// A password is not company-scoped — it unlocks the whole account. So if a user
+// belongs to two companies, letting an admin at company A set their password hands
+// company A a working login for company B. That is account takeover, dressed up as
+// a helpdesk feature.
+//
+// Rule: an admin may only reset the password of someone whose ONLY membership is
+// this company. Anyone else gets the self-serve reset-by-email flow, which proves
+// possession of the mailbox instead of trusting an admin.
 
-const { createClient } = require("@supabase/supabase-js");
+import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
 
-const ALLOWED_ORIGINS = [
-  "https://mrrproduction.netlify.app",
-  "http://localhost:5173",
-  "http://localhost:8888",
-  "http://localhost:3000",
-];
+export const handler = async (event) => {
+  const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
-function getCorsHeaders(requestOrigin) {
-  const origin = ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Max-Age": "86400",
-  };
-}
-
-exports.handler = async (event) => {
-  const requestOrigin = event.headers?.origin || event.headers?.Origin || "";
-  const corsHeaders = getCorsHeaders(requestOrigin);
-
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers: corsHeaders, body: "" };
-  }
+  if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: "Method not allowed" }) };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
   let body;
   try {
     body = JSON.parse(event.body || "{}");
   } catch {
-    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid JSON body" }) };
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON body" }) };
   }
 
   const { accessToken, targetUserId, password } = body;
-  if (!accessToken) {
-    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Not authenticated" }) };
-  }
   if (!targetUserId) {
-    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Missing targetUserId" }) };
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing targetUserId" }) };
   }
   if (!password || password.length < 8) {
-    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Password must be at least 8 characters" }) };
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Password must be at least 8 characters" }) };
   }
 
-  const admin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const admin = adminClient();
+
+  const { caller, error: callerError } = await resolveCaller(admin, accessToken);
+  if (callerError) {
+    return { statusCode: callerError.status, headers, body: JSON.stringify({ error: callerError.message }) };
+  }
+  if (!isCompanyAdmin(caller)) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: "Admin access required" }) };
+  }
 
   try {
-    const { data: authData, error: authError } = await admin.auth.getUser(accessToken);
-    if (authError || !authData?.user) {
-      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Not authenticated" }) };
+    const { data: memberships } = await admin
+      .from("memberships")
+      .select("company_id")
+      .eq("user_id", targetUserId);
+
+    const companies = memberships || [];
+
+    if (!companies.some((m) => m.company_id === caller.companyId)) {
+      return { statusCode: 404, headers, body: JSON.stringify({ error: "That user is not a member of your company." }) };
     }
 
-    // Matches the DB-level RLS convention already in place: admin-only.
-    const { data: callerProfile } = await admin.from("profiles").select("role, active").eq("id", authData.user.id).single();
-    if (!callerProfile || callerProfile.active === false || callerProfile.role !== "admin") {
-      return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Admin access required" }) };
+    // The takeover guard described above. A platform admin (you) is exempt — you
+    // already hold the service-role key, so this would be theatre.
+    if (companies.length > 1 && !caller.isPlatformAdmin) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({
+          error:
+            "This user also works for another company on the platform, so their password " +
+            "cannot be set from here. Ask them to use the 'forgot password' link instead.",
+        }),
+      };
     }
 
     const { error: updateError } = await admin.auth.admin.updateUserById(targetUserId, { password });
     if (updateError) {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: updateError.message }) };
+      return { statusCode: 400, headers, body: JSON.stringify({ error: updateError.message }) };
     }
 
-    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
   } catch (err) {
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };

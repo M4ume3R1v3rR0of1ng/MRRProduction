@@ -75,13 +75,15 @@ export async function fetchJobTemplates() {
 }
 
 export async function saveJobTemplates(templates) {
+  // settings is keyed (company_id, key) now — two companies each have their own
+  // 'job_templates' row. company_id comes from the column DEFAULT.
   const { error } = await supabase.from("settings").upsert(
     {
       key: "job_templates",
       value: JSON.stringify(templates),
       updated_at: new Date().toISOString(),
     },
-    { onConflict: "key" },
+    { onConflict: "company_id,key" },
   );
   if (error) throw error;
 }

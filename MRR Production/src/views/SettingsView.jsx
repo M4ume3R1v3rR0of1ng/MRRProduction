@@ -162,9 +162,10 @@ export default function SettingsView({
     const next    = { ...current, [permKey]: !current[permKey] };
 
     try {
+      // Keyed (company_id, role) — each company defines its own 'manager'.
       const { error } = await supabase.from("role_permissions").upsert(
         { role: targetRole, permissions: next, updated_at: new Date().toISOString() },
-        { onConflict: "role" },
+        { onConflict: "company_id,role" },
       );
       if (error) throw error;
       setRolePerms((prev) => ({ ...prev, [targetRole]: next }));
@@ -180,7 +181,7 @@ export default function SettingsView({
     try {
       const { error } = await supabase.from("role_permissions").upsert(
         { role: targetRole, permissions: defaults, updated_at: new Date().toISOString() },
-        { onConflict: "role" },
+        { onConflict: "company_id,role" },
       );
       if (error) throw error;
       setRolePerms((prev) => ({ ...prev, [targetRole]: defaults }));
@@ -196,18 +197,35 @@ export default function SettingsView({
     setSavingAx(true);
 
     try {
-      // 1. Commit credentials securely to your cloud Supabase table row
+      // The API key is a SECRET and no longer lives in `settings` — every member of
+      // the company can read that table. It goes on the company row via an RPC, into
+      // a column the browser is not granted SELECT on, which is also where the
+      // Netlify functions now read it from. Only the non-secret fields (proxy url,
+      // etc.) stay in settings.
+      const { apiKey, ...publicConfig } = acculynxConfig || {};
+
+      if (apiKey) {
+        const { error: keyError } = await supabase.rpc("set_company_integration", {
+          k: "acculynxApiKey",
+          v: apiKey,
+        });
+        if (keyError) {
+          showToast(`Failed to save AccuLynx key: ${keyError.message}`, "error");
+          return;
+        }
+      }
+
       const { error } = await supabase.from("settings").upsert(
         {
           key: "acculynx_config",
-          value: JSON.stringify(acculynxConfig),
+          value: JSON.stringify(publicConfig),
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "key" }
+        { onConflict: "company_id,key" }
       );
 
       if (error) {
-        showToast(`Failed to save AccuLynx credentials: ${error.message}`, "error");
+        showToast(`Failed to save AccuLynx settings: ${error.message}`, "error");
         return;
       }
 
@@ -270,10 +288,13 @@ export default function SettingsView({
           showToast("Image compression failed.", "error");
           return;
         }
-        const { error } = await supabase.from("settings").upsert(
-          { key: "company_logo", value: base64Data },
-          { onConflict: "key" },
-        );
+        // The logo lives on the company row now, not in `settings`. The login screen
+        // has to render it BEFORE anyone authenticates, and it reads it through
+        // company_branding(slug) — an anon-safe lookup that can't be used to
+        // enumerate the customer list the way an open SELECT on settings could.
+        const { error } = await supabase.rpc("set_company_branding", {
+          patch: { logo: base64Data },
+        });
         if (error) throw error;
         if (typeof setLogos === "function") setLogos(base64Data);
         showToast("Logo saved.", "success");

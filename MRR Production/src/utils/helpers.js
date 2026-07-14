@@ -1,28 +1,41 @@
 import { supabase } from "./supabase";
 
 // 1. Global UI Color Theme Utility
+//
+// Steadwerk — Direction 02, "The Raising": weathered barnwood + harvest amber.
+//
+// The KEYS are unchanged on purpose. Every view already references C.navy / C.gold /
+// C.blue, so remapping the values here reskins the whole app without editing twenty
+// files. The names are now historical (C.blue is no longer blue) — they read as slots
+// in the palette, not as literal colors:
+//
+//   navy → the structural dark        gold → the accent
+//   blue → the secondary accent       sub  → muted secondary text
+//
+// ⚠️ THE BRAND HAS NO RED. Destructive actions (delete, overdue) use a muted rust —
+// still unmistakably "danger", without a color the brand doesn't own. Keep it that way.
 export const C = {
-  blue: "#2563EB",
-  navy: "#0E2D6B",
-  gold: "#F5A800",
-  gL: "#FFFBEB",
+  blue: "#8A5A2B", // Harness Leather — secondary accent (was blue)
+  navy: "#23282D", // Barnwood — primary dark, sidebars, headings
+  gold: "#C97B2D", // Harvest Amber — primary accent, CTAs
+  gL: "#FAF3E9",   // amber wash
   w: "#fff",
-  bg: "#F6F8FC",
-  lg: "#F1F5F9",
-  bd: "#E3E9F2",
-  sub: "#64748B",
-  gr: "#059669",
-  gB: "#D1FAE5",
-  rd: "#DC2626",
-  rB: "#FEE2E2",
-  am: "#D97706",
-  aB: "#FEF3C7",
-  pu: "#7C3AED",
-  pB: "#EDE9FE",
-  tl: "#0D9488",
-  tB: "#CCFBF1",
-  sl: "#0369A1",
-  sB: "#E0F2FE",
+  bg: "#EDE6DA",   // Homespun — the app ground
+  lg: "#F4F0E7",   // light neutral, table stripes
+  bd: "#DCD3C4",   // borders, warmed to match the ground
+  sub: "#6E7780",  // Plowshare — secondary text
+  gr: "#4A7A5C",   // Pasture Green — success / active
+  gB: "#E2EDE6",
+  rd: "#A34E28",   // muted rust — destructive. NOT red. See note above.
+  rB: "#F7E4DA",
+  am: "#A8641F",   // deep amber — warnings on light ground
+  aB: "#F7EBDA",
+  pu: "#5C5470",   // muted plum-grey (bright purple would fight the palette)
+  pB: "#E9E6EE",
+  tl: "#3E6B6B",   // muted teal
+  tB: "#DDE9E9",
+  sl: "#4A6178",   // slate
+  sB: "#E4EAF0",
 };
 
 // 2. Short Unique ID Generator String Macro

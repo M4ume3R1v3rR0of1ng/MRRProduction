@@ -4,7 +4,7 @@ import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";
-import mrrpic from "../assets/mrrpic.jpg";
+import { TrussMark, TAGLINE } from "../components/SteadwerkMark";
 import { translations } from "../utils/translations"; // 🟢 Imported Dictionary
 
 export default function Sidebar({
@@ -20,6 +20,7 @@ export default function Sidebar({
   jobsAwaitingClose,
   chatUnread,
   activeLogo,
+  companyName,
   perms,
   // ── 🟢 NEW: ACCEPT LANG MATRIX CONTROL ARGS ──
   lang = "en",
@@ -128,11 +129,15 @@ export default function Sidebar({
           minHeight: 62,
         }}
       >
+        {/* The TENANT's logo if they've uploaded one; the Steadwerk truss otherwise.
+            The old fallback was the Maumee River mascot with "MAUMEE RIVER / ROOFING"
+            hardcoded beneath it — which every other company on the platform would
+            have seen in their own sidebar. */}
         <div
           style={{
             width: 36,
             height: 36,
-            background: activeLogo ? "transparent" : C.gold,
+            background: "transparent",
             borderRadius: 9,
             display: "flex",
             alignItems: "center",
@@ -142,15 +147,30 @@ export default function Sidebar({
           }}
         >
           {activeLogo ? (
-            <img src={activeLogo} alt="Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            <img src={activeLogo} alt="Company logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           ) : (
-            <img src={mrrpic} alt="Maumee River Roofing Mascot" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <TrussMark size={30} />
           )}
         </div>
         {!collapsed && (
-          <div>
-            <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-black)", color: C.gold, lineHeight: 1.1 }}>MAUMEE RIVER</div>
-            <div style={{ fontSize: 9, color: "rgba(255,255,255,0.6)", letterSpacing: "0.5px" }}>ROOFING</div>
+          <div style={{ minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "var(--text-xs)",
+                fontWeight: "var(--weight-black)",
+                color: C.gold,
+                lineHeight: 1.15,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {companyName || "STEADWERK"}
+            </div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 9, color: "rgba(237,230,218,0.55)", letterSpacing: "1.5px" }}>
+              {companyName ? "STEADWERK" : TAGLINE}
+            </div>
           </div>
         )}
       </div>

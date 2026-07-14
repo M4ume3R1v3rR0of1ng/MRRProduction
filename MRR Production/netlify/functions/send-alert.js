@@ -1,68 +1,65 @@
-const { Resend } = require('resend');
-const { createClient } = require('@supabase/supabase-js');
+// netlify/functions/send-alert.js
+// Low-stock alert email. Runs on Netlify's servers, never in the browser.
+
+import { Resend } from "resend";
+import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
+
+// See the note in send-email.js: one verified platform domain, with the company's
+// name as the display name, until per-company domain verification exists.
+const MAIL_DOMAIN = process.env.PLATFORM_MAIL_FROM || "alerts@maumeeriverroofing.com";
 
 function escapeHtml(value) {
-  if (value === null || value === undefined) return '';
+  if (value === null || value === undefined) return "";
   return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-// This code runs securely on Netlify's servers, NOT in the browser!
-exports.handler = async (event) => {
-  // Only allow POST requests
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+export const handler = async (event) => {
+  const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
+
+  if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method Not Allowed" }) };
   }
 
   try {
-    // 2. Parse the email details sent from your React frontend
-    const { email, itemName, currentStock, unit, alertThreshold, accessToken } = JSON.parse(event.body);
+    const { email, itemName, currentStock, unit, alertThreshold, accessToken } = JSON.parse(event.body || "{}");
 
-    // Require a verified, active Supabase session — this previously accepted
-    // any unauthenticated request and sent from a verified company domain.
-    if (!accessToken) {
-      return { statusCode: 401, body: JSON.stringify({ error: "Not authenticated" }) };
-    }
-    const admin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-    const { data: authData, error: authError } = await admin.auth.getUser(accessToken);
-    if (authError || !authData?.user) {
-      return { statusCode: 401, body: JSON.stringify({ error: "Not authenticated" }) };
-    }
-    const { data: profile } = await admin.from("profiles").select("active").eq("id", authData.user.id).single();
-    if (!profile || profile.active === false) {
-      return { statusCode: 403, body: JSON.stringify({ error: "Account inactive" }) };
+    // Require a verified, active session in a paid-up company — this previously
+    // accepted any unauthenticated request and sent from a verified company domain.
+    const admin = adminClient();
+    const { caller, error: callerError } = await resolveCaller(admin, accessToken);
+    if (callerError) {
+      return { statusCode: callerError.status, headers, body: JSON.stringify({ error: callerError.message }) };
     }
 
-    // 1. Initialize Resend using your hidden environment variable
+    if (!email) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing recipient email." }) };
+    }
+
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // 3. Trigger the actual email send
     const safeItemName = escapeHtml(itemName);
     const data = await resend.emails.send({
-      from: 'Warehouse Alerts <alerts@maumeeriverroofing.com>', // Or your verified Resend domain
+      from: `${caller.companyName} Alerts <${MAIL_DOMAIN}>`,
       to: email,
       subject: `⚠️ Low Stock Alert — ${itemName}`,
       html: `
         <h2>Inventory Item Running Low</h2>
+        <p><strong>Company:</strong> ${escapeHtml(caller.companyName)}</p>
         <p><strong>Item:</strong> ${safeItemName}</p>
         <p><strong>Current Stock:</strong> ${escapeHtml(currentStock)} ${escapeHtml(unit)}</p>
         <p><strong>Alert Threshold:</strong> ${escapeHtml(alertThreshold)} ${escapeHtml(unit)}</p>
-        <p>Please log into the WMS portal to place a reorder.</p>
-      `
+        <p>Please log into the portal to place a reorder.</p>
+      `,
     });
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true, data })
-    };
+    return { statusCode: 200, headers, body: JSON.stringify({ success: true, data }) };
   } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message })
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }
 };

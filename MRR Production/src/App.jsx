@@ -13,6 +13,8 @@ import { C, tot, oilSt, predDays, detSt, fd, fm } from "./utils/helpers";
 
 // Full Screen Layout & Sub-Page Views
 import LoginScreen from "./views/LoginScreen";
+import CompanySwitcher from "./components/CompanySwitcher";
+import { SteadwerkMark, TrussMark, BRAND } from "./components/SteadwerkMark";
 import Sidebar from "./layouts/Sidebar";
 import DashboardView from "./views/DashboardView";
 import ProfileView from "./views/ProfileView";
@@ -27,7 +29,6 @@ import SettingsView from "./views/SettingsView";
 import AuditLogView from "./views/AuditLogView";
 
 // Mascot Branding Asset
-import mrrpic from "./assets/mrrmascot.jpg";
 
 
 const jSC = {
@@ -99,7 +100,11 @@ export default function App() {
   if (app.loading) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", minHeight: "100vh", background: C.bg, flexDirection: "column", gap: "var(--space-6)" }}>
-        <img src={mrrpic} alt="Maumee River Roofing Mascot" style={{ width: "160px", height: "auto", maxHeight: "120px", objectFit: "contain", marginBottom: 4 }} />
+        {/* Platform mark, not the Maumee River mascot — this splash renders for every
+            company on the platform, before we even know which one. */}
+        <div style={{ marginBottom: 4 }}>
+          <SteadwerkMark size={88} filled />
+        </div>
         
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-3)", width: "100%", maxWidth: "240px" }}>
           {/* External Track Container */}
@@ -158,9 +163,15 @@ return (
         
         {/* 📱 MOBILE HEADER NAVIGATION BAR */}
         {isMobile && (
-          <div style={{ background: "#0f172a", color: "#fff", padding: "0 20px", height: 50, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>
-            <div style={{ fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)" }}>🏗️ MAUMEE RIVER ROOFING</div>
-            <button onClick={() => setMobileMenuOpen((o) => !o)} style={{ background: "transparent", border: "none", color: "#fff", fontSize: "var(--text-3xl)", cursor: "pointer", lineHeight: 1 }}>
+          <div style={{ background: C.navy, color: BRAND.homespun, padding: "0 20px", height: 50, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>
+            {/* The TENANT's name, not the platform's. This header sits inside their
+                portal — hardcoding "MAUMEE RIVER ROOFING" here would have greeted
+                every other company by your company's name. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-display)", fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: "#EDE6DA" }}>
+              <TrussMark size={20} />
+              {app.company?.name || app.curUser?.companyName || "Steadwerk"}
+            </div>
+            <button onClick={() => setMobileMenuOpen((o) => !o)} style={{ background: "transparent", border: "none", color: "#EDE6DA", fontSize: "var(--text-3xl)", cursor: "pointer", lineHeight: 1 }}>
               {mobileMenuOpen ? "✕" : "☰"}
             </button>
           </div>
@@ -179,6 +190,7 @@ return (
             onLogout={handleLogout}
             collapsed={isMobile ? false : collapsed}
             setCollapsed={setCollapsed}
+            companyName={app.company?.name || app.curUser?.companyName || null}
             pendingReqs={app.pendingReqCount}
             lowStock={app.lowStockCount}
             newJobsForMe={app.newJobsForMe}
@@ -256,6 +268,7 @@ return (
                     🧾 {app.jobsAwaitingCloseCount} awaiting close
                   </div>
                 )}
+                <CompanySwitcher user={app.curUser} />
                 <RoleBdg role={app.curUser.role} />
               </div>
             </div>

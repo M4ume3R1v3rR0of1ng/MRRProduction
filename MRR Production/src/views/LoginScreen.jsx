@@ -1,182 +1,197 @@
 // src/views/LoginScreen.jsx
+//
+// Phase 3 — multi-tenant login.
+//
+// Two things changed from the single-company version:
+//
+//   1. NO SELF-SIGNUP. The "create account" flow and the @maumeeriverroofing.com
+//      domain gate are both gone. Access is granted by a company admin adding you in
+//      User Management, which creates the membership row. Without a membership,
+//      active_company_id() returns NULL and every RLS policy denies — so a
+//      self-registered user would land in an empty portal anyway. Better to not let
+//      them register at all than to let them in and show them nothing.
+//
+//   2. A COMPANY PICKER, but only after authentication and only when it's needed.
+//      There is deliberately no public list of companies on this page: it renders
+//      before anyone logs in, so any list on it would publish the customer roster to
+//      the world. Your email already determines your company via memberships.
 import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { Fld } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { translations } from "../utils/translations";
-import backgroundImage from "../assets/image_79f79a.jpg";
-import mrrpic from "../assets/mrrpic.jpg";
-
-const COMPANY_DOMAIN = "@maumeeriverroofing.com";
+import { SteadwerkLockup, BRAND } from "../components/SteadwerkMark";
 
 export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang }) {
   const t = translations[lang] || translations.en;
-  const [mode, setMode] = useState("login");
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
-  const [confirm, setConfirm] = useState("");
   const [err, setErr] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-
   const [submitting, setSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
 
-  // ── 🟢 EFFECT: AUTO-LOAD DISPATCH SAVED CREDENTIALS ON MOUNT ──
+  // Set only when an authenticated user belongs to more than one company.
+  const [choices, setChoices] = useState(null); // [{ company_id, role, companies: {name, slug} }]
+  const [pendingUser, setPendingUser] = useState(null);
+
   useEffect(() => {
     const savedEmail = localStorage.getItem("mrr_remember_email") || "";
-
     if (savedEmail) {
       setEmail(savedEmail);
       setRememberMe(true);
     }
   }, []);
 
+  // Hand control to the app for one specific company.
+  const enterCompany = async (user, membership) => {
+    // set_active_company() re-verifies membership server-side. The client asking for
+    // a company it isn't in gets an exception, not access.
+    const { error } = await supabase.rpc("set_active_company", { target: membership.company_id });
+    if (error) {
+      setErr(error.message);
+      setSubmitting(false);
+      return;
+    }
+
+    await logAction(user.id, user.email, "LOGIN", `Signed in to ${membership.companies?.name || "company"}.`, {}, "login");
+
+    onLogin({
+      id: user.id,
+      email: user.email,
+      name: user.full_name,
+      // Role is per-company now — it comes from the membership, not from profiles.
+      role: membership.role,
+      active: true,
+      companyId: membership.company_id,
+      companyName: membership.companies?.name || null,
+    });
+  };
+
   const tryLogin = async () => {
     setErr("");
-    setSuccessMsg("");
     setSubmitting(true);
 
-    let authData = null;
-    let authError = null;
-
+    let authData;
     try {
       const result = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password: pass,
       });
-
-      authData = result.data;
-      authError = result.error;
-    } catch (e) {
-      return setErr(t.errNetworkAuth);
-    } finally {
-      if (authError || !authData?.user) {
+      if (result.error) {
+        setErr(result.error.message);
         setSubmitting(false);
+        return;
       }
-    }
-
-    if (authError) {
-      setErr(authError.message);
+      authData = result.data;
+    } catch {
+      setErr(t.errNetworkAuth);
+      setSubmitting(false);
       return;
     }
 
-    if (authData?.user) {
-      try {
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("full_name, role, active")
-          .eq("id", authData.user.id)
-          .single();
-
-        if (profileError) {
-          setErr(t.errProfileAccess);
-          setSubmitting(false);
-          return;
-        }
-        if (!profileData.active) {
-          setErr(t.errAccountDeactivated);
-          setSubmitting(false);
-          return;
-        }
-
-        // ── 🟢 SAVING STRATEGY EVALUATION ──
-        // Only the email is remembered — Supabase's own session persistence handles
-        // staying logged in, so the raw password never needs to touch localStorage.
-        if (rememberMe) {
-          localStorage.setItem("mrr_remember_email", email.trim().toLowerCase());
-        } else {
-          localStorage.removeItem("mrr_remember_email");
-        }
-        localStorage.removeItem("mrr_remember_pass");
-
-        await logAction(
-          authData.user.id,
-          authData.user.email,
-          "LOGIN",
-          "Authenticated credentials successfully via secure gateway lock.",
-          {},
-          "login",
-        );
-
-        onLogin({
-          id: authData.user.id,
-          email: authData.user.email,
-          name: profileData.full_name,
-          role: profileData.role,
-          active: profileData.active,
-        });
-      } catch (profileCatchError) {
-        setErr(t.errProfileResolution);
-        setSubmitting(false);
-      }
+    const user = authData?.user;
+    if (!user) {
+      setErr(t.errNetworkAuth);
+      setSubmitting(false);
+      return;
     }
-  };
 
-  const trySignup = async () => {
-    setErr("");
-    setSuccessMsg("");
-    const trimmedEmail = email.trim().toLowerCase();
-
-    if (!name.trim()) return setErr(t.errEnterFullName);
-    if (!trimmedEmail.endsWith(COMPANY_DOMAIN))
-      return setErr(t.errUseCompanyEmail.replace("{domain}", COMPANY_DOMAIN));
-    if (!pass) return setErr(t.errChoosePassword);
-    if (pass.length < 8)
-      return setErr(t.errPasswordLength);
-    if (pass !== confirm) return setErr(t.errPasswordMismatch);
-
-    setSubmitting(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: trimmedEmail,
-        password: pass,
-        options: { data: { full_name: name.trim(), role: "employee" } },
-      });
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("full_name, active")
+        .eq("id", user.id)
+        .single();
 
-      if (authError) {
-        setErr(authError.message);
+      if (profileError) {
+        setErr(t.errProfileAccess);
+        setSubmitting(false);
+        return;
+      }
+      if (!profileData.active) {
+        setErr(t.errAccountDeactivated);
+        setSubmitting(false);
         return;
       }
 
-      if (authData?.user?.identities?.length === 0) {
-        setErr(t.errAccountExists);
+      // Which companies is this person actually in? This is the whole authorization
+      // story now — no membership, no access.
+      const { data: memberships, error: memberError } = await supabase
+        .from("memberships")
+        .select("company_id, role, companies ( name, slug )")
+        .eq("user_id", user.id)
+        .eq("active", true);
+
+      if (memberError) {
+        setErr(memberError.message);
+        setSubmitting(false);
         return;
       }
 
-      if (authData?.user) {
-        await logAction(
-          authData?.user?.id,
-          authData?.user?.email,
-          "SIGNUP",
-          `Initiated employee profile registration request for ${trimmedEmail}`,
-          {},
-          "signup",
-        );
-
-        setSuccessMsg(t.signupSuccess);
-        setName("");
-        setPass("");
-        setConfirm("");
-        setMode("login");
+      if (!memberships || memberships.length === 0) {
+        // Signed in successfully, but attached to nothing. Sign them straight back
+        // out — leaving a valid session lying around for an account with no access
+        // is pointless and confusing.
+        await supabase.auth.signOut();
+        setErr("Your account isn't attached to a company yet. Ask your administrator to add you.");
+        setSubmitting(false);
+        return;
       }
-    } catch (e) {
-      setErr(t.errRegistrationAborted);
-    } finally {
+
+      if (rememberMe) {
+        localStorage.setItem("mrr_remember_email", email.trim().toLowerCase());
+      } else {
+        localStorage.removeItem("mrr_remember_email");
+      }
+
+      const withName = { ...user, full_name: profileData.full_name };
+
+      if (memberships.length === 1) {
+        await enterCompany(withName, memberships[0]);
+        return;
+      }
+
+      // More than one — let them choose. Shown only to the handful of people this
+      // actually applies to (you, Sam), never to the internet.
+      setPendingUser(withName);
+      setChoices(memberships);
+      setSubmitting(false);
+    } catch {
+      setErr(t.errProfileResolution);
       setSubmitting(false);
     }
   };
 
+  const inputStyle = {
+    width: "100%",
+    padding: "12px 14px",
+    border: `1.5px solid ${C.bd}`,
+    borderRadius: "var(--radius-md)",
+    fontSize: 15,
+    boxSizing: "border-box",
+  };
+
   return (
+    // Barnwood ground with a faint truss lattice — the timber frame, repeated.
+    //
+    // The old background was a photo of a Maumee River Roofing property with THEIR
+    // mascot and logo baked into the image. On a platform login page that every
+    // company reaches, that greeted his brother's crew with your branding. The
+    // platform ground has to be neutral; a tenant's identity starts after sign-in.
     <div
       style={{
         minHeight: "100vh",
-        backgroundImage: `linear-gradient(rgba(15, 16, 20, 0.6), rgba(15, 23, 42, 0.75)), url(${backgroundImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center 90%",
-        backgroundRepeat: "no-repeat",
-        backgroundAttachment: "fixed",
+        background: `
+          repeating-linear-gradient(
+            115deg,
+            transparent 0px,
+            transparent 46px,
+            rgba(201, 123, 45, 0.05) 46px,
+            rgba(201, 123, 45, 0.05) 48px
+          ),
+          radial-gradient(ellipse at 50% 0%, #2F353C 0%, ${BRAND.barnwood} 55%, #171B1F 100%)
+        `,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -195,73 +210,20 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
           margin: "auto",
         }}
       >
+        {/* PLATFORM branding, not tenant branding. The login page is rendered before
+            anyone authenticates, so it cannot know whose portal you're headed for —
+            and it must not, since a company list here would be public. Steadwerk owns
+            this screen; the company's own logo appears once you're inside. */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "var(--space-7)",
-              marginBottom: 12,
-            }}
-          >
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                background: activeLogo ? "transparent" : C.gold,
-                borderRadius: "var(--radius-2xl)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
-              }}
-            >
-              {activeLogo ? (
-                <img
-                  src={activeLogo}
-                  alt="Logo"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                  }}
-                />
-              ) : (
-                <img
-                  src={mrrpic}
-                  alt="Maumee River Roofing Mascot"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-              )}
-            </div>
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy, letterSpacing: "0.5px" }}>
-                MAUMEE RIVER
-              </div>
-              <div
-                style={{
-                  fontSize: "var(--text-md)",
-                  fontWeight: "var(--weight-bold)",
-                  color: C.blue,
-                  letterSpacing: "1.5px",
-                }}
-              >
-                ROOFING
-              </div>
-            </div>
+          <div style={{ marginBottom: 14 }}>
+            <SteadwerkLockup size={64} />
           </div>
           <div style={{ fontSize: "var(--text-base)", color: C.sub, marginTop: 4 }}>
-            {mode === "login"
-              ? t.loginSubtitle
-              : `${t.loginRegisterWith} ${COMPANY_DOMAIN}`}
+            {choices ? "Choose a company to continue" : t.loginSubtitle}
           </div>
         </div>
 
-        {setLang && (
+        {setLang && !choices && (
           <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 20 }}>
             {[
               { id: "en", label: "EN" },
@@ -290,123 +252,6 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
           </div>
         )}
 
-        {successMsg && (
-          <div
-            style={{
-              background: "#ecfdf5",
-              border: "1.5px solid #10b981",
-              color: "#065f46",
-              padding: "16px",
-              borderRadius: "var(--radius-md)",
-              fontSize: "var(--text-md)",
-              marginBottom: 20,
-              fontWeight: "var(--weight-semibold)",
-              lineHeight: "1.4",
-            }}
-          >
-            ✅ {successMsg}
-          </div>
-        )}
-
-        {mode === "signup" && (
-          <Fld label={t.fullName}>
-            <input
-              className="mrr-input"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t.fullNamePlaceholder}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: `1.5px solid ${C.bd}`,
-                borderRadius: "var(--radius-md)",
-                fontSize: 15,
-                boxSizing: "border-box",
-              }}
-              disabled={submitting}
-            />
-          </Fld>
-        )}
-        <Fld label={t.email}>
-          <input
-            className="mrr-input"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="your@maumeeriverroofing.com"
-            style={{
-              width: "100%",
-              padding: "12px 14px",
-              border: `1.5px solid ${C.bd}`,
-              borderRadius: "var(--radius-md)",
-              fontSize: 15,
-              boxSizing: "border-box",
-            }}
-            disabled={submitting}
-          />
-        </Fld>
-        <Fld label={t.password}>
-          <input
-            className="mrr-input"
-            type="password"
-            value={pass}
-            onChange={(e) => setPass(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" &&
-              !submitting &&
-              (mode === "login" ? tryLogin() : trySignup())
-            }
-            placeholder={t.password}
-            style={{
-              width: "100%",
-              padding: "12px 14px",
-              border: `1.5px solid ${C.bd}`,
-              borderRadius: "var(--radius-md)",
-              fontSize: 15,
-              boxSizing: "border-box",
-            }}
-            disabled={submitting}
-          />
-        </Fld>
-        {mode === "signup" && (
-          <Fld label={t.confirmPassword}>
-            <input
-              className="mrr-input"
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !submitting && trySignup()}
-              placeholder={t.confirmPasswordPlaceholder}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: `1.5px solid ${C.bd}`,
-                borderRadius: "var(--radius-md)",
-                fontSize: 15,
-                boxSizing: "border-box",
-              }}
-              disabled={submitting}
-            />
-          </Fld>
-        )}
-
-        {/* ── 🟢 NEW: REMEMBER ME CHECKBOX SWITCH TOGGLE TIER ── */}
-        {mode === "login" && (
-          <div style={{ display: "flex", alignItems: "center", marginBottom: 16, marginTop: -4 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: "var(--text-base)", color: C.navy, fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
-              <input 
-                type="checkbox" 
-                checked={rememberMe} 
-                onChange={(e) => setRememberMe(e.target.checked)}
-                style={{ transform: "scale(1.15)", cursor: "pointer", accentColor: C.gold }}
-                disabled={submitting}
-              />
-              {t.rememberMe}
-            </label>
-          </div>
-        )}
-
         {err && (
           <div
             style={{
@@ -422,62 +267,115 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
           </div>
         )}
 
-        <button
-          className="mrr-btn"
-          onClick={() => (mode === "login" ? tryLogin() : trySignup())}
-          style={{
-            width: "100%",
-            padding: "14px",
-            background: submitting ? C.bd : C.gold,
-            color: C.navy,
-            border: "none",
-            borderRadius: "var(--radius-md)",
-            fontSize: "var(--text-lg)",
-            fontWeight: "var(--weight-extrabold)",
-            cursor: submitting ? "not-allowed" : "pointer",
-            marginBottom: 16,
-            opacity: submitting ? 0.7 : 1,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-          }}
-          disabled={submitting}
-        >
-          {submitting
-            ? t.processingQuery
-            : mode === "login"
-              ? t.signIn
-              : t.createAccountBtn}
-        </button>
+        {/* ── Company picker: only for users who belong to more than one ── */}
+        {choices ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {choices.map((m) => (
+              <button
+                key={m.company_id}
+                className="mrr-btn"
+                onClick={() => {
+                  setSubmitting(true);
+                  enterCompany(pendingUser, m);
+                }}
+                disabled={submitting}
+                style={{
+                  width: "100%",
+                  padding: "16px",
+                  background: "#fff",
+                  color: C.navy,
+                  border: `1.5px solid ${C.bd}`,
+                  borderRadius: "var(--radius-md)",
+                  fontSize: "var(--text-lg)",
+                  fontWeight: "var(--weight-bold)",
+                  cursor: submitting ? "not-allowed" : "pointer",
+                  textAlign: "left",
+                }}
+              >
+                {m.companies?.name || "Company"}
+                <div style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-semibold)", marginTop: 2 }}>
+                  {m.role}
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <>
+            <Fld label={t.email}>
+              <input
+                className="mrr-input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@yourcompany.com"
+                style={inputStyle}
+                disabled={submitting}
+              />
+            </Fld>
+            <Fld label={t.password}>
+              <input
+                className="mrr-input"
+                type="password"
+                value={pass}
+                onChange={(e) => setPass(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !submitting && tryLogin()}
+                placeholder={t.password}
+                style={inputStyle}
+                disabled={submitting}
+              />
+            </Fld>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            fontSize: "var(--text-base)",
-            color: C.sub,
-            marginTop: 20,
-          }}
-        >
-          <button
-            onClick={() => {
-              setMode(mode === "login" ? "signup" : "login");
-              setErr("");
-              setSuccessMsg("");
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              color: C.blue,
-              cursor: "pointer",
-              padding: 0,
-              fontWeight: "var(--weight-bold)",
-            }}
-            disabled={submitting}
-          >
-            {mode === "login" ? t.createAccountLink : t.backToSignIn}
-          </button>
-          <span style={{ opacity: 0.7 }}>{COMPANY_DOMAIN}</span>
-        </div>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 16, marginTop: -4 }}>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-3)",
+                  fontSize: "var(--text-base)",
+                  color: C.navy,
+                  fontWeight: "var(--weight-bold)",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{ transform: "scale(1.15)", cursor: "pointer", accentColor: C.gold }}
+                  disabled={submitting}
+                />
+                {t.rememberMe}
+              </label>
+            </div>
+
+            <button
+              className="mrr-btn"
+              onClick={tryLogin}
+              style={{
+                width: "100%",
+                padding: "14px",
+                background: submitting ? C.bd : C.gold,
+                color: C.navy,
+                border: "none",
+                borderRadius: "var(--radius-md)",
+                fontSize: "var(--text-lg)",
+                fontWeight: "var(--weight-extrabold)",
+                cursor: submitting ? "not-allowed" : "pointer",
+                marginBottom: 16,
+                opacity: submitting ? 0.7 : 1,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              }}
+              disabled={submitting}
+            >
+              {submitting ? t.processingQuery : t.signIn}
+            </button>
+
+            {/* Self-signup is gone: accounts are created by a company admin. */}
+            <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.5 }}>
+              Need access? Ask your company administrator to add you.
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

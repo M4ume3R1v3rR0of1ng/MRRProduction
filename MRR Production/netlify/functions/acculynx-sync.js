@@ -1,6 +1,6 @@
 // netlify/functions/acculynx-sync.js
 
-const { createClient } = require("@supabase/supabase-js");
+import { adminClient, resolveCaller } from "./_shared/tenant.js";
 
 const ALLOWED_ORIGINS = [
   "https://mrrproduction.netlify.app",
@@ -20,7 +20,7 @@ function getCorsHeaders(requestOrigin) {
   };
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   const requestOrigin = event.headers?.origin || event.headers?.Origin || "";
   const corsHeaders = getCorsHeaders(requestOrigin);
 
@@ -44,31 +44,28 @@ exports.handler = async (event) => {
     // Previously this only checked that the *server* had an AccuLynx key configured,
     // meaning any unauthenticated request could search AccuLynx job/customer data
     // or (via the default action) post fabricated line items into real jobs.
-    if (!body.accessToken) {
-      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Not authenticated" }) };
-    }
-    const admin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-    const { data: authData, error: authError } = await admin.auth.getUser(body.accessToken);
-    if (authError || !authData?.user) {
-      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Not authenticated" }) };
-    }
-    const { data: callerProfile } = await admin.from("profiles").select("active").eq("id", authData.user.id).single();
-    if (!callerProfile || callerProfile.active === false) {
-      return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Account inactive" }) };
+    const admin = adminClient();
+    const { caller, error: callerError } = await resolveCaller(admin, body.accessToken);
+    if (callerError) {
+      return { statusCode: callerError.status, headers: corsHeaders, body: JSON.stringify({ error: callerError.message }) };
     }
 
-    // ── 🟢 FIXED: Extract Key from Server-side Environment, fallback to header extraction ──
-    let apiKey = process.env.ACCULYNX_API_KEY;
-
-    if (!apiKey && event.headers?.authorization) {
-      const parts = event.headers.authorization.split(' ');
-      if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-        apiKey = parts[1];
-      }
-    }
+    // ── The caller's OWN company's AccuLynx key ──
+    // Each company has its own AccuLynx account. The shared ACCULYNX_API_KEY env var
+    // remains only as a fallback so Maumee River keeps working until its key is moved
+    // into companies.integrations; any other company must have its own key set, or it
+    // gets nothing. Falling back to the env key for everyone would have let his
+    // brother's company query Maumee River's AccuLynx data.
+    const apiKey =
+      caller.integrations?.acculynxApiKey ||
+      (caller.companySlug === "maumee-river-roofing" ? process.env.ACCULYNX_API_KEY : null);
 
     if (!apiKey) {
-      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Missing AccuLynx API key configuration" }) };
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "No AccuLynx API key is configured for your company." }),
+      };
     }
 
     // Connection validation handling

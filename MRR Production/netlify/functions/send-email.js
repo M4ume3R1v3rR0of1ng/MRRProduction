@@ -1,39 +1,39 @@
-// Example Netlify Edge / Serverless Function handler configuration
-// Environment Variable 'RESEND_API_KEY' must be configured in your hosting dashboard
+// netlify/functions/send-email.js
+// Generic authenticated email relay. Environment variable RESEND_API_KEY must be set.
 
-import { createClient } from "@supabase/supabase-js";
+import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
 
-export async function handler(event, context) {
-  // 1. Enforce strict POST request routing
+// Emails go out from the PLATFORM's verified domain, with the company's name as the
+// display name — "Steadwerk (Maumee River Roofing) <notifications@steadwerk.com>".
+//
+// The old hardcoded notifications@maumeeriverroofing.com would have meant his
+// brother's company sending mail that appears to come from Maumee River Roofing.
+// Resend can only send from a domain you have verified, so per-company FROM
+// addresses need per-company domain verification — a later feature. Until then one
+// platform domain, honestly labelled, is the correct answer.
+const MAIL_DOMAIN = process.env.PLATFORM_MAIL_FROM || "notifications@maumeeriverroofing.com";
+
+export const handler = async (event) => {
+  const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
+
+  if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
   if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: "Method Not Allowed. Use POST." }),
-    };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method Not Allowed. Use POST." }) };
   }
 
   try {
-    // 2. Extract client delivery properties
     const { to, subject, html, accessToken } = JSON.parse(event.body || "{}");
 
-    // Require a verified, active Supabase session — this relay sends from a
-    // verified company domain and previously accepted any unauthenticated request.
-    if (!accessToken) {
-      return { statusCode: 401, body: JSON.stringify({ error: "Not authenticated" }) };
-    }
-    const admin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-    const { data: authData, error: authError } = await admin.auth.getUser(accessToken);
-    if (authError || !authData?.user) {
-      return { statusCode: 401, body: JSON.stringify({ error: "Not authenticated" }) };
-    }
-    const { data: profile } = await admin.from("profiles").select("active").eq("id", authData.user.id).single();
-    if (!profile || profile.active === false) {
-      return { statusCode: 403, body: JSON.stringify({ error: "Account inactive" }) };
+    const admin = adminClient();
+    const { caller, error: callerError } = await resolveCaller(admin, accessToken);
+    if (callerError) {
+      return { statusCode: callerError.status, headers, body: JSON.stringify({ error: callerError.message }) };
     }
 
     if (!to || !subject || !html) {
       return {
         statusCode: 400,
+        headers,
         body: JSON.stringify({ error: "Missing required fields: 'to', 'subject', or 'html'." }),
       };
     }
@@ -41,43 +41,31 @@ export async function handler(event, context) {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       console.error("Missing server-side configuration: RESEND_API_KEY is null.");
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Internal Server Configuration Error." }),
-      };
+      return { statusCode: 500, headers, body: JSON.stringify({ error: "Internal Server Configuration Error." }) };
     }
 
-    // 3. Execute the secure server-to-server transaction directly to Resend
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: "Maumee River Roofing <notifications@maumeeriverroofing.com>",
+        from: `${caller.companyName} <${MAIL_DOMAIN}>`,
         to: Array.isArray(to) ? to : [to],
-        subject: subject,
-        html: html,
+        subject,
+        html,
       }),
     });
 
-    const responseData = await resendResponse.json();
+    const data = await resendResponse.json();
 
     if (!resendResponse.ok) {
-      throw new Error(responseData.message || `Resend HTTP Error: ${resendResponse.status}`);
+      return { statusCode: resendResponse.status, headers, body: JSON.stringify({ error: data?.message || "Email send failed." }) };
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ success: true, id: responseData.id }),
-    };
-
-  } catch (err) {
-    console.error("Email Edge Dispatch Failure:", err.message);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
+    return { statusCode: 200, headers, body: JSON.stringify({ success: true, data }) };
+  } catch (error) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }
-}
+};

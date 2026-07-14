@@ -23,15 +23,23 @@ function base64ToBlob(base64Data, contentType = "image/jpeg") {
 }
 
 /**
- * Uploads a base64 compressed string out to a designated Supabase Object Storage bucket.
- * @returns {Promise<string>} The public access CDN URL string resource pointer.
+ * Uploads a base64 compressed string to a Supabase Storage bucket, under the caller's
+ * company folder. The `<companyId>/` prefix is what the storage RLS policies in
+ * supabase/05_storage.sql key on — without it the upload is rejected, so companyId is
+ * required, not optional.
+ * @returns {Promise<string>} The public CDN URL of the uploaded object.
  */
-export async function uploadPhotoToBucket(bucketName, fileId, base64String) {
+export async function uploadPhotoToBucket(bucketName, companyId, fileId, base64String) {
   if (!base64String) return null;
-  
+  if (!companyId) {
+    // Fail loud rather than write to an unscoped path the policies would reject with
+    // a confusing "row-level security" error further down.
+    throw new Error("uploadPhotoToBucket: companyId is required (tenant-scoped storage).");
+  }
+
   try {
     const imageBlob = base64ToBlob(base64String, "image/jpeg");
-    const filePath = `${fileId}_${Date.now()}.jpg`;
+    const filePath = `${companyId}/${fileId}_${Date.now()}.jpg`;
 
     // 1. Dispatch binary file payload straight out to your object storage bucket tier
     const { data, error } = await supabase.storage

@@ -294,7 +294,7 @@ export default function FleetManagementView({
       return;
     }
     try {
-      const photo_url = data ? await uploadPhotoToBucket("vehicle-photos", id, data) : null;
+      const photo_url = data ? await uploadPhotoToBucket("vehicle-photos", user.companyId, id, data) : null;
       const { error } = await updateRowStrict("vehicles", id, { photo_url });
       if (error) throw error;
       setVehs((p) => p.map((v) => (v.id === id ? { ...v, photo_url } : v)));

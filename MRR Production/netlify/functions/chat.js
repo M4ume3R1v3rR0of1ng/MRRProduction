@@ -5,8 +5,8 @@
 // session token (never trusted from the client), mirroring the same
 // role/override logic as src/database/permissions.js's getEffectivePerms.
 
-const Anthropic = require("@anthropic-ai/sdk");
-const { createClient } = require("@supabase/supabase-js");
+import Anthropic from "@anthropic-ai/sdk";
+import { adminClient, resolveCaller } from "./_shared/tenant.js";
 
 const ALLOWED_ORIGINS = [
   "https://mrrproduction.netlify.app",
@@ -178,22 +178,31 @@ function detectFleetTrends(reqs, { recentDays = 30, baselineDays = 90, minRecent
 }
 
 // Mirrors src/database/permissions.js getEffectivePerms() — keep in sync.
-async function getEffectivePerms(admin, userId, role) {
+// Permission config is per-company now: two companies can define 'manager' quite
+// differently, so both lookups are scoped by companyId.
+async function getEffectivePerms(admin, userId, companyId, role) {
   if (role === "admin") {
     return { jobs_view: true, inv_view: true, inv_pricing_view: true, fleet_view: true, maint_submit: true, maint_manage: true };
   }
   const [{ data: roleRow }, { data: overrideRow }] = await Promise.all([
-    admin.from("role_permissions").select("permissions").eq("role", role).maybeSingle(),
-    admin.from("user_permission_overrides").select("overrides").eq("user_id", userId).maybeSingle(),
+    admin.from("role_permissions").select("permissions")
+      .eq("company_id", companyId).eq("role", role).maybeSingle(),
+    admin.from("user_permission_overrides").select("overrides")
+      .eq("company_id", companyId).eq("user_id", userId).maybeSingle(),
   ]);
   return { ...(roleRow?.permissions || {}), ...(overrideRow?.overrides || {}) };
 }
 
-async function executeTool(admin, perms, name, input) {
+// ⚠️ `admin` is the SERVICE-ROLE client: RLS does not apply to a single query below.
+// The .eq("company_id", companyId) on each one is the ONLY thing keeping the
+// assistant from reading another company's jobs, trucks, and pricing. If you add a
+// tool here, it must be scoped the same way.
+async function executeTool(admin, perms, companyId, name, input) {
   switch (name) {
     case "search_jobs": {
       if (!perms.jobs_view) return { error: "This user does not have permission to view jobs." };
-      let q = admin.from("jobs").select("po, title, name, addr, status, materials, items").limit(30);
+      let q = admin.from("jobs").select("po, title, name, addr, status, materials, items")
+        .eq("company_id", companyId).limit(30);
       if (input.status) q = q.eq("status", input.status);
       const { data, error } = await q;
       if (error) return { error: error.message };
@@ -217,7 +226,8 @@ async function executeTool(admin, perms, name, input) {
     }
     case "get_inventory_status": {
       if (!perms.inv_view) return { error: "This user does not have permission to view inventory." };
-      const { data, error } = await admin.from("inventory").select("*").limit(300);
+      const { data, error } = await admin.from("inventory").select("*")
+        .eq("company_id", companyId).limit(300);
       if (error) return { error: error.message };
       let items = data || [];
       if (input.item_name) {
@@ -240,7 +250,8 @@ async function executeTool(admin, perms, name, input) {
     }
     case "get_fleet_status": {
       if (!perms.fleet_view) return { error: "This user does not have permission to view fleet data." };
-      const { data, error } = await admin.from("vehicles").select("*").limit(200);
+      const { data, error } = await admin.from("vehicles").select("*")
+        .eq("company_id", companyId).limit(200);
       if (error) return { error: error.message };
       let vehs = data || [];
       if (input.vehicle_name) {
@@ -263,7 +274,8 @@ async function executeTool(admin, perms, name, input) {
       if (!perms.maint_submit && !perms.maint_manage) {
         return { error: "This user does not have permission to view maintenance requests." };
       }
-      let q = admin.from("maintenance_requests").select("*").limit(30);
+      let q = admin.from("maintenance_requests").select("*")
+        .eq("company_id", companyId).limit(30);
       if (input.status) q = q.eq("status", input.status);
       const { data, error } = await q;
       if (error) return { error: error.message };
@@ -280,8 +292,8 @@ async function executeTool(admin, perms, name, input) {
         return { error: "This user does not have permission to view maintenance insights." };
       }
       const [{ data: vehData, error: vehError }, { data: reqData, error: reqError }] = await Promise.all([
-        admin.from("vehicles").select("*").limit(200),
-        admin.from("maintenance_requests").select("*").limit(500),
+        admin.from("vehicles").select("*").eq("company_id", companyId).limit(200),
+        admin.from("maintenance_requests").select("*").eq("company_id", companyId).limit(500),
       ]);
       if (vehError) return { error: vehError.message };
       if (reqError) return { error: reqError.message };
@@ -308,7 +320,7 @@ async function executeTool(admin, perms, name, input) {
   }
 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   const requestOrigin = event.headers?.origin || event.headers?.Origin || "";
   const corsHeaders = getCorsHeaders(requestOrigin);
 
@@ -332,29 +344,26 @@ exports.handler = async (event) => {
   }
 
   try {
-    const supabaseUrl = process.env.VITE_SUPABASE_URL;
-    // Service-role client used for both verifying the caller's token and the
-    // actual reads — RLS is bypassed intentionally because permission
-    // enforcement happens explicitly below, per verified user.
-    const admin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY);
+    // Service-role client: RLS is bypassed intentionally, because permission
+    // enforcement happens explicitly below per verified user. Tenant isolation is
+    // NOT free here — it comes from passing caller.companyId into every tool query.
+    const admin = adminClient();
 
-    const { data: authData, error: authError } = await admin.auth.getUser(accessToken);
-    if (authError || !authData?.user) {
-      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: "Not authenticated" }) };
-    }
-    const userId = authData.user.id;
-
-    const { data: profile } = await admin.from("profiles").select("full_name, name, role, active").eq("id", userId).single();
-    if (!profile || profile.active === false) {
-      return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: "Account inactive" }) };
+    const { caller, error: callerError } = await resolveCaller(admin, accessToken);
+    if (callerError) {
+      return { statusCode: callerError.status, headers: corsHeaders, body: JSON.stringify({ error: callerError.message }) };
     }
 
-    const perms = await getEffectivePerms(admin, userId, profile.role);
+    const { data: profile } = await admin
+      .from("profiles").select("full_name, name").eq("id", caller.userId).single();
+
+    const perms = await getEffectivePerms(admin, caller.userId, caller.companyId, caller.role);
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const systemPrompt = `You are the in-app assistant for Maumee River Roofing's warehouse & fleet management system, an internal tool for warehouse staff, site supervisors, and office managers.
-You are talking to ${profile.full_name || profile.name || "a user"} (role: ${profile.role}).
+    const systemPrompt = `You are the in-app assistant for ${caller.companyName}'s warehouse & fleet management system, an internal tool for warehouse staff, site supervisors, and office managers.
+You are talking to ${profile?.full_name || profile?.name || "a user"} (role: ${caller.role}).
 Answer questions about jobs, inventory, fleet vehicles, maintenance requests, and maintenance patterns/predictions using the tools provided — never invent data.
+All data you can see belongs to ${caller.companyName}. Never speculate about other companies on the platform; you have no access to them.
 If a tool returns a permission error, tell the user plainly they don't have access to that information rather than guessing or making something up.
 Keep answers short and directly useful — this is an internal ops tool, not a chatty assistant.`;
 
@@ -380,7 +389,9 @@ Keep answers short and directly useful — this is an internal ops tool, not a c
         toolUses.map(async (toolUse) => ({
           type: "tool_result",
           tool_use_id: toolUse.id,
-          content: JSON.stringify(await executeTool(admin, perms, toolUse.name, toolUse.input || {})),
+          content: JSON.stringify(
+            await executeTool(admin, perms, caller.companyId, toolUse.name, toolUse.input || {}),
+          ),
         })),
       );
       workingMessages = [...workingMessages, { role: "user", content: toolResults }];

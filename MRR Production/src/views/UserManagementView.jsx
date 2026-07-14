@@ -52,12 +52,23 @@ export default function Users({
 
     try {
       if (editing) {
-        // ✅ Fixed: Now passing profilePayload containing full_name directly to Supabase
+        // Name/email live on the shared profile; role does NOT. Role is per-company
+        // (a person can be a manager here and an employee somewhere else), so it lives
+        // on the membership and has to go through set_member_role(). Writing role into
+        // profiles here would update a deprecated column and change nothing — the
+        // admin would see "saved" and the user's permissions would be untouched.
+        const { name, full_name, email } = profilePayload;
         const { error } = await supabase
           .from("profiles")
-          .update(profilePayload)
+          .update({ name, full_name, email })
           .eq("id", editing);
         if (error) throw error;
+
+        const { error: roleError } = await supabase.rpc("set_member_role", {
+          target_user: editing,
+          new_role: form.role,
+        });
+        if (roleError) throw roleError;
 
         setUsers((p) =>
           p.map((u) => (u.id === editing ? { ...u, ...profilePayload } : u)),
@@ -114,7 +125,7 @@ export default function Users({
         .from("user_permission_overrides")
         .upsert(
           { user_id: uid, overrides: currentTargetOverrides },
-          { onConflict: "user_id" },
+          { onConflict: "company_id,user_id" },
         );
       if (error) throw error;
 
@@ -325,7 +336,7 @@ export default function Users({
       {modal === "user" && (
         <Modal title={editing ? "Edit User" : "Add New User"} onClose={() => { setModal(null); setEditing(null); setForm({}); setPwForm({}); }}>
           <Fld label="Full Name *"><Inp value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Fld>
-          <Fld label="Email Address"><Inp type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="user@maumeeriverroofing.com" /></Fld>
+          <Fld label="Email Address"><Inp type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="user@company.com" /></Fld>
           <Fld label="Role *">
             <Sel value={form.role || "field"} onChange={(e) => setForm({ ...form, role: e.target.value })}>
               <option value="admin">Administrator</option>
