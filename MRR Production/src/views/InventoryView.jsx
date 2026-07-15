@@ -326,7 +326,20 @@ export default function InventoryView({
   };
 
   const rcvBatch = async () => {
-    if (!form.qty || !form.price || !form.date || !sel) return;
+    // Don't fail silently — tell the user exactly what's missing, or a blank
+    // field looks like it "saved" (modal never closes) while nothing persists.
+    if (!sel) {
+      showToast("Select an item to receive into first.", "warning");
+      return;
+    }
+    const missing = [];
+    if (!form.qty) missing.push("quantity");
+    if (!form.price) missing.push("price");
+    if (!form.date) missing.push("received date");
+    if (missing.length) {
+      showToast(`Nothing was received — please fill in the ${missing.join(", ")}.`, "warning");
+      return;
+    }
     const qty = parseFloat(form.qty);
     const price = parseFloat(form.price);
     // Negative qty/price are allowed intentionally — temporary corrections ahead
@@ -503,12 +516,19 @@ export default function InventoryView({
     }
     // Negative qty/price are allowed intentionally — temporary corrections ahead
     // of a later batch that zeroes them back out. Only exclude zero/non-numeric rows.
-    const valid = bulkItems.filter((b) => {
+    const hasQty = (b) => {
       const qty = parseFloat(b.qty);
       return !isNaN(qty) && qty !== 0;
-    });
+    };
+    const valid = bulkItems.filter(hasQty);
+    // Rows left blank/zero would otherwise vanish without a trace — capture them
+    // so we can name them in a warning instead of silently swallowing the delivery.
+    const skipped = bulkItems.filter((b) => !hasQty(b));
     if (valid.length === 0) {
-      showToast("Add at least one item with a non-zero quantity.", "info");
+      showToast(
+        "Nothing was received — every row is missing a quantity. Enter a quantity for each item.",
+        "warning",
+      );
       return;
     }
 
@@ -581,7 +601,19 @@ export default function InventoryView({
         },
       );
 
-      showToast("Bulk delivery received successfully.", "success");
+      showToast(
+        `Bulk delivery received — ${valid.length} item${valid.length > 1 ? "s" : ""} added.`,
+        "success",
+      );
+      // Surface anything left out so a forgotten quantity can't quietly disappear.
+      if (skipped.length) {
+        showToast(
+          `${skipped.length} item${skipped.length > 1 ? "s were" : " was"} NOT received (no quantity entered): ${skipped
+            .map((b) => b.iname)
+            .join(", ")}.`,
+          "warning",
+        );
+      }
       setModal(null);
       setBulkItems([]);
       setBulkMeta({

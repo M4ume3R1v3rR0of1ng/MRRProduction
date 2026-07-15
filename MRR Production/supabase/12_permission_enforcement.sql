@@ -62,7 +62,8 @@ begin
   from public.role_permissions rp where rp.company_id = co and rp.role = r;
 
   select o.overrides into override
-  from public.user_permission_overrides o where o.company_id = co and o.user_id = auth.uid();
+  from public.user_permission_overrides o
+  where o.company_id = co and o.user_id = auth.uid()::text;  -- user_id is TEXT, not uuid
 
   -- override wins, then the stored role row, then the built-in default
   val := coalesce(override ->> perm_key, stored ->> perm_key, public.default_job_perms(r) ->> perm_key);
