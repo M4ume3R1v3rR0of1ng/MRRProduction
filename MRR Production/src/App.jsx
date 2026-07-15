@@ -14,6 +14,8 @@ import { C, tot, oilSt, predDays, detSt, fd, fm } from "./utils/helpers";
 // Full Screen Layout & Sub-Page Views
 import LoginScreen from "./views/LoginScreen";
 import CompanySwitcher from "./components/CompanySwitcher";
+import OwnerConsole from "./views/OwnerConsole";
+import BillingView from "./views/BillingView";
 import { SteadwerkMark, TrussMark, BRAND } from "./components/SteadwerkMark";
 import Sidebar from "./layouts/Sidebar";
 import DashboardView from "./views/DashboardView";
@@ -191,6 +193,7 @@ return (
             collapsed={isMobile ? false : collapsed}
             setCollapsed={setCollapsed}
             companyName={app.company?.name || app.curUser?.companyName || null}
+            isPlatformAdmin={app.curUser?.isPlatformAdmin}
             pendingReqs={app.pendingReqCount}
             lowStock={app.lowStockCount}
             newJobsForMe={app.newJobsForMe}
@@ -313,6 +316,12 @@ return (
             )}
             {view === "logs" && app.userPerms.users_manage && (
               <AuditLogView perms={app.userPerms} />
+            )}
+            {view === "owner" && app.curUser.isPlatformAdmin && (
+              <OwnerConsole user={app.curUser} />
+            )}
+            {view === "billing" && (app.curUser.role === "admin" || app.curUser.isPlatformAdmin) && (
+              <BillingView user={app.curUser} />
             )}
             {view === "profile" && (
               <ProfileView

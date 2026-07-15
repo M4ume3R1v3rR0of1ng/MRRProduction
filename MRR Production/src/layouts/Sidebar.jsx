@@ -21,6 +21,7 @@ export default function Sidebar({
   chatUnread,
   activeLogo,
   companyName,
+  isPlatformAdmin,
   perms,
   // ── 🟢 NEW: ACCEPT LANG MATRIX CONTROL ARGS ──
   lang = "en",
@@ -73,6 +74,15 @@ export default function Sidebar({
       : []),
     ...(perms.settings_manage
       ? [{ id: "settings", icon: "⚙️", label: t.settings || "Settings" }]
+      : []),
+    // The company's own Billing/accounting tab — its admin only.
+    ...((user?.role === "admin" || isPlatformAdmin)
+      ? [{ id: "billing", icon: "💳", label: "Billing" }]
+      : []),
+    // Platform owner only — not a company permission. Visible to you across every
+    // tenant; the underlying RPCs re-check is_platform_admin() server-side regardless.
+    ...(isPlatformAdmin
+      ? [{ id: "owner", icon: "🏛️", label: "Owner Console" }]
       : []),
   ];
   

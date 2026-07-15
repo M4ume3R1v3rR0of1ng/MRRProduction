@@ -59,6 +59,34 @@ export const handler = async (event) => {
 
     let userId = existing?.id || null;
 
+    // ── Seat cap ──
+    // Adding someone consumes a seat UNLESS they're already a member of this company
+    // (re-invite just changes their role). Checked BEFORE we create any auth account,
+    // so a full company never leaves an orphaned login behind. The platform owner
+    // bypasses the cap; a comped company (seat_capacity NULL) has no cap.
+    let alreadyMember = false;
+    if (userId) {
+      const { data: mem } = await admin
+        .from("memberships").select("user_id")
+        .eq("user_id", userId).eq("company_id", caller.companyId).maybeSingle();
+      alreadyMember = !!mem;
+    }
+    if (!alreadyMember && !caller.isPlatformAdmin) {
+      const { data: co } = await admin.from("companies").select("seat_capacity").eq("id", caller.companyId).single();
+      if (co?.seat_capacity != null) {
+        const { count } = await admin
+          .from("memberships").select("*", { count: "exact", head: true })
+          .eq("company_id", caller.companyId).eq("active", true);
+        if ((count ?? 0) >= co.seat_capacity) {
+          return {
+            statusCode: 402,
+            headers,
+            body: JSON.stringify({ error: "Your company is at its seat limit. Add a 5-seat pack in Billing to invite more users." }),
+          };
+        }
+      }
+    }
+
     if (!userId) {
       if (!password || password.length < 8) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Password must be at least 8 characters" }) };

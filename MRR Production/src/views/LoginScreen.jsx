@@ -25,11 +25,18 @@ import { SteadwerkLockup, BRAND } from "../components/SteadwerkMark";
 
 export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang }) {
   const t = translations[lang] || translations.en;
+  // "login" = existing user signing in · "signup" = public "start a company" flow.
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
+  const [notice, setNotice] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Self-serve signup fields.
+  const [companyName, setCompanyName] = useState("");
+  const [fullName, setFullName] = useState("");
 
   // Set only when an authenticated user belongs to more than one company.
   const [choices, setChoices] = useState(null); // [{ company_id, role, companies: {name, slug} }]
@@ -41,7 +48,54 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
       setEmail(savedEmail);
       setRememberMe(true);
     }
+    // Returning from Stripe Checkout. They're not signed in yet (the account was made
+    // server-side during signup), so land them on the login form with a nudge.
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get("checkout");
+    if (checkout === "success") {
+      setNotice("Payment received — your company is live. Sign in to enter your portal.");
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (checkout === "cancel") {
+      setErr("Checkout was cancelled. Your company isn't active yet — you can try again anytime.");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
+
+  // Self-serve "start a company": provision + redirect to Stripe Checkout.
+  const trySignup = async () => {
+    setErr("");
+    setNotice("");
+    if (!companyName.trim() || !fullName.trim() || !email.trim()) {
+      return setErr("Company name, your name, and email are all required.");
+    }
+    if (!pass || pass.length < 8) {
+      return setErr("Choose a password of at least 8 characters.");
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/.netlify/functions/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: companyName.trim(),
+          name: fullName.trim(),
+          email: email.trim().toLowerCase(),
+          password: pass,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        setErr(data.error || "Could not start checkout. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+      // Hand off to Stripe's hosted checkout.
+      window.location.href = data.url;
+    } catch {
+      setErr("Network error starting checkout.");
+      setSubmitting(false);
+    }
+  };
 
   // Hand control to the app for one specific company.
   const enterCompany = async (user, membership) => {
@@ -65,6 +119,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
       active: true,
       companyId: membership.company_id,
       companyName: membership.companies?.name || null,
+      isPlatformAdmin: user.is_platform_admin === true,
     });
   };
 
@@ -100,7 +155,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
     try {
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("full_name, active")
+        .select("full_name, active, is_platform_admin")
         .eq("id", user.id)
         .single();
 
@@ -145,7 +200,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
         localStorage.removeItem("mrr_remember_email");
       }
 
-      const withName = { ...user, full_name: profileData.full_name };
+      const withName = { ...user, full_name: profileData.full_name, is_platform_admin: profileData.is_platform_admin };
 
       if (memberships.length === 1) {
         await enterCompany(withName, memberships[0]);
@@ -219,9 +274,15 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
             <SteadwerkLockup size={64} />
           </div>
           <div style={{ fontSize: "var(--text-base)", color: C.sub, marginTop: 4 }}>
-            {choices ? "Choose a company to continue" : t.loginSubtitle}
+            {choices ? "Choose a company to continue" : mode === "signup" ? "Start your company on Steadwerk" : t.loginSubtitle}
           </div>
         </div>
+
+        {notice && (
+          <div style={{ background: "#E2EDE6", color: BRAND.pasture, padding: "10px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", marginBottom: 16, fontWeight: "var(--weight-semibold)" }}>
+            {notice}
+          </div>
+        )}
 
         {setLang && !choices && (
           <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 20 }}>
@@ -301,6 +362,34 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
           </div>
         ) : (
           <>
+            {/* Signup-only: the company being created + the person creating it. */}
+            {mode === "signup" && (
+              <>
+                <Fld label="Company name">
+                  <input
+                    className="mrr-input"
+                    type="text"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="e.g. Steadwerk Exteriors"
+                    style={inputStyle}
+                    disabled={submitting}
+                  />
+                </Fld>
+                <Fld label="Your name">
+                  <input
+                    className="mrr-input"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Jane Contractor"
+                    style={inputStyle}
+                    disabled={submitting}
+                  />
+                </Fld>
+              </>
+            )}
+
             <Fld label={t.email}>
               <input
                 className="mrr-input"
@@ -318,39 +407,41 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
                 type="password"
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !submitting && tryLogin()}
-                placeholder={t.password}
+                onKeyDown={(e) => e.key === "Enter" && !submitting && (mode === "signup" ? trySignup() : tryLogin())}
+                placeholder={mode === "signup" ? "Choose a password (8+ characters)" : t.password}
                 style={inputStyle}
                 disabled={submitting}
               />
             </Fld>
 
-            <div style={{ display: "flex", alignItems: "center", marginBottom: 16, marginTop: -4 }}>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-3)",
-                  fontSize: "var(--text-base)",
-                  color: C.navy,
-                  fontWeight: "var(--weight-bold)",
-                  cursor: "pointer",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ transform: "scale(1.15)", cursor: "pointer", accentColor: C.gold }}
-                  disabled={submitting}
-                />
-                {t.rememberMe}
-              </label>
-            </div>
+            {mode === "login" && (
+              <div style={{ display: "flex", alignItems: "center", marginBottom: 16, marginTop: -4 }}>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-3)",
+                    fontSize: "var(--text-base)",
+                    color: C.navy,
+                    fontWeight: "var(--weight-bold)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    style={{ transform: "scale(1.15)", cursor: "pointer", accentColor: C.gold }}
+                    disabled={submitting}
+                  />
+                  {t.rememberMe}
+                </label>
+              </div>
+            )}
 
             <button
               className="mrr-btn"
-              onClick={tryLogin}
+              onClick={mode === "signup" ? trySignup : tryLogin}
               style={{
                 width: "100%",
                 padding: "14px",
@@ -361,19 +452,41 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
                 fontSize: "var(--text-lg)",
                 fontWeight: "var(--weight-extrabold)",
                 cursor: submitting ? "not-allowed" : "pointer",
+                marginTop: mode === "signup" ? 8 : 0,
                 marginBottom: 16,
                 opacity: submitting ? 0.7 : 1,
                 boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               }}
               disabled={submitting}
             >
-              {submitting ? t.processingQuery : t.signIn}
+              {submitting
+                ? (mode === "signup" ? "Starting checkout…" : t.processingQuery)
+                : (mode === "signup" ? "Continue to payment →" : t.signIn)}
             </button>
 
-            {/* Self-signup is gone: accounts are created by a company admin. */}
-            <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.5 }}>
-              Need access? Ask your company administrator to add you.
-            </div>
+            {mode === "login" ? (
+              <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.6 }}>
+                Need access to an existing company? Ask its administrator to add you.
+                <br />
+                <button
+                  onClick={() => { setMode("signup"); setErr(""); setNotice(""); }}
+                  style={{ background: "none", border: "none", color: BRAND.amberDeep, fontWeight: 800, cursor: "pointer", padding: "6px 0 0", fontSize: "var(--text-base)" }}
+                >
+                  Start your own company →
+                </button>
+              </div>
+            ) : (
+              <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.6 }}>
+                You'll enter payment details on the next screen. Your portal goes live the moment payment clears.
+                <br />
+                <button
+                  onClick={() => { setMode("login"); setErr(""); setNotice(""); }}
+                  style={{ background: "none", border: "none", color: BRAND.amberDeep, fontWeight: 800, cursor: "pointer", padding: "6px 0 0", fontSize: "var(--text-base)" }}
+                >
+                  ← Back to sign in
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

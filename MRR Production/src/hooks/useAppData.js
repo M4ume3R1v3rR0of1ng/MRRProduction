@@ -76,7 +76,7 @@ export function useAppData() {
         if (session?.user) {
           const { data: prof } = await supabase
             .from("profiles")
-            .select("full_name, active, active_company_id")
+            .select("full_name, active, active_company_id, is_platform_admin")
             .eq("id", session.user.id)
             .maybeSingle();
 
@@ -98,6 +98,7 @@ export function useAppData() {
                 active: true,
                 companyId: membership.company_id,
                 companyName: membership.companies?.name || null,
+                isPlatformAdmin: prof.is_platform_admin === true,
               });
             }
           }
@@ -338,9 +339,10 @@ export function useAppData() {
 
         if (!readRow?.last_read_at) {
           // First time ever seeing chat — mark caught up instead of dumping the whole backlog as "unread".
+          // team_chat_reads PK is (company_id, user_id); company_id comes from the column DEFAULT.
           await supabase.from("team_chat_reads").upsert(
             { user_id: curUser.id, last_read_at: new Date().toISOString() },
-            { onConflict: "user_id" },
+            { onConflict: "company_id,user_id" },
           );
           if (!cancelled) setChatUnread(0);
           return;
@@ -371,6 +373,41 @@ export function useAppData() {
       cancelled = true;
       supabase.removeChannel(channel);
     };
+  }, [curUser]);
+
+  // ── 🔄 LIVE PERMISSION REFRESH ──
+  // Permissions used to load once at login and go stale until re-login — an admin
+  // toggling a role's access wouldn't reach anyone already signed in (the source of
+  // the "I turned it on but it won't let him" confusion). Subscribe to changes on the
+  // permission tables and re-pull; userPerms recomputes automatically from the new
+  // rolePerms/userOverrides. RLS scopes the events to the caller's own company.
+  useEffect(() => {
+    if (!curUser) return;
+
+    const refetchPerms = async () => {
+      const [{ data: rp }, { data: ov }] = await Promise.all([
+        supabase.from("role_permissions").select("*"),
+        supabase.from("user_permission_overrides").select("*"),
+      ]);
+      if (rp) {
+        const formatted = {};
+        rp.forEach((row) => {
+          formatted[row.role] = { ...(DEFAULT_ROLE_PERMS[row.role] || {}), ...row.permissions };
+        });
+        setRolePerms((p) => ({ ...p, ...formatted }));
+      }
+      const formattedOv = {};
+      (ov || []).forEach((row) => { formattedOv[row.user_id] = row.overrides; });
+      setUserOverrides(formattedOv);
+    };
+
+    const channel = supabase
+      .channel("realtime-perms")
+      .on("postgres_changes", { event: "*", schema: "public", table: "role_permissions" }, refetchPerms)
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_permission_overrides" }, refetchPerms)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [curUser]);
 
   // ── 📊 COMPUTED MEMO VALUES ──
