@@ -248,10 +248,10 @@ export default function DashboardView({
                     {t.assignedTruck}
                   </div>
                   <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>
-                    {myVehicle.make} {myVehicle.model}
+                    {myVehicle.name} — {myVehicle.make} {myVehicle.model}
                   </div>
                   <div style={{ fontSize: "var(--text-base)", color: C.blue, fontWeight: "var(--weight-bold)", marginTop: 2 }}>
-                    Plate ID: {myVehicle.plates || "No Plate Registered"}
+                    Plate ID: {myVehicle.plate || "No Plate Registered"}
                   </div>
                 </div>
               ) : (

@@ -92,8 +92,12 @@ export default function MaintenanceRequestsView({
     const selectedVehicle = vehs.find(
       (v) => v.id === newTicket.vehicleId || String(v.id) === String(newTicket.vehicleId),
     );
+    // Identify the vehicle the way the crew does — by its unit number (v.name, e.g.
+    // "011"), matching the format FleetManagementView files tickets under. Make/model
+    // alone can't tell two F-250s apart, and `plates` is not a column (it's `plate`),
+    // so that read was always undefined and every ticket saved as "(No Plate)".
     const vehicleName = selectedVehicle
-      ? `${selectedVehicle.make} ${selectedVehicle.model} (${selectedVehicle.plates || "No Plate"})`
+      ? `${selectedVehicle.name} (${selectedVehicle.plate || "No Plate"})`
       : "Unknown Vehicle";
 
     const requestPayload = {
@@ -433,7 +437,7 @@ export default function MaintenanceRequestsView({
               <Sel value={newTicket.vehicleId} onChange={(e) => setNewTicket({ ...newTicket, vehicleId: e.target.value })}>
                 <option value="">-- Choose Vehicle --</option>
                 {vehs.map((v) => (
-                  <option key={v.id} value={v.id}>{v.make} {v.model} ({v.plates || "No Plate"})</option>
+                  <option key={v.id} value={v.id}>{v.name} — {v.yr} {v.make} {v.model} ({v.plate || "No Plate"})</option>
                 ))}
               </Sel>
             </Fld>

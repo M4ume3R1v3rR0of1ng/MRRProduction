@@ -1083,12 +1083,15 @@ export default function BuildJobs({
                 if (!item) return null;
                 // Cost reflects what was actually used (pulled minus returned),
                 // not the raw pull cost — fully-returned items must read $0.00.
-                // Priced from current inventory (matching the PDF report) so
-                // later price corrections show; pull-time snapshot is the fallback.
+                // Priced from the pull-time FIFO snapshot, matching the PDF and
+                // Reports; current inventory price is the fallback for rows that
+                // never recorded one (legacy imports, or nothing pulled yet).
                 const used = Math.max((item.pulled || 0) - (item.returned || 0), 0);
                 const invItem = inv.find((x) => x && x.id === item.iid);
                 const livePrice = invItem ? newestPrice(invItem) : 0;
-                const usedCost = used * (livePrice > 0 ? livePrice : parseFloat(item.priceAtPull) || 0);
+                const snapshot = parseFloat(item.priceAtPull);
+                const unitPrice = (item.pulled || 0) > 0 && Number.isFinite(snapshot) ? snapshot : livePrice;
+                const usedCost = used * unitPrice;
                 return (
                   <tr key={item.iid || item.id || Math.random()} style={{ borderTop: `1px solid ${C.lg}` }}>
                     <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name || "—"}</td>

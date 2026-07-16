@@ -24,16 +24,21 @@ export function generatePDF(job, users, activeLogo, inv = []) {
   // Guard every numeric field: legacy/imported items can be missing
   // pulled/returned/priceAtPull, and unguarded math (even 0 * NaN) prints
   // a bogus cost for fully-returned items instead of $0.00.
-  // Unit price prefers the item's current inventory price so later price
-  // corrections show on the report; the pull-time snapshot is only a fallback
-  // for items that no longer exist in inventory (or have no priced batches).
+  //
+  // Unit price is the pull-time FIFO snapshot (priceAtPull) — what these exact
+  // units cost, batch by batch, when the crew pulled them. Pricing at the current
+  // rate instead would report replacement cost, restating a finished job every time
+  // a new batch lands at a different price, and disagreeing with the Reports view
+  // (which uses priceAtPull). newestPrice stays the fallback for rows with no
+  // snapshot: legacy/imported items, or items never pulled.
   (job.items || job.materials || []).forEach(item => {
     if (!item) return;
     const pulled = parseFloat(item.pulled) || 0;
     const returned = parseFloat(item.returned) || 0;
     const invItem = inv.find(x => x && x.id === item.iid);
     const livePrice = invItem ? newestPrice(invItem) : 0;
-    const unitPrice = livePrice > 0 ? livePrice : (parseFloat(item.priceAtPull) || 0);
+    const snapshot = parseFloat(item.priceAtPull);
+    const unitPrice = pulled > 0 && Number.isFinite(snapshot) ? snapshot : livePrice;
     const used = Math.max(0, pulled - returned);
     const total = used * unitPrice;
     if (!cats[item.icat]) cats[item.icat] = [];
