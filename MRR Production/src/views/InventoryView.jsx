@@ -20,13 +20,15 @@ import { translations } from "../utils/translations";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 
 
-export default function InventoryView({ 
-  inv = [], 
-  setInv, 
-  users, 
-  user, 
-  perms, 
-  inventorySearchQuery, 
+export default function InventoryView({
+  inv = [],
+  setInv,
+  jobs = [],
+  setJobs,
+  users,
+  user,
+  perms,
+  inventorySearchQuery,
   setInventorySearchQuery,
   lang = "en",
 }) {
@@ -38,6 +40,13 @@ export default function InventoryView({
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
+  // Batch correction: the receive form is otherwise the ONLY place a batch's price,
+  // PO and vendor can ever be set. Getting one wrong used to be permanent — Edit
+  // Materials silently rewrites the NEWEST batch's price (so corrections landed on the
+  // wrong batch), and nothing reached PO/vendor at all.
+  const [batchSel, setBatchSel] = useState(null);
+  const [batchForm, setBatchForm] = useState({});
+  const [recalc, setRecalc] = useState(null);
   const [bulkItems, setBulkItems] = useState([]);
   const [bulkMeta, setBulkMeta] = useState({
     date: new Date().toISOString().split("T")[0],
@@ -402,6 +411,118 @@ export default function InventoryView({
     }
   };
 
+  // Jobs whose recorded cost came from THIS batch alone. Nothing records which batches
+  // a pull consumed (doFifo computes the split then discards it), so a job's priceAtPull
+  // matching the batch's price is the only reliable signal that this batch is where its
+  // cost came from. Jobs with any other price pulled across several batches — their cost
+  // is a blend this correction can't safely re-derive, so they're surfaced, never touched.
+  const jobsPricedFrom = (itemId, oldPrice) => {
+    const touched = (jobs || []).filter((j) =>
+      (j.items || j.materials || []).some((i) => i && i.iid === itemId && (parseFloat(i.pulled) || 0) > 0),
+    );
+    const priceOf = (j) => {
+      const line = (j.items || j.materials || []).find((i) => i && i.iid === itemId);
+      return parseFloat(line?.priceAtPull) || 0;
+    };
+    return {
+      exact: touched.filter((j) => priceOf(j) === oldPrice),
+      blended: touched.filter((j) => priceOf(j) !== oldPrice),
+    };
+  };
+
+  const lineFor = (j, itemId) => (j.items || j.materials || []).find((i) => i && i.iid === itemId);
+  const usedOf = (j, itemId) => {
+    const l = lineFor(j, itemId);
+    return Math.max(0, (parseFloat(l?.pulled) || 0) - (parseFloat(l?.returned) || 0));
+  };
+
+  const saveBatch = async () => {
+    if (!sel || !batchSel) return;
+    const canPrice = perms.inv_pricing_edit;
+    const oldPrice = parseFloat(batchSel.price) || 0;
+    const newPrice = canPrice ? parseFloat(batchForm.price) : oldPrice;
+    if (canPrice && !Number.isFinite(newPrice)) {
+      showToast("Unit price must be a valid number.", "warning");
+      return;
+    }
+    const newRef = (batchForm.ref || "").trim();
+    const newVendor = (batchForm.vendor || "").trim();
+    const priceChanged = canPrice && newPrice !== oldPrice;
+
+    // A price change restates finished jobs, so it never happens without showing the
+    // damage first. PO/vendor don't touch cost and save straight through.
+    const hits = priceChanged ? jobsPricedFrom(sel.id, oldPrice) : { exact: [], blended: [] };
+    if (priceChanged && hits.exact.length > 0 && !recalc) {
+      setRecalc({ oldPrice, newPrice, ...hits });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const live = await fetchLiveBatches(sel.id);
+      const idx = live.findIndex((b) => b.id === batchSel.id);
+      if (idx === -1) throw new Error("This batch no longer exists — someone may have changed it. Refresh and try again.");
+      const updated = live.map((b, i) =>
+        i === idx ? { ...b, price: newPrice, ref: newRef, vendor: newVendor } : b,
+      );
+
+      const { error } = await updateRowStrict("inventory", sel.id, { batches: updated });
+      if (error) throw error;
+      setInv((p) => p.map((i) => (i.id === sel.id ? { ...i, batches: updated } : i)));
+      setSel((p) => (p && p.id === sel.id ? { ...p, batches: updated } : p));
+
+      let recalced = 0;
+      if (priceChanged && hits.exact.length > 0) {
+        const fix = (arr) =>
+          (arr || []).map((i) => {
+            if (!i || i.iid !== sel.id) return i;
+            const pulled = parseFloat(i.pulled) || 0;
+            if (pulled <= 0) return i;
+            return { ...i, priceAtPull: newPrice, pullCost: pulled * newPrice };
+          });
+        for (const j of hits.exact) {
+          const next = { items: fix(j.items), materials: fix(j.materials) };
+          const res = await updateRowStrict("jobs", j.id, next);
+          if (res.error) throw res.error;
+          setJobs?.((p) => p.map((x) => (x.id === j.id ? { ...x, ...next } : x)));
+          recalced++;
+        }
+      }
+
+      await logAction(
+        user?.id ?? null,
+        user?.email ?? null,
+        "INV_MUTATION",
+        `Corrected batch on "${sel.name}"${priceChanged ? ` (price ${fm(oldPrice)} → ${fm(newPrice)})` : ""}${recalced ? ` — recalculated ${recalced} job(s)` : ""}`,
+        {
+          item_id: sel.id,
+          batch_id: batchSel.id,
+          batch_rcvd: batchSel.rcvd,
+          ...(priceChanged ? { price: { from: oldPrice, to: newPrice } } : {}),
+          purchase_order: { from: batchSel.ref || "", to: newRef },
+          vendor: { from: batchSel.vendor || "", to: newVendor },
+          jobs_recalculated: recalced,
+        },
+        "inventory",
+      );
+
+      showToast(
+        recalced > 0
+          ? `Batch corrected — ${recalced} job${recalced > 1 ? "s" : ""} recalculated.`
+          : "Batch corrected.",
+        "success",
+      );
+      setRecalc(null);
+      setBatchSel(null);
+      setModal("detail");
+    } catch (err) {
+      console.error(err);
+      showToast(`Database Error correcting batch: ${err.message}`, "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const adjustStock = async () => {
     if (!sel || form.newQty === undefined || form.newQty === "") {
       showToast("Please enter the corrected quantity.", "warning");
@@ -532,6 +653,28 @@ export default function InventoryView({
       return;
     }
 
+    // A BLANK price must never become a $0 batch. FIFO charges each batch at its own
+    // price, so a $0 batch bills real material at nothing and prints $0 on the job
+    // report. Blank falls back to the item's last known price (same as single receive);
+    // if there's nothing to fall back on, refuse and name the rows rather than invent a
+    // number. A typed 0 is left alone — that's a deliberate free/warranty batch.
+    const priced = valid.map((b) => {
+      const typed = parseFloat(b.price);
+      if (Number.isFinite(typed)) return { ...b, rate: typed };
+      const last = newestPrice(inv.find((i) => i && i.id === b.iid));
+      return { ...b, rate: last > 0 ? last : null };
+    });
+    const unpriced = priced.filter((b) => b.rate === null);
+    if (unpriced.length > 0) {
+      showToast(
+        `Enter a unit price for: ${unpriced.map((b) => b.iname).join(", ")}. ${
+          unpriced.length > 1 ? "They have" : "It has"
+        } no previous price to fall back on, and receiving at $0 would bill the job nothing for real material.`,
+        "warning",
+      );
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -545,13 +688,13 @@ export default function InventoryView({
       const freshById = new Map((freshRows || []).map((r) => [r.id, r.batches || []]));
 
       const changedBatches = new Map();
-      for (const bi of valid) {
+      for (const bi of priced) {
         if (!freshById.has(bi.iid)) continue;
         const nb = {
           id: "b_" + uid(),
           rcvd: bulkMeta.date,
           qty: parseFloat(bi.qty),
-          price: parseFloat(bi.price) || 0,
+          price: bi.rate,
           by: user?.id || "system",
           rem: parseFloat(bi.qty),
           ref: bulkMeta.po || "",
@@ -878,14 +1021,115 @@ export default function InventoryView({
                     </div>
                     <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>By: {users.find((u) => u.id === b.by)?.name || "Unknown"}</div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontWeight: "var(--weight-extrabold)", color: b.rem === 0 ? C.sub : C.gr, fontSize: "var(--text-sm)" }}>{b.rem}/{b.qty} remaining</div>
-                    {perms.inv_pricing_view && <div style={{ fontSize: "var(--text-xs)", color: C.blue, fontWeight: "var(--weight-bold)" }}>{fm(b.price)} ea.</div>}
+                  <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+                    <div>
+                      <div style={{ fontWeight: "var(--weight-extrabold)", color: b.rem === 0 ? C.sub : C.gr, fontSize: "var(--text-sm)" }}>{b.rem}/{b.qty} remaining</div>
+                      {perms.inv_pricing_view && (
+                        <div style={{ fontSize: "var(--text-xs)", color: (parseFloat(b.price) || 0) === 0 ? C.rd : C.blue, fontWeight: "var(--weight-bold)" }}>
+                          {fm(b.price)} ea.{(parseFloat(b.price) || 0) === 0 && b.rem > 0 ? " ⚠️ unpriced" : ""}
+                        </div>
+                      )}
+                    </div>
+                    {(perms.inv_receive || perms.inv_pricing_edit) && (
+                      <Btn
+                        v="ghost"
+                        sz="sm"
+                        onClick={() => {
+                          setBatchSel(b);
+                          setBatchForm({ price: String(b.price ?? ""), ref: b.ref || "", vendor: b.vendor || "" });
+                          setRecalc(null);
+                          setModal("batch");
+                        }}
+                        title="Correct this batch's price, PO or vendor"
+                      >
+                        ✏️
+                      </Btn>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
           {(sel.batches || []).length === 0 && <p style={{ color: C.sub, fontSize: "var(--text-base)" }}>No receipt stacks logged yet.</p>}
+        </Modal>
+      )}
+
+      {modal === "batch" && sel && batchSel && (
+        <Modal
+          title={`Correct Batch — ${fd(batchSel.rcvd)}`}
+          onClose={() => { setBatchSel(null); setRecalc(null); setModal("detail"); }}
+        >
+          <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px", marginBottom: "var(--space-4)", fontSize: "var(--text-xs)", color: C.sub }}>
+            Received {fd(batchSel.rcvd)} · {batchSel.qty} {sel.unit} · {batchSel.rem} remaining · by{" "}
+            {users.find((u) => u.id === batchSel.by)?.name || "Unknown"}
+            <div style={{ marginTop: 4 }}>Quantities aren't editable here — use 🔧 Adjust Stock for those.</div>
+          </div>
+
+          {recalc ? (
+            <div>
+              <div style={{ background: "rgba(217,119,6,0.10)", border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "12px 14px", marginBottom: "var(--space-4)" }}>
+                <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, marginBottom: 6 }}>
+                  This changes {recalc.exact.length} finished job{recalc.exact.length > 1 ? "s" : ""}
+                </div>
+                <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 10 }}>
+                  These jobs recorded {sel.name} at {fm(recalc.oldPrice)} — the price you're correcting. Their cost
+                  will be re-derived at {fm(recalc.newPrice)}. Nothing is typed in by hand.
+                </div>
+                {recalc.exact.map((j) => {
+                  const used = usedOf(j, sel.id);
+                  return (
+                    <div key={j.id} style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-xs)", padding: "4px 0", borderTop: `1px solid ${C.bd}` }}>
+                      <span style={{ color: C.navy, fontWeight: "var(--weight-bold)" }}>
+                        {j.title || j.name || j.id} <span style={{ color: C.sub, fontWeight: "normal" }}>({j.status})</span>
+                      </span>
+                      <span style={{ whiteSpace: "nowrap" }}>
+                        {used} × · {fm(used * recalc.oldPrice)} → <strong style={{ color: C.gr }}>{fm(used * recalc.newPrice)}</strong>
+                      </span>
+                    </div>
+                  );
+                })}
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", fontWeight: "var(--weight-extrabold)", color: C.navy, paddingTop: 8, marginTop: 4, borderTop: `2px solid ${C.bd}` }}>
+                  <span>Total change</span>
+                  <span>
+                    {fm(recalc.exact.reduce((s, j) => s + usedOf(j, sel.id) * recalc.oldPrice, 0))} →{" "}
+                    {fm(recalc.exact.reduce((s, j) => s + usedOf(j, sel.id) * recalc.newPrice, 0))}
+                  </span>
+                </div>
+              </div>
+
+              {recalc.blended.length > 0 && (
+                <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px", marginBottom: "var(--space-4)", fontSize: "var(--text-xs)", color: C.sub }}>
+                  <strong style={{ color: C.navy }}>{recalc.blended.length} other job{recalc.blended.length > 1 ? "s" : ""} won't be touched.</strong>{" "}
+                  They pulled {sel.name} across several batches, so their cost is a blend this correction can't
+                  safely re-derive: {recalc.blended.map((j) => j.title || j.name || j.id).join(", ")}.
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "var(--space-3)" }}>
+                <Btn v="ghost" onClick={() => setRecalc(null)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Back</Btn>
+                <Btn v="primary" onClick={saveBatch} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>
+                  {saving ? "⏳ Applying..." : `✅ Correct & recalculate ${recalc.exact.length}`}
+                </Btn>
+              </div>
+            </div>
+          ) : (
+            <div>
+              {perms.inv_pricing_edit && (
+                <Fld label="Unit Price *">
+                  <Inp type="number" step="0.01" value={batchForm.price ?? ""} onChange={(e) => setBatchForm({ ...batchForm, price: e.target.value })} placeholder="0.00" />
+                </Fld>
+              )}
+              <Fld label="Invoice / PO Number">
+                <Inp value={batchForm.ref ?? ""} onChange={(e) => setBatchForm({ ...batchForm, ref: e.target.value })} placeholder="e.g. 2011850932-001" />
+              </Fld>
+              <Fld label="Supplier / Vendor">
+                <Inp value={batchForm.vendor ?? ""} onChange={(e) => setBatchForm({ ...batchForm, vendor: e.target.value })} placeholder="e.g. ABC Supply" />
+              </Fld>
+              <div style={{ display: "flex", gap: "var(--space-3)", marginTop: "var(--space-5)" }}>
+                <Btn v="ghost" onClick={() => { setBatchSel(null); setModal("detail"); }} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
+                <Btn v="primary" onClick={saveBatch} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{saving ? "⏳ Saving..." : "💾 Save Batch"}</Btn>
+              </div>
+            </div>
+          )}
         </Modal>
       )}
 

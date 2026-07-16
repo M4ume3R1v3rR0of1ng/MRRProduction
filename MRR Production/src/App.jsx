@@ -297,7 +297,7 @@ return (
               <PullInventoryView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} activeLogo={app.activeLogo} acculynxConfig={app.acculynxConfig} jSC={jSC} lang={lang} setLang={setLang} openItemId={searchTargetFor("pull")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "inventory" && app.userPerms.inv_view && (
-              <InventoryView inv={app.inv} setInv={app.setInv} users={app.users} user={app.curUser} perms={app.userPerms} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} />
+              <InventoryView inv={app.inv} setInv={app.setInv} jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} />
             )}
             {view === "fleet" && app.userPerms.fleet_view && (
               <FleetManagementView vehs={app.vehs} setVehs={app.setVehs} reqs={app.reqs} setReqs={app.setReqs} jobs={app.jobs} setJobs={app.setJobs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} jSC={jSC} users={app.users} user={app.curUser} perms={app.userPerms} oilSt={oilSt} detSt={detSt} predDays={predDays} fd={fd} fm={fm} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} openItemId={searchTargetFor("fleet")} onOpenItemHandled={clearSearchTarget} />
