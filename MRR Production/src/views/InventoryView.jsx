@@ -370,6 +370,10 @@ export default function InventoryView({
       price: price || newestPrice(sel),
       by: user?.id || "system",
       rem: qty,
+      // Bulk receive has always captured these; this form never did, which is why 31 of
+      // 32 deliveries carry no paperwork. Optional — a correction batch has no invoice.
+      ref: (form.ref || "").trim(),
+      vendor: (form.vendor || "").trim(),
     };
 
     try {
@@ -397,7 +401,14 @@ export default function InventoryView({
         user?.email ?? null,
         "INV_MUTATION",
         `Received new inbound batch stack for material: "${sel.name}"`,
-        { item_id: sel.id, quantity_added: b.qty, unit_cost: b.price },
+        {
+          item_id: sel.id,
+          batch_id: b.id,
+          quantity_added: b.qty,
+          unit_cost: b.price,
+          purchase_order: b.ref || "N/A",
+          vendor: b.vendor || "N/A",
+        },
       );
 
       showToast("Batch successfully received.", "success");
@@ -739,8 +750,20 @@ export default function InventoryView({
         {
           purchase_order: bulkMeta.po || "N/A",
           vendor: bulkMeta.vendor || "N/A",
-          item_count: valid.length,
+          item_count: priced.length,
           total_manifest_value: bulkTotal,
+          // WHICH items — not just how many. Without this a delivery logs as
+          // "2 items" and the only way to learn what was in it is to reconstruct
+          // it from the batches (see the Atlas box vent hunt on 2026-07-16).
+          items: priced.map((b) => ({
+            item_id: b.iid,
+            name: b.iname,
+            qty: parseFloat(b.qty),
+            unit_cost: b.rate,
+          })),
+          ...(skipped.length > 0
+            ? { skipped_no_quantity: skipped.map((b) => b.iname) }
+            : {}),
         },
       );
 
@@ -1308,6 +1331,8 @@ export default function InventoryView({
         <Modal title={`Receive Inbound Stock: ${sel.name}`} onClose={() => setModal(null)}>
           <Fld label="Date Received"><Inp type="date" value={form.date || ""} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Fld>
           <Fld label={`Quantity to Inject (${sel.unit})`}><Inp type="number" value={form.qty || ""} onChange={(e) => setForm({ ...form, qty: e.target.value })} /></Fld>
+          <Fld label="Invoice / PO Number"><Inp value={form.ref || ""} onChange={(e) => setForm({ ...form, ref: e.target.value })} placeholder="e.g. 2011850932-001" /></Fld>
+          <Fld label="Supplier / Vendor"><Inp value={form.vendor || ""} onChange={(e) => setForm({ ...form, vendor: e.target.value })} placeholder="e.g. ABC Supply" /></Fld>
           {perms.inv_pricing_edit ? (
             <Fld label="Price Per Unit">
               <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}>$</span><Inp type="number" step="0.01" value={form.price || ""} onChange={(e) => setForm({ ...form, price: e.target.value })} style={{ paddingLeft: 22 }} /></div>

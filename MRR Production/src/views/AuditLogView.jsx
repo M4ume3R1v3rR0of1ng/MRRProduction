@@ -4,7 +4,7 @@ import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { Bdg, Sel, Inp, Btn, LoadingState } from "../components/UIPrimitives";
 
-export default function AuditLogView({ perms }) {
+export default function AuditLogView({ perms, inv = [], users = [] }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   // A failed fetch must not render as "no history" — that reads as innocence.
@@ -13,6 +13,74 @@ export default function AuditLogView({ perms }) {
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
   const [activePayload, setActivePayload] = useState(null);
+
+  // Two different records, deliberately kept apart:
+  //
+  //   "logs"    — audit_logs. Every action, but a ROLLING 30-DAY WINDOW: 03_functions
+  //               hard-deletes anything older. It cannot answer questions about last
+  //               quarter's delivery, because the answer has been erased.
+  //   "batches" — inventory.batches. Who received what, when, at what price, under
+  //               which PO. Lives on the row itself, so it outlives the purge and is
+  //               the only durable provenance the app has.
+  const [mode, setMode] = useState("logs");
+  const [ledgerWho, setLedgerWho] = useState("all");
+
+  const nameOf = (id) => users.find((u) => u.id === id)?.name || "Unknown";
+
+  const ledger = useMemo(() => {
+    const rows = [];
+    for (const item of inv || []) {
+      for (const b of item.batches || []) {
+        rows.push({
+          key: `${item.id}__${b.id}`,
+          itemId: item.id,
+          itemName: item.name,
+          unit: item.unit,
+          rcvd: b.rcvd,
+          qty: parseFloat(b.qty) || 0,
+          rem: parseFloat(b.rem) || 0,
+          price: parseFloat(b.price) || 0,
+          by: b.by,
+          ref: b.ref || "",
+          vendor: b.vendor || "",
+          // Five different things live in `batches`, and only one of them is a supplier
+          // delivery. Flagging a missing PO on a return or a shortfall would bury the
+          // receipts that genuinely lack one, so classify before judging:
+          //   shortfall  — doFifo's synthetic negative row when a pull exceeds stock
+          //   adjustment — Adjust Stock's correction row
+          //   return     — pull screen re-entry (bare uid(), priced at the job's blend)
+          //   price-only — Edit Materials' qty:0 row, created to hold a price
+          //   receipt    — an actual delivery; the only kind that owes a PO/vendor
+          kind: b.short || b.by === "system"
+            ? "shortfall"
+            : b.ref === "Manual Adjustment"
+              ? "adjustment"
+              : !String(b.id || "").startsWith("b_")
+                ? "return"
+                : (parseFloat(b.qty) || 0) === 0
+                  ? "price-only"
+                  : "receipt",
+        });
+      }
+    }
+    return rows.sort((a, b) => new Date(b.rcvd) - new Date(a.rcvd));
+  }, [inv]);
+
+  const ledgerPeople = useMemo(
+    () => [...new Set(ledger.map((r) => r.by).filter(Boolean))],
+    [ledger],
+  );
+
+  const filteredLedger = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return ledger.filter((r) => {
+      if (ledgerWho !== "all" && r.by !== ledgerWho) return false;
+      if (!q) return true;
+      return [r.itemName, r.ref, r.vendor, nameOf(r.by)].some((v) =>
+        (v || "").toLowerCase().includes(q),
+      );
+    });
+  }, [ledger, search, ledgerWho, users]);
 
   // ── 🆕 PAGINATION STATE ───────────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1);
@@ -98,37 +166,134 @@ export default function AuditLogView({ perms }) {
         </p>
       </div>
 
-      <div
-        style={{ display: "flex", gap: "var(--space-5)", marginBottom: 16, flexWrap: "wrap" }}
-      >
-        <Inp
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1); // Snap back to page 1 during keyword mutation searches
-          }}
-          placeholder="Filter by email, keywords, or facility..."
-          style={{ flex: 1, minWidth: 240 }}
-        />
-        <Sel
-          value={actionFilter}
-          onChange={(e) => setActionFilter(e.target.value)}
-          style={{ width: 220 }}
-        >
-          <option value="all">All Action Classes</option>
-          <option value="LOGIN">LOGIN</option>
-          <option value="LOGOUT">LOGOUT</option>
-          <option value="INVENTORY_PULL">INVENTORY_PULL</option>
-          <option value="INV_MUTATION">INV_MUTATION</option>
-          <option value="PERM_CHANGE">PERM_CHANGE</option>
-          <option value="INVENTORY_ADJUST">INVENTORY_ADJUST</option>
-          <option value="FLEET_STATUS_CHANGE">FLEET_STATUS_CHANGE</option>
-          <option value="MAINTENANCE_REQUEST_CREATE">MAINTENANCE_REQUEST_CREATE</option>
-          <option value="JOB_BUILD_CREATE">JOB_BUILD_CREATE</option>
-        </Sel>
+      <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: 16, borderBottom: `2px solid ${C.bd}` }}>
+        {[
+          ["logs", "📜 Activity Log", "Every action — last 30 days only"],
+          ["batches", "📦 Batch Ledger", "Every inventory receipt, permanently"],
+        ].map(([k, label, hint]) => (
+          <button
+            key={k}
+            onClick={() => { setMode(k); setSearch(""); setCurrentPage(1); }}
+            title={hint}
+            style={{
+              background: "none", border: "none", cursor: "pointer", padding: "8px 14px",
+              fontSize: "var(--text-sm)", fontWeight: "var(--weight-extrabold)",
+              color: mode === k ? C.navy : C.sub,
+              borderBottom: mode === k ? `3px solid ${C.gold}` : "3px solid transparent",
+              marginBottom: -2,
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
-      {loading ? (
+      {mode === "logs" && (
+        <div
+          style={{ display: "flex", gap: "var(--space-5)", marginBottom: 16, flexWrap: "wrap" }}
+        >
+          <Inp
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1); // Snap back to page 1 during keyword mutation searches
+            }}
+            placeholder="Filter by email, keywords, or facility..."
+            style={{ flex: 1, minWidth: 240 }}
+          />
+          <Sel
+            value={actionFilter}
+            onChange={(e) => setActionFilter(e.target.value)}
+            style={{ width: 220 }}
+          >
+            <option value="all">All Action Classes</option>
+            <option value="LOGIN">LOGIN</option>
+            <option value="LOGOUT">LOGOUT</option>
+            <option value="INVENTORY_PULL">INVENTORY_PULL</option>
+            <option value="INV_MUTATION">INV_MUTATION</option>
+            <option value="PERM_CHANGE">PERM_CHANGE</option>
+            <option value="INVENTORY_ADJUST">INVENTORY_ADJUST</option>
+            <option value="FLEET_STATUS_CHANGE">FLEET_STATUS_CHANGE</option>
+            <option value="MAINTENANCE_REQUEST_CREATE">MAINTENANCE_REQUEST_CREATE</option>
+            <option value="JOB_BUILD_CREATE">JOB_BUILD_CREATE</option>
+          </Sel>
+        </div>
+      )}
+
+      {mode === "batches" ? (
+        <div>
+          <div style={{ display: "flex", gap: "var(--space-5)", marginBottom: 16, flexWrap: "wrap" }}>
+            <Inp
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search item, PO/invoice, supplier, or who received it..."
+              style={{ flex: 1, minWidth: 240 }}
+            />
+            <Sel value={ledgerWho} onChange={(e) => setLedgerWho(e.target.value)} style={{ width: 220 }}>
+              <option value="all">Anyone</option>
+              {ledgerPeople.map((id) => (
+                <option key={id} value={id}>{nameOf(id)}</option>
+              ))}
+            </Sel>
+          </div>
+
+          <p style={{ margin: "0 0 12px", color: C.sub, fontSize: "var(--text-xs)" }}>
+            {filteredLedger.length} of {ledger.length} receipts · sourced from the batches themselves, so
+            this survives the 30-day log purge.
+          </p>
+
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-xs)" }}>
+              <thead>
+                <tr style={{ textAlign: "left", color: C.sub, textTransform: "uppercase" }}>
+                  {["Date", "Item", "Qty", "Remaining", ...(perms?.inv_pricing_view ? ["Unit Price", "Value"] : []), "Received By", "Invoice / PO", "Supplier"].map((h) => (
+                    <th key={h} style={{ padding: "8px 10px", fontSize: "var(--text-2xs)", whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLedger.map((r) => {
+                  const unpriced = r.price === 0 && r.rem > 0;
+                  const isReceipt = r.kind === "receipt";
+                  const tag = { shortfall: ["pulled short", C.rd], adjustment: ["stock adjustment", C.am], return: ["returned", C.am], "price-only": ["price entry", C.sub] }[r.kind];
+                  return (
+                    <tr key={r.key} style={{ borderTop: `1px solid ${C.lg}` }}>
+                      <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: C.sub }}>{r.rcvd}</td>
+                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>
+                        {r.itemName}
+                        {tag && <span style={{ color: tag[1], fontWeight: "normal" }}> · {tag[0]}</span>}
+                      </td>
+                      <td style={{ padding: "8px 10px" }}>{r.qty} {r.unit}</td>
+                      <td style={{ padding: "8px 10px", color: r.rem === 0 ? C.sub : C.gr, fontWeight: "var(--weight-bold)" }}>{r.rem}</td>
+                      {perms?.inv_pricing_view && (
+                        <>
+                          <td style={{ padding: "8px 10px", color: unpriced ? C.rd : C.blue, fontWeight: "var(--weight-bold)", whiteSpace: "nowrap" }}>
+                            ${r.price.toFixed(2)}{unpriced && " ⚠️"}
+                          </td>
+                          <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>${(r.rem * r.price).toFixed(2)}</td>
+                        </>
+                      )}
+                      <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: r.kind === "shortfall" ? C.sub : C.navy }}>
+                        {r.kind === "shortfall" ? "system" : nameOf(r.by)}
+                      </td>
+                      {/* Only a real delivery owes a PO/vendor — everything else has none by nature. */}
+                      <td style={{ padding: "8px 10px", fontFamily: "monospace", color: r.ref ? C.navy : isReceipt ? C.rd : C.sub }}>
+                        {r.ref || (isReceipt ? "missing" : "—")}
+                      </td>
+                      <td style={{ padding: "8px 10px", color: r.vendor ? C.navy : isReceipt ? C.rd : C.sub }}>
+                        {r.vendor || (isReceipt ? "missing" : "—")}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {filteredLedger.length === 0 && (
+              <p style={{ color: C.sub, fontSize: "var(--text-sm)", padding: "16px 0" }}>No receipts match.</p>
+            )}
+          </div>
+        </div>
+      ) : loading ? (
         <LoadingState label="Streaming audit packets..." />
       ) : loadError ? (
         <div style={{ background: "#fee2e2", border: "1.5px solid #ef4444", borderRadius: "var(--radius-lg)", padding: "24px", textAlign: "center", color: "#991b1b" }}>
