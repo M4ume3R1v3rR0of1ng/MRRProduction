@@ -40,7 +40,14 @@ export default function Users({
   const { showToast } = useNotify();
 
   const save = async () => {
-    if (!form.name || !form.email || !form.role) return;
+    const missing = [];
+    if (!form.name) missing.push("name");
+    if (!form.email) missing.push("email");
+    if (!form.role) missing.push("role");
+    if (missing.length) {
+      showToast(`Nothing was saved — please fill in the ${missing.join(", ")}.`, "warning");
+      return;
+    }
 
     // ✅ Map input cleanly to match your actual profiles table columns
     const profilePayload = {

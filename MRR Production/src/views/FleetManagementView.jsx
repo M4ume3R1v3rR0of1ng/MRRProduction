@@ -318,7 +318,16 @@ export default function FleetManagementView({
   };
 
   const logMi = async () => {
-    if (!form.mi || !form.date) return;
+    // Say what's missing. A bare `return` here looks identical to a save that worked:
+    // the modal sits there, nothing is written, and no one finds out until the numbers
+    // are wrong later.
+    const missing = [];
+    if (!form.mi) missing.push("odometer reading");
+    if (!form.date) missing.push("date");
+    if (missing.length) {
+      showToast(`Nothing was logged — please enter the ${missing.join(" and ")}.`, "warning");
+      return;
+    }
     const mi = parseFloat(form.mi);
     try {
       const live = await fetchLiveVehicle(sel.id, "mi,mil");
@@ -344,7 +353,13 @@ export default function FleetManagementView({
   };
 
   const logSvc = async () => {
-    if (!form.type || !form.date) return;
+    const missing = [];
+    if (!form.type) missing.push("service type");
+    if (!form.date) missing.push("date");
+    if (missing.length) {
+      showToast(`Nothing was logged — please enter the ${missing.join(" and ")}.`, "warning");
+      return;
+    }
     const e = {
       id: Math.random().toString(36).slice(2, 10),
       type: form.type,
