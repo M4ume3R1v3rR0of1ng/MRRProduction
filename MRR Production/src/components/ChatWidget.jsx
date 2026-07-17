@@ -148,7 +148,7 @@ export default function ChatWidget({ user }) {
               alignItems: "center",
             }}
           >
-            <div style={{ fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-md)" }}>🤖 MRR Assistant</div>
+            <div style={{ fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-md)" }}>🤖 Steadwerk Assistant</div>
             <button
               onClick={() => setOpen(false)}
               style={{ background: "none", border: "none", color: C.w, cursor: "pointer", fontSize: "var(--text-xl)", lineHeight: 1 }}
@@ -296,7 +296,7 @@ export default function ChatWidget({ user }) {
 
       <button
         onClick={() => setOpen((o) => !o)}
-        title="MRR Assistant"
+        title="Steadwerk Assistant"
         style={{
           width: 56,
           height: 56,
