@@ -145,18 +145,25 @@ export const doFifo = (item, qty) => {
   );
   let r = qty,
     c = 0;
+  // Which batch supplied which units, at which price. This is the only record of it:
+  // `cost` alone collapses to a blended average (10 @ $10 + 5 @ $15 becomes "15 @
+  // $11.67", a price no batch ever had), and nothing else in the system knows where a
+  // job's material came from. Without it, correcting a batch price can only GUESS
+  // which jobs to recalculate by matching on that average.
+  const consumed = [];
   const u = s.map((b) => {
     if (r <= 0 || b.rem <= 0) return b;
     const t = Math.min(r, b.rem);
     r -= t;
     c += t * b.price;
+    consumed.push({ bid: b.id, rcvd: b.rcvd, qty: t, price: b.price });
     return { ...b, rem: b.rem - t };
   });
 
   if (r > 0) {
     const lastPrice = s.length > 0 ? s[s.length - 1].price : 0;
     c += r * lastPrice;
-    u.push({
+    const neg = {
       id: "neg_" + Math.random().toString(36).slice(2, 10),
       rcvd: new Date().toISOString().split("T")[0],
       qty: -r,
@@ -164,10 +171,36 @@ export const doFifo = (item, qty) => {
       by: "system",
       rem: -r,
       short: true,
-    });
+    };
+    u.push(neg);
+    // Recorded as consumed too — those units were issued to the job and billed at the
+    // newest price. Flagged so a report can say they came from stock that wasn't there.
+    consumed.push({ bid: neg.id, rcvd: neg.rcvd, qty: r, price: lastPrice, short: true });
   }
 
-  return { batches: u, cost: c, shortfall: Math.max(0, r) };
+  return { batches: u, cost: c, shortfall: Math.max(0, r), consumed };
+};
+
+// Re-derive a pulled job line's cost with ONE batch repriced — what a batch price
+// correction has to do to every job that took material from that batch.
+//
+// With a `consumed` split this is exact even for a pull that spanned several batches:
+// only the units from batchId move, and the rest keep the price they were actually
+// bought at. Without one (rows written before doFifo recorded the split) there is no
+// breakdown to work from, so the caller must have already established that the whole
+// line came from this batch — see jobsUsingBatch in InventoryView.
+export const recostLine = (line, batchId, newPrice) => {
+  const pulled = parseFloat(line?.pulled) || 0;
+  const split = Array.isArray(line?.consumed) && line.consumed.length > 0 ? line.consumed : null;
+  if (!split) {
+    return { priceAtPull: newPrice, pullCost: pulled * newPrice };
+  }
+  const consumed = split.map((c) => (c.bid === batchId ? { ...c, price: newPrice } : c));
+  const cost = consumed.reduce(
+    (s, c) => s + (parseFloat(c.qty) || 0) * (parseFloat(c.price) || 0),
+    0,
+  );
+  return { consumed, pullCost: cost, priceAtPull: pulled > 0 ? cost / pulled : 0 };
 };
 
 // Carry live pull-tracking fields over an edited job item list, so a stale
@@ -183,7 +216,9 @@ export const mergePullTracking = (editedItems, liveItems) => {
     const live = liveById.get(item.iid);
     if (!live) return item;
     const keep = {};
-    ["pulled", "priceAtPull", "pullCost", "returned"].forEach((k) => {
+    // `consumed` is pull history like the rest — an editor that drops it would erase
+    // the only record of which batches the job's material came from.
+    ["pulled", "priceAtPull", "pullCost", "returned", "consumed"].forEach((k) => {
       if (live[k] !== undefined) keep[k] = live[k];
     });
     return { ...item, ...keep };

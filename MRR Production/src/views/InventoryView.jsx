@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase, updateRowStrict } from "../utils/supabase";
 import { sendLowStockAlerts } from "../utils/lowStockAlerts";
-import { C, uid, fd, fm, tot, newestPrice } from "../utils/helpers";
+import { C, uid, fd, fm, tot, newestPrice, recostLine } from "../utils/helpers";
 import { fetchJobTemplates, saveJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
 import {
   Btn,
@@ -422,29 +422,35 @@ export default function InventoryView({
     }
   };
 
-  // Jobs whose recorded cost came from THIS batch alone. Nothing records which batches
-  // a pull consumed (doFifo computes the split then discards it), so a job's priceAtPull
-  // matching the batch's price is the only reliable signal that this batch is where its
-  // cost came from. Jobs with any other price pulled across several batches — their cost
-  // is a blend this correction can't safely re-derive, so they're surfaced, never touched.
-  const jobsPricedFrom = (itemId, oldPrice) => {
-    const touched = (jobs || []).filter((j) =>
-      (j.items || j.materials || []).some((i) => i && i.iid === itemId && (parseFloat(i.pulled) || 0) > 0),
-    );
-    const priceOf = (j) => {
-      const line = (j.items || j.materials || []).find((i) => i && i.iid === itemId);
-      return parseFloat(line?.priceAtPull) || 0;
-    };
-    return {
-      exact: touched.filter((j) => priceOf(j) === oldPrice),
-      blended: touched.filter((j) => priceOf(j) !== oldPrice),
-    };
-  };
-
   const lineFor = (j, itemId) => (j.items || j.materials || []).find((i) => i && i.iid === itemId);
   const usedOf = (j, itemId) => {
     const l = lineFor(j, itemId);
     return Math.max(0, (parseFloat(l?.pulled) || 0) - (parseFloat(l?.returned) || 0));
+  };
+  const hasSplit = (l) => Array.isArray(l?.consumed) && l.consumed.length > 0;
+
+  // Which jobs actually took material from this batch.
+  //
+  //   with a split  — exact: the job names the batch id, so there is nothing to infer,
+  //                   and a multi-batch pull can be repriced correctly.
+  //   without one   — legacy rows predate `consumed`. The only signal left is the
+  //                   blended priceAtPull matching this batch's price, which holds
+  //                   only if the pull came from this batch alone. Anything else is a
+  //                   blend of prices we can no longer take apart: surfaced, untouched.
+  const jobsUsingBatch = (itemId, batchId, oldPrice) => {
+    const exact = [];
+    const blended = [];
+    for (const j of jobs || []) {
+      const line = lineFor(j, itemId);
+      if (!line || (parseFloat(line.pulled) || 0) <= 0) continue;
+      if (hasSplit(line)) {
+        if (line.consumed.some((c) => c.bid === batchId)) exact.push(j);
+        continue; // named a split that doesn't include this batch → genuinely unaffected
+      }
+      if ((parseFloat(line.priceAtPull) || 0) === oldPrice) exact.push(j);
+      else blended.push(j);
+    }
+    return { exact, blended };
   };
 
   const saveBatch = async () => {
@@ -462,7 +468,7 @@ export default function InventoryView({
 
     // A price change restates finished jobs, so it never happens without showing the
     // damage first. PO/vendor don't touch cost and save straight through.
-    const hits = priceChanged ? jobsPricedFrom(sel.id, oldPrice) : { exact: [], blended: [] };
+    const hits = priceChanged ? jobsUsingBatch(sel.id, batchSel.id, oldPrice) : { exact: [], blended: [] };
     if (priceChanged && hits.exact.length > 0 && !recalc) {
       setRecalc({ oldPrice, newPrice, ...hits });
       return;
@@ -487,9 +493,8 @@ export default function InventoryView({
         const fix = (arr) =>
           (arr || []).map((i) => {
             if (!i || i.iid !== sel.id) return i;
-            const pulled = parseFloat(i.pulled) || 0;
-            if (pulled <= 0) return i;
-            return { ...i, priceAtPull: newPrice, pullCost: pulled * newPrice };
+            if ((parseFloat(i.pulled) || 0) <= 0) return i;
+            return { ...i, ...recostLine(i, batchSel.id, newPrice) };
           });
         for (const j of hits.exact) {
           const next = { items: fix(j.items), materials: fix(j.materials) };
@@ -1098,14 +1103,22 @@ export default function InventoryView({
                   will be re-derived at {fm(recalc.newPrice)}. Nothing is typed in by hand.
                 </div>
                 {recalc.exact.map((j) => {
+                  const line = lineFor(j, sel.id);
                   const used = usedOf(j, sel.id);
+                  // What the report shows is used × priceAtPull, so preview that —
+                  // re-derived per job, since a multi-batch pull only moves partway.
+                  const before = used * (parseFloat(line.priceAtPull) || 0);
+                  const after = used * (recostLine(line, batchSel.id, recalc.newPrice).priceAtPull || 0);
                   return (
                     <div key={j.id} style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-xs)", padding: "4px 0", borderTop: `1px solid ${C.bd}` }}>
                       <span style={{ color: C.navy, fontWeight: "var(--weight-bold)" }}>
                         {j.title || j.name || j.id} <span style={{ color: C.sub, fontWeight: "normal" }}>({j.status})</span>
+                        {hasSplit(line) && line.consumed.length > 1 && (
+                          <span style={{ color: C.sub, fontWeight: "normal" }}> · {line.consumed.length} batches</span>
+                        )}
                       </span>
                       <span style={{ whiteSpace: "nowrap" }}>
-                        {used} × · {fm(used * recalc.oldPrice)} → <strong style={{ color: C.gr }}>{fm(used * recalc.newPrice)}</strong>
+                        {used} × · {fm(before)} → <strong style={{ color: C.gr }}>{fm(after)}</strong>
                       </span>
                     </div>
                   );
@@ -1113,8 +1126,8 @@ export default function InventoryView({
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", fontWeight: "var(--weight-extrabold)", color: C.navy, paddingTop: 8, marginTop: 4, borderTop: `2px solid ${C.bd}` }}>
                   <span>Total change</span>
                   <span>
-                    {fm(recalc.exact.reduce((s, j) => s + usedOf(j, sel.id) * recalc.oldPrice, 0))} →{" "}
-                    {fm(recalc.exact.reduce((s, j) => s + usedOf(j, sel.id) * recalc.newPrice, 0))}
+                    {fm(recalc.exact.reduce((s, j) => s + usedOf(j, sel.id) * (parseFloat(lineFor(j, sel.id)?.priceAtPull) || 0), 0))} →{" "}
+                    {fm(recalc.exact.reduce((s, j) => s + usedOf(j, sel.id) * (recostLine(lineFor(j, sel.id), batchSel.id, recalc.newPrice).priceAtPull || 0), 0))}
                   </span>
                 </div>
               </div>

@@ -313,6 +313,11 @@ export default function PullInventory({
             pulled: qty,
             priceAtPull: ppu,
             pullCost: res.cost,
+            // The batch-by-batch split behind priceAtPull. priceAtPull is a blended
+            // average and can't be traced back; this can. It makes a batch price
+            // correction exact rather than a guess, and lets a report show what the
+            // material actually cost instead of an average of it.
+            consumed: res.consumed,
           };
         }
       }
