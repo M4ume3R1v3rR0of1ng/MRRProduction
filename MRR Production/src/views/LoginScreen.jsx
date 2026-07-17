@@ -123,6 +123,28 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
     });
   };
 
+  const forgotPassword = async () => {
+    setErr("");
+    setNotice("");
+    const target = email.trim().toLowerCase();
+    if (!target) {
+      setErr("Enter your email above first, then tap “Forgot password”.");
+      return;
+    }
+    setSubmitting(true);
+    // The link lands back in the app (redirectTo must be allow-listed in Supabase →
+    // Auth → URL Configuration). We always show the same confirmation whether or not
+    // the address is registered — never reveal which emails have accounts.
+    try {
+      await supabase.auth.resetPasswordForEmail(target, { redirectTo: window.location.origin });
+    } catch {
+      /* swallowed on purpose — see note above */
+    } finally {
+      setSubmitting(false);
+      setNotice(`If an account exists for ${target}, a password-reset link is on its way. Check your inbox (and spam).`);
+    }
+  };
+
   const tryLogin = async () => {
     setErr("");
     setSubmitting(true);
@@ -415,7 +437,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
             </Fld>
 
             {mode === "login" && (
-              <div style={{ display: "flex", alignItems: "center", marginBottom: 16, marginTop: -4 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, marginTop: -4 }}>
                 <label
                   style={{
                     display: "flex",
@@ -436,6 +458,14 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
                   />
                   {t.rememberMe}
                 </label>
+                <button
+                  type="button"
+                  onClick={forgotPassword}
+                  disabled={submitting}
+                  style={{ background: "none", border: "none", color: BRAND.amberDeep, fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer", padding: 0, fontSize: "var(--text-base)" }}
+                >
+                  Forgot password?
+                </button>
               </div>
             )}
 
