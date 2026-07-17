@@ -13,6 +13,7 @@ import { fetchJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplate
 
 export default function BuildJobs({
   jobs = [],
+  company = null,
   setJobs,
   inv = [],
   vehs = [],
@@ -915,7 +916,7 @@ export default function BuildJobs({
                         sz="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (!generatePDF(job, users, activeLogo, inv)) {
+                          if (!generatePDF(job, users, activeLogo, inv, company)) {
                             showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning");
                           }
                         }}
@@ -997,7 +998,7 @@ export default function BuildJobs({
                 v="green"
                 sz="sm"
                 onClick={() => {
-                  if (!generatePDF(sel, users, activeLogo, inv)) {
+                  if (!generatePDF(sel, users, activeLogo, inv, company)) {
                     showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning");
                   }
                 }}

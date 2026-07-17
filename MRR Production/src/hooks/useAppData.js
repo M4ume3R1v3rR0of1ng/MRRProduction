@@ -57,7 +57,7 @@ export function useAppData() {
 
   // ── ⚙️ UNIFIED DATA INITIALIZATION ENGINE ──
   async function load() {
-      console.log("🚀 Initializing Maumee River Roofing WMS Boot Sequence via useAppData...");
+      console.log("🚀 Initializing Steadwerk boot sequence via useAppData...");
       try {
         setLoading(true);
         setLoadingProgress(10); // Start cache extraction step[cite: 6]
@@ -471,6 +471,7 @@ export function useAppData() {
     logos,
     setLogos,
     company,
+    setCompany,
     pendingReqCount,
     lowStockCount,
     newJobsForMe,

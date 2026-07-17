@@ -14,6 +14,7 @@ import { sendEmail, escapeHtml as esc } from "../utils/email";
 
 export default function PullInventory({
   jobs = [],
+  company = null,
   setJobs,
   inv = [],
   setInv,
@@ -445,7 +446,7 @@ export default function PullInventory({
       setRetQtys({});
 
       setTimeout(() => {
-        if (!generatePDF(updatedJob, users, activeLogo, newInv)) {
+        if (!generatePDF(updatedJob, users, activeLogo, newInv, company)) {
           showToast("Popup blocked — allow popups for this site, then use the 📄 PDF button to open the report.", "warning");
         }
         if (acculynxConfig?.autoSync) {
@@ -616,7 +617,7 @@ export default function PullInventory({
                   )}
                   {job.status === "completed" && (
                     <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                      <Btn v="green" sz="sm" onClick={() => { if (!generatePDF(job, users, activeLogo, inv)) showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning"); }}>📄 PDF</Btn>
+                      <Btn v="green" sz="sm" onClick={() => { if (!generatePDF(job, users, activeLogo, inv, company)) showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning"); }}>📄 PDF</Btn>
                       <Btn v="sky" sz="sm" onClick={() => setSyncModal(job)}>☁️ Sync Status</Btn>
                     </div>
                   )}
@@ -976,7 +977,7 @@ export default function PullInventory({
           </table>
           {sel.status === "completed" && (
             <div style={{ marginTop: 10, display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
-              <Btn v="green" onClick={() => { if (!generatePDF(sel, users, activeLogo, inv)) showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning"); }}>📄 PDF</Btn>
+              <Btn v="green" onClick={() => { if (!generatePDF(sel, users, activeLogo, inv, company)) showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning"); }}>📄 PDF</Btn>
               <Btn v="sky" onClick={() => setSyncModal(sel)}>☁️ AccuLynx Sync</Btn>
             </div>
           )}

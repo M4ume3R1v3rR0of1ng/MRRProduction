@@ -54,6 +54,13 @@ export default function App() {
   // ── 🟢 CONSUME DECOUPLED CUSTOM STATE INFRASTRUCTURE HOOK ──
   const app = useAppData();
 
+  // The active tenant's name for display. branding.displayName (editable in Settings)
+  // wins over the canonical companies.name, which itself beats the membership copy.
+  // Falls back to the PRODUCT name, never to a hardcoded tenant — that would show one
+  // company another's name.
+  const companyDisplayName =
+    app.company?.branding?.displayName || app.company?.name || app.curUser?.companyName || "Steadwerk";
+
   // ── 🧭 BROWSER NATIVE HISTORY POPSTATE INTERCEPTOR ──
   useEffect(() => {
     const handlePopState = (event) => {
@@ -171,7 +178,7 @@ return (
                 every other company by your company's name. */}
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-display)", fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: "#EDE6DA" }}>
               <TrussMark size={20} />
-              {app.company?.name || app.curUser?.companyName || "Steadwerk"}
+              {companyDisplayName}
             </div>
             <button onClick={() => setMobileMenuOpen((o) => !o)} style={{ background: "transparent", border: "none", color: "#EDE6DA", fontSize: "var(--text-3xl)", cursor: "pointer", lineHeight: 1 }}>
               {mobileMenuOpen ? "✕" : "☰"}
@@ -192,7 +199,7 @@ return (
             onLogout={handleLogout}
             collapsed={isMobile ? false : collapsed}
             setCollapsed={setCollapsed}
-            companyName={app.company?.name || app.curUser?.companyName || null}
+            companyName={companyDisplayName}
             isPlatformAdmin={app.curUser?.isPlatformAdmin}
             pendingReqs={app.pendingReqCount}
             lowStock={app.lowStockCount}
@@ -232,7 +239,7 @@ return (
           {!isMobile && (
             <div style={{ background: C.w, padding: "0 20px", height: 56, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)", flexShrink: 0 }}>
               <div style={{ fontSize: "var(--text-sm)", color: C.sub, flexShrink: 0, marginRight: 24 }}>
-                Maumee River Roofing · Saint Joe Road Warehouse
+                {companyDisplayName}{app.warehouses?.[0]?.name ? ` · ${app.warehouses[0].name}` : ""}
               </div>
 
               <div style={{ flex: 1, maxWidth: "400px", display: "flex", justifyContent: "flex-start", paddingRight: "40px" }}>
@@ -291,10 +298,10 @@ return (
               <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} setReqs={app.setReqs} />
             )}
             {view === "buildjobs" && (app.userPerms.jobs_build || app.userPerms.jobs_close) && (
-              <BuildJobsView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} openItemId={searchTargetFor("buildjobs")} onOpenItemHandled={clearSearchTarget} activeLogo={app.activeLogo}/>
+              <BuildJobsView jobs={app.jobs} company={app.company} setJobs={app.setJobs} inv={app.inv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} openItemId={searchTargetFor("buildjobs")} onOpenItemHandled={clearSearchTarget} activeLogo={app.activeLogo}/>
             )}
             {view === "pull" && (
-              <PullInventoryView jobs={app.jobs} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} activeLogo={app.activeLogo} acculynxConfig={app.acculynxConfig} jSC={jSC} lang={lang} setLang={setLang} openItemId={searchTargetFor("pull")} onOpenItemHandled={clearSearchTarget} />
+              <PullInventoryView jobs={app.jobs} company={app.company} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} activeLogo={app.activeLogo} acculynxConfig={app.acculynxConfig} jSC={jSC} lang={lang} setLang={setLang} openItemId={searchTargetFor("pull")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "inventory" && app.userPerms.inv_view && (
               <InventoryView inv={app.inv} setInv={app.setInv} jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} />
@@ -312,7 +319,7 @@ return (
               <UserManagementView users={app.users} setUsers={app.setUsers} currentUser={app.curUser} rolePerms={app.rolePerms} userOverrides={app.userOverrides} setUserOverrides={app.setUserOverrides} lang={lang} setLang={setLang} openItemId={searchTargetFor("users")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "settings" && app.userPerms.settings_manage && (
-              <SettingsView warehouses={app.warehouses} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} />
+              <SettingsView warehouses={app.warehouses} company={app.company} setCompany={app.setCompany} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} />
             )}
             {view === "logs" && app.userPerms.users_manage && (
               <AuditLogView perms={app.userPerms} inv={app.inv} users={app.users} />

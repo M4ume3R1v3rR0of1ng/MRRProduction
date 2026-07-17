@@ -105,6 +105,8 @@ export default function SettingsView({
   setWarehouses,
   logos,
   setLogos,
+  company,
+  setCompany,
   rolePerms,
   setRolePerms,
   acculynxConfig,
@@ -115,6 +117,51 @@ export default function SettingsView({
 }) {
   const { showToast } = useNotify();
   const [currentTab, setCurrentTab] = useState("Permissions");
+  // Company display name + tax, stored in companies.branding via set_company_branding.
+  // This is what the top bar, sidebar, and every PDF report read — so a tenant controls
+  // how their name and tax line appear without touching code.
+  const [brandForm, setBrandForm] = useState({
+    displayName: company?.branding?.displayName || company?.name || "",
+    taxRate: company?.branding?.taxRate != null ? String(company.branding.taxRate * 100) : "",
+    taxLabel: company?.branding?.taxLabel || "",
+  });
+  const [savingBrand, setSavingBrand] = useState(false);
+
+  const saveBranding = async () => {
+    const name = brandForm.displayName.trim();
+    if (!name) {
+      showToast("Company name can't be empty.", "warning");
+      return;
+    }
+    // Percent in the field, fraction in the DB. Blank = leave it to the 7% default.
+    const pct = brandForm.taxRate.trim();
+    let taxRate;
+    if (pct !== "") {
+      const n = parseFloat(pct);
+      if (!Number.isFinite(n) || n < 0) {
+        showToast("Tax rate must be a non-negative number (percent).", "warning");
+        return;
+      }
+      taxRate = n / 100;
+    }
+    const patch = { displayName: name, taxLabel: brandForm.taxLabel.trim() || null };
+    if (taxRate !== undefined) patch.taxRate = taxRate;
+
+    setSavingBrand(true);
+    try {
+      const { data, error } = await supabase.rpc("set_company_branding", { patch });
+      if (error) throw error;
+      // Reflect immediately everywhere that reads company.branding (top bar, PDFs).
+      if (typeof setCompany === "function") {
+        setCompany((prev) => (prev ? { ...prev, branding: data || { ...prev.branding, ...patch } } : prev));
+      }
+      showToast("Company details saved.", "success");
+    } catch (err) {
+      showToast(`Could not save: ${err.message}`, "error");
+    } finally {
+      setSavingBrand(false);
+    }
+  };
   const [whForm, setWhForm]         = useState({ name: "", location: "", code: "" });
   const [savingAx, setSavingAx]     = useState(false);
 
@@ -542,7 +589,47 @@ export default function SettingsView({
         <Card>
           <SectionTitle
             icon="🏢"
-            title="Company Branding"
+            title="Company Details"
+            subtitle="Your company name and tax line appear on every PDF report, the top bar, and the sidebar."
+          />
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-4)", paddingTop: 12, marginBottom: 8 }}>
+            <Fld label="Company Name" hint="Shown as the header on job reports and across the app.">
+              <Inp
+                value={brandForm.displayName}
+                onChange={(e) => setBrandForm({ ...brandForm, displayName: e.target.value })}
+                placeholder="e.g. Your Company Name"
+                disabled={savingBrand}
+              />
+            </Fld>
+            <Fld label="Sales Tax Rate (%)" hint="Applied to material totals on the report. Leave blank for 7%.">
+              <Inp
+                type="number"
+                step="0.01"
+                value={brandForm.taxRate}
+                onChange={(e) => setBrandForm({ ...brandForm, taxRate: e.target.value })}
+                placeholder="7"
+                disabled={savingBrand}
+              />
+            </Fld>
+            <Fld label="Tax Label" hint='How the tax line reads, e.g. "Ohio Sales Tax". Defaults to "Sales Tax".'>
+              <Inp
+                value={brandForm.taxLabel}
+                onChange={(e) => setBrandForm({ ...brandForm, taxLabel: e.target.value })}
+                placeholder="Sales Tax"
+                disabled={savingBrand}
+              />
+            </Fld>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
+            <Btn v="primary" onClick={saveBranding} disabled={savingBrand}>
+              {savingBrand ? "Saving…" : "Save Company Details"}
+            </Btn>
+          </div>
+
+          <SectionTitle
+            icon="🖼️"
+            title="Company Logo"
             subtitle="Your logo appears in the sidebar, login screen, and all PDF reports."
           />
 
