@@ -326,13 +326,17 @@ export default function PullInventory({
 
       const updatedJob = { ...sel, status: "active", items: updItems, materials: updItems };
 
-      const jobRes = await updateRowStrict("jobs", sel.id, { status: "active", items: updItems, materials: updItems });
-      if (jobRes.error) throw jobRes.error;
-
-      for (const [itemId, batches] of changedBatches) {
-        const invRes = await updateRowStrict("inventory", itemId, { batches });
-        if (invRes.error) throw invRes.error;
-      }
+      // One transaction (supabase/14). Writing the job and then each item separately
+      // meant a failure partway left the job marked pulled with only some stock
+      // deducted — and unrecoverable, since the Pull button only shows on `approved`
+      // jobs. Either all of this lands or none of it does.
+      const { error: commitErr } = await supabase.rpc("commit_job_materials", {
+        p_job_id: sel.id,
+        p_status: "active",
+        p_items: updItems,
+        p_batches: Object.fromEntries(changedBatches),
+      });
+      if (commitErr) throw commitErr;
 
       setInv((p) => p.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i)));
       setJobs((p) => p.map((j) => (j.id === sel.id ? updatedJob : j)));
@@ -417,13 +421,16 @@ export default function PullInventory({
         materials: updItems,
       };
 
-      const jobRes = await updateRowStrict("jobs", sel.id, { status: "completed", completed: completedAt, completedAt, items: updItems, materials: updItems });
-      if (jobRes.error) throw jobRes.error;
-
-      for (const [itemId, batches] of changedBatches) {
-        const invRes = await updateRowStrict("inventory", itemId, { batches });
-        if (invRes.error) throw invRes.error;
-      }
+      // Same transaction guarantee as the pull: returned stock and the job's
+      // completion land together, or neither does.
+      const { error: commitErr } = await supabase.rpc("commit_job_materials", {
+        p_job_id: sel.id,
+        p_status: "completed",
+        p_items: updItems,
+        p_batches: Object.fromEntries(changedBatches),
+        p_completed: completedAt,
+      });
+      if (commitErr) throw commitErr;
 
       const newInv = inv.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i));
       setInv(newInv);
