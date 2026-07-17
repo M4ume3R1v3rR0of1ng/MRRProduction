@@ -484,10 +484,10 @@ export default function BuildJobs({
       try {
         const { error } = await supabase
           .from("jobs")
-          .update({ newforassigned: true, newForAssigned: true })
+          .update({ newforassigned: true })
           .eq("id", jobId);
         if (error) throw error;
-        setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, newforassigned: true, newForAssigned: true } : j)));
+        setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, newforassigned: true } : j)));
       } catch (err) {
         console.error("Failed to flag job for trailer update notification:", err);
       }
@@ -1044,7 +1044,7 @@ export default function BuildJobs({
               ["PO", sel.po],
               ["Assigned To", users.find((u) => u.id === sel.assignedto || u.id === sel.assignedTo)?.name || "Unassigned"],
               ["Created", fd(sel.created || sel.createdAt)],
-              ["Approved", fd(sel.approved || sel.approvedAt)],
+              ["Approved", fd(sel.approved)],
               ["Completed", fd(sel.completed || sel.completedAt)],
               ["🚚 Trailers", jobTrailers.filter((jt) => jt.job_id === sel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || "None assigned"],
             ].map(([k, v]) => (

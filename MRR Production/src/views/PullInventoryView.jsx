@@ -172,10 +172,10 @@ export default function PullInventory({
       try {
         const { error } = await supabase
           .from("jobs")
-          .update({ newforassigned: true, newForAssigned: true })
+          .update({ newforassigned: true })
           .eq("id", jobId);
         if (error) throw error;
-        setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, newforassigned: true, newForAssigned: true } : j)));
+        setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, newforassigned: true } : j)));
       } catch (err) {
         console.error("Failed to flag job for trailer update notification:", err);
       }
@@ -242,16 +242,16 @@ export default function PullInventory({
   const openJob = async (j) => {
     if (!j) return;
     setSel(j);
-    const isNew = j.newforassigned || j.newForAssigned;
+    const isNew = j.newforassigned;
     if (isNew && (j.assignedto === user.id || j.assignedTo === user.id)) {
       try {
         const { error } = await supabase
           .from("jobs")
-          .update({ newforassigned: false, newForAssigned: false })
+          .update({ newforassigned: false })
           .eq("id", j.id);
         if (error) throw error;
         setJobs((p) =>
-          p.map((x) => (x.id === j.id ? { ...x, newforassigned: false, newForAssigned: false } : x)),
+          p.map((x) => (x.id === j.id ? { ...x, newforassigned: false } : x)),
         );
       } catch (err) {
         console.error("Failed to update newForAssigned badge:", err);
@@ -538,7 +538,7 @@ export default function PullInventory({
             .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
             .filter(Boolean);
           const st = jSC[job.status] || { c: "gray", icon: "📋", l: job.status };
-          const isNew = (job.newforassigned || job.newForAssigned) && (job.assignedto === user.id || job.assignedTo === user.id);
+          const isNew = (job.newforassigned) && (job.assignedto === user.id || job.assignedTo === user.id);
           
           const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
           
@@ -935,7 +935,7 @@ export default function PullInventory({
               ["PO", sel.po || "—"],
               ["Assigned To", users.find((u) => u.id === sel.assignedto || u.id === sel.assignedTo)?.name || "—"],
               ["🚚 Trailer", jobTrailers.filter((jt) => jt.job_id === sel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || "None needed"],
-              ["Approved", fd(sel.approved || sel.approvedAt)],
+              ["Approved", fd(sel.approved)],
               ["Completed", fd(sel.completed || sel.completedAt)],
             ].map(([k, v]) => (
               <div key={k} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}>

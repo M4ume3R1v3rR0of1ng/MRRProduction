@@ -413,7 +413,7 @@ export function useAppData() {
   // ── 📊 COMPUTED MEMO VALUES ──
   const pendingReqCount = useMemo(() => reqs.filter((r) => r.status === "pending").length, [reqs]);
   const lowStockCount = useMemo(() => inv.filter((i) => tot(i) <= i.alrt).length, [inv]);
-  const newJobsForMe = useMemo(() => curUser ? jobs.filter((j) => (j.newforassigned || j.newForAssigned) && (j.assignedto || j.assignedTo) === curUser.id).length : 0, [jobs, curUser]);
+  const newJobsForMe = useMemo(() => curUser ? jobs.filter((j) => (j.newforassigned) && (j.assignedto || j.assignedTo) === curUser.id).length : 0, [jobs, curUser]);
   const jobsAwaitingCloseCount = useMemo(() => jobs.filter((j) => j.status === "completed").length, [jobs]);
   const activeLogo = logos || null;
 

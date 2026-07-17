@@ -29,7 +29,7 @@ export default function DashboardView({
   const pendingReqs = reqs.filter((r) => r.status === "pending");
 
   const myJobs = jobs.filter((j) => (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "completed");
-  const newJobs = myJobs.filter((j) => j.newforassigned || j.newForAssigned);
+  const newJobs = myJobs.filter((j) => j.newforassigned);
 
   const [newJobAlert, setNewJobAlert] = useState(null);
 
@@ -54,14 +54,14 @@ export default function DashboardView({
     try {
       const { error } = await supabase
         .from("jobs")
-        .update({ newforassigned: false, newForAssigned: false })
+        .update({ newforassigned: false })
         .eq("id", newJobAlert.id);
 
       if (error) throw error;
 
       if (setJobs) {
         setJobs((p) =>
-          p.map((j) => (j.id === newJobAlert.id ? { ...j, newforassigned: false, newForAssigned: false } : j))
+          p.map((j) => (j.id === newJobAlert.id ? { ...j, newforassigned: false } : j))
         );
       }
       setNewJobAlert(null);

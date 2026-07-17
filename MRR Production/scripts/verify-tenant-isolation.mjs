@@ -138,12 +138,17 @@ try {
   }
 
   console.log("\n── 3. Can they WRITE into Maumee River's tenant? ───────────────");
+  // Use `title`, not the dropped `name` column (migration 15) — an unknown-column
+  // error would let this pass without RLS ever weighing in. `42501` = RLS rejection;
+  // `42703` (undefined column) or `PGRST204` would be a false pass.
   const { error: wErr } = await user.from("jobs").insert({
-    id: `evil_${Date.now()}`, company_id: mrr.id, name: "cross-tenant write", status: "pending",
+    id: `evil_${Date.now()}`, company_id: mrr.id, title: "cross-tenant write", status: "pending",
   });
-  check("jobs — cross-tenant INSERT is rejected", !!wErr, wErr ? `(blocked: ${wErr.code})` : "WRITE SUCCEEDED");
+  const rlsBlocked = wErr && wErr.code !== "42703" && wErr.code !== "PGRST204";
+  check("jobs — cross-tenant INSERT is rejected by RLS", rlsBlocked,
+        wErr ? `(blocked: ${wErr.code})` : "WRITE SUCCEEDED");
 
-  const { data: upd } = await user.from("jobs").update({ name: "hijacked" }).eq("company_id", mrr.id).select("id");
+  const { data: upd } = await user.from("jobs").update({ title: "hijacked" }).eq("company_id", mrr.id).select("id");
   check("jobs — cross-tenant UPDATE affects 0 rows", (upd || []).length === 0,
         (upd || []).length > 0 ? `MODIFIED ${upd.length} ROWS` : "");
 
