@@ -107,6 +107,8 @@ export default function SettingsView({
   setLogos,
   company,
   setCompany,
+  jobNotifications = {},
+  setJobNotifications,
   rolePerms,
   setRolePerms,
   acculynxConfig,
@@ -126,6 +128,45 @@ export default function SettingsView({
     taxLabel: company?.branding?.taxLabel || "",
   });
   const [savingBrand, setSavingBrand] = useState(false);
+
+  // Job-move email rules. Persisted to settings(key='job_notifications'), same shape
+  // and upsert path as acculynx_config / job_templates.
+  const JOB_MOVE_ROWS = [
+    { key: "approved", label: "Approved", desc: "A draft is approved and assigned — the supervisor gets the go-ahead." },
+    { key: "active", label: "Materials pulled", desc: "Inventory is pulled and the job goes active." },
+    { key: "completed", label: "Completed", desc: "Unused stock is returned and the job is marked done." },
+    { key: "closed", label: "Closed", desc: "The job is closed out and archived." },
+  ];
+  const [notifForm, setNotifForm] = useState({
+    approved: jobNotifications.approved ?? true,
+    active: jobNotifications.active ?? false,
+    completed: jobNotifications.completed ?? false,
+    closed: jobNotifications.closed ?? false,
+  });
+  const [savingNotif, setSavingNotif] = useState(false);
+
+  const saveNotifications = async () => {
+    setSavingNotif(true);
+    try {
+      const value = {
+        approved: !!notifForm.approved,
+        active: !!notifForm.active,
+        completed: !!notifForm.completed,
+        closed: !!notifForm.closed,
+      };
+      const { error } = await supabase.from("settings").upsert(
+        { key: "job_notifications", value: JSON.stringify(value), updated_at: new Date().toISOString() },
+        { onConflict: "company_id,key" },
+      );
+      if (error) throw error;
+      if (typeof setJobNotifications === "function") setJobNotifications(value);
+      showToast("Notification rules saved.", "success");
+    } catch (err) {
+      showToast(`Could not save: ${err.message}`, "error");
+    } finally {
+      setSavingNotif(false);
+    }
+  };
 
   const saveBranding = async () => {
     const name = brandForm.displayName.trim();
@@ -172,6 +213,7 @@ export default function SettingsView({
 
   const tabs = [
     { id: "Permissions", label: "Permissions", icon: "🔒" },
+    { id: "Notifications", label: "Notifications", icon: "🔔" },
     { id: "AccuLynx",   label: "AccuLynx",    icon: "🔗" },
     { id: "Branding",   label: "Branding",     icon: "🏢" },
     { id: "Warehouses", label: "Warehouses",   icon: "🏭" },
@@ -480,6 +522,48 @@ export default function SettingsView({
                 </div>
               ))}
             </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ── PANEL: Notifications ──────────────────────────────────────── */}
+      {currentTab === "Notifications" && (
+        <Card>
+          <SectionTitle
+            icon="🔔"
+            title="Job Move Notifications"
+            subtitle="Email the assigned supervisor automatically when one of their jobs changes status. Each move is independent."
+          />
+          <div style={{ border: `1px solid ${T.border}`, borderRadius: T.radius, overflow: "hidden", marginTop: 8 }}>
+            {JOB_MOVE_ROWS.map((row, idx) => (
+              <div
+                key={row.key}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  gap: "var(--space-4)", padding: "14px 16px",
+                  borderTop: idx === 0 ? "none" : `1px solid ${T.border}`,
+                  background: T.white,
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy || T.slate, fontSize: "var(--text-base)" }}>{row.label}</div>
+                  <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{row.desc}</div>
+                </div>
+                <Toggle
+                  on={!!notifForm[row.key]}
+                  onChange={() => setNotifForm((p) => ({ ...p, [row.key]: !p[row.key] }))}
+                />
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 12 }}>
+            Emails go to the job's assigned site supervisor (the field user on the job). A job with no
+            assigned supervisor, or one without an email on file, is skipped silently.
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+            <Btn v="primary" onClick={saveNotifications} disabled={savingNotif}>
+              {savingNotif ? "Saving…" : "Save Notification Rules"}
+            </Btn>
           </div>
         </Card>
       )}

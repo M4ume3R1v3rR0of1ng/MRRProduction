@@ -7,6 +7,7 @@ import { SEED_U, SEED_W, SEED_I, SEED_V, SEED_JOBS } from "../data/seeds";
 import { DEFAULT_ROLE_PERMS, getEffectivePerms } from "../database/permissions";
 import { processOfflineQueue } from "../utils/offlineSync";
 import { tot } from "../utils/helpers";
+import { DEFAULT_JOB_NOTIFICATIONS } from "../utils/jobNotifications";
 
 export function useAppData() {
   const [loading, setLoading] = useState(true);
@@ -48,6 +49,9 @@ export function useAppData() {
   const [logos, setLogos] = useState(null);
   // The company this session is working in: { id, name, slug, branding }.
   const [company, setCompany] = useState(null);
+  // Per-company job-move email rules, from settings(key='job_notifications').
+  // Off by default — automatic outbound email is opt-in per Settings → Notifications.
+  const [jobNotifications, setJobNotifications] = useState(DEFAULT_JOB_NOTIFICATIONS);
 
   const { showToast } = useNotify();
 
@@ -254,6 +258,16 @@ export function useAppData() {
               setAccuLynxConfig((p) => ({ ...p, apiKeyConfigured: true }));
             }
             trackProgress(7);
+          })(),
+          (async () => {
+            const { data, error } = await supabase.from("settings").select("value").eq("key", "job_notifications").maybeSingle();
+            if (!error && data?.value) {
+              try {
+                setJobNotifications((p) => ({ ...p, ...JSON.parse(data.value) }));
+              } catch (e) {
+                console.error("Failed to parse stored job-notification prefs:", e);
+              }
+            }
           })(),
         ]);
 
@@ -472,6 +486,8 @@ export function useAppData() {
     setLogos,
     company,
     setCompany,
+    jobNotifications,
+    setJobNotifications,
     pendingReqCount,
     lowStockCount,
     newJobsForMe,

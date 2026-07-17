@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from "react";
 import { C, uid, fd, fm, tot, mkJI, newestPrice, mergePullTracking } from "../utils/helpers";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, LoadingState } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
+import { shouldNotifyJobMove, notifyJobMove } from "../utils/jobNotifications";
 import { supabase, getAccessToken, updateRowStrict } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
 import CrewCalendar from "../components/CrewCalendar";
@@ -14,6 +15,7 @@ import { fetchJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplate
 export default function BuildJobs({
   jobs = [],
   company = null,
+  jobNotifications = {},
   setJobs,
   inv = [],
   vehs = [],
@@ -409,8 +411,13 @@ export default function BuildJobs({
         ),
       );
 
+      // The approval/assignment email is now gated by the company's notification rule
+      // (Settings → Notifications, "Approved"). Defaults ON so existing behaviour is
+      // preserved; an admin can turn it off. Richer than the generic move email — it
+      // carries the trailer list — so it stays its own template rather than routing
+      // through notifyJobMove.
       const assignedUser = users.find((u) => u.id === apAssign);
-      if (assignedUser?.email) {
+      if (assignedUser?.email && shouldNotifyJobMove("approved", jobNotifications)) {
         const trailerNames = jobTrailers
           .filter((jt) => jt.job_id === sel.id)
           .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
@@ -554,6 +561,8 @@ export default function BuildJobs({
       const updated = { ...job, status: "closed", closedAt };
       setJobs((p) => p.map((j) => (j.id === job.id ? updated : j)));
       setSel((p) => (p && p.id === job.id ? updated : p));
+      // Email the assigned supervisor if the company enabled "Closed" notifications.
+      notifyJobMove({ transition: "closed", job: updated, users, prefs: jobNotifications });
       showToast("Project closed and archived from pipeline.", "success");
     } catch (err) {
       console.error("Failed to close job:", err);

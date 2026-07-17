@@ -11,10 +11,12 @@ import { sendLowStockAlerts } from "../utils/lowStockAlerts";
 import { useNotify } from "../context/NotificationContext";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
+import { notifyJobMove } from "../utils/jobNotifications";
 
 export default function PullInventory({
   jobs = [],
   company = null,
+  jobNotifications = {},
   setJobs,
   inv = [],
   setInv,
@@ -348,6 +350,9 @@ export default function PullInventory({
       setJobs((p) => p.map((j) => (j.id === sel.id ? updatedJob : j)));
       setSel(updatedJob);
 
+      // Email the assigned supervisor if the company enabled "Materials pulled".
+      notifyJobMove({ transition: "active", job: updatedJob, users, prefs: jobNotifications });
+
       // Pulls are the main way stock drops below threshold — alert the
       // opted-in managers when this pull crosses an item's alert line.
       sendLowStockAlerts(
@@ -441,6 +446,8 @@ export default function PullInventory({
       const newInv = inv.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i));
       setInv(newInv);
       setJobs((p) => p.map((j) => (j.id === sel.id ? updatedJob : j)));
+      // Email the assigned supervisor if the company enabled "Completed".
+      notifyJobMove({ transition: "completed", job: updatedJob, users, prefs: jobNotifications });
       showToast("Job logistics completed. Generating material manifest report.", "success");
       setModal(null);
       setRetQtys({});
