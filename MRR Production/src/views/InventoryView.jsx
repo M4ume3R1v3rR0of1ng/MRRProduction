@@ -157,12 +157,13 @@ export default function InventoryView({
     );
   }, [inv, bulkSrch, bulkItems]);
 
-  const sClr = (i) => {
-    const s = tot(i);
-    if (s <= i.alrt) return C.rd;
-    if (s <= i.alrt * 1.5) return C.am;
-    return C.gr;
-  };
+  // Reorder signalling uses vivid traffic-light colors ON PURPOSE — not the muted
+  // barnwood brand tokens (C.rd is rust, C.am is brown, C.gr is sage). A low item has to
+  // jump off the screen so it's obvious what needs ordering; functional clarity beats
+  // brand harmony for this one signal. Scoped to inventory, so nothing else reskins.
+  const STOCK_RED = "#DC2626";
+  const STOCK_YELLOW = "#EAB308";
+  const STOCK_GREEN = "#16A34A";
 
   const toggleSpecial = async (item, e) => {
     e.stopPropagation();
@@ -868,15 +869,14 @@ export default function InventoryView({
           const stock = tot(item);
           const photo = item.photo_url;
           
-          // Added User Interface Color Optimization Mapping
+          // Traffic light: RED = order now (out, or at/below the reorder point),
+          // YELLOW = getting close, GREEN = healthy. `critical` drives the 🚨 flag.
           const getStockStatusMeta = (currentStock, alertThreshold) => {
-            if (currentStock <= 0) {
-              return { dot: "🔴", label: "Out of Stock", color: C.rd };
-            }
-            if (currentStock <= alertThreshold) {
-              return { dot: "🟡", label: "Low Stock", color: C.am };
-            }
-            return { dot: "🟢", label: "In Stock", color: C.gr };
+            const t = alertThreshold || 0;
+            if (currentStock <= 0) return { dot: "🔴", label: "Out of Stock", color: STOCK_RED, critical: true };
+            if (currentStock <= t) return { dot: "🔴", label: "Reorder Now", color: STOCK_RED, critical: true };
+            if (currentStock <= t * 1.5) return { dot: "🟡", label: "Getting Low", color: STOCK_YELLOW, critical: false };
+            return { dot: "🟢", label: "In Stock", color: STOCK_GREEN, critical: false };
           };
 
           const stockStatus = getStockStatusMeta(stock, item.alrt);
@@ -947,7 +947,7 @@ export default function InventoryView({
                     <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-base)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
                     <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{item.cat}</div>
                   </div>
-                  {stockStatus.color === C.rd && <span style={{ fontSize: 15, marginLeft: 4 }}>🚨</span>}
+                  {stockStatus.critical && <span style={{ fontSize: 15, marginLeft: 4 }}>🚨</span>}
                 </div>
                 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
