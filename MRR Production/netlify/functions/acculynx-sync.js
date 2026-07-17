@@ -3,6 +3,8 @@
 import { adminClient, resolveCaller } from "./_shared/tenant.js";
 
 const ALLOWED_ORIGINS = [
+  "https://steadwerk.com",
+  "https://www.steadwerk.com",
   "https://mrrproduction.netlify.app",
   "http://localhost:5173",
   "http://localhost:8888",

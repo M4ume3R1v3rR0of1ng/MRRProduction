@@ -1,17 +1,11 @@
 // netlify/functions/send-email.js
 // Generic authenticated email relay. Environment variable RESEND_API_KEY must be set.
 
-import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders, platformFromAddress } from "./_shared/tenant.js";
 
-// Emails go out from the PLATFORM's verified domain, with the company's name as the
-// display name — "Steadwerk (Maumee River Roofing) <notifications@steadwerk.com>".
-//
-// The old hardcoded notifications@maumeeriverroofing.com would have meant his
-// brother's company sending mail that appears to come from Maumee River Roofing.
-// Resend can only send from a domain you have verified, so per-company FROM
-// addresses need per-company domain verification — a later feature. Until then one
-// platform domain, honestly labelled, is the correct answer.
-const MAIL_DOMAIN = process.env.PLATFORM_MAIL_FROM || "notifications@maumeeriverroofing.com";
+// notifications@<verified platform domain>, company name as the display name. See
+// platformFromAddress in _shared/tenant.js for how the domain is resolved.
+const MAIL_FROM = platformFromAddress("notifications");
 
 export const handler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
@@ -51,7 +45,7 @@ export const handler = async (event) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: `${caller.companyName} <${MAIL_DOMAIN}>`,
+        from: `${caller.companyName} <${MAIL_FROM}>`,
         to: Array.isArray(to) ? to : [to],
         subject,
         html,

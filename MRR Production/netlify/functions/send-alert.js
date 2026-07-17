@@ -2,11 +2,11 @@
 // Low-stock alert email. Runs on Netlify's servers, never in the browser.
 
 import { Resend } from "resend";
-import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders, platformFromAddress } from "./_shared/tenant.js";
 
-// See the note in send-email.js: one verified platform domain, with the company's
-// name as the display name, until per-company domain verification exists.
-const MAIL_DOMAIN = process.env.PLATFORM_MAIL_FROM || "alerts@maumeeriverroofing.com";
+// alerts@<verified platform domain> — shares the domain with send-email, keeps its own
+// local part. See platformFromAddress in _shared/tenant.js.
+const MAIL_FROM = platformFromAddress("alerts");
 
 function escapeHtml(value) {
   if (value === null || value === undefined) return "";
@@ -45,7 +45,7 @@ export const handler = async (event) => {
 
     const safeItemName = escapeHtml(itemName);
     const data = await resend.emails.send({
-      from: `${caller.companyName} Alerts <${MAIL_DOMAIN}>`,
+      from: `${caller.companyName} Alerts <${MAIL_FROM}>`,
       to: email,
       subject: `⚠️ Low Stock Alert — ${itemName}`,
       html: `

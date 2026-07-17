@@ -18,7 +18,11 @@ import { createClient } from "@supabase/supabase-js";
 // lose access when Stripe gives up and moves them to 'canceled'.
 const USABLE_SUBSCRIPTION_STATES = ["trialing", "active", "past_due"];
 
+// steadwerk.com first so it's also the fallback origin (ALLOWED_ORIGINS[0]) — it's the
+// primary domain now. mrrproduction.netlify.app stays for the old URL and previews.
 const ALLOWED_ORIGINS = [
+  "https://steadwerk.com",
+  "https://www.steadwerk.com",
   "https://mrrproduction.netlify.app",
   "http://localhost:5173",
   "http://localhost:8888",
@@ -33,6 +37,26 @@ export function corsHeaders(requestOrigin) {
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Max-Age": "86400",
   };
+}
+
+// All platform email goes out from one Resend-verified domain, with the company name
+// as the display name, until per-company domain verification exists. Each sender keeps
+// its own local part (notifications@, alerts@) but shares the domain, so there's a
+// single place to point at the verified domain.
+//
+//   PLATFORM_MAIL_DOMAIN — the bare domain, e.g. "steadwerk.com" (preferred).
+//   PLATFORM_MAIL_FROM   — legacy full address; if set, only its domain is used, so an
+//                          existing "notifications@steadwerk.com" still resolves right.
+//
+// Defaults to steadwerk.com, NOT the old maumeeriverroofing.com — a missing env var
+// must not silently send every tenant's mail as Maumee River.
+export function platformFromAddress(localPart) {
+  const legacy = process.env.PLATFORM_MAIL_FROM;
+  const domain =
+    (legacy && legacy.includes("@") ? legacy.split("@")[1].trim() : null) ||
+    process.env.PLATFORM_MAIL_DOMAIN ||
+    "steadwerk.com";
+  return `${localPart}@${domain}`;
 }
 
 export function adminClient() {

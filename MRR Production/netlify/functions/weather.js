@@ -15,6 +15,8 @@ const DEFAULT_LON = -85.1394;
 const DEFAULT_TZ = "America/New_York";
 
 const ALLOWED_ORIGINS = [
+  "https://steadwerk.com",
+  "https://www.steadwerk.com",
   "https://mrrproduction.netlify.app",
   "http://localhost:5173",
   "http://localhost:8888",
