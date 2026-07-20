@@ -13,6 +13,7 @@ import { C, tot, oilSt, predDays, detSt, fd, fm } from "./utils/helpers";
 
 // Full Screen Layout & Sub-Page Views
 import LoginScreen from "./views/LoginScreen";
+import ResetPasswordScreen from "./views/ResetPasswordScreen";
 import CompanySwitcher from "./components/CompanySwitcher";
 import OwnerConsole from "./views/OwnerConsole";
 import BillingView from "./views/BillingView";
@@ -51,8 +52,26 @@ export default function App() {
   // Deep-link from OmniSearch: which record the destination view should open
   const [searchOpenTarget, setSearchOpenTarget] = useState(null); // { view, id }
 
+  // Password-recovery interception. When someone opens the reset link from their
+  // email, Supabase redirects back here with a recovery token in the URL hash and
+  // silently establishes a session. Without this flag that session would just log
+  // them into the portal with no way to actually set a new password — the reported
+  // "it logs me in but never resets the password" bug. Detect it synchronously from
+  // the hash so the reset screen wins before any auto-login can render, and also
+  // honor the PASSWORD_RECOVERY auth event as a backstop.
+  const [recovery, setRecovery] = useState(
+    () => typeof window !== "undefined" && (window.location.hash || "").includes("type=recovery"),
+  );
+
   // ── 🟢 CONSUME DECOUPLED CUSTOM STATE INFRASTRUCTURE HOOK ──
   const app = useAppData();
+
+  useEffect(() => {
+    const { data: { subscription } = {} } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
+    });
+    return () => subscription?.unsubscribe();
+  }, []);
 
   // The active tenant's name for display. branding.displayName (editable in Settings)
   // wins over the canonical companies.name, which itself beats the membership copy.
@@ -104,7 +123,25 @@ export default function App() {
   };
 
   const [lang, setLang] = useState("en");
-  
+
+  // ── 🔑 PASSWORD RECOVERY RENDER LAYER ──
+  // Takes precedence over the loading splash and the auth check: a recovery link
+  // must land on the set-password screen, never on the portal, no matter what the
+  // session bootstrap decided.
+  if (recovery) {
+    return (
+      <ResetPasswordScreen
+        onDone={() => {
+          // Password changed and session signed out inside the screen. Clear the
+          // recovery token from the URL and drop back to a clean login.
+          window.history.replaceState({}, "", window.location.pathname);
+          app.setCurUser(null);
+          setRecovery(false);
+        }}
+      />
+    );
+  }
+
   // ── ⏳ HARDENED PROGRESS BAR LOADING FALLBACK ──
   if (app.loading) {
     return (

@@ -17,7 +17,9 @@
         "npm:react-dom@^18.2.0",
         "npm:react@^18.2.0",
         "npm:resend@^6.12.4",
-        "npm:vite@^8.0.14"
+        "npm:stripe@^22.3.1",
+        "npm:vite@^8.0.14",
+        "npm:vitest@^4.1.10"
       ]
     }
   }
