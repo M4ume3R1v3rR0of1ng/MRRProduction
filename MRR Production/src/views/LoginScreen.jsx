@@ -23,10 +23,11 @@ import { logAction } from "../utils/logger";
 import { translations } from "../utils/translations";
 import { SteadwerkLockup, BRAND } from "../components/SteadwerkMark";
 
-export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang }) {
+export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang, initialMode = "login", onBack, onShowTerms }) {
   const t = translations[lang] || translations.en;
   // "login" = existing user signing in · "signup" = public "start a company" flow.
-  const [mode, setMode] = useState("login");
+  // initialMode lets the landing page open us straight on the right tab.
+  const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
@@ -287,6 +288,27 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
           margin: "auto",
         }}
       >
+        {/* Back to the public landing page. Hidden during the company picker, where
+            "back" would be ambiguous. */}
+        {onBack && !choices && (
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              background: "none",
+              border: "none",
+              color: C.sub,
+              fontWeight: 600,
+              cursor: "pointer",
+              padding: 0,
+              marginBottom: 20,
+              fontSize: "var(--text-base)",
+            }}
+          >
+            ← Back to home
+          </button>
+        )}
+
         {/* PLATFORM branding, not tenant branding. The login page is rendered before
             anyone authenticates, so it cannot know whose portal you're headed for —
             and it must not, since a company list here would be public. Steadwerk owns
@@ -493,6 +515,30 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang 
                 ? (mode === "signup" ? "Starting checkout…" : t.processingQuery)
                 : (mode === "signup" ? "Continue to payment →" : t.signIn)}
             </button>
+
+            {mode === "login" && (
+              <p style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.6, margin: "0 0 16px" }}>
+                By logging in, you agree to the{" "}
+                <button
+                  type="button"
+                  onClick={onShowTerms}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    color: BRAND.amberDeep,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontSize: "inherit",
+                    fontFamily: "inherit",
+                    textDecoration: "underline",
+                    textUnderlineOffset: 2,
+                  }}
+                >
+                  Steadwerk Terms and Conditions
+                </button>.
+              </p>
+            )}
 
             {mode === "login" ? (
               <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.6 }}>

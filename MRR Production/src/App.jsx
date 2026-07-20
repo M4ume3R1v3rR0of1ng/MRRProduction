@@ -12,7 +12,9 @@ import ChatWidget from "./components/ChatWidget";
 import { C, tot, oilSt, predDays, detSt, fd, fm } from "./utils/helpers";
 
 // Full Screen Layout & Sub-Page Views
+import LandingPage from "./views/LandingPage";
 import LoginScreen from "./views/LoginScreen";
+import TermsPage from "./views/TermsPage";
 import ResetPasswordScreen from "./views/ResetPasswordScreen";
 import CompanySwitcher from "./components/CompanySwitcher";
 import OwnerConsole from "./views/OwnerConsole";
@@ -62,6 +64,17 @@ export default function App() {
   const [recovery, setRecovery] = useState(
     () => typeof window !== "undefined" && (window.location.hash || "").includes("type=recovery"),
   );
+
+  // What a logged-out visitor sees. "landing" is the public marketing front door;
+  // "login" is the sign-in / signup form. Fresh visitors start on the landing;
+  // logging out or finishing a password reset drops returning users straight to
+  // the login form instead of back through marketing. loginMode picks which tab
+  // the LoginScreen opens on ("login" vs. the self-serve "start a company" flow).
+  const [authView, setAuthView] = useState("landing");
+  const [loginMode, setLoginMode] = useState("login");
+  // Where "← Back" on the Terms page should return to, since it's reachable from
+  // both the landing footer and the login disclaimer.
+  const [termsReturn, setTermsReturn] = useState("login");
 
   // ── 🟢 CONSUME DECOUPLED CUSTOM STATE INFRASTRUCTURE HOOK ──
   const app = useAppData();
@@ -119,6 +132,9 @@ export default function App() {
       console.error("Sign-out failed:", err);
     } finally {
       app.setCurUser(null);
+      // A returning user who just signed out wants the login form, not the
+      // marketing page they've already seen a hundred times.
+      setAuthView("login");
     }
   };
 
@@ -136,6 +152,7 @@ export default function App() {
           // recovery token from the URL and drop back to a clean login.
           window.history.replaceState({}, "", window.location.pathname);
           app.setCurUser(null);
+          setAuthView("login");
           setRecovery(false);
         }}
       />
@@ -177,12 +194,31 @@ export default function App() {
 
   // ── 🔒 AUTH CHECK RENDER LAYER ──
   if (!app.curUser) {
+    // Public Terms & Conditions page — reachable from the landing footer and the
+    // login disclaimer; "← Back" returns to whichever opened it.
+    if (authView === "terms") {
+      return <TermsPage onBack={() => setAuthView(termsReturn)} />;
+    }
+    // Public front door. The marketing landing page hands off to the login/signup
+    // form via its Sign in / Start your company buttons.
+    if (authView === "landing") {
+      return (
+        <LandingPage
+          onSignIn={() => { setLoginMode("login"); setAuthView("login"); }}
+          onStart={() => { setLoginMode("signup"); setAuthView("login"); }}
+          onShowTerms={() => { setTermsReturn("landing"); setAuthView("terms"); }}
+        />
+      );
+    }
     return (
       <LoginScreen
         onLogin={(u) => {
           app.setCurUser(u);
           navigateTo("dashboard");
         }}
+        initialMode={loginMode}
+        onBack={() => setAuthView("landing")}
+        onShowTerms={() => { setTermsReturn("login"); setAuthView("terms"); }}
         activeLogo={app.activeLogo}
         lang={lang}
         setLang={setLang}

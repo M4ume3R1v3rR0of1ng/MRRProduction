@@ -1,21 +1,17 @@
-# HTTP security headers. Build settings are configured in the Netlify UI, so this
-# file intentionally only defines headers and does not override the build config.
-#
-# The CSP below is scoped to what the app actually loads:
-#   - script-src 'self'                 → only the app's own bundled JS
-#   - connect-src Supabase REST + wss   → database reads/writes + realtime
-#   - style/font-src Google Fonts       → the Inter webfont imported in tokens.css
-#   - img-src data:/blob:/supabase      → base64 photo uploads + Supabase storage
-# If a flow breaks, the browser console names the exact directive to adjust. To roll
-# out cautiously, rename the header key to "Content-Security-Policy-Report-Only"
-# first (it reports violations without blocking), then switch back once it's clean.
+# Local dev only. `netlify dev` auto-detection was landing on the wrong Vite port
+# and returning 500 "Could not proxy request". Pinning the command and target port
+# makes the 8888 → 5173 proxy deterministic. This block affects local dev only;
+# production build settings are configured in the Netlify UI, not here.
+[dev]
+  command = "vite"
+  targetPort = 5173
+  port = 8888
+  framework = "#custom"
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://qdwtdrezwfrpdfsxjhps.supabase.co; connect-src 'self' https://qdwtdrezwfrpdfsxjhps.supabase.co wss://qdwtdrezwfrpdfsxjhps.supabase.co; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+# NOTE: HTTP security headers (including the CSP) intentionally live in
+# public/_headers, NOT here. Netlify Dev applies netlify.toml [[headers]] to the
+# local server, and the strict `script-src 'self'` CSP blocks Vite's inline
+# React-refresh preamble — crashing the app in dev with "can't detect preamble".
+# A _headers file in the publish output is honored on deployed sites but not by
+# `netlify dev`, so production stays locked down while local dev works. See
+# public/_headers for the header values.

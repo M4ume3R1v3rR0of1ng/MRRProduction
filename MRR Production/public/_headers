@@ -1,0 +1,18 @@
+# Production HTTP security headers.
+#
+# These live here (and NOT in netlify.toml) on purpose. Netlify Dev applies
+# netlify.toml [[headers]] to the local server, and the strict `script-src 'self'`
+# CSP blocks Vite's inline React-refresh preamble script — which crashes the app
+# in dev with "@vitejs/plugin-react can't detect preamble". A _headers file in the
+# publish directory is applied on deployed Netlify sites but NOT by `netlify dev`,
+# so production stays locked down while local dev works.
+#
+# Vite copies public/ to the build output (dist/) verbatim, so this file ships as
+# dist/_headers automatically on every build.
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://qdwtdrezwfrpdfsxjhps.supabase.co; connect-src 'self' https://qdwtdrezwfrpdfsxjhps.supabase.co wss://qdwtdrezwfrpdfsxjhps.supabase.co; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'

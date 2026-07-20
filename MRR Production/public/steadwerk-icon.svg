@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Full-bleed Barnwood so the icon is maskable-safe (the OS can crop to any
+       shape and still show solid barnwood with the amber truss centered). -->
+  <rect width="512" height="512" fill="#23282D"/>
+  <path d="M112 160 L176 352 L256 192 L336 352 L400 160"
+        fill="none" stroke="#C97B2D" stroke-width="40"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

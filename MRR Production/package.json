@@ -1,6 +1,7 @@
 {
   "type": "module",
   "scripts": {
+    "predev": "node -e \"require('fs').rmSync('dist/_headers',{force:true})\"",
     "dev": "netlify dev",
     "dev:ui-only": "vite",
     "build": "vite build --mode production",
@@ -17,8 +18,10 @@
     "stripe": "^22.3.1"
   },
   "devDependencies": {
+    "@vite-pwa/assets-generator": "^1.0.2",
     "@vitejs/plugin-react": "^4.0.0",
-    "vite": "^8.0.14",
+    "vite": "^7.3.6",
+    "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4.1.10"
   }
 }
