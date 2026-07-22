@@ -94,14 +94,42 @@ export default function App() {
     app.company?.branding?.displayName || app.company?.name || app.curUser?.companyName || "Steadwerk";
 
   // ── 🧭 BROWSER NATIVE HISTORY POPSTATE INTERCEPTOR ──
+  // Two separate navigation spaces share one history stack: the public flow
+  // (landing / login / terms, keyed by `authView`) and the signed-in portal
+  // (keyed by `view`). Which one a popped entry belongs to depends on whether
+  // anyone is signed in, so branch on that rather than on the entry alone.
   useEffect(() => {
     const handlePopState = (event) => {
-      if (event.state && event.state.view) setView(event.state.view);
-      else setView("dashboard");
+      const state = event.state || {};
+      if (!app.curUser) {
+        // The very first entry of a visit has no state object at all, and that
+        // entry is always the landing page.
+        setAuthView(state.authView || "landing");
+        return;
+      }
+      setView(state.view || "dashboard");
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  }, [app.curUser]);
+
+  // Public navigation has to push a real history entry, the same way navigateTo
+  // does for the portal. Landing → Sign in / Start your company / Terms were
+  // plain setState calls, so the browser had nothing to pop and Back looked
+  // broken — it either did nothing or dumped you off the site entirely.
+  const goAuthView = (next) => {
+    setAuthView(next);
+    window.history.pushState({ authView: next }, "", "");
+  };
+
+  // Back out of a public screen. Prefer real history so the browser's own Back
+  // button and the in-app one stay on the same stack; fall back to a plain state
+  // change when this screen was reached without a push (a logout drops straight
+  // to "login", and popping there would leave the site).
+  const backFromAuthView = (fallback) => {
+    if (window.history.state?.authView) window.history.back();
+    else setAuthView(fallback);
+  };
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -197,16 +225,16 @@ export default function App() {
     // Public Terms & Conditions page — reachable from the landing footer and the
     // login disclaimer; "← Back" returns to whichever opened it.
     if (authView === "terms") {
-      return <TermsPage onBack={() => setAuthView(termsReturn)} />;
+      return <TermsPage onBack={() => backFromAuthView(termsReturn)} />;
     }
     // Public front door. The marketing landing page hands off to the login/signup
     // form via its Sign in / Start your company buttons.
     if (authView === "landing") {
       return (
         <LandingPage
-          onSignIn={() => { setLoginMode("login"); setAuthView("login"); }}
-          onStart={() => { setLoginMode("signup"); setAuthView("login"); }}
-          onShowTerms={() => { setTermsReturn("landing"); setAuthView("terms"); }}
+          onSignIn={() => { setLoginMode("login"); goAuthView("login"); }}
+          onStart={() => { setLoginMode("signup"); goAuthView("login"); }}
+          onShowTerms={() => { setTermsReturn("landing"); goAuthView("terms"); }}
         />
       );
     }
@@ -217,8 +245,8 @@ export default function App() {
           navigateTo("dashboard");
         }}
         initialMode={loginMode}
-        onBack={() => setAuthView("landing")}
-        onShowTerms={() => { setTermsReturn("login"); setAuthView("terms"); }}
+        onBack={() => backFromAuthView("landing")}
+        onShowTerms={() => { setTermsReturn("login"); goAuthView("terms"); }}
         activeLogo={app.activeLogo}
         lang={lang}
         setLang={setLang}
