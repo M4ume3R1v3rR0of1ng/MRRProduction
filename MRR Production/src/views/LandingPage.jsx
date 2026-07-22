@@ -130,8 +130,17 @@ const CSS = `
 
 .sw-landing .truss-art { display:flex; justify-content:center; }
 .sw-landing .truss-art svg { width:min(340px,80%); height:auto; }
-.sw-landing .truss-draw path.mk-stroke { stroke-dasharray:220; stroke-dashoffset:220; animation:sw-draw 1.5s cubic-bezier(.6,0,.2,1) .25s forwards; }
-@keyframes sw-draw { to { stroke-dashoffset:0; } }
+/* Draw the truss, hold it, erase it, repeat. The hold is what keeps this from
+   reading as a busy loading spinner — the finished W is on screen for roughly
+   half of every cycle. Erasing to -220 (rather than snapping back to 220) means
+   the stroke leaves the way it arrived, so the restart has no visible seam. */
+.sw-landing .truss-draw path.mk-stroke { stroke-dasharray:220; stroke-dashoffset:220; animation:sw-draw 4.5s cubic-bezier(.6,0,.2,1) .25s infinite; }
+@keyframes sw-draw {
+  0%   { stroke-dashoffset:220; }
+  35%  { stroke-dashoffset:0; }
+  70%  { stroke-dashoffset:0; }
+  100% { stroke-dashoffset:-220; }
+}
 @media (prefers-reduced-motion: reduce){ .sw-landing .truss-draw path.mk-stroke { animation:none; stroke-dashoffset:0; } }
 
 .sw-landing .strip { border-bottom:1px solid var(--line); background:var(--surface-2); }
