@@ -366,11 +366,11 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
         <div className="wrap">
           <div className="band-head reveal">
             <span className="eyebrow">What it does</span>
-            <h2>Every truck, every roll — tracked.</h2>
+            <h2>Every truck, every roll, tracked.</h2>
             <p>One system for the yard, the fleet, and the office. Built for small trades, service, and distribution companies that run on what's on the shelf and out on the road.</p>
           </div>
           <div className="ledger reveal">
-            <div className="cell"><span className="code">INV</span><h3>Inventory</h3><div className="lead">Every roll, every box — counted once.</div><p>FIFO batches and live low-stock signals that read from green to red across the warehouse in half a second.</p></div>
+            <div className="cell"><span className="code">INV</span><h3>Inventory</h3><div className="lead">Every roll, every box, counted once.</div><p>FIFO batches and live low-stock signals that read from green to red across the warehouse in half a second.</p></div>
             <div className="cell"><span className="code">JOB</span><h3>Jobs</h3><div className="lead">Draft to closed-out, one thread.</div><p>Build the job, pull the materials to it, complete it, and the close-out report writes itself.</p></div>
             <div className="cell"><span className="code">FLT</span><h3>Fleet</h3><div className="lead">"Where's Truck 3?" On the screen.</div><p>Trucks, trailers, mileage, oil, and services are tracked, not guessed at from the cab of another one.</p></div>
             <div className="cell"><span className="code">MNT</span><h3>Maintenance</h3><div className="lead">Flag it from the cab.</div><p>Crews report a problem the moment it starts. Managers see it before it becomes a breakdown.</p></div>
@@ -386,7 +386,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
           <div className="band-head reveal">
             <span className="eyebrow">In the wild · Inventory</span>
             <h2>Low stock reads from across the yard.</h2>
-            <p>Green is good. Amber wants a hand on it. Red says stop. The same signal a foreman would give — on every screen, updated as the crew pulls.</p>
+            <p>Green is good. Amber wants a hand on it. Red says stop. The same signal a foreman would give on every screen, updated as the crew pulls.</p>
           </div>
           <div className="mock reveal">
             <div className="mock-bar">
@@ -424,7 +424,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
           </div>
           <div className="steps reveal">
             <div className="step"><span className="idx">STEP 01</span><h3>Raise the frame</h3><p>Add your yard, your trucks, and your crew. Enter what you've got on the shelf, or bring it in from where it already lives.</p></div>
-            <div className="step"><span className="idx">STEP 02</span><h3>Run the day</h3><p>Pull materials to jobs, track the fleet, flag maintenance — from the office desk or the cab of a truck with no signal.</p></div>
+            <div className="step"><span className="idx">STEP 02</span><h3>Run the day</h3><p>Pull materials to jobs, track the fleet, flag maintenance from the office desk or the cab of a truck with no signal.</p></div>
             <div className="step"><span className="idx">STEP 03</span><h3>Home by supper</h3><p>Jobs close themselves out with a costed report. The counting's done before you've hung up your coat.</p></div>
           </div>
         </div>
@@ -436,13 +436,13 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
           <div className="reveal">
             <span className="eyebrow">The story</span>
             <h2>Raised the old way. Built for a smarter one.</h2>
-            <p>Steadwerk started with a kid raised the old way — Amish roots, taught that work is done right or done again, that you show up before the sun and don't complain. But he kept asking a question the old way couldn't answer: <b style={{ color: "var(--on-dark)", fontWeight: 600 }}>what if the tools worked as hard as we do?</b></p>
-            <p>Not to replace the work — to carry the part of it that steals your evenings. So Steadwerk was born in Fort Wayne, Indiana: warehouse and fleet software with a work ethic, so the work runs steady, and the people who do it get home for supper.</p>
+            <p>Steadwerk started with a kid raised in the old way. Amish roots taught that work is done right or done again, that you show up before the sun and don't complain. But he kept asking a question the old way couldn't answer: <b style={{ color: "var(--on-dark)", fontWeight: 600 }}>What if the tools worked as hard as we do?</b></p>
+            <p>Not to replace the work, but to carry the part of it that steals your evenings. So Steadwerk was born in Fort Wayne, Indiana: warehouse and fleet software with a work ethic, so the work runs steady, and the people who do it get home for supper.</p>
           </div>
           <div className="reveal">
             <div className="quote">
               "Raised to work hard. Built so you work smart."
-              <span className="by">— The origin line · Steadwerk, Fort Wayne IN</span>
+              <span className="by">· Steadwerk, Fort Wayne IN</span>
             </div>
             <div className="story-facts" style={{ marginTop: 26 }}>
               <div className="fact"><span className="k">Built for</span><span className="v">Trades · service · distribution</span></div>
