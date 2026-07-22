@@ -10,6 +10,17 @@
 // root, so it can't fight the rest of the app.
 import { useEffect, useRef, useState } from "react";
 
+// The published rates, in one place. These must match what Stripe actually
+// charges — BASE/PACK mirror BillingView.jsx, and TRIAL_DAYS mirrors
+// trial_period_days in netlify/functions/create-checkout.js. A landing page that
+// advertises terms the checkout doesn't honor is a refund request waiting to
+// happen, so change these together or not at all.
+const BASE_PRICE = 99;
+const BASE_SEATS = 10;
+const PACK_PRICE = 10;
+const PACK_SEATS = 5;
+const TRIAL_DAYS = 14;
+
 const CSS = `
 .sw-landing {
   --ground:#F6F3EC; --surface:#FFFFFF; --surface-2:#EDE6DA;
@@ -192,6 +203,42 @@ const CSS = `
 .sw-landing .pill.out::before { background:var(--signal); }
 .sw-landing .cap { margin-top:16px; font-size:13px; color:var(--muted); font-family:"IBM Plex Mono",monospace; letter-spacing:.04em; }
 
+/* ---- pricing: a spec sheet, not a pricing table. Two rates, stated plainly,
+   with the numbers in the same tabular mono the inventory grid uses. ---- */
+.sw-landing .rates { display:grid; grid-template-columns:1.15fr 1fr; gap:0; border:1px solid var(--line-2); background:var(--line); }
+@media (max-width:760px){ .sw-landing .rates { grid-template-columns:1fr; } }
+.sw-landing .rate { background:var(--surface); padding:34px 32px 36px; display:flex; flex-direction:column; gap:14px; position:relative; }
+.sw-landing .rate.lead-rate::after { content:""; position:absolute; top:0; left:32px; width:26px; height:3px; background:var(--accent); }
+.sw-landing .rate .code { font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600; letter-spacing:.12em; color:var(--accent-deep); }
+.sw-landing .rate .fig { display:flex; align-items:baseline; gap:9px; }
+.sw-landing .rate .amt { font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:clamp(38px,5.5vw,54px); line-height:1; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.sw-landing .rate .per { font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--muted); letter-spacing:.06em; }
+.sw-landing .rate .what { font-family:"Space Grotesk",sans-serif; font-weight:500; font-size:17px; color:var(--ink); }
+.sw-landing .rate p { color:var(--ink-soft); font-size:14.5px; line-height:1.6; }
+.sw-landing .rate-list { list-style:none; margin:4px 0 0; padding:0; display:flex; flex-direction:column; gap:9px; }
+.sw-landing .rate-list li { font-size:14.5px; color:var(--ink-soft); display:flex; gap:11px; align-items:baseline; }
+.sw-landing .rate-list li::before { content:"+"; font-family:"IBM Plex Mono",monospace; color:var(--accent); font-weight:600; flex:0 0 auto; }
+.sw-landing .rate-cta { margin-top:8px; display:flex; flex-direction:column; gap:12px; align-items:flex-start; }
+.sw-landing .rate-note { font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--muted); letter-spacing:.03em; }
+
+/* ---- faq: native details/summary, so it works with no JS and stays keyboard
+   and screen-reader navigable for free. ---- */
+.sw-landing .faq { max-width:80ch; border-top:1px solid var(--line-2); }
+.sw-landing .faq details { border-bottom:1px solid var(--line); }
+.sw-landing .faq summary {
+  cursor:pointer; list-style:none; padding:20px 40px 20px 0; position:relative;
+  font-family:"Space Grotesk",sans-serif; font-weight:500; font-size:17.5px; color:var(--ink);
+}
+.sw-landing .faq summary::-webkit-details-marker { display:none; }
+.sw-landing .faq summary::after {
+  content:"+"; position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  font-family:"IBM Plex Mono",monospace; font-size:20px; color:var(--accent); line-height:1;
+}
+.sw-landing .faq details[open] summary::after { content:"–"; }
+.sw-landing .faq summary:hover { color:var(--accent-deep); }
+.sw-landing .faq .ans { padding:0 40px 24px 0; color:var(--ink-soft); font-size:15.5px; line-height:1.7; }
+.sw-landing .faq .ans b { color:var(--ink); font-weight:600; }
+
 .sw-landing .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
 @media (max-width:780px){ .sw-landing .steps { grid-template-columns:1fr; } }
 .sw-landing .step { padding:30px 30px 34px; border-left:1px solid var(--line-2); }
@@ -229,6 +276,7 @@ const CSS = `
 .sw-landing .cta-band h2 { font-size:clamp(28px,4.4vw,46px); }
 .sw-landing .cta-band p { margin:16px auto 0; max-width:46ch; color:var(--ink-soft); font-size:18px; }
 .sw-landing .cta-actions { margin-top:30px; display:flex; gap:14px; justify-content:center; flex-wrap:wrap; }
+.sw-landing .cta-band p.cta-note { margin-top:18px; font-family:"IBM Plex Mono",monospace; font-size:13px; letter-spacing:.03em; color:var(--muted); }
 
 .sw-landing .tb { background:var(--surface); }
 .sw-landing .tb-in { padding:44px 0 40px; display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:34px; }
@@ -317,12 +365,16 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
           <nav className="nav-links" aria-label="Primary">
             <a href="#features" onClick={scrollTo("features")}>What it does</a>
             <a href="#glimpse" onClick={scrollTo("glimpse")}>In the wild</a>
+            <a href="#pricing" onClick={scrollTo("pricing")}>Pricing</a>
             <a href="#story" onClick={scrollTo("story")}>Story</a>
           </nav>
           <div className="nav-actions">
             <button className="theme-btn nav-hide-sm" type="button" onClick={toggleTheme} aria-label="Switch light or dark theme">◐</button>
             <button className="btn btn-ghost" type="button" onClick={onSignIn}>Sign in</button>
-            <button className="btn btn-primary nav-hide-sm" type="button" onClick={onStart}>Start your company</button>
+            {/* Not nav-hide-sm: this is the primary conversion action, and hiding it
+                below 820px stripped it from the sticky bar on exactly the phones
+                most of these visitors are holding. Only the theme toggle folds. */}
+            <button className="btn btn-primary" type="button" onClick={onStart}>Start your company</button>
           </div>
         </div>
       </header>
@@ -439,6 +491,110 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
         </div>
       </section>
 
+      {/* ── PRICING ── */}
+      <section className="band glass" id="pricing">
+        <div className="wrap">
+          <div className="band-head reveal">
+            <span className="eyebrow">The rate sheet</span>
+            <h2>One price. Ten people. No quote to sit through.</h2>
+            <p>Most systems for this make you book a call to hear a number. Here it is.</p>
+          </div>
+          <div className="rates reveal">
+            <div className="rate lead-rate">
+              <span className="code">BASE</span>
+              <div className="fig">
+                <span className="amt">${BASE_PRICE}</span>
+                <span className="per">/ month</span>
+              </div>
+              <div className="what">Everything, for up to {BASE_SEATS} people.</div>
+              <p>Inventory, jobs, fleet, maintenance, costed reports, and per-role access for the whole crew. Not a starter tier — the entire product.</p>
+              <div className="rate-cta">
+                <button className="btn btn-primary btn-lg" type="button" onClick={onStart}>Start your company</button>
+                <span className="rate-note">// {TRIAL_DAYS} days free · cancel anytime · no setup fee</span>
+              </div>
+            </div>
+            <div className="rate">
+              <span className="code">CREW PACK</span>
+              <div className="fig">
+                <span className="amt">${PACK_PRICE}</span>
+                <span className="per">/ month per pack</span>
+              </div>
+              <div className="what">Another {PACK_SEATS} people, whenever you need them.</div>
+              <ul className="rate-list">
+                <li>Add a pack from your Billing tab in two clicks.</li>
+                <li>Charged prorated for the current month, then the new total.</li>
+                <li>Take one off again when the season ends.</li>
+              </ul>
+              <p>Hire five in the spring, run {BASE_SEATS + PACK_SEATS} for ${BASE_PRICE + PACK_PRICE} a month. That's it.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ──
+          Native <details> so it works before React hydrates, keyboard-navigates
+          for free, and stays open to Ctrl+F. Every answer here is checked against
+          what the product actually does — the offline answer in particular is
+          scoped to queued writes, which is what offlineSync.js really provides. */}
+      <section className="band" id="faq">
+        <div className="wrap">
+          <div className="band-head reveal">
+            <span className="eyebrow">Straight answers</span>
+            <h2>The questions you'd ask on the phone.</h2>
+          </div>
+          <div className="faq reveal">
+            <details>
+              <summary>What does it cost, all in?</summary>
+              <div className="ans">
+                <b>${BASE_PRICE} a month</b> covers up to {BASE_SEATS} people and every feature — there's no tier that hides inventory or reports behind a bigger plan. Past {BASE_SEATS}, add {PACK_SEATS} more for <b>${PACK_PRICE} a month</b> per pack. No setup fee, no per-job fee, no onboarding charge.
+              </div>
+            </details>
+            <details>
+              <summary>Is there a free trial?</summary>
+              <div className="ans">
+                Yes — <b>{TRIAL_DAYS} days</b>. We take card details at signup so nothing breaks the day the trial ends, but you aren't charged until it does. Cancel before then and you pay nothing.
+              </div>
+            </details>
+            <details>
+              <summary>How long does setup actually take?</summary>
+              <div className="ans">
+                An afternoon. Add your yard, your trucks, and your crew, then enter what's on the shelf or bring it in from where it already lives. You don't need an IT person, a consultant, or a training week.
+              </div>
+            </details>
+            <details>
+              <summary>What happens when the yard has no signal?</summary>
+              <div className="ans">
+                The app still opens, and anything your crew records is <b>held on the device and synced the moment signal comes back</b>. Nobody loses a pull because they were behind a building. Live figures do need a connection — we'd rather show you an honest "offline" than a stale count you might order against.
+              </div>
+            </details>
+            <details>
+              <summary>Can I cancel?</summary>
+              <div className="ans">
+                Any time, from your own Billing tab — it opens the Stripe portal where you can change or cancel the subscription yourself. It's month to month. There's no contract, no notice period, and nobody you have to talk out of it.
+              </div>
+            </details>
+            <details>
+              <summary>Who can see my company's data?</summary>
+              <div className="ans">
+                Only your company. Every record is scoped to the company that owns it and enforced at the database, not just hidden in the interface. Inside your company you set per-role access, so the yard, the office, and the books each see the part that fits their work.
+              </div>
+            </details>
+            <details>
+              <summary>Is this only for roofers?</summary>
+              <div className="ans">
+                It was built in a roofing yard, which is why the inventory and job costing are specific rather than generic. But the shape fits any crew running on trucks, materials, and people — trades, service, and distribution companies alike.
+              </div>
+            </details>
+            <details>
+              <summary>What if I already track this in spreadsheets?</summary>
+              <div className="ans">
+                Then you already have the data, and bringing it in is the first afternoon's work. The difference isn't the counting — it's that the count updates itself when a crew pulls material, and the job's cost comes from the batches actually consumed instead of a price somebody typed in twice.
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
       {/* ── STORY ── */}
       <section className="story" id="story">
         <div className="wrap story-in">
@@ -471,6 +627,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <button className="btn btn-primary btn-lg" type="button" onClick={onStart}>Start your company</button>
             <button className="btn btn-ghost btn-lg" type="button" onClick={onSignIn}>Sign in</button>
           </div>
+          <p className="cta-note">{TRIAL_DAYS} days free, then ${BASE_PRICE}/month for up to {BASE_SEATS} people. Cancel any time.</p>
         </div>
       </section>
 
@@ -491,6 +648,8 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
               <li><a href="#features" onClick={scrollTo("features")}>Fleet</a></li>
               <li><a href="#features" onClick={scrollTo("features")}>Jobs &amp; reports</a></li>
               <li><a href="#glimpse" onClick={scrollTo("glimpse")}>In the wild</a></li>
+              <li><a href="#pricing" onClick={scrollTo("pricing")}>Pricing</a></li>
+              <li><a href="#faq" onClick={scrollTo("faq")}>FAQ</a></li>
             </ul>
           </div>
           <div>

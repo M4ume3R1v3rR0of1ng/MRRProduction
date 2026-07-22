@@ -16,7 +16,8 @@
 //
 // Pricing: the base plan is $99/mo and includes 10 users (STRIPE_BASE_PRICE_ID).
 // Extra seats are sold in +5 packs at $10/mo (STRIPE_ADDON_PRICE_ID), added later
-// from the Billing tab — checkout starts with the base plan only.
+// from the Billing tab — checkout starts with the base plan only. The base plan
+// opens with a 14-day free trial (see trial_period_days below).
 //
 // Env: STRIPE_SECRET_KEY, STRIPE_BASE_PRICE_ID, and either URL (Netlify sets it) or
 // PUBLIC_APP_URL for the success/cancel redirects.
@@ -138,7 +139,12 @@ export const handler = async (event) => {
       // client_reference_id is echoed back on checkout.session.completed — the primary
       // link from a paid session to the company it provisioned.
       client_reference_id: company.id,
-      subscription_data: { metadata: { company_id: company.id } },
+      // 14-day free trial. The landing page advertises it, so it has to live here:
+      // Stripe collects the card at checkout but charges nothing until the trial
+      // ends, and cancelling before then costs the customer nothing. Change this
+      // number and the TRIAL_DAYS constant in LandingPage.jsx together — a page
+      // promising a trial the checkout doesn't grant is worse than no trial.
+      subscription_data: { trial_period_days: 14, metadata: { company_id: company.id } },
       success_url: `${appUrl}/?checkout=success`,
       cancel_url: `${appUrl}/?checkout=cancel`,
     });
