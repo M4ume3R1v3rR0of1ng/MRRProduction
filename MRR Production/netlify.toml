@@ -1,3 +1,22 @@
+# Build every push, never skip.
+#
+# Netlify canceled two consecutive production deploys at the 'checking build
+# content for changes' stage with "Canceled build due to no content change" —
+# despite real source changes in both. The push succeeded, the site silently
+# stayed on the old bundle, and each deploy had to be forced by hand.
+#
+# The likely trigger is this site's base directory, "MRR Production": the repo
+# root is one level up, and the base path contains a space, which git quotes in
+# changed-path output. If Netlify's skip-check can't match those paths against
+# the base, it concludes nothing changed and cancels.
+#
+# `ignore` is the documented override: exit 0 means "skip this build", non-zero
+# means "build it". /bin/false always exits 1, so every push deploys. The cost
+# is losing Netlify's no-op build optimization, which is worth it — a deploy
+# that silently doesn't happen is far more expensive than a redundant build.
+[build]
+  ignore = "/bin/false"
+
 # Local dev only. `netlify dev` auto-detection was landing on the wrong Vite port
 # and returning 500 "Could not proxy request". Pinning the command and target port
 # makes the 8888 → 5173 proxy deterministic. This block affects local dev only;
