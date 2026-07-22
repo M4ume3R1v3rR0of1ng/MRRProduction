@@ -13,6 +13,7 @@
 // possession of the mailbox instead of trusting an admin.
 
 import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
+import { validatePassword } from "./_shared/password.js";
 
 export const handler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
@@ -33,8 +34,9 @@ export const handler = async (event) => {
   if (!targetUserId) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing targetUserId" }) };
   }
-  if (!password || password.length < 8) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: "Password must be at least 8 characters" }) };
+  const passwordProblem = validatePassword(password);
+  if (passwordProblem) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: passwordProblem }) };
   }
 
   const admin = adminClient();

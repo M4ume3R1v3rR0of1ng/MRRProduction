@@ -332,7 +332,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
               </div>
               <div className="hero-meta">
                 <span><b>No IT department.</b> No six-figure system.</span>
-                <span><b>Works offline</b> — the yard doesn't always have signal.</span>
+                <span><b>Works offline.</b>  The yard doesn't always have signal.</span>
               </div>
             </div>
             <div className="truss-art">
@@ -371,10 +371,10 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
           </div>
           <div className="ledger reveal">
             <div className="cell"><span className="code">INV</span><h3>Inventory</h3><div className="lead">Every roll, every box — counted once.</div><p>FIFO batches and live low-stock signals that read from green to red across the warehouse in half a second.</p></div>
-            <div className="cell"><span className="code">JOB</span><h3>Jobs</h3><div className="lead">Draft to closed-out, one thread.</div><p>Build the job, pull the materials to it, complete it — and the close-out report writes itself.</p></div>
-            <div className="cell"><span className="code">FLT</span><h3>Fleet</h3><div className="lead">"Where's Truck 3?" On the screen.</div><p>Trucks, trailers, mileage, oil, and service — tracked, not guessed at from the cab of another one.</p></div>
+            <div className="cell"><span className="code">JOB</span><h3>Jobs</h3><div className="lead">Draft to closed-out, one thread.</div><p>Build the job, pull the materials to it, complete it, and the close-out report writes itself.</p></div>
+            <div className="cell"><span className="code">FLT</span><h3>Fleet</h3><div className="lead">"Where's Truck 3?" On the screen.</div><p>Trucks, trailers, mileage, oil, and services are tracked, not guessed at from the cab of another one.</p></div>
             <div className="cell"><span className="code">MNT</span><h3>Maintenance</h3><div className="lead">Flag it from the cab.</div><p>Crews report a problem the moment it starts. Managers see it before it becomes a breakdown.</p></div>
-            <div className="cell"><span className="code">RPT</span><h3>Reports</h3><div className="lead">Job complete. Report's ready.</div><p>Costed from the batches actually used on the job — never a price typed in twice, never a guess.</p></div>
+            <div className="cell"><span className="code">RPT</span><h3>Reports</h3><div className="lead">Job complete. Report's ready.</div><p>Costed from the batches actually used on the job, never a price typed in twice, never a guess.</p></div>
             <div className="cell"><span className="code">CRW</span><h3>Crew &amp; access</h3><div className="lead">Everyone sees their part.</div><p>Per-role access so the yard, the office, and the books each get the view that fits the work they do.</p></div>
           </div>
         </div>

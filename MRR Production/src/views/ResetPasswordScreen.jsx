@@ -15,6 +15,7 @@
 import { useState } from "react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
+import { validatePassword, PASSWORD_HINT } from "../utils/passwordPolicy";
 import { Fld } from "../components/UIPrimitives";
 import { SteadwerkLockup, BRAND } from "../components/SteadwerkMark";
 
@@ -36,8 +37,9 @@ export default function ResetPasswordScreen({ onDone }) {
 
   const submit = async () => {
     setErr("");
-    if (!pass || pass.length < 8) {
-      return setErr("Choose a password of at least 8 characters.");
+    const problem = validatePassword(pass);
+    if (problem) {
+      return setErr(problem);
     }
     if (pass !== confirm) {
       return setErr("The two passwords don't match.");
@@ -134,7 +136,7 @@ export default function ResetPasswordScreen({ onDone }) {
               </div>
             )}
 
-            <Fld label="New password">
+            <Fld label="New password" hint={PASSWORD_HINT}>
               <input
                 className="mrr-input"
                 type="password"

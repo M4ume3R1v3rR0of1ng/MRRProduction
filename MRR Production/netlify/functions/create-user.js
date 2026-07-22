@@ -10,6 +10,7 @@
 //     account-takeover hole.
 
 import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
+import { validatePassword } from "./_shared/password.js";
 
 const VALID_ROLES = ["admin", "warehouse", "coordinator", "manager", "field", "employee", "bookkeeper"];
 
@@ -88,8 +89,9 @@ export const handler = async (event) => {
     }
 
     if (!userId) {
-      if (!password || password.length < 8) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: "Password must be at least 8 characters" }) };
+      const passwordProblem = validatePassword(password);
+      if (passwordProblem) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: passwordProblem }) };
       }
 
       // Creating the auth user fires handle_new_user(), which inserts the profile row.

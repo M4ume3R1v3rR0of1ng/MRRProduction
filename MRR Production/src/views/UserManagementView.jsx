@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase, getAccessToken } from "../utils/supabase";
 import { C, uid } from "../utils/helpers";
+import { validatePassword, PASSWORD_HINT } from "../utils/passwordPolicy";
 import {
   PERM_DEFS,
   PERM_GROUPS,
@@ -82,8 +83,9 @@ export default function Users({
         );
         showToast("User updates saved successfully.", "success");
       } else {
-        if (!form.password || form.password.length < 8) {
-          showToast("Set a temporary password of at least 8 characters.", "warning");
+        const problem = validatePassword(form.password);
+        if (problem) {
+          showToast(problem, "warning");
           return;
         }
         if (form.password !== form.confirmPassword) {
@@ -181,8 +183,9 @@ export default function Users({
   };
 
   const submitResetPassword = async () => {
-    if (!pwForm.password || pwForm.password.length < 8) {
-      showToast("Set a temporary password of at least 8 characters.", "warning");
+    const problem = validatePassword(pwForm.password);
+    if (problem) {
+      showToast(problem, "warning");
       return;
     }
     if (pwForm.password !== pwForm.confirmPassword) {
@@ -211,7 +214,7 @@ export default function Users({
       setPwForm({});
     } catch (err) {
       console.error("Failed to reset password:", err);
-      showToast(`Database Error: Password reset failed. ${err.message}`, "error");
+      showToast(`Password reset failed. ${err.message}`, "error");
     }
   };
 
@@ -357,8 +360,8 @@ export default function Users({
           </Fld>
           {!editing && (
             <>
-              <Fld label="Temporary Password *" hint="Share this with the new user directly">
-                <Inp type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="At least 8 characters" />
+              <Fld label="Temporary Password *" hint={`${PASSWORD_HINT}. Share it with the new user directly.`}>
+                <Inp type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="e.g. Roof2026start" />
               </Fld>
               <Fld label="Confirm Password *">
                 <Inp type="password" value={form.confirmPassword || ""} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
@@ -378,8 +381,8 @@ export default function Users({
               <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 10 }}>
                 Forgot their password? Set a new temporary one here. Share it with them directly and they will be prompted to change it on next login.
               </div>
-              <Fld label="New Temporary Password" hint="At least 8 characters">
-                <Inp type="password" value={pwForm.password || ""} onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })} placeholder="At least 8 characters" />
+              <Fld label="New Temporary Password" hint={PASSWORD_HINT}>
+                <Inp type="password" value={pwForm.password || ""} onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })} placeholder="e.g. Roof2026start" />
               </Fld>
               <Fld label="Confirm New Password">
                 <Inp type="password" value={pwForm.confirmPassword || ""} onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })} />
