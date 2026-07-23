@@ -22,24 +22,28 @@
 import Stripe from "stripe";
 import { adminClient } from "./_shared/tenant.js";
 
-// Seat ceiling from a subscription's line items: base plan includes 10, each $10
-// add-on pack (quantity) adds 5. Returns null if we can't read items (leave as-is).
-function capacityFromSubscription(sub) {
+// Seats included in the BASE plan only. Crew packs are one-time purchases and
+// leave no subscription item behind, so they can't be read from here — they live
+// on companies.purchased_seat_packs and are added in applyStatus below.
+//
+// Returns null if we can't read items, which means "leave capacity alone" rather
+// than "this company has no seats".
+function baseSeatsFromSubscription(sub) {
   const items = sub?.items?.data;
   if (!Array.isArray(items)) return null;
   const basePrice = process.env.STRIPE_BASE_PRICE_ID;
-  const addonPrice = process.env.STRIPE_ADDON_PRICE_ID;
-  let capacity = 0;
+  let seats = 0;
   for (const it of items) {
-    const priceId = it.price?.id;
-    const qty = it.quantity || 0;
-    if (priceId === basePrice) capacity += 10 * (qty || 1);
-    else if (priceId === addonPrice) capacity += 5 * qty;
+    if (it.price?.id === basePrice) seats += 10 * (it.quantity || 1);
   }
-  // Every real subscription has the base plan; if we somehow matched nothing, assume
+  // Every real subscription carries the base plan; if we matched nothing, assume
   // the base 10 rather than accidentally capping a paying company at 0.
-  return capacity > 0 ? capacity : 10;
+  return seats > 0 ? seats : 10;
 }
+
+// Purchased packs only count while the company is actually paying for the base
+// plan. A lapsed subscription drops the ceiling back to the base allowance.
+const SUBSCRIBED_STATUSES = ["trialing", "active", "past_due"];
 
 // Stripe subscription.status  →  our companies.subscription_status
 function mapStripeStatus(stripeStatus) {
@@ -57,7 +61,7 @@ function mapStripeStatus(stripeStatus) {
 
 // Apply a status (and optionally a seat capacity) to the company behind a Stripe
 // subscription/customer, unless the company is manually suspended (owner's lever wins).
-async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscriptionId, seatCapacity }, status) {
+async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscriptionId, baseSeats }, status) {
   if (!status) return;
 
   // Resolve the company: explicit id first, else by the stored Stripe ids.
@@ -75,17 +79,26 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
     return;
   }
 
-  const { data: co } = await admin.from("companies").select("subscription_status").eq("id", id).single();
+  const { data: co } = await admin
+    .from("companies")
+    .select("subscription_status, purchased_seat_packs")
+    .eq("id", id)
+    .single();
   if (co?.subscription_status === "suspended") {
     console.log(`stripe-webhook: company ${id} is suspended; ignoring billing status '${status}'.`);
     return;
   }
 
   const patch = { subscription_status: status };
-  // Only touch seat_capacity when we actually derived one from a subscription. Never
-  // overwrite a comped company's NULL (unlimited) here — that only happens for a
-  // company that has a Stripe subscription, i.e. a paying one.
-  if (typeof seatCapacity === "number") patch.seat_capacity = seatCapacity;
+  // Only touch seat_capacity when we actually read a base allowance off a
+  // subscription. Never overwrite a comped company's NULL (unlimited) here — that
+  // only happens for a company that has a Stripe subscription, i.e. a paying one.
+  if (typeof baseSeats === "number") {
+    const packs = co?.purchased_seat_packs || 0;
+    patch.seat_capacity = SUBSCRIBED_STATUSES.includes(status)
+      ? baseSeats + 5 * packs
+      : baseSeats;
+  }
 
   await admin.from("companies").update(patch).eq("id", id);
 
@@ -127,6 +140,42 @@ export const handler = async (event) => {
     switch (stripeEvent.type) {
       case "checkout.session.completed": {
         const s = stripeEvent.data.object;
+
+        // A one-time crew pack, not a new subscription. This is the ONLY place a
+        // pack is credited: the money is confirmed landed, so the seats are real.
+        if (s.metadata?.purpose === "seat_pack") {
+          const companyId = s.metadata.company_id;
+          const packs = parseInt(s.metadata.packs, 10);
+          if (!companyId || !Number.isInteger(packs) || packs <= 0) {
+            console.warn("stripe-webhook: seat_pack session missing usable metadata", s.id);
+            break;
+          }
+
+          // Increment in the database rather than read-modify-write here, so two
+          // packs bought at once can't overwrite each other.
+          const { data: newTotal, error } = await admin.rpc("record_seat_pack_purchase", {
+            target: companyId,
+            packs,
+          });
+          if (error) throw new Error(`record_seat_pack_purchase failed: ${error.message}`);
+
+          // Raise the ceiling to match, but never touch a comped company's NULL
+          // (unlimited) capacity — adding a number there would cap them.
+          const { data: co } = await admin
+            .from("companies")
+            .select("seat_capacity, subscription_status")
+            .eq("id", companyId)
+            .single();
+
+          if (typeof co?.seat_capacity === "number" && SUBSCRIBED_STATUSES.includes(co.subscription_status)) {
+            await admin
+              .from("companies")
+              .update({ seat_capacity: 10 + 5 * newTotal })
+              .eq("id", companyId);
+          }
+          break;
+        }
+
         // client_reference_id is the company we provisioned in create-checkout.
         await applyStatus(admin, {
           companyId: s.client_reference_id,
@@ -143,7 +192,7 @@ export const handler = async (event) => {
           companyId: sub.metadata?.company_id || null,
           stripeCustomerId: sub.customer,
           stripeSubscriptionId: sub.id,
-          seatCapacity: capacityFromSubscription(sub),
+          baseSeats: baseSeatsFromSubscription(sub),
         }, mapStripeStatus(sub.status));
         break;
       }

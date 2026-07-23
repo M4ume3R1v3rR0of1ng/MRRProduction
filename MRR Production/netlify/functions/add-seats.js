@@ -1,15 +1,28 @@
 // netlify/functions/add-seats.js
 //
-// "Buy 5 more seats" from a company's Billing tab. Adds (or increments) the $10
-// add-on pack on their Stripe subscription. Stripe prorates the charge immediately;
-// the resulting customer.subscription.updated webhook recomputes seat_capacity, so
-// this function does NOT write capacity itself — Stripe stays the single source of
-// truth and the two can't drift.
+// "Buy 5 more seats" from a company's Billing tab. The crew pack is a ONE-TIME
+// $10 charge, so this opens a Stripe Checkout session in payment mode and returns
+// its URL for the browser to redirect to.
 //
-// Admin-only, and only for the caller's OWN company. delta is a count of 5-seat
-// packs (usually +1; negative to remove).
+// It deliberately does NOT write seat_capacity. Capacity moves only when Stripe
+// confirms the money actually landed, via the checkout.session.completed webhook —
+// returning a seat here and hoping the payment succeeds would hand out capacity
+// for free on every abandoned checkout.
 //
-// Env: STRIPE_SECRET_KEY, STRIPE_ADDON_PRICE_ID.
+// This used to add a recurring $10/mo subscription item and let
+// customer.subscription.updated recompute capacity from the line items. That
+// derivation is gone: a one-time payment leaves no subscription item behind, so
+// the pack count is persisted on companies.purchased_seat_packs instead
+// (supabase/16_one_time_seat_packs.sql).
+//
+// Packs are additive only. Removing one would mean refunding a completed payment,
+// which is a conversation with a human, not a button.
+//
+// Admin-only, and only for the caller's OWN company.
+//
+// Env: STRIPE_SECRET_KEY, STRIPE_SEAT_PACK_PRICE_ID (a ONE-TIME price, not
+// recurring), and either URL (Netlify sets it) or PUBLIC_APP_URL for the return
+// redirects.
 
 import Stripe from "stripe";
 import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
@@ -29,12 +42,19 @@ export const handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON body" }) };
   }
 
-  const packs = Number.isInteger(body.packs) ? body.packs : 1; // one +5 pack by default
+  // One +5 pack by default. Additive only — a negative or zero count is a refund
+  // request, not a purchase.
+  const packs = Number.isInteger(body.packs) && body.packs > 0 ? body.packs : 1;
 
   const secretKey = process.env.STRIPE_SECRET_KEY;
-  const addonPrice = process.env.STRIPE_ADDON_PRICE_ID;
-  if (!secretKey || !addonPrice) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: "Billing is not configured (missing STRIPE_ADDON_PRICE_ID)." }) };
+  const packPrice = process.env.STRIPE_SEAT_PACK_PRICE_ID;
+  if (!secretKey || !packPrice) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "Billing is not configured (missing STRIPE_SEAT_PACK_PRICE_ID)." }) };
+  }
+
+  const appUrl = process.env.PUBLIC_APP_URL || process.env.URL;
+  if (!appUrl) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "Billing is not configured (missing PUBLIC_APP_URL)." }) };
   }
 
   const admin = adminClient();
@@ -47,42 +67,41 @@ export const handler = async (event) => {
   }
 
   try {
-    // Find the company's Stripe subscription.
+    // Reuse the Stripe customer created for the base plan, so the pack lands on the
+    // same customer record and can be charged against a card already on file.
     const { data: secrets } = await admin
       .from("company_secrets")
-      .select("stripe_subscription_id")
+      .select("stripe_customer_id")
       .eq("company_id", caller.companyId)
       .maybeSingle();
 
-    const subId = secrets?.stripe_subscription_id;
-    if (!subId) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: "This company has no active subscription to add seats to." }) };
+    const customerId = secrets?.stripe_customer_id;
+    if (!customerId) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: "This company has no billing account yet. Start a subscription before buying seats." }),
+      };
     }
 
     const stripe = new Stripe(secretKey);
-    const sub = await stripe.subscriptions.retrieve(subId);
-    const existing = sub.items.data.find((it) => it.price?.id === addonPrice);
-    const currentQty = existing ? existing.quantity : 0;
-    const nextQty = Math.max(0, currentQty + packs);
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer: customerId,
+      line_items: [{ price: packPrice, quantity: packs }],
+      // The webhook trusts these two fields to decide which company gets seats and
+      // how many. purpose distinguishes a pack purchase from the base-plan checkout,
+      // which arrives as the same event type.
+      metadata: {
+        company_id: caller.companyId,
+        packs: String(packs),
+        purpose: "seat_pack",
+      },
+      success_url: `${appUrl}/?seats=added`,
+      cancel_url: `${appUrl}/?seats=cancelled`,
+    });
 
-    if (existing) {
-      if (nextQty === 0) {
-        await stripe.subscriptionItems.del(existing.id, { proration_behavior: "create_prorations" });
-      } else {
-        await stripe.subscriptionItems.update(existing.id, { quantity: nextQty, proration_behavior: "create_prorations" });
-      }
-    } else if (nextQty > 0) {
-      await stripe.subscriptionItems.create({
-        subscription: subId,
-        price: addonPrice,
-        quantity: nextQty,
-        proration_behavior: "create_prorations",
-      });
-    }
-
-    // capacity = 10 base + 5 per add-on pack; returned for an instant UI update
-    // (the webhook will confirm the same number authoritatively).
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, seatCapacity: 10 + 5 * nextQty }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, url: session.url }) };
   } catch (err) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }

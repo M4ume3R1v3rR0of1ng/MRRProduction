@@ -6,7 +6,7 @@
 // is_platform_admin() server-side. Hiding this view in the UI is convenience;
 // the real gate is in the database, so a non-owner poking the same RPCs gets nothing.
 import { useEffect, useState } from "react";
-import { supabase } from "../utils/supabase";
+import { supabase, getAccessToken } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { BRAND, TrussMark } from "../components/SteadwerkMark";
 import { useNotify } from "../context/NotificationContext";
@@ -42,6 +42,11 @@ export default function OwnerConsole({ user }) {
   const [busyId, setBusyId] = useState(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: "", slug: "" });
+  // Hard-delete confirmation: the company pending deletion + the name the owner
+  // must retype to arm the button. Null when the modal is closed.
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [confirmText, setConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -93,6 +98,36 @@ export default function OwnerConsole({ user }) {
     if (error) showToast(`Failed: ${error.message}`, "error");
     else { showToast(`${company.name} is now ${status}.`, "success"); await load(); }
     setBusyId(null);
+  };
+
+  // Hard delete — irreversible. Routes through the delete-company function, which
+  // re-checks platform-admin, that the company is suspended, and the typed name.
+  // It also cancels Stripe, purges storage, and reaps orphaned logins server-side.
+  const deleteCompany = async () => {
+    if (!deleteTarget || confirmText.trim() !== deleteTarget.name || deleting) return;
+    setDeleting(true);
+    try {
+      const accessToken = await getAccessToken();
+      const res = await fetch("/.netlify/functions/delete-company", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken, companyId: deleteTarget.id, confirmName: confirmText.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      const warn = Array.isArray(data.warnings) && data.warnings.length
+        ? ` Some cleanup needs a look: ${data.warnings.join("; ")}`
+        : "";
+      showToast(`Deleted ${deleteTarget.name}.${warn}`, warn ? "warning" : "success");
+      setDeleteTarget(null);
+      setConfirmText("");
+      await load();
+    } catch (err) {
+      showToast(`Delete failed: ${err.message}`, "error");
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const slugify = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -187,10 +222,18 @@ export default function OwnerConsole({ user }) {
                     <td style={{ padding: "12px 14px", color: C.sub }}>{fmtDate(co.last_activity)}</td>
                     <td style={{ padding: "12px 14px" }}>
                       {suspended ? (
-                        <button onClick={() => setStatus(co, "active")} disabled={busyId === co.id}
-                          style={{ padding: "6px 12px", background: BRAND.pasture, color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                          Reactivate
-                        </button>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <button onClick={() => setStatus(co, "active")} disabled={busyId === co.id}
+                            style={{ padding: "6px 12px", background: BRAND.pasture, color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                            Reactivate
+                          </button>
+                          {/* Delete is offered ONLY on suspended rows — suspend-then-delete is the
+                              deliberate two-step that keeps a live company one click from safety. */}
+                          <button onClick={() => { setDeleteTarget(co); setConfirmText(""); }} disabled={busyId === co.id}
+                            style={{ padding: "6px 12px", background: BRAND.rust, color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                            Delete
+                          </button>
+                        </div>
                       ) : (
                         <button onClick={() => setStatus(co, "suspended")} disabled={busyId === co.id}
                           style={{ padding: "6px 12px", background: "transparent", color: BRAND.rust, border: `1.5px solid ${BRAND.rust}`, borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
@@ -253,6 +296,59 @@ export default function OwnerConsole({ user }) {
           The person must already have a Steadwerk login. Granting doesn't add them to any company — it's platform-wide oversight only.
         </div>
       </div>
+
+      {/* ── Hard-delete confirmation ──
+          Irreversible, so it demands the exact company name typed back before the
+          button arms. The server re-checks every guard; this is the human gate. */}
+      {deleteTarget && (
+        <div
+          onClick={() => !deleting && setDeleteTarget(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(23,27,31,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, zIndex: 1000 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: C.w, borderRadius: 14, padding: 28, maxWidth: 460, width: "100%", boxShadow: "0 24px 60px rgba(0,0,0,0.4)" }}
+          >
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 900, color: BRAND.rust, marginBottom: 8 }}>
+              Delete {deleteTarget.name}?
+            </div>
+            <p style={{ fontSize: 13, color: C.navy, lineHeight: 1.6, margin: "0 0 14px" }}>
+              This permanently removes the company and <strong>everything</strong> in it — all jobs,
+              inventory, vehicles, files, and team memberships. Any Stripe subscription is
+              cancelled and members left with no other company have their logins deleted.
+              This cannot be undone.
+            </p>
+            <label style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              Type <span style={{ fontFamily: "var(--font-mono)", color: C.navy }}>{deleteTarget.name}</span> to confirm
+            </label>
+            <input
+              autoFocus
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && deleteCompany()}
+              placeholder={deleteTarget.name}
+              disabled={deleting}
+              style={{ width: "100%", padding: "10px 12px", border: `1.5px solid ${C.bd}`, borderRadius: 8, fontSize: 14, boxSizing: "border-box", marginTop: 6 }}
+            />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
+              <button
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting}
+                style={{ padding: "9px 16px", background: "transparent", color: C.sub, border: `1.5px solid ${C.bd}`, borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: deleting ? "not-allowed" : "pointer" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteCompany}
+                disabled={deleting || confirmText.trim() !== deleteTarget.name}
+                style={{ padding: "9px 18px", background: confirmText.trim() === deleteTarget.name ? BRAND.rust : C.bd, color: "#fff", border: "none", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: deleting || confirmText.trim() !== deleteTarget.name ? "not-allowed" : "pointer" }}
+              >
+                {deleting ? "Deleting…" : "Delete forever"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

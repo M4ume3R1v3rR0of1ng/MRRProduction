@@ -15,9 +15,10 @@
 // yet added.
 //
 // Pricing: the base plan is $99/mo and includes 10 users (STRIPE_BASE_PRICE_ID).
-// Extra seats are sold in +5 packs at $10/mo (STRIPE_ADDON_PRICE_ID), added later
-// from the Billing tab — checkout starts with the base plan only. The base plan
-// opens with a 14-day free trial (see trial_period_days below).
+// Extra seats are sold in +5 packs for a ONE-TIME $10 (STRIPE_SEAT_PACK_PRICE_ID),
+// bought later from the Billing tab via add-seats.js — checkout here starts with
+// the base plan only. The base plan opens with a 14-day free trial (see
+// trial_period_days below).
 //
 // Env: STRIPE_SECRET_KEY, STRIPE_BASE_PRICE_ID, and either URL (Netlify sets it) or
 // PUBLIC_APP_URL for the success/cancel redirects.
@@ -136,6 +137,12 @@ export const handler = async (event) => {
       mode: "subscription",
       customer: customer.id,
       line_items: [{ price: basePriceId, quantity: 1 }], // base plan: $99, 10 seats
+      // Shows the "Add promotion code" field on the hosted checkout. Codes and their
+      // coupons are created in the Stripe Dashboard (Product catalog -> Coupons); a
+      // repeating/forever coupon discounts the subscription, and the discount applies
+      // when the first real charge lands after the 14-day trial. Note: this cannot be
+      // combined with a server-applied `discounts: [...]` array in the same session.
+      allow_promotion_codes: true,
       // client_reference_id is echoed back on checkout.session.completed — the primary
       // link from a paid session to the company it provisioned.
       client_reference_id: company.id,

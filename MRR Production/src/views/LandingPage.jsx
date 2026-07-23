@@ -463,11 +463,11 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
                   <tr><th>Item</th><th>Location</th><th className="num">On hand</th><th className="num">Reorder</th><th>Status</th></tr>
                 </thead>
                 <tbody>
-                  <tr><td className="item">Architectural Shingle — Weathered Wood</td><td className="loc">A-3</td><td className="num tnum">142 bd</td><td className="num tnum">40</td><td><span className="pill ok">In stock</span></td></tr>
-                  <tr><td className="item">Ice &amp; Water Shield — 3 ft</td><td className="loc">B-1</td><td className="num tnum">6 rl</td><td className="num tnum">8</td><td><span className="pill low">Low</span></td></tr>
-                  <tr><td className="item">Ridge Cap — Amber</td><td className="loc">A-1</td><td className="num tnum">0 bx</td><td className="num tnum">12</td><td><span className="pill out">Out</span></td></tr>
-                  <tr><td className="item">Drip Edge — 10 ft White</td><td className="loc">C-2</td><td className="num tnum">88 pc</td><td className="num tnum">30</td><td><span className="pill ok">In stock</span></td></tr>
-                  <tr><td className="item">Roofing Nails — 1¼" Coil</td><td className="loc">D-4</td><td className="num tnum">19 bx</td><td className="num tnum">20</td><td><span className="pill low">Low</span></td></tr>
+                  <tr><td className="item">Weathered Wood Architectural Shingle</td><td className="loc">A-3</td><td className="num tnum">142 bd</td><td className="num tnum">40</td><td><span className="pill ok">In stock</span></td></tr>
+                  <tr><td className="item">Ice &amp; Water Shield, 3 ft</td><td className="loc">B-1</td><td className="num tnum">6 rl</td><td className="num tnum">8</td><td><span className="pill low">Low</span></td></tr>
+                  <tr><td className="item">Ridge Cap, Amber</td><td className="loc">A-1</td><td className="num tnum">0 bx</td><td className="num tnum">12</td><td><span className="pill out">Out</span></td></tr>
+                  <tr><td className="item">Drip Edge, 10 ft White</td><td className="loc">C-2</td><td className="num tnum">88 pc</td><td className="num tnum">30</td><td><span className="pill ok">In stock</span></td></tr>
+                  <tr><td className="item">Roofing Nails, 1¼" Coil</td><td className="loc">D-4</td><td className="num tnum">19 bx</td><td className="num tnum">20</td><td><span className="pill low">Low</span></td></tr>
                 </tbody>
               </table>
             </div>
@@ -507,7 +507,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
                 <span className="per">/ month</span>
               </div>
               <div className="what">Everything, for up to {BASE_SEATS} people.</div>
-              <p>Inventory, jobs, fleet, maintenance, costed reports, and per-role access for the whole crew. Not a starter tier — the entire product.</p>
+              <p>Inventory, jobs, fleet, maintenance, costed reports, and per-role access for the whole crew. This isn't a starter tier. It's the whole thing.</p>
               <div className="rate-cta">
                 <button className="btn btn-primary btn-lg" type="button" onClick={onStart}>Start your company</button>
                 <span className="rate-note">// {TRIAL_DAYS} days free · cancel anytime · no setup fee</span>
@@ -517,15 +517,15 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
               <span className="code">CREW PACK</span>
               <div className="fig">
                 <span className="amt">${PACK_PRICE}</span>
-                <span className="per">/ month per pack</span>
+                <span className="per">once, per pack</span>
               </div>
               <div className="what">Another {PACK_SEATS} people, whenever you need them.</div>
               <ul className="rate-list">
-                <li>Add a pack from your Billing tab in two clicks.</li>
-                <li>Charged prorated for the current month, then the new total.</li>
-                <li>Take one off again when the season ends.</li>
+                <li>Buy a pack from your Billing tab in two clicks.</li>
+                <li>You pay the ${PACK_PRICE} once. It's not another subscription.</li>
+                <li>The seats stay yours for as long as you're with us.</li>
               </ul>
-              <p>Hire five in the spring, run {BASE_SEATS + PACK_SEATS} for ${BASE_PRICE + PACK_PRICE} a month. That's it.</p>
+              <p>Hire five in the spring and it costs you ${PACK_PRICE}, one time. Your monthly bill is still ${BASE_PRICE}.</p>
             </div>
           </div>
         </div>
@@ -546,13 +546,13 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <details>
               <summary>What does it cost, all in?</summary>
               <div className="ans">
-                <b>${BASE_PRICE} a month</b> covers up to {BASE_SEATS} people and every feature — there's no tier that hides inventory or reports behind a bigger plan. Past {BASE_SEATS}, add {PACK_SEATS} more for <b>${PACK_PRICE} a month</b> per pack. No setup fee, no per-job fee, no onboarding charge.
+                <b>${BASE_PRICE} a month</b> covers up to {BASE_SEATS} people and every feature. Nothing gets held back for a bigger plan. Past {BASE_SEATS}, another {PACK_SEATS} people cost <b>${PACK_PRICE} one time</b>, not another monthly line. No setup fee, no per-job fee, no onboarding charge.
               </div>
             </details>
             <details>
               <summary>Is there a free trial?</summary>
               <div className="ans">
-                Yes — <b>{TRIAL_DAYS} days</b>. We take card details at signup so nothing breaks the day the trial ends, but you aren't charged until it does. Cancel before then and you pay nothing.
+                Yes, <b>{TRIAL_DAYS} days</b>. We take card details at signup so nothing stops working the day the trial ends, but you aren't charged until it does. Cancel before then and you pay nothing.
               </div>
             </details>
             <details>
@@ -564,13 +564,13 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <details>
               <summary>What happens when the yard has no signal?</summary>
               <div className="ans">
-                The app still opens, and anything your crew records is <b>held on the device and synced the moment signal comes back</b>. Nobody loses a pull because they were behind a building. Live figures do need a connection — we'd rather show you an honest "offline" than a stale count you might order against.
+                The app still opens, and anything your crew records is <b>held on the device and synced the moment signal comes back</b>. Nobody loses a pull because they were behind a building. Live figures do need a connection. We'd rather tell you honestly that you're offline than show you a stale count you might order against.
               </div>
             </details>
             <details>
               <summary>Can I cancel?</summary>
               <div className="ans">
-                Any time, from your own Billing tab — it opens the Stripe portal where you can change or cancel the subscription yourself. It's month to month. There's no contract, no notice period, and nobody you have to talk out of it.
+                Any time, from your own Billing tab. It opens the Stripe portal, where you change or cancel the subscription yourself. It's month to month. No contract, no notice period, and nobody you have to get past on the phone.
               </div>
             </details>
             <details>
@@ -582,13 +582,13 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <details>
               <summary>Is this only for roofers?</summary>
               <div className="ans">
-                It was built in a roofing yard, which is why the inventory and job costing are specific rather than generic. But the shape fits any crew running on trucks, materials, and people — trades, service, and distribution companies alike.
+                It was built in a roofing yard, which is why the inventory and job costing are specific instead of generic. But it fits any crew running on trucks, materials, and people. Trades, service, and distribution companies all work the same way underneath.
               </div>
             </details>
             <details>
               <summary>What if I already track this in spreadsheets?</summary>
               <div className="ans">
-                Then you already have the data, and bringing it in is the first afternoon's work. The difference isn't the counting — it's that the count updates itself when a crew pulls material, and the job's cost comes from the batches actually consumed instead of a price somebody typed in twice.
+                Then you already have the data, and bringing it in is the first afternoon's work. The difference isn't the counting. It's that the count updates itself when a crew pulls material, and the job's cost comes from the batches actually used instead of a price somebody typed in twice.
               </div>
             </details>
           </div>
@@ -659,7 +659,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
               <li><button type="button" onClick={onStart}>Start your company</button></li>
               <li><button type="button" onClick={onSignIn}>Sign in</button></li>
               <li><button type="button" onClick={onShowTerms}>Terms &amp; Conditions</button></li>
-              <li><a href="mailto:sam@steadwerk.com">sam@steadwerk.com</a></li>
+              <li><a href="mailto:help@steadwerk.com">help@steadwerk.com</a></li>
             </ul>
           </div>
         </div>

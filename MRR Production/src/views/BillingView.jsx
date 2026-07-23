@@ -51,10 +51,11 @@ export default function BillingView({ user }) {
   const capacity = seats?.capacity; // null = unlimited (comped)
   const used = seats?.used ?? 0;
   const packs = capacity == null ? null : Math.max(0, (capacity - BASE_SEATS) / PACK_SEATS);
-  const monthly = capacity == null ? null : BASE_PRICE + (packs || 0) * PACK_PRICE;
+  // Packs are bought outright, so they never change the recurring bill.
+  const monthly = capacity == null ? null : BASE_PRICE;
 
   const buyPack = async () => {
-    if (!window.confirm(`Add 5 seats for $${PACK_PRICE}/month? Your card is charged a prorated amount now, then the new total each month.`)) return;
+    if (!window.confirm(`Add 5 seats for a one-time $${PACK_PRICE}? Your monthly bill stays $${BASE_PRICE}. The seats are yours for as long as your subscription is active.`)) return;
     setBusy(true);
     try {
       const accessToken = await getAccessToken();
@@ -65,11 +66,13 @@ export default function BillingView({ user }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-      showToast("5 seats added.", "success");
-      await load();
+      // The seats aren't real until Stripe confirms payment, so hand off to
+      // checkout rather than reporting success here. The webhook credits the pack;
+      // the success_url brings them back to a reloaded Billing tab.
+      if (!data.url) throw new Error("Stripe did not return a checkout URL.");
+      window.location.assign(data.url);
     } catch (err) {
       showToast(`Could not add seats: ${err.message}`, "error");
-    } finally {
       setBusy(false);
     }
   };
@@ -115,7 +118,7 @@ export default function BillingView({ user }) {
               <>
                 <div style={{ fontSize: 22, fontWeight: 900, color: C.navy }}>${monthly}<span style={{ fontSize: 14, color: C.sub, fontWeight: 600 }}>/month</span></div>
                 <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>
-                  ${BASE_PRICE} base ({BASE_SEATS} users){packs > 0 ? ` + ${packs} × $${PACK_PRICE} pack${packs > 1 ? "s" : ""} (${packs * PACK_SEATS} extra)` : ""}
+                  ${BASE_PRICE} base ({BASE_SEATS} users){packs > 0 ? ` · ${packs} crew pack${packs > 1 ? "s" : ""} bought (${packs * PACK_SEATS} extra seats, already paid for)` : ""}
                 </div>
               </>
             )}
@@ -136,7 +139,7 @@ export default function BillingView({ user }) {
             {capacity != null && (
               <button onClick={buyPack} disabled={busy}
                 style={{ marginTop: 12, padding: "10px 16px", background: C.gold, color: C.navy, border: "none", borderRadius: 8, fontWeight: 800, fontSize: 14, cursor: busy ? "wait" : "pointer" }}>
-                + Add 5 seats (${PACK_PRICE}/mo)
+                + Add 5 seats (${PACK_PRICE} once)
               </button>
             )}
           </div>
