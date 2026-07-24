@@ -20,6 +20,10 @@ const BASE_SEATS = 10;
 const PACK_PRICE = 10;
 const PACK_SEATS = 5;
 const TRIAL_DAYS = 14;
+// Discounted 12-month prepay. Must match the STRIPE_ANNUAL_PRICE_ID amount and the
+// display prices in LoginScreen's signup toggle.
+const ANNUAL_PRICE = 990;
+const ANNUAL_SAVINGS_PCT = Math.round((1 - ANNUAL_PRICE / (BASE_PRICE * 12)) * 100);
 
 const CSS = `
 .sw-landing {
@@ -505,6 +509,9 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
               <div className="fig">
                 <span className="amt">${BASE_PRICE}</span>
                 <span className="per">/ month</span>
+              </div>
+              <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--good)", margin: "2px 0 6px" }}>
+                or ${ANNUAL_PRICE}/year — save {ANNUAL_SAVINGS_PCT}%
               </div>
               <div className="what">Everything, for up to {BASE_SEATS} people.</div>
               <p>Inventory, jobs, fleet, maintenance, costed reports, and per-role access for the whole crew. This isn't a starter tier. It's the whole thing.</p>

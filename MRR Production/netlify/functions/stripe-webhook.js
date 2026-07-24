@@ -31,10 +31,13 @@ import { adminClient } from "./_shared/tenant.js";
 function baseSeatsFromSubscription(sub) {
   const items = sub?.items?.data;
   if (!Array.isArray(items)) return null;
-  const basePrice = process.env.STRIPE_BASE_PRICE_ID;
+  // The base plan bills as EITHER the monthly or the annual Price (same product,
+  // two cadences). Both grant the same 10 included seats, so match either id —
+  // otherwise an annual subscriber would fall through to the fallback below.
+  const basePriceIds = [process.env.STRIPE_BASE_PRICE_ID, process.env.STRIPE_ANNUAL_PRICE_ID].filter(Boolean);
   let seats = 0;
   for (const it of items) {
-    if (it.price?.id === basePrice) seats += 10 * (it.quantity || 1);
+    if (basePriceIds.includes(it.price?.id)) seats += 10 * (it.quantity || 1);
   }
   // Every real subscription carries the base plan; if we matched nothing, assume
   // the base 10 rather than accidentally capping a paying company at 0.

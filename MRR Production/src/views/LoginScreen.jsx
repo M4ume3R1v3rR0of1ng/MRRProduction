@@ -23,6 +23,13 @@ import { logAction } from "../utils/logger";
 import { translations } from "../utils/translations";
 import { SteadwerkLockup, BRAND } from "../components/SteadwerkMark";
 
+// Display-only prices for the plan toggle. These must match the amounts on the
+// Stripe Prices that create-checkout bills (STRIPE_BASE_PRICE_ID / STRIPE_ANNUAL_PRICE_ID);
+// the actual charge always comes from Stripe, these just render the choice.
+const MONTHLY_PRICE = 99;
+const ANNUAL_PRICE = 990; // "2 months free" vs 12 × monthly
+const ANNUAL_SAVINGS_PCT = Math.round((1 - ANNUAL_PRICE / (MONTHLY_PRICE * 12)) * 100);
+
 export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang, initialMode = "login", onBack, onShowTerms }) {
   const t = translations[lang] || translations.en;
   // "login" = existing user signing in · "signup" = public "start a company" flow.
@@ -38,6 +45,9 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
   // Self-serve signup fields.
   const [companyName, setCompanyName] = useState("");
   const [fullName, setFullName] = useState("");
+  // Monthly (default) vs the discounted annual prepay — passed to create-checkout,
+  // which maps it to the matching Stripe Price.
+  const [billingInterval, setBillingInterval] = useState("monthly");
 
   // Set only when an authenticated user belongs to more than one company.
   const [choices, setChoices] = useState(null); // [{ company_id, role, companies: {name, slug} }]
@@ -82,6 +92,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
           name: fullName.trim(),
           email: email.trim().toLowerCase(),
           password: pass,
+          billingInterval,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -489,6 +500,39 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                   Forgot password?
                 </button>
               </div>
+            )}
+
+            {mode === "signup" && (
+              <Fld label="Billing">
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[
+                    { id: "monthly", title: `$${MONTHLY_PRICE}/mo`, note: "Billed monthly" },
+                    { id: "annual", title: `$${ANNUAL_PRICE}/yr`, note: `Save ${ANNUAL_SAVINGS_PCT}%` },
+                  ].map((opt) => {
+                    const active = billingInterval === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setBillingInterval(opt.id)}
+                        disabled={submitting}
+                        style={{
+                          flex: 1,
+                          padding: "10px 12px",
+                          borderRadius: "var(--radius-md)",
+                          border: `2px solid ${active ? C.gold : C.bd}`,
+                          background: active ? "rgba(201,123,45,0.08)" : "#fff",
+                          cursor: submitting ? "not-allowed" : "pointer",
+                          textAlign: "left",
+                        }}
+                      >
+                        <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15 }}>{opt.title}</div>
+                        <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: opt.id === "annual" ? BRAND.pasture : C.sub }}>{opt.note}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Fld>
             )}
 
             <button

@@ -59,6 +59,9 @@ export const handler = async (event) => {
   const fullName = (body.name || "").trim();
   const email = (body.email || "").trim().toLowerCase();
   const password = body.password || "";
+  // "annual" prepays 12 months at a discount; anything else (including a missing
+  // field, e.g. an older client) falls back to the default monthly cadence.
+  const billingInterval = body.billingInterval === "annual" ? "annual" : "monthly";
 
   if (!companyName || !fullName || !email) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Company name, your name, and email are required." }) };
@@ -68,10 +71,18 @@ export const handler = async (event) => {
   }
 
   const basePriceId = process.env.STRIPE_BASE_PRICE_ID;
+  const annualPriceId = process.env.STRIPE_ANNUAL_PRICE_ID;
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!basePriceId || !secretKey) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: "Billing is not configured (missing STRIPE_BASE_PRICE_ID / STRIPE_SECRET_KEY)." }) };
   }
+  // Annual is a separate yearly Price on the same product — a discounted 12-month
+  // prepay. Fail loudly if it was chosen but never configured, rather than silently
+  // billing the monthly cadence the customer didn't pick.
+  if (billingInterval === "annual" && !annualPriceId) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "Annual billing is not configured (missing STRIPE_ANNUAL_PRICE_ID)." }) };
+  }
+  const priceId = billingInterval === "annual" ? annualPriceId : basePriceId;
 
   const admin = adminClient();
   const stripe = new Stripe(secretKey);
@@ -136,7 +147,7 @@ export const handler = async (event) => {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customer.id,
-      line_items: [{ price: basePriceId, quantity: 1 }], // base plan: $99, 10 seats
+      line_items: [{ price: priceId, quantity: 1 }], // base plan (monthly or annual): 10 seats
       // Shows the "Add promotion code" field on the hosted checkout. Codes and their
       // coupons are created in the Stripe Dashboard (Product catalog -> Coupons); a
       // repeating/forever coupon discounts the subscription, and the discount applies
@@ -151,7 +162,7 @@ export const handler = async (event) => {
       // ends, and cancelling before then costs the customer nothing. Change this
       // number and the TRIAL_DAYS constant in LandingPage.jsx together — a page
       // promising a trial the checkout doesn't grant is worse than no trial.
-      subscription_data: { trial_period_days: 14, metadata: { company_id: company.id } },
+      subscription_data: { trial_period_days: 14, metadata: { company_id: company.id, billing_interval: billingInterval } },
       success_url: `${appUrl}/?checkout=success`,
       cancel_url: `${appUrl}/?checkout=cancel`,
     });
