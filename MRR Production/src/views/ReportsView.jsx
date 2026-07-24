@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C, fd, fm, tot, newestPrice } from "../utils/helpers";
+import { translations } from "../utils/translations";
 import { Btn, Sel, Bdg, Modal, LoadingState } from "../components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "../context/NotificationContext";
 
@@ -30,7 +31,7 @@ const triggerNativeDownload = (filename, headers, rows) => {
 };
 
 // ── 📊 TREND COMPONENT 1: JOB PROFITABILITY & MATERIAL USAGE BY PROJECT ──
-function JobProfitabilityReport({ jobs }) {
+function JobProfitabilityReport({ jobs, t }) {
   const completedJobs = jobs.filter((j) => j.status === "completed" || j.status === "closed");
   
   const handleExportExcel = () => {
@@ -79,14 +80,14 @@ function JobProfitabilityReport({ jobs }) {
   return (
     <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📈 Job Profitability & Material Allocation Trends</h2>
-        <Btn v="green" sz="sm" onClick={handleExportExcel}>⬇ Export Profitability Excel</Btn>
+        <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{t.rptJobProfTitle}</h2>
+        <Btn v="green" sz="sm" onClick={handleExportExcel}>{t.rptExportProfitability}</Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
         <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
           <thead>
             <tr style={{ background: C.lg }}>
-              {["PO Code", "Project Profile Name", "Estimated Contract Revenue", "Realized Material Cost", "Projected Gross Profit", "Gross Profit Margin", "Primary Material Consumed"].map((h) => (
+              {[t.rptColPO, t.rptColProject, t.rptColEstRevenue, t.rptColRealizedCost, t.rptColGrossProfit, t.rptColGrossMargin, t.rptColPrimaryMaterial].map((h) => (
                 <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
               ))}
             </tr>
@@ -95,7 +96,7 @@ function JobProfitabilityReport({ jobs }) {
             {completedJobs.map((job) => {
               let estCost = 0;
               let actCost = 0;
-              let topItemName = "None";
+              let topItemName = t.rptNone;
               let maxQty = 0;
 
               (job.items || job.materials || []).forEach((i) => {
@@ -130,7 +131,7 @@ function JobProfitabilityReport({ jobs }) {
               );
             })}
             {completedJobs.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: C.sub }}>No completed production lines available.</td></tr>
+              <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: C.sub }}>{t.rptNoCompletedLines}</td></tr>
             )}
           </tbody>
         </table>
@@ -140,7 +141,7 @@ function JobProfitabilityReport({ jobs }) {
 }
 
 // ── 🏭 TREND COMPONENT 2: INVENTORY STOCK COSTING TRENDS ──
-function InventoryCostTrendsReport({ inv }) {
+function InventoryCostTrendsReport({ inv, t }) {
   const [trendFilter, setTrendFilter] = useState("all");
 
   const materialsTrendList = inv.map((item) => {
@@ -184,20 +185,20 @@ function InventoryCostTrendsReport({ inv }) {
     <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: "var(--space-4)" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🏭 Structural Vendor Material Cost Trends</h2>
+          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{t.rptInvTrendsTitle}</h2>
           <div style={{ display: "flex", gap: "var(--space-2)", marginTop: 8 }}>
-            {[["all", "All Trends"], ["rising", "⚠️ Cost Increasing"], ["dropping", "📉 Savings Traps"]].map(([k, l]) => (
+            {[["all", t.rptAllTrends], ["rising", t.rptCostIncreasing], ["dropping", t.rptSavingsTraps]].map(([k, l]) => (
               <Btn key={k} v={trendFilter === k ? "primary" : "ghost"} sz="sm" onClick={() => setTrendFilter(k)}>{l}</Btn>
             ))}
           </div>
         </div>
-        <Btn v="green" sz="sm" onClick={handleExportInventoryCSV}>⬇ Export Cost Trends Excel</Btn>
+        <Btn v="green" sz="sm" onClick={handleExportInventoryCSV}>{t.rptExportCostTrends}</Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
         <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
           <thead>
             <tr style={{ background: C.lg }}>
-              {["Material Profile Name", "Category Group", "Stock Available", "Historical Mean Cost", "Most Recent Invoice Price", "Price Fluctuation Vector", "FIFO Asset Holding Cost"].map((h) => (
+              {[t.rptColMaterialProfile, t.rptColCategoryGroup, t.rptColStockAvailable, t.rptColHistoricalMean, t.rptColRecentInvoice, t.rptColPriceVector, t.rptColFifoAsset].map((h) => (
                 <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
               ))}
             </tr>
@@ -211,7 +212,7 @@ function InventoryCostTrendsReport({ inv }) {
                 <td style={{ padding: "10px 12px" }}>{fm(item.averageBatchCost)}</td>
                 <td style={{ padding: "10px 12px", fontWeight: "var(--weight-semibold)" }}>{fm(item.currentPrice)}</td>
                 <td style={{ padding: "10px 12px" }}>
-                  <Bdg color={item.trendColor}>{item.trendDirection}</Bdg>
+                  <Bdg color={item.trendColor}>{{ "Stable": t.rptStable, "Inflationary 📈": t.rptInflationary, "Deflationary 📉": t.rptDeflationary }[item.trendDirection] || item.trendDirection}</Bdg>
                 </td>
                 <td style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)", color: C.blue }}>{fm(item.warehouseAssetCapital)}</td>
               </tr>
@@ -224,7 +225,7 @@ function InventoryCostTrendsReport({ inv }) {
 }
 
 // ── 🚛 TREND COMPONENT 3: FLEET MAINTENANCE COSTS ANALYSIS ──
-function FleetCostTrendsReport({ vehs, reqs }) {
+function FleetCostTrendsReport({ vehs, reqs, t }) {
   // ── 🟢 NEW: ADD HOOK STATES FOR RUNTIME CONDITION DATA LOADING ──
   const [inspections, setInspections] = useState([]);
   const [loadingInspect, setLoadingInspect] = useState(true);
@@ -242,7 +243,7 @@ function FleetCostTrendsReport({ vehs, reqs }) {
         setInspections(data || []);
       } catch (err) {
         console.error("Failed syncing condition history reports:", err);
-        showToast("Couldn't load inspection history — the list below may be incomplete. Refresh to retry.", "warning");
+        showToast(t.rptInspLoadFail, "warning");
       } finally {
         setLoadingInspect(false);
       }
@@ -294,7 +295,7 @@ function FleetCostTrendsReport({ vehs, reqs }) {
   };
 
 const handleDeleteInspection = async (id, vehicleName) => {
-  if (!window.confirm(`Delete inspection record for ${vehicleName}?`)) return;
+  if (!window.confirm(t.rptDeleteInspConfirm.replace("{name}", vehicleName))) return;
   try {
     const { error } = await supabase
       .from("vehicle_inspections")
@@ -302,10 +303,10 @@ const handleDeleteInspection = async (id, vehicleName) => {
       .eq("id", id);
     if (error) throw error;
     setInspections((prev) => prev.filter((log) => log.id !== id));
-    showToast("Inspection record deleted.", "success");
+    showToast(t.rptInspDeleted, "success");
   } catch (err) {
     console.error("Failed to delete inspection:", err);
-    showToast(`Database Error: Could not delete inspection. ${err.message}`, "error");
+    showToast(`${t.rptInspDeleteErr} ${err.message}`, "error");
   }
 };
 
@@ -316,8 +317,8 @@ const handleDeleteInspection = async (id, vehicleName) => {
         
         {/* PANEL A */}
         <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-          <h3 style={{ margin: "0 0 4px 0", fontSize: "var(--text-md)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📊 Expense Burn Footprint</h3>
-          <p style={{ margin: "0 0 16px 0", fontSize: "var(--text-xs)", color: C.sub }}>Relative cost breakdown bar chart scaled against a standard \$2,500 lifecycle tier.</p>
+          <h3 style={{ margin: "0 0 4px 0", fontSize: "var(--text-md)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{t.rptExpenseBurn}</h3>
+          <p style={{ margin: "0 0 16px 0", fontSize: "var(--text-xs)", color: C.sub }}>{t.rptExpenseBurnDesc}</p>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
             {fleetMetrics.slice(0, 5).map((v) => {
               const barPercent = Math.min(100, (v.totalRepairInvestment / 2500) * 100);
@@ -338,23 +339,23 @@ const handleDeleteInspection = async (id, vehicleName) => {
 
         {/* PANEL B */}
         <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-          <h3 style={{ margin: "0 0 4px 0", fontSize: "var(--text-md)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🚨 Fleet Maintenance Compliance Monitor</h3>
-          <p style={{ margin: "0 0 12px 0", fontSize: "var(--text-xs)", color: C.sub }}>Vehicles requiring mechanical interval adjustments or detailing maintenance sweeps.</p>
+          <h3 style={{ margin: "0 0 4px 0", fontSize: "var(--text-md)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{t.rptComplianceMonitor}</h3>
+          <p style={{ margin: "0 0 12px 0", fontSize: "var(--text-xs)", color: C.sub }}>{t.rptComplianceDesc}</p>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", maxHeight: 180, overflowY: "auto" }}>
             {fleetMetrics.filter(v => v.isOilOverdue || v.isDetailOverdue).map((v) => (
               <div key={v.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.lg, padding: "8px 12px", borderRadius: "var(--radius-md)" }}>
                 <div>
                   <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy }}>{v.make} {v.name}</div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>Odo: {v.currentMileage.toLocaleString()} mi</div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>{t.rptOdo} {v.currentMileage.toLocaleString()} mi</div>
                 </div>
                 <div style={{ display: "flex", gap: "var(--space-1)" }}>
-                  {v.isOilOverdue && <Bdg color="red">🔧 Oil Overdue</Bdg>}
-                  {v.isDetailOverdue && <Bdg color="amber">🧹 Detailing</Bdg>}
+                  {v.isOilOverdue && <Bdg color="red">{t.rptOilOverdue}</Bdg>}
+                  {v.isDetailOverdue && <Bdg color="amber">{t.rptDetailing}</Bdg>}
                 </div>
               </div>
             ))}
             {fleetMetrics.filter(v => v.isOilOverdue || v.isDetailOverdue).length === 0 && (
-              <div style={{ textAlign: "center", color: C.gr, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", padding: "20px 0" }}>✨ All system fleet assets are 100% compliant.</div>
+              <div style={{ textAlign: "center", color: C.gr, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", padding: "20px 0" }}>{t.rptAllCompliant}</div>
             )}
           </div>
         </div>
@@ -363,14 +364,14 @@ const handleDeleteInspection = async (id, vehicleName) => {
       {/* DETAILED LEDGER GRID */}
       <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🚛 Operational Fleet Lifecycle & Maintenance Cost Centers</h2>
-          <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>⬇ Export Fleet Analytics</Btn>
+          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{t.rptFleetLedgerTitle}</h2>
+          <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>{t.rptExportFleet}</Btn>
         </div>
         <div style={{ overflowX: "auto" }}>
           <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
-                {["Vehicle Fleet Identifier", "Classification Asset Class", "Plate ID", "Resolved Work Requests", "Cumulative Maintenance Cost", "Lifecycle Warning Index"].map((h) => (
+                {[t.rptColVehicleId, t.rptColAssetClass, t.rptColPlateId, t.rptColResolvedRequests, t.rptColCumulativeCost, t.rptColWarningIndex].map((h) => (
                   <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
                 ))}
               </tr>
@@ -379,23 +380,23 @@ const handleDeleteInspection = async (id, vehicleName) => {
               {fleetMetrics.map((v) => (
                 <tr key={v.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
                   <td style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)", color: C.navy }}>
-                    {v.name || "Fleet Truck"} <span style={{ fontWeight: "var(--weight-normal)", color: C.sub, fontSize: "var(--text-xs)" }}>{v.yr} {v.make}</span>
+                    {v.name || t.rptFleetTruck} <span style={{ fontWeight: "var(--weight-normal)", color: C.sub, fontSize: "var(--text-xs)" }}>{v.yr} {v.make}</span>
                   </td>
                   <td style={{ padding: "10px 12px", textTransform: "capitalize" }}>{v.type}</td>
                   <td style={{ padding: "10px 12px", fontFamily: "monospace", color: C.sub }}>{v.plates || v.plate || "—"}</td>
-                  <td style={{ padding: "10px 12px" }}>{v.serviceLogsCount} resolved repairs</td>
+                  <td style={{ padding: "10px 12px" }}>{v.serviceLogsCount} {t.rptResolvedRepairs}</td>
                   <td style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)", color: v.totalRepairInvestment > 0 ? C.navy : C.sub }}>
                     {v.totalRepairInvestment > 0 ? fm(v.totalRepairInvestment) : "—"}
                   </td>
                   <td style={{ padding: "10px 12px" }}>
-                    <Bdg color={v.riskColor}>{v.vehicleRiskLevel}</Bdg>
+                    <Bdg color={v.riskColor}>{{ "Optimal Operating Level": t.rptOptimal, "High Cost Center 🚨": t.rptHighCost, "Elevated Lifecycle Wear ⚠️": t.rptElevatedWear }[v.vehicleRiskLevel] || v.vehicleRiskLevel}</Bdg>
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr style={{ background: "rgba(15, 23, 42, 0.05)" }}>
-                <td colSpan={4} style={{ padding: "12px", fontWeight: "var(--weight-extrabold)", color: C.navy }}>Sum Total Fleet Portfolio Capital Maintenance Expenditures</td>
+                <td colSpan={4} style={{ padding: "12px", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{t.rptSumTotalFleet}</td>
                 <td colSpan={2} style={{ padding: "12px", fontWeight: "var(--weight-black)", color: C.navy, fontSize: 15 }}>{fm(cumulativeFleetExpenditures)}</td>
               </tr>
             </tfoot>
@@ -413,13 +414,13 @@ const handleDeleteInspection = async (id, vehicleName) => {
           border: `1px solid ${C.lg}`
         }}
       >
-        <h3 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: "var(--weight-extrabold)", color: C.navy }}>📋 Historical Vehicle Inspection Logs</h3>
-        <p style={{ margin: "0 0 16px 0", fontSize: "var(--text-sm)", color: C.sub }}>Condition log packages and provider diagnostic sheets uploaded by department managers.</p>
-        
+        <h3 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: "var(--weight-extrabold)", color: C.navy }}>{t.rptInspLogsTitle}</h3>
+        <p style={{ margin: "0 0 16px 0", fontSize: "var(--text-sm)", color: C.sub }}>{t.rptInspLogsDesc}</p>
+
         {loadingInspect ? (
-          <LoadingState label="Streaming condition metrics ledger..." />
+          <LoadingState label={t.rptStreamingMetrics} />
         ) : inspections.length === 0 ? (
-          <div style={{ padding: 24, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", background: C.lg, borderRadius: "var(--radius-md)" }}>No inspection files or reports submitted this period.</div>
+          <div style={{ padding: 24, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", background: C.lg, borderRadius: "var(--radius-md)" }}>{t.rptNoInspections}</div>
         ) : (
           /* ── SCROLL CONTAINER BOUNDARY CONTROLLER ── */
           <div 
@@ -454,10 +455,10 @@ const handleDeleteInspection = async (id, vehicleName) => {
                     <span style={{ fontSize: "var(--text-xs)", color: C.sub }}>· {new Date(log.created_at).toLocaleDateString()}</span>
                   </div>
                   <p style={{ margin: "0 0 6px 0", fontSize: "var(--text-base)", color: "#334155", lineHeight: 1.4 }}>
-                    {log.notes || <span style={{ fontStyle: "italic", color: C.sub }}>No supplementary text or provider notes attached.</span>}
+                    {log.notes || <span style={{ fontStyle: "italic", color: C.sub }}>{t.rptNoNotes}</span>}
                   </p>
                   <div style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>
-                    🕵️‍♂️ Inspector: <span style={{ color: C.navy }}>{log.inspector_name}</span>
+                    {t.rptInspector} <span style={{ color: C.navy }}>{log.inspector_name}</span>
                   </div>
                 </div>
 
@@ -468,10 +469,10 @@ const handleDeleteInspection = async (id, vehicleName) => {
                       <img
                         key={idx}
                         src={pic}
-                        alt="Inspection thumbnail proof"
+                        alt={t.rptInspThumbAlt}
                         onClick={() => setLightboxPic(pic)}
                         style={{ width: 48, height: 48, borderRadius: "var(--radius-sm)", objectFit: "cover", cursor: "pointer", border: "1px solid #cbd5e1" }}
-                        title="Expand Image"
+                        title={t.rptExpandImage}
                       />
                     ))}
                   </div>
@@ -492,7 +493,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                  title="Permanently delete this inspection record"
+                  title={t.rptDeleteInspTitle}
                 >
                   🗑️
                 </button>
@@ -505,10 +506,10 @@ const handleDeleteInspection = async (id, vehicleName) => {
 
       {/* Lightbox Canvas Overlay Component */}
       {lightboxPic && (
-        <Modal title="🔍 Full Resolution Condition Reference" onClose={() => setLightboxPic(null)} wide>
+        <Modal title={t.rptFullResTitle} onClose={() => setLightboxPic(null)} wide>
           <div style={{ textAlign: "center", padding: 4 }}>
-            <img src={lightboxPic} alt="Condition full view" style={{ maxWidth: "100%", maxHeight: "68vh", borderRadius: "var(--radius-md)", objectFit: "contain", background: "#000" }} />
-            <Btn v="primary" style={{ width: "100%", marginTop: 12, justifyContent: "center" }} onClick={() => setLightboxPic(null)}>Close Screen Review</Btn>
+            <img src={lightboxPic} alt={t.rptCondFullView} style={{ maxWidth: "100%", maxHeight: "68vh", borderRadius: "var(--radius-md)", objectFit: "contain", background: "#000" }} />
+            <Btn v="primary" style={{ width: "100%", marginTop: 12, justifyContent: "center" }} onClick={() => setLightboxPic(null)}>{t.rptCloseReview}</Btn>
           </div>
         </Modal>
       )}
@@ -518,7 +519,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
 }
 
 // ── 🔒 HISTORICAL SYSTEM AUDIT LEDGER ──
-function AuditTrailReport() {
+function AuditTrailReport({ t }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   // A failed fetch must not render as "no history" — that reads as innocence.
@@ -584,10 +585,10 @@ function AuditTrailReport() {
     <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: "var(--space-4)" }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🔒 Historical Operations Audit Trail</h2>
+          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{t.rptAuditTitle}</h2>
           <div style={{ marginTop: 8 }}>
             <Sel value={actionTypeFilter} onChange={(e) => setActionTypeFilter(e.target.value)} style={{ padding: "4px 8px", fontSize: "var(--text-sm)" }}>
-              <option value="all">Filter by Action Type (All)</option>
+              <option value="all">{t.rptFilterActionAll}</option>
               <option value="INVENTORY_PULL">INVENTORY_PULL</option>
               <option value="PERM_CHANGE">PERM_CHANGE</option>
               <option value="MAT_RECEIVE">MAT_RECEIVE</option>
@@ -595,22 +596,22 @@ function AuditTrailReport() {
             </Sel>
           </div>
         </div>
-        <Btn v="green" sz="sm" onClick={handleExportAuditExcel}>⬇ Export Audit Excel</Btn>
+        <Btn v="green" sz="sm" onClick={handleExportAuditExcel}>{t.rptExportAudit}</Btn>
       </div>
       {loading ? (
-        <LoadingState label="Loading audit stream records..." />
+        <LoadingState label={t.rptLoadingAudit} />
       ) : loadError ? (
         <div style={{ background: "#fee2e2", border: "1.5px solid #ef4444", borderRadius: "var(--radius-lg)", padding: "20px", textAlign: "center", color: "#991b1b" }}>
-          <div style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>⚠️ Couldn't load the audit history</div>
-          <div style={{ fontSize: "var(--text-sm)", marginBottom: 12 }}>The trail is NOT empty — it just couldn't be fetched. ({loadError})</div>
-          <Btn v="primary" sz="sm" onClick={() => setRetryTick((t) => t + 1)}>🔄 Retry</Btn>
+          <div style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>{t.rptAuditLoadFailTitle}</div>
+          <div style={{ fontSize: "var(--text-sm)", marginBottom: 12 }}>{t.rptAuditLoadFailDesc} ({loadError})</div>
+          <Btn v="primary" sz="sm" onClick={() => setRetryTick((prev) => prev + 1)}>{t.rptRetry}</Btn>
         </div>
       ) : (
         <div style={{ overflowX: "auto", maxHeight: 400, overflowY: "auto" }}>
           <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
             <thead>
               <tr style={{ background: C.lg, position: "sticky", top: 0, zIndex: 1 }}>
-                {["Timestamp", "User Email", "Action Code", "Audit Narrative Description"].map((h) => (
+                {[t.rptColTimestamp, t.rptColUserEmail, t.rptColActionCode, t.rptColAuditNarrative].map((h) => (
                   <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", background: C.lg }}>{h}</th>
                 ))}
               </tr>
@@ -641,7 +642,9 @@ export default function Reports({
   inv = [],
   vehs = [],
   reqs = [],
+  lang,
 }) {
+  const t = translations[lang] || translations.en;
   const [activeTab, setActiveTab] = useState("Jobs");
   const completedJobs = jobs.filter((j) => j.status === "completed" || j.status === "closed");
 
@@ -659,43 +662,43 @@ export default function Reports({
   );
 
   const tabOptions = [
-    { id: "Jobs", label: "Job Profitability Trends", icon: "📈" },
-    { id: "Inventory", label: "Inventory Cost Trends", icon: "🏭" },
-    { id: "Fleet", label: "Fleet Maintenance Analysis", icon: "🚛" },
-    { id: "Audit", label: "System Audit Ledger", icon: "🔒" },
+    { id: "Jobs", label: t.rptTabJobs, icon: "📈" },
+    { id: "Inventory", label: t.rptTabInventory, icon: "🏭" },
+    { id: "Fleet", label: t.rptTabFleet, icon: "🚛" },
+    { id: "Audit", label: t.rptTabAudit, icon: "🔒" },
   ];
 
   return (
     <div>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>📊 Corporate Intelligence Trends & Analytics</h1>
-        <p style={{ margin: "3px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>Saint Joe Road Warehouse · Structural Material Gross Margin Auditing</p>
+        <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>{t.rptTitle}</h1>
+        <p style={{ margin: "3px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>{t.rptSubtitle}</p>
       </div>
 
       <div style={{ display: "flex", gap: "var(--space-5)", flexWrap: "wrap", marginBottom: 20 }}>
         <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 14, borderLeft: `5px solid ${C.blue}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 160 }}>
           <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color: C.blue }}>{jobs.length}</div>
-          <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>Total Pipelines Tracked</div>
+          <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>{t.rptTotalPipelines}</div>
         </div>
         <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 14, borderLeft: `5px solid ${C.gr}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 160 }}>
           <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color: C.gr }}>{completedJobs.length}</div>
-          <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>Finalized Projects Built</div>
+          <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>{t.rptFinalizedProjects}</div>
         </div>
         {perms.inv_pricing_view && (
           <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 14, borderLeft: `5px solid ${C.gr}`, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", flex: 1, minWidth: 200 }}>
             <div style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.gr }}>{fm(historicalTotalMaterialSpend)}</div>
-            <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>Total Material Procurement Allocation Value</div>
+            <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>{t.rptTotalProcurement}</div>
           </div>
         )}
       </div>
 
       <div style={{ display: "flex", gap: "var(--space-4)", borderBottom: `1px solid ${C.lg}`, paddingBottom: 12, marginBottom: 20, flexWrap: "wrap" }}>
-        {tabOptions.map((t) => {
-          const active = activeTab === t.id;
+        {tabOptions.map((tab) => {
+          const active = activeTab === tab.id;
           return (
             <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -711,17 +714,17 @@ export default function Reports({
                 transition: "all 0.2s",
               }}
             >
-              <span>{t.icon}</span> {t.label}
+              <span>{tab.icon}</span> {tab.label}
             </button>
           );
         })}
       </div>
 
       <div>
-        {activeTab === "Jobs" && <JobProfitabilityReport jobs={jobs} />}
-        {activeTab === "Inventory" && perms.inv_pricing_view && ( <InventoryCostTrendsReport inv={inv} /> )}
-        {activeTab === "Fleet" && perms.inv_pricing_view && ( <FleetCostTrendsReport vehs={vehs} reqs={reqs} /> )}
-        {activeTab === "Audit" && perms.users_manage && <AuditTrailReport />}
+        {activeTab === "Jobs" && <JobProfitabilityReport jobs={jobs} t={t} />}
+        {activeTab === "Inventory" && perms.inv_pricing_view && ( <InventoryCostTrendsReport inv={inv} t={t} /> )}
+        {activeTab === "Fleet" && perms.inv_pricing_view && ( <FleetCostTrendsReport vehs={vehs} reqs={reqs} t={t} /> )}
+        {activeTab === "Audit" && perms.users_manage && <AuditTrailReport t={t} />}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 // ── Pull Inventory ────────────────────────────────
 import { useState, useEffect } from "react";
 import { C, fd, fm, doFifo, uid, tot, ft, mkJI, mergePullTracking } from "../utils/helpers";
+import { translations } from "../utils/translations";
 import { generatePDF } from "../utils/pdfGenerator";
 import { attemptAccuLynxSync } from "../utils/accuLynxSync";
 import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "../components/UIPrimitives";
@@ -29,10 +30,12 @@ export default function PullInventory({
   activeLogo,
   acculynxConfig,
   jSC,
+  lang,
   openItemId,
   onOpenItemHandled,
 }) {
   const { showToast } = useNotify();
+  const t = translations[lang] || translations.en;
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
   const [pullQtys, setPullQtys] = useState({});
@@ -83,7 +86,7 @@ export default function PullInventory({
 
   const removeEditItem = (item) => {
     if (item.pulled > 0) {
-      if (!window.confirm(`"${item.iname}" already has ${item.pulled} ${item.unit || ""} pulled from the warehouse. Removing it here will NOT return that stock — it only removes it from this job's checklist. Continue?`)) {
+      if (!window.confirm(`"${item.iname}" ${t.pullRemoveConfirm.replace("{qty}", item.pulled).replace("{unit}", item.unit || "")}`)) {
         return;
       }
     }
@@ -152,11 +155,11 @@ export default function PullInventory({
         }
       }
 
-      showToast("Job details saved.", "success");
+      showToast(t.pullJobSaved, "success");
       setModal(null);
     } catch (err) {
       console.error("Failed to save job edit:", err);
-      showToast(`Database Error: Could not save job. ${err.message}`, "error");
+      showToast(`${t.pullSaveError} ${err.message}`, "error");
     } finally {
       setSavingEdit(false);
     }
@@ -194,7 +197,7 @@ export default function PullInventory({
                  <p>🚚 Trailer <strong>${esc(trailerName)}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
         });
       }
-      showToast(`${assignedUser?.name || "Supervisor"} notified that trailer was ${action}.`, "success");
+      showToast(`${assignedUser?.name || t.pullSupervisor} ${action === "added" ? t.pullTrailerAddedMsg : t.pullTrailerRemovedMsg}`, "success");
     };
 
     if (existing) {
@@ -206,7 +209,7 @@ export default function PullInventory({
         await notifySupervisorOfTrailerChange("removed");
       } catch (err) {
         console.error("Failed to remove trailer from job:", err);
-        showToast(`Failed to remove trailer: ${err.message}`, "error");
+        showToast(`${t.pullFailRemoveTrailer} ${err.message}`, "error");
         setJobTrailers((p) => [...p, existing]);
       }
     } else {
@@ -219,7 +222,7 @@ export default function PullInventory({
         await notifySupervisorOfTrailerChange("added");
       } catch (err) {
         console.error("Failed to assign trailer to job:", err);
-        showToast(`Failed to assign trailer: ${err.message}`, "error");
+        showToast(`${t.pullFailAssignTrailer} ${err.message}`, "error");
         setJobTrailers((p) => p.filter((jt) => jt.id !== newRow.id));
       }
     }
@@ -327,7 +330,7 @@ export default function PullInventory({
 
       if (shortItems.length > 0) {
         showToast(
-          `Pulled past available stock for: ${shortItems.join(", ")}. Warehouse balance is now negative for ${shortItems.length > 1 ? "these items" : "this item"} — reorder soon.`,
+          t.pullShortStock.replace("{items}", shortItems.join(", ")),
           "warning",
         );
       }
@@ -369,12 +372,12 @@ export default function PullInventory({
       );
 
       await handlePullMaterials(sel.id, updItems);
-      showToast("Materials successfully pulled from warehouse staging.", "success");
+      showToast(t.pullPulledOk, "success");
       setModal(null);
       setPullQtys({});
     } catch (err) {
       console.error("Failed to finalize material pull layout:", err);
-      showToast(`Database Error: Pull aborted. ${err.message}`, "error");
+      showToast(`${t.pullPullAborted} ${err.message}`, "error");
     } finally {
       setPulling(false);
     }
@@ -448,13 +451,13 @@ export default function PullInventory({
       setJobs((p) => p.map((j) => (j.id === sel.id ? updatedJob : j)));
       // Email the assigned supervisor if the company enabled "Completed".
       notifyJobMove({ transition: "completed", job: updatedJob, users, prefs: jobNotifications });
-      showToast("Job logistics completed. Generating material manifest report.", "success");
+      showToast(t.pullJobCompleted, "success");
       setModal(null);
       setRetQtys({});
 
       setTimeout(() => {
         if (!generatePDF(updatedJob, users, activeLogo, newInv, company)) {
-          showToast("Popup blocked — allow popups for this site, then use the 📄 PDF button to open the report.", "warning");
+          showToast(t.pullPopupBlocked1, "warning");
         }
         if (acculynxConfig?.autoSync) {
           attemptAccuLynxSync(updatedJob, users, acculynxConfig, setJobs);
@@ -464,7 +467,7 @@ export default function PullInventory({
       setSel(null);
     } catch (err) {
       console.error("Failed to complete job procedures:", err);
-      showToast(`Database Error: Could not process return & completion. ${err.message}`, "error");
+      showToast(`${t.pullReturnError} ${err.message}`, "error");
     } finally {
       setReturning(false);
     }
@@ -472,9 +475,9 @@ export default function PullInventory({
 
   const syncBadge = (job) => {
     if (!job || !job.syncStatus || job.status !== "completed") return null;
-    if (job.syncStatus === "synced") return <Bdg color="sky">☁️ AccuLynx Synced</Bdg>;
-    if (job.syncStatus === "failed") return <Bdg color="red">⚠️ Sync Failed</Bdg>;
-    if (job.syncStatus === "manual") return <Bdg color="amber">📋 Configure Sync</Bdg>;
+    if (job.syncStatus === "synced") return <Bdg color="sky">{t.pullSynced}</Bdg>;
+    if (job.syncStatus === "failed") return <Bdg color="red">{t.pullSyncFailed}</Bdg>;
+    if (job.syncStatus === "manual") return <Bdg color="amber">{t.pullConfigureSync}</Bdg>;
     return null;
   };
 
@@ -503,11 +506,11 @@ export default function PullInventory({
       setSel((p) => (p ? { ...p, [columnToUpdate]: url } : p));
 
       if (url) {
-        showToast(`${phase === "before" ? "Before" : "After"} photo synchronized to cloud storage!`, "success");
+        showToast(`${phase === "before" ? t.pullBefore : t.pullAfter} ${t.pullPhotoSynced}`, "success");
       }
     } catch (err) {
       console.error("[Storage Upload Failure]:", err);
-      showToast(`Upload failed: ${err.message || "Network timeout error."}`, "error");
+      showToast(`${t.pullUploadFailed} ${err.message || t.pullNetworkTimeout}`, "error");
     }
   };
 
@@ -517,25 +520,25 @@ export default function PullInventory({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: 16 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>📋 Pull Inventory</h1>
+          <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>📋 {t.pull}</h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-            {isField ? "Your assigned jobs" : "All active jobs in pipeline"}
+            {isField ? t.pullYourJobs : t.pullAllJobs}
           </p>
         </div>
-        <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort jobs" style={{ width: "auto" }}>
-          <option value="newest">↕ Date Created — Newest</option>
-          <option value="oldest">↕ Date Created — Oldest</option>
-          <option value="name_az">↕ Job Name — A to Z</option>
-          <option value="name_za">↕ Job Name — Z to A</option>
-          <option value="po">↕ PO Number</option>
-          <option value="status">↕ Status</option>
+        <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.pullSortAria} style={{ width: "auto" }}>
+          <option value="newest">↕ {t.pullSortNewest}</option>
+          <option value="oldest">↕ {t.pullSortOldest}</option>
+          <option value="name_az">↕ {t.pullSortNameAZ}</option>
+          <option value="name_za">↕ {t.pullSortNameZA}</option>
+          <option value="po">↕ {t.pullSortPO}</option>
+          <option value="status">↕ {t.status}</option>
         </Sel>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {myJobs.length === 0 && (
           <div style={{ background: C.w, padding: 32, borderRadius: "var(--radius-xl)", textAlign: "center", color: C.sub, boxShadow: "var(--shadow-sm)" }}>
-            🏁 All caught up — no open jobs right now. Completed jobs live in Build Jobs.
+            {t.pullAllCaughtUp}
           </div>
         )}
         {myJobs.map((job) => {
@@ -571,8 +574,8 @@ export default function PullInventory({
                 <div>
                   <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 5, flexWrap: "wrap" }}>
                     <Bdg color={st.c}>{st.icon} {st.l}</Bdg>
-                    {isNew && <Bdg color="teal">🔔 NEW</Bdg>}
-                    <span style={{ fontSize: "var(--text-sm)", color: C.sub }}>{job.po || "No PO #"}</span>
+                    {isNew && <Bdg color="teal">🔔 {t.pullNew}</Bdg>}
+                    <span style={{ fontSize: "var(--text-sm)", color: C.sub }}>{job.po || t.pullNoPoHash}</span>
                     {syncBadge(job)}
                   </div>
                   <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2 }}>
@@ -582,7 +585,7 @@ export default function PullInventory({
                   {!isField && sup && <div style={{ fontSize: "var(--text-xs)", color: C.blue, fontWeight: "var(--weight-bold)" }}>👤 {sup.name}</div>}
                   {jobTrailerNames.length > 0 && (
                     <div style={{ fontSize: "var(--text-xs)", color: C.am, fontWeight: "var(--weight-bold)", marginTop: 2 }}>
-                      🚚 Bring trailer: {jobTrailerNames.join(", ")}
+                      {t.pullBringTrailer} {jobTrailerNames.join(", ")}
                     </div>
                   )}
                 </div>
@@ -602,7 +605,7 @@ export default function PullInventory({
                         setSel(job);
                       }}
                     >
-                      🚛 Pull Materials
+                      🚛 {t.pullPullMaterials}
                     </Btn>
                   )}
                   {perms.jobs_complete && job.status === "active" && (
@@ -619,16 +622,16 @@ export default function PullInventory({
                         setModal("return");
                       }}
                     >
-                      📦 Return & Complete
+                      {t.pullReturnComplete}
                     </Btn>
                   )}
                   {job.status === "completed" && (
                     <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                      <Btn v="green" sz="sm" onClick={() => { if (!generatePDF(job, users, activeLogo, inv, company)) showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning"); }}>📄 PDF</Btn>
-                      <Btn v="sky" sz="sm" onClick={() => setSyncModal(job)}>☁️ Sync Status</Btn>
+                      <Btn v="green" sz="sm" onClick={() => { if (!generatePDF(job, users, activeLogo, inv, company)) showToast(t.pullPopupBlocked2, "warning"); }}>📄 PDF</Btn>
+                      <Btn v="sky" sz="sm" onClick={() => setSyncModal(job)}>{t.pullSyncStatus}</Btn>
                     </div>
                   )}
-                  <Btn v="ghost" sz="sm" onClick={() => openJob(job)}>Details</Btn>
+                  <Btn v="ghost" sz="sm" onClick={() => openJob(job)}>{t.pullDetails}</Btn>
                 </div>
               </div>
               <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 10, display: "flex", gap: "var(--space-3)", overflowX: "auto", paddingBottom: 4 }}>
@@ -648,21 +651,21 @@ export default function PullInventory({
                       <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.navy, whiteSpace: "nowrap" }}>{item.iname || item.name}</div>
                       <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
                         {item.pulled > 0
-                          ? `${(item.pulled || 0) - (item.returned || 0)} used`
-                          : `${item.planned || item.qty || 0} ${item.unit || ""} planned`}
+                          ? `${(item.pulled || 0) - (item.returned || 0)} ${t.pullUsed}`
+                          : `${item.planned || item.qty || 0} ${item.unit || ""} ${t.pullPlanned}`}
                       </div>
                     </div>
                   );
                 })}
                 {currentItems.length > 6 && (
                   <div style={{ background: C.lg, borderRadius: 7, padding: "5px 10px", flexShrink: 0, display: "flex", alignItems: "center", fontSize: "var(--text-2xs)", color: C.sub }}>
-                    +{currentItems.length - 6} more
+                    +{currentItems.length - 6} {t.pullMore}
                   </div>
                 )}
               </div>
               {perms.inv_pricing_view && job.status === "completed" && totalCost > 0 && (
                 <div style={{ marginTop: 8, borderTop: `1px solid ${C.lg}`, paddingTop: 8, display: "flex", justifyContent: "flex-end" }}>
-                  <span style={{ fontWeight: "var(--weight-black)", fontSize: 15, color: C.gr }}>Total: {fm(totalCost)}</span>
+                  <span style={{ fontWeight: "var(--weight-black)", fontSize: 15, color: C.gr }}>{t.pullTotal}: {fm(totalCost)}</span>
                 </div>
               )}
             </div>
@@ -672,7 +675,7 @@ export default function PullInventory({
 
       {modal === "pull" && sel && (
         <Modal
-          title={`Pull Materials — ${sel.title || sel.name}`}
+          title={`${t.pullPullMaterials} — ${sel.title || sel.name}`}
           onClose={() => {
             if (!pulling) {
               setModal(null);
@@ -683,12 +686,12 @@ export default function PullInventory({
           wide
         >
           <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.tl, fontWeight: "var(--weight-semibold)" }}>
-            Adjust quantities if needed. Confirm to deduct from warehouse inventory (FIFO).
+            {t.pullAdjustInfo}
           </div>
           <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
-                {["Item", "Planned", "Actual to Pull", "Available"].map((h) => (
+                {[t.colItem, t.colPlanned, t.colActualPull, t.colAvailable].map((h) => (
                   <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)" }}>{h}</th>
                 ))}
               </tr>
@@ -729,9 +732,9 @@ export default function PullInventory({
             </tbody>
           </table>
           <div style={{ display: "flex", gap: "var(--space-4)" }}>
-            <Btn v="ghost" onClick={() => { setModal(null); setSel(null); setPullQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={pulling}>Cancel</Btn>
+            <Btn v="ghost" onClick={() => { setModal(null); setSel(null); setPullQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={pulling}>{t.cancel}</Btn>
             <Btn v="teal" sz="lg" onClick={confirmPull} style={{ flex: 2, justifyContent: "center" }} disabled={pulling}>
-              {pulling ? "⏳ Allocation Sync In Progress..." : "✅ Confirm Pull from Warehouse"}
+              {pulling ? t.pullInProgress : t.pullConfirm}
             </Btn>
           </div>
         </Modal>
@@ -739,17 +742,17 @@ export default function PullInventory({
 
       {modal === "return" && sel && (
         <Modal
-          title={`Return Unused — ${sel.title || sel.name}`}
+          title={`${t.pullReturnUnused} — ${sel.title || sel.name}`}
           onClose={() => { if (!returning) { setModal(null); setRetQtys({}); } }}
           wide
         >
           <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.am, fontWeight: "var(--weight-semibold)" }}>
-            Enter quantities being returned. PDF report + AccuLynx sync will trigger on completion.
+            {t.pullReturnInfo}
           </div>
           <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
-                {["Item", "Pulled", "Returning", "Will Be Used"].map((h) => (
+                {[t.colItem, t.colPulled, t.colReturning, t.colWillUse].map((h) => (
                   <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)" }}>{h}</th>
                 ))}
               </tr>
@@ -790,7 +793,7 @@ export default function PullInventory({
             {perms.inv_pricing_view && (
               <tfoot>
                 <tr style={{ borderTop: `2px solid ${C.navy}` }}>
-                  <td colSpan={3} style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>Estimated Cost</td>
+                  <td colSpan={3} style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{t.pullEstCost}</td>
                   <td style={{ padding: "9px 10px", fontWeight: "var(--weight-black)", color: C.gr, fontSize: 15 }}>
                     {fm(
                       (Array.isArray(sel.items) ? sel.items : (sel.materials || []))
@@ -806,42 +809,42 @@ export default function PullInventory({
             )}
           </table>
           <div style={{ display: "flex", gap: "var(--space-4)" }}>
-            <Btn v="ghost" onClick={() => { setModal(null); setRetQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={returning}>Cancel</Btn>
+            <Btn v="ghost" onClick={() => { setModal(null); setRetQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={returning}>{t.cancel}</Btn>
             <Btn v="green" sz="lg" onClick={confirmReturn} style={{ flex: 2, justifyContent: "center" }} disabled={returning}>
-              {returning ? "⏳ Compiling Core Assets..." : "🏁 Complete Job & Generate PDF"}
+              {returning ? t.pullCompiling : t.pullCompleteJob}
             </Btn>
           </div>
         </Modal>
       )}
 
       {modal === "edit" && sel && perms.jobs_edit_pull && (
-        <Modal title={`Edit Job — ${sel.po}`} onClose={() => { if (!savingEdit) setModal(null); }} wide>
-          <Fld label="Job PO Number *">
+        <Modal title={`${t.pullEditJob} — ${sel.po}`} onClose={() => { if (!savingEdit) setModal(null); }} wide>
+          <Fld label={t.pullJobPO}>
             <Inp value={editForm.po || ""} onChange={(e) => setEditForm({ ...editForm, po: e.target.value })} disabled={savingEdit} />
           </Fld>
-          <Fld label="Job Name *">
+          <Fld label={t.pullJobName}>
             <Inp value={editForm.name || ""} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} disabled={savingEdit} />
           </Fld>
-          <Fld label="Address">
+          <Fld label={t.pullAddress}>
             <Inp value={editForm.addr || ""} onChange={(e) => setEditForm({ ...editForm, addr: e.target.value })} disabled={savingEdit} />
           </Fld>
-          <Fld label="Scheduled Date">
-            <Inp type="date" aria-label="Scheduled Date" value={editForm.scheduledDate || ""} onChange={(e) => setEditForm({ ...editForm, scheduledDate: e.target.value })} disabled={savingEdit} />
+          <Fld label={t.pullSchedDate}>
+            <Inp type="date" aria-label={t.pullSchedDate} value={editForm.scheduledDate || ""} onChange={(e) => setEditForm({ ...editForm, scheduledDate: e.target.value })} disabled={savingEdit} />
           </Fld>
-          <Fld label="Assigned Site Supervisor">
+          <Fld label={t.pullAssignedSup}>
             <Sel value={editForm.assignedto || ""} onChange={(e) => setEditForm({ ...editForm, assignedto: e.target.value })} disabled={savingEdit}>
-              <option value="">— Unassigned —</option>
+              <option value="">{t.pullUnassigned}</option>
               {fieldUsers.map((u) => (
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </Sel>
           </Fld>
-          <Fld label="Notes">
+          <Fld label={t.pullNotes}>
             <TA value={editForm.notes || ""} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} disabled={savingEdit} />
           </Fld>
 
           {vehs.some((v) => v.type === "trailer") && (
-            <Fld label="🚚 Trailers Needed" hint="Toggling a trailer here notifies the assigned supervisor immediately.">
+            <Fld label={t.pullTrailersNeeded} hint={t.pullTrailerHint}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                 {vehs.filter((v) => v.type === "trailer").map((v) => {
                   const checked = jobTrailers.some((jt) => jt.job_id === sel.id && jt.trailer_id === v.id);
@@ -856,18 +859,18 @@ export default function PullInventory({
             </Fld>
           )}
 
-          <h4 style={{ margin: "16px 0 8px", color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>Materials Checklist</h4>
+          <h4 style={{ margin: "16px 0 8px", color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>{t.pullMaterialsChecklist}</h4>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 10 }}>
             {editItems.length === 0 ? (
-              <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>No materials on this job.</p>
+              <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>{t.pullNoMaterials}</p>
             ) : (
               editItems.map((item) => (
                 <div key={item.iid} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: C.lg, borderRadius: 7, padding: "7px 10px" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.iname}</div>
                     {item.pulled > 0 && (
-                      <div style={{ fontSize: "var(--text-2xs)", color: C.am }}>⚠️ {item.pulled} {item.unit} already pulled</div>
+                      <div style={{ fontSize: "var(--text-2xs)", color: C.am }}>⚠️ {item.pulled} {item.unit} {t.pullAlreadyPulled}</div>
                     )}
                   </div>
                   <Inp
@@ -891,18 +894,18 @@ export default function PullInventory({
             )}
           </div>
 
-          <Fld label="Add Material">
-            <Inp value={editItemSearch} onChange={(e) => setEditItemSearch(e.target.value)} placeholder="🔍 Search inventory..." disabled={savingEdit} />
+          <Fld label={t.pullAddMaterial}>
+            <Inp value={editItemSearch} onChange={(e) => setEditItemSearch(e.target.value)} placeholder={t.pullSearchInv} disabled={savingEdit} />
           </Fld>
           {editItemSearch.trim() && (
             <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", maxHeight: 160, overflowY: "auto", marginBottom: 14 }}>
               {editFiltInv.length === 0 ? (
-                <div style={{ padding: 10, fontSize: "var(--text-sm)", color: C.sub, textAlign: "center" }}>No matching inventory items.</div>
+                <div style={{ padding: 10, fontSize: "var(--text-sm)", color: C.sub, textAlign: "center" }}>{t.pullNoMatchingInv}</div>
               ) : (
                 editFiltInv.map((item) => (
                   <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderBottom: `1px solid ${C.lg}` }}>
                     <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.name}</span>
-                    <Btn v="primary" sz="sm" onClick={() => { addEditItem(item); setEditItemSearch(""); }}>+ Add</Btn>
+                    <Btn v="primary" sz="sm" onClick={() => { addEditItem(item); setEditItemSearch(""); }}>{t.pullAdd}</Btn>
                   </div>
                 ))
               )}
@@ -910,8 +913,8 @@ export default function PullInventory({
           )}
 
           <div style={{ display: "flex", gap: "var(--space-4)" }}>
-            <Btn v="ghost" onClick={() => setModal(null)} disabled={savingEdit} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
-            <Btn v="primary" onClick={saveJobEdit} disabled={savingEdit} style={{ flex: 1, justifyContent: "center" }}>{savingEdit ? "Saving..." : "Save Changes"}</Btn>
+            <Btn v="ghost" onClick={() => setModal(null)} disabled={savingEdit} style={{ flex: 1, justifyContent: "center" }}>{t.cancel}</Btn>
+            <Btn v="primary" onClick={saveJobEdit} disabled={savingEdit} style={{ flex: 1, justifyContent: "center" }}>{savingEdit ? t.pullSaving : t.pullSaveChanges}</Btn>
           </div>
         </Modal>
       )}
@@ -920,18 +923,18 @@ export default function PullInventory({
         <Modal title={`${sel.po || "No PO"} — ${sel.title || sel.name}`} onClose={() => setSel(null)} wide>
           {perms.jobs_edit_pull && (
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-              <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>✏️ Edit Job</Btn>
+              <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>✏️ {t.pullEditJob}</Btn>
             </div>
           )}
           <div style={{ marginTop: 18, borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
-            <h3 style={{ margin: "0 0 12px 0", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📸 Visual Production Accountability Media</h3>
+            <h3 style={{ margin: "0 0 12px 0", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{t.pullVisualMedia}</h3>
             <div style={{ display: "flex", gap: "var(--space-6)", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.sub, marginBottom: 4 }}>Before Photo (Site Prep / Decking)</div>
+                <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.sub, marginBottom: 4 }}>{t.pullBeforePhoto}</div>
                 <PhotoUpload current={currentJobPhotos.before} onUpload={(base64) => handleStagePhoto("before", base64)} />
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.sub, marginBottom: 4 }}>After Photo (Finished Shingles / Clean)</div>
+                <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.sub, marginBottom: 4 }}>{t.pullAfterPhoto}</div>
                 <PhotoUpload current={currentJobPhotos.after} onUpload={(base64) => handleStagePhoto("after", base64)} />
               </div>
             </div>
@@ -939,12 +942,12 @@ export default function PullInventory({
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))", gap: "var(--space-3)", marginBottom: 14, marginTop: 14 }}>
             {[
-              ["Status", <Bdg color={(jSC[sel.status] || {c:"gray"}).c}>{(jSC[sel.status] || {l:sel.status}).l}</Bdg>],
+              [t.status, <Bdg color={(jSC[sel.status] || {c:"gray"}).c}>{(jSC[sel.status] || {l:sel.status}).l}</Bdg>],
               ["PO", sel.po || "—"],
-              ["Assigned To", users.find((u) => u.id === sel.assignedto || u.id === sel.assignedTo)?.name || "—"],
-              ["🚚 Trailer", jobTrailers.filter((jt) => jt.job_id === sel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || "None needed"],
-              ["Approved", fd(sel.approved)],
-              ["Completed", fd(sel.completed || sel.completedAt)],
+              [t.pullAssignedTo, users.find((u) => u.id === sel.assignedto || u.id === sel.assignedTo)?.name || "—"],
+              [t.pullTrailer, jobTrailers.filter((jt) => jt.job_id === sel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || t.pullNoneNeeded],
+              [t.pullApproved, fd(sel.approved)],
+              [t.completed, fd(sel.completed || sel.completedAt)],
             ].map(([k, v]) => (
               <div key={k} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}>
                 <div style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>{k}</div>
@@ -955,7 +958,7 @@ export default function PullInventory({
           <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
             <thead>
               <tr style={{ background: C.lg }}>
-                {["Item", "Planned", "Pulled", "Returned", "Used", ...(perms.inv_pricing_view ? ["Cost"] : [])].map((h) => (
+                {[t.colItem, t.colPlanned, t.colPulled, t.colReturned, t.colUsed, ...(perms.inv_pricing_view ? [t.colCost] : [])].map((h) => (
                   <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
                 ))}
               </tr>
@@ -984,39 +987,39 @@ export default function PullInventory({
           </table>
           {sel.status === "completed" && (
             <div style={{ marginTop: 10, display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
-              <Btn v="green" onClick={() => { if (!generatePDF(sel, users, activeLogo, inv, company)) showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning"); }}>📄 PDF</Btn>
-              <Btn v="sky" onClick={() => setSyncModal(sel)}>☁️ AccuLynx Sync</Btn>
+              <Btn v="green" onClick={() => { if (!generatePDF(sel, users, activeLogo, inv, company)) showToast(t.pullPopupBlocked2, "warning"); }}>📄 PDF</Btn>
+              <Btn v="sky" onClick={() => setSyncModal(sel)}>{t.pullAccuLynxSync}</Btn>
             </div>
           )}
         </Modal>
       )}
 
       {syncModal && (
-        <Modal title={`AccuLynx Sync — ${syncModal.po || "No PO #"}`} onClose={() => setSyncModal(null)}>
+        <Modal title={`${t.pullAccuLynxSyncTitle} — ${syncModal.po || t.pullNoPoHash}`} onClose={() => setSyncModal(null)}>
           <div style={{ marginBottom: 14 }}>
             {syncModal.syncStatus === "synced" && (
               <div style={{ background: C.sB, border: `1.5px solid ${C.sl}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.sl, marginBottom: 4 }}>☁️ Successfully Synced to AccuLynx</div>
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.sl, marginBottom: 4 }}>{t.pullSyncSuccess}</div>
                 <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{syncModal.syncNote}</div>
-                {syncModal.syncedAt && <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 4 }}>Synced: {ft(syncModal.syncedAt)}</div>}
+                {syncModal.syncedAt && <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 4 }}>{t.pullSyncedAt}: {ft(syncModal.syncedAt)}</div>}
               </div>
             )}
             {syncModal.syncStatus === "failed" && (
               <div style={{ background: C.rB, border: `1.5px solid ${C.rd}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.rd, marginBottom: 4 }}>⚠️ Sync Failed</div>
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.rd, marginBottom: 4 }}>{t.pullSyncFailed}</div>
                 <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{syncModal.syncNote}</div>
               </div>
             )}
             {(syncModal.syncStatus === "manual" || !syncModal.syncStatus) && (
               <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.am, marginBottom: 4 }}>📋 Auto-Sync Not Configured</div>
-                <div style={{ fontSize: "var(--text-sm)", color: C.navy }}>Configure AccuLynx in Settings → AccuLynx to enable automatic document upload and cost entry.</div>
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.am, marginBottom: 4 }}>{t.pullAutoSyncNotConfig}</div>
+                <div style={{ fontSize: "var(--text-sm)", color: C.navy }}>{t.pullConfigureAccuLynx}</div>
               </div>
             )}
           </div>
           {syncModal.syncPayload && (
             <>
-              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", marginBottom: 6 }}>Payload Sent to AccuLynx</div>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", marginBottom: 6 }}>{t.pullPayloadSent}</div>
               <div style={{ background: "#1A202C", borderRadius: "var(--radius-md)", padding: 12, overflowX: "auto", marginBottom: 12 }}>
                 <pre style={{ margin: 0, fontSize: "var(--text-2xs)", color: "#68D391", fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
                   {JSON.stringify(syncModal.syncPayload, null, 2)}
@@ -1026,9 +1029,9 @@ export default function PullInventory({
           )}
           <div style={{ display: "flex", gap: "var(--space-3)" }}>
             {(syncModal.syncStatus === "failed" || syncModal.syncStatus === "manual") && (
-              <Btn v="sky" onClick={() => { attemptAccuLynxSync(syncModal, users, acculynxConfig, setJobs); setSyncModal(null); }} style={{ flex: 1, justifyContent: "center" }}>🔄 Retry Sync</Btn>
+              <Btn v="sky" onClick={() => { attemptAccuLynxSync(syncModal, users, acculynxConfig, setJobs); setSyncModal(null); }} style={{ flex: 1, justifyContent: "center" }}>{t.pullRetrySync}</Btn>
             )}
-            <Btn v="ghost" onClick={() => setSyncModal(null)} style={{ flex: 1, justifyContent: "center" }}>Close</Btn>
+            <Btn v="ghost" onClick={() => setSyncModal(null)} style={{ flex: 1, justifyContent: "center" }}>{t.close}</Btn>
           </div>
         </Modal>
       )}
