@@ -7,7 +7,7 @@
 // the real gate is in the database, so a non-owner poking the same RPCs gets nothing.
 import { useEffect, useState } from "react";
 import { supabase, getAccessToken } from "../utils/supabase";
-import { C } from "../utils/helpers";
+import { C, tot } from "../utils/helpers";
 import { BRAND, TrussMark } from "../components/SteadwerkMark";
 import { useNotify } from "../context/NotificationContext";
 
@@ -47,6 +47,39 @@ export default function OwnerConsole({ user }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  // Read-only cross-company drill-in: the company being inspected + its fetched data.
+  const [viewCompany, setViewCompany] = useState(null);
+  const [viewData, setViewData] = useState(null);
+  const [viewLoading, setViewLoading] = useState(false);
+
+  // Load a target company's operational data READ-ONLY. This works because a platform
+  // admin's RLS already permits reading any company's rows; we just query with an
+  // explicit company filter. Nothing here writes — it's oversight, not impersonation.
+  const openCompanyView = async (company) => {
+    setViewCompany(company);
+    setViewData(null);
+    setViewLoading(true);
+    try {
+      const [jobsRes, invRes, memsRes] = await Promise.all([
+        supabase.from("jobs").select("*").eq("company_id", company.id),
+        supabase.from("inventory").select("*").eq("company_id", company.id),
+        supabase.from("memberships").select("user_id, role, active").eq("company_id", company.id),
+      ]);
+      const mems = memsRes.data || [];
+      const memberIds = mems.map((m) => m.user_id);
+      const { data: profs } = memberIds.length
+        ? await supabase.from("profiles").select("id, full_name, name, email").in("id", memberIds)
+        : { data: [] };
+      const roleByUser = Object.fromEntries(mems.map((m) => [m.user_id, m]));
+      const members = (profs || []).map((p) => ({ ...p, role: roleByUser[p.id]?.role, active: roleByUser[p.id]?.active }));
+      setViewData({ jobs: jobsRes.data || [], inventory: invRes.data || [], members });
+    } catch (err) {
+      showToast(`Could not load ${company.name}: ${err.message}`, "error");
+      setViewData({ jobs: [], inventory: [], members: [] });
+    } finally {
+      setViewLoading(false);
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -221,25 +254,31 @@ export default function OwnerConsole({ user }) {
                     <td style={{ padding: "12px 14px", color: C.sub }}>{fmtDate(co.created_at)}</td>
                     <td style={{ padding: "12px 14px", color: C.sub }}>{fmtDate(co.last_activity)}</td>
                     <td style={{ padding: "12px 14px" }}>
-                      {suspended ? (
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <button onClick={() => setStatus(co, "active")} disabled={busyId === co.id}
-                            style={{ padding: "6px 12px", background: BRAND.pasture, color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                            Reactivate
-                          </button>
-                          {/* Delete is offered ONLY on suspended rows — suspend-then-delete is the
-                              deliberate two-step that keeps a live company one click from safety. */}
-                          <button onClick={() => { setDeleteTarget(co); setConfirmText(""); }} disabled={busyId === co.id}
-                            style={{ padding: "6px 12px", background: BRAND.rust, color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                            Delete
-                          </button>
-                        </div>
-                      ) : (
-                        <button onClick={() => setStatus(co, "suspended")} disabled={busyId === co.id}
-                          style={{ padding: "6px 12px", background: "transparent", color: BRAND.rust, border: `1.5px solid ${BRAND.rust}`, borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                          Suspend
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <button onClick={() => openCompanyView(co)} disabled={busyId === co.id}
+                          style={{ padding: "6px 12px", background: "transparent", color: C.blue, border: `1.5px solid ${C.blue}`, borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                          View
                         </button>
-                      )}
+                        {suspended ? (
+                          <>
+                            <button onClick={() => setStatus(co, "active")} disabled={busyId === co.id}
+                              style={{ padding: "6px 12px", background: BRAND.pasture, color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                              Reactivate
+                            </button>
+                            {/* Delete is offered ONLY on suspended rows — suspend-then-delete is the
+                                deliberate two-step that keeps a live company one click from safety. */}
+                            <button onClick={() => { setDeleteTarget(co); setConfirmText(""); }} disabled={busyId === co.id}
+                              style={{ padding: "6px 12px", background: BRAND.rust, color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                              Delete
+                            </button>
+                          </>
+                        ) : (
+                          <button onClick={() => setStatus(co, "suspended")} disabled={busyId === co.id}
+                            style={{ padding: "6px 12px", background: "transparent", color: BRAND.rust, border: `1.5px solid ${BRAND.rust}`, borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                            Suspend
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -345,6 +384,120 @@ export default function OwnerConsole({ user }) {
               >
                 {deleting ? "Deleting…" : "Delete forever"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Read-only company drill-in ──
+          Platform-admin oversight: inspect a tenant's live jobs, inventory, and team
+          without leaving your own company. Read-only — nothing here writes. */}
+      {viewCompany && (
+        <div
+          onClick={() => setViewCompany(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(23,27,31,0.55)", display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 24, zIndex: 1000, overflowY: "auto" }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: C.w, borderRadius: 14, padding: 24, maxWidth: 880, width: "100%", boxShadow: "0 24px 60px rgba(0,0,0,0.4)", margin: "20px 0" }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 900, color: C.navy }}>{viewCompany.name}</div>
+              <button onClick={() => setViewCompany(null)} style={{ background: "none", border: "none", fontSize: 22, color: C.sub, cursor: "pointer", lineHeight: 1 }}>×</button>
+            </div>
+            <div style={{ fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 16 }}>Read-only oversight · you stay in your own company</div>
+
+            {viewLoading || !viewData ? (
+              <div style={{ padding: 32, textAlign: "center", color: C.sub }}>Loading…</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+                {/* Jobs */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Jobs ({viewData.jobs.length})</div>
+                  {viewData.jobs.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.sub }}>No jobs.</div>
+                  ) : (
+                    <div style={{ overflowX: "auto", border: `1px solid ${C.bd}`, borderRadius: 8 }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 560 }}>
+                        <thead><tr style={{ background: C.lg, textAlign: "left" }}>
+                          {["Status", "PO", "Name", "Assigned", "Created"].map((h) => (
+                            <th key={h} style={{ padding: "8px 10px", fontSize: 11, textTransform: "uppercase", color: C.sub, fontWeight: 800 }}>{h}</th>
+                          ))}
+                        </tr></thead>
+                        <tbody>
+                          {viewData.jobs.slice(0, 100).map((j) => {
+                            const sup = viewData.members.find((m) => m.id === (j.assignedto || j.assignedTo));
+                            return (
+                              <tr key={j.id} style={{ borderTop: `1px solid ${C.bd}` }}>
+                                <td style={{ padding: "7px 10px", textTransform: "capitalize" }}>{j.status || "—"}</td>
+                                <td style={{ padding: "7px 10px", color: C.sub }}>{j.po || "—"}</td>
+                                <td style={{ padding: "7px 10px", fontWeight: 600, color: C.navy }}>{j.title || j.name || "—"}</td>
+                                <td style={{ padding: "7px 10px", color: C.sub }}>{sup?.full_name || sup?.name || "—"}</td>
+                                <td style={{ padding: "7px 10px", color: C.sub }}>{fmtDate(j.created || j.createdAt)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Inventory */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Inventory ({viewData.inventory.length})</div>
+                  {viewData.inventory.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.sub }}>No inventory.</div>
+                  ) : (
+                    <div style={{ overflowX: "auto", border: `1px solid ${C.bd}`, borderRadius: 8 }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 520 }}>
+                        <thead><tr style={{ background: C.lg, textAlign: "left" }}>
+                          {["Item", "Category", "On hand", "Status"].map((h) => (
+                            <th key={h} style={{ padding: "8px 10px", fontSize: 11, textTransform: "uppercase", color: C.sub, fontWeight: 800 }}>{h}</th>
+                          ))}
+                        </tr></thead>
+                        <tbody>
+                          {viewData.inventory.slice(0, 100).map((i) => {
+                            const onHand = tot(i);
+                            const low = onHand <= (i.alrt || 0);
+                            return (
+                              <tr key={i.id} style={{ borderTop: `1px solid ${C.bd}` }}>
+                                <td style={{ padding: "7px 10px", fontWeight: 600, color: C.navy }}>{i.name}</td>
+                                <td style={{ padding: "7px 10px", color: C.sub }}>{i.cat || "—"}</td>
+                                <td style={{ padding: "7px 10px" }}>{onHand} {i.unit || ""}</td>
+                                <td style={{ padding: "7px 10px" }}>
+                                  <span style={{ color: low ? BRAND.rust : BRAND.pasture, fontWeight: 700 }}>{low ? "Low" : "OK"}</span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Team */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Team ({viewData.members.length})</div>
+                  {viewData.members.length === 0 ? (
+                    <div style={{ fontSize: 13, color: C.sub }}>No members.</div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {viewData.members.map((m) => (
+                        <div key={m.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "7px 10px", background: C.lg, borderRadius: 8, fontSize: 13 }}>
+                          <span><span style={{ fontWeight: 700, color: C.navy }}>{m.full_name || m.name || m.email}</span> <span style={{ color: C.sub, marginLeft: 6 }}>{m.email}</span></span>
+                          <span style={{ color: C.sub, fontWeight: 700, textTransform: "capitalize" }}>{m.role || "—"}{m.active === false ? " (inactive)" : ""}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+              <button onClick={() => setViewCompany(null)} style={{ padding: "9px 18px", background: C.navy, color: "#EDE6DA", border: "none", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>Close</button>
             </div>
           </div>
         </div>
