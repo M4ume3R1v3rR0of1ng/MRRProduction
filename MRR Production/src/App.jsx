@@ -446,7 +446,7 @@ return (
               <SettingsView warehouses={app.warehouses} company={app.company} setCompany={app.setCompany} jobNotifications={app.jobNotifications} setJobNotifications={app.setJobNotifications} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} />
             )}
             {view === "logs" && app.userPerms.users_manage && (
-              <AuditLogView perms={app.userPerms} inv={app.inv} users={app.users} />
+              <AuditLogView perms={app.userPerms} inv={app.inv} users={app.users} companyId={app.curUser?.companyId} />
             )}
             {view === "owner" && app.curUser.isPlatformAdmin && (
               <OwnerConsole user={app.curUser} />

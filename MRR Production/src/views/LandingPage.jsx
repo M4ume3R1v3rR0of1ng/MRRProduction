@@ -393,7 +393,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
               <p className="hero-sub">Warehouse and fleet software for the crews who run on trucks, materials, and people. Set up in an afternoon. Home by supper.</p>
               <div className="hero-cta">
                 <button className="btn btn-primary btn-lg" type="button" onClick={onStart}>Start your company</button>
-                <a className="btn hero-ghost btn-lg" href="#glimpse" onClick={scrollTo("glimpse")}>See it in the wild</a>
+                <a className="btn hero-ghost btn-lg" href="#demo" onClick={scrollTo("demo")}>Watch the demo</a>
               </div>
               <div className="hero-meta">
                 <span><b>No IT department.</b> No six-figure system.</span>
@@ -491,6 +491,43 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <div className="step"><span className="idx">STEP 01</span><h3>Raise the frame</h3><p>Add your yard, your trucks, and your crew. Enter what you've got on the shelf, or bring it in from where it already lives.</p></div>
             <div className="step"><span className="idx">STEP 02</span><h3>Run the day</h3><p>Pull materials to jobs, track the fleet, flag maintenance from the office desk or the cab of a truck with no signal.</p></div>
             <div className="step"><span className="idx">STEP 03</span><h3>Home by supper</h3><p>Jobs close themselves out with a costed report. The counting's done before you've hung up your coat.</p></div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── DEMO VIDEO ──
+          Self-hosted so the strict CSP (default-src 'self', no media-src) serves it.
+          Drop the recording at public/steadwerk-demo.mp4 (Vite ships public/ to dist/
+          verbatim, so it resolves at /steadwerk-demo.mp4). The browser uses the video's
+          first frame as the still; add public/steadwerk-demo-poster.jpg plus a
+          poster attr here for a custom thumbnail. */}
+      <section className="band" id="demo">
+        <div className="wrap">
+          <div className="band-head reveal">
+            <span className="eyebrow">Watch · The full tour</span>
+            <h2>See a job go from build to costed report.</h2>
+            <p>The whole loop, start to finish. No sales call to sit through first.</p>
+          </div>
+          <div className="reveal" style={{ maxWidth: 940, margin: "0 auto" }}>
+            <video
+              controls
+              preload="metadata"
+              playsInline
+              style={{
+                width: "100%",
+                aspectRatio: "16 / 9",
+                objectFit: "contain",
+                display: "block",
+                borderRadius: 16,
+                border: "1px solid var(--line)",
+                boxShadow: "0 24px 60px rgba(0,0,0,.28)",
+                background: "#000",
+              }}
+            >
+              <source src="/steadwerk-demo.mp4" type="video/mp4" />
+              Your browser can’t play this video.{" "}
+              <a href="/steadwerk-demo.mp4">Download it instead.</a>
+            </video>
           </div>
         </div>
       </section>

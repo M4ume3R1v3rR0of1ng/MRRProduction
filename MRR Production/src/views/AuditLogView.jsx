@@ -4,7 +4,7 @@ import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { Bdg, Sel, Inp, Btn, LoadingState } from "../components/UIPrimitives";
 
-export default function AuditLogView({ perms, inv = [], users = [] }) {
+export default function AuditLogView({ perms, inv = [], users = [], companyId }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   // A failed fetch must not render as "no history" — that reads as innocence.
@@ -94,6 +94,7 @@ export default function AuditLogView({ perms, inv = [], users = [] }) {
         let query = supabase
           .from("audit_logs")
           .select("*")
+          .eq("company_id", companyId)
           .order("created_at", { ascending: false })
           .limit(200);
         if (actionFilter !== "all")

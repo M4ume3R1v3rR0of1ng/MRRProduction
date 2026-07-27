@@ -72,6 +72,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
       const { data, error: fetchError } = await supabase
         .from('team_chat_messages')
         .select('*')
+        .eq('company_id', user?.companyId)
         .order('created_at', { ascending: false })
         .limit(limit);
 

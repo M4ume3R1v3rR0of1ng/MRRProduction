@@ -225,7 +225,7 @@ function InventoryCostTrendsReport({ inv, t }) {
 }
 
 // ── 🚛 TREND COMPONENT 3: FLEET MAINTENANCE COSTS ANALYSIS ──
-function FleetCostTrendsReport({ vehs, reqs, t }) {
+function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
   // ── 🟢 NEW: ADD HOOK STATES FOR RUNTIME CONDITION DATA LOADING ──
   const [inspections, setInspections] = useState([]);
   const [loadingInspect, setLoadingInspect] = useState(true);
@@ -238,6 +238,7 @@ function FleetCostTrendsReport({ vehs, reqs, t }) {
         const { data, error } = await supabase
           .from("vehicle_inspections")
           .select("*")
+          .eq("company_id", companyId)
           .order("created_at", { ascending: false });
         if (error) throw error;
         setInspections(data || []);
@@ -519,7 +520,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
 }
 
 // ── 🔒 HISTORICAL SYSTEM AUDIT LEDGER ──
-function AuditTrailReport({ t }) {
+function AuditTrailReport({ t, companyId }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   // A failed fetch must not render as "no history" — that reads as innocence.
@@ -535,6 +536,7 @@ function AuditTrailReport({ t }) {
         let query = supabase
           .from("audit_logs")
           .select("*")
+          .eq("company_id", companyId)
           .order("created_at", { ascending: false })
           .limit(100);
         if (actionTypeFilter !== "all") {
@@ -723,8 +725,8 @@ export default function Reports({
       <div>
         {activeTab === "Jobs" && <JobProfitabilityReport jobs={jobs} t={t} />}
         {activeTab === "Inventory" && perms.inv_pricing_view && ( <InventoryCostTrendsReport inv={inv} t={t} /> )}
-        {activeTab === "Fleet" && perms.inv_pricing_view && ( <FleetCostTrendsReport vehs={vehs} reqs={reqs} t={t} /> )}
-        {activeTab === "Audit" && perms.users_manage && <AuditTrailReport t={t} />}
+        {activeTab === "Fleet" && perms.inv_pricing_view && ( <FleetCostTrendsReport vehs={vehs} reqs={reqs} t={t} companyId={user?.companyId} /> )}
+        {activeTab === "Audit" && perms.users_manage && <AuditTrailReport t={t} companyId={user?.companyId} />}
       </div>
     </div>
   );

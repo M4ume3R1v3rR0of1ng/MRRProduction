@@ -77,6 +77,11 @@ export function useAppData() {
         //
         // Identity now comes from the MEMBERSHIP (role is per-company), not from the
         // deprecated profiles.role.
+        // The company this session operates in. Every read below is scoped to it
+        // EXPLICITLY, not just through RLS: a platform admin's RLS can read EVERY
+        // company, which pours all tenants' jobs, inventory, and users onto one
+        // dashboard. Platform-wide oversight lives in the Owner Console instead.
+        let activeCompanyId = null;
         if (session?.user) {
           const { data: prof } = await supabase
             .from("profiles")
@@ -85,6 +90,7 @@ export function useAppData() {
             .maybeSingle();
 
           if (prof?.active && prof.active_company_id) {
+            activeCompanyId = prof.active_company_id;
             const { data: membership } = await supabase
               .from("memberships")
               .select("role, company_id, companies ( name )")
@@ -137,55 +143,60 @@ export function useAppData() {
 
         await Promise.all([
           (async () => {
-            const { data, error } = await supabase.from("inventory").select("*");
+            const { data, error } = await supabase.from("inventory").select("*").eq("company_id", activeCompanyId);
             if (error) { failedTables.push("Inventory"); setInv([]); }
             else setInv(data || []);
             trackProgress(9);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("vehicles").select("*");
+            const { data, error } = await supabase.from("vehicles").select("*").eq("company_id", activeCompanyId);
             if (error) { failedTables.push("Fleet"); setVehs([]); }
             else setVehs(data || []);
             trackProgress(9);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("jobs").select("*");
+            const { data, error } = await supabase.from("jobs").select("*").eq("company_id", activeCompanyId);
             if (error) { failedTables.push("Jobs"); setJobs([]); }
             else setJobs(data || []);
             trackProgress(9);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("maintenance_requests").select("*");
+            const { data, error } = await supabase.from("maintenance_requests").select("*").eq("company_id", activeCompanyId);
             if (error) { failedTables.push("Maintenance Requests"); setReqs([]); }
             else if (data && data.length > 0) setReqs(data.sort((a, b) => new Date(b.at) - new Date(a.at)));
             else setReqs([]);
             trackProgress(9);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("job_trailers").select("*");
+            const { data, error } = await supabase.from("job_trailers").select("*").eq("company_id", activeCompanyId);
             if (error) { failedTables.push("Trailer Assignments"); setJobTrailers([]); }
             else setJobTrailers(data || []);
             trackProgress(9);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("warehouses").select("*");
+            const { data, error } = await supabase.from("warehouses").select("*").eq("company_id", activeCompanyId);
             if (error) { failedTables.push("Warehouses"); setWH([]); }
             else setWH(data || []);
             trackProgress(9);
           })(),
           (async () => {
-            // RLS scopes both of these to the active company: profiles to people who
-            // share it, memberships to that company's rows. So the join below is
-            // already tenant-safe without any explicit filter.
+            // Scope to the ACTIVE company's members. RLS is NOT enough: a platform
+            // admin can read every profile and membership, which would list every
+            // company's people here. Filter memberships to this company, then pull only
+            // those profiles.
             //
-            // The role shown must be the MEMBERSHIP role, not profiles.role — the
-            // latter is deprecated and, for someone who works at two companies, holds
-            // whichever role was written last. Overlaying it here keeps the `users`
-            // shape the rest of the app expects.
-            const [{ data, error }, { data: mems }] = await Promise.all([
-              supabase.from("profiles").select("*"),
-              supabase.from("memberships").select("user_id, role, active"),
-            ]);
+            // The role shown must be the MEMBERSHIP role, not profiles.role — the latter
+            // is deprecated and, for someone who works at two companies, holds whichever
+            // role was written last. Overlaying it here keeps the `users` shape the rest
+            // of the app expects.
+            const { data: mems } = await supabase
+              .from("memberships")
+              .select("user_id, role, active")
+              .eq("company_id", activeCompanyId);
+            const memberIds = (mems || []).map((m) => m.user_id);
+            const { data, error } = memberIds.length
+              ? await supabase.from("profiles").select("*").in("id", memberIds)
+              : { data: [], error: null };
 
             if (error) { failedTables.push("Users"); setUsers([]); }
             else {
@@ -200,7 +211,7 @@ export function useAppData() {
             trackProgress(9);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("role_permissions").select("*");
+            const { data, error } = await supabase.from("role_permissions").select("*").eq("company_id", activeCompanyId);
             // On failure the safe DEFAULT_ROLE_PERMS stay in effect, but the
             // user is told — admin-customized permissions silently reverting
             // to defaults is otherwise invisible.
@@ -218,7 +229,7 @@ export function useAppData() {
             trackProgress(9);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("user_permission_overrides").select("*");
+            const { data, error } = await supabase.from("user_permission_overrides").select("*").eq("company_id", activeCompanyId);
             if (error) failedTables.push("User Permission Overrides");
             else if (data && data.length > 0) {
               const formattedUserOv = {};
@@ -243,7 +254,7 @@ export function useAppData() {
             trackProgress(7);
           })(),
           (async () => {
-            const { data, error } = await supabase.from("settings").select("value").eq("key", "acculynx_config").maybeSingle();
+            const { data, error } = await supabase.from("settings").select("value").eq("key", "acculynx_config").eq("company_id", activeCompanyId).maybeSingle();
             if (!error && data?.value) {
               try {
                 setAccuLynxConfig((p) => ({ ...p, ...JSON.parse(data.value) }));
@@ -349,6 +360,7 @@ export function useAppData() {
           .from("team_chat_reads")
           .select("last_read_at")
           .eq("user_id", curUser.id)
+          .eq("company_id", curUser.companyId)
           .maybeSingle();
 
         if (!readRow?.last_read_at) {
@@ -365,6 +377,7 @@ export function useAppData() {
         const { count } = await supabase
           .from("team_chat_messages")
           .select("id", { count: "exact", head: true })
+          .eq("company_id", curUser.companyId)
           .gt("created_at", readRow.last_read_at)
           .neq("user_id", curUser.id);
 
@@ -400,8 +413,8 @@ export function useAppData() {
 
     const refetchPerms = async () => {
       const [{ data: rp }, { data: ov }] = await Promise.all([
-        supabase.from("role_permissions").select("*"),
-        supabase.from("user_permission_overrides").select("*"),
+        supabase.from("role_permissions").select("*").eq("company_id", curUser.companyId),
+        supabase.from("user_permission_overrides").select("*").eq("company_id", curUser.companyId),
       ]);
       if (rp) {
         const formatted = {};
