@@ -395,6 +395,22 @@ export default function SettingsView({
     }
   };
 
+  // Clear the logo back to null on the company row (same merge RPC, same admin gate).
+  // Reports, the sidebar, and the login screen all fall back to the default mark.
+  const handleRemoveLogo = async () => {
+    if (!window.confirm("Remove the company logo? Reports, the sidebar, and the login screen will fall back to the default mark.")) return;
+    try {
+      const { error } = await supabase.rpc("set_company_branding", {
+        patch: { logo: null },
+      });
+      if (error) throw error;
+      if (typeof setLogos === "function") setLogos(null);
+      showToast("Logo removed.", "success");
+    } catch (err) {
+      showToast(`Could not remove logo: ${err.message}`, "error");
+    }
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div style={{ fontFamily: "'Inter', system-ui, sans-serif", maxWidth: "100%", padding: "4px 0" }}>
@@ -750,6 +766,12 @@ export default function SettingsView({
               <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>PNG, JPG, or SVG — compressed automatically</div>
               <input type="file" accept="image/*" onChange={handleLogoFileChange} style={{ display: "none" }} />
             </label>
+
+            {logos && (
+              <Btn v="danger" sz="sm" onClick={handleRemoveLogo} style={{ marginTop: 14 }}>
+                🗑️ Remove logo
+              </Btn>
+            )}
           </div>
         </Card>
       )}
