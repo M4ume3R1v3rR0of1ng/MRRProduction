@@ -29,6 +29,7 @@ export default function Users({
   rolePerms = {},
   userOverrides = {},
   setUserOverrides,
+  onUpdateUser,
   openItemId,
   onOpenItemHandled,
 }) {
@@ -65,12 +66,24 @@ export default function Users({
         // on the membership and has to go through set_member_role(). Writing role into
         // profiles here would update a deprecated column and change nothing — the
         // admin would see "saved" and the user's permissions would be untouched.
-        const { name, full_name, email } = profilePayload;
-        const { error } = await supabase
-          .from("profiles")
-          .update({ name, full_name, email })
-          .eq("id", editing);
-        if (error) throw error;
+        // Name + email go through the admin function: email is the login identity in
+        // auth.users, which the browser can't change, and writing profiles.email alone
+        // left the login and the Personal Profile out of sync. The function updates
+        // auth AND profiles together. Role is per-company and still goes through
+        // set_member_role().
+        const accessToken = await getAccessToken();
+        const response = await fetch("/.netlify/functions/update-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accessToken,
+            targetUserId: editing,
+            name: profilePayload.name,
+            email: profilePayload.email,
+          }),
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
 
         const { error: roleError } = await supabase.rpc("set_member_role", {
           target_user: editing,
@@ -81,6 +94,11 @@ export default function Users({
         setUsers((p) =>
           p.map((u) => (u.id === editing ? { ...u, ...profilePayload } : u)),
         );
+        // If an admin edited their OWN row, refresh the live session so the new name
+        // and email show immediately (Personal Profile, sidebar) without a re-login.
+        if (editing === currentUser?.id && typeof onUpdateUser === "function") {
+          onUpdateUser({ ...currentUser, name: profilePayload.name, full_name: profilePayload.name, email: profilePayload.email });
+        }
         showToast("User updates saved successfully.", "success");
       } else {
         const problem = validatePassword(form.password);
