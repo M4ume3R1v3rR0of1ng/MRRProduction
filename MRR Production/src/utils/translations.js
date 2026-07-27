@@ -37,6 +37,11 @@ export const translations = {
     lowStockAlert: "item(s) at or below low stock threshold.",
     view: "View",
     noPO: "No PO",
+    quickNewJob: "New Job",
+    quickMaint: "File Maintenance",
+    completedThisWeek: "Completed This Week",
+    completedThisMonth: "Completed This Month",
+    materialThisMonth: "Material Cost This Month",
 
     // Inventory Panel
     inventoryTitle: "Warehouse Inventory Staging",
@@ -377,6 +382,11 @@ export const translations = {
     lowStockAlert: "artículo(s) en o por debajo del umbral de stock bajo.",
     view: "Ver",
     noPO: "Sin PO",
+    quickNewJob: "Nuevo Trabajo",
+    quickMaint: "Reportar Mantenimiento",
+    completedThisWeek: "Completados Esta Semana",
+    completedThisMonth: "Completados Este Mes",
+    materialThisMonth: "Costo de Material Este Mes",
 
     // ── 🟢 FIXED: ADDED MISSING INVENTORY SPANISH STRINGS ──
     inventoryTitle: "Inventario de Almacén",

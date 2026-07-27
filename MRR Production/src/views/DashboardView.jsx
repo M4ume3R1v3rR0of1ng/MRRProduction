@@ -7,6 +7,27 @@ import WeatherCard from "../components/WeatherCard";
 import { supabase } from "../utils/supabase"; 
 import { translations } from "../utils/translations";
 
+// Live wall-clock for the dashboard header. Ticks each second; tabular-nums keeps the
+// digits from shifting width, and the locale follows the viewer's language.
+function LiveClock({ lang }) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const locale = lang === "es" ? "es-ES" : "en-US";
+  return (
+    <div style={{ textAlign: "right", flexShrink: 0 }}>
+      <div style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>
+        {now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+      </div>
+      <div style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "capitalize" }}>
+        {now.toLocaleDateString(locale, { weekday: "long" })}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardView({
   inv,
   vehs,
@@ -29,6 +50,19 @@ export default function DashboardView({
   const t = translations[lang] || translations.en;
   const low = inv.filter((i) => tot(i) <= i.alrt);
   const pendingReqs = reqs.filter((r) => r.status === "pending");
+
+  // ── Recent-output KPIs (distinct from the current-status cards below) ──
+  const nowMs = Date.now();
+  const weekAgoMs = nowMs - 7 * 24 * 60 * 60 * 1000;
+  const monthStartMs = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const isDoneJob = (j) => j.status === "completed" || j.status === "closed";
+  const doneAtMs = (j) => new Date(j.completedAt || j.completed || 0).getTime();
+  const completedThisWeek = jobs.filter((j) => isDoneJob(j) && doneAtMs(j) >= weekAgoMs).length;
+  const completedThisMonth = jobs.filter((j) => isDoneJob(j) && doneAtMs(j) >= monthStartMs).length;
+  const materialCostThisMonth = jobs
+    .filter((j) => isDoneJob(j) && doneAtMs(j) >= monthStartMs)
+    .reduce((s, j) => s + (j.items || j.materials || []).reduce(
+      (a, i) => a + (i ? Math.max(0, (i.pulled || 0) - (i.returned || 0)) * (i.priceAtPull || 0) : 0), 0), 0);
 
   const myJobs = jobs.filter((j) => (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "completed");
   const newJobs = myJobs.filter((j) => j.newforassigned);
@@ -354,14 +388,14 @@ export default function DashboardView({
 
   return (
     <div>
-      {/* Upper Welcome Context Row — company-branded. The accent stripe picks up
-          each company's brand color; the subtitle is the company's own name + tagline
-          (was a hardcoded "Saint Joe Road Warehouse" that showed for every tenant). */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, borderLeft: "4px solid var(--brand-accent, #C97B2D)", paddingLeft: 14 }}>
+      {/* Upper Welcome Context Row — company-branded + live clock. The accent stripe
+          picks up each company's brand color; the subtitle is the company's own name
+          + tagline (was a hardcoded "Saint Joe Road Warehouse" shown for every tenant). */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, borderLeft: "4px solid var(--brand-accent, #C97B2D)", paddingLeft: 14, flexWrap: "wrap" }}>
         {activeLogo && (
           <img src={activeLogo} alt="" style={{ height: 44, maxWidth: 130, objectFit: "contain", flexShrink: 0 }} />
         )}
-        <div style={{ minWidth: 0 }}>
+        <div style={{ minWidth: 0, flex: "1 1 220px" }}>
           <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
             {greeting}, {displayName(user)}! 👋
           </h1>
@@ -377,6 +411,32 @@ export default function DashboardView({
             })}
           </p>
         </div>
+        <LiveClock lang={lang} />
+      </div>
+
+      {/* Quick actions — start the common daily tasks in one click. Each is gated by
+          the permission that makes it meaningful; the row hides if none apply. */}
+      {(perms.jobs_build || perms.jobs_pull || perms.maint_submit || perms.maint_manage) && (
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", marginBottom: 16 }}>
+          {perms.jobs_build && (
+            <Btn v="gold" onClick={() => onNav("buildjobs")}>➕ {t.quickNewJob}</Btn>
+          )}
+          {perms.jobs_pull && (
+            <Btn v="teal" onClick={() => onNav("pull")}>🚛 {t.pull}</Btn>
+          )}
+          {(perms.maint_submit || perms.maint_manage) && (
+            <Btn v="outline" onClick={() => onNav("requests")}>🔧 {t.quickMaint}</Btn>
+          )}
+        </div>
+      )}
+
+      {/* Recent-output KPIs — this week / this month, distinct from the status cards. */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-4)", marginBottom: 16 }}>
+        <SC label={t.completedThisWeek} value={completedThisWeek} color={C.gr} icon="✅" onClick={perms.reports_view ? () => onNav("reports") : undefined} />
+        <SC label={t.completedThisMonth} value={completedThisMonth} color={C.blue} icon="🏁" onClick={perms.reports_view ? () => onNav("reports") : undefined} />
+        {perms.inv_pricing_view && (
+          <SC label={t.materialThisMonth} value={`$${Math.round(materialCostThisMonth).toLocaleString()}`} color={C.am} icon="💰" onClick={perms.reports_view ? () => onNav("reports") : undefined} />
+        )}
       </div>
 
       {/* Dynamic Security & Alert Banners */}
