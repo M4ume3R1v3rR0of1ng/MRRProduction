@@ -8,11 +8,12 @@ import {
   ROLE_COLS,
   DEFAULT_ROLE_PERMS,
 } from "../database/permissions";
-import { Btn, Bdg, Fld, Inp, Toggle } from "../components/UIPrimitives";
+import { Btn, Bdg, Fld, Inp, Sel, Toggle } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 // ── 🆕 IMPORT ADDED ──────────────────────────────────────────────────────────
 import { fetchAccuLynxJob } from "../utils/accuLynxSync";
+import { US_STATES, stateByCode } from "../utils/salesTax";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -124,6 +125,9 @@ export default function SettingsView({
   // how their name and tax line appear without touching code.
   const [brandForm, setBrandForm] = useState({
     displayName: company?.branding?.displayName || company?.name || "",
+    tagline: company?.branding?.tagline || "",
+    accent: company?.branding?.accent || "#C97B2D",
+    state: company?.branding?.state || "",
     taxRate: company?.branding?.taxRate != null ? String(company.branding.taxRate * 100) : "",
     taxLabel: company?.branding?.taxLabel || "",
   });
@@ -168,6 +172,23 @@ export default function SettingsView({
     }
   };
 
+  // Picking a state fills in that state's base sales-tax rate (still editable below),
+  // and refreshes the tax label when it's blank or a prior auto-generated state label
+  // (so switching states updates "Ohio Sales Tax" but never clobbers a custom label).
+  const applyState = (code) => {
+    setBrandForm((f) => {
+      const st = stateByCode(code);
+      const next = { ...f, state: code };
+      if (st) {
+        next.taxRate = String(st.taxPct);
+        if (!f.taxLabel.trim() || /sales tax$/i.test(f.taxLabel.trim())) {
+          next.taxLabel = `${st.name} Sales Tax`;
+        }
+      }
+      return next;
+    });
+  };
+
   const saveBranding = async () => {
     const name = brandForm.displayName.trim();
     if (!name) {
@@ -187,6 +208,9 @@ export default function SettingsView({
     }
     const patch = { displayName: name, taxLabel: brandForm.taxLabel.trim() || null };
     if (taxRate !== undefined) patch.taxRate = taxRate;
+    patch.state = brandForm.state || null;
+    patch.tagline = brandForm.tagline.trim() || null;
+    patch.accent = brandForm.accent || null;
 
     setSavingBrand(true);
     try {
@@ -702,7 +726,46 @@ export default function SettingsView({
                 disabled={savingBrand}
               />
             </Fld>
-            <Fld label="Sales Tax Rate (%)" hint="Applied to material totals on the report. Leave blank for 7%.">
+            <Fld label="Company Tagline" hint="Optional line on your dashboard header — a city, slogan, or team name.">
+              <Inp
+                value={brandForm.tagline}
+                onChange={(e) => setBrandForm({ ...brandForm, tagline: e.target.value })}
+                placeholder="e.g. Toledo's roofing crew since 2004"
+                disabled={savingBrand}
+              />
+            </Fld>
+            <Fld label="Brand Accent Color" hint="Themes your buttons, dashboard header, and highlights across the app.">
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input
+                  type="color"
+                  value={brandForm.accent || "#C97B2D"}
+                  onChange={(e) => setBrandForm({ ...brandForm, accent: e.target.value })}
+                  disabled={savingBrand}
+                  aria-label="Brand accent color"
+                  style={{ width: 48, height: 38, border: `1.5px solid ${T.border}`, borderRadius: T.radius, background: "none", cursor: "pointer", padding: 2 }}
+                />
+                <code style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{(brandForm.accent || "#C97B2D").toUpperCase()}</code>
+                {(brandForm.accent || "").toLowerCase() !== "#c97b2d" && (
+                  <button
+                    type="button"
+                    onClick={() => setBrandForm({ ...brandForm, accent: "#C97B2D" })}
+                    disabled={savingBrand}
+                    style={{ background: "none", border: "none", color: T.blue, fontSize: "var(--text-sm)", fontWeight: 700, cursor: "pointer", padding: 0 }}
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+            </Fld>
+            <Fld label="State" hint="Fills in this state's base sales-tax rate. You can still fine-tune the rate.">
+              <Sel value={brandForm.state} onChange={(e) => applyState(e.target.value)} disabled={savingBrand}>
+                <option value="">Select a state…</option>
+                {US_STATES.map((s) => (
+                  <option key={s.code} value={s.code}>{s.name}</option>
+                ))}
+              </Sel>
+            </Fld>
+            <Fld label="Sales Tax Rate (%)" hint="Auto-filled from your state, or set it by hand. Local county/city tax may add on top. Leave blank for 7%.">
               <Inp
                 type="number"
                 step="0.01"

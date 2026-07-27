@@ -22,7 +22,9 @@ export default function DashboardView({
   setJobs,
   setReqs,
   lang = "en",
-  onMarkChatRead
+  onMarkChatRead,
+  company = null,
+  activeLogo = null,
 }) {
   const t = translations[lang] || translations.en;
   const low = inv.filter((i) => tot(i) <= i.alrt);
@@ -352,20 +354,29 @@ export default function DashboardView({
 
   return (
     <div>
-      {/* Upper Welcome Context Row */}
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
-          {greeting}, {displayName(user)}! 👋
-        </h1>
-        <p style={{ margin: "3px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-          Saint Joe Road Warehouse ·{" "}
-          {new Date().toLocaleDateString(lang === "es" ? "es-ES" : "en-US", {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </p>
+      {/* Upper Welcome Context Row — company-branded. The accent stripe picks up
+          each company's brand color; the subtitle is the company's own name + tagline
+          (was a hardcoded "Saint Joe Road Warehouse" that showed for every tenant). */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16, borderLeft: "4px solid var(--brand-accent, #C97B2D)", paddingLeft: 14 }}>
+        {activeLogo && (
+          <img src={activeLogo} alt="" style={{ height: 44, maxWidth: 130, objectFit: "contain", flexShrink: 0 }} />
+        )}
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
+            {greeting}, {displayName(user)}! 👋
+          </h1>
+          <p style={{ margin: "3px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
+            {company?.branding?.displayName || company?.name || "Steadwerk"}
+            {company?.branding?.tagline ? ` · ${company.branding.tagline}` : ""}
+            {" · "}
+            {new Date().toLocaleDateString(lang === "es" ? "es-ES" : "en-US", {
+              weekday: "long",
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </p>
+        </div>
       </div>
 
       {/* Dynamic Security & Alert Banners */}

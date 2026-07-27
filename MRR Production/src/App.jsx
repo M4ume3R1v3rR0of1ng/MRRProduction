@@ -113,6 +113,29 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [app.curUser]);
 
+  // ── 🎨 PER-COMPANY BRAND ACCENT ──
+  // Each company's accent color (companies.branding.accent) drives the --brand-accent
+  // CSS variable the app themes off — primary CTAs, modal rules, the dashboard header.
+  // Set on the document root so modals and popups inherit it too. --brand-accent-ink is
+  // whichever of dark/white text contrasts better with the chosen accent, so a button
+  // label stays legible whatever color a company picks.
+  useEffect(() => {
+    const accent = app.company?.branding?.accent || "#C97B2D";
+    const relLum = (hex) => {
+      const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+      if (!m) return 0.3;
+      const [r, g, b] = [0, 2, 4]
+        .map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255)
+        .map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const L = relLum(accent);
+    const ink = 1.05 / (L + 0.05) >= (L + 0.05) / 0.071 ? "#FFFFFF" : "#23282D";
+    const root = document.documentElement;
+    root.style.setProperty("--brand-accent", accent);
+    root.style.setProperty("--brand-accent-ink", ink);
+  }, [app.company?.branding?.accent]);
+
   // Public navigation has to push a real history entry, the same way navigateTo
   // does for the portal. Landing → Sign in / Start your company / Terms were
   // plain setState calls, so the browser had nothing to pop and Back looked
@@ -396,7 +419,7 @@ return (
             }}
           >
             {view === "dashboard" && (
-              <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} setReqs={app.setReqs} />
+              <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} setReqs={app.setReqs} company={app.company} activeLogo={app.activeLogo} />
             )}
             {view === "buildjobs" && (app.userPerms.jobs_build || app.userPerms.jobs_close) && (
               <BuildJobsView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} openItemId={searchTargetFor("buildjobs")} onOpenItemHandled={clearSearchTarget} activeLogo={app.activeLogo}/>

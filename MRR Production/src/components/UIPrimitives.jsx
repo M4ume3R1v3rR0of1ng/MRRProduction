@@ -42,7 +42,7 @@ export function Modal({ title, onClose, children, wide, extraWide, disableCloseB
   return (
     <div className="mrr-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(14,45,107,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-5)' }}>
       <div className="mrr-modal" style={{ background: C.w, borderRadius: 'var(--radius-2xl)', width: '100%', maxWidth: extraWide ? 900 : wide ? 740 : 480, maxHeight: '92vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
-        <div style={{ padding: 'var(--space-7) var(--space-8)', borderBottom: `2px solid ${C.gold}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: C.w, zIndex: 1 }}>
+        <div style={{ padding: 'var(--space-7) var(--space-8)', borderBottom: '2px solid var(--brand-accent, #C97B2D)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: C.w, zIndex: 1 }}>
           <h2 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-extrabold)', color: C.navy }}>{title}</h2>
           {!disableCloseButton && (
             <button className="mrr-close" onClick={onClose} style={{ border: 'none', cursor: 'pointer', fontSize: 24, color: C.sub, lineHeight: 1, padding: '2px 8px' }}>×</button>
@@ -77,7 +77,7 @@ export function Sel({ children, ...p }) {
 }
 
 export function Btn({ children, v = 'primary', sz = 'md', ...p }) {
-  const vs = { primary: { background: C.blue, color: C.w, border: 'none' }, gold: { background: C.gold, color: C.navy, border: 'none' }, outline: { background: 'transparent', color: C.blue, border: `2px solid ${C.blue}` }, ghost: { background: C.lg, color: '#1A202C', border: 'none' }, danger: { background: C.rd, color: C.w, border: 'none' }, purple: { background: C.pu, color: C.w, border: 'none' }, green: { background: C.gr, color: C.w, border: 'none' }, teal: { background: C.tl, color: C.w, border: 'none' }, sky: { background: C.sl, color: C.w, border: 'none' } };
+  const vs = { primary: { background: C.blue, color: C.w, border: 'none' }, gold: { background: 'var(--brand-accent, #C97B2D)', color: 'var(--brand-accent-ink, #23282D)', border: 'none' }, outline: { background: 'transparent', color: C.blue, border: `2px solid ${C.blue}` }, ghost: { background: C.lg, color: '#1A202C', border: 'none' }, danger: { background: C.rd, color: C.w, border: 'none' }, purple: { background: C.pu, color: C.w, border: 'none' }, green: { background: C.gr, color: C.w, border: 'none' }, teal: { background: C.tl, color: C.w, border: 'none' }, sky: { background: C.sl, color: C.w, border: 'none' } };
   const ss = { sm: { padding: '5px 11px', fontSize: 'var(--text-sm)' }, md: { padding: '9px 16px', fontSize: 'var(--text-base)' }, lg: { padding: '12px 22px', fontSize: 'var(--text-md)' } };
   return <button {...p} className={`mrr-btn ${p.className || ''}`} style={{ ...vs[v], ...ss[sz], borderRadius: 'var(--radius-lg)', cursor: 'pointer', fontWeight: 'var(--weight-bold)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', ...p.style }}>{children}</button>;
 }
