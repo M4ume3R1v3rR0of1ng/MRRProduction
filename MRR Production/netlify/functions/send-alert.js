@@ -2,7 +2,7 @@
 // Low-stock alert email. Runs on Netlify's servers, never in the browser.
 
 import { Resend } from "resend";
-import { adminClient, resolveCaller, corsHeaders, platformFromAddress } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders, platformFromAddress, companyMemberEmails } from "./_shared/tenant.js";
 
 // alerts@<verified platform domain> — shares the domain with send-email, keeps its own
 // local part. See platformFromAddress in _shared/tenant.js.
@@ -41,12 +41,20 @@ export const handler = async (event) => {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing recipient email." }) };
     }
 
+    // Fence the relay: only alert an address that belongs to an active member of the
+    // caller's company, so this can't be used to send from our domain to outsiders.
+    const recipient = String(email).trim().toLowerCase();
+    const allowed = await companyMemberEmails(admin, caller.companyId);
+    if (!allowed.has(recipient)) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: "Recipient must be a member of your company." }) };
+    }
+
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     const safeItemName = escapeHtml(itemName);
     const data = await resend.emails.send({
       from: `${caller.companyName} Alerts <${MAIL_FROM}>`,
-      to: email,
+      to: recipient,
       subject: `⚠️ Low Stock Alert — ${itemName}`,
       html: `
         <h2>Inventory Item Running Low</h2>

@@ -1,7 +1,7 @@
 // netlify/functions/send-email.js
 // Generic authenticated email relay. Environment variable RESEND_API_KEY must be set.
 
-import { adminClient, resolveCaller, corsHeaders, platformFromAddress } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders, platformFromAddress, companyMemberEmails } from "./_shared/tenant.js";
 
 // notifications@<verified platform domain>, company name as the display name. See
 // platformFromAddress in _shared/tenant.js for how the domain is resolved.
@@ -32,6 +32,26 @@ export const handler = async (event) => {
       };
     }
 
+    // ── Fence the relay ──
+    // Only send to addresses that belong to ACTIVE members of the caller's OWN company.
+    // Without this, any authenticated user could send arbitrary HTML to any address in
+    // the world from our verified domain — a phishing/spam relay. Every legitimate use
+    // (job/trailer notifications) targets a company member, so this costs nothing real.
+    const recipients = (Array.isArray(to) ? to : [to])
+      .map((r) => String(r || "").trim().toLowerCase())
+      .filter(Boolean);
+    if (recipients.length === 0) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "No valid recipient." }) };
+    }
+    // Cheap per-request throttle: no legitimate notification fans out to a crowd.
+    if (recipients.length > 10) {
+      return { statusCode: 429, headers, body: JSON.stringify({ error: "Too many recipients in one request." }) };
+    }
+    const allowed = await companyMemberEmails(admin, caller.companyId);
+    if (recipients.some((r) => !allowed.has(r))) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: "Recipients must be members of your company." }) };
+    }
+
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       console.error("Missing server-side configuration: RESEND_API_KEY is null.");
@@ -46,7 +66,7 @@ export const handler = async (event) => {
       },
       body: JSON.stringify({
         from: `${caller.companyName} <${MAIL_FROM}>`,
-        to: Array.isArray(to) ? to : [to],
+        to: recipients,
         subject,
         html,
       }),

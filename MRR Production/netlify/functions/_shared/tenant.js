@@ -158,4 +158,20 @@ export function isCompanyAdmin(caller) {
   return caller.role === "admin" || caller.isPlatformAdmin;
 }
 
+// The lowercased email addresses of a company's ACTIVE members. Used to fence the
+// email relays (send-email / send-alert): an authenticated user may only send to
+// people in their own company, never to arbitrary external addresses — otherwise the
+// relay is a phishing/spam machine sending from our verified domain.
+export async function companyMemberEmails(admin, companyId) {
+  const { data: mems } = await admin
+    .from("memberships")
+    .select("user_id")
+    .eq("company_id", companyId)
+    .eq("active", true);
+  const ids = (mems || []).map((m) => m.user_id);
+  if (ids.length === 0) return new Set();
+  const { data: profs } = await admin.from("profiles").select("email").in("id", ids);
+  return new Set((profs || []).map((p) => (p.email || "").trim().toLowerCase()).filter(Boolean));
+}
+
 export { USABLE_SUBSCRIPTION_STATES };
