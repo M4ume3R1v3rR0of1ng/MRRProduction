@@ -289,7 +289,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
     >
       <div
         style={{
-          background: "rgba(255, 255, 255, 0.96)",
+          background: "color-mix(in srgb, var(--c-surface) 96%, transparent)",
           backdropFilter: "blur(8px)",
           borderRadius: 20,
           padding: "48px 56px",
@@ -334,7 +334,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
         </div>
 
         {notice && (
-          <div style={{ background: "#E2EDE6", color: BRAND.pasture, padding: "10px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", marginBottom: 16, fontWeight: "var(--weight-semibold)" }}>
+          <div style={{ background: "var(--c-pasture-wash)", color: BRAND.pasture, padding: "10px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", marginBottom: 16, fontWeight: "var(--weight-semibold)" }}>
             {notice}
           </div>
         )}
@@ -398,7 +398,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                 style={{
                   width: "100%",
                   padding: "16px",
-                  background: "#fff",
+                  background: "var(--c-surface)",
                   color: C.navy,
                   border: `1.5px solid ${C.bd}`,
                   borderRadius: "var(--radius-md)",
@@ -521,7 +521,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                           padding: "10px 12px",
                           borderRadius: "var(--radius-md)",
                           border: `2px solid ${active ? C.gold : C.bd}`,
-                          background: active ? "rgba(201,123,45,0.08)" : "#fff",
+                          background: active ? "color-mix(in srgb, var(--c-amber) 10%, transparent)" : "var(--c-surface)",
                           cursor: submitting ? "not-allowed" : "pointer",
                           textAlign: "left",
                         }}

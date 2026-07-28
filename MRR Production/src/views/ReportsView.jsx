@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C, fd, fm, tot, newestPrice } from "../utils/helpers";
 import { translations } from "../utils/translations";
-import { Btn, Sel, Bdg, Modal, LoadingState } from "../components/UIPrimitives"; // Added Modal wrapper primitives
+import { Btn, Sel, Bdg, Modal, SkeletonTable } from "../components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "../context/NotificationContext";
 
 // ── 🔄 SHARED NATIVE SPREADSHEET DOWNLOAD ENGINE ──
@@ -419,7 +419,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
         <p style={{ margin: "0 0 16px 0", fontSize: "var(--text-sm)", color: C.sub }}>{t.rptInspLogsDesc}</p>
 
         {loadingInspect ? (
-          <LoadingState label={t.rptStreamingMetrics} />
+          <SkeletonTable rows={5} cols={["30%", "22%", "18%", "30%"]} label={t.rptStreamingMetrics} />
         ) : inspections.length === 0 ? (
           <div style={{ padding: 24, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", background: C.lg, borderRadius: "var(--radius-md)" }}>{t.rptNoInspections}</div>
         ) : (
@@ -439,10 +439,10 @@ const handleDeleteInspection = async (id, vehicleName) => {
               <div 
                 key={log.id} 
                 style={{ 
-                  background: "#f8fafc", 
+                  background: "var(--c-subtle)", 
                   borderRadius: "var(--radius-lg)", 
                   padding: 14, 
-                  borderLeft: `4px solid ${log.photos?.length > 0 ? "#1b52b8" : "#e2e8f0"}`,
+                  borderLeft: `4px solid ${log.photos?.length > 0 ? "var(--c-slate)" : "var(--c-line)"}`,
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
@@ -455,7 +455,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
                     <span style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-base)" }}>{log.vehicle_name}</span>
                     <span style={{ fontSize: "var(--text-xs)", color: C.sub }}>· {new Date(log.created_at).toLocaleDateString()}</span>
                   </div>
-                  <p style={{ margin: "0 0 6px 0", fontSize: "var(--text-base)", color: "#334155", lineHeight: 1.4 }}>
+                  <p style={{ margin: "0 0 6px 0", fontSize: "var(--text-base)", color: "var(--c-barnwood)", lineHeight: 1.4 }}>
                     {log.notes || <span style={{ fontStyle: "italic", color: C.sub }}>{t.rptNoNotes}</span>}
                   </p>
                   <div style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>
@@ -472,7 +472,7 @@ const handleDeleteInspection = async (id, vehicleName) => {
                         src={pic}
                         alt={t.rptInspThumbAlt}
                         onClick={() => setLightboxPic(pic)}
-                        style={{ width: 48, height: 48, borderRadius: "var(--radius-sm)", objectFit: "cover", cursor: "pointer", border: "1px solid #cbd5e1" }}
+                        style={{ width: 48, height: 48, borderRadius: "var(--radius-sm)", objectFit: "cover", cursor: "pointer", border: "1px solid var(--c-line)" }}
                         title={t.rptExpandImage}
                       />
                     ))}
@@ -601,9 +601,9 @@ function AuditTrailReport({ t, companyId }) {
         <Btn v="green" sz="sm" onClick={handleExportAuditExcel}>{t.rptExportAudit}</Btn>
       </div>
       {loading ? (
-        <LoadingState label={t.rptLoadingAudit} />
+        <SkeletonTable rows={7} cols={["26%", "20%", "16%", "16%", "22%"]} label={t.rptLoadingAudit} />
       ) : loadError ? (
-        <div style={{ background: "#fee2e2", border: "1.5px solid #ef4444", borderRadius: "var(--radius-lg)", padding: "20px", textAlign: "center", color: "#991b1b" }}>
+        <div style={{ background: "var(--c-rust-wash)", border: "1.5px solid var(--c-rust)", borderRadius: "var(--radius-lg)", padding: "20px", textAlign: "center", color: "var(--c-rust)" }}>
           <div style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>{t.rptAuditLoadFailTitle}</div>
           <div style={{ fontSize: "var(--text-sm)", marginBottom: 12 }}>{t.rptAuditLoadFailDesc} ({loadError})</div>
           <Btn v="primary" sz="sm" onClick={() => setRetryTick((prev) => prev + 1)}>{t.rptRetry}</Btn>
@@ -711,8 +711,8 @@ export default function Reports({
                 fontSize: "var(--text-base)",
                 fontWeight: "var(--weight-bold)",
                 cursor: "pointer",
-                backgroundColor: active ? "#1b52b8" : "transparent",
-                color: active ? "#ffffff" : "#475569",
+                backgroundColor: active ? "var(--c-slate)" : "transparent",
+                color: active ? "var(--c-on-accent)" : "var(--c-barnwood)",
                 transition: "all 0.2s",
               }}
             >

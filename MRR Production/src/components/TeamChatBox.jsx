@@ -231,7 +231,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
           paddingRight: 4,
           marginBottom: 12,
           scrollbarWidth: 'thin',
-          scrollbarColor: '#cbd5e1 transparent',
+          scrollbarColor: 'var(--c-line) transparent',
         }}
       >
         {loading ? (
@@ -332,7 +332,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
           <img src={pendingPhoto} alt="Pending attachment" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: "var(--radius-md)", border: `1.5px solid ${C.bd}` }} />
           <button
             onClick={() => setPendingPhoto(null)}
-            style={{ position: 'absolute', top: -6, right: -6, background: C.rd, color: C.w, border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: "var(--text-xs)", cursor: 'pointer', lineHeight: 1 }}
+            style={{ position: 'absolute', top: -6, right: -6, background: C.rd, color: C.onAccent, border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: "var(--text-xs)", cursor: 'pointer', lineHeight: 1 }}
           >
             ✕
           </button>
@@ -358,7 +358,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
         <button
           onClick={send}
           disabled={(!draft.trim() && !pendingPhoto) || sending}
-          style={{ background: C.blue, color: C.w, border: 'none', borderRadius: "var(--radius-md)", padding: '9px 16px', fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", cursor: draft.trim() || pendingPhoto ? 'pointer' : 'default', opacity: draft.trim() || pendingPhoto ? 1 : 0.6 }}
+          style={{ background: C.blue, color: C.onAccent, border: 'none', borderRadius: "var(--radius-md)", padding: '9px 16px', fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", cursor: draft.trim() || pendingPhoto ? 'pointer' : 'default', opacity: draft.trim() || pendingPhoto ? 1 : 0.6 }}
         >
           Send
         </button>

@@ -28,6 +28,45 @@ function LiveClock({ lang }) {
   );
 }
 
+// Eight-week trend line for a KPI card. Deliberately axis-free and label-free:
+// the number above it is the value, this only answers "which way is it going".
+//
+// The baseline is zero rather than the series minimum. A min-anchored sparkline
+// exaggerates flat data — three weeks of 4, 5, 4 jobs would render as a dramatic
+// mountain range. Anchoring at zero keeps the slope honest.
+function Sparkline({ data, color, h = 26 }) {
+  if (!Array.isArray(data) || data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const step = 100 / (data.length - 1);
+  const pts = data.map((v, i) => [i * step, h - (Math.max(0, v) / max) * (h - 3) - 1.5]);
+  const line = pts.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(" ");
+  const [lastX, lastY] = pts[pts.length - 1];
+  return (
+    <svg
+      viewBox={`0 0 100 ${h}`}
+      preserveAspectRatio="none"
+      role="img"
+      aria-label={`Trend over the last ${data.length} weeks`}
+      style={{ width: "100%", height: h, display: "block", marginTop: 10, overflow: "visible" }}
+    >
+      <polygon points={`${line} 100,${h} 0,${h}`} fill={color} opacity="0.13" />
+      {/* preserveAspectRatio="none" stretches the box to the card width, which
+          would also stretch the stroke into a wedge. non-scaling-stroke keeps it
+          an even hairline at any card size. */}
+      <polyline
+        points={line}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      <circle cx={lastX} cy={lastY} r="2.6" fill={color} vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
 export default function DashboardView({
   inv,
   vehs,
@@ -59,10 +98,35 @@ export default function DashboardView({
   const doneAtMs = (j) => new Date(j.completedAt || j.completed || 0).getTime();
   const completedThisWeek = jobs.filter((j) => isDoneJob(j) && doneAtMs(j) >= weekAgoMs).length;
   const completedThisMonth = jobs.filter((j) => isDoneJob(j) && doneAtMs(j) >= monthStartMs).length;
+  // Materials consumed on a job, priced at what was actually pulled. Returns are
+  // netted off. Extracted so the month total and the trend line below cannot
+  // drift apart.
+  const jobMaterialCost = (j) => (j.items || j.materials || []).reduce(
+    (a, i) => a + (i ? Math.max(0, (i.pulled || 0) - (i.returned || 0)) * (i.priceAtPull || 0) : 0), 0);
   const materialCostThisMonth = jobs
     .filter((j) => isDoneJob(j) && doneAtMs(j) >= monthStartMs)
-    .reduce((s, j) => s + (j.items || j.materials || []).reduce(
-      (a, i) => a + (i ? Math.max(0, (i.pulled || 0) - (i.returned || 0)) * (i.priceAtPull || 0) : 0), 0), 0);
+    .reduce((s, j) => s + jobMaterialCost(j), 0);
+
+  // ── Eight-week trend series for the KPI sparklines ──
+  // Bucketed by whole weeks back from now, oldest first, so the line reads left
+  // to right. Jobs with no completion timestamp are skipped rather than dumped
+  // into the current week, which would fake a spike.
+  const TREND_WEEKS = 8;
+  const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const weeklySeries = (valueOf) => {
+    const buckets = new Array(TREND_WEEKS).fill(0);
+    jobs.forEach((j) => {
+      if (!isDoneJob(j)) return;
+      const ms = doneAtMs(j);
+      if (!ms) return;
+      const weeksAgo = Math.floor((nowMs - ms) / WEEK_MS);
+      if (weeksAgo < 0 || weeksAgo >= TREND_WEEKS) return;
+      buckets[TREND_WEEKS - 1 - weeksAgo] += valueOf(j);
+    });
+    return buckets;
+  };
+  const completedSeries = weeklySeries(() => 1);
+  const materialCostSeries = weeklySeries(jobMaterialCost);
 
   const myJobs = jobs.filter((j) => (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "completed");
   const newJobs = myJobs.filter((j) => j.newforassigned);
@@ -181,7 +245,7 @@ export default function DashboardView({
   };
 
   // Reusable Metric Card Primitive
-  const SC = ({ label, value, color, icon, onClick, sub }) => (
+  const SC = ({ label, value, color, icon, onClick, sub, series }) => (
     <div
       onClick={onClick}
       className={onClick ? "mrr-card mrr-card-click" : "mrr-card"}
@@ -194,7 +258,7 @@ export default function DashboardView({
         minWidth: 140,
       }}
     >
-      <div style={{ width: 38, height: 38, borderRadius: "var(--radius-lg)", background: `${color}14`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-xl)", marginBottom: 10 }}>
+      <div style={{ width: 38, height: 38, borderRadius: "var(--radius-lg)", background: `color-mix(in srgb, ${color} 8%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-xl)", marginBottom: 10 }}>
         {icon}
       </div>
       <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-extrabold)", color, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
@@ -204,6 +268,7 @@ export default function DashboardView({
       {sub && (
         <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>{sub}</div>
       )}
+      {series && <Sparkline data={series} color={color} />}
     </div>
   );
 
@@ -227,7 +292,7 @@ export default function DashboardView({
         width: 44,
         height: 44,
         borderRadius: "var(--radius-lg)",
-        background: `${color}15`,
+        background: `color-mix(in srgb, ${color} 9%, transparent)`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -391,7 +456,7 @@ export default function DashboardView({
       {/* Upper Welcome Context Row — company-branded + live clock. The accent stripe
           picks up each company's brand color; the subtitle is the company's own name
           + tagline (was a hardcoded "Saint Joe Road Warehouse" shown for every tenant). */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, borderLeft: "4px solid var(--brand-accent, #C97B2D)", paddingLeft: 14, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, borderLeft: "4px solid var(--brand-accent, var(--c-amber))", paddingLeft: 14, flexWrap: "wrap" }}>
         {activeLogo && (
           <img src={activeLogo} alt="" style={{ height: 44, maxWidth: 130, objectFit: "contain", flexShrink: 0 }} />
         )}
@@ -432,10 +497,10 @@ export default function DashboardView({
 
       {/* Recent-output KPIs — this week / this month, distinct from the status cards. */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "var(--space-4)", marginBottom: 16 }}>
-        <SC label={t.completedThisWeek} value={completedThisWeek} color={C.gr} icon="✅" onClick={perms.reports_view ? () => onNav("reports") : undefined} />
-        <SC label={t.completedThisMonth} value={completedThisMonth} color={C.blue} icon="🏁" onClick={perms.reports_view ? () => onNav("reports") : undefined} />
+        <SC label={t.completedThisWeek} value={completedThisWeek} color={C.gr} icon="✅" series={completedSeries} onClick={perms.reports_view ? () => onNav("reports") : undefined} />
+        <SC label={t.completedThisMonth} value={completedThisMonth} color={C.blue} icon="🏁" series={completedSeries} onClick={perms.reports_view ? () => onNav("reports") : undefined} />
         {perms.inv_pricing_view && (
-          <SC label={t.materialThisMonth} value={`$${Math.round(materialCostThisMonth).toLocaleString()}`} color={C.am} icon="💰" onClick={perms.reports_view ? () => onNav("reports") : undefined} />
+          <SC label={t.materialThisMonth} value={`$${Math.round(materialCostThisMonth).toLocaleString()}`} color={C.am} icon="💰" series={materialCostSeries} onClick={perms.reports_view ? () => onNav("reports") : undefined} />
         )}
       </div>
 
@@ -474,28 +539,28 @@ export default function DashboardView({
           title={t.pull} 
           subtitle={lang === "es" ? "Preparar materiales para cargar" : "Stage materials for loading"} 
           icon="📦" 
-          color="#3b82f6" 
+          color="var(--c-slate)" 
           onClick={() => onNav("pull")} 
         />
         <QuickActionCard 
           title={t.requests} 
           subtitle={lang === "es" ? "Enviar registro de mantenimiento" : "Submit vehicle maintenance"} 
           icon="🔧" 
-          color="#a855f7" 
+          color="var(--c-plum)" 
           onClick={() => onNav("requests")} 
         />
         <QuickActionCard 
           title={t.myAssignedJobs} 
           subtitle={lang === "es" ? "Ver lista de trabajos asignados" : "Check assigned work lists"} 
           icon="📋" 
-          color="#14b8a6" 
+          color="var(--c-teal)" 
           onClick={() => onNav("pull")} 
         />
         <QuickActionCard 
           title={t.fleet} 
           subtitle={lang === "es" ? "Reportar herramientas o vehículos dañados" : "Flag down tools or fleet assets"} 
           icon="⚠️" 
-          color="#f43f5e" 
+          color="var(--c-rust)" 
           onClick={() => onNav("fleet")} 
         />
       </div>
@@ -528,7 +593,7 @@ export default function DashboardView({
               PO Tracker Number: <strong>{newJobAlert.po || "—"}</strong>
             </p>
             
-            <div style={{ background: "#f8fafc", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
+            <div style={{ background: "var(--c-subtle)", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
               <strong>📍 {lang === "es" ? "Dirección de Despacho" : "Dispatch Address"}:</strong> {newJobAlert.addr || newJobAlert.address || "No Location Specified"}
               {newJobAlert.notes && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
@@ -538,7 +603,7 @@ export default function DashboardView({
             </div>
 
             {alertTrailerNames.length > 0 && (
-              <div style={{ background: "#fff7ed", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1.5px solid ${C.am}`, marginBottom: 16, fontWeight: "var(--weight-bold)", color: C.am }}>
+              <div style={{ background: "var(--c-warn-wash)", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1.5px solid ${C.am}`, marginBottom: 16, fontWeight: "var(--weight-bold)", color: C.am }}>
                 🚚 {lang === "es" ? "Debe llevar remolque(s)" : "Bring trailer(s)"}: {alertTrailerNames.join(", ")}
               </div>
             )}
@@ -563,7 +628,7 @@ export default function DashboardView({
               <Bdg color="gray">{maintAlert.type}</Bdg>
             </div>
 
-            <div style={{ background: "#f8fafc", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
+            <div style={{ background: "var(--c-subtle)", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
               <strong>📝 Reported Issue:</strong> {maintAlert.notes || "No description provided"}
               <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
                 <strong>👤 Submitted By:</strong> {maintAlert.uname || "Unknown"}
@@ -592,7 +657,7 @@ export default function DashboardView({
               <Bdg color="gray">{statusAlert.type}</Bdg>
             </div>
 
-            <div style={{ background: "#f8fafc", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
+            <div style={{ background: "var(--c-subtle)", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
               <strong>🔧 Your maintenance request is now {statusAlert.status}.</strong>
               {statusAlert.status === "scheduled" && statusAlert.scheduled_date && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>

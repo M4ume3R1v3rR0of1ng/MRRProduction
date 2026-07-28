@@ -205,7 +205,7 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
         onDrop={(e) => { e.preventDefault(); handleDropOnUnscheduled(); }}
         style={{
           border: `2px dashed ${dragOverKey === "__unscheduled__" ? C.blue : C.bd}`,
-          background: dragOverKey === "__unscheduled__" ? "rgba(27, 82, 184, 0.06)" : "#f8fafc",
+          background: dragOverKey === "__unscheduled__" ? "rgba(27, 82, 184, 0.06)" : "var(--c-subtle)",
           borderRadius: "var(--radius-lg)",
           padding: 12,
           marginBottom: 20,

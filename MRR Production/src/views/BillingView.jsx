@@ -123,7 +123,7 @@ export default function BillingView({ user }) {
               </>
             )}
             {status && status !== "active" && (
-              <div style={{ marginTop: 10, display: "inline-block", background: status === "past_due" ? "#F7EBDA" : "#F7E4DA", color: status === "past_due" ? BRAND.amberDeep : BRAND.rust, padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
+              <div style={{ marginTop: 10, display: "inline-block", background: status === "past_due" ? "var(--c-warn-wash)" : "var(--c-rust-wash)", color: status === "past_due" ? BRAND.amberDeep : BRAND.rust, padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 800 }}>
                 {status === "past_due" ? "Payment past due — update your card below" : status}
               </div>
             )}

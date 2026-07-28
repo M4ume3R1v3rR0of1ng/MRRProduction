@@ -49,7 +49,7 @@ export default function CompanySwitcher({ user }) {
       disabled={switching}
       title="Switch company"
       style={{
-        background: "#fff",
+        background: "var(--c-surface)",
         color: C.navy,
         border: `1.5px solid ${C.bd}`,
         borderRadius: "var(--radius-md)",

@@ -1,7 +1,7 @@
 // src/views/BuildJobsView.jsx
 import { useState, useMemo, useEffect } from "react";
-import { C, uid, fd, fm, tot, mkJI, newestPrice, mergePullTracking } from "../utils/helpers";
-import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, LoadingState } from "../components/UIPrimitives";
+import { C, uid, fd, fm, tot, mkJI, newestPrice } from "../utils/helpers";
+import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
 import { shouldNotifyJobMove, notifyJobMove } from "../utils/jobNotifications";
 import { supabase, getAccessToken, updateRowStrict } from "../utils/supabase";
@@ -11,6 +11,7 @@ import { generatePDF } from "../utils/pdfGenerator";
 import { logAction } from "../utils/logger";
 
 import { fetchJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
+import EditJobModal from "./jobs/EditJobModal";
 
 export default function BuildJobs({
   jobs = [],
@@ -64,11 +65,6 @@ export default function BuildJobs({
   const [approving, setApproving] = useState(false);
 
   // ── ✏️ EDIT JOB STATE ──────────────────────────────────────────────────────
-  const [editForm, setEditForm] = useState({});
-  const [editItems, setEditItems] = useState([]);
-  const [editItemSearch, setEditItemSearch] = useState("");
-  const [savingEdit, setSavingEdit] = useState(false);
-
   // ── 🆕 ACCULYNX ESTIMATE TRACKING STATE ───────────────────────────────────
   const [axEstimateItems, setAxEstimateItems] = useState([]);
   const [loadingEstimate, setLoadingEstimate] = useState(false);
@@ -606,95 +602,10 @@ export default function BuildJobs({
   );
 
   // ── ✏️ EDIT JOB HELPERS ────────────────────────────────────────────────────
-  const startEditJob = (job) => {
-    setEditForm({
-      po: job.po || "",
-      name: job.title || job.name || "",
-      addr: job.addr || "",
-      notes: job.notes || "",
-      scheduledDate: job.scheduledDate || "",
-      assignedto: job.assignedto || job.assignedTo || "",
-    });
-    setEditItems((job.items || job.materials || []).filter(Boolean));
-    setEditItemSearch("");
-    setModal("edit");
-  };
-
-  const editFiltInv = inv.filter(
-    (i) =>
-      (i?.name || "").toLowerCase().includes(editItemSearch.toLowerCase()) &&
-      !editItems.find((x) => x.iid === i.id),
-  );
-
-  const addEditItem = (item) => {
-    setEditItems((p) => [...p, mkJI(item.id, item.name, item.cat, item.unit, 1)]);
-  };
-
-  const updateEditItemQty = (iid, val) => {
-    setEditItems((p) => p.map((x) => (x.iid === iid ? { ...x, planned: Math.max(0, parseFloat(val) || 0) } : x)));
-  };
-
-  const removeEditItem = (item) => {
-    if (item.pulled > 0) {
-      if (!window.confirm(`"${item.iname}" already has ${item.pulled} ${item.unit || ""} pulled from the warehouse. Removing it here will NOT return that stock — it only removes it from this job's checklist. Continue?`)) {
-        return;
-      }
-    }
-    setEditItems((p) => p.filter((x) => x.iid !== item.iid));
-  };
-
-  const saveJobEdit = async () => {
-    if (!editForm.po || !editForm.name) {
-      showToast("PO and Job Name are strictly required fields.", "warning");
-      return;
-    }
-    setSavingEdit(true);
-    try {
-      // A crew may have pulled materials while this edit was open — merge the
-      // live pull-tracking onto the edited list so it can't be erased.
-      const { data: liveJob, error: liveErr } = await supabase
-        .from("jobs")
-        .select("items, materials")
-        .eq("id", sel.id)
-        .single();
-      if (liveErr) throw liveErr;
-      const mergedItems = mergePullTracking(editItems, liveJob?.items || liveJob?.materials);
-
-      const payload = {
-        po: editForm.po,
-        title: editForm.name,
-        addr: editForm.addr,
-        notes: editForm.notes,
-        scheduledDate: editForm.scheduledDate,
-        assignedto: editForm.assignedto,
-        items: mergedItems,
-        materials: mergedItems,
-      };
-
-      const { error } = await updateRowStrict("jobs", sel.id, payload);
-      if (error) throw error;
-
-      await logAction(
-        activeUser.id,
-        activeUser.email,
-        "JOB_BUILD_EDIT",
-        `Edited job build details for "${editForm.name}" (PO: ${editForm.po})`,
-        { job_id: sel.id, material_count: editItems.length },
-        "production",
-      );
-
-      const updated = { ...sel, ...payload };
-      setJobs((p) => p.map((j) => (j.id === sel.id ? updated : j)));
-      setSel(updated);
-      showToast("Job build updated successfully.", "success");
-      setModal("detail");
-    } catch (err) {
-      console.error("Failed to save job edits:", err);
-      showToast(`Database Error: Could not save job edits. ${err.message}`, "error");
-    } finally {
-      setSavingEdit(false);
-    }
-  };
+  // The dialog seeds itself from the job it is handed, so opening it is now just
+  // a modal switch. It used to require calling this first to populate four
+  // pieces of parent state, in the right order.
+  const startEditJob = () => setModal("edit");
 
   return (
     <div>
@@ -817,7 +728,7 @@ export default function BuildJobs({
                     style={{
                       marginLeft: 4,
                       background: filt === k ? "rgba(255,255,255,0.3)" : C.lg,
-                      color: filt === k ? C.w : C.sub,
+                      color: filt === k ? C.onAccent : C.sub,
                       borderRadius: 20,
                       fontSize: "var(--text-2xs)",
                       padding: "1px 6px",
@@ -1080,144 +991,65 @@ export default function BuildJobs({
               </div>
             </div>
           )}
-          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
-            <thead>
-              <tr style={{ background: C.lg }}>
-                {["Item", "Category", "Planned", "Pulled", "Used", ...(perms.inv_pricing_view ? ["Cost"] : [])].map((h) => (
-                  <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {((sel.items || sel.materials || [])).map((item) => {
-                if (!item) return null;
-                // Cost reflects what was actually used (pulled minus returned),
-                // not the raw pull cost — fully-returned items must read $0.00.
-                // Priced from the pull-time FIFO snapshot, matching the PDF and
-                // Reports; current inventory price is the fallback for rows that
-                // never recorded one (legacy imports, or nothing pulled yet).
-                const used = Math.max((item.pulled || 0) - (item.returned || 0), 0);
-                const invItem = inv.find((x) => x && x.id === item.iid);
-                const livePrice = invItem ? newestPrice(invItem) : 0;
-                const snapshot = parseFloat(item.priceAtPull);
-                const unitPrice = (item.pulled || 0) > 0 && Number.isFinite(snapshot) ? snapshot : livePrice;
-                const usedCost = used * unitPrice;
-                return (
-                  <tr key={item.iid || item.id || Math.random()} style={{ borderTop: `1px solid ${C.lg}` }}>
-                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name || "—"}</td>
-                    <td style={{ padding: "8px 10px", color: C.sub }}>{item.icat || item.cat || "—"}</td>
-                    <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0} {item.unit || ""}</td>
-                    <td style={{ padding: "8px 10px", color: item.pulled > 0 ? C.gr : C.sub }}>{item.pulled || 0}</td>
-                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>{used}</td>
-                    {perms.inv_pricing_view && (
-                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.blue }}>{(item.pulled || 0) > 0 ? fm(usedCost) : "—"}</td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="sw-table-scroll">
+            <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+              <thead>
+                <tr style={{ background: C.lg }}>
+                  {["Item", "Category", "Planned", "Pulled", "Used", ...(perms.inv_pricing_view ? ["Cost"] : [])].map((h) => (
+                    <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {((sel.items || sel.materials || [])).map((item) => {
+                  if (!item) return null;
+                  // Cost reflects what was actually used (pulled minus returned),
+                  // not the raw pull cost — fully-returned items must read $0.00.
+                  // Priced from the pull-time FIFO snapshot, matching the PDF and
+                  // Reports; current inventory price is the fallback for rows that
+                  // never recorded one (legacy imports, or nothing pulled yet).
+                  const used = Math.max((item.pulled || 0) - (item.returned || 0), 0);
+                  const invItem = inv.find((x) => x && x.id === item.iid);
+                  const livePrice = invItem ? newestPrice(invItem) : 0;
+                  const snapshot = parseFloat(item.priceAtPull);
+                  const unitPrice = (item.pulled || 0) > 0 && Number.isFinite(snapshot) ? snapshot : livePrice;
+                  const usedCost = used * unitPrice;
+                  return (
+                    <tr key={item.iid || item.id || Math.random()} style={{ borderTop: `1px solid ${C.lg}` }}>
+                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name || "—"}</td>
+                      <td style={{ padding: "8px 10px", color: C.sub }}>{item.icat || item.cat || "—"}</td>
+                      <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0} {item.unit || ""}</td>
+                      <td style={{ padding: "8px 10px", color: item.pulled > 0 ? C.gr : C.sub }}>{item.pulled || 0}</td>
+                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>{used}</td>
+                      {perms.inv_pricing_view && (
+                        <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.blue }}>{(item.pulled || 0) > 0 ? fm(usedCost) : "—"}</td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Modal>
       )}
 
       {/* ── 📂 MODAL: EDIT JOB BUILD ── */}
+      {/* ── 📂 MODAL: SUPERVISOR APPROVAL POPUP ── */}
       {modal === "edit" && sel && (
-        <Modal
-          title={`Edit Job — ${sel.po}`}
-          onClose={() => { if (!savingEdit) setModal("detail"); }}
-          wide
-        >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
-            <Fld label="Job PO Number *">
-              <Inp value={editForm.po || ""} onChange={(e) => setEditForm({ ...editForm, po: e.target.value })} disabled={savingEdit} />
-            </Fld>
-            <Fld label="Job Name *">
-              <Inp value={editForm.name || ""} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} disabled={savingEdit} />
-            </Fld>
-          </div>
-          <Fld label="Job Address">
-            <Inp value={editForm.addr || ""} onChange={(e) => setEditForm({ ...editForm, addr: e.target.value })} disabled={savingEdit} />
-          </Fld>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
-            <Fld label="Production Schedule Start Date">
-              <Inp type="date" aria-label="Production Schedule Start Date" value={editForm.scheduledDate || ""} onChange={(e) => setEditForm({ ...editForm, scheduledDate: e.target.value })} disabled={savingEdit} />
-            </Fld>
-            <Fld label="Assigned Site Supervisor">
-              <Sel value={editForm.assignedto || ""} onChange={(e) => setEditForm({ ...editForm, assignedto: e.target.value })} disabled={savingEdit}>
-                <option value="">— Unassigned —</option>
-                {fieldUsers.map((u) => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-              </Sel>
-            </Fld>
-          </div>
-          <Fld label="Notes">
-            <TA value={editForm.notes || ""} onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })} disabled={savingEdit} />
-          </Fld>
-
-          <h4 style={{ margin: "16px 0 8px", color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>Materials Checklist</h4>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 10 }}>
-            {editItems.length === 0 ? (
-              <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>No materials on this job.</p>
-            ) : (
-              editItems.map((item) => (
-                <div key={item.iid} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: C.lg, borderRadius: 7, padding: "7px 10px" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.iname}</div>
-                    {item.pulled > 0 && (
-                      <div style={{ fontSize: "var(--text-2xs)", color: C.am }}>⚠️ {item.pulled} {item.unit} already pulled</div>
-                    )}
-                  </div>
-                  <Inp
-                    type="number"
-                    min="0"
-                    value={item.planned}
-                    onChange={(e) => updateEditItemQty(item.iid, e.target.value)}
-                    style={{ width: 70, padding: "4px 8px" }}
-                    disabled={savingEdit}
-                  />
-                  <span style={{ fontSize: "var(--text-xs)", color: C.sub, width: 50 }}>{item.unit}</span>
-                  <button
-                    onClick={() => removeEditItem(item)}
-                    disabled={savingEdit}
-                    style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-lg)", lineHeight: 1 }}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-
-          <Fld label="Add Material">
-            <Inp value={editItemSearch} onChange={(e) => setEditItemSearch(e.target.value)} placeholder="🔍 Search inventory..." disabled={savingEdit} />
-          </Fld>
-          {editItemSearch.trim() && (
-            <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", maxHeight: 160, overflowY: "auto", marginBottom: 14 }}>
-              {editFiltInv.length === 0 ? (
-                <div style={{ padding: 10, fontSize: "var(--text-sm)", color: C.sub, textAlign: "center" }}>No matching inventory items.</div>
-              ) : (
-                editFiltInv.map((item) => (
-                  <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderBottom: `1px solid ${C.lg}` }}>
-                    <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.name}</span>
-                    <Btn v="primary" sz="sm" onClick={() => { addEditItem(item); setEditItemSearch(""); }}>+ Add</Btn>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-            <Btn v="ghost" onClick={() => setModal("detail")} style={{ flex: 1, justifyContent: "center" }} disabled={savingEdit}>Cancel</Btn>
-            <Btn v="primary" onClick={saveJobEdit} style={{ flex: 1, justifyContent: "center" }} disabled={savingEdit}>
-              {savingEdit ? "⏳ Saving..." : "💾 Save Changes"}
-            </Btn>
-          </div>
-        </Modal>
+        <EditJobModal
+          job={sel}
+          inv={inv}
+          fieldUsers={fieldUsers}
+          activeUser={activeUser}
+          onSaved={(updated) => {
+            setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
+            setSel(updated);
+            setModal("detail");
+          }}
+          onClose={() => setModal("detail")}
+        />
       )}
 
-      {/* ── 📂 MODAL: SUPERVISOR APPROVAL POPUP ── */}
       {modal === "approve" && sel && (
         <Modal title={`Approve: ${sel.title || sel.name}`} onClose={() => setModal(null)}>
           <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.tl, fontWeight: "var(--weight-semibold)" }}>
@@ -1324,7 +1156,7 @@ export default function BuildJobs({
               <div style={{ display: "flex", gap: "var(--space-7)", flexWrap: "wrap" }}>
                 
                 {/* Column A: Job Material Templates */}
-                <div style={{ flex: 1.2, minWidth: 200, background: C.bg || "#f8fafc", border: `1px solid ${C.bd}`, borderRadius: "var(--radius-lg)", padding: 12, maxHeight: 380, overflowY: "auto" }}>
+                <div style={{ flex: 1.2, minWidth: 200, background: C.bg || "var(--c-subtle)", border: `1px solid ${C.bd}`, borderRadius: "var(--radius-lg)", padding: 12, maxHeight: 380, overflowY: "auto" }}>
                   <h4 style={{ margin: "0 0 8px 0", color: C.navy, fontSize: "var(--text-base)", display: "flex", alignItems: "center", gap: 5 }}>
                     🧰 Job Templates
                   </h4>

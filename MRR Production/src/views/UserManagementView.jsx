@@ -318,47 +318,49 @@ export default function Users({
       </div>
       
       <div style={{ background: C.w, borderRadius: "var(--radius-xl)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
-        <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
-          <thead>
-            <tr style={{ background: C.lg }}>
-              {["Name", "Email", "Role", "Status", ""].map((h) => (
-                <th key={h} style={{ padding: "12px 14px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase" }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} style={{ borderBottom: `1px solid ${C.lg}`, ...(u.active ? {} : { background: "#fafafa" }) }}>
-                <td style={{ padding: "14px 14px", fontWeight: "var(--weight-bold)", color: C.navy }}>{u.full_name || u.name || "—"}</td>
-                <td style={{ padding: "14px 14px", color: C.sub }}>{u.email || "—"}</td>
-                <td style={{ padding: "14px 14px" }}>
-                  <RoleBdg role={u.role} />
-                </td>
-                <td style={{ padding: "14px 14px" }}>
-                  <Bdg color={u.active ? "green" : "gray"}>{u.active ? "Active" : "Inactive"}</Bdg>
-                </td>
-                <td style={{ padding: "14px 14px", textAlign: "right" }}>
-                  <div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "flex-end", alignItems: "center" }}>
-                    <Btn v="ghost" sz="sm" onClick={() => handleOpenPermissionOverrides(u)} title="Configure individual user permission overrides">
-                      🔒 Override
-                    </Btn>
-                    <Btn v="ghost" sz="sm" onClick={() => handleEditUser(u)}>
-                      Edit
-                    </Btn>
-                    <Btn
-                      v="danger"
-                      sz="sm"
-                      onClick={() => handleRemoveUser(u.id)}
-                      style={{ minWidth: 95, textAlign: "center" }}
-                    >
-                      🗑️ Remove
-                    </Btn>
-                  </div>
-                </td>
+        <div className="sw-table-scroll">
+          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
+            <thead>
+              <tr style={{ background: C.lg }}>
+                {["Name", "Email", "Role", "Status", ""].map((h) => (
+                  <th key={h} style={{ padding: "12px 14px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase" }}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id} style={{ borderBottom: `1px solid ${C.lg}`, ...(u.active ? {} : { background: "var(--c-subtle)" }) }}>
+                  <td style={{ padding: "14px 14px", fontWeight: "var(--weight-bold)", color: C.navy }}>{u.full_name || u.name || "—"}</td>
+                  <td style={{ padding: "14px 14px", color: C.sub }}>{u.email || "—"}</td>
+                  <td style={{ padding: "14px 14px" }}>
+                    <RoleBdg role={u.role} />
+                  </td>
+                  <td style={{ padding: "14px 14px" }}>
+                    <Bdg color={u.active ? "green" : "gray"}>{u.active ? "Active" : "Inactive"}</Bdg>
+                  </td>
+                  <td style={{ padding: "14px 14px", textAlign: "right" }}>
+                    <div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "flex-end", alignItems: "center" }}>
+                      <Btn v="ghost" sz="sm" onClick={() => handleOpenPermissionOverrides(u)} title="Configure individual user permission overrides">
+                        🔒 Override
+                      </Btn>
+                      <Btn v="ghost" sz="sm" onClick={() => handleEditUser(u)}>
+                        Edit
+                      </Btn>
+                      <Btn
+                        v="danger"
+                        sz="sm"
+                        onClick={() => handleRemoveUser(u.id)}
+                        style={{ minWidth: 95, textAlign: "center" }}
+                      >
+                        🗑️ Remove
+                      </Btn>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {modal === "user" && (
@@ -433,7 +435,7 @@ export default function Users({
               {PERM_GROUPS.map(([groupName, keys]) => (
                 <tbody key={groupName}>
                   <tr>
-                    <td colSpan={3} style={{ padding: "8px 14px", fontWeight: "var(--weight-black)", color: C.w, background: C.navy, fontSize: "var(--text-sm)" }}>{groupName}</td>
+                    <td colSpan={3} style={{ padding: "8px 14px", fontWeight: "var(--weight-black)", color: C.shellInk, background: C.shell, fontSize: "var(--text-sm)" }}>{groupName}</td>
                   </tr>
                   {keys.map((key) => {
                     const baseVal = (rolePerms[permUser.role] || {})[key] || false;

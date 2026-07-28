@@ -17,23 +17,31 @@ import { US_STATES, stateByCode } from "../utils/salesTax";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const T = {
-  navy:    "#0f172a",
-  blue:    "#1d4ed8",
-  blueSoft:"#eff6ff",
-  blueRing:"#bfdbfe",
-  slate:   "#475569",
-  slateL:  "#94a3b8",
-  border:  "#e2e8f0",
-  bg:      "#f8fafc",
-  white:   "#ffffff",
-  green:   "#16a34a",
-  greenBg: "#f0fdf4",
-  greenBd: "#bbf7d0",
-  amber:   "#b45309",
-  amberBg: "#fffbeb",
-  amberBd: "#fef3c7",
-  red:     "#dc2626",
-  redBg:   "#fef2f2",
+  navy:    "var(--c-barnwood)",
+  blue:    "var(--c-slate)",
+  blueSoft:"var(--c-slate-wash)",
+  blueRing:"var(--c-slate-wash)",
+  slate:   "var(--c-barnwood)",
+  slateL:  "var(--c-sub)",
+  border:  "var(--c-line)",
+  bg:      "var(--c-subtle)",
+  // Was a literal #ffffff. That made every card in this view stay white in dark
+  // mode while its text inverted to cream, which is how the permissions grid
+  // ended up as pale-on-white. `white` is now the surface slot, so it follows
+  // the theme; the name is kept because a dozen call sites use it.
+  white:   "var(--c-surface)",
+  // Chrome that stays dark in both themes, for the permission group headers.
+  // T.navy cannot do this job: it maps to the ink token, which inverts.
+  shell:   "var(--c-shell)",
+  shellInk:"var(--c-shell-ink)",
+  green:   "var(--c-pasture)",
+  greenBg: "var(--c-pasture-wash)",
+  greenBd: "var(--c-pasture-wash)",
+  amber:   "var(--c-warn)",
+  amberBg: "var(--c-warn-wash)",
+  amberBd: "var(--c-warn-wash)",
+  red:     "var(--c-rust)",
+  redBg:   "var(--c-rust-wash)",
   radius:  "10px",
   radiusLg:"16px",
   shadow:  "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
@@ -126,7 +134,7 @@ export default function SettingsView({
   const [brandForm, setBrandForm] = useState({
     displayName: company?.branding?.displayName || company?.name || "",
     tagline: company?.branding?.tagline || "",
-    accent: company?.branding?.accent || "#C97B2D",
+    accent: company?.branding?.accent || "var(--c-amber)",
     state: company?.branding?.state || "",
     taxRate: company?.branding?.taxRate != null ? String(company.branding.taxRate * 100) : "",
     taxLabel: company?.branding?.taxLabel || "",
@@ -515,8 +523,8 @@ export default function SettingsView({
               {PERM_GROUPS?.map(([groupTitle, groupKeys]) => (
                 <div key={groupTitle} style={{ marginBottom: 10 }}>
                   <div style={{
-                    background: T.navy, padding: "8px 16px",
-                    fontWeight: "var(--weight-bold)", color: T.white, fontSize: "var(--text-xs)",
+                    background: T.shell, padding: "8px 16px",
+                    fontWeight: "var(--weight-bold)", color: T.shellInk, fontSize: "var(--text-xs)",
                     letterSpacing: "0.7px", textTransform: "uppercase",
                     borderRadius: `${T.radius} ${T.radius} 0 0`,
                   }}>
@@ -630,7 +638,7 @@ export default function SettingsView({
           </Alert>
 
           <form onSubmit={handleSaveAccuLynx}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-7)", marginBottom: 20 }}>
+            <div className="sw-grid-2" style={{ gap: "var(--space-7)", marginBottom: 20 }}>
               <Fld label="API Access Token">
                 <Inp
                   type="password"
@@ -738,17 +746,17 @@ export default function SettingsView({
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <input
                   type="color"
-                  value={brandForm.accent || "#C97B2D"}
+                  value={brandForm.accent || "var(--c-amber)"}
                   onChange={(e) => setBrandForm({ ...brandForm, accent: e.target.value })}
                   disabled={savingBrand}
                   aria-label="Brand accent color"
                   style={{ width: 48, height: 38, border: `1.5px solid ${T.border}`, borderRadius: T.radius, background: "none", cursor: "pointer", padding: 2 }}
                 />
-                <code style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{(brandForm.accent || "#C97B2D").toUpperCase()}</code>
-                {(brandForm.accent || "").toLowerCase() !== "#c97b2d" && (
+                <code style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{(brandForm.accent || "var(--c-amber)").toUpperCase()}</code>
+                {(brandForm.accent || "").toLowerCase() !== "var(--c-amber)" && (
                   <button
                     type="button"
-                    onClick={() => setBrandForm({ ...brandForm, accent: "#C97B2D" })}
+                    onClick={() => setBrandForm({ ...brandForm, accent: "var(--c-amber)" })}
                     disabled={savingBrand}
                     style={{ background: "none", border: "none", color: T.blue, fontSize: "var(--text-sm)", fontWeight: 700, cursor: "pointer", padding: 0 }}
                   >

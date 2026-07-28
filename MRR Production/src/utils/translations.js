@@ -12,6 +12,10 @@ export const translations = {
     logs: "Audit Logs",
     settings: "Settings",
     language: "Language",
+    theme: "Theme",
+    themeSystem: "Auto",
+    themeLight: "Light",
+    themeDark: "Dark",
     signout: "Sign Out",
 
     // Dashboard Tab Content
@@ -357,6 +361,10 @@ export const translations = {
     logs: "Registros de Auditoría",
     settings: "Configuración",
     language: "Idioma",
+    theme: "Tema",
+    themeSystem: "Auto",
+    themeLight: "Claro",
+    themeDark: "Oscuro",
     signout: "Cerrar Sesión",
 
     // Dashboard Tab Content

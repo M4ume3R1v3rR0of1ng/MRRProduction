@@ -1,11 +1,12 @@
 // src/layouts/Sidebar.jsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";
 import { TrussMark, TAGLINE } from "../components/SteadwerkMark";
 import { translations } from "../utils/translations"; // 🟢 Imported Dictionary
+import { readTheme, saveTheme, applyTheme } from "../utils/theme";
 
 export default function Sidebar({
   cur,
@@ -28,6 +29,34 @@ export default function Sidebar({
   setLang,
 }) {
   const t = translations[lang];
+
+  // ── Theme control ──
+  // Three states, not two: "system" follows the OS and keeps following it when it
+  // flips at sunset, which is different from having explicitly chosen light.
+  const [theme, setTheme] = useState(readTheme);
+
+  const cycleTheme = () => {
+    const order = ["system", "light", "dark"];
+    const next = order[(order.indexOf(theme) + 1) % order.length];
+    saveTheme(next);
+    setTheme(next);
+  };
+
+  // While on "system", a change to the OS setting has to re-resolve. Without this
+  // the app keeps whatever was true at load until the next refresh.
+  useEffect(() => {
+    if (theme !== "system" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => applyTheme("system");
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, [theme]);
+
+  const themeMeta = {
+    system: { icon: "◐", label: t.themeSystem || "Auto" },
+    light: { icon: "☀", label: t.themeLight || "Light" },
+    dark: { icon: "☾", label: t.themeDark || "Dark" },
+  }[theme];
 
   // ── 🟢 TRANSLATED DYNAMIC SIDEBAR Blueprints ──
  const navItems = [
@@ -119,7 +148,7 @@ export default function Sidebar({
     <div
       style={{
         width: collapsed ? 60 : 215,
-        background: C.navy,
+        background: C.shell,
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
@@ -213,7 +242,7 @@ export default function Sidebar({
               </span>
             )}
             {(item.badge || 0) > 0 && !collapsed && (
-              <span style={{ background: item.badgeColor || C.rd, color: C.w, borderRadius: 20, fontSize: "var(--text-2xs)", padding: "1px 6px", fontWeight: "var(--weight-extrabold)" }}>
+              <span style={{ background: item.badgeColor || C.rd, color: C.onAccent, borderRadius: 20, fontSize: "var(--text-2xs)", padding: "1px 6px", fontWeight: "var(--weight-extrabold)" }}>
                 {item.badge}
               </span>
             )}
@@ -240,6 +269,45 @@ export default function Sidebar({
         {collapsed ? "▶" : "◀"}
       </button>
 
+      {/* ── THEME CONTROL ──
+          One button cycling auto → light → dark, rather than three buttons like
+          the language drum: theme is a fiddle-once setting and does not deserve
+          the same footprint as the thing the crew actually switches. */}
+      <div style={{
+        padding: "4px 10px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: collapsed ? "center" : "space-between",
+      }}>
+        {!collapsed && (
+          <span style={{ fontSize: "var(--text-2xs)", color: "rgba(255,255,255,0.4)", fontWeight: "var(--weight-extrabold)" }}>
+            🎨 {t.theme || "Theme"}:
+          </span>
+        )}
+        <button
+          onClick={cycleTheme}
+          title={`${t.theme || "Theme"}: ${themeMeta.label}`}
+          aria-label={`${t.theme || "Theme"}: ${themeMeta.label}. Click to change.`}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
+            background: "rgba(0,0,0,0.2)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 15,
+            padding: collapsed ? "4px 7px" : "3px 9px",
+            color: "rgba(255,255,255,0.75)",
+            fontSize: "var(--text-2xs)",
+            fontWeight: "var(--weight-black)",
+            cursor: "pointer",
+            lineHeight: 1.6,
+          }}
+        >
+          <span aria-hidden="true">{themeMeta.icon}</span>
+          {!collapsed && themeMeta.label}
+        </button>
+      </div>
+
       {/* ── 🟢 NEW: TRANSLATION CONTROL SWITCH DRUM ── */}
       <div style={{
         padding: "4px 10px 10px",
@@ -261,7 +329,7 @@ export default function Sidebar({
                 onClick={() => setLang(langObj.id)}
                 style={{
                   background: active ? C.gold : "transparent",
-                  color: active ? C.navy : "rgba(255,255,255,0.6)",
+                  color: active ? C.shell : "rgba(255,255,255,0.6)",
                   border: "none",
                   borderRadius: "var(--radius-xl)",
                   padding: collapsed ? "4px 6px" : "3px 8px",
@@ -296,12 +364,12 @@ export default function Sidebar({
           }}
           title="Click to manage profile settings"
         >
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: rColor(user.role), display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", fontSize: "var(--text-base)", fontWeight: "var(--weight-black)", color: C.w, flexShrink: 0 }}>
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: rColor(user.role), display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", fontSize: "var(--text-base)", fontWeight: "var(--weight-black)", color: C.onAccent, flexShrink: 0 }}>
             {user.name ? user.name[0] : user.full_name ? user.full_name[0] : "U"}
           </div>
           {!collapsed && (
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.w, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.shellInk, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {user.name || user.full_name || "Active User"}
               </div>
               <div style={{ fontSize: 9, color: rColor(user.role), textTransform: "capitalize", fontWeight: "var(--weight-semibold)" }}>

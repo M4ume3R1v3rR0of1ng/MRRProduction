@@ -16,9 +16,9 @@ const toLocalDateKey = (date) => {
 
 const resolveStatusColor = (statusConfig) => {
   const c = statusConfig?.c || "";
-  if (!c) return "#94a3b8";
+  if (!c) return "var(--c-sub)";
   if (c.startsWith("#") || c.startsWith("rgb")) return c;
-  const colorMap = { blue: C.blue, amber: C.gold, gold: C.gold, green: C.gr, red: C.rd, teal: C.tl, gray: "#94a3b8" };
+  const colorMap = { blue: C.blue, amber: C.gold, gold: C.gold, green: C.gr, red: C.rd, teal: C.tl, gray: "var(--c-sub)" };
   return colorMap[c] ?? c;
 };
 

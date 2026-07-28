@@ -12,11 +12,11 @@ import { BRAND, TrussMark } from "../components/SteadwerkMark";
 import { useNotify } from "../context/NotificationContext";
 
 const STATUS_STYLE = {
-  active:    { bg: "#E2EDE6", fg: BRAND.pasture, label: "Active" },
-  trialing:  { bg: "#E4EAF0", fg: "#4A6178", label: "Trial" },
-  past_due:  { bg: "#F7EBDA", fg: BRAND.amberDeep, label: "Past due" },
-  canceled:  { bg: "#F0ECE4", fg: BRAND.plowshare, label: "Canceled" },
-  suspended: { bg: "#F7E4DA", fg: BRAND.rust, label: "Suspended" },
+  active:    { bg: "var(--c-pasture-wash)", fg: BRAND.pasture, label: "Active" },
+  trialing:  { bg: "var(--c-slate-wash)", fg: "var(--c-slate)", label: "Trial" },
+  past_due:  { bg: "var(--c-warn-wash)", fg: BRAND.amberDeep, label: "Past due" },
+  canceled:  { bg: "var(--c-subtle)", fg: BRAND.plowshare, label: "Canceled" },
+  suspended: { bg: "var(--c-rust-wash)", fg: BRAND.rust, label: "Suspended" },
 };
 
 function fmtDate(d) {
@@ -262,13 +262,13 @@ export default function OwnerConsole({ user }) {
                         {suspended ? (
                           <>
                             <button onClick={() => setStatus(co, "active")} disabled={busyId === co.id}
-                              style={{ padding: "6px 12px", background: BRAND.pasture, color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                              style={{ padding: "6px 12px", background: BRAND.pasture, color: "var(--c-on-accent)", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
                               Reactivate
                             </button>
                             {/* Delete is offered ONLY on suspended rows — suspend-then-delete is the
                                 deliberate two-step that keeps a live company one click from safety. */}
                             <button onClick={() => { setDeleteTarget(co); setConfirmText(""); }} disabled={busyId === co.id}
-                              style={{ padding: "6px 12px", background: BRAND.rust, color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                              style={{ padding: "6px 12px", background: BRAND.rust, color: "var(--c-on-accent)", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
                               Delete
                             </button>
                           </>
@@ -327,7 +327,7 @@ export default function OwnerConsole({ user }) {
             placeholder="email of an existing user to promote"
             style={{ flex: "1 1 240px", padding: "10px 12px", border: `1.5px solid ${C.bd}`, borderRadius: 8, fontSize: 14, boxSizing: "border-box" }}
           />
-          <button type="submit" style={{ padding: "10px 18px", background: C.navy, color: "#EDE6DA", border: "none", borderRadius: 8, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
+          <button type="submit" style={{ padding: "10px 18px", background: C.shell, color: "var(--c-shell-ink)", border: "none", borderRadius: 8, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
             Grant admin
           </button>
         </form>
@@ -380,7 +380,7 @@ export default function OwnerConsole({ user }) {
               <button
                 onClick={deleteCompany}
                 disabled={deleting || confirmText.trim() !== deleteTarget.name}
-                style={{ padding: "9px 18px", background: confirmText.trim() === deleteTarget.name ? BRAND.rust : C.bd, color: "#fff", border: "none", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: deleting || confirmText.trim() !== deleteTarget.name ? "not-allowed" : "pointer" }}
+                style={{ padding: "9px 18px", background: confirmText.trim() === deleteTarget.name ? BRAND.rust : C.bd, color: C.onAccent, border: "none", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: deleting || confirmText.trim() !== deleteTarget.name ? "not-allowed" : "pointer" }}
               >
                 {deleting ? "Deleting…" : "Delete forever"}
               </button>
@@ -497,7 +497,7 @@ export default function OwnerConsole({ user }) {
             )}
 
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
-              <button onClick={() => setViewCompany(null)} style={{ padding: "9px 18px", background: C.navy, color: "#EDE6DA", border: "none", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>Close</button>
+              <button onClick={() => setViewCompany(null)} style={{ padding: "9px 18px", background: C.shell, color: "var(--c-shell-ink)", border: "none", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>Close</button>
             </div>
           </div>
         </div>

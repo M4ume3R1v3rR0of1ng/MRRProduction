@@ -14,14 +14,20 @@
 // sees inside their portal. Never render this in place of theirs.
 
 export const BRAND = {
+  // Literal, not a token: this is consumed inside a CSS gradient string on the
+  // login and reset screens, whose dark hero is constant in both themes.
   barnwood: "#23282D",       // primary dark — structure
-  amber: "#C97B2D",          // primary accent — lantern glow, wheat at cutting
-  amberDeep: "#A8641F",      // the amber, darkened for text on light backgrounds
-  leather: "#8A5A2B",        // harness leather — secondary
-  pasture: "#4A7A5C",        // pasture green — success, "active"
+  // The theme-aware version, for the mark and wordmark when they sit on the app
+  // ground. Using the literal there made the badge #23282D on a #191D21 ground
+  // in dark mode, which is very nearly invisible.
+  ink: "var(--c-barnwood)",
+  amber: "var(--c-amber)",          // primary accent — lantern glow, wheat at cutting
+  amberDeep: "var(--c-warn)",      // the amber, darkened for text on light backgrounds
+  leather: "var(--c-leather)",        // harness leather — secondary
+  pasture: "var(--c-pasture)",        // pasture green — success, "active"
   homespun: "#EDE6DA",       // the light ground
-  plowshare: "#6E7780",      // muted grey — secondary text
-  rust: "#A34E28",           // destructive. NOT red — the brand has no red in it.
+  plowshare: "var(--c-sub)",      // muted grey — secondary text
+  rust: "var(--c-rust)",           // destructive. NOT red — the brand has no red in it.
 };
 
 export const TAGLINE = "EVERY JOB. EVERY TRUCK.";
@@ -45,8 +51,8 @@ export function TrussMark({ color = BRAND.amber, size = 40 }) {
 
 // Truss in a datestone badge. `filled` gives the solid-dark badge used on light grounds.
 export function SteadwerkMark({ size = 64, filled = false }) {
-  const stroke = filled ? BRAND.barnwood : BRAND.amber;
-  const fill = filled ? BRAND.barnwood : "none";
+  const stroke = filled ? BRAND.ink : BRAND.amber;
+  const fill = filled ? BRAND.ink : "none";
   const truss = BRAND.amber;
 
   return (
@@ -66,7 +72,7 @@ export function SteadwerkMark({ size = 64, filled = false }) {
 
 // The full lockup: badge + wordmark + tagline. `onDark` flips it for the barnwood ground.
 export function SteadwerkLockup({ onDark = false, size = 64, showTagline = true }) {
-  const word = onDark ? BRAND.homespun : BRAND.barnwood;
+  const word = onDark ? BRAND.homespun : BRAND.ink;
   const tag = onDark ? BRAND.amber : BRAND.amberDeep;
 
   return (

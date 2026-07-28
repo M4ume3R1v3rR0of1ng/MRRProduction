@@ -240,26 +240,26 @@ export default function MaintenanceRequestsView({
       {/* Header Bar */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color: "#1e3a8a", display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+          <h1 style={{ margin: 0, fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color: "var(--c-slate)", display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
             🔧 {t.maintTitle}
           </h1>
         </div>
         <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
           {pendingCount > 0 && (
-            <div style={{ background: "#fef2f2", color: "#991b1b", border: "1px solid #fee2e2", padding: "6px 12px", borderRadius: 20, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+            <div style={{ background: "var(--c-rust-wash)", color: "var(--c-rust)", border: "1px solid var(--c-rust-wash)", padding: "6px 12px", borderRadius: 20, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
               🔔 {pendingCount} {t.maintAwaiting}
             </div>
           )}
-          <div style={{ display: "flex", background: "#f1f5f9", padding: 4, borderRadius: "var(--radius-md)", marginRight: 4 }}>
+          <div style={{ display: "flex", background: "var(--c-subtle)", padding: 4, borderRadius: "var(--radius-md)", marginRight: 4 }}>
             <button
               onClick={() => setSubView("list")}
-              style={{ padding: "6px 12px", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", cursor: "pointer", background: subView === "list" ? "#fff" : "transparent", color: subView === "list" ? "#0f172a" : "#64748b", boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+              style={{ padding: "6px 12px", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", cursor: "pointer", background: subView === "list" ? "var(--c-surface)" : "transparent", color: subView === "list" ? "var(--c-barnwood)" : "var(--c-sub)", boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
             >
               📋 {t.maintRequestList}
             </button>
             <button
               onClick={() => setSubView("calendar")}
-              style={{ padding: "6px 12px", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", cursor: "pointer", background: subView === "calendar" ? "#fff" : "transparent", color: subView === "calendar" ? "#0f172a" : "#64748b", boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+              style={{ padding: "6px 12px", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", cursor: "pointer", background: subView === "calendar" ? "var(--c-surface)" : "transparent", color: subView === "calendar" ? "var(--c-barnwood)" : "var(--c-sub)", boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
             >
               📅 {t.maintScheduleCalendar}
             </button>
@@ -275,7 +275,7 @@ export default function MaintenanceRequestsView({
           {chronicIssues.map((c) => (
             <div
               key={`${c.vid}::${c.issueType}`}
-              style={{ background: "#fef2f2", border: "1px solid #fee2e2", color: "#991b1b", padding: "8px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}
+              style={{ background: "var(--c-rust-wash)", border: "1px solid var(--c-rust-wash)", color: "var(--c-rust)", padding: "8px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}
             >
               🔁 {c.vname} — "{c.issueType}" {t.maintReported} {c.count}x {t.maintInLast60}
             </div>
@@ -283,7 +283,7 @@ export default function MaintenanceRequestsView({
           {trendingIssues.map((trend) => (
             <div
               key={trend.issueType}
-              style={{ background: "#fffbeb", border: "1px solid #fef3c7", color: "#92400e", padding: "8px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}
+              style={{ background: "var(--c-warn-wash)", border: "1px solid var(--c-warn-wash)", color: "var(--c-warn)", padding: "8px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}
             >
               📈 "{trend.issueType}" {t.maintTrendingUp} — {trend.recentCount} {t.maintInLast30}
               {!trend.isNew && ` (${trend.ratio}${t.maintBaselineRate})`}
@@ -298,7 +298,7 @@ export default function MaintenanceRequestsView({
       <>
       {/* Filter Tabs + Sort */}
       <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", gap: "var(--space-2)", background: "#f1f5f9", padding: 4, borderRadius: "var(--radius-md)", width: "fit-content" }}>
+        <div style={{ display: "flex", gap: "var(--space-2)", background: "var(--c-subtle)", padding: 4, borderRadius: "var(--radius-md)", width: "fit-content" }}>
           {[
             ["all", t.all],
             ["active", t.active],
@@ -316,8 +316,8 @@ export default function MaintenanceRequestsView({
                 fontSize: "var(--text-sm)",
                 fontWeight: "var(--weight-bold)",
                 cursor: "pointer",
-                background: filt === key ? "#7c3aed" : "transparent",
-                color: filt === key ? "#fff" : "#475569",
+                background: filt === key ? "var(--c-plum)" : "transparent",
+                color: filt === key ? "var(--c-on-accent)" : "var(--c-barnwood)",
                 transition: "all 0.15s"
               }}
             >
@@ -338,7 +338,7 @@ export default function MaintenanceRequestsView({
       {/* Cards Stream Canvas */}
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
         {filtered.length === 0 ? (
-          <div style={{ background: "#fff", padding: 32, borderRadius: "var(--radius-xl)", textAlign: "center", color: "#64748b", border: "1px solid #e2e8f0" }}>
+          <div style={{ background: "var(--c-surface)", padding: 32, borderRadius: "var(--radius-xl)", textAlign: "center", color: "var(--c-sub)", border: "1px solid var(--c-line)" }}>
             {t.maintNoneFound}
           </div>
         ) : (
@@ -349,10 +349,10 @@ export default function MaintenanceRequestsView({
                 key={r.id}
                 className="mrr-card-hover"
                 style={{
-                  background: isUrgent ? "#fff5f5" : "#fff",
+                  background: isUrgent ? "var(--c-rust-wash)" : "var(--c-surface)",
                   borderRadius: "var(--radius-xl)",
                   padding: 16,
-                  border: isUrgent ? "1px solid #fecaca" : "1px solid #e2e8f0",
+                  border: isUrgent ? "1px solid var(--c-rust-wash)" : "1px solid var(--c-line)",
                   boxShadow: "var(--shadow-xs)",
                   display: "flex",
                   justifyContent: "space-between",
@@ -370,16 +370,16 @@ export default function MaintenanceRequestsView({
                     {isUrgent && <Bdg color="red">🚨 {t.maintUrgent}</Bdg>}
                     <Bdg color="gray">{r.type}</Bdg>
                   </div>
-                  <h3 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: "var(--weight-extrabold)", color: "#0f172a" }}>
+                  <h3 style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: "var(--weight-extrabold)", color: "var(--c-barnwood)" }}>
                     {r.vname}
                   </h3>
-                  <p style={{ margin: "0 0 6px 0", fontSize: "var(--text-base)", color: "#475569", lineHeight: 1.4 }}>
+                  <p style={{ margin: "0 0 6px 0", fontSize: "var(--text-base)", color: "var(--c-barnwood)", lineHeight: 1.4 }}>
                     {r.notes}
                   </p>
-                  <div style={{ fontSize: "var(--text-xs)", color: "#94a3b8" }}>
+                  <div style={{ fontSize: "var(--text-xs)", color: "var(--c-sub)" }}>
                     {t.maintBy} {r.uname} • {r.at ? new Date(r.at).toLocaleDateString() : "Recent"}
                     {r.scheduled_date && (
-                      <span style={{ marginLeft: 8, color: "#2563eb", fontWeight: "var(--weight-bold)" }}>
+                      <span style={{ marginLeft: 8, color: "var(--c-slate)", fontWeight: "var(--weight-bold)" }}>
                         🗓️ {t.scheduled}: {new Date(r.scheduled_date).toLocaleDateString()}
                       </span>
                     )}
@@ -446,14 +446,12 @@ export default function MaintenanceRequestsView({
             </Fld>
 
             <Fld label={`${t.maintIssueClassification} *`}>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+              <div className="sw-grid-2" style={{
                 gap: "10px",
-                background: "#f8fafc",
+                background: "var(--c-subtle)",
                 padding: 12,
                 borderRadius: "var(--radius-md)",
-                border: "1px solid #e2e8f0"
+                border: "1px solid var(--c-line)"
               }}>
                 {[
                   "Routine Oil Change",
@@ -524,9 +522,9 @@ export default function MaintenanceRequestsView({
                 <button
                   onClick={() => handleDeleteRequest(sel.id)}
                   style={{
-                    background: "#fef2f2",
-                    color: "#b91c1c",
-                    border: "1px solid #fee2e2",
+                    background: "var(--c-rust-wash)",
+                    color: "var(--c-rust)",
+                    border: "1px solid var(--c-rust-wash)",
                     borderRadius: "var(--radius-sm)",
                     padding: "4px 10px",
                     fontSize: "var(--text-xs)",
@@ -550,11 +548,11 @@ export default function MaintenanceRequestsView({
                   .sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0))[0];
                 if (!lastCompleted) return null;
                 return (
-                  <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: 10, borderRadius: "var(--radius-md)", marginTop: 8 }}>
-                    <strong style={{ fontSize: "var(--text-xs)", color: "#166534", textTransform: "uppercase" }}>
+                  <div style={{ background: "var(--c-pasture-wash)", border: "1px solid var(--c-pasture-wash)", padding: 10, borderRadius: "var(--radius-md)", marginTop: 8 }}>
+                    <strong style={{ fontSize: "var(--text-xs)", color: "var(--c-pasture)", textTransform: "uppercase" }}>
                       🕓 {t.maintLastCompleted} — {sel.vname}
                     </strong>
-                    <div style={{ fontSize: "var(--text-sm)", color: "#166534", marginTop: 4 }}>
+                    <div style={{ fontSize: "var(--text-sm)", color: "var(--c-pasture)", marginTop: 4 }}>
                       {lastCompleted.wh_notes || t.maintNoResolutionNotes}
                     </div>
                     {lastCompleted.completed_at && (
@@ -601,8 +599,8 @@ export default function MaintenanceRequestsView({
             )}
 
             {sel.status === "completed" && (
-              <div style={{ borderTop: `1px solid ${C.bd}`, paddingTop: 14, marginTop: 6, background: "#f0fdf4", padding: 12, borderRadius: "var(--radius-md)" }}>
-                <strong style={{ color: "#166534" }}>{t.maintRequestClosed}</strong>
+              <div style={{ borderTop: `1px solid ${C.bd}`, paddingTop: 14, marginTop: 6, background: "var(--c-pasture-wash)", padding: 12, borderRadius: "var(--radius-md)" }}>
+                <strong style={{ color: "var(--c-pasture)" }}>{t.maintRequestClosed}</strong>
                 {sel.wh_notes && <div style={{ marginTop: 4 }}><strong>{t.maintResolutionNotesLabel}</strong> {sel.wh_notes}</div>}
                 {sel.completed_at && <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 4 }}>{t.maintClosedOn} {new Date(sel.completed_at).toLocaleString()}</div>}
               </div>

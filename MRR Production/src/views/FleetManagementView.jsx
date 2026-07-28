@@ -7,207 +7,19 @@ import {
   Fld,
   Inp,
   Sel,
-  TA,
   Modal,
   PhotoUpload,
 } from "../components/UIPrimitives";
 import { C, uid } from "../utils/helpers";
 import { learnServiceIntervals } from "../utils/patterns";
-import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 import TrailerCalendar from "../components/TrailerCalendar";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
+import MaintenanceRequestModal from "./fleet/MaintenanceRequestModal";
+import AddVehicleModal from "./fleet/AddVehicleModal";
+import InspectionModal from "./fleet/InspectionModal";
 
-// ── SUB-COMPONENT: ReqModal (Named Export) ─────────
-export function ReqModal({ vehs, user, onSave, onClose, preVid, uid }) {
-  const [form, setForm] = useState({
-    vid: preVid || "",
-    type: [], 
-    urgency: "normal",
-    notes: "",
-    mileage: "",
-  });
-  const selV = vehs.find((v) => v.id === form.vid);
-  const { showToast } = useNotify();
-  
-  const submit = () => {
-    if (!form.vid || !Array.isArray(form.type) || form.type.length === 0 || !form.notes.trim()) {
-      showToast("Please select a vehicle, at least one service type, and describe the issue.", "info");
-      return;
-    }
-    const v = vehs.find((x) => x.id === form.vid);
-    onSave({
-      id: Math.random().toString(36).slice(2, 10),
-      vid: form.vid,
-      vname: `${v.name} (${v.plate})`,
-      vtype: v.type,
-      type: form.type.join(", "), 
-      urgency: form.urgency,
-      notes: form.notes,
-      mileage: form.mileage,
-      uid: user.id,
-      uname: user.name,
-      at: new Date().toISOString(),
-      status: "pending",
-      scheduledDate: "",
-      completedAt: "",
-      whNotes: "",
-    });
-    onClose();
-  };
-
-  const handleApproveMaintenance = async (requestId, vehicleVin) => {
-    await logAction(
-      user.id,
-      user.email,
-      "FLEET_MAINTENANCE",
-      `Approved maintenance ticket for vehicle VIN: ${vehicleVin}`,
-      { ticketId: requestId },
-            "fleet" 
-    );
-  };
-
-  return (
-    <Modal title="🔧 Submit Maintenance Request" onClose={onClose}>
-      <div
-        style={{
-          background: C.pB,
-          border: `1.5px solid ${C.pu}`,
-          borderRadius: "var(--radius-md)",
-          padding: "10px 14px",
-          marginBottom: 14,
-          fontSize: "var(--text-sm)",
-          color: C.pu,
-          fontWeight: "var(--weight-semibold)",
-        }}
-      >
-        Your request will be sent to the Warehouse Manager for scheduling.
-      </div>
-      <Fld label="Vehicle *">
-        <Sel
-          value={form.vid}
-          onChange={(e) =>
-            setForm({ ...form, vid: e.target.value, type: [] }) // 🟢 FIXED: Flushes checkbox state on toggle
-          }
-        >
-          <option value="">— Select a vehicle —</option>
-          {vehs.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.name} — {v.yr} {v.make} {v.model} ({v.plate})
-            </option>
-          ))}
-        </Sel>
-      </Fld>
-      {selV && (
-        <>
-          {/* ── 🟢 FIXED: MULTI-SELECT CHECKBOX GRID INTERACTION LAYER ── */}
-          <Fld label="Service Types (Select all that apply) *">
-            <div style={{ 
-              display: "grid", 
-              gridTemplateColumns: "1fr 1fr", 
-              gap: "10px", 
-              background: "#f8fafc", 
-              padding: 12, 
-              borderRadius: "var(--radius-md)",
-              border: `1px solid ${C.bd || "#e2e8f0"}` 
-            }}>
-              {(selV.type === "truck"
-                ? [
-                    "Oil Change",
-                    "Tire Rotation",
-                    "Brake Service",
-                    "AC / Heat Issue",
-                    "Electrical Issue",
-                    "Engine Issue",
-                    "Repair",
-                    "Inspection",
-                    "Other",
-                  ]
-                : [
-                    "Tire Check",
-                    "Brake Check",
-                    "Lighting Issue",
-                    "Hitch / Coupler Issue",
-                    "Repair",
-                    "Inspection",
-                    "Other",
-                  ]
-              ).map((t) => {
-                const isChecked = Array.isArray(form.type) && form.type.includes(t);
-                return (
-                  <label key={t} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: C.navy, cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      style={{ accentColor: C.pu, transform: "scale(1.1)", cursor: "pointer" }}
-                      onChange={() => {
-                        const currentTypes = Array.isArray(form.type) ? form.type : [];
-                        const nextTypes = isChecked 
-                          ? currentTypes.filter(item => item !== t) 
-                          : [...currentTypes, t];
-                        setForm({ ...form, type: nextTypes });
-                      }}
-                    />
-                    {t}
-                  </label>
-                );
-              })}
-            </div>
-          </Fld>
-          
-          <Fld label="Urgency">
-            <Sel
-              value={form.urgency}
-              onChange={(e) => setForm({ ...form, urgency: e.target.value })}
-            >
-              <option value="normal">Normal — Schedule when possible</option>
-              <option value="soon">Soon — Within the next few days</option>
-              <option value="urgent">
-                Urgent — Safety concern / vehicle down
-              </option>
-            </Sel>
-          </Fld>
-          {selV.type === "truck" && (
-            <Fld label="Current Mileage (optional)">
-              <Inp
-                type="number"
-                value={form.mileage}
-                onChange={(e) => setForm({ ...form, mileage: e.target.value })}
-              />
-            </Fld>
-          )}
-          <Fld
-            label="Description / Notes *"
-            hint="Be specific — what you hear, feel, or see."
-          >
-            <TA
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="e.g. Brakes grinding when stopping..."
-            />
-          </Fld>
-        </>
-      )}
-      <div style={{ display: "flex", gap: "var(--space-4)" }}>
-        <Btn
-          v="ghost"
-          onClick={onClose}
-          style={{ flex: 1, justifyContent: "center" }}
-        >
-          Cancel
-        </Btn>
-        <Btn
-          v="purple"
-          onClick={submit}
-          style={{ flex: 1, justifyContent: "center" }}
-        >
-          Submit Request 🔔
-        </Btn>
-      </div>
-    </Modal>
-  );
-}
 
 // ── MAIN VIEW COMPONENT (The Only Default Export) ──
 export default function FleetManagementView({
@@ -244,26 +56,9 @@ export default function FleetManagementView({
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [savingVehicleInfo, setSavingVehicleInfo] = useState(false);
   const predictedServices = sel ? learnServiceIntervals(sel) : [];
+  // Which dialog is open stays here; each dialog owns its own form state.
   const [isInspectOpen, setIsInspectOpen] = useState(false);
-  const [inspectSubmitting, setInspectSubmitting] = useState(false);
-  const [inspectionForm, setInspectionForm] = useState({
-    vehicleId: "",
-    notes: "",
-    photos: []
-  });
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
-  const [addVehicleSubmitting, setAddVehicleSubmitting] = useState(false);
-  const [avForm, setAvForm] = useState({
-    name: "",
-    type: "truck",
-    yr: "",
-    make: "",
-    model: "",
-    plate: "",
-    mi: "",
-    oii: "5000",
-    dii: "90",
-  });
   const vehSorters = {
     name_az: (a, b) => (a.name || "").localeCompare(b.name || "", undefined, { numeric: true }),
     name_za: (a, b) => (b.name || "").localeCompare(a.name || "", undefined, { numeric: true }),
@@ -455,107 +250,6 @@ export default function FleetManagementView({
     }
   };
 
-// ── 🟢 ADD HERE: DATABASE CONTROLLER FOR VEHICLE INSPECTION SUBMISSIONS ──
-  const handleCreateInspection = async () => {
-    if (!inspectionForm.vehicleId) {
-      showToast("Please select a vehicle asset for inspection logging.", "error");
-      return;
-    }
-    setInspectSubmitting(true);
-
-    const targetVehicle = vehs.find(v => String(v.id) === String(inspectionForm.vehicleId));
-    const vehicleLabel = targetVehicle 
-      ? `${targetVehicle.name} (${targetVehicle.plate})` 
-      : "Unknown Fleet Asset";
-
-    const inspectionPayload = {
-      vehicle_id: inspectionForm.vehicleId,
-      vehicle_name: vehicleLabel,
-      inspector_name: user.name || user.email,
-      inspector_id: user.id,
-      notes: inspectionForm.notes.trim(),
-      photos: inspectionForm.photos,
-      created_at: new Date().toISOString()
-    };
-
-    try {
-      const { error } = await supabase
-        .from("vehicle_inspections")
-        .insert([inspectionPayload]);
-
-      if (error) throw error;
-
-      await logAction(
-        user.id,
-        user.email,
-        "FLEET_MAINTENANCE",
-        `Logged a formal condition inspection report for vehicle asset: ${vehicleLabel}`,
-        { vehicle_id: inspectionForm.vehicleId, attached_photos_count: inspectionForm.photos.length },
-        "fleet"
-      );
-
-      showToast("Inspection records and photos committed successfully!", "success");
-      setIsInspectOpen(false);
-      setInspectionForm({ vehicleId: "", notes: "", photos: [] });
-    } catch (err) {
-      showToast(`Database Transaction Blocked: ${err.message}`, "error");
-    } finally {
-      setInspectSubmitting(false);
-    }
-  };
-
-  const handleAddVehicle = async () => {
-    if (!avForm.name.trim() || !avForm.plate.trim()) {
-      showToast("Please enter at least a name/nickname and license plate.", "warning");
-      return;
-    }
-    setAddVehicleSubmitting(true);
-
-    const startMi = parseFloat(avForm.mi) || 0;
-    const newVehicle = {
-      id: "v_" + uid(),
-      name: avForm.name.trim(),
-      type: avForm.type,
-      yr: parseInt(avForm.yr) || new Date().getFullYear(),
-      make: avForm.make.trim(),
-      model: avForm.model.trim(),
-      plate: avForm.plate.trim(),
-      mi: startMi,
-      lomi: startMi,
-      oii: parseFloat(avForm.oii) || 5000,
-      dii: parseFloat(avForm.dii) || 90,
-      ldd: new Date().toISOString().split("T")[0],
-      mil: [],
-      sl: [],
-      assignedTo: "",
-      status: "active",
-    };
-
-    try {
-      const { error } = await supabase.from("vehicles").insert([newVehicle]);
-      if (error) throw error;
-
-      setVehs((p) => [...p, newVehicle]);
-
-      await logAction(
-        user.id,
-        user.email,
-        "FLEET_STATUS_CHANGE",
-        `Registered new fleet asset: "${newVehicle.name}" (${newVehicle.yr} ${newVehicle.make} ${newVehicle.model}, Plate: ${newVehicle.plate})`,
-        { vehicle_id: newVehicle.id },
-        "fleet"
-      );
-
-      showToast("Vehicle added to the fleet roster.", "success");
-      setIsAddVehicleOpen(false);
-      setAvForm({ name: "", type: "truck", yr: "", make: "", model: "", plate: "", mi: "", oii: "5000", dii: "90" });
-    } catch (err) {
-      showToast(`Database Error: Could not add vehicle. ${err.message}`, "error");
-    } finally {
-      setAddVehicleSubmitting(false);
-    }
-  };
-
   const saveVehicleInfo = async () => {
     if (!sel) return;
     setSavingVehicleInfo(true);
@@ -628,64 +322,17 @@ export default function FleetManagementView({
     ? reqs.filter((r) => r.vid === sel.id && r.status !== "completed")
     : [];
 
-  const addVehicleModal = isAddVehicleOpen && (
-    <Modal title="🚛 Register New Fleet Vehicle" onClose={() => { if (!addVehicleSubmitting) setIsAddVehicleOpen(false); }}>
-      <Fld label="Name / Nickname *">
-        <Inp value={avForm.name} onChange={(e) => setAvForm({ ...avForm, name: e.target.value })} placeholder="e.g. Truck 013" disabled={addVehicleSubmitting} />
-      </Fld>
-      <Fld label="Type">
-        <Sel value={avForm.type} onChange={(e) => setAvForm({ ...avForm, type: e.target.value })} disabled={addVehicleSubmitting}>
-          <option value="truck">Truck</option>
-          <option value="trailer">Trailer</option>
-        </Sel>
-      </Fld>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-3)" }}>
-        <Fld label="Year">
-          <Inp type="number" value={avForm.yr} onChange={(e) => setAvForm({ ...avForm, yr: e.target.value })} disabled={addVehicleSubmitting} />
-        </Fld>
-        <Fld label="Make">
-          <Inp value={avForm.make} onChange={(e) => setAvForm({ ...avForm, make: e.target.value })} disabled={addVehicleSubmitting} />
-        </Fld>
-        <Fld label="Model">
-          <Inp value={avForm.model} onChange={(e) => setAvForm({ ...avForm, model: e.target.value })} disabled={addVehicleSubmitting} />
-        </Fld>
-      </div>
-      <Fld label="License Plate *">
-        <Inp value={avForm.plate} onChange={(e) => setAvForm({ ...avForm, plate: e.target.value })} disabled={addVehicleSubmitting} />
-      </Fld>
-      {avForm.type === "truck" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
-          <Fld label="Starting Mileage">
-            <Inp type="number" value={avForm.mi} onChange={(e) => setAvForm({ ...avForm, mi: e.target.value })} disabled={addVehicleSubmitting} />
-          </Fld>
-          <Fld label="Oil Change Interval (mi)">
-            <Inp type="number" value={avForm.oii} onChange={(e) => setAvForm({ ...avForm, oii: e.target.value })} disabled={addVehicleSubmitting} />
-          </Fld>
-        </div>
-      )}
-      <Fld label="Detail Interval (days)">
-        <Inp type="number" value={avForm.dii} onChange={(e) => setAvForm({ ...avForm, dii: e.target.value })} disabled={addVehicleSubmitting} />
-      </Fld>
-      <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
-        <Btn v="ghost" onClick={() => setIsAddVehicleOpen(false)} style={{ flex: 1, justifyContent: "center" }} disabled={addVehicleSubmitting}>Cancel</Btn>
-        <Btn v="primary" onClick={handleAddVehicle} style={{ flex: 1, justifyContent: "center" }} disabled={addVehicleSubmitting}>
-          {addVehicleSubmitting ? "⏳ Saving..." : "+ Add Vehicle"}
-        </Btn>
-      </div>
-    </Modal>
-  );
-
   if (vehs.length === 0) {
     return (
       <>
         <div style={{
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          padding: "60px 20px", background: "#ffffff", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+          padding: "60px 20px", background: "var(--c-surface)", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
           textAlign: "center", marginTop: 10
         }}>
           <span style={{ fontSize: "48px", marginBottom: 16 }}>🚛</span>
-          <h3 style={{ margin: "0 0 8px 0", color: "#0f294a", fontWeight: "var(--weight-extrabold)" }}>Fleet Registry Empty</h3>
-          <p style={{ margin: "0 0 20px 0", color: "#64748b", fontSize: "var(--text-base)", maxWidth: "340px" }}>
+          <h3 style={{ margin: "0 0 8px 0", color: "var(--c-slate)", fontWeight: "var(--weight-extrabold)" }}>Fleet Registry Empty</h3>
+          <p style={{ margin: "0 0 20px 0", color: "var(--c-sub)", fontSize: "var(--text-base)", maxWidth: "340px" }}>
             No company vehicles are currently configured for tracking at the Saint Joe Road Warehouse.
           </p>
           {perms.fleet_edit && (
@@ -694,7 +341,13 @@ export default function FleetManagementView({
             </Btn>
           )}
         </div>
-        {addVehicleModal}
+        {isAddVehicleOpen && (
+          <AddVehicleModal
+            user={user}
+            onCreated={(v) => setVehs((p) => [...p, v])}
+            onClose={() => setIsAddVehicleOpen(false)}
+          />
+        )}
       </>
     );
   }
@@ -836,7 +489,7 @@ export default function FleetManagementView({
           paddingRight: 6,
           paddingBottom: 24,
           scrollbarWidth: "thin", // Native Firefox layout alignment compatibility rules fallback
-          scrollbarColor: "#cbd5e1 transparent"
+          scrollbarColor: "var(--c-line) transparent"
         }}
       >
         {/* Fleet Grid Tracker */}
@@ -940,7 +593,7 @@ export default function FleetManagementView({
                       <span
                         style={{
                           background: C.pu,
-                          color: C.w,
+                          color: C.onAccent,
                           borderRadius: 20,
                           fontSize: "var(--text-2xs)",
                           padding: "2px 8px",
@@ -1216,13 +869,7 @@ export default function FleetManagementView({
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </Fld>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
-                  gap: "var(--space-3)",
-                }}
-              >
+              <div className="sw-grid-3" style={{ gap: "var(--space-3)" }}>
                 <Fld label="Year">
                   <Inp
                     type="number"
@@ -1245,7 +892,7 @@ export default function FleetManagementView({
                   />
                 </Fld>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)" }}>
+              <div className="sw-grid-2" style={{ gap: "var(--space-3)" }}>
                 <Fld label="License Plate">
                   <Inp
                     value={form.plate || ""}
@@ -1610,7 +1257,7 @@ export default function FleetManagementView({
       )}
 
       {reqModal && perms.maint_submit && (
-        <ReqModal
+        <MaintenanceRequestModal
           vehs={vehs}
           user={user}
           preVid={reqVid}
@@ -1622,68 +1269,17 @@ export default function FleetManagementView({
         />
       )}
 
-{isInspectOpen && (
-        <Modal title="📋 File Vehicle Condition & Inspection Report" onClose={() => setIsInspectOpen(false)} wide>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-            
-            <Fld label="Select Fleet Vehicle *">
-              <Sel 
-                value={inspectionForm.vehicleId} 
-                onChange={(e) => setInspectionForm({ ...inspectionForm, vehicleId: e.target.value })}
-                disabled={inspectSubmitting}
-              >
-                <option value="">-- Choose Fleet Vehicle --</option>
-                {vehs.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name} — {v.yr} {v.make} ({v.plate})</option>
-                ))}
-              </Sel>
-            </Fld>
-
-            <Fld label="Inspection Assessments & Condition Notes">
-              <TA 
-                placeholder="Log structural inspection results, provider diagnostics or general notes..." 
-                value={inspectionForm.notes} 
-                onChange={(e) => setInspectionForm({ ...inspectionForm, notes: e.target.value })}
-                disabled={inspectSubmitting}
-              />
-            </Fld>
-
-            <Fld label="Upload Inspection Pictures / Condition Evidence">
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                <PhotoUpload 
-                  current={null} 
-                  onUpload={(base64) => setInspectionForm(prev => ({ ...prev, photos: [...prev.photos, base64] }))} 
-                  maxDim={800}
-                  quality={0.80}
-                />
-                {inspectionForm.photos.length > 0 && (
-                  <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: 8 }}>
-                    {inspectionForm.photos.map((img, idx) => (
-                      <div key={idx} style={{ position: "relative", width: 70, height: 70, borderRadius: "var(--radius-sm)", overflow: "hidden", border: "1px solid #cbd5e1" }}>
-                        <img src={img} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                        <button 
-                          onClick={() => setInspectionForm(prev => ({ ...prev, photos: prev.photos.filter((_, i) => i !== idx) }))}
-                          style={{ position: "absolute", top: 2, right: 2, background: "rgba(15,23,42,0.8)", color: "#fff", border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: "var(--text-2xs)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                        >✕</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </Fld>
-
-            <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 12 }}>
-              <Btn v="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setIsInspectOpen(false)} disabled={inspectSubmitting}>Cancel</Btn>
-              <Btn v="gold" style={{ flex: 1, justifyContent: "center" }} onClick={handleCreateInspection} disabled={inspectSubmitting}>
-                {inspectSubmitting ? "⏳ Saving Log Entry..." : "💾 Commit Inspection Log"}
-              </Btn>
-            </div>
-
-          </div>
-        </Modal>
+      {isAddVehicleOpen && (
+        <AddVehicleModal
+          user={user}
+          onCreated={(v) => setVehs((p) => [...p, v])}
+          onClose={() => setIsAddVehicleOpen(false)}
+        />
       )}
 
-      {addVehicleModal}
+      {isInspectOpen && (
+        <InspectionModal vehs={vehs} user={user} onClose={() => setIsInspectOpen(false)} />
+      )}
 
     </div>
   );

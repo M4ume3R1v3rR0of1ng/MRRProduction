@@ -31,22 +31,22 @@ export default class ErrorBoundary extends React.Component {
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: '100vh',
-          background: '#f8fafc',
+          background: 'var(--c-subtle)',
           fontFamily: 'sans-serif',
           padding: 20,
           textAlign: 'center'
         }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>⚠️</div>
-          <h1 style={{ color: '#0f294a', fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", margin: '0 0 8px 0' }}>
+          <h1 style={{ color: 'var(--c-slate)', fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", margin: '0 0 8px 0' }}>
             System Interface Interrupted
           </h1>
-          <p style={{ color: '#64748b', fontSize: "var(--text-md)", maxWidth: 440, margin: '0 0 24px 0', lineHeight: 1.5 }}>
+          <p style={{ color: 'var(--c-sub)', fontSize: "var(--text-md)", maxWidth: 440, margin: '0 0 24px 0', lineHeight: 1.5 }}>
             A runtime error occurred in the user interface layer. Staging inventories, warehouse records, and contract pipelines remain safe in Supabase.
           </p>
           
           <div style={{
-            background: '#ffffff',
-            border: '1.5px solid #e2e8f0',
+            background: 'var(--c-surface)',
+            border: '1.5px solid var(--c-line)',
             borderRadius: "var(--radius-md)",
             padding: 16,
             maxWidth: 600,
@@ -55,20 +55,20 @@ export default class ErrorBoundary extends React.Component {
             marginBottom: 24,
             boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
           }}>
-            <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: '#ef4444', textTransform: 'uppercase', marginBottom: 6 }}>
+            <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: 'var(--c-rust)', textTransform: 'uppercase', marginBottom: 6 }}>
               Exception Message
             </div>
             <pre style={{
               margin: 0,
               fontSize: "var(--text-sm)",
               fontFamily: 'monospace',
-              color: '#0f294a',
+              color: 'var(--c-slate)',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-all',
-              background: '#fff5f5',
+              background: 'var(--c-rust-wash)',
               padding: 10,
               borderRadius: "var(--radius-sm)",
-              border: '1px solid #fee2e2'
+              border: '1px solid var(--c-rust-wash)'
             }}>
               {this.state.error?.toString() || "Unknown runtime exception."}
             </pre>
@@ -77,8 +77,8 @@ export default class ErrorBoundary extends React.Component {
           <button
             onClick={() => window.location.reload()}
             style={{
-              background: '#1b52b8',
-              color: '#ffffff',
+              background: 'var(--c-slate)',
+              color: 'var(--c-on-accent)',
               border: 'none',
               borderRadius: "var(--radius-sm)",
               padding: '10px 20px',
@@ -88,8 +88,8 @@ export default class ErrorBoundary extends React.Component {
               boxShadow: '0 2px 4px rgba(27,82,184,0.3)',
               transition: 'background 0.2s'
             }}
-            onMouseEnter={e => e.currentTarget.style.background = '#154294'}
-            onMouseLeave={e => e.currentTarget.style.background = '#1b52b8'}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--c-slate)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--c-slate)'}
           >
             🔄 Force App Reload
           </button>

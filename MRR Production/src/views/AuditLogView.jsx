@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
-import { Bdg, Sel, Inp, Btn, LoadingState } from "../components/UIPrimitives";
+import { Bdg, Sel, Inp, Btn, SkeletonTable } from "../components/UIPrimitives";
 
 export default function AuditLogView({ perms, inv = [], users = [], companyId }) {
   const [logs, setLogs] = useState([]);
@@ -295,9 +295,9 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
           </div>
         </div>
       ) : loading ? (
-        <LoadingState label="Streaming audit packets..." />
+        <SkeletonTable rows={8} cols={["24%", "20%", "16%", "16%", "24%"]} label="Loading audit history" />
       ) : loadError ? (
-        <div style={{ background: "#fee2e2", border: "1.5px solid #ef4444", borderRadius: "var(--radius-lg)", padding: "24px", textAlign: "center", color: "#991b1b" }}>
+        <div style={{ background: "var(--c-rust-wash)", border: "1.5px solid var(--c-rust)", borderRadius: "var(--radius-lg)", padding: "24px", textAlign: "center", color: "var(--c-rust)" }}>
           <div style={{ fontSize: "var(--text-md)", fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
             ⚠️ Couldn't load the audit history
           </div>
@@ -381,7 +381,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
                       <td style={{ padding: "12px 10px", fontWeight: "var(--weight-semibold)" }}>
                         🏭 {l.warehouse_code || "SJR"}
                       </td>
-                      <td style={{ padding: "12px 10px", color: "#334155", lineHeight: 1.4 }}>
+                      <td style={{ padding: "12px 10px", color: "var(--c-barnwood)", lineHeight: 1.4 }}>
                         {l.description}
                       </td>
                       <td style={{ padding: "12px 10px" }}>
@@ -474,7 +474,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
         >
           <div
             style={{
-              background: "#ffffff",
+              background: "var(--c-surface)",
               borderRadius: "var(--radius-xl)",
               padding: 24,
               maxWidth: 500,
@@ -487,7 +487,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
             </h4>
             <div
               style={{
-                background: "#1e293b",
+                background: "var(--c-shell)",
                 padding: 14,
                 borderRadius: "var(--radius-md)",
                 maxHeight: 300,
@@ -498,7 +498,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
               <pre
                 style={{
                   margin: 0,
-                  color: "#38bdf8",
+                  color: "var(--c-teal)",
                   fontFamily: "monospace",
                   fontSize: "var(--text-xs)",
                   whiteSpace: "pre-wrap",
@@ -512,8 +512,8 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
               style={{
                 width: "100%",
                 padding: "10px",
-                background: C.navy,
-                color: "#fff",
+                background: C.shell,
+                color: "var(--c-shell-ink)",
                 border: "none",
                 borderRadius: "var(--radius-sm)",
                 fontWeight: "var(--weight-bold)",

@@ -4,7 +4,7 @@ import { supabase } from "./utils/supabase";
 import { useAppData } from "./hooks/useAppData";
 import OmniSearch from "./components/OmniSearch";
 import SyncIndicator from "./components/SyncIndicator";
-import { RoleBdg } from "./components/UIPrimitives";
+import { RoleBdg, SkeletonCards } from "./components/UIPrimitives";
 import IdleTimeoutWrapper from "./components/IdleTimeoutWrapper";
 import ChatWidget from "./components/ChatWidget";
 
@@ -222,22 +222,31 @@ export default function App() {
         
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-3)", width: "100%", maxWidth: "240px" }}>
           {/* External Track Container */}
-          <div style={{ width: "100%", height: "6px", backgroundColor: "#cbd5e1", borderRadius: "10px", overflow: "hidden" }}>
+          <div style={{ width: "100%", height: "6px", backgroundColor: C.line, borderRadius: "10px", overflow: "hidden" }}>
             {/* Dynamic Colored Bar Indicator */}
-            <div 
-              style={{ 
-                height: "100%", 
-                backgroundColor: C.blue, 
-                width: `${app.loadingProgress}%`, 
-                transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)", 
-                borderRadius: "10px" 
-              }} 
+            <div
+              style={{
+                height: "100%",
+                backgroundColor: C.amber,
+                width: `${app.loadingProgress}%`,
+                transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                borderRadius: "10px"
+              }}
             />
           </div>
-          
+
           <div style={{ color: C.navy, fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", letterSpacing: "0.5px", marginTop: 4 }}>
-            Syncing System Data Matrix... {app.loadingProgress}%
+            Syncing your yard... {app.loadingProgress}%
           </div>
+        </div>
+
+        {/* A skeleton of the dashboard sitting under the progress bar. The bar
+            alone leaves the screen empty for the whole load; showing the shape
+            that is coming makes the wait feel shorter and stops the hard jump
+            from blank to full dashboard. Hidden on phones, where it would push
+            the progress bar off-screen. */}
+        <div className="sw-hide-phone" style={{ width: "100%", maxWidth: 880, padding: "0 24px", marginTop: 8, opacity: 0.55 }}>
+          <SkeletonCards count={3} cols={3} />
         </div>
       </div>
     );
@@ -296,15 +305,15 @@ return (
         
         {/* 📱 MOBILE HEADER NAVIGATION BAR */}
         {isMobile && (
-          <div style={{ background: C.navy, color: BRAND.homespun, padding: "0 20px", height: 50, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>
+          <div style={{ background: C.shell, color: C.shellInk, padding: "0 20px", height: 50, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>
             {/* The TENANT's name, not the platform's. This header sits inside their
                 portal — hardcoding "MAUMEE RIVER ROOFING" here would have greeted
                 every other company by your company's name. */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-display)", fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: "#EDE6DA" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-display)", fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: C.shellInk }}>
               <TrussMark size={20} />
               {companyDisplayName}
             </div>
-            <button onClick={() => setMobileMenuOpen((o) => !o)} style={{ background: "transparent", border: "none", color: "#EDE6DA", fontSize: "var(--text-3xl)", cursor: "pointer", lineHeight: 1 }}>
+            <button onClick={() => setMobileMenuOpen((o) => !o)} style={{ background: "transparent", border: "none", color: C.shellInk, fontSize: "var(--text-3xl)", cursor: "pointer", lineHeight: 1 }}>
               {mobileMenuOpen ? "✕" : "☰"}
             </button>
           </div>
@@ -348,13 +357,13 @@ return (
           overflow: "hidden"
         }}>
           {app.loadErrors.length > 0 && (
-            <div style={{ background: "#fee2e2", borderBottom: "2px solid #ef4444", color: "#991b1b", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", flexShrink: 0, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>
+            <div style={{ background: "var(--c-rust-wash)", borderBottom: "2px solid var(--c-rust)", color: "var(--c-rust)", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", flexShrink: 0, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>
               <span>
                 ⚠️ Live data failed to load: {app.loadErrors.join(", ")}. Those sections are shown empty rather than with possibly-wrong data — don't make changes until this clears.
               </span>
               <button
                 onClick={() => app.reload()}
-                style={{ background: "#991b1b", color: "#fff", border: "none", borderRadius: "var(--radius-md)", padding: "6px 14px", cursor: "pointer", fontWeight: "var(--weight-bold)", fontSize: "var(--text-sm)", flexShrink: 0 }}
+                style={{ background: C.rust, color: C.onAccent, border: "none", borderRadius: "var(--radius-md)", padding: "6px 14px", cursor: "pointer", fontWeight: "var(--weight-bold)", fontSize: "var(--text-sm)", flexShrink: 0 }}
               >
                 🔄 Retry
               </button>

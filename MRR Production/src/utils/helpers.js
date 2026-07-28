@@ -4,38 +4,85 @@ import { supabase } from "./supabase";
 //
 // Steadwerk — Direction 02, "The Raising": weathered barnwood + harvest amber.
 //
-// The KEYS are unchanged on purpose. Every view already references C.navy / C.gold /
-// C.blue, so remapping the values here reskins the whole app without editing twenty
-// files. The names are now historical (C.blue is no longer blue) — they read as slots
-// in the palette, not as literal colors:
-//
-//   navy → the structural dark        gold → the accent
-//   blue → the secondary accent       sub  → muted secondary text
-//
 // ⚠️ THE BRAND HAS NO RED. Destructive actions (delete, overdue) use a muted rust —
 // still unmistakably "danger", without a color the brand doesn't own. Keep it that way.
+//
+// ── Why these are var() strings and not hex ──
+// Every value here resolves to a CSS custom property defined in tokens.css, which
+// has both a light and a dark set. Around 1,100 inline style objects across the
+// views already read from this object, and inline styles cannot carry a media
+// query — so pointing the values at variables is what makes the whole app
+// themeable without editing those views at all. The browser resolves the var at
+// paint time, so flipping data-theme on <html> reskins everything at once.
+//
+// The consequence: THESE ARE NOT HEX STRINGS. Never do string surgery on them.
+// `${C.gold}14` used to make a translucent wash and now produces garbage CSS.
+// Use color-mix(in srgb, ${C.gold} 8%, transparent) instead. If you need a real
+// hex — a canvas, a PDF, a meta tag — import HEX below.
 export const C = {
-  blue: "#8A5A2B", // Harness Leather — secondary accent (was blue)
-  navy: "#23282D", // Barnwood — primary dark, sidebars, headings
-  gold: "#C97B2D", // Harvest Amber — primary accent, CTAs
-  gL: "#FAF3E9",   // amber wash
-  w: "#fff",
-  bg: "#EDE6DA",   // Homespun — the app ground
-  lg: "#F4F0E7",   // light neutral, table stripes
-  bd: "#DCD3C4",   // borders, warmed to match the ground
-  sub: "#6E7780",  // Plowshare — secondary text
-  gr: "#4A7A5C",   // Pasture Green — success / active
-  gB: "#E2EDE6",
-  rd: "#A34E28",   // muted rust — destructive. NOT red. See note above.
-  rB: "#F7E4DA",
-  am: "#A8641F",   // deep amber — warnings on light ground
-  aB: "#F7EBDA",
-  pu: "#5C5470",   // muted plum-grey (bright purple would fight the palette)
-  pB: "#E9E6EE",
-  tl: "#3E6B6B",   // muted teal
-  tB: "#DDE9E9",
-  sl: "#4A6178",   // slate
-  sB: "#E4EAF0",
+  // ── Semantic names. Prefer these in new code. ──
+  barnwood: "var(--c-barnwood)", // the structural dark: sidebars, headings
+  amber: "var(--c-amber)",       // the accent: CTAs, active states
+  leather: "var(--c-leather)",   // the secondary accent
+  ground: "var(--c-ground)",     // the app background
+  surface: "var(--c-surface)",   // cards, modals, table backgrounds
+  subtle: "var(--c-subtle)",     // light neutral: table stripes, wells
+  line: "var(--c-line)",         // borders
+  sub: "var(--c-sub)",           // muted secondary text
+  pasture: "var(--c-pasture)",   // success / active
+  rust: "var(--c-rust)",         // destructive. NOT red. See note above.
+  warn: "var(--c-warn)",         // deep amber — warnings
+  plum: "var(--c-plum)",
+  teal: "var(--c-teal)",
+  slate: "var(--c-slate)",
+
+  // Chrome that stays dark in both themes: sidebar, mobile header, and the few
+  // inverted strips inside views. Distinct from `barnwood`, which is the ink
+  // token and therefore has to invert when the theme does.
+  shell: "var(--c-shell)",
+  shellInk: "var(--c-shell-ink)",
+  // Text on a saturated fill (badges, role avatars, colored buttons).
+  onAccent: "var(--c-on-accent)",
+
+  // ── Back-compat aliases. ──
+  // The original keys were literal color names that stopped being true when the
+  // palette moved to "The Raising" (C.blue has been brown since that reskin).
+  // They stay as aliases because a few hundred call sites use them; they are not
+  // deprecated-with-a-deadline, just no longer the name to reach for first.
+  navy: "var(--c-barnwood)",
+  gold: "var(--c-amber)",
+  blue: "var(--c-leather)",
+  bg: "var(--c-ground)",
+  w: "var(--c-surface)",
+  lg: "var(--c-subtle)",
+  bd: "var(--c-line)",
+  gr: "var(--c-pasture)",
+  rd: "var(--c-rust)",
+  am: "var(--c-warn)",
+  pu: "var(--c-plum)",
+  tl: "var(--c-teal)",
+  sl: "var(--c-slate)",
+
+  // ── Tint backgrounds (badges, wells). ──
+  gL: "var(--c-amber-wash)",
+  gB: "var(--c-pasture-wash)",
+  rB: "var(--c-rust-wash)",
+  aB: "var(--c-warn-wash)",
+  pB: "var(--c-plum-wash)",
+  tB: "var(--c-teal-wash)",
+  sB: "var(--c-slate-wash)",
+};
+
+// Literal light-mode hex, for the handful of consumers that cannot take a CSS
+// variable: canvas, generated PDFs, and the <meta name="theme-color"> tag. Keep
+// in sync with the :root block in tokens.css.
+export const HEX = {
+  barnwood: "#23282D",
+  amber: "#C97B2D",
+  leather: "#8A5A2B",
+  ground: "#EDE6DA",
+  surface: "#FFFFFF",
+  homespun: "#EDE6DA",
 };
 
 // 2. Short Unique ID Generator String Macro

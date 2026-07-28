@@ -219,8 +219,8 @@ export default function OmniSearch({
           width: "100%",
           padding: "10px 14px 10px 12px",
           borderRadius: "8px",
-          border: `1px solid ${C.bd || "#cbd5e1"}`,
-          background: "#f8fafc",
+          border: `1px solid ${C.bd || "var(--c-line)"}`,
+          background: "var(--c-subtle)",
           fontSize: "13px",
           fontWeight: "var(--weight-semibold)",
           color: C.navy,
@@ -237,10 +237,10 @@ export default function OmniSearch({
             top: "calc(100% + 6px)",
             left: 0,
             right: 0,
-            background: "#ffffff",
+            background: "var(--c-surface)",
             borderRadius: "12px",
             boxShadow: "0 12px 32px rgba(15, 23, 42, 0.15)",
-            border: "1px solid #e2e8f0",
+            border: "1px solid var(--c-line)",
             maxHeight: "420px",
             overflowY: "auto",
             zIndex: 1100,
@@ -257,9 +257,9 @@ export default function OmniSearch({
                         padding: "6px 14px",
                         fontSize: "11px",
                         fontWeight: "var(--weight-bold)",
-                        color: "#64748b",
+                        color: "var(--c-sub)",
                         textTransform: "uppercase",
-                        background: "#f8fafc",
+                        background: "var(--c-subtle)",
                       }}
                     >
                       {s.header}
@@ -272,11 +272,11 @@ export default function OmniSearch({
                           padding: "10px 14px",
                           cursor: "pointer",
                           fontSize: "13px",
-                          color: "#0f172a",
+                          color: "var(--c-barnwood)",
                           transition: "background 0.15s",
                         }}
                         onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = "#f1f5f9")
+                          (e.currentTarget.style.background = "var(--c-subtle)")
                         }
                         onMouseLeave={(e) =>
                           (e.currentTarget.style.background = "transparent")
@@ -285,7 +285,7 @@ export default function OmniSearch({
                         <div style={{ fontWeight: "var(--weight-semibold)" }}>
                           {s.title(item)}
                         </div>
-                        <div style={{ fontSize: "11px", color: "#64748b" }}>
+                        <div style={{ fontSize: "11px", color: "var(--c-sub)" }}>
                           {s.sub(item)}
                         </div>
                       </div>
@@ -295,7 +295,7 @@ export default function OmniSearch({
             )
           ) : (
             <div
-              style={{ padding: "20px", textAlign: "center", color: "#94a3b8" }}
+              style={{ padding: "20px", textAlign: "center", color: "var(--c-sub)" }}
             >
               No results found for "<strong>{query}</strong>"
             </div>

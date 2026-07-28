@@ -3,10 +3,8 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase, updateRowStrict } from "../utils/supabase";
 import { sendLowStockAlerts } from "../utils/lowStockAlerts";
 import { C, uid, fd, fm, tot, newestPrice, recostLine } from "../utils/helpers";
-import { fetchJobTemplates, saveJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
 import {
   Btn,
-  Bdg,
   Fld,
   Inp,
   Sel,
@@ -18,6 +16,8 @@ import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 import { translations } from "../utils/translations";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
+import JobTemplatesModal from "./inventory/JobTemplatesModal";
+import BulkReceiveModal from "./inventory/BulkReceiveModal";
 
 
 export default function InventoryView({
@@ -47,80 +47,12 @@ export default function InventoryView({
   const [batchSel, setBatchSel] = useState(null);
   const [batchForm, setBatchForm] = useState({});
   const [recalc, setRecalc] = useState(null);
-  const [bulkItems, setBulkItems] = useState([]);
-  const [bulkMeta, setBulkMeta] = useState({
-    date: new Date().toISOString().split("T")[0],
-    po: "",
-    vendor: "",
-  });
   useEffect(() => {
     setSrch(inventorySearchQuery);
   }, [inventorySearchQuery]);
   
-  const [bulkSrch, setBulkSrch] = useState("");
   const { showToast } = useNotify();
 
-  // ── 🧰 JOB MATERIAL TEMPLATES MANAGER ──
-  const [tpls, setTpls] = useState([]);
-  const [tplEditing, setTplEditing] = useState(null); // template object being edited
-  const [tplSrch, setTplSrch] = useState("");
-  const [tplLoading, setTplLoading] = useState(false);
-  const [tplSaving, setTplSaving] = useState(false);
-
-  const openTemplates = async () => {
-    setModal("tpl");
-    setTplEditing(null);
-    setTplSrch("");
-    setTplLoading(true);
-    try {
-      const saved = await fetchJobTemplates();
-      setTpls(saved || resolveDefaultTemplates(inv));
-    } catch (err) {
-      showToast(`Could not load templates: ${err.message}`, "error");
-      setTpls(resolveDefaultTemplates(inv));
-    } finally {
-      setTplLoading(false);
-    }
-  };
-
-  const persistTemplates = async (next) => {
-    setTplSaving(true);
-    try {
-      await saveJobTemplates(next);
-      setTpls(next);
-      return true;
-    } catch (err) {
-      showToast(`Database Error: Could not save templates. ${err.message}`, "error");
-      return false;
-    } finally {
-      setTplSaving(false);
-    }
-  };
-
-  const saveTplEdit = async () => {
-    if (!tplEditing.name.trim()) {
-      showToast("Template name is required.", "warning");
-      return;
-    }
-    if (tplEditing.items.length === 0) {
-      showToast("Add at least one material to the template.", "warning");
-      return;
-    }
-    const cleaned = { ...tplEditing, name: tplEditing.name.trim() };
-    const exists = tpls.find((t) => t.id === cleaned.id);
-    const next = exists ? tpls.map((t) => (t.id === cleaned.id ? cleaned : t)) : [...tpls, cleaned];
-    if (await persistTemplates(next)) {
-      showToast(`Template "${cleaned.name}" saved.`, "success");
-      setTplEditing(null);
-    }
-  };
-
-  const deleteTpl = async (tpl) => {
-    if (!window.confirm(`Delete the "${tpl.name}" template? Jobs already built with it are not affected.`)) return;
-    if (await persistTemplates(tpls.filter((t) => t.id !== tpl.id))) {
-      showToast(`Template "${tpl.name}" deleted.`, "success");
-    }
-  };
 
   // Fix 8: Memoize categories array computation so it only evaluates if inv updates
   const cats = useMemo(() => {
@@ -149,21 +81,14 @@ export default function InventoryView({
   }, [inv, srch, cat, sortBy]);
 
   // Fix 3 & 8: Memoize bulk filtering to avoid redundant rendering computations
-  const bulkFiltered = useMemo(() => {
-    return inv.filter(
-      (i) =>
-        (i?.name || "").toLowerCase().includes(bulkSrch.toLowerCase()) &&
-        !bulkItems.find((b) => b.iid === i.id),
-    );
-  }, [inv, bulkSrch, bulkItems]);
 
   // Reorder signalling uses vivid traffic-light colors ON PURPOSE — not the muted
   // barnwood brand tokens (C.rd is rust, C.am is brown, C.gr is sage). A low item has to
   // jump off the screen so it's obvious what needs ordering; functional clarity beats
   // brand harmony for this one signal. Scoped to inventory, so nothing else reskins.
-  const STOCK_RED = "#DC2626";
-  const STOCK_YELLOW = "#EAB308";
-  const STOCK_GREEN = "#16A34A";
+  const STOCK_RED = "var(--c-rust)";
+  const STOCK_YELLOW = "var(--c-warn)";
+  const STOCK_GREEN = "var(--c-pasture)";
 
   const toggleSpecial = async (item, e) => {
     e.stopPropagation();
@@ -620,187 +545,6 @@ export default function InventoryView({
     }
   };
 
-  const addToBulk = (item) =>
-    setBulkItems((p) => [
-      ...p,
-      {
-        iid: item.id,
-        iname: item.name,
-        unit: item.unit,
-        qty: "",
-        price: newestPrice(item) ? String(newestPrice(item)) : "",
-      },
-    ]);
-
-  const removeBulk = (iid) =>
-    setBulkItems((p) => p.filter((b) => b.iid !== iid));
-
-  const updateBulk = (iid, field, val) =>
-    setBulkItems((p) =>
-      p.map((b) => (b.iid === iid ? { ...b, [field]: val } : b)),
-    );
-
-  const bulkTotal = useMemo(() => {
-    return bulkItems.reduce(
-      (s, b) => s + (parseFloat(b.qty) || 0) * (parseFloat(b.price) || 0),
-      0,
-    );
-  }, [bulkItems]);
-
-  const confirmBulk = async () => {
-    if (!bulkMeta.date) {
-      showToast("Please set a received date.", "info");
-      return;
-    }
-    // Negative qty/price are allowed intentionally — temporary corrections ahead
-    // of a later batch that zeroes them back out. Only exclude zero/non-numeric rows.
-    const hasQty = (b) => {
-      const qty = parseFloat(b.qty);
-      return !isNaN(qty) && qty !== 0;
-    };
-    const valid = bulkItems.filter(hasQty);
-    // Rows left blank/zero would otherwise vanish without a trace — capture them
-    // so we can name them in a warning instead of silently swallowing the delivery.
-    const skipped = bulkItems.filter((b) => !hasQty(b));
-    if (valid.length === 0) {
-      showToast(
-        "Nothing was received — every row is missing a quantity. Enter a quantity for each item.",
-        "warning",
-      );
-      return;
-    }
-
-    // A BLANK price must never become a $0 batch. FIFO charges each batch at its own
-    // price, so a $0 batch bills real material at nothing and prints $0 on the job
-    // report. Blank falls back to the item's last known price (same as single receive);
-    // if there's nothing to fall back on, refuse and name the rows rather than invent a
-    // number. A typed 0 is left alone — that's a deliberate free/warranty batch.
-    const priced = valid.map((b) => {
-      const typed = parseFloat(b.price);
-      if (Number.isFinite(typed)) return { ...b, rate: typed };
-      const last = newestPrice(inv.find((i) => i && i.id === b.iid));
-      return { ...b, rate: last > 0 ? last : null };
-    });
-    const unpriced = priced.filter((b) => b.rate === null);
-    if (unpriced.length > 0) {
-      showToast(
-        `Enter a unit price for: ${unpriced.map((b) => b.iname).join(", ")}. ${
-          unpriced.length > 1 ? "They have" : "It has"
-        } no previous price to fall back on, and receiving at $0 would bill the job nothing for real material.`,
-        "warning",
-      );
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      // Append each receipt to the batches currently in the database — the
-      // in-memory list may predate receipts/pulls from other devices.
-      const { data: freshRows, error: freshErr } = await supabase
-        .from("inventory")
-        .select("id,batches")
-        .in("id", valid.map((b) => b.iid));
-      if (freshErr) throw freshErr;
-      const freshById = new Map((freshRows || []).map((r) => [r.id, r.batches || []]));
-
-      const changedBatches = new Map();
-      for (const bi of priced) {
-        if (!freshById.has(bi.iid)) continue;
-        const nb = {
-          id: "b_" + uid(),
-          rcvd: bulkMeta.date,
-          qty: parseFloat(bi.qty),
-          price: bi.rate,
-          by: user?.id || "system",
-          rem: parseFloat(bi.qty),
-          ref: bulkMeta.po || "",
-          vendor: bulkMeta.vendor || "",
-        };
-        changedBatches.set(bi.iid, [...freshById.get(bi.iid), nb]);
-      }
-
-      const results = await Promise.all(
-        [...changedBatches].map(([iid, batches]) =>
-          updateRowStrict("inventory", iid, { batches }),
-        ),
-      );
-
-      // Supabase calls resolve (never throw) with an { error } payload — an
-      // unchecked failure here would show success while nothing was saved.
-      const firstError = results.map((r) => r?.error).find(Boolean);
-      if (firstError) throw firstError;
-
-      setInv((p) => p.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i)));
-
-      // Bulk rows can carry negative correction quantities, so a threshold
-      // crossing is possible here too.
-      sendLowStockAlerts(
-        [...changedBatches]
-          .map(([iid, batches]) => {
-            const item = inv.find((i) => i.id === iid);
-            return item
-              ? { item, prevTotal: tot({ batches: freshById.get(iid) }), newTotal: tot({ batches }) }
-              : null;
-          })
-          .filter(Boolean),
-        users,
-        showToast,
-      );
-
-      await logAction(
-        user?.id ?? null,
-        user?.email ?? null,
-        "INV_MUTATION",
-        `Processed bulk purchase order delivery into warehouse roster`,
-        {
-          purchase_order: bulkMeta.po || "N/A",
-          vendor: bulkMeta.vendor || "N/A",
-          item_count: priced.length,
-          total_manifest_value: bulkTotal,
-          // WHICH items — not just how many. Without this a delivery logs as
-          // "2 items" and the only way to learn what was in it is to reconstruct
-          // it from the batches (see the Atlas box vent hunt on 2026-07-16).
-          items: priced.map((b) => ({
-            item_id: b.iid,
-            name: b.iname,
-            qty: parseFloat(b.qty),
-            unit_cost: b.rate,
-          })),
-          ...(skipped.length > 0
-            ? { skipped_no_quantity: skipped.map((b) => b.iname) }
-            : {}),
-        },
-      );
-
-      showToast(
-        `Bulk delivery received — ${valid.length} item${valid.length > 1 ? "s" : ""} added.`,
-        "success",
-      );
-      // Surface anything left out so a forgotten quantity can't quietly disappear.
-      if (skipped.length) {
-        showToast(
-          `${skipped.length} item${skipped.length > 1 ? "s were" : " was"} NOT received (no quantity entered): ${skipped
-            .map((b) => b.iname)
-            .join(", ")}.`,
-          "warning",
-        );
-      }
-      setModal(null);
-      setBulkItems([]);
-      setBulkMeta({
-        date: new Date().toISOString().split("T")[0],
-        po: "",
-        vendor: "",
-      });
-      setBulkSrch("");
-    } catch (err) {
-      console.error(err);
-      showToast(`Error logging batch payload operations: ${err.message}`, "error");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     
@@ -824,7 +568,7 @@ export default function InventoryView({
             </Btn>
           )}
           {perms.inv_edit && (
-            <Btn v="outline" onClick={openTemplates}>
+            <Btn v="outline" onClick={() => setModal("tpl")}>
               🧰 {lang === "es" ? "Plantillas" : "Templates"}
             </Btn>
           )}
@@ -983,7 +727,7 @@ export default function InventoryView({
 
       {modal === "detail" && sel && (
         <Modal title={sel.name} onClose={() => setModal(null)} wide>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-7)", marginBottom: 16 }}>
+          <div className="sw-grid-2" style={{ gap: "var(--space-7)", marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Product Photo</div>
               <PhotoUpload current={sel.photo_url || null} onUpload={(data) => setPhoto(sel.id, data)} label="Upload product photo" previewHeight={180} />
@@ -1209,135 +953,10 @@ export default function InventoryView({
       )}
 
       {/* ── 🧰 JOB MATERIAL TEMPLATES MANAGER ── */}
-      {modal === "tpl" && (
-        <Modal
-          title="🧰 Job Material Templates"
-          onClose={() => { if (!tplSaving) { setModal(null); setTplEditing(null); } }}
-          wide
-        >
-          {tplLoading ? (
-            <p style={{ color: C.sub, textAlign: "center", padding: "20px 0" }}>Loading templates...</p>
-          ) : tplEditing ? (
-            <>
-              <div style={{ display: "grid", gridTemplateColumns: "90px 1fr", gap: "var(--space-3)" }}>
-                <Fld label="Icon">
-                  <Inp value={tplEditing.icon || ""} onChange={(e) => setTplEditing({ ...tplEditing, icon: e.target.value })} placeholder="🏠" disabled={tplSaving} />
-                </Fld>
-                <Fld label="Template Name *">
-                  <Inp value={tplEditing.name} onChange={(e) => setTplEditing({ ...tplEditing, name: e.target.value })} placeholder="e.g. Economy Roof" disabled={tplSaving} />
-                </Fld>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-5)" }}>
-                <div>
-                  <h4 style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)" }}>📦 Materials ({tplEditing.items.length})</h4>
-                  {tplEditing.items.length === 0 ? (
-                    <p style={{ color: C.sub, fontSize: "var(--text-sm)" }}>Add materials from the catalog on the right.</p>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxHeight: 260, overflowY: "auto" }}>
-                      {tplEditing.items.map((t, idx) => {
-                        const inCatalog = t.iid && inv.find((i) => i && i.id === t.iid);
-                        return (
-                          <div key={t.iid || `x_${idx}`} style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}>
-                            <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-xs)", marginBottom: 4 }}>
-                              {t.iname} {!inCatalog && <span style={{ color: C.am }}>⚠ not in catalog</span>}
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                              <Inp
-                                type="number"
-                                value={t.qty}
-                                min="1"
-                                onChange={(e) => {
-                                  const qty = Math.max(1, parseInt(e.target.value) || 1);
-                                  setTplEditing((p) => ({ ...p, items: p.items.map((x, i2) => (i2 === idx ? { ...x, qty } : x)) }));
-                                }}
-                                style={{ width: 55, padding: "3px 6px" }}
-                                disabled={tplSaving}
-                              />
-                              <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>default qty</span>
-                              <button
-                                onClick={() => setTplEditing((p) => ({ ...p, items: p.items.filter((_, i2) => i2 !== idx) }))}
-                                style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-lg)", lineHeight: 1 }}
-                                disabled={tplSaving}
-                              >
-                                ×
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <Inp value={tplSrch} onChange={(e) => setTplSrch(e.target.value)} placeholder="🔍 Search catalog..." style={{ marginBottom: 8 }} disabled={tplSaving} />
-                  <div style={{ maxHeight: 260, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
-                    {inv
-                      .filter((i) => i && (i.name || "").toLowerCase().includes(tplSrch.toLowerCase()) && !tplEditing.items.find((t) => t.iid === i.id))
-                      .slice(0, 40)
-                      .map((item) => (
-                        <div key={item.id} style={{ background: C.w, borderRadius: "var(--radius-md)", padding: "8px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                          <div>
-                            <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-xs)" }}>{item.name}</div>
-                            <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{tot(item)} {item.unit} available</div>
-                          </div>
-                          <Btn
-                            v="primary"
-                            sz="sm"
-                            onClick={() => setTplEditing((p) => ({ ...p, items: [...p.items, { iid: item.id, iname: item.name, qty: 1 }] }))}
-                            disabled={tplSaving}
-                          >
-                            + Add
-                          </Btn>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-                <Btn v="ghost" onClick={() => setTplEditing(null)} style={{ flex: 1, justifyContent: "center" }} disabled={tplSaving}>← Back</Btn>
-                <Btn v="primary" onClick={saveTplEdit} style={{ flex: 1, justifyContent: "center" }} disabled={tplSaving}>
-                  {tplSaving ? "⏳ Saving..." : "💾 Save Template"}
-                </Btn>
-              </div>
-            </>
-          ) : (
-            <>
-              <p style={{ margin: "0 0 12px", fontSize: "var(--text-sm)", color: C.sub }}>
-                These material packages appear in the Build Jobs wizard (Step 2) for one-click job lists.
-              </p>
-              {tpls.length === 0 && (
-                <p style={{ color: C.sub, fontSize: "var(--text-sm)", textAlign: "center", padding: "16px 0" }}>No templates yet — create your first one below.</p>
-              )}
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", maxHeight: 320, overflowY: "auto" }}>
-                {tpls.map((tpl) => (
-                  <div key={tpl.id} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                      <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-sm)" }}>{tpl.icon} {tpl.name}</div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <Btn v="outline" sz="sm" onClick={() => { setTplSrch(""); setTplEditing({ ...tpl, items: [...(tpl.items || [])] }); }} disabled={tplSaving}>✏️ Edit</Btn>
-                        <Btn v="danger" sz="sm" onClick={() => deleteTpl(tpl)} disabled={tplSaving}>🗑️</Btn>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: "var(--text-2xs)", color: C.sub, lineHeight: 1.7 }}>
-                      {(tpl.items || []).map((t) => t.iname + (t.qty > 1 ? ` ×${t.qty}` : "")).join(" · ") || "No materials"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-                <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }} disabled={tplSaving}>Close</Btn>
-                <Btn
-                  v="primary"
-                  onClick={() => { setTplSrch(""); setTplEditing({ id: "tpl_" + uid(), name: "", icon: "🧰", items: [] }); }}
-                  style={{ flex: 1, justifyContent: "center" }}
-                  disabled={tplSaving}
-                >
-                  + New Template
-                </Btn>
-              </div>
-            </>
-          )}
-        </Modal>
+      {modal === "tpl" && <JobTemplatesModal inv={inv} onClose={() => setModal(null)} />}
+
+      {modal === "bulk" && perms.inv_bulk_receive && (
+        <BulkReceiveModal inv={inv} setInv={setInv} users={users} user={user} perms={perms} onClose={() => setModal(null)} />
       )}
 
       {modal === "rcv" && sel && (
@@ -1380,111 +999,6 @@ export default function InventoryView({
         </Modal>
       )}
 
-      {modal === "bulk" && perms.inv_bulk_receive && (
-        <Modal title="📦 Receive Bulk Order Manifest" onClose={() => { setModal(null); setBulkItems([]); setBulkSrch(""); }} wide>
-          <div style={{ background: C.gL, border: `1.5px solid ${C.gold}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.navy }}>
-            ⭐ <strong>Inbound Accounting:</strong> FIFO indices update automatically. Each item maps a standalone discrete batch vector tracking vendor origins.
-          </div>
-          
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)", padding: 14, background: C.lg, borderRadius: "var(--radius-lg)", marginBottom: 16 }}>
-            <Fld label="Date Received *"><Inp type="date" value={bulkMeta.date} onChange={(e) => setBulkMeta({ ...bulkMeta, date: e.target.value })} /></Fld>
-            <Fld label="PO / Order #"><Inp value={bulkMeta.po} onChange={(e) => setBulkMeta({ ...bulkMeta, po: e.target.value })} placeholder="e.g. PO-2025-100" /></Fld>
-            <Fld label="Vendor / Supplier"><Inp value={bulkMeta.vendor} onChange={(e) => setBulkMeta({ ...bulkMeta, vendor: e.target.value })} placeholder="e.g. ABC Supply" /></Fld>
-          </div>
-          
-          <div style={{ display: "flex", gap: "var(--space-6)", marginBottom: 16 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Select Items to Receive</div>
-              <Inp value={bulkSrch} onChange={(e) => setBulkSrch(e.target.value)} placeholder="🔍 Search inventory..." style={{ marginBottom: 8 }} />
-              <div style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
-                {bulkFiltered.map((item) => (
-                  <div key={item.id} style={{ background: C.w, border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.name}</div>
-                      <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{item.cat} · {tot(item)} {item.unit} available</div>
-                    </div>
-                    <Btn v="primary" sz="sm" onClick={() => addToBulk(item)}>+ Add</Btn>
-                  </div>
-                ))}
-                {bulkFiltered.length === 0 && (
-                  <div style={{ padding: 20, textAlign: "center", color: C.sub, fontSize: "var(--text-sm)", background: C.lg, borderRadius: "var(--radius-md)" }}>
-                    {bulkItems.length > 0 ? "All items matched ✓" : "No matching inventory items found"}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div style={{ flex: "0 0 380px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px" }}>Manifest Queue {bulkItems.length > 0 && `(${bulkItems.length})`}</div>
-                {bulkItems.length > 0 && <button onClick={() => setBulkItems([])} style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Clear All</button>}
-              </div>
-              
-              {bulkItems.length === 0 ? (
-                <div style={{ height: 200, background: C.lg, borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: C.sub, gap: "var(--space-3)" }}>
-                  <span style={{ fontSize: 32 }}>📋</span>
-                  <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>Manifest queue is empty</span>
-                </div>
-              ) : (
-                <>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxHeight: 280, overflowY: "auto", marginBottom: 10 }}>
-                    {bulkItems.map((b) => {
-                      const sub = (parseFloat(b.qty) || 0) * (parseFloat(b.price) || 0);
-                      return (
-                        <div key={b.iid} style={{ background: C.w, border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
-                            <span style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{b.iname}</span>
-                            <button onClick={() => removeBulk(b.iid)} style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-xl)", lineHeight: 1 }}>×</button>
-                          </div>
-                          
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "var(--space-3)", alignItems: "end" }}>
-                            <div>
-                              <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Qty ({b.unit})</div>
-                              <Inp type="number" value={b.qty} onChange={(e) => updateBulk(b.iid, "qty", e.target.value)} placeholder="0" style={{ padding: "5px 8px" }} />
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Unit Price</div>
-                              <div style={{ position: "relative" }}>
-                                <span style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", color: C.sub, fontSize: "var(--text-xs)" }}>$</span>
-                                {perms.inv_pricing_edit ? (
-                                  <Inp type="number" step="0.01" value={b.price} onChange={(e) => updateBulk(b.iid, "price", e.target.value)} placeholder="0.00" style={{ padding: "5px 8px", paddingLeft: 16 }} />
-                                ) : (
-                                  <Inp value={b.price} readOnly style={{ padding: "5px 8px", paddingLeft: 16, color: C.sub, background: C.lg }} />
-                                )}
-                              </div>
-                            </div>
-                            <div style={{ paddingBottom: 2, textAlign: "right" }}>
-                              <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Subtotal</div>
-                              <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: sub > 0 ? C.gr : C.sub }}>{fm(sub)}</div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  <div style={{ background: C.navy, borderRadius: "var(--radius-md)", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <div style={{ color: "rgba(255,255,255,0.55)", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>Manifest Valuation</div>
-                      <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "var(--text-xs)", marginTop: 2 }}>
-                        {bulkItems.filter((b) => { const q = parseFloat(b.qty); return !isNaN(q) && q !== 0; }).length} valid item positions
-                      </div>
-                    </div>
-                    <div style={{ fontWeight: "var(--weight-black)", fontSize: "var(--text-3xl)", color: C.gold }}>{fm(bulkTotal)}</div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
-            <Btn v="ghost" onClick={() => { setModal(null); setBulkItems([]); setBulkSrch(""); }} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
-            <Btn v="gold" sz="lg" onClick={confirmBulk} style={{ flex: 2, justifyContent: "center" }} disabled={saving}>
-              {saving ? "⏳ Logging Operation..." : `✅ Commit Manifest (${bulkItems.filter((b) => { const q = parseFloat(b.qty); return !isNaN(q) && q !== 0; }).length} Items)`}
-            </Btn>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

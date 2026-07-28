@@ -140,8 +140,8 @@ export default function ChatWidget({ user }) {
         >
           <div
             style={{
-              background: C.navy,
-              color: C.w,
+              background: C.shell,
+              color: C.shellInk,
               padding: "var(--space-5) var(--space-6)",
               display: "flex",
               justifyContent: "space-between",
@@ -151,7 +151,7 @@ export default function ChatWidget({ user }) {
             <div style={{ fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-md)" }}>🤖 Steadwerk Assistant</div>
             <button
               onClick={() => setOpen(false)}
-              style={{ background: "none", border: "none", color: C.w, cursor: "pointer", fontSize: "var(--text-xl)", lineHeight: 1 }}
+              style={{ background: "none", border: "none", color: C.shellInk, cursor: "pointer", fontSize: "var(--text-xl)", lineHeight: 1 }}
             >
               ×
             </button>
@@ -183,7 +183,7 @@ export default function ChatWidget({ user }) {
                     <div
                       style={{
                         background: mine ? C.blue : C.lg,
-                        color: mine ? C.w : C.navy,
+                        color: mine ? C.onAccent : C.navy,
                         borderRadius: "var(--radius-xl)",
                         borderBottomRightRadius: mine ? 3 : "var(--radius-xl)",
                         borderBottomLeftRadius: mine ? "var(--radius-xl)" : 3,
@@ -248,7 +248,7 @@ export default function ChatWidget({ user }) {
               <img src={pendingPhoto} alt="Pending attachment" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "var(--radius-md)", border: `1.5px solid ${C.bd}` }} />
               <button
                 onClick={() => setPendingPhoto(null)}
-                style={{ position: "absolute", top: -6, right: -6, background: C.rd, color: C.w, border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: 10, cursor: "pointer", lineHeight: 1 }}
+                style={{ position: "absolute", top: -6, right: -6, background: C.rd, color: C.onAccent, border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: 10, cursor: "pointer", lineHeight: 1 }}
               >
                 ✕
               </button>
@@ -278,7 +278,7 @@ export default function ChatWidget({ user }) {
               disabled={sending || editingIndex !== null || (!draft.trim() && !pendingPhoto)}
               style={{
                 background: C.blue,
-                color: C.w,
+                color: C.onAccent,
                 border: "none",
                 borderRadius: "var(--radius-md)",
                 padding: "9px var(--space-6)",

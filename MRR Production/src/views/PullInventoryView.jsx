@@ -688,49 +688,51 @@ export default function PullInventory({
           <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.tl, fontWeight: "var(--weight-semibold)" }}>
             {t.pullAdjustInfo}
           </div>
-          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
-            <thead>
-              <tr style={{ background: C.lg }}>
-                {[t.colItem, t.colPlanned, t.colActualPull, t.colAvailable].map((h) => (
-                  <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(Array.isArray(sel.items) ? sel.items : (sel.materials || [])).map((item) => {
-                if (!item) return null;
-                const avail = tot(inv.find((i) => i.id === item.iid) || { batches: [] });
-                const parsedActual = parseFloat(pullQtys[item.iid]);
-                const actual = Number.isNaN(parsedActual) ? (item.planned || item.qty || 0) : parsedActual;
-                const short = actual > avail;
-                return (
-                  <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}`, background: short ? C.rB : "transparent" }}>
-                    <td style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name}</td>
-                    <td style={{ padding: "9px 10px" }}>{item.planned || item.qty || 0} {item.unit || ""}</td>
-                    <td style={{ padding: "9px 10px" }}>
-                      <Inp
-                        type="number"
-                        value={pullQtys[item.iid] ?? (item.planned || item.qty || 0)}
-                        min="0"
-                        onChange={(e) =>
-                          setPullQtys((p) => ({
-                            ...p,
-                            [item.iid]: Math.max(0, parseFloat(e.target.value) || 0),
-                          }))
-                        }
-                        style={{ width: 80, padding: "4px 8px" }}
-                        disabled={pulling}
-                      />
-                    </td>
-                    <td style={{ padding: "9px 10px", color: short ? C.rd : C.gr, fontWeight: "var(--weight-bold)" }}>
-                      {avail} {item.unit || ""}
-                      {short && " ⚠️"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="sw-table-scroll">
+            <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
+              <thead>
+                <tr style={{ background: C.lg }}>
+                  {[t.colItem, t.colPlanned, t.colActualPull, t.colAvailable].map((h) => (
+                    <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(Array.isArray(sel.items) ? sel.items : (sel.materials || [])).map((item) => {
+                  if (!item) return null;
+                  const avail = tot(inv.find((i) => i.id === item.iid) || { batches: [] });
+                  const parsedActual = parseFloat(pullQtys[item.iid]);
+                  const actual = Number.isNaN(parsedActual) ? (item.planned || item.qty || 0) : parsedActual;
+                  const short = actual > avail;
+                  return (
+                    <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}`, background: short ? C.rB : "transparent" }}>
+                      <td style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name}</td>
+                      <td style={{ padding: "9px 10px" }}>{item.planned || item.qty || 0} {item.unit || ""}</td>
+                      <td style={{ padding: "9px 10px" }}>
+                        <Inp
+                          type="number"
+                          value={pullQtys[item.iid] ?? (item.planned || item.qty || 0)}
+                          min="0"
+                          onChange={(e) =>
+                            setPullQtys((p) => ({
+                              ...p,
+                              [item.iid]: Math.max(0, parseFloat(e.target.value) || 0),
+                            }))
+                          }
+                          style={{ width: 80, padding: "4px 8px" }}
+                          disabled={pulling}
+                        />
+                      </td>
+                      <td style={{ padding: "9px 10px", color: short ? C.rd : C.gr, fontWeight: "var(--weight-bold)" }}>
+                        {avail} {item.unit || ""}
+                        {short && " ⚠️"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => { setModal(null); setSel(null); setPullQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={pulling}>{t.cancel}</Btn>
             <Btn v="teal" sz="lg" onClick={confirmPull} style={{ flex: 2, justifyContent: "center" }} disabled={pulling}>
@@ -749,65 +751,67 @@ export default function PullInventory({
           <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.am, fontWeight: "var(--weight-semibold)" }}>
             {t.pullReturnInfo}
           </div>
-          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
-            <thead>
-              <tr style={{ background: C.lg }}>
-                {[t.colItem, t.colPulled, t.colReturning, t.colWillUse].map((h) => (
-                  <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(Array.isArray(sel.items) ? sel.items : (sel.materials || []))
-                .filter((i) => i && (i.pulled || 0) > 0)
-                .map((item) => {
-                  const ret = Math.min(parseFloat(retQtys[item.iid]) || 0, item.pulled || 0);
-                  const used = (item.pulled || 0) - ret;
-                  return (
-                    <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
-                      <td style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name}</td>
-                      <td style={{ padding: "9px 10px" }}>{item.pulled} {item.unit || ""}</td>
-                      <td style={{ padding: "9px 10px" }}>
-                        <Inp
-                          type="number"
-                          value={retQtys[item.iid] ?? 0}
-                          min="0"
-                          max={item.pulled}
-                          onChange={(e) =>
-                            setRetQtys((p) => ({
-                              ...p,
-                              [item.iid]: Math.min(item.pulled, Math.max(0, parseFloat(e.target.value) || 0)),
-                            }))
-                          }
-                          style={{ width: 80, padding: "4px 8px" }}
-                          disabled={returning}
-                        />
-                      </td>
-                      <td style={{ padding: "9px 10px", fontWeight: "var(--weight-extrabold)", color: used > 0 ? C.navy : C.sub }}>
-                        {used} {item.unit || ""}
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-            {perms.inv_pricing_view && (
-              <tfoot>
-                <tr style={{ borderTop: `2px solid ${C.navy}` }}>
-                  <td colSpan={3} style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{t.pullEstCost}</td>
-                  <td style={{ padding: "9px 10px", fontWeight: "var(--weight-black)", color: C.gr, fontSize: 15 }}>
-                    {fm(
-                      (Array.isArray(sel.items) ? sel.items : (sel.materials || []))
-                        .filter((i) => i && (i.pulled || 0) > 0)
-                        .reduce((s, i) => {
-                          const ret = Math.min(parseFloat(retQtys[i.iid]) || 0, i.pulled || 0);
-                          return s + ((i.pulled || 0) - ret) * (i.priceAtPull || 0);
-                        }, 0),
-                    )}
-                  </td>
+          <div className="sw-table-scroll">
+            <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
+              <thead>
+                <tr style={{ background: C.lg }}>
+                  {[t.colItem, t.colPulled, t.colReturning, t.colWillUse].map((h) => (
+                    <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)" }}>{h}</th>
+                  ))}
                 </tr>
-              </tfoot>
-            )}
-          </table>
+              </thead>
+              <tbody>
+                {(Array.isArray(sel.items) ? sel.items : (sel.materials || []))
+                  .filter((i) => i && (i.pulled || 0) > 0)
+                  .map((item) => {
+                    const ret = Math.min(parseFloat(retQtys[item.iid]) || 0, item.pulled || 0);
+                    const used = (item.pulled || 0) - ret;
+                    return (
+                      <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
+                        <td style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name}</td>
+                        <td style={{ padding: "9px 10px" }}>{item.pulled} {item.unit || ""}</td>
+                        <td style={{ padding: "9px 10px" }}>
+                          <Inp
+                            type="number"
+                            value={retQtys[item.iid] ?? 0}
+                            min="0"
+                            max={item.pulled}
+                            onChange={(e) =>
+                              setRetQtys((p) => ({
+                                ...p,
+                                [item.iid]: Math.min(item.pulled, Math.max(0, parseFloat(e.target.value) || 0)),
+                              }))
+                            }
+                            style={{ width: 80, padding: "4px 8px" }}
+                            disabled={returning}
+                          />
+                        </td>
+                        <td style={{ padding: "9px 10px", fontWeight: "var(--weight-extrabold)", color: used > 0 ? C.navy : C.sub }}>
+                          {used} {item.unit || ""}
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+              {perms.inv_pricing_view && (
+                <tfoot>
+                  <tr style={{ borderTop: `2px solid ${C.navy}` }}>
+                    <td colSpan={3} style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{t.pullEstCost}</td>
+                    <td style={{ padding: "9px 10px", fontWeight: "var(--weight-black)", color: C.gr, fontSize: 15 }}>
+                      {fm(
+                        (Array.isArray(sel.items) ? sel.items : (sel.materials || []))
+                          .filter((i) => i && (i.pulled || 0) > 0)
+                          .reduce((s, i) => {
+                            const ret = Math.min(parseFloat(retQtys[i.iid]) || 0, i.pulled || 0);
+                            return s + ((i.pulled || 0) - ret) * (i.priceAtPull || 0);
+                          }, 0),
+                      )}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
           <div style={{ display: "flex", gap: "var(--space-4)" }}>
             <Btn v="ghost" onClick={() => { setModal(null); setRetQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={returning}>{t.cancel}</Btn>
             <Btn v="green" sz="lg" onClick={confirmReturn} style={{ flex: 2, justifyContent: "center" }} disabled={returning}>
@@ -955,36 +959,38 @@ export default function PullInventory({
               </div>
             ))}
           </div>
-          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
-            <thead>
-              <tr style={{ background: C.lg }}>
-                {[t.colItem, t.colPlanned, t.colPulled, t.colReturned, t.colUsed, ...(perms.inv_pricing_view ? [t.colCost] : [])].map((h) => (
-                  <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(Array.isArray(sel.items) ? sel.items : (sel.materials || [])).map((item) => {
-                if (!item) return null;
-                const pQty = item.pulled || 0;
-                const rQty = item.returned || 0;
-                return (
-                  <tr key={item.iid || item.id} style={{ borderTop: `1px solid ${C.lg}` }}>
-                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name}</td>
-                    <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0}</td>
-                    <td style={{ padding: "8px 10px", color: pQty > 0 ? C.gr : C.sub }}>{pQty}</td>
-                    <td style={{ padding: "8px 10px", color: rQty > 0 ? C.am : C.sub }}>{rQty}</td>
-                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>{pQty - rQty}</td>
-                    {perms.inv_pricing_view && (
-                      <td style={{ padding: "8px 10px", color: C.blue, fontWeight: "var(--weight-bold)" }}>
-                        {item.pullCost > 0 ? fm((pQty - rQty) * (item.priceAtPull || 0)) : "—"}
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="sw-table-scroll">
+            <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+              <thead>
+                <tr style={{ background: C.lg }}>
+                  {[t.colItem, t.colPlanned, t.colPulled, t.colReturned, t.colUsed, ...(perms.inv_pricing_view ? [t.colCost] : [])].map((h) => (
+                    <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(Array.isArray(sel.items) ? sel.items : (sel.materials || [])).map((item) => {
+                  if (!item) return null;
+                  const pQty = item.pulled || 0;
+                  const rQty = item.returned || 0;
+                  return (
+                    <tr key={item.iid || item.id} style={{ borderTop: `1px solid ${C.lg}` }}>
+                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name}</td>
+                      <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0}</td>
+                      <td style={{ padding: "8px 10px", color: pQty > 0 ? C.gr : C.sub }}>{pQty}</td>
+                      <td style={{ padding: "8px 10px", color: rQty > 0 ? C.am : C.sub }}>{rQty}</td>
+                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>{pQty - rQty}</td>
+                      {perms.inv_pricing_view && (
+                        <td style={{ padding: "8px 10px", color: C.blue, fontWeight: "var(--weight-bold)" }}>
+                          {item.pullCost > 0 ? fm((pQty - rQty) * (item.priceAtPull || 0)) : "—"}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           {sel.status === "completed" && (
             <div style={{ marginTop: 10, display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
               <Btn v="green" onClick={() => { if (!generatePDF(sel, users, activeLogo, inv, company)) showToast(t.pullPopupBlocked2, "warning"); }}>📄 PDF</Btn>
@@ -1020,8 +1026,8 @@ export default function PullInventory({
           {syncModal.syncPayload && (
             <>
               <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", marginBottom: 6 }}>{t.pullPayloadSent}</div>
-              <div style={{ background: "#1A202C", borderRadius: "var(--radius-md)", padding: 12, overflowX: "auto", marginBottom: 12 }}>
-                <pre style={{ margin: 0, fontSize: "var(--text-2xs)", color: "#68D391", fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+              <div style={{ background: "var(--c-shell)", borderRadius: "var(--radius-md)", padding: 12, overflowX: "auto", marginBottom: 12 }}>
+                <pre style={{ margin: 0, fontSize: "var(--text-2xs)", color: "var(--c-pasture)", fontFamily: "monospace", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
                   {JSON.stringify(syncModal.syncPayload, null, 2)}
                 </pre>
               </div>

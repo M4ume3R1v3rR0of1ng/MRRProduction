@@ -11,8 +11,8 @@ export function Spinner({ size = 18, color }) {
         width: size,
         height: size,
         borderRadius: '50%',
-        border: `2.5px solid ${color ? `${color}33` : 'rgba(37,99,235,0.15)'}`,
-        borderTopColor: color || C.blue,
+        border: `2.5px solid color-mix(in srgb, ${color || C.amber} 22%, transparent)`,
+        borderTopColor: color || C.amber,
         animation: 'mrr-spin 0.7s linear infinite',
         flexShrink: 0,
       }}
@@ -38,11 +38,62 @@ export function LoadingState({ label = 'Loading...', compact = false }) {
   );
 }
 
+// ── Skeletons ──
+// Prefer these to LoadingState wherever the shape of the incoming content is
+// known. A spinner says "wait"; a skeleton says "wait, and here is what is
+// coming", and because the blocks are the real heights nothing reflows when the
+// data arrives. Reach for LoadingState only when the result has no fixed shape.
+
+export function Skeleton({ w = '100%', h = 14, r, style }) {
+  return (
+    <div
+      className="mrr-skeleton"
+      aria-hidden="true"
+      style={{ width: w, height: h, borderRadius: r ?? 'var(--radius-sm)', flexShrink: 0, ...style }}
+    />
+  );
+}
+
+// Rows of a data table. `cols` accepts widths so the placeholder matches the real
+// column rhythm instead of an even split, which is what makes it read as a table.
+export function SkeletonTable({ rows = 6, cols = ['32%', '18%', '14%', '14%', '22%'], label = 'Loading' }) {
+  return (
+    <div role="status" aria-busy="true" aria-label={label} style={{ width: '100%' }}>
+      <div style={{ display: 'flex', gap: 'var(--space-6)', padding: '12px 14px', borderBottom: `1.5px solid ${C.line}` }}>
+        {cols.map((w, i) => <Skeleton key={i} w={w} h={9} />)}
+      </div>
+      {Array.from({ length: rows }, (_, r) => (
+        <div key={r} style={{ display: 'flex', gap: 'var(--space-6)', padding: '14px', borderBottom: `1px solid ${C.line}`, alignItems: 'center' }}>
+          {cols.map((w, i) => <Skeleton key={i} w={w} h={13} />)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Card grid placeholder. Uses the same responsive grid utility the real content
+// does, so the count per row matches at every breakpoint.
+export function SkeletonCards({ count = 6, height = 132, cols = 3, label = 'Loading' }) {
+  return (
+    <div role="status" aria-busy="true" aria-label={label} className={`sw-grid-${cols}`}>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} style={{ background: C.surface, border: `1px solid ${C.line}`, borderRadius: 'var(--radius-xl)', padding: 16, display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+          <Skeleton w={38} h={38} r="var(--radius-lg)" />
+          <Skeleton w="58%" h={20} />
+          <Skeleton w="82%" h={11} />
+          <Skeleton w="40%" h={11} style={{ marginTop: 'auto' }} />
+          <div style={{ height: Math.max(0, height - 132) }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Modal({ title, onClose, children, wide, extraWide, disableCloseButton }) {
   return (
-    <div className="mrr-backdrop" style={{ position: 'fixed', inset: 0, background: 'rgba(14,45,107,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-5)' }}>
+    <div className="mrr-backdrop" style={{ position: 'fixed', inset: 0, background: 'var(--c-backdrop)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-5)' }}>
       <div className="mrr-modal" style={{ background: C.w, borderRadius: 'var(--radius-2xl)', width: '100%', maxWidth: extraWide ? 900 : wide ? 740 : 480, maxHeight: '92vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
-        <div style={{ padding: 'var(--space-7) var(--space-8)', borderBottom: '2px solid var(--brand-accent, #C97B2D)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: C.w, zIndex: 1 }}>
+        <div style={{ padding: 'var(--space-7) var(--space-8)', borderBottom: '2px solid var(--brand-accent, var(--c-amber))', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: C.w, zIndex: 1 }}>
           <h2 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 'var(--weight-extrabold)', color: C.navy }}>{title}</h2>
           {!disableCloseButton && (
             <button className="mrr-close" onClick={onClose} style={{ border: 'none', cursor: 'pointer', fontSize: 24, color: C.sub, lineHeight: 1, padding: '2px 8px' }}>×</button>
@@ -77,14 +128,18 @@ export function Sel({ children, ...p }) {
 }
 
 export function Btn({ children, v = 'primary', sz = 'md', ...p }) {
-  const vs = { primary: { background: C.blue, color: C.w, border: 'none' }, gold: { background: 'var(--brand-accent, #C97B2D)', color: 'var(--brand-accent-ink, #23282D)', border: 'none' }, outline: { background: 'transparent', color: C.blue, border: `2px solid ${C.blue}` }, ghost: { background: C.lg, color: '#1A202C', border: 'none' }, danger: { background: C.rd, color: C.w, border: 'none' }, purple: { background: C.pu, color: C.w, border: 'none' }, green: { background: C.gr, color: C.w, border: 'none' }, teal: { background: C.tl, color: C.w, border: 'none' }, sky: { background: C.sl, color: C.w, border: 'none' } };
+  // Every filled variant takes C.onAccent, not C.surface. They used to read C.w,
+  // which was literally white and worked by accident; now that surface inverts to
+  // near-black in dark mode, C.w on a filled button would be dark ink on a dark
+  // fill. onAccent is the token that means "ink that sits on a saturated color".
+  const vs = { primary: { background: C.leather, color: C.onAccent, border: 'none' }, gold: { background: 'var(--brand-accent, var(--c-amber))', color: 'var(--brand-accent-ink, var(--c-shell))', border: 'none' }, outline: { background: 'transparent', color: C.leather, border: `2px solid ${C.leather}` }, ghost: { background: C.subtle, color: C.barnwood, border: 'none' }, danger: { background: C.rust, color: C.onAccent, border: 'none' }, purple: { background: C.plum, color: C.onAccent, border: 'none' }, green: { background: C.pasture, color: C.onAccent, border: 'none' }, teal: { background: C.teal, color: C.onAccent, border: 'none' }, sky: { background: C.slate, color: C.onAccent, border: 'none' } };
   const ss = { sm: { padding: '5px 11px', fontSize: 'var(--text-sm)' }, md: { padding: '9px 16px', fontSize: 'var(--text-base)' }, lg: { padding: '12px 22px', fontSize: 'var(--text-md)' } };
   return <button {...p} className={`mrr-btn ${p.className || ''}`} style={{ ...vs[v], ...ss[sz], borderRadius: 'var(--radius-lg)', cursor: 'pointer', fontWeight: 'var(--weight-bold)', display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)', ...p.style }}>{children}</button>;
 }
 
 export function Bdg({ children, color = 'blue' }) {
-  const bg = { blue: 'rgba(37,99,235,0.10)', green: C.gB, red: C.rB, amber: C.aB, gold: C.gL, purple: C.pB, gray: '#F1F5F9', teal: C.tB, sky: C.sB };
-  const fg = { blue: C.blue, green: C.gr, red: C.rd, amber: C.am, gold: '#C78D00', purple: C.pu, gray: C.sub, teal: C.tl, sky: C.sl };
+  const bg = { blue: 'var(--c-leather-wash)', green: C.gB, red: C.rB, amber: C.aB, gold: C.gL, purple: C.pB, gray: 'var(--c-subtle)', teal: C.tB, sky: C.sB };
+  const fg = { blue: C.blue, green: C.gr, red: C.rd, amber: C.am, gold: 'var(--c-warn)', purple: C.pu, gray: C.sub, teal: C.tl, sky: C.sl };
   return <span style={{ padding: '3px var(--space-3)', borderRadius: 'var(--radius-pill)', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', background: bg[color] || C.lg, color: fg[color] || C.sub, display: 'inline-block' }}>{children}</span>;
 }
 
@@ -95,8 +150,8 @@ export function RoleBdg({ role }) {
 
 export function Toggle({ on, onChange, disabled = false }) {
   return (
-    <div onClick={!disabled ? onChange : undefined} style={{ width: 38, height: 22, borderRadius: 'var(--radius-pill)', background: disabled ? '#CBD5E0' : on ? C.gr : '#CBD5E0', cursor: disabled ? 'default' : 'pointer', position: 'relative', transition: 'background 0.15s', flexShrink: 0 }}>
-      <div style={{ position: 'absolute', top: 3, left: on ? 19 : 3, width: 16, height: 16, borderRadius: '50%', background: disabled ? '#A0AEC0' : C.w, transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+    <div onClick={!disabled ? onChange : undefined} style={{ width: 38, height: 22, borderRadius: 'var(--radius-pill)', background: disabled ? 'var(--c-disabled)' : on ? C.pasture : 'var(--c-disabled)', cursor: disabled ? 'default' : 'pointer', position: 'relative', transition: 'background 0.15s', flexShrink: 0 }}>
+      <div style={{ position: 'absolute', top: 3, left: on ? 19 : 3, width: 16, height: 16, borderRadius: '50%', background: disabled ? 'var(--c-disabled-ink)' : C.surface, transition: 'left 0.15s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
     </div>
   );
 }

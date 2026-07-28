@@ -85,7 +85,7 @@ export default function ResetPasswordScreen({ onDone }) {
     >
       <div
         style={{
-          background: "rgba(255, 255, 255, 0.96)",
+          background: "color-mix(in srgb, var(--c-surface) 96%, transparent)",
           backdropFilter: "blur(8px)",
           borderRadius: 20,
           padding: "48px 56px",
@@ -106,7 +106,7 @@ export default function ResetPasswordScreen({ onDone }) {
 
         {done ? (
           <>
-            <div style={{ background: "#E2EDE6", color: BRAND.pasture, padding: "10px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", marginBottom: 20, fontWeight: "var(--weight-semibold)" }}>
+            <div style={{ background: "var(--c-pasture-wash)", color: BRAND.pasture, padding: "10px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", marginBottom: 20, fontWeight: "var(--weight-semibold)" }}>
               Your password has been changed. Sign in with your new password to continue.
             </div>
             <button

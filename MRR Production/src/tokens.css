@@ -31,6 +31,65 @@
   --brand-plowshare: #6E7780;
   --brand-rust:      #A34E28;
 
+  /* ── Runtime palette (light) ──
+     Every value in the C object in utils/helpers.js resolves to one of these.
+     Around 1,100 inline style objects across the views read from C, and inline
+     styles cannot carry a media query, so this indirection is what makes the app
+     themeable at all. The dark set lives in the [data-theme="dark"] block below;
+     any variable added here MUST get a dark counterpart there or it will render
+     a light color on a dark ground. */
+  --c-barnwood:     #23282D;
+  --c-amber:        #C97B2D;
+  --c-leather:      #8A5A2B;
+  --c-ground:       #EDE6DA;
+  --c-surface:      #FFFFFF;
+  --c-subtle:       #F4F0E7;
+  --c-line:         #DCD3C4;
+  --c-sub:          #6E7780;
+  --c-pasture:      #4A7A5C;
+  --c-rust:         #A34E28;
+  --c-warn:         #A8641F;
+  --c-plum:         #5C5470;
+  --c-teal:         #3E6B6B;
+  --c-slate:        #4A6178;
+
+  /* Tint washes for badges and wells. */
+  --c-amber-wash:   #FAF3E9;
+  --c-leather-wash: #F2E9DF;
+  --c-pasture-wash: #E2EDE6;
+  --c-rust-wash:    #F7E4DA;
+  --c-warn-wash:    #F7EBDA;
+  --c-plum-wash:    #E9E6EE;
+  --c-teal-wash:    #DDE9E9;
+  --c-slate-wash:   #E4EAF0;
+
+  /* Surfaces and strokes that are not in C but are used by the CSS below.
+     Named rather than inlined so the dark block can move them together. */
+  --c-ink:          #0F172A;  /* strongest text, used sparingly */
+  --c-row-hover:    #F8FAFC;
+  --c-scroll-thumb: #C3CEDD;
+  --c-scroll-hover: #A4B3C8;
+  --c-input-hover:  #AFBCCF;
+  --c-focus:        #2563EB;
+  --c-backdrop:     rgba(14, 45, 107, 0.55);
+  --c-disabled:     #CBD5E0;
+  --c-disabled-ink: #A0AEC0;
+
+  /* ── Shell chrome ──
+     The sidebar and mobile header are dark in BOTH themes: they are the frame,
+     not the page. This has to be its own token because --c-barnwood is overloaded
+     as heading text (178 of its 186 call sites), and text has to invert for dark
+     while the sidebar must not. Keep the two apart. */
+  --c-shell:        #23282D;
+  --c-shell-ink:    #EDE6DA;
+
+  /* Ink that sits ON a saturated fill (rust badge, pasture pill, role avatar).
+     Not the same as --c-surface, which several call sites were borrowing for it:
+     surface is white in light and near-black in dark, so text on a colored chip
+     went dark-on-dark the moment the theme flipped. The saturated tokens
+     lighten in dark mode, so this inverts with them. */
+  --c-on-accent:    #FFFFFF;
+
   /* ── Typography scale ── */
   --text-2xs: 10px;
   --text-xs: 11px;
@@ -76,11 +135,83 @@
   --shadow-md: 0 2px 6px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 4px 12px rgba(15, 23, 42, 0.08), 0 16px 48px rgba(15, 23, 42, 0.14);
   --shadow-ring: 0 0 0 3px rgba(37, 99, 235, 0.16);
+
+  color-scheme: light;
+}
+
+/* ── Runtime palette (dark) ──
+   Applied by the theme controller in App.jsx, which stamps data-theme on <html>.
+   An explicit attribute rather than a bare media query, so the in-app toggle can
+   override the OS both ways; the controller resolves "system" itself. */
+:root[data-theme="dark"] {
+  --c-barnwood:     #ECE6DA;  /* inverts: this is the ink token, not the chrome */
+  --c-amber:        #DB9550;
+  --c-leather:      #C68F5C;
+  --c-ground:       #191D21;
+  --c-surface:      #23282D;
+  --c-subtle:       #2B3137;
+  --c-line:         #3A4046;
+  --c-sub:          #9BA3AB;
+  --c-pasture:      #7AAE8C;
+  --c-rust:         #D2724A;
+  --c-warn:         #D89A52;
+  --c-plum:         #9A8FB0;
+  --c-teal:         #6FA3A3;
+  --c-slate:        #8199B0;
+
+  --c-amber-wash:   #2E2519;
+  --c-leather-wash: #2B231B;
+  --c-pasture-wash: #1E2A23;
+  --c-rust-wash:    #2E1F18;
+  --c-warn-wash:    #2D2419;
+  --c-plum-wash:    #262330;
+  --c-teal-wash:    #1D2727;
+  --c-slate-wash:   #1F2733;
+
+  --c-ink:          #F4F1EA;
+  --c-row-hover:    #2A3037;
+  --c-scroll-thumb: #3E464F;
+  --c-scroll-hover: #515A64;
+  --c-input-hover:  #4A535C;
+  --c-focus:        #7FA9F5;
+  --c-backdrop:     rgba(0, 0, 0, 0.66);
+  --c-disabled:     #3A4148;
+  --c-disabled-ink: #6B747D;
+
+  --c-shell:        #16191D;
+  --c-shell-ink:    #EDE6DA;
+  --c-on-accent:    #1B1F24;
+
+  /* The light shadows are tinted slate at 5-14% alpha, which is invisible on a
+     dark ground. Dark elevation has to come from near-black at much higher
+     alpha to read at all. */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.34);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.36), 0 2px 8px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.38), 0 8px 24px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.44), 0 16px 48px rgba(0, 0, 0, 0.50);
+  --shadow-ring: 0 0 0 3px rgba(127, 169, 245, 0.26);
+
+  color-scheme: dark;
 }
 
 /* ── Global base ── */
 html {
   -webkit-text-size-adjust: 100%;
+}
+
+/* Pre-hydration flash guard. The CSP is script-src 'self' with no unsafe-inline,
+   so the theme cannot be stamped onto <html> by an inline script the way it
+   normally would be; main.jsx does it, but only once the bundle has run. Until
+   then :root has no data-theme, and an OS-dark visitor would get a white page.
+   This paints the dark ground for that gap only. Deliberately two declarations
+   and not the whole palette, so the dark colors still live in exactly one place. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+  }
+  :root:not([data-theme]) body {
+    background: #191D21;
+  }
 }
 
 body {
@@ -89,6 +220,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* The app shell paints its own ground, but the body needs it too: without this
+     an overscroll bounce or a short view exposes the default white behind a dark
+     theme. */
+  background: var(--c-ground);
+  color: var(--c-barnwood);
 }
 
 /* Form controls and buttons don't inherit fonts by default — force the app typeface */
@@ -125,7 +261,7 @@ button:disabled {
 }
 
 :focus-visible {
-  outline: 2px solid #2563EB;
+  outline: 2px solid var(--c-focus);
   outline-offset: 2px;
 }
 
@@ -153,12 +289,12 @@ button:disabled {
 }
 
 .mrr-input:hover {
-  border-color: #AFBCCF !important;
+  border-color: var(--c-input-hover) !important;
 }
 
 .mrr-input:focus {
   outline: none;
-  border-color: #2563EB !important;
+  border-color: var(--c-focus) !important;
   box-shadow: var(--shadow-ring);
 }
 
@@ -188,8 +324,8 @@ button:disabled {
 }
 
 .mrr-close:hover {
-  background: #F1F5F9;
-  color: #0F172A;
+  background: var(--c-subtle);
+  color: var(--c-ink);
 }
 
 /* ── Toast entrance (NotificationContext references this by name) ── */
@@ -210,9 +346,9 @@ button:disabled {
 }
 
 .mrr-nav-btn.active {
-  background: rgba(245, 168, 0, 0.16);
-  color: #F5A800;
-  box-shadow: inset 3px 0 0 #F5A800;
+  background: color-mix(in srgb, var(--c-amber) 18%, transparent);
+  color: var(--c-amber);
+  box-shadow: inset 3px 0 0 var(--c-amber);
 }
 
 .mrr-signout {
@@ -263,7 +399,110 @@ button:disabled {
 }
 
 .mrr-table tbody tr:hover {
-  background: #F8FAFC;
+  background: var(--c-row-hover);
+}
+
+/* ══ Responsive layout utilities ══
+   The views are built almost entirely from inline style objects, and an inline
+   style cannot carry a media query. That is why nothing in the app responded to
+   width before: the only breakpoint was a single isMobile boolean in App.jsx
+   which collapsed the sidebar and was never passed down to a view.
+
+   These classes are the escape hatch. A view keeps its inline styles for
+   everything else and reaches for one of these where it needs to reflow. Column
+   counts are the DEFAULT for wide screens; they step down on their own.
+
+   Breakpoints: 1024px (tablet landscape), 760px (tablet portrait), 520px (phone). */
+
+.sw-grid-2,
+.sw-grid-3,
+.sw-grid-4 {
+  display: grid;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.sw-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sw-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sw-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* minmax(0, 1fr) rather than a bare 1fr on purpose: a grid item's default
+   min-width is auto, so one long unbroken string (a part number, an address)
+   inflates its column and pushes the row wider than the viewport. */
+@media (max-width: 1024px) {
+  .sw-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .sw-grid-3,
+  .sw-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  .sw-grid-2,
+  .sw-grid-3,
+  .sw-grid-4 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Two fields plus a trailing action (an add-row control). The action keeps its
+   intrinsic width until the phone breakpoint, where the whole row stacks. */
+.sw-grid-2-auto {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+@media (max-width: 520px) {
+  .sw-grid-2-auto { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Two-column split where one side is the main content and the other is a rail.
+   Stacks the rail underneath rather than shrinking both to unreadable. */
+.sw-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: var(--space-8);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .sw-split { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Wraps a wide data table. Without this a table with eight columns forces the
+   whole page to scroll sideways on a phone, which drags the sidebar and header
+   off-screen with it. Scrolling the table alone is the fix.
+   -webkit-overflow-scrolling keeps the momentum feel on iOS. */
+.sw-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* A row of actions or filters that should wrap instead of overflowing. */
+.sw-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+/* Below the phone breakpoint, make a button row go full-width and stack, so the
+   targets are thumb-sized instead of three 60px buttons squeezed side by side. */
+@media (max-width: 520px) {
+  .sw-wrap-stack { flex-direction: column; align-items: stretch; }
+  .sw-wrap-stack > * { width: 100%; justify-content: center; }
+}
+
+/* Hide below / above the phone breakpoint. For the cases where the mobile answer
+   is genuinely "show something else", not "show the same thing smaller". */
+@media (max-width: 520px) {
+  .sw-hide-phone { display: none !important; }
+}
+
+@media (min-width: 521px) {
+  .sw-only-phone { display: none !important; }
 }
 
 /* ── Modern thin scrollbars ── */
@@ -277,16 +516,47 @@ button:disabled {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #C3CEDD;
+  background: var(--c-scroll-thumb);
   border-radius: var(--radius-pill);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #A4B3C8;
+  background: var(--c-scroll-hover);
   border: 2px solid transparent;
   background-clip: padding-box;
+}
+
+/* ── Skeletons ──
+   A content-shaped placeholder beats a centered spinner: the row heights are the
+   real row heights, so nothing jumps when the data lands. The sheen is a moving
+   gradient rather than a pulsing opacity, which reads as "loading" instead of
+   "broken". Reduced-motion callers get the flat base with no sweep, which the
+   global reduce block at the foot of this file already enforces. */
+.mrr-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--c-subtle);
+  border-radius: var(--radius-md);
+}
+
+.mrr-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--c-surface) 70%, transparent) 50%,
+    transparent 100%
+  );
+  animation: mrr-sheen 1.4s ease-in-out infinite;
+}
+
+@keyframes mrr-sheen {
+  to { transform: translateX(100%); }
 }
 
 /* ── Shared loading spinner animation (see LoadingState in UIPrimitives.jsx) ── */
