@@ -33,7 +33,12 @@ const CSS = `
   --accent:#C97B2D; --accent-deep:#8A5A2B; --good:#4A7A5C; --signal:#D64545;
   --hero-1:#2F353C; --hero-2:#23282D; --hero-3:#171B1F;
   --on-dark:#EDE6DA; --on-dark-soft:rgba(237,230,218,.70);
-  --lattice:rgba(201,123,45,.06); --shadow:0 4px 22px rgba(35,40,45,.09);
+  --lattice:rgba(201,123,45,.06); --shadow:0 1px 2px rgba(35,40,45,.05), 0 8px 20px rgba(35,40,45,.07), 0 24px 48px rgba(35,40,45,.06); --shadow-lift:0 1px 2px rgba(35,40,45,.05), 0 12px 30px rgba(35,40,45,.11); --nav-shadow:0 6px 20px rgba(35,40,45,.07);
+
+  /* Film grain, generated in-place so it costs no request and no asset. Painted
+     over the dark sections at low opacity, it breaks up the flat gradient banding
+     that large color fields show on wide screens. */
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
 
   min-height:100vh; background:var(--ground); color:var(--ink);
   font-family:"Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -47,7 +52,7 @@ const CSS = `
     --line:rgba(237,230,218,.14); --line-2:rgba(237,230,218,.26);
     --accent:#DB9550; --accent-deep:#E7A968; --good:#7AAE8C; --signal:#E06B6B;
     --hero-1:#2A2F35; --hero-2:#20242A; --hero-3:#14171A;
-    --lattice:rgba(219,149,80,.07); --shadow:0 4px 24px rgba(0,0,0,.4);
+    --lattice:rgba(219,149,80,.07); --shadow:0 1px 2px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.32), 0 28px 56px rgba(0,0,0,.30); --shadow-lift:0 1px 2px rgba(0,0,0,.34), 0 14px 34px rgba(0,0,0,.46); --nav-shadow:0 8px 24px rgba(0,0,0,.38);
   }
 }
 .sw-landing[data-sw-theme="dark"] {
@@ -56,7 +61,7 @@ const CSS = `
   --line:rgba(237,230,218,.14); --line-2:rgba(237,230,218,.26);
   --accent:#DB9550; --accent-deep:#E7A968; --good:#7AAE8C; --signal:#E06B6B;
   --hero-1:#2A2F35; --hero-2:#20242A; --hero-3:#14171A;
-  --lattice:rgba(219,149,80,.07); --shadow:0 4px 24px rgba(0,0,0,.4);
+  --lattice:rgba(219,149,80,.07); --shadow:0 1px 2px rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.32), 0 28px 56px rgba(0,0,0,.30); --shadow-lift:0 1px 2px rgba(0,0,0,.34), 0 14px 34px rgba(0,0,0,.46); --nav-shadow:0 8px 24px rgba(0,0,0,.38);
 }
 .sw-landing[data-sw-theme="light"] {
   --ground:#F6F3EC; --surface:#FFFFFF; --surface-2:#EDE6DA;
@@ -64,7 +69,7 @@ const CSS = `
   --line:rgba(35,40,45,.14); --line-2:rgba(35,40,45,.30);
   --accent:#C97B2D; --accent-deep:#8A5A2B; --good:#4A7A5C; --signal:#D64545;
   --hero-1:#2F353C; --hero-2:#23282D; --hero-3:#171B1F;
-  --lattice:rgba(201,123,45,.06); --shadow:0 4px 22px rgba(35,40,45,.09);
+  --lattice:rgba(201,123,45,.06); --shadow:0 1px 2px rgba(35,40,45,.05), 0 8px 20px rgba(35,40,45,.07), 0 24px 48px rgba(35,40,45,.06); --shadow-lift:0 1px 2px rgba(35,40,45,.05), 0 12px 30px rgba(35,40,45,.11); --nav-shadow:0 6px 20px rgba(35,40,45,.07);
 }
 
 .sw-landing, .sw-landing *, .sw-landing *::before, .sw-landing *::after { box-sizing:border-box; }
@@ -91,13 +96,28 @@ const CSS = `
   display:inline-flex; align-items:center; gap:9px; cursor:pointer;
   font-family:"Space Grotesk", sans-serif; font-weight:700; font-size:15.5px;
   padding:13px 22px; border-radius:3px; border:1.5px solid transparent;
-  transition:background .18s ease, color .18s ease, border-color .18s ease, transform .12s ease;
+  transition:background .18s ease, color .18s ease, border-color .18s ease, transform .12s ease, box-shadow .22s ease;
   text-decoration:none; line-height:1;
 }
 .sw-landing .btn:hover { text-decoration:none; }
 .sw-landing .btn:active { transform:translateY(1px); }
-.sw-landing .btn-primary { background:var(--accent); color:#23282D; }
-.sw-landing .btn-primary:hover { background:var(--accent-deep); color:#231a10; }
+.sw-landing .btn-primary { background:var(--accent); color:#23282D; box-shadow:0 0 0 0 rgba(0,0,0,0); }
+.sw-landing .btn-primary:hover { background:var(--accent-deep); color:#231a10; box-shadow:0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent); }
+/* The arrow is a pseudo-element rather than markup so it never lands in the
+   accessible name of the button. The flex gap on .btn spaces it. */
+.sw-landing .btn-primary::after {
+  content:"\\2192"; font-size:15px; line-height:1; opacity:.72; transform:translateX(-2px);
+  transition:transform .24s cubic-bezier(.2,.8,.2,1), opacity .24s ease;
+}
+.sw-landing .btn-primary:hover::after { transform:translateX(3px); opacity:1; }
+.sw-landing .btn-play::before {
+  content:"\\25B6"; font-size:11px; line-height:1; color:var(--accent);
+  transition:transform .24s cubic-bezier(.2,.8,.2,1);
+}
+.sw-landing .btn-play:hover::before { transform:scale(1.25); }
+@media (prefers-reduced-motion: reduce){
+  .sw-landing .btn-primary::after, .sw-landing .btn-play::before { transition:none; }
+}
 .sw-landing .btn-ghost { background:transparent; color:var(--ink); border-color:var(--line-2); }
 .sw-landing .btn-ghost:hover { border-color:var(--accent); color:var(--accent-deep); }
 .sw-landing .btn-lg { padding:16px 28px; font-size:16.5px; }
@@ -106,13 +126,42 @@ const CSS = `
   position:sticky; top:0; z-index:50;
   background:color-mix(in srgb, var(--ground) 88%, transparent);
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--line);
+  transition:background .28s ease, box-shadow .28s ease;
 }
-.sw-landing .nav-in { display:flex; align-items:center; justify-content:space-between; height:66px; }
+/* Once the page has moved, the bar tightens and opaques up. Sitting at the very
+   top it stays tall and near-transparent so the hero reads as full bleed. */
+.sw-landing .nav.is-scrolled {
+  background:color-mix(in srgb, var(--ground) 96%, transparent);
+  box-shadow:var(--nav-shadow);
+}
+.sw-landing .nav-in {
+  display:flex; align-items:center; justify-content:space-between; height:66px;
+  transition:height .3s cubic-bezier(.2,.8,.2,1);
+}
+.sw-landing .nav.is-scrolled .nav-in { height:56px; }
+
+/* Scroll progress. Written straight to the node's transform from a rAF-throttled
+   listener, not through React state, so scrolling does not re-render the page. */
+.sw-landing .nav-prog {
+  position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--accent);
+  transform:scaleX(0); transform-origin:left center; will-change:transform;
+}
+@media (prefers-reduced-motion: reduce){
+  .sw-landing .nav, .sw-landing .nav-in { transition:none; }
+}
 .sw-landing .brand { display:flex; align-items:center; gap:11px; cursor:pointer; }
 .sw-landing .brand .wm { font-family:"Space Grotesk", sans-serif; font-weight:700; font-size:19px; letter-spacing:.06em; color:var(--ink); }
 .sw-landing .nav-links { display:flex; align-items:center; gap:28px; }
-.sw-landing .nav-links a { color:var(--ink-soft); font-size:15px; font-weight:500; }
+.sw-landing .nav-links a { color:var(--ink-soft); font-size:15px; font-weight:500; position:relative; transition:color .2s ease; }
 .sw-landing .nav-links a:hover { color:var(--accent-deep); text-decoration:none; }
+.sw-landing .nav-links a.on { color:var(--ink); }
+.sw-landing .nav-links a::after {
+  content:""; position:absolute; left:0; right:0; bottom:-7px; height:2px; background:var(--accent);
+  transform:scaleX(0); transform-origin:left center;
+  transition:transform .28s cubic-bezier(.2,.8,.2,1);
+}
+.sw-landing .nav-links a:hover::after, .sw-landing .nav-links a.on::after { transform:scaleX(1); }
+@media (prefers-reduced-motion: reduce){ .sw-landing .nav-links a::after { transition:none; } }
 .sw-landing .nav-actions { display:flex; align-items:center; gap:14px; }
 .sw-landing .theme-btn {
   background:transparent; border:1px solid var(--line-2); color:var(--ink-soft);
@@ -120,7 +169,86 @@ const CSS = `
   font-size:15px; transition:border-color .18s, color .18s; flex:0 0 auto;
 }
 .sw-landing .theme-btn:hover { border-color:var(--accent); color:var(--accent-deep); }
-@media (max-width:820px){ .sw-landing .nav-links { display:none; } .sw-landing .nav-hide-sm { display:none; } }
+
+/* ---- sun/moon morph. The crescent is a mask circle parked off the icon in
+   light mode; sliding it over the orb bites the moon shape out. Driven purely
+   off the same data-sw-theme selectors the palette uses, so the icon can never
+   disagree with the colors on screen. transform-box:view-box makes the pixel
+   transform-origin below resolve against the 24x24 viewBox. ---- */
+.sw-landing .theme-icon { display:block; overflow:visible; }
+.sw-landing .theme-icon .tm-cut,
+.sw-landing .theme-icon .tm-rays,
+.sw-landing .theme-icon .tm-orb { transform-box:view-box; transform-origin:12px 12px; }
+.sw-landing .theme-icon .tm-cut { transform:translate(0,0); transition:transform .42s cubic-bezier(.2,.8,.2,1); }
+.sw-landing .theme-icon .tm-rays { opacity:1; transform:scale(1); transition:opacity .28s ease, transform .42s cubic-bezier(.2,.8,.2,1); }
+.sw-landing .theme-icon .tm-orb { transform:scale(.8); transition:transform .42s cubic-bezier(.2,.8,.2,1); }
+
+@media (prefers-color-scheme: dark) {
+  .sw-landing:not([data-sw-theme="light"]) .theme-icon .tm-cut { transform:translate(-7px,-3px); }
+  .sw-landing:not([data-sw-theme="light"]) .theme-icon .tm-rays { opacity:0; transform:scale(.35); }
+  .sw-landing:not([data-sw-theme="light"]) .theme-icon .tm-orb { transform:scale(1); }
+}
+.sw-landing[data-sw-theme="dark"] .theme-icon .tm-cut { transform:translate(-7px,-3px); }
+.sw-landing[data-sw-theme="dark"] .theme-icon .tm-rays { opacity:0; transform:scale(.35); }
+.sw-landing[data-sw-theme="dark"] .theme-icon .tm-orb { transform:scale(1); }
+.sw-landing[data-sw-theme="light"] .theme-icon .tm-cut { transform:translate(0,0); }
+.sw-landing[data-sw-theme="light"] .theme-icon .tm-rays { opacity:1; transform:scale(1); }
+.sw-landing[data-sw-theme="light"] .theme-icon .tm-orb { transform:scale(.8); }
+@media (prefers-reduced-motion: reduce){
+  .sw-landing .theme-icon .tm-cut,
+  .sw-landing .theme-icon .tm-rays,
+  .sw-landing .theme-icon .tm-orb { transition:none; }
+}
+
+/* ---- mobile nav: below 820px the desktop links and the secondary actions fold
+   into a burger-driven sheet. Before this they simply vanished, which left phone
+   visitors with no route to pricing, the demo, or sign-in. ---- */
+.sw-landing .nav-burger {
+  display:none; background:transparent; border:1px solid var(--line-2); border-radius:3px;
+  width:38px; height:38px; cursor:pointer; padding:0; place-items:center; flex:0 0 auto;
+  transition:border-color .18s ease;
+}
+.sw-landing .nav-burger:hover { border-color:var(--accent); }
+.sw-landing .nav-burger i {
+  display:block; width:16px; height:1.5px; background:var(--ink-soft); border-radius:2px;
+  transition:transform .26s cubic-bezier(.2,.8,.2,1), opacity .18s ease;
+}
+.sw-landing .nav-burger i + i { margin-top:4px; }
+.sw-landing .nav-burger[aria-expanded="true"] i:nth-child(1) { transform:translateY(5.5px) rotate(45deg); }
+.sw-landing .nav-burger[aria-expanded="true"] i:nth-child(2) { opacity:0; }
+.sw-landing .nav-burger[aria-expanded="true"] i:nth-child(3) { transform:translateY(-5.5px) rotate(-45deg); }
+
+.sw-landing .nav-sheet {
+  display:none; overflow:hidden; max-height:0;
+  background:color-mix(in srgb, var(--ground) 96%, transparent);
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+  transition:max-height .34s cubic-bezier(.2,.8,.2,1);
+}
+/* No border-bottom here: the sticky header already carries one, and the sheet
+   sits flush inside it, so adding a second draws a doubled 2px rule. */
+.sw-landing .nav-sheet.open { max-height:420px; }
+.sw-landing .nav-sheet-in { padding:8px 28px 20px; display:flex; flex-direction:column; }
+.sw-landing .nav-sheet a {
+  color:var(--ink); font-family:"Space Grotesk",sans-serif; font-weight:500; font-size:18px;
+  padding:14px 0; border-bottom:1px solid var(--line);
+}
+.sw-landing .nav-sheet a:hover { color:var(--accent-deep); text-decoration:none; }
+.sw-landing .nav-sheet-foot { display:flex; align-items:center; gap:12px; padding-top:18px; }
+.sw-landing .nav-sheet-foot .btn { flex:1 1 auto; justify-content:center; }
+
+@media (max-width:820px){
+  .sw-landing .nav-links { display:none; }
+  .sw-landing .nav-hide-sm { display:none; }
+  .sw-landing .nav-burger { display:grid; }
+  .sw-landing .nav-sheet { display:block; }
+  /* The bar is tight on a phone once the burger is in it. The CTA keeps its
+     label and drops the arrow rather than the other way round. */
+  .sw-landing .nav-in .btn-primary::after { display:none; }
+  .sw-landing .nav-in .btn-primary { padding:12px 16px; font-size:14.5px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .sw-landing .nav-sheet, .sw-landing .nav-burger i { transition:none; }
+}
 
 .sw-landing .hero {
   position:relative; overflow:hidden; color:var(--on-dark);
@@ -129,7 +257,20 @@ const CSS = `
     radial-gradient(ellipse at 50% -10%, var(--hero-1) 0%, var(--hero-2) 55%, var(--hero-3) 100%);
   border-bottom:1px solid var(--line);
 }
-.sw-landing .hero-in { padding:clamp(64px,10vw,120px) 0 clamp(56px,8vw,104px); }
+/* Grain first, then a pair of soft amber blooms. Both are pointer-events:none
+   decoration layers, so the content above them stays fully interactive. */
+.sw-landing .hero::before, .sw-landing .story::before {
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background-image:var(--grain); background-size:160px 160px;
+  opacity:.15; mix-blend-mode:overlay;
+}
+.sw-landing .hero::after {
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(46% 56% at 20% 36%, color-mix(in srgb, var(--accent) 15%, transparent) 0%, transparent 68%),
+    radial-gradient(40% 48% at 84% 70%, color-mix(in srgb, var(--accent) 9%, transparent) 0%, transparent 72%);
+}
+.sw-landing .hero-in { padding:clamp(64px,10vw,120px) 0 clamp(56px,8vw,104px); position:relative; z-index:1; }
 .sw-landing .hero-grid { display:grid; grid-template-columns:1.35fr 1fr; gap:56px; align-items:center; }
 @media (max-width:900px){ .sw-landing .hero-grid { grid-template-columns:1fr; gap:44px; } }
 .sw-landing .hero .eyebrow { color:var(--accent); }
@@ -142,6 +283,21 @@ const CSS = `
 .sw-landing .hero-ghost:hover { border-color:var(--accent); color:var(--accent); }
 .sw-landing .hero-meta { margin-top:30px; display:flex; gap:26px; flex-wrap:wrap; color:var(--on-dark-soft); font-size:12.5px; }
 .sw-landing .hero-meta b { color:var(--on-dark); font-weight:600; }
+
+/* Hero entrance. The hero is above the fold, so an IntersectionObserver would
+   fire on all of it at once; a plain keyframe with per-child delays is what
+   actually reads as a cascade here. */
+@keyframes sw-rise { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:none; } }
+.sw-landing .hero-rise > * { animation:sw-rise .85s cubic-bezier(.2,.8,.2,1) both; }
+.sw-landing .hero-rise > *:nth-child(1) { animation-delay:.06s; }
+.sw-landing .hero-rise > *:nth-child(2) { animation-delay:.14s; }
+.sw-landing .hero-rise > *:nth-child(3) { animation-delay:.24s; }
+.sw-landing .hero-rise > *:nth-child(4) { animation-delay:.34s; }
+.sw-landing .hero-rise > *:nth-child(5) { animation-delay:.44s; }
+.sw-landing .truss-art { animation:sw-rise 1s cubic-bezier(.2,.8,.2,1) .3s both; }
+@media (prefers-reduced-motion: reduce){
+  .sw-landing .hero-rise > *, .sw-landing .truss-art { animation:none; }
+}
 
 .sw-landing .truss-art { display:flex; justify-content:center; }
 .sw-landing .truss-art svg { width:min(340px,80%); height:auto; }
@@ -174,21 +330,84 @@ const CSS = `
 .sw-landing .band-head h2 { font-size:clamp(28px,4vw,42px); margin:16px 0 0; }
 .sw-landing .band-head p { margin-top:16px; color:var(--ink-soft); font-size:18px; }
 
-.sw-landing .ledger { display:grid; grid-template-columns:repeat(3,1fr); gap:0; border:1px solid var(--line-2); background:var(--line); }
-@media (max-width:860px){ .sw-landing .ledger { grid-template-columns:1fr 1fr; } }
-@media (max-width:560px){ .sw-landing .ledger { grid-template-columns:1fr; } }
-.sw-landing .cell { background:var(--surface); padding:30px 28px 32px; display:flex; flex-direction:column; gap:12px; position:relative; }
+/* ---- the ledger, as a bento. Still one grid with hairline rules between the
+   cells (gap:1px over the container's --line background does the ruling, so
+   there are no double borders to collapse). Two cells take wider spans and
+   carry a visual, which breaks the 3x2 slab into something with a reading
+   order. Unit math: 2+1 / 1+1+1 / 3 fills three clean rows. ---- */
+.sw-landing .ledger { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; border:1px solid var(--line-2); background:var(--line); }
+.sw-landing .cell-wide { grid-column:span 2; }
+.sw-landing .cell-full { grid-column:span 3; }
+@media (max-width:860px){
+  .sw-landing .ledger { grid-template-columns:1fr 1fr; }
+  .sw-landing .cell-wide, .sw-landing .cell-full { grid-column:span 2; }
+}
+@media (max-width:560px){
+  .sw-landing .ledger { grid-template-columns:1fr; }
+  .sw-landing .cell-wide, .sw-landing .cell-full { grid-column:span 1; }
+}
+.sw-landing .cell {
+  background:var(--surface); padding:30px 28px 32px; display:flex; flex-direction:column; gap:12px;
+  position:relative;
+}
+/* Scoped one level deeper than the .stagger child rule on purpose: that rule
+   sets the transition shorthand on every direct child, and at equal specificity
+   it comes later and would wipe out the hover transitions. */
+.sw-landing .ledger .cell { transition:background .22s ease, box-shadow .22s ease, opacity .6s ease, transform .6s cubic-bezier(.2,.8,.2,1); }
 .sw-landing .cell .code { font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600; letter-spacing:.12em; color:var(--accent-deep); }
-.sw-landing .cell h3 { font-size:20px; }
+.sw-landing .cell h3 { font-size:20px; transition:color .22s ease; }
 .sw-landing .cell .lead { font-family:"Space Grotesk",sans-serif; font-weight:500; font-size:16px; color:var(--ink); }
 .sw-landing .cell p { color:var(--ink-soft); font-size:14.5px; line-height:1.6; }
-.sw-landing .cell::after { content:""; position:absolute; top:0; left:28px; width:26px; height:3px; background:var(--accent); }
+.sw-landing .cell::after {
+  content:""; position:absolute; top:0; left:28px; width:26px; height:3px; background:var(--accent);
+  transition:width .3s cubic-bezier(.2,.8,.2,1);
+}
+/* Elevation by shadow rather than transform: the cells sit flush against a 1px
+   ruled grid, and translating one up exposes a sliver of the rule underneath. */
+/* transition-delay:0s matters here. The stagger rule at the foot of this sheet
+   puts a reveal delay of up to 350ms on each cell, and without this reset that
+   delay would also apply to the hover, so the card would light up a third of a
+   second after the pointer landed on it. */
+.sw-landing .ledger .cell:hover { background:color-mix(in srgb, var(--accent) 4%, var(--surface)); box-shadow:var(--shadow-lift); z-index:2; transition-delay:0s; }
+.sw-landing .cell:hover::after { width:72px; }
+.sw-landing .cell:hover h3 { color:var(--accent-deep); }
+@media (prefers-reduced-motion: reduce){
+  .sw-landing .cell, .sw-landing .cell h3, .sw-landing .cell::after { transition:none; }
+}
+
+/* Mini inventory read-out inside the featured cell. Bars grow once the grid
+   scrolls in, which is why the width lives on a custom property. */
+.sw-landing .cell-feature { display:grid; grid-template-columns:1fr auto; gap:34px; align-items:center; }
+@media (max-width:640px){ .sw-landing .cell-feature { grid-template-columns:1fr; gap:24px; } }
+.sw-landing .cell-feature .body { display:flex; flex-direction:column; gap:12px; }
+.sw-landing .mini { display:flex; flex-direction:column; gap:12px; min-width:200px; }
+.sw-landing .mini-row { display:grid; grid-template-columns:32px 1fr 40px; gap:12px; align-items:center; }
+.sw-landing .mini-k { font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.1em; color:var(--muted); }
+.sw-landing .mini-v { font-family:"IBM Plex Mono",monospace; font-size:12px; color:var(--ink-soft); text-align:right; }
+.sw-landing .mini-bar { height:6px; border-radius:3px; background:var(--surface-2); overflow:hidden; }
+.sw-landing .mini-bar i { display:block; height:100%; width:0; border-radius:3px; transition:width .95s cubic-bezier(.2,.8,.2,1) .4s; }
+.sw-landing .stagger.in .mini-bar i { width:var(--w); }
+.sw-landing .mini-bar i.ok { background:var(--good); }
+.sw-landing .mini-bar i.low { background:var(--accent); }
+.sw-landing .mini-bar i.out { background:var(--signal); }
+@media (prefers-reduced-motion: reduce){ .sw-landing .mini-bar i { width:var(--w); transition:none; } }
+
+/* Role chips in the full-width crew cell. */
+.sw-landing .chips { display:flex; flex-wrap:wrap; gap:8px; }
+.sw-landing .chips span {
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-soft); border:1px solid var(--line-2); border-radius:3px; padding:7px 12px; white-space:nowrap;
+}
 
 .sw-landing .glass { background:var(--surface-2); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
 .sw-landing .mock { background:var(--surface); border:1px solid var(--line-2); border-radius:5px; box-shadow:var(--shadow); overflow:hidden; }
 .sw-landing .mock-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 18px; border-bottom:1px solid var(--line); background:var(--surface-2); }
 .sw-landing .mock-bar .ttl { font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:14.5px; display:flex; align-items:center; gap:9px; }
-.sw-landing .mock-bar .meta { font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted); letter-spacing:.08em; }
+.sw-landing .mock-bar .meta { font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted); letter-spacing:.08em; display:inline-flex; align-items:center; gap:9px; }
+.sw-landing .live-dot { width:7px; height:7px; border-radius:50%; background:var(--good); position:relative; flex:0 0 auto; }
+.sw-landing .live-dot::after { content:""; position:absolute; inset:0; border-radius:50%; background:var(--good); animation:sw-ping 2.6s ease-out infinite; }
+@keyframes sw-ping { 0% { transform:scale(1); opacity:.6; } 70%, 100% { transform:scale(2.8); opacity:0; } }
+@media (prefers-reduced-motion: reduce){ .sw-landing .live-dot::after { animation:none; } }
 .sw-landing .tbl-scroll { overflow-x:auto; }
 .sw-landing table.inv { width:100%; border-collapse:collapse; min-width:560px; }
 .sw-landing table.inv th, .sw-landing table.inv td { text-align:left; padding:13px 18px; border-bottom:1px solid var(--line); font-size:14px; white-space:nowrap; }
@@ -205,6 +424,20 @@ const CSS = `
 .sw-landing .pill.low::before { background:var(--accent); }
 .sw-landing .pill.out { color:var(--signal); background:color-mix(in srgb, var(--signal) 15%, transparent); }
 .sw-landing .pill.out::before { background:var(--signal); }
+/* One row crosses its reorder point a beat after the table scrolls in, so the
+   green-to-amber signal the copy above describes actually happens on screen
+   instead of being asserted. Held to a single row on purpose. */
+@keyframes sw-flash {
+  0% { background:color-mix(in srgb, var(--accent) 22%, transparent); }
+  100% { background:transparent; }
+}
+@keyframes sw-pop { 0% { transform:scale(.84); opacity:0; } 100% { transform:scale(1); opacity:1; } }
+.sw-landing table.inv tr.pulled td { animation:sw-flash 1.6s ease-out both; }
+.sw-landing table.inv tr.pulled .pill { animation:sw-pop .45s cubic-bezier(.2,.8,.2,1) both; }
+@media (prefers-reduced-motion: reduce){
+  .sw-landing table.inv tr.pulled td, .sw-landing table.inv tr.pulled .pill { animation:none; }
+}
+
 .sw-landing .cap { margin-top:16px; font-size:13px; color:var(--muted); font-family:"IBM Plex Mono",monospace; letter-spacing:.04em; }
 
 /* ---- pricing: a spec sheet, not a pricing table. Two rates, stated plainly,
@@ -243,6 +476,35 @@ const CSS = `
 .sw-landing .faq .ans { padding:0 40px 24px 0; color:var(--ink-soft); font-size:15.5px; line-height:1.7; }
 .sw-landing .faq .ans b { color:var(--ink); font-weight:600; }
 
+/* ---- demo video. There is no poster image on disk, so the still is built in
+   CSS from the same lattice and gradient the hero uses. That keeps it on brand,
+   costs no asset, and means the thumbnail is not whatever frame 1 happens to be.
+   The overlay is a real button, so it is focusable and keyboard-operable; the
+   video keeps its native controls for everything after the first play. ---- */
+.sw-landing .vid { position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); box-shadow:var(--shadow); background:#000; }
+.sw-landing .vid video { display:block; width:100%; aspect-ratio:16 / 9; object-fit:contain; background:#000; }
+.sw-landing .vid-poster {
+  position:absolute; inset:0; padding:0; border:0; cursor:pointer; font-family:inherit; color:var(--on-dark);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  background:
+    repeating-linear-gradient(115deg, transparent 0 46px, rgba(201,123,45,.07) 46px 48px),
+    radial-gradient(ellipse at 50% 34%, #2F353C 0%, #23282D 55%, #171B1F 100%);
+  transition:opacity .42s ease, visibility .42s;
+}
+.sw-landing .vid.playing .vid-poster { opacity:0; visibility:hidden; pointer-events:none; }
+.sw-landing .vid-play {
+  width:74px; height:74px; border-radius:50%; display:grid; place-items:center;
+  background:var(--accent); color:#23282D; font-size:23px; padding-left:5px;
+  box-shadow:0 10px 34px rgba(0,0,0,.42);
+  transition:transform .26s cubic-bezier(.2,.8,.2,1), box-shadow .26s ease;
+}
+.sw-landing .vid-poster:hover .vid-play, .sw-landing .vid-poster:focus-visible .vid-play { transform:scale(1.08); box-shadow:0 14px 44px color-mix(in srgb, var(--accent) 55%, transparent); }
+.sw-landing .vid-ttl { font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:clamp(17px,2.4vw,23px); letter-spacing:-.01em; }
+.sw-landing .vid-meta { font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.24em; color:rgba(237,230,218,.62); }
+@media (prefers-reduced-motion: reduce){
+  .sw-landing .vid-poster, .sw-landing .vid-play { transition:none; }
+}
+
 .sw-landing .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
 @media (max-width:780px){ .sw-landing .steps { grid-template-columns:1fr; } }
 .sw-landing .step { padding:30px 30px 34px; border-left:1px solid var(--line-2); }
@@ -253,12 +515,12 @@ const CSS = `
 .sw-landing .step p { color:var(--ink-soft); font-size:15px; }
 
 .sw-landing .story {
-  color:var(--on-dark);
+  color:var(--on-dark); position:relative; overflow:hidden;
   background:
     repeating-linear-gradient(115deg, transparent 0 46px, var(--lattice) 46px 48px),
     var(--hero-2);
 }
-.sw-landing .story-in { padding:clamp(64px,9vw,104px) 0; display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; }
+.sw-landing .story-in { padding:clamp(64px,9vw,104px) 0; display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; position:relative; z-index:1; }
 @media (max-width:860px){ .sw-landing .story-in { grid-template-columns:1fr; gap:36px; } }
 .sw-landing .story .eyebrow { color:var(--accent); }
 .sw-landing .story .eyebrow::before { background:var(--accent); }
@@ -296,7 +558,28 @@ const CSS = `
 
 .sw-landing .reveal { opacity:0; transform:translateY(18px); transition:opacity .7s ease, transform .7s ease; }
 .sw-landing .reveal.in { opacity:1; transform:none; }
-@media (prefers-reduced-motion: reduce){ .sw-landing .reveal { opacity:1; transform:none; transition:none; } }
+
+/* ---- staggered reveal. The reveal class alone fades a whole block in as one
+   slab, so a six-cell grid arrives in a single move. The stagger class hands the
+   animation down to the children instead and walks the delay along with
+   nth-child, so the row cascades. The container still carries reveal purely so
+   the existing IntersectionObserver picks it up and marks it in. ---- */
+.sw-landing .reveal.stagger { opacity:1; transform:none; }
+.sw-landing .stagger > * { opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s cubic-bezier(.2,.8,.2,1); }
+.sw-landing .stagger.in > * { opacity:1; transform:none; }
+.sw-landing .stagger > *:nth-child(1) { transition-delay:0ms; }
+.sw-landing .stagger > *:nth-child(2) { transition-delay:70ms; }
+.sw-landing .stagger > *:nth-child(3) { transition-delay:140ms; }
+.sw-landing .stagger > *:nth-child(4) { transition-delay:210ms; }
+.sw-landing .stagger > *:nth-child(5) { transition-delay:280ms; }
+.sw-landing .stagger > *:nth-child(6) { transition-delay:350ms; }
+.sw-landing .stagger > *:nth-child(7) { transition-delay:420ms; }
+.sw-landing .stagger > *:nth-child(8) { transition-delay:490ms; }
+
+@media (prefers-reduced-motion: reduce){
+  .sw-landing .reveal { opacity:1; transform:none; transition:none; }
+  .sw-landing .stagger > * { opacity:1; transform:none; transition:none; transition-delay:0ms; }
+}
 `;
 
 const Badge = ({ size = 34 }) => (
@@ -306,9 +589,74 @@ const Badge = ({ size = 34 }) => (
   </svg>
 );
 
+// Where the visitor's landing-page theme choice is remembered. Deliberately its
+// own key: this page themes itself off its own wrapper and must not read or
+// write whatever the signed-in app uses.
+const THEME_KEY = "sw-landing-theme";
+
+const readStoredTheme = () => {
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    return v === "dark" || v === "light" ? v : null;
+  } catch {
+    return null; // Safari private mode throws on access, not just on write.
+  }
+};
+
+// Sun in light, crescent in dark. Every instance needs its own mask id, or the
+// second copy in the mobile sheet resolves url(#...) to the first one's mask.
+const ThemeIcon = ({ id }) => (
+  <svg className="theme-icon" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+    {/* userSpaceOnUse rather than the default bounding-box region: the crescent
+        cut travels outside the orb's own box, and a region derived from that box
+        would clip the part of the bite that does the work. */}
+    <mask id={id} maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
+      <rect x="0" y="0" width="24" height="24" fill="#fff" />
+      <circle className="tm-cut" cx="24" cy="10" r="7" fill="#000" />
+    </mask>
+    <circle className="tm-orb" cx="12" cy="12" r="7.5" fill="currentColor" mask={`url(#${id})`} />
+    <g className="tm-rays" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+      <line x1="12" y1="1.4" x2="12" y2="3.4" />
+      <line x1="12" y1="20.6" x2="12" y2="22.6" />
+      <line x1="1.4" y1="12" x2="3.4" y2="12" />
+      <line x1="20.6" y1="12" x2="22.6" y2="12" />
+      <line x1="4.5" y1="4.5" x2="5.9" y2="5.9" />
+      <line x1="18.1" y1="18.1" x2="19.5" y2="19.5" />
+      <line x1="19.5" y1="4.5" x2="18.1" y2="5.9" />
+      <line x1="5.9" y1="18.1" x2="4.5" y2="19.5" />
+    </g>
+  </svg>
+);
+
 export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
-  const [theme, setTheme] = useState(null); // null = follow OS preference
+  const [theme, setTheme] = useState(readStoredTheme); // null = follow OS preference
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [active, setActive] = useState("");
+  const [pulled, setPulled] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const [clock, setClock] = useState(() =>
+    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }).toUpperCase(),
+  );
   const rootRef = useRef(null);
+  const progRef = useRef(null);
+  const mockRef = useRef(null);
+  const videoRef = useRef(null);
+
+  // Close the mobile sheet on Escape, and on any resize back up to the desktop
+  // breakpoint — otherwise a sheet left open while rotating a tablet stays
+  // stuck behind the desktop nav with no visible control to dismiss it.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") setMenuOpen(false); };
+    const onResize = () => { if (window.innerWidth > 820) setMenuOpen(false); };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -334,8 +682,88 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
     return () => io.disconnect();
   }, []);
 
+  // Scroll progress and the shrink state. The progress bar is written straight
+  // to the DOM node rather than held in state, because routing every scroll
+  // frame through React would re-render the whole page. setScrolled only ever
+  // gets a changed value at the threshold, so React bails out of the rest.
+  useEffect(() => {
+    let raf = 0;
+    const measure = () => {
+      raf = 0;
+      const doc = document.documentElement;
+      const span = doc.scrollHeight - window.innerHeight;
+      const p = span > 0 ? Math.min(1, Math.max(0, window.scrollY / span)) : 0;
+      if (progRef.current) progRef.current.style.transform = `scaleX(${p})`;
+      setScrolled(window.scrollY > 12);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(measure);
+    };
+    measure();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  // Which nav link is lit. The rootMargin narrows the viewport to a band just
+  // under the sticky bar, so "active" means "the section you are reading" rather
+  // than "any section touching the screen".
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !("IntersectionObserver" in window)) return;
+    const ids = ["features", "glimpse", "pricing", "story"];
+    const els = ids.map((id) => root.querySelector(`#${id}`)).filter(Boolean);
+    if (!els.length) return;
+    const seen = {};
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((en) => { seen[en.target.id] = en.isIntersecting; });
+        setActive(ids.find((id) => seen[id]) || "");
+      },
+      { rootMargin: "-72px 0px -58% 0px", threshold: 0 },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  // The mock's clock. Minute resolution, so a 20s tick is plenty and costs
+  // nothing next to a per-second interval.
+  useEffect(() => {
+    const t = setInterval(
+      () => setClock(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }).toUpperCase()),
+      20000,
+    );
+    return () => clearInterval(t);
+  }, []);
+
+  // One inventory row crosses its reorder point shortly after the table lands.
+  // Skipped entirely under reduced motion, which leaves the table at its resting
+  // in-stock values rather than jumping them.
+  useEffect(() => {
+    const el = mockRef.current;
+    if (!el || !("IntersectionObserver" in window)) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let timer = 0;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((en) => en.isIntersecting)) {
+          io.disconnect();
+          timer = setTimeout(() => setPulled(true), 1500);
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(el);
+    return () => { io.disconnect(); clearTimeout(timer); };
+  }, []);
+
   const scrollTo = (id) => (e) => {
     e.preventDefault();
+    setMenuOpen(false);
     const el = rootRef.current?.querySelector(`#${id}`);
     if (!el) return;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -346,8 +774,18 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
     setTheme((t) => {
       const osDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       const current = t || (osDark ? "dark" : "light");
-      return current === "dark" ? "light" : "dark";
+      const next = current === "dark" ? "light" : "dark";
+      try { localStorage.setItem(THEME_KEY, next); } catch { /* private mode: this visit only */ }
+      return next;
     });
+
+  const startVideo = () => {
+    setPlaying(true);
+    const v = videoRef.current;
+    // play() rejects on some mobile autoplay policies even from a tap. The
+    // poster is already down at that point, so the native controls take over.
+    if (v) Promise.resolve(v.play()).catch(() => {});
+  };
 
   const scrollTop = (e) => {
     e.preventDefault();
@@ -360,44 +798,69 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
       <style>{CSS}</style>
 
       {/* ── NAV ── */}
-      <header className="nav">
+      <header className={scrolled ? "nav is-scrolled" : "nav"}>
         <div className="wrap nav-in">
           <a className="brand" href="#top" onClick={scrollTop} aria-label="Steadwerk home">
             <Badge size={34} />
             <span className="wm">STEADWERK</span>
           </a>
           <nav className="nav-links" aria-label="Primary">
-            <a href="#features" onClick={scrollTo("features")}>What it does</a>
-            <a href="#glimpse" onClick={scrollTo("glimpse")}>In the wild</a>
-            <a href="#pricing" onClick={scrollTo("pricing")}>Pricing</a>
-            <a href="#story" onClick={scrollTo("story")}>Story</a>
+            <a href="#features" className={active === "features" ? "on" : undefined} aria-current={active === "features" ? "true" : undefined} onClick={scrollTo("features")}>What it does</a>
+            <a href="#glimpse" className={active === "glimpse" ? "on" : undefined} aria-current={active === "glimpse" ? "true" : undefined} onClick={scrollTo("glimpse")}>In the wild</a>
+            <a href="#pricing" className={active === "pricing" ? "on" : undefined} aria-current={active === "pricing" ? "true" : undefined} onClick={scrollTo("pricing")}>Pricing</a>
+            <a href="#story" className={active === "story" ? "on" : undefined} aria-current={active === "story" ? "true" : undefined} onClick={scrollTo("story")}>Story</a>
           </nav>
           <div className="nav-actions">
-            <button className="theme-btn nav-hide-sm" type="button" onClick={toggleTheme} aria-label="Switch light or dark theme">◐</button>
-            <button className="btn btn-ghost" type="button" onClick={onSignIn}>Sign in</button>
+            <button className="theme-btn nav-hide-sm" type="button" onClick={toggleTheme} aria-label="Switch light or dark theme"><ThemeIcon id="sw-tm-nav" /></button>
+            <button className="btn btn-ghost nav-hide-sm" type="button" onClick={onSignIn}>Sign in</button>
             {/* Not nav-hide-sm: this is the primary conversion action, and hiding it
                 below 820px stripped it from the sticky bar on exactly the phones
-                most of these visitors are holding. Only the theme toggle folds. */}
+                most of these visitors are holding. Everything else folds into the
+                sheet below; only this stays put. */}
             <button className="btn btn-primary" type="button" onClick={onStart}>Start your company</button>
+            <button
+              className="nav-burger"
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-expanded={menuOpen}
+              aria-controls="sw-nav-sheet"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
+            >
+              <i /><i /><i />
+            </button>
           </div>
         </div>
+        <div id="sw-nav-sheet" className={menuOpen ? "nav-sheet open" : "nav-sheet"}>
+          <div className="nav-sheet-in">
+            <a href="#features" onClick={scrollTo("features")}>What it does</a>
+            <a href="#glimpse" onClick={scrollTo("glimpse")}>In the wild</a>
+            <a href="#demo" onClick={scrollTo("demo")}>Watch the demo</a>
+            <a href="#pricing" onClick={scrollTo("pricing")}>Pricing</a>
+            <a href="#story" onClick={scrollTo("story")}>Story</a>
+            <div className="nav-sheet-foot">
+              <button className="theme-btn" type="button" onClick={toggleTheme} aria-label="Switch light or dark theme"><ThemeIcon id="sw-tm-sheet" /></button>
+              <button className="btn btn-ghost" type="button" onClick={() => { setMenuOpen(false); onSignIn(); }}>Sign in</button>
+            </div>
+          </div>
+        </div>
+        <div className="nav-prog" ref={progRef} aria-hidden="true" />
       </header>
 
       {/* ── HERO ── */}
       <section className="hero" id="top">
         <div className="wrap hero-in">
           <div className="hero-grid">
-            <div>
+            <div className="hero-rise">
               <span className="eyebrow">Warehouse &amp; Fleet · Fort Wayne, IN</span>
               <h1>Tools that work<br />as hard as <span className="amb">you do.</span></h1>
               <p className="hero-sub">Warehouse and fleet software for the crews who run on trucks, materials, and people. Set up in an afternoon. Home by supper.</p>
               <div className="hero-cta">
                 <button className="btn btn-primary btn-lg" type="button" onClick={onStart}>Start your company</button>
-                <a className="btn hero-ghost btn-lg" href="#demo" onClick={scrollTo("demo")}>Watch the demo</a>
+                <a className="btn hero-ghost btn-play btn-lg" href="#demo" onClick={scrollTo("demo")}>Watch the demo</a>
               </div>
               <div className="hero-meta">
                 <span><b>No IT department.</b> No six-figure system.</span>
-                <span><b>Works offline.</b>  The yard doesn't always have signal.</span>
+                <span><b>Mobile friendly.</b>  Works on your phone and tablet.</span>
               </div>
             </div>
             <div className="truss-art">
@@ -412,12 +875,12 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
 
       {/* ── STRIP ── */}
       <section className="strip">
-        <div className="wrap strip-in reveal">
-          <div>
+        <div className="wrap strip-in">
+          <div className="reveal">
             <span className="eyebrow">The part that steals your evenings</span>
             <h2 style={{ marginTop: 16 }}>Steadwerk carries the counting, so the crew can carry the work.</h2>
           </div>
-          <div className="steal-list">
+          <div className="steal-list reveal stagger">
             <div className="steal"><span className="n">01</span><span className="t">The counting. Then the <b>re-counting</b>.</span></div>
             <div className="steal"><span className="n">02</span><span className="t">The <b>"where's Truck 3"</b> phone calls.</span></div>
             <div className="steal"><span className="n">03</span><span className="t">The materials <b>nobody logged</b>.</span></div>
@@ -434,13 +897,35 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <h2>Every truck, every roll, tracked.</h2>
             <p>One system for the yard, the fleet, and the office. Built for small trades, service, and distribution companies that run on what's on the shelf and out on the road.</p>
           </div>
-          <div className="ledger reveal">
-            <div className="cell"><span className="code">INV</span><h3>Inventory</h3><div className="lead">Every roll, every box, counted once.</div><p>FIFO batches and live low-stock signals that read from green to red across the warehouse in half a second.</p></div>
+          <div className="ledger reveal stagger">
+            <div className="cell cell-wide cell-feature">
+              <div className="body">
+                <span className="code">INV</span>
+                <h3>Inventory</h3>
+                <div className="lead">Every roll, every box, counted once.</div>
+                <p>FIFO batches and live low-stock signals that read from green to red across the warehouse in half a second.</p>
+              </div>
+              <div className="mini" aria-hidden="true">
+                <div className="mini-row"><span className="mini-k">A-3</span><span className="mini-bar"><i className="ok" style={{ "--w": "84%" }} /></span><span className="mini-v tnum">142</span></div>
+                <div className="mini-row"><span className="mini-k">B-1</span><span className="mini-bar"><i className="low" style={{ "--w": "34%" }} /></span><span className="mini-v tnum">6</span></div>
+                <div className="mini-row"><span className="mini-k">A-1</span><span className="mini-bar"><i className="out" style={{ "--w": "5%" }} /></span><span className="mini-v tnum">0</span></div>
+              </div>
+            </div>
             <div className="cell"><span className="code">JOB</span><h3>Jobs</h3><div className="lead">Draft to closed-out, one thread.</div><p>Build the job, pull the materials to it, complete it, and the close-out report writes itself.</p></div>
             <div className="cell"><span className="code">FLT</span><h3>Fleet</h3><div className="lead">"Where's Truck 3?" On the screen.</div><p>Trucks, trailers, mileage, oil, and services are tracked, not guessed at from the cab of another one.</p></div>
             <div className="cell"><span className="code">MNT</span><h3>Maintenance</h3><div className="lead">Flag it from the cab.</div><p>Crews report a problem the moment it starts. Managers see it before it becomes a breakdown.</p></div>
             <div className="cell"><span className="code">RPT</span><h3>Reports</h3><div className="lead">Job complete. Report's ready.</div><p>Costed from the batches actually used on the job, never a price typed in twice, never a guess.</p></div>
-            <div className="cell"><span className="code">CRW</span><h3>Crew &amp; access</h3><div className="lead">Everyone sees their part.</div><p>Per-role access so the yard, the office, and the books each get the view that fits the work they do.</p></div>
+            <div className="cell cell-full cell-feature">
+              <div className="body">
+                <span className="code">CRW</span>
+                <h3>Crew &amp; access</h3>
+                <div className="lead">Everyone sees their part.</div>
+                <p>Per-role access so the yard, the office, and the books each get the view that fits the work they do.</p>
+              </div>
+              <div className="chips" aria-hidden="true">
+                <span>Owner</span><span>Manager</span><span>Yard</span><span>Office</span><span>Books</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -453,13 +938,13 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <h2>Low stock reads from across the yard.</h2>
             <p>Green is good. Amber wants a hand on it. Red says stop. The same signal a foreman would give on every screen, updated as the crew pulls.</p>
           </div>
-          <div className="mock reveal">
+          <div className="mock reveal" ref={mockRef}>
             <div className="mock-bar">
               <span className="ttl">
                 <svg width="18" height="18" viewBox="0 0 40 40" aria-hidden="true"><path className="mk-stroke" d="M4 8 L12 32 L20 12 L28 32 L36 8" fill="none" strokeWidth="5" strokeLinecap="square" /></svg>
                 Bay A · Roofing
               </span>
-              <span className="meta">SYNCED · 06:04 AM</span>
+              <span className="meta"><span className="live-dot" aria-hidden="true" />SYNCED · {clock}</span>
             </div>
             <div className="tbl-scroll">
               <table className="inv">
@@ -470,7 +955,15 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
                   <tr><td className="item">Weathered Wood Architectural Shingle</td><td className="loc">A-3</td><td className="num tnum">142 bd</td><td className="num tnum">40</td><td><span className="pill ok">In stock</span></td></tr>
                   <tr><td className="item">Ice &amp; Water Shield, 3 ft</td><td className="loc">B-1</td><td className="num tnum">6 rl</td><td className="num tnum">8</td><td><span className="pill low">Low</span></td></tr>
                   <tr><td className="item">Ridge Cap, Amber</td><td className="loc">A-1</td><td className="num tnum">0 bx</td><td className="num tnum">12</td><td><span className="pill out">Out</span></td></tr>
-                  <tr><td className="item">Drip Edge, 10 ft White</td><td className="loc">C-2</td><td className="num tnum">88 pc</td><td className="num tnum">30</td><td><span className="pill ok">In stock</span></td></tr>
+                  {/* The row that moves. A crew pulls to a job, it crosses the
+                      reorder point of 30, and the signal turns from green to amber. */}
+                  <tr className={pulled ? "pulled" : undefined}>
+                    <td className="item">Drip Edge, 10 ft White</td>
+                    <td className="loc">C-2</td>
+                    <td className="num tnum">{pulled ? "24 pc" : "88 pc"}</td>
+                    <td className="num tnum">30</td>
+                    <td>{pulled ? <span className="pill low">Low</span> : <span className="pill ok">In stock</span>}</td>
+                  </tr>
                   <tr><td className="item">Roofing Nails, 1¼" Coil</td><td className="loc">D-4</td><td className="num tnum">19 bx</td><td className="num tnum">20</td><td><span className="pill low">Low</span></td></tr>
                 </tbody>
               </table>
@@ -487,7 +980,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <span className="eyebrow">The raising · Three steps</span>
             <h2>Set up in an afternoon.</h2>
           </div>
-          <div className="steps reveal">
+          <div className="steps reveal stagger">
             <div className="step"><span className="idx">STEP 01</span><h3>Raise the frame</h3><p>Add your yard, your trucks, and your crew. Enter what you've got on the shelf, or bring it in from where it already lives.</p></div>
             <div className="step"><span className="idx">STEP 02</span><h3>Run the day</h3><p>Pull materials to jobs, track the fleet, flag maintenance from the office desk or the cab of a truck with no signal.</p></div>
             <div className="step"><span className="idx">STEP 03</span><h3>Home by supper</h3><p>Jobs close themselves out with a costed report. The counting's done before you've hung up your coat.</p></div>
@@ -509,25 +1002,18 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <p>The whole loop, start to finish. No sales call to sit through first.</p>
           </div>
           <div className="reveal" style={{ maxWidth: 940, margin: "0 auto" }}>
-            <video
-              controls
-              preload="metadata"
-              playsInline
-              style={{
-                width: "100%",
-                aspectRatio: "16 / 9",
-                objectFit: "contain",
-                display: "block",
-                borderRadius: 16,
-                border: "1px solid var(--line)",
-                boxShadow: "0 24px 60px rgba(0,0,0,.28)",
-                background: "#000",
-              }}
-            >
-              <source src="/steadwerk-demo.mp4" type="video/mp4" />
-              Your browser can’t play this video.{" "}
-              <a href="/steadwerk-demo.mp4">Download it instead.</a>
-            </video>
+            <div className={playing ? "vid playing" : "vid"}>
+              <video ref={videoRef} controls preload="metadata" playsInline onPlay={() => setPlaying(true)}>
+                <source src="/steadwerk-demo.mp4" type="video/mp4" />
+                Your browser can’t play this video.{" "}
+                <a href="/steadwerk-demo.mp4">Download it instead.</a>
+              </video>
+              <button className="vid-poster" type="button" onClick={startVideo} aria-label="Play the Steadwerk demo">
+                <span className="vid-play" aria-hidden="true">▶</span>
+                <span className="vid-ttl">Build a job to a costed report</span>
+                <span className="vid-meta">THE FULL TOUR</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -540,7 +1026,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <h2>One price. Ten people. No quote to sit through.</h2>
             <p>Most systems for this make you book a call to hear a number. Here it is.</p>
           </div>
-          <div className="rates reveal">
+          <div className="rates reveal stagger">
             <div className="rate lead-rate">
               <span className="code">BASE</span>
               <div className="fig">
@@ -548,7 +1034,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
                 <span className="per">/ month</span>
               </div>
               <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--good)", margin: "2px 0 6px" }}>
-                or ${ANNUAL_PRICE}/year — save {ANNUAL_SAVINGS_PCT}%
+                or ${ANNUAL_PRICE}/year · save {ANNUAL_SAVINGS_PCT}%
               </div>
               <div className="what">Everything, for up to {BASE_SEATS} people.</div>
               <p>Inventory, jobs, fleet, maintenance, costed reports, and per-role access for the whole crew. This isn't a starter tier. It's the whole thing.</p>
@@ -586,7 +1072,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
             <span className="eyebrow">Straight answers</span>
             <h2>The questions you'd ask on the phone.</h2>
           </div>
-          <div className="faq reveal">
+          <div className="faq reveal stagger">
             <details>
               <summary>What does it cost, all in?</summary>
               <div className="ans">
@@ -606,9 +1092,9 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
               </div>
             </details>
             <details>
-              <summary>What happens when the yard has no signal?</summary>
+              <summary>What happens when you are away from your desk?</summary>
               <div className="ans">
-                The app still opens, and anything your crew records is <b>held on the device and synced the moment signal comes back</b>. Nobody loses a pull because they were behind a building. Live figures do need a connection. We'd rather tell you honestly that you're offline than show you a stale count you might order against.
+                The site is accessible on your mobile device. All features are mobile friendly and works the same way on a phone or tablet as it does on a desktop. 
               </div>
             </details>
             <details>
