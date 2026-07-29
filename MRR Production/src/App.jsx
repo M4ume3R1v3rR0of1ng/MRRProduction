@@ -1,40 +1,71 @@
 // src/App.jsx
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { supabase } from "./utils/supabase";
 import { useAppData } from "./hooks/useAppData";
 import OmniSearch from "./components/OmniSearch";
 import SyncIndicator from "./components/SyncIndicator";
-import { RoleBdg, SkeletonCards } from "./components/UIPrimitives";
+import { RoleBdg, SkeletonCards, LoadingState } from "./components/UIPrimitives";
 import IdleTimeoutWrapper from "./components/IdleTimeoutWrapper";
-import ChatWidget from "./components/ChatWidget";
 
 // Centralized Stateless Calculation & Helper Utilities
 import { C, tot, oilSt, predDays, detSt, fd, fm } from "./utils/helpers";
 
-// Full Screen Layout & Sub-Page Views
-import LandingPage from "./views/LandingPage";
-import LoginScreen from "./views/LoginScreen";
-import TermsPage from "./views/TermsPage";
-import ResetPasswordScreen from "./views/ResetPasswordScreen";
 import CompanySwitcher from "./components/CompanySwitcher";
-import OwnerConsole from "./views/OwnerConsole";
-import BillingView from "./views/BillingView";
 import { SteadwerkMark, TrussMark, BRAND } from "./components/SteadwerkMark";
 import Sidebar from "./layouts/Sidebar";
-import DashboardView from "./views/DashboardView";
-import ProfileView from "./views/ProfileView";
-import InventoryView from "./views/InventoryView.jsx";
-import BuildJobsView from "./views/BuildJobsView";
-import PullInventoryView from "./views/PullInventoryView";
-import FleetManagementView from "./views/FleetManagementView";
-import MaintenanceRequestsView from "./views/MaintenanceRequestsView";
-import ReportsView from "./views/ReportsView";
-import UserManagementView from "./views/UserManagementView";
-import SettingsView from "./views/SettingsView";
-import AuditLogView from "./views/AuditLogView";
+
+// ── Code splitting ──────────────────────────────────────────────────────────
+//
+// LandingPage stays a static import. It is the first paint for cold traffic off
+// steadwerk.com, and making it a lazy chunk would cost that visitor an extra
+// round trip before anything renders — the opposite of the point.
+//
+// Everything else is deferred. Before this, all 15 view modules were static
+// imports, so someone who arrived to read the marketing page downloaded Reports,
+// Owner Console, Fleet, Settings and the rest — 905 kB raw / 248 kB gzipped —
+// before the hero appeared. The people being sold to here are crews on phones
+// with poor signal, and this page is the top of the funnel.
+//
+// Every view below has exactly one default export, which React.lazy requires.
+import LandingPage from "./views/LandingPage";
+
+const LoginScreen = lazy(() => import("./views/LoginScreen"));
+const TermsPage = lazy(() => import("./views/TermsPage"));
+const ResetPasswordScreen = lazy(() => import("./views/ResetPasswordScreen"));
+const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
+const BillingView = lazy(() => import("./views/BillingView"));
+const DashboardView = lazy(() => import("./views/DashboardView"));
+const ProfileView = lazy(() => import("./views/ProfileView"));
+const InventoryView = lazy(() => import("./views/InventoryView.jsx"));
+const BuildJobsView = lazy(() => import("./views/BuildJobsView"));
+const PullInventoryView = lazy(() => import("./views/PullInventoryView"));
+const FleetManagementView = lazy(() => import("./views/FleetManagementView"));
+const MaintenanceRequestsView = lazy(() => import("./views/MaintenanceRequestsView"));
+const ReportsView = lazy(() => import("./views/ReportsView"));
+const UserManagementView = lazy(() => import("./views/UserManagementView"));
+const SettingsView = lazy(() => import("./views/SettingsView"));
+const AuditLogView = lazy(() => import("./views/AuditLogView"));
+
+// The assistant is a floating widget, useful but never the reason someone opened
+// the app, so it loads after the view they actually asked for.
+const ChatWidget = lazy(() => import("./components/ChatWidget"));
 
 // Mascot Branding Asset
 
+
+
+// Shown while a lazy view chunk is in flight. Painted on the app ground rather
+// than left blank so a slow connection does not flash white between routes.
+function ChunkFallback({ full = false }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "center",
+      minHeight: full ? "100vh" : 240, width: "100%", background: full ? C.bg : "transparent",
+    }}>
+      <LoadingState label="Loading..." />
+    </div>
+  );
+}
 
 const jSC = {
   draft: { c: "gray", l: "Draft", icon: "📝" },
@@ -197,6 +228,7 @@ export default function App() {
   // session bootstrap decided.
   if (recovery) {
     return (
+      <Suspense fallback={<ChunkFallback full />}>
       <ResetPasswordScreen
         onDone={() => {
           // Password changed and session signed out inside the screen. Clear the
@@ -207,6 +239,7 @@ export default function App() {
           setRecovery(false);
         }}
       />
+      </Suspense>
     );
   }
 
@@ -257,7 +290,11 @@ export default function App() {
     // Public Terms & Conditions page — reachable from the landing footer and the
     // login disclaimer; "← Back" returns to whichever opened it.
     if (authView === "terms") {
-      return <TermsPage onBack={() => backFromAuthView(termsReturn)} />;
+      return (
+        <Suspense fallback={<ChunkFallback full />}>
+          <TermsPage onBack={() => backFromAuthView(termsReturn)} />
+        </Suspense>
+      );
     }
     // Public front door. The marketing landing page hands off to the login/signup
     // form via its Sign in / Start your company buttons.
@@ -271,6 +308,7 @@ export default function App() {
       );
     }
     return (
+      <Suspense fallback={<ChunkFallback full />}>
       <LoginScreen
         onLogin={(u) => {
           app.setCurUser(u);
@@ -283,6 +321,7 @@ export default function App() {
         lang={lang}
         setLang={setLang}
       />
+      </Suspense>
     );
   }
 
@@ -427,6 +466,9 @@ return (
               background: C.bg 
             }}
           >
+            {/* One boundary for the whole switch: only one view is ever mounted,
+                so a single fallback covers every route change. */}
+            <Suspense fallback={<ChunkFallback />}>
             {view === "dashboard" && (
               <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} setReqs={app.setReqs} company={app.company} activeLogo={app.activeLogo} />
             )}
@@ -472,11 +514,14 @@ return (
                 }}
               />
             )}
+            </Suspense>
           </div>
 
         </div>
       </div>
-      <ChatWidget user={app.curUser} />
+      <Suspense fallback={null}>
+        <ChatWidget user={app.curUser} />
+      </Suspense>
     </IdleTimeoutWrapper>
   );
 }
