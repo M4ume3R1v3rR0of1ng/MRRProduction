@@ -4,6 +4,7 @@ import { C, displayName } from "../utils/helpers";
 import { Bdg, Btn, Modal } from "../components/UIPrimitives"; 
 import TeamChatBox from "../components/TeamChatBox";
 import WeatherCard from "../components/WeatherCard";
+import ScheduleCard from "../components/ScheduleCard";
 import { supabase } from "../utils/supabase"; 
 import { translations } from "../utils/translations";
 
@@ -425,6 +426,8 @@ export default function DashboardView({
           <SC label={t.fleetDisruptions} value={deadlinedTrucks.length} color={deadlinedTrucks.length > 0 ? C.rd : C.gr} icon="🚛" onClick={() => onNav("fleet")} />
           <SC label={t.holdingValuation} value={`$${Math.round(totalInventoryCost).toLocaleString()}`} color={C.blue} icon="💰" onClick={() => onNav("reports")} />
         </div>
+
+        <ScheduleCard jobs={jobs} reqs={reqs} jobTrailers={jobTrailers} vehs={vehs} users={users} onNav={onNav} lang={lang} />
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-6)", alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
