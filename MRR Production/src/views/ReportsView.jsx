@@ -1,7 +1,7 @@
 // src/views/ReportsView.jsx
 import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
-import { C, fd, fm, tot, newestPrice } from "../utils/helpers";
+import { C, fd, fm, tot, newestPrice, todayLocal } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { Btn, Sel, Bdg, Modal, SkeletonTable } from "../components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "../context/NotificationContext";
@@ -74,7 +74,7 @@ function JobProfitabilityReport({ jobs, t }) {
       ];
     });
 
-    triggerNativeDownload(`mrr-job-profitability-${new Date().toISOString().split("T")[0]}.csv`, headers, rows);
+    triggerNativeDownload(`mrr-job-profitability-${todayLocal()}.csv`, headers, rows);
   };
 
   return (
@@ -178,7 +178,7 @@ function InventoryCostTrendsReport({ inv, t }) {
       r.warehouseAssetCapital.toFixed(2)
     ]);
 
-    triggerNativeDownload(`mrr-inventory-cost-trends-${new Date().toISOString().split("T")[0]}.csv`, headers, csvRows);
+    triggerNativeDownload(`mrr-inventory-cost-trends-${todayLocal()}.csv`, headers, csvRows);
   };
 
   return (
@@ -292,7 +292,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
       `"${v.vehicleRiskLevel}"`
     ]);
 
-    triggerNativeDownload(`mrr-fleet-depreciation-ledger-${new Date().toISOString().split("T")[0]}.csv`, headers, csvRows);
+    triggerNativeDownload(`mrr-fleet-depreciation-ledger-${todayLocal()}.csv`, headers, csvRows);
   };
 
 const handleDeleteInspection = async (id, vehicleName) => {
@@ -580,7 +580,7 @@ function AuditTrailReport({ t, companyId }) {
       `"${l.description || ""}"`
     ]);
 
-    triggerNativeDownload(`mrr-system-audit-trail-${new Date().toISOString().split("T")[0]}.csv`, headers, csvRows);
+    triggerNativeDownload(`mrr-system-audit-trail-${todayLocal()}.csv`, headers, csvRows);
   };
 
   return (

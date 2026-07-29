@@ -10,7 +10,7 @@
 // onCreated, and decides for itself how to fold that into its list.
 import { useState } from "react";
 import { supabase } from "../../utils/supabase";
-import { uid } from "../../utils/helpers";
+import { uid, todayLocal } from "../../utils/helpers";
 import { Btn, Fld, Inp, Modal, Sel } from "../../components/UIPrimitives";
 import { logAction } from "../../utils/logger";
 import { useNotify } from "../../context/NotificationContext";
@@ -38,7 +38,7 @@ export const buildVehicle = (form) => {
     lomi: startMi,
     oii: parseFloat(form.oii) || 5000,
     dii: parseFloat(form.dii) || 90,
-    ldd: new Date().toISOString().split("T")[0],
+    ldd: todayLocal(),
     mil: [],
     sl: [],
     assignedTo: "",

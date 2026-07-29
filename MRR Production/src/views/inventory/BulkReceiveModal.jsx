@@ -14,7 +14,7 @@
 import { useMemo, useState } from "react";
 import { supabase, updateRowStrict } from "../../utils/supabase";
 import { sendLowStockAlerts } from "../../utils/lowStockAlerts";
-import { C, uid, fm, tot, newestPrice } from "../../utils/helpers";
+import { C, uid, fm, tot, newestPrice, todayLocal } from "../../utils/helpers";
 import { Btn, Fld, Inp, Modal } from "../../components/UIPrimitives";
 import { logAction } from "../../utils/logger";
 import { useNotify } from "../../context/NotificationContext";
@@ -47,7 +47,7 @@ export const resolveBulkPrices = (rows, inv) =>
     return { ...b, rate: last > 0 ? last : null };
   });
 
-const emptyMeta = () => ({ date: new Date().toISOString().split("T")[0], po: "", vendor: "" });
+const emptyMeta = () => ({ date: todayLocal(), po: "", vendor: "" });
 
 export default function BulkReceiveModal({ inv = [], setInv, users, user, perms = {}, onClose }) {
   const [rows, setRows] = useState([]);

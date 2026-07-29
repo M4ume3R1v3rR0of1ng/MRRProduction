@@ -1,23 +1,19 @@
 // src/views/InventoryView.jsx
 import { useState, useMemo, useEffect } from "react";
 import { supabase, updateRowStrict } from "../utils/supabase";
-import { sendLowStockAlerts } from "../utils/lowStockAlerts";
-import { C, uid, fd, fm, tot, newestPrice, recostLine } from "../utils/helpers";
-import {
-  Btn,
-  Fld,
-  Inp,
-  Sel,
-  TA,
-  Modal,
-  PhotoUpload,
-} from "../components/UIPrimitives";
+import { C, fm, tot, newestPrice } from "../utils/helpers";
+import { Btn, Inp, Sel } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 import { translations } from "../utils/translations";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import JobTemplatesModal from "./inventory/JobTemplatesModal";
 import BulkReceiveModal from "./inventory/BulkReceiveModal";
+import ItemDetailModal from "./inventory/ItemDetailModal";
+import ItemFormModal from "./inventory/ItemFormModal";
+import ReceiveBatchModal from "./inventory/ReceiveBatchModal";
+import AdjustStockModal from "./inventory/AdjustStockModal";
+import BatchCorrectionModal from "./inventory/BatchCorrectionModal";
 
 
 export default function InventoryView({
@@ -39,14 +35,9 @@ export default function InventoryView({
   const [sortBy, setSortBy] = useState("name_az");
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
-  const [form, setForm] = useState({});
-  // Batch correction: the receive form is otherwise the ONLY place a batch's price,
-  // PO and vendor can ever be set. Getting one wrong used to be permanent — Edit
-  // Materials silently rewrites the NEWEST batch's price (so corrections landed on the
-  // wrong batch), and nothing reached PO/vendor at all.
+  // Which batch the correction dialog is opened on. Sibling of `sel`; the
+  // dialog owns its own form state, the parent owns the selection.
   const [batchSel, setBatchSel] = useState(null);
-  const [batchForm, setBatchForm] = useState({});
-  const [recalc, setRecalc] = useState(null);
   useEffect(() => {
     setSrch(inventorySearchQuery);
   }, [inventorySearchQuery]);
@@ -124,129 +115,6 @@ export default function InventoryView({
     }
   };
 
-  const addItem = async () => {
-    if (!form.name || !form.cat || !form.unit) {
-      showToast("Please fill out all required item fields.", "warning");
-      return;
-    }
-
-    setSaving(true);
-    const record = {
-      id: "i_" + uid(),
-      name: form.name.trim(),
-      cat: form.cat,
-      unit: form.unit,
-      alrt: parseInt(form.alrt) || 5,
-      batches: [],
-    };
-
-    try {
-      const { error } = await supabase.from("inventory").insert([record]);
-      if (error) throw error;
-
-      setInv((p) => [...p, record]);
-
-     // Fix 2: Null safety cascade checks applied on log definitions
-      await logAction(
-        user?.id ?? null,
-        user?.email ?? null,
-        "INV_MUTATION",
-        `Created new catalog material item: "${record.name}"`,
-        { item_id: record.id, category: record.cat, unit: record.unit },
-        
-        // ── 🟢 FIXED: ADDED THE 6TH PARAMETER STRATEGIC MODULE TAG ──
-        "inventory" 
-      );
-
-      showToast("Catalog item added successfully.", "success");
-      setModal(null);
-      setForm({});
-    } catch (err) {
-      console.error(err);
-      showToast(`Database Error adding item: ${err.message}`, "error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const editItem = async () => {
-    if (!sel) return;
-    setSaving(true);
-    const updatedFields = {
-      name: form.name?.trim(),
-      cat: form.cat,
-      unit: form.unit,
-      alrt: parseInt(form.alrt) || sel.alrt,
-    };
-
-    // Current price lives on the newest batch, so a price change rewrites it
-    // there (or seeds a zero-qty batch when no receipt history exists yet).
-    const oldPrice = newestPrice(sel);
-    const newPrice = parseFloat(form.price);
-    const priceChanged =
-      perms.inv_pricing_edit && form.price !== "" && form.price != null && !isNaN(newPrice) && newPrice !== oldPrice;
-    try {
-      if (priceChanged) {
-        const batches = [...(await fetchLiveBatches(sel.id))];
-        if (batches.length > 0) {
-          let newest = 0;
-          batches.forEach((b, i) => {
-            if (new Date(b.rcvd) - new Date(batches[newest].rcvd) > 0) newest = i;
-          });
-          batches[newest] = { ...batches[newest], price: newPrice };
-        } else {
-          batches.push({
-            id: "b_" + uid(),
-            rcvd: new Date().toISOString().split("T")[0],
-            qty: 0,
-            price: newPrice,
-            by: user?.id || "system",
-            rem: 0,
-          });
-        }
-        updatedFields.batches = batches;
-      }
-
-      const { error } = await updateRowStrict("inventory", sel.id, updatedFields);
-
-      if (error) throw error;
-
-      setInv((p) =>
-        p.map((i) => (i.id === sel.id ? { ...i, ...updatedFields } : i)),
-      );
-      setSel((p) => (p && p.id === sel.id ? { ...p, ...updatedFields } : p));
-
-      await logAction(
-        user?.id ?? null,
-        user?.email ?? null,
-        "INV_MUTATION",
-        `Modified catalog specifications for item: "${sel.name}"${priceChanged ? ` (price ${fm(oldPrice)} → ${fm(newPrice)})` : ""}`,
-        {
-          item_id: sel.id,
-          changes: {
-            name: updatedFields.name,
-            cat: updatedFields.cat,
-            unit: updatedFields.unit,
-            alrt: updatedFields.alrt,
-            ...(priceChanged ? { price: { from: oldPrice, to: newPrice } } : {}),
-          },
-        },
-
-        // ── 🟢 FIXED: ADDED THE 6TH PARAMETER STRATEGIC MODULE TAG ──
-        "inventory"
-      );
-
-      showToast("Changes saved successfully.", "success");
-      setModal(null);
-      setForm({});
-    } catch (err) {
-      console.error(err);
-      showToast(`Database Error modifying catalog record: ${err.message}`, "error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   // Current batches for one item straight from the database. Local state can
   // be hours old (it loads once at sign-in), so batch mutations must build on
   // this instead of the in-memory copy or they erase other devices' changes.
@@ -260,291 +128,24 @@ export default function InventoryView({
     return data?.batches || [];
   };
 
-  const rcvBatch = async () => {
-    // Don't fail silently — tell the user exactly what's missing, or a blank
-    // field looks like it "saved" (modal never closes) while nothing persists.
-    if (!sel) {
-      showToast("Select an item to receive into first.", "warning");
-      return;
-    }
-    const missing = [];
-    if (!form.qty) missing.push("quantity");
-    if (!form.price) missing.push("price");
-    if (!form.date) missing.push("received date");
-    if (missing.length) {
-      showToast(`Nothing was received — please fill in the ${missing.join(", ")}.`, "warning");
-      return;
-    }
-    const qty = parseFloat(form.qty);
-    const price = parseFloat(form.price);
-    // Negative qty/price are allowed intentionally — temporary corrections ahead
-    // of a later batch that zeroes them back out. Only reject non-numeric input.
-    if (isNaN(qty)) {
-      showToast("Quantity must be a valid number.", "warning");
-      return;
-    }
-    if (isNaN(price)) {
-      showToast("Price must be a valid number.", "warning");
-      return;
-    }
-    setSaving(true);
 
-    const b = {
-      id: "b_" + uid(),
-      rcvd: form.date,
-      qty,
-      price: price || newestPrice(sel),
-      by: user?.id || "system",
-      rem: qty,
-      // Bulk receive has always captured these; this form never did, which is why 31 of
-      // 32 deliveries carry no paperwork. Optional — a correction batch has no invoice.
-      ref: (form.ref || "").trim(),
-      vendor: (form.vendor || "").trim(),
-    };
-
-    try {
-      const liveBatches = await fetchLiveBatches(sel.id);
-      const updatedBatches = [...liveBatches, b];
-      const { error } = await updateRowStrict("inventory", sel.id, { batches: updatedBatches });
-
-      if (error) throw error;
-
-      setInv((p) =>
-        p.map((i) => (i.id === sel.id ? { ...i, batches: updatedBatches } : i)),
-      );
-      const updatedItem = { ...sel, batches: updatedBatches };
-
-      // Fires only when this change pushes the item below its threshold —
-      // e.g. a negative correction batch. Normal receives raise stock.
-      sendLowStockAlerts(
-        [{ item: updatedItem, prevTotal: tot({ batches: liveBatches }), newTotal: tot(updatedItem) }],
-        users,
-        showToast,
-      );
-
-      await logAction(
-        user?.id ?? null,
-        user?.email ?? null,
-        "INV_MUTATION",
-        `Received new inbound batch stack for material: "${sel.name}"`,
-        {
-          item_id: sel.id,
-          batch_id: b.id,
-          quantity_added: b.qty,
-          unit_cost: b.price,
-          purchase_order: b.ref || "N/A",
-          vendor: b.vendor || "N/A",
-        },
-      );
-
-      showToast("Batch successfully received.", "success");
-      setModal(null);
-      setForm({});
-    } catch (err) {
-      console.error(err);
-      showToast(`Database Error posting receipt batch: ${err.message}`, "error");
-    } finally {
-      setSaving(false);
-    }
+  // Every dialog reports what changed rather than being handed a setter. This is
+  // the single place that folds a result into both the catalog list and the item
+  // currently open behind the dialog, so the two cannot drift apart.
+  const patchItem = (id, changes) => {
+    setInv((p) => p.map((i) => (i.id === id ? { ...i, ...changes } : i)));
+    setSel((p) => (p && p.id === id ? { ...p, ...changes } : p));
   };
+  const patchBatches = (id, batches) => patchItem(id, { batches });
 
-  const lineFor = (j, itemId) => (j.items || j.materials || []).find((i) => i && i.iid === itemId);
-  const usedOf = (j, itemId) => {
-    const l = lineFor(j, itemId);
-    return Math.max(0, (parseFloat(l?.pulled) || 0) - (parseFloat(l?.returned) || 0));
+  const deleteItem = async () => {
+    if (!sel || !window.confirm(`Permanently delete ${sel.name} from inventory?`)) return;
+    const { error } = await supabase.from("inventory").delete().eq("id", sel.id);
+    if (error) { showToast(`Database Error: ${error.message}`, "error"); return; }
+    setInv((p) => p.filter((i) => i.id !== sel.id));
+    await logAction(user?.id ?? null, user?.email ?? null, "INV_MUTATION", `Permanently purged catalog blueprint item: "${sel.name}"`, { item_id: sel.id });
+    setModal(null);
   };
-  const hasSplit = (l) => Array.isArray(l?.consumed) && l.consumed.length > 0;
-
-  // Which jobs actually took material from this batch.
-  //
-  //   with a split  — exact: the job names the batch id, so there is nothing to infer,
-  //                   and a multi-batch pull can be repriced correctly.
-  //   without one   — legacy rows predate `consumed`. The only signal left is the
-  //                   blended priceAtPull matching this batch's price, which holds
-  //                   only if the pull came from this batch alone. Anything else is a
-  //                   blend of prices we can no longer take apart: surfaced, untouched.
-  const jobsUsingBatch = (itemId, batchId, oldPrice) => {
-    const exact = [];
-    const blended = [];
-    for (const j of jobs || []) {
-      const line = lineFor(j, itemId);
-      if (!line || (parseFloat(line.pulled) || 0) <= 0) continue;
-      if (hasSplit(line)) {
-        if (line.consumed.some((c) => c.bid === batchId)) exact.push(j);
-        continue; // named a split that doesn't include this batch → genuinely unaffected
-      }
-      if ((parseFloat(line.priceAtPull) || 0) === oldPrice) exact.push(j);
-      else blended.push(j);
-    }
-    return { exact, blended };
-  };
-
-  const saveBatch = async () => {
-    if (!sel || !batchSel) return;
-    const canPrice = perms.inv_pricing_edit;
-    const oldPrice = parseFloat(batchSel.price) || 0;
-    const newPrice = canPrice ? parseFloat(batchForm.price) : oldPrice;
-    if (canPrice && !Number.isFinite(newPrice)) {
-      showToast("Unit price must be a valid number.", "warning");
-      return;
-    }
-    const newRef = (batchForm.ref || "").trim();
-    const newVendor = (batchForm.vendor || "").trim();
-    const priceChanged = canPrice && newPrice !== oldPrice;
-
-    // A price change restates finished jobs, so it never happens without showing the
-    // damage first. PO/vendor don't touch cost and save straight through.
-    const hits = priceChanged ? jobsUsingBatch(sel.id, batchSel.id, oldPrice) : { exact: [], blended: [] };
-    if (priceChanged && hits.exact.length > 0 && !recalc) {
-      setRecalc({ oldPrice, newPrice, ...hits });
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const live = await fetchLiveBatches(sel.id);
-      const idx = live.findIndex((b) => b.id === batchSel.id);
-      if (idx === -1) throw new Error("This batch no longer exists — someone may have changed it. Refresh and try again.");
-      const updated = live.map((b, i) =>
-        i === idx ? { ...b, price: newPrice, ref: newRef, vendor: newVendor } : b,
-      );
-
-      const { error } = await updateRowStrict("inventory", sel.id, { batches: updated });
-      if (error) throw error;
-      setInv((p) => p.map((i) => (i.id === sel.id ? { ...i, batches: updated } : i)));
-      setSel((p) => (p && p.id === sel.id ? { ...p, batches: updated } : p));
-
-      let recalced = 0;
-      if (priceChanged && hits.exact.length > 0) {
-        const fix = (arr) =>
-          (arr || []).map((i) => {
-            if (!i || i.iid !== sel.id) return i;
-            if ((parseFloat(i.pulled) || 0) <= 0) return i;
-            return { ...i, ...recostLine(i, batchSel.id, newPrice) };
-          });
-        for (const j of hits.exact) {
-          const next = { items: fix(j.items), materials: fix(j.materials) };
-          const res = await updateRowStrict("jobs", j.id, next);
-          if (res.error) throw res.error;
-          setJobs?.((p) => p.map((x) => (x.id === j.id ? { ...x, ...next } : x)));
-          recalced++;
-        }
-      }
-
-      await logAction(
-        user?.id ?? null,
-        user?.email ?? null,
-        "INV_MUTATION",
-        `Corrected batch on "${sel.name}"${priceChanged ? ` (price ${fm(oldPrice)} → ${fm(newPrice)})` : ""}${recalced ? ` — recalculated ${recalced} job(s)` : ""}`,
-        {
-          item_id: sel.id,
-          batch_id: batchSel.id,
-          batch_rcvd: batchSel.rcvd,
-          ...(priceChanged ? { price: { from: oldPrice, to: newPrice } } : {}),
-          purchase_order: { from: batchSel.ref || "", to: newRef },
-          vendor: { from: batchSel.vendor || "", to: newVendor },
-          jobs_recalculated: recalced,
-        },
-        "inventory",
-      );
-
-      showToast(
-        recalced > 0
-          ? `Batch corrected — ${recalced} job${recalced > 1 ? "s" : ""} recalculated.`
-          : "Batch corrected.",
-        "success",
-      );
-      setRecalc(null);
-      setBatchSel(null);
-      setModal("detail");
-    } catch (err) {
-      console.error(err);
-      showToast(`Database Error correcting batch: ${err.message}`, "error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const adjustStock = async () => {
-    if (!sel || form.newQty === undefined || form.newQty === "") {
-      showToast("Please enter the corrected quantity.", "warning");
-      return;
-    }
-    const newQty = parseFloat(form.newQty);
-    if (isNaN(newQty) || newQty < 0) {
-      showToast("Quantity must be a valid non-negative number.", "warning");
-      return;
-    }
-    if (newQty === tot(sel)) {
-      showToast("No change — quantity already matches.", "info");
-      return;
-    }
-
-    setSaving(true);
-    const reasonSuffix = form.reason?.trim() ? ` — ${form.reason.trim()}` : "";
-
-    try {
-      // Correct against live batches so the final total lands on newQty even
-      // if other devices changed stock since this session loaded.
-      const liveBatches = await fetchLiveBatches(sel.id);
-      const current = tot({ batches: liveBatches });
-      const delta = newQty - current;
-      let updatedBatches;
-
-      if (delta > 0) {
-        const correctionBatch = {
-          id: "b_" + uid(),
-          rcvd: new Date().toISOString().split("T")[0],
-          qty: delta,
-          price: newestPrice({ batches: liveBatches }) || newestPrice(sel) || 0,
-          by: user?.id || "system",
-          rem: delta,
-          ref: `Manual Adjustment${reasonSuffix}`,
-        };
-        updatedBatches = [...liveBatches, correctionBatch];
-      } else {
-        let deficit = Math.abs(delta);
-        const sorted = [...liveBatches].sort((a, b) => new Date(a.rcvd) - new Date(b.rcvd));
-        updatedBatches = sorted.map((b) => {
-          if (deficit <= 0) return b;
-          const take = Math.min(parseFloat(b.rem) || 0, deficit);
-          deficit -= take;
-          return { ...b, rem: (parseFloat(b.rem) || 0) - take };
-        });
-      }
-
-      const { error } = await updateRowStrict("inventory", sel.id, { batches: updatedBatches });
-      if (error) throw error;
-
-      setInv((p) => p.map((i) => (i.id === sel.id ? { ...i, batches: updatedBatches } : i)));
-      setSel((p) => (p ? { ...p, batches: updatedBatches } : p));
-
-      sendLowStockAlerts(
-        [{ item: sel, prevTotal: current, newTotal: newQty }],
-        users,
-        showToast,
-      );
-
-      await logAction(
-        user?.id ?? null,
-        user?.email ?? null,
-        "INV_MUTATION",
-        `Manually adjusted stock for "${sel.name}" from ${current} to ${newQty} ${sel.unit}${reasonSuffix}`,
-        { item_id: sel.id, previous_total: current, new_total: newQty, delta },
-        "inventory",
-      );
-
-      showToast("Stock quantity corrected.", "success");
-      setModal(null);
-      setForm({});
-    } catch (err) {
-      console.error(err);
-      showToast(`Database Error adjusting stock: ${err.message}`, "error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
 
   return (
     
@@ -562,7 +163,7 @@ export default function InventoryView({
         </div>
         <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
           {perms.inv_bulk_receive && (
-            <Btn v="gold" onClick={() => { setBulkItems([]); setBulkMeta({ date: new Date().toISOString().split("T")[0], po: "", vendor: "" }); setBulkSrch(""); setModal("bulk"); }}>
+            <Btn v="gold" onClick={() => setModal("bulk")}>
               {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
               📦 {lang === "es" ? "Recibir Pedido en Bloque" : "Receive Bulk Order"}
             </Btn>
@@ -573,7 +174,7 @@ export default function InventoryView({
             </Btn>
           )}
           {perms.inv_edit && (
-            <Btn v="primary" onClick={() => { setModal("add"); setForm({ unit: "rolls", alrt: "10" }); }}>
+            <Btn v="primary" onClick={() => setModal("add")}>
               {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
               + {lang === "es" ? "Agregar Artículo" : "Add Item"}
             </Btn>
@@ -630,7 +231,7 @@ export default function InventoryView({
             <div
               key={item.id}
               className="mrr-card-click"
-              onClick={() => { setSel(item); setForm({ name: item.name, cat: item.cat, unit: item.unit, alrt: item.alrt }); setModal("detail"); }}
+              onClick={() => { setSel(item); setModal("detail"); }}
               style={{
                 background: C.w,
                 borderRadius: "var(--radius-xl)",
@@ -725,233 +326,6 @@ export default function InventoryView({
         })}
       </div>
 
-      {modal === "detail" && sel && (
-        <Modal title={sel.name} onClose={() => setModal(null)} wide>
-          <div className="sw-grid-2" style={{ gap: "var(--space-7)", marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Product Photo</div>
-              <PhotoUpload current={sel.photo_url || null} onUpload={(data) => setPhoto(sel.id, data)} label="Upload product photo" previewHeight={180} />
-            </div>
-            <div>
-              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 8 }}>Item Details</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                {[
-                  ["Total Stock", `${tot(sel)} ${sel.unit}`],
-                  ["Category", sel.cat],
-                  ["Unit", sel.unit],
-                  ...(perms.inv_pricing_view
-                    ? [
-                        ["Current Price", fm(newestPrice(sel))],
-                        ["Low Alert", `${sel.alrt} ${sel.unit}`],
-                      ]
-                    : [["Low Alert", `${sel.alrt} ${sel.unit}`]]),
-                  ["Batches", (sel.batches || []).length],
-                ].map(([k, v]) => (
-                  <div key={k} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>{k}</span>
-                    <span style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{v}</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 12, flexWrap: "wrap" }}>
-                {perms.inv_edit && (
-                  <Btn v="outline" sz="sm" onClick={() => { setForm({ name: sel.name, cat: sel.cat, unit: sel.unit, alrt: sel.alrt, price: newestPrice(sel) ? String(newestPrice(sel)) : "" }); setModal("edit"); }}>✏️ Edit Materials</Btn>
-                )}
-                {perms.inv_receive && (
-                  <Btn v="primary" sz="sm" onClick={() => { setForm({ date: new Date().toISOString().split("T")[0], qty: "", price: "" }); setModal("rcv"); }}>+ Receive Batch</Btn>
-                )}
-                {perms.inv_adjust && (
-                  <Btn v="gold" sz="sm" onClick={() => { setForm({ newQty: String(tot(sel)), reason: "" }); setModal("adjust"); }}>🔧 Adjust Stock</Btn>
-                )}
-                {perms.inv_edit && (
-                  <Btn v="danger" sz="sm" onClick={async () => {
-                    if (window.confirm(`Permanently delete ${sel.name} from inventory?`)) {
-                      const { error } = await supabase.from("inventory").delete().eq("id", sel.id);
-                      if (error) showToast(`Database Error: ${error.message}`, "error");
-                      else {
-                        setInv((p) => p.filter((i) => i.id !== sel.id));
-                        await logAction(user?.id ?? null, user?.email ?? null, "INV_MUTATION", `Permanently purged catalog blueprint item: "${sel.name}"`, { item_id: sel.id });
-                        setModal(null);
-                      }
-                    }
-                  }}>🗑️ Delete Product</Btn>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <h4 style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>Batch History (FIFO)</h4>
-          {[...(sel.batches || [])]
-            .sort((a, b) => new Date(a.rcvd) - new Date(b.rcvd))
-            .map((b, i) => (
-              <div key={b.id} style={{ padding: "10px 14px", background: i === 0 && b.rem > 0 ? "rgba(27,82,184,0.08)" : C.lg, borderRadius: "var(--radius-md)", border: i === 0 && b.rem > 0 ? `1.5px solid ${C.blue}` : "none", marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)" }}>
-                  <div>
-                    <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>
-                      {i === 0 && b.rem > 0 && <span style={{ color: C.blue }}>▶ ACTIVE · </span>}
-                      {fd(b.rcvd)}{b.vendor && <span style={{ color: C.sub }}> · {b.vendor}</span>}{b.ref && <span style={{ color: C.tl }}> · {b.ref}</span>}
-                    </div>
-                    <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>By: {users.find((u) => u.id === b.by)?.name || "Unknown"}</div>
-                  </div>
-                  <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-                    <div>
-                      <div style={{ fontWeight: "var(--weight-extrabold)", color: b.rem === 0 ? C.sub : C.gr, fontSize: "var(--text-sm)" }}>{b.rem}/{b.qty} remaining</div>
-                      {perms.inv_pricing_view && (
-                        <div style={{ fontSize: "var(--text-xs)", color: (parseFloat(b.price) || 0) === 0 ? C.rd : C.blue, fontWeight: "var(--weight-bold)" }}>
-                          {fm(b.price)} ea.{(parseFloat(b.price) || 0) === 0 && b.rem > 0 ? " ⚠️ unpriced" : ""}
-                        </div>
-                      )}
-                    </div>
-                    {(perms.inv_receive || perms.inv_pricing_edit) && (
-                      <Btn
-                        v="ghost"
-                        sz="sm"
-                        onClick={() => {
-                          setBatchSel(b);
-                          setBatchForm({ price: String(b.price ?? ""), ref: b.ref || "", vendor: b.vendor || "" });
-                          setRecalc(null);
-                          setModal("batch");
-                        }}
-                        title="Correct this batch's price, PO or vendor"
-                      >
-                        ✏️
-                      </Btn>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          {(sel.batches || []).length === 0 && <p style={{ color: C.sub, fontSize: "var(--text-base)" }}>No receipt stacks logged yet.</p>}
-        </Modal>
-      )}
-
-      {modal === "batch" && sel && batchSel && (
-        <Modal
-          title={`Correct Batch — ${fd(batchSel.rcvd)}`}
-          onClose={() => { setBatchSel(null); setRecalc(null); setModal("detail"); }}
-        >
-          <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px", marginBottom: "var(--space-4)", fontSize: "var(--text-xs)", color: C.sub }}>
-            Received {fd(batchSel.rcvd)} · {batchSel.qty} {sel.unit} · {batchSel.rem} remaining · by{" "}
-            {users.find((u) => u.id === batchSel.by)?.name || "Unknown"}
-            <div style={{ marginTop: 4 }}>Quantities aren't editable here — use 🔧 Adjust Stock for those.</div>
-          </div>
-
-          {recalc ? (
-            <div>
-              <div style={{ background: "rgba(217,119,6,0.10)", border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "12px 14px", marginBottom: "var(--space-4)" }}>
-                <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, marginBottom: 6 }}>
-                  This changes {recalc.exact.length} finished job{recalc.exact.length > 1 ? "s" : ""}
-                </div>
-                <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 10 }}>
-                  These jobs recorded {sel.name} at {fm(recalc.oldPrice)} — the price you're correcting. Their cost
-                  will be re-derived at {fm(recalc.newPrice)}. Nothing is typed in by hand.
-                </div>
-                {recalc.exact.map((j) => {
-                  const line = lineFor(j, sel.id);
-                  const used = usedOf(j, sel.id);
-                  // What the report shows is used × priceAtPull, so preview that —
-                  // re-derived per job, since a multi-batch pull only moves partway.
-                  const before = used * (parseFloat(line.priceAtPull) || 0);
-                  const after = used * (recostLine(line, batchSel.id, recalc.newPrice).priceAtPull || 0);
-                  return (
-                    <div key={j.id} style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-xs)", padding: "4px 0", borderTop: `1px solid ${C.bd}` }}>
-                      <span style={{ color: C.navy, fontWeight: "var(--weight-bold)" }}>
-                        {j.title || j.name || j.id} <span style={{ color: C.sub, fontWeight: "normal" }}>({j.status})</span>
-                        {hasSplit(line) && line.consumed.length > 1 && (
-                          <span style={{ color: C.sub, fontWeight: "normal" }}> · {line.consumed.length} batches</span>
-                        )}
-                      </span>
-                      <span style={{ whiteSpace: "nowrap" }}>
-                        {used} × · {fm(before)} → <strong style={{ color: C.gr }}>{fm(after)}</strong>
-                      </span>
-                    </div>
-                  );
-                })}
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", fontWeight: "var(--weight-extrabold)", color: C.navy, paddingTop: 8, marginTop: 4, borderTop: `2px solid ${C.bd}` }}>
-                  <span>Total change</span>
-                  <span>
-                    {fm(recalc.exact.reduce((s, j) => s + usedOf(j, sel.id) * (parseFloat(lineFor(j, sel.id)?.priceAtPull) || 0), 0))} →{" "}
-                    {fm(recalc.exact.reduce((s, j) => s + usedOf(j, sel.id) * (recostLine(lineFor(j, sel.id), batchSel.id, recalc.newPrice).priceAtPull || 0), 0))}
-                  </span>
-                </div>
-              </div>
-
-              {recalc.blended.length > 0 && (
-                <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px", marginBottom: "var(--space-4)", fontSize: "var(--text-xs)", color: C.sub }}>
-                  <strong style={{ color: C.navy }}>{recalc.blended.length} other job{recalc.blended.length > 1 ? "s" : ""} won't be touched.</strong>{" "}
-                  They pulled {sel.name} across several batches, so their cost is a blend this correction can't
-                  safely re-derive: {recalc.blended.map((j) => j.title || j.name || j.id).join(", ")}.
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: "var(--space-3)" }}>
-                <Btn v="ghost" onClick={() => setRecalc(null)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Back</Btn>
-                <Btn v="primary" onClick={saveBatch} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>
-                  {saving ? "⏳ Applying..." : `✅ Correct & recalculate ${recalc.exact.length}`}
-                </Btn>
-              </div>
-            </div>
-          ) : (
-            <div>
-              {perms.inv_pricing_edit && (
-                <Fld label="Unit Price *">
-                  <Inp type="number" step="0.01" value={batchForm.price ?? ""} onChange={(e) => setBatchForm({ ...batchForm, price: e.target.value })} placeholder="0.00" />
-                </Fld>
-              )}
-              <Fld label="Invoice / PO Number">
-                <Inp value={batchForm.ref ?? ""} onChange={(e) => setBatchForm({ ...batchForm, ref: e.target.value })} placeholder="e.g. 2011850932-001" />
-              </Fld>
-              <Fld label="Supplier / Vendor">
-                <Inp value={batchForm.vendor ?? ""} onChange={(e) => setBatchForm({ ...batchForm, vendor: e.target.value })} placeholder="e.g. ABC Supply" />
-              </Fld>
-              <div style={{ display: "flex", gap: "var(--space-3)", marginTop: "var(--space-5)" }}>
-                <Btn v="ghost" onClick={() => { setBatchSel(null); setModal("detail"); }} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
-                <Btn v="primary" onClick={saveBatch} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{saving ? "⏳ Saving..." : "💾 Save Batch"}</Btn>
-              </div>
-            </div>
-          )}
-        </Modal>
-      )}
-
-      {modal === "add" && (
-        <Modal title="Add New Catalog Position" onClose={() => setModal(null)}>
-          <Fld label="Item Name *"><Inp value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Drip Edge - White" /></Fld>
-          <Fld label="Category *">
-            <Sel value={form.cat || ""} onChange={(e) => setForm({ ...form, cat: e.target.value })}><option value="">— Select a category —</option>{["Roofing Materials", "Fasteners", "Sealants", "Ventilation", "Decking", "Sheet Metal", "Accessories", "Tools"].map((c) => (<option key={c} value={c}>{c}</option>))}</Sel>
-          </Fld>
-          <Fld label="Unit *">
-            <Sel value={form.unit || "rolls"} onChange={(e) => setForm({ ...form, unit: e.target.value })}>{["rolls", "boxes", "each", "tubes", "bundles", "packs", "sheets", "gallons", "lbs"].map((u) => (<option key={u} value={u}>{u}</option>))}</Sel>
-          </Fld>
-          <Fld label="Low Alert Threshold"><Inp type="number" value={form.alrt || ""} onChange={(e) => setForm({ ...form, alrt: e.target.value })} /></Fld>
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
-            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
-            <Btn v="primary" onClick={addItem} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Creating..." : "Add Position"}</Btn>
-          </div>
-        </Modal>
-      )}
-
-      {modal === "edit" && sel && (
-        <Modal title={`Modify Specifications: ${sel.name}`} onClose={() => setModal(null)}>
-          <Fld label="Item Name"><Inp value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Fld>
-          <Fld label="Category">
-            <Sel value={form.cat || ""} onChange={(e) => setForm({ ...form, cat: e.target.value })}><option value="">— Select a category —</option>{["Roofing Materials", "Fasteners", "Sealants", "Ventilation", "Decking", "Sheet Metal", "Accessories", "Tools"].map((c) => (<option key={c} value={c}>{c}</option>))}</Sel>
-          </Fld>
-          <Fld label="Unit">
-            <Sel value={form.unit || "rolls"} onChange={(e) => setForm({ ...form, unit: e.target.value })}>{["rolls", "boxes", "each", "tubes", "bundles", "packs", "sheets", "gallons", "lbs"].map((u) => (<option key={u} value={u}>{u}</option>))}</Sel>
-          </Fld>
-          <Fld label="Low Threshold Alert Level"><Inp type="number" value={form.alrt || ""} onChange={(e) => setForm({ ...form, alrt: e.target.value })} /></Fld>
-          {perms.inv_pricing_edit && (
-            <Fld label="Current Price Per Unit">
-              <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}>$</span><Inp type="number" step="0.01" value={form.price || ""} onChange={(e) => setForm({ ...form, price: e.target.value })} style={{ paddingLeft: 22 }} /></div>
-            </Fld>
-          )}
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
-            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
-            <Btn v="primary" onClick={editItem} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Saving..." : "Save Changes"}</Btn>
-          </div>
-        </Modal>
-      )}
-
       {/* ── 🧰 JOB MATERIAL TEMPLATES MANAGER ── */}
       {modal === "tpl" && <JobTemplatesModal inv={inv} onClose={() => setModal(null)} />}
 
@@ -959,44 +333,69 @@ export default function InventoryView({
         <BulkReceiveModal inv={inv} setInv={setInv} users={users} user={user} perms={perms} onClose={() => setModal(null)} />
       )}
 
+      {modal === "detail" && sel && (
+        <ItemDetailModal
+          item={sel}
+          users={users}
+          perms={perms}
+          onSetPhoto={setPhoto}
+          onEdit={() => setModal("edit")}
+          onReceive={() => setModal("rcv")}
+          onAdjust={() => setModal("adjust")}
+          onDelete={deleteItem}
+          onCorrectBatch={(b) => { setBatchSel(b); setModal("batch"); }}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {(modal === "add" || (modal === "edit" && sel)) && (
+        <ItemFormModal
+          item={modal === "edit" ? sel : null}
+          user={user}
+          perms={perms}
+          fetchLiveBatches={fetchLiveBatches}
+          onCreated={(record) => setInv((p) => [...p, record])}
+          onSaved={patchItem}
+          onClose={() => setModal(modal === "edit" ? "detail" : null)}
+        />
+      )}
+
       {modal === "rcv" && sel && (
-        <Modal title={`Receive Inbound Stock: ${sel.name}`} onClose={() => setModal(null)}>
-          <Fld label="Date Received"><Inp type="date" value={form.date || ""} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Fld>
-          <Fld label={`Quantity to Inject (${sel.unit})`}><Inp type="number" value={form.qty || ""} onChange={(e) => setForm({ ...form, qty: e.target.value })} /></Fld>
-          <Fld label="Invoice / PO Number"><Inp value={form.ref || ""} onChange={(e) => setForm({ ...form, ref: e.target.value })} placeholder="e.g. 2011850932-001" /></Fld>
-          <Fld label="Supplier / Vendor"><Inp value={form.vendor || ""} onChange={(e) => setForm({ ...form, vendor: e.target.value })} placeholder="e.g. ABC Supply" /></Fld>
-          {perms.inv_pricing_edit ? (
-            <Fld label="Price Per Unit">
-              <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}>$</span><Inp type="number" step="0.01" value={form.price || ""} onChange={(e) => setForm({ ...form, price: e.target.value })} style={{ paddingLeft: 22 }} /></div>
-            </Fld>
-          ) : (
-            <div style={{ background: C.aB, border: `1px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "8px 12px", marginBottom: 12, fontSize: "var(--text-sm)", color: C.am }}>
-              Pricing is lock-restricted. Last batch unit valuations will automatically cycle carry over.
-            </div>
-          )}
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
-            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
-            <Btn v="primary" onClick={rcvBatch} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Processing..." : "Receive Batch"}</Btn>
-          </div>
-        </Modal>
+        <ReceiveBatchModal
+          item={sel}
+          user={user}
+          users={users}
+          perms={perms}
+          fetchLiveBatches={fetchLiveBatches}
+          onReceived={patchBatches}
+          onClose={() => setModal("detail")}
+        />
       )}
 
       {modal === "adjust" && sel && (
-        <Modal title={`Adjust Stock: ${sel.name}`} onClose={() => setModal(null)}>
-          <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "8px 12px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.sub }}>
-            Current on-hand: <strong style={{ color: C.navy }}>{tot(sel)} {sel.unit}</strong>
-          </div>
-          <Fld label={`Corrected Quantity (${sel.unit})`}>
-            <Inp type="number" min="0" value={form.newQty ?? ""} onChange={(e) => setForm({ ...form, newQty: e.target.value })} />
-          </Fld>
-          <Fld label="Reason for Correction" hint="e.g. physical count, damaged goods, miscount">
-            <TA value={form.reason || ""} onChange={(e) => setForm({ ...form, reason: e.target.value })} />
-          </Fld>
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
-            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
-            <Btn v="gold" onClick={adjustStock} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Saving..." : "Save Correction"}</Btn>
-          </div>
-        </Modal>
+        <AdjustStockModal
+          item={sel}
+          user={user}
+          users={users}
+          fetchLiveBatches={fetchLiveBatches}
+          onAdjusted={patchBatches}
+          onClose={() => setModal("detail")}
+        />
+      )}
+
+      {modal === "batch" && sel && batchSel && (
+        <BatchCorrectionModal
+          item={sel}
+          batch={batchSel}
+          jobs={jobs}
+          users={users}
+          user={user}
+          perms={perms}
+          fetchLiveBatches={fetchLiveBatches}
+          onCorrected={patchBatches}
+          onJobRecosted={(jobId, next) => setJobs?.((p) => p.map((x) => (x.id === jobId ? { ...x, ...next } : x)))}
+          onClose={() => { setBatchSel(null); setModal("detail"); }}
+        />
       )}
 
     </div>

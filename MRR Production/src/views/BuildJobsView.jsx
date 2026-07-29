@@ -1,6 +1,6 @@
 // src/views/BuildJobsView.jsx
 import { useState, useMemo, useEffect } from "react";
-import { C, uid, fd, fm, tot, mkJI, newestPrice } from "../utils/helpers";
+import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal } from "../utils/helpers";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
 import { shouldNotifyJobMove, notifyJobMove } from "../utils/jobNotifications";
@@ -294,7 +294,7 @@ export default function BuildJobs({
       title: wPO.name,       
       addr: wPO.addr,
       notes: wPO.notes,
-      scheduledDate: wPO.scheduledDate || new Date().toISOString().split("T")[0],
+      scheduledDate: wPO.scheduledDate || todayLocal(),
       status: asDraft ? "draft" : "approved",
       assignedto: wAssign,   
       created: now,          

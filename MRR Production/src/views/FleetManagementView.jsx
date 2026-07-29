@@ -10,7 +10,7 @@ import {
   Modal,
   PhotoUpload,
 } from "../components/UIPrimitives";
-import { C, uid } from "../utils/helpers";
+import { C, uid, todayLocal } from "../utils/helpers";
 import { learnServiceIntervals } from "../utils/patterns";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
@@ -780,7 +780,7 @@ export default function FleetManagementView({
                 sz="sm"
                 onClick={() => {
                   setForm({
-                    date: new Date().toISOString().split("T")[0],
+                    date: todayLocal(),
                     mi: sel.mi,
                   });
                   setModal("mi");
@@ -796,7 +796,7 @@ export default function FleetManagementView({
                 onClick={() => {
                   setForm({
                     type: "Oil Change",
-                    date: new Date().toISOString().split("T")[0],
+                    date: todayLocal(),
                     mi: sel.mi,
                   });
                   setModal("svc");

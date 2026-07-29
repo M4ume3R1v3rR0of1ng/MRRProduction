@@ -1,6 +1,7 @@
 // src/utils/patterns.js
 // Pure, in-memory pattern analysis over already-loaded fleet/maintenance data —
 // same style as oilSt/detSt/predDays in helpers.js. No backend, no training.
+import { parseDay, formatDay } from "./helpers";
 
 // Learns each vehicle's real-world interval (days + miles) per service type
 // from its own service log (vehicle.sl) and projects the next due date/mileage.
@@ -32,9 +33,10 @@ export function learnServiceIntervals(vehicle) {
     const avgDays = dayGaps.reduce((a, b) => a + b, 0) / dayGaps.length;
     const avgMiles = mileGaps.length ? mileGaps.reduce((a, b) => a + b, 0) / mileGaps.length : null;
     const last = sorted[sorted.length - 1];
-    const predictedNextDate = new Date(new Date(last.dt).getTime() + avgDays * 86400000)
-      .toISOString()
-      .split("T")[0];
+    // Both ends stay in local calendar space. Parsing with new Date() and
+    // formatting with toISOString() would shift the projection across a day
+    // boundary twice over, in opposite directions.
+    const predictedNextDate = formatDay(new Date(parseDay(last.dt).getTime() + avgDays * 86400000));
 
     results.push({
       type,

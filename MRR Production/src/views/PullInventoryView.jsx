@@ -1,7 +1,7 @@
 // src/views/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
 import { useState, useEffect } from "react";
-import { C, fd, fm, doFifo, uid, tot, ft, mkJI, mergePullTracking } from "../utils/helpers";
+import { C, fd, fm, doFifo, uid, tot, ft, mkJI, mergePullTracking, todayLocal } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { generatePDF } from "../utils/pdfGenerator";
 import { attemptAccuLynxSync } from "../utils/accuLynxSync";
@@ -414,7 +414,7 @@ export default function PullInventory({
         if (ret > 0 && freshById.has(item.iid)) {
           const nb = {
             id: uid(),
-            rcvd: new Date().toISOString().split("T")[0],
+            rcvd: todayLocal(),
             qty: ret,
             price: item.priceAtPull || 0,
             by: user.id,

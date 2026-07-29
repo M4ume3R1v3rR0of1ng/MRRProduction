@@ -88,10 +88,50 @@ export const HEX = {
 // 2. Short Unique ID Generator String Macro
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
+// ── Calendar days vs instants ──
+//
+// A "2026-05-01" in this app means a calendar day: the day a batch was received,
+// a job is scheduled, a truck was detailed. It is not an instant in time.
+//
+// JavaScript disagrees, and inconsistently. Per ECMA-262:
+//
+//   new Date("2026-05-01")            -> UTC midnight
+//   new Date("2026-05-01T00:00:00")   -> LOCAL midnight
+//
+// Date-only was aligned with ISO 8601; date-time was left local for web
+// compatibility. So the bare form lands at UTC midnight, which is the PREVIOUS
+// day everywhere west of Greenwich — a batch received May 1 rendered "Apr 30"
+// for every US user.
+//
+// parseDay reads a calendar day as local midnight. Anything else (a full
+// timestamp with a Z or an offset, a Date, a number) falls straight through
+// untouched, so instants keep their real meaning.
+const DAY_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+export const parseDay = (d) => {
+  const m = typeof d === "string" && DAY_ONLY.exec(d);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : new Date(d);
+};
+
+// A Date to "YYYY-MM-DD" using LOCAL components.
+//
+// The mirror of the bug above. Writing a day with
+//   new Date().toISOString().split("T")[0]
+// takes the UTC date, so at UTC-4 anything entered after 8pm local was stored as
+// tomorrow. The two skews partially cancelled on display, which is why this went
+// unnoticed — an evening entry was written +1 and rendered -1.
+export const formatDay = (date) => {
+  const dt = date instanceof Date ? date : new Date(date);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+};
+
+// Today's calendar day where the user actually is.
+export const todayLocal = () => formatDay(new Date());
+
 // 3. Date Formatting Utility (e.g., "May 28, 2026")
 export const fd = (d) =>
   d
-    ? new Date(d).toLocaleDateString("en-US", {
+    ? parseDay(d).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -100,7 +140,7 @@ export const fd = (d) =>
 
 // 4. Timestamp Formatting Utility (e.g., "May 28, 2026, 11:21 AM")
 export const ft = (d) =>
-  new Date(d).toLocaleString("en-US", {
+  parseDay(d).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "numeric",
@@ -212,7 +252,7 @@ export const doFifo = (item, qty) => {
     c += r * lastPrice;
     const neg = {
       id: "neg_" + Math.random().toString(36).slice(2, 10),
-      rcvd: new Date().toISOString().split("T")[0],
+      rcvd: todayLocal(),
       qty: -r,
       price: lastPrice,
       by: "system",
@@ -289,7 +329,12 @@ export const displayName = (user) =>
 
 export const detSt = (v) => {
   if (!v.ldd) return "overdue";
-  const d = (new Date() - new Date(v.ldd)) / 86400000;
+  // parseDay, not new Date: this subtracts a stored calendar day from the local
+  // clock. Parsing ldd as UTC midnight mixed reference frames and made the
+  // interval read up to a full timezone offset long, so "detail due" tripped
+  // early. The elapsed-days comparison below is only meaningful if both sides
+  // are in the same frame.
+  const d = (new Date() - parseDay(v.ldd)) / 86400000;
   return d >= v.dii ? "overdue" : d >= v.dii * 0.8 ? "soon" : "ok";
 };
 
