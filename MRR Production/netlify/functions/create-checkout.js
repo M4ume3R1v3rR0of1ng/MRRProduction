@@ -88,12 +88,39 @@ export const handler = async (event) => {
   const stripe = new Stripe(secretKey);
 
   try {
-    // Existing account? Then this is someone starting a SECOND company. Attach them;
-    // ignore any password they typed (we must never reset an existing user's password
-    // from an unauthenticated endpoint — that's account takeover).
+    // Existing account? Then this is someone starting a SECOND company. Attaching a
+    // real account to a new company is an AUTHENTICATED action, so prove it is them.
+    //
+    // Without this check the endpoint mutated other people's rows while completely
+    // unauthenticated: anyone who knew an address could POST it and have that user
+    // silently made an admin member of a company they never asked for, with their
+    // profiles.role overwritten and — if it was still null — their active_company_id
+    // pointed at a company they cannot use. The password was already correctly
+    // refused here (that would be outright account takeover); the membership and
+    // profile writes below were not.
     const { data: existing } = await admin.from("profiles").select("id").eq("email", email).maybeSingle();
 
+    // NOTE ON THE SECOND-COMPANY FLOW: there is currently no in-app entry point for
+    // starting another company — CompanySwitcher only moves between memberships you
+    // already have, and a signed-in user cannot reach the signup form at all. So in
+    // practice this branch is only reachable by someone typing an address that is
+    // already taken, and the honest answer is to say so. If a real second-company
+    // flow is built later, it can post an accessToken here and this check passes.
+    if (existing) {
+      const { data: authData } = await admin.auth.getUser(body.accessToken || "");
+      if (!authData?.user || authData.user.id !== existing.id) {
+        return {
+          statusCode: 401,
+          headers,
+          body: JSON.stringify({
+            error: "An account already uses that email address. Sign in instead.",
+          }),
+        };
+      }
+    }
+
     let userId = existing?.id || null;
+    const isNewUser = !userId;
     if (!userId) {
       if (!password || password.length < 8) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a password of at least 8 characters." }) };
@@ -132,7 +159,13 @@ export const handler = async (event) => {
       { user_id: userId, company_id: company.id, role: "admin", active: true },
       { onConflict: "user_id,company_id" },
     );
-    await admin.from("profiles").update({ role: "admin" }).eq("id", userId);
+    // profiles.role is deprecated (memberships.role is the source of truth) and is
+    // a GLOBAL column, not per-company. Only seed it for an account we just made;
+    // rewriting an existing user's copy from here is a cross-user side effect that
+    // this endpoint has no business having.
+    if (isNewUser) {
+      await admin.from("profiles").update({ role: "admin" }).eq("id", userId);
+    }
     await admin.from("profiles").update({ active_company_id: company.id }).eq("id", userId).is("active_company_id", null);
 
     // A Stripe customer, remembered on the (secret) row so the webhook can map back.
