@@ -61,6 +61,10 @@ export default function Sidebar({
   // ── 🟢 TRANSLATED DYNAMIC SIDEBAR Blueprints ──
  const navItems = [
     { id: "dashboard", icon: "🏠", label: t.dashboard || "Dashboard", badge: chatUnread, badgeColor: C.rd },
+    // No permission gate: it only surfaces jobs and maintenance the viewer can
+    // already see elsewhere, and knowing what is on the calendar is the point of
+    // being on a crew.
+    { id: "schedule", icon: "🗓️", label: t.schedule || "Schedule" },
     ...(perms.jobs_build || perms.jobs_close
       ? [{
           id: "buildjobs",

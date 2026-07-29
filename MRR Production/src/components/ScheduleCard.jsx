@@ -10,76 +10,8 @@
 // already committed, or a truck due in the shop on a day it is scheduled to run.
 // So this shows all three sources against the same seven days and flags the
 // collisions. Editing still belongs to the full calendars.
-import { C, parseDay, formatDay, todayLocal } from "../utils/helpers";
-
-const DAY_MS = 86400000;
-
-// Seven day keys starting from `from`. Built by stepping a local Date rather
-// than adding 86400000 to a timestamp, so a DST boundary does not produce a
-// duplicated or skipped day.
-export const dayKeys = (from = todayLocal(), count = 7) => {
-  const start = parseDay(from);
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-    return formatDay(d);
-  });
-};
-
-// Jobs and maintenance both store a day, but not in the same shape: jobs use
-// `scheduledDate` (and older rows fall back to createdAt), maintenance uses
-// `scheduled_date` and may carry a full timestamp. Normalise to a day key.
-export const dayKeyOf = (value) => (value ? String(value).split("T")[0] : null);
-
-// Everything happening in the window, bucketed by day.
-//
-// A job counts on its scheduled day; a job with no schedule is not guessed at
-// and simply does not appear. Maintenance counts only once it has actually been
-// scheduled, since a pending request has no date to place it on.
-export const buildSchedule = ({ jobs = [], reqs = [], jobTrailers = [], vehs = [], users = [], from, days = 7 } = {}) => {
-  const keys = dayKeys(from, days);
-  const window = new Set(keys);
-  const buckets = new Map(keys.map((k) => [k, { key: k, jobs: [], maint: [], trailerIds: new Set() }]));
-
-  for (const j of jobs) {
-    if (j.status === "completed" || j.status === "closed") continue;
-    const key = dayKeyOf(j.scheduledDate);
-    if (!key || !window.has(key)) continue;
-    const bucket = buckets.get(key);
-    const trailerIds = jobTrailers.filter((jt) => jt.job_id === j.id).map((jt) => jt.trailer_id);
-    trailerIds.forEach((id) => bucket.trailerIds.add(id));
-    bucket.jobs.push({
-      id: j.id,
-      title: j.title || j.name || j.po || "Untitled job",
-      status: j.status,
-      supervisor: users.find((u) => u.id === (j.assignedto || j.assignedTo))?.name || null,
-      trailers: trailerIds.map((id) => vehs.find((v) => v.id === id)?.name).filter(Boolean),
-    });
-  }
-
-  for (const r of reqs) {
-    if (r.status === "completed") continue;
-    const key = dayKeyOf(r.scheduled_date);
-    if (!key || !window.has(key)) continue;
-    buckets.get(key).maint.push({
-      id: r.id,
-      vehicle: vehs.find((v) => String(v.id) === String(r.vehicle_id))?.name || r.vname || "Vehicle",
-      vehicleId: r.vehicle_id,
-      issue: r.type || r.issue || "Service",
-      urgency: r.urgency,
-    });
-  }
-
-  return keys.map((k) => {
-    const b = buckets.get(k);
-    // A truck cannot be out on a job and in the shop on the same day. That is
-    // the collision worth surfacing, and no single existing calendar can see it.
-    const bookedIds = new Set(b.trailerIds);
-    const conflicts = b.maint
-      .filter((m) => bookedIds.has(m.vehicleId))
-      .map((m) => m.vehicle);
-    return { ...b, trailerCount: b.trailerIds.size, conflicts };
-  });
-};
+import { C, parseDay, todayLocal } from "../utils/helpers";
+import { buildSchedule } from "../utils/schedule";
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -100,9 +32,20 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
         <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>
           🗓️ {es ? "La semana que viene" : "The week ahead"}
         </h3>
-        <span style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)" }}>
-          {totalJobs} {es ? "trabajos" : totalJobs === 1 ? "job" : "jobs"} · {totalMaint} {es ? "en taller" : "in shop"}
-        </span>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-4)" }}>
+          <span style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)" }}>
+            {totalJobs} {es ? "trabajos" : totalJobs === 1 ? "job" : "jobs"} · {totalMaint} {es ? "en taller" : "in shop"}
+          </span>
+          {/* The way through to the full month view, where the past lives. This
+              card only ever shows the next seven days. */}
+          <button
+            onClick={() => onNav?.("schedule")}
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit",
+                     fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.blue, whiteSpace: "nowrap" }}
+          >
+            {es ? "Ver calendario completo →" : "Full calendar →"}
+          </button>
+        </div>
       </div>
 
       {anyConflict && (

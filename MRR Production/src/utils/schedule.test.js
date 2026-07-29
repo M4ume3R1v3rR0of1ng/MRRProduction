@@ -1,4 +1,4 @@
-// src/components/ScheduleCard.test.js
+// src/utils/schedule.test.js
 //
 // The week-ahead strip. Its job is to put jobs, trailers and shop time on one
 // set of days, which no existing calendar can do — each of the three lives in a
@@ -10,8 +10,9 @@
 import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
-import ScheduleCard, { dayKeys, dayKeyOf, buildSchedule } from "./ScheduleCard.jsx";
-import { todayLocal, parseDay, formatDay } from "../utils/helpers";
+import ScheduleCard from "../components/ScheduleCard.jsx";
+import { dayKeys, dayKeyOf, buildSchedule, monthGrid, isFinishedJob } from "./schedule";
+import { todayLocal, parseDay, formatDay } from "./helpers";
 
 const plusDays = (n) => {
   const d = parseDay(todayLocal());
@@ -195,5 +196,103 @@ describe("ScheduleCard render", () => {
 
   it("renders in Spanish when asked", () => {
     expect(render({ lang: "es" })).toContain("La semana que viene");
+  });
+});
+
+describe("monthGrid", () => {
+  it("returns whole weeks, Sunday-first", () => {
+    const g = monthGrid(2026, 6); // July 2026
+    expect(g.length % 7).toBe(0);
+    expect(parseDay(g[0]).getDay()).toBe(0);
+    expect(parseDay(g[g.length - 1]).getDay()).toBe(6);
+  });
+
+  it("contains every day of the month", () => {
+    const g = monthGrid(2026, 1); // February 2026, 28 days
+    for (let d = 1; d <= 28; d++) {
+      expect(g).toContain(`2026-02-${String(d).padStart(2, "0")}`);
+    }
+  });
+
+  it("pads with the surrounding months so the first lands on its real weekday", () => {
+    // 1 July 2026 is a Wednesday, so the grid opens on Sunday 28 June.
+    const g = monthGrid(2026, 6);
+    expect(g[0]).toBe("2026-06-28");
+    expect(g[3]).toBe("2026-07-01");
+  });
+
+  it("covers a leap February", () => {
+    expect(monthGrid(2028, 1)).toContain("2028-02-29");
+  });
+
+  it("handles a month that starts on a Sunday without a blank leading week", () => {
+    // 1 November 2026 is a Sunday.
+    expect(monthGrid(2026, 10)[0]).toBe("2026-11-01");
+  });
+
+  it("has no duplicate days", () => {
+    const g = monthGrid(2026, 2); // March, across the DST change in most of the US
+    expect(new Set(g).size).toBe(g.length);
+  });
+});
+
+describe("history (includeFinished)", () => {
+  // The month view exists to look backwards. Hiding finished work there would
+  // make every past month look empty, which is the opposite of the point.
+  const past = plusDays(-40);
+  const jobs = [
+    { id: "done", title: "Finished re-roof", status: "completed", scheduledDate: past },
+    { id: "open", title: "Still open", status: "active", scheduledDate: past },
+  ];
+  const reqs = [{ id: "r1", vehicle_id: "v1", status: "completed", scheduled_date: past }];
+  const keys = [past];
+
+  it("omits finished work by default, as the dashboard card needs", () => {
+    const [day] = buildSchedule({ jobs, reqs, vehs, keys });
+    expect(day.jobs.map((j) => j.id)).toEqual(["open"]);
+    expect(day.maint).toHaveLength(0);
+  });
+
+  it("includes finished work when asked, as the month view needs", () => {
+    const [day] = buildSchedule({ jobs, reqs, vehs, keys, includeFinished: true });
+    expect(day.jobs.map((j) => j.id).sort()).toEqual(["done", "open"]);
+    expect(day.maint).toHaveLength(1);
+  });
+
+  it("marks which entries are finished so they can be styled apart", () => {
+    const [day] = buildSchedule({ jobs, reqs, vehs, keys, includeFinished: true });
+    expect(day.jobs.find((j) => j.id === "done").finished).toBe(true);
+    expect(day.jobs.find((j) => j.id === "open").finished).toBe(false);
+    expect(day.maint[0].finished).toBe(true);
+  });
+
+  it("does not raise a conflict over work that already finished", () => {
+    // A trailer that was booked and serviced the same day last month is history,
+    // not something to warn about now.
+    const j = [{ id: "j1", title: "Old", status: "completed", scheduledDate: past }];
+    const jt = [{ job_id: "j1", trailer_id: "v2" }];
+    const r = [{ id: "r1", vehicle_id: "v2", status: "completed", scheduled_date: past }];
+    const [day] = buildSchedule({ jobs: j, reqs: r, jobTrailers: jt, vehs, keys, includeFinished: true });
+    expect(day.conflicts).toEqual([]);
+  });
+
+  it("still raises a conflict for unfinished work in the past", () => {
+    const j = [{ id: "j1", title: "Old", status: "active", scheduledDate: past }];
+    const jt = [{ job_id: "j1", trailer_id: "v2" }];
+    const r = [{ id: "r1", vehicle_id: "v2", status: "scheduled", scheduled_date: past }];
+    const [day] = buildSchedule({ jobs: j, reqs: r, jobTrailers: jt, vehs, keys, includeFinished: true });
+    expect(day.conflicts).toEqual(["Trailer 1"]);
+  });
+});
+
+describe("isFinishedJob", () => {
+  it("counts completed and closed", () => {
+    expect(isFinishedJob({ status: "completed" })).toBe(true);
+    expect(isFinishedJob({ status: "closed" })).toBe(true);
+  });
+  it("does not count work still in flight", () => {
+    for (const s of ["draft", "approved", "active"]) {
+      expect(isFinishedJob({ status: s })).toBe(false);
+    }
   });
 });

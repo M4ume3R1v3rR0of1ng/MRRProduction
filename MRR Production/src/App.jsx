@@ -35,6 +35,7 @@ const ResetPasswordScreen = lazy(() => import("./views/ResetPasswordScreen"));
 const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
 const BillingView = lazy(() => import("./views/BillingView"));
 const DashboardView = lazy(() => import("./views/DashboardView"));
+const ScheduleView = lazy(() => import("./views/ScheduleView"));
 const ProfileView = lazy(() => import("./views/ProfileView"));
 const InventoryView = lazy(() => import("./views/InventoryView.jsx"));
 const BuildJobsView = lazy(() => import("./views/BuildJobsView"));
@@ -471,6 +472,18 @@ return (
             <Suspense fallback={<ChunkFallback />}>
             {view === "dashboard" && (
               <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} setReqs={app.setReqs} company={app.company} activeLogo={app.activeLogo} />
+            )}
+            {view === "schedule" && (
+              <ScheduleView
+                jobs={app.jobs}
+                reqs={app.reqs}
+                vehs={app.vehs}
+                jobTrailers={app.jobTrailers}
+                users={app.users}
+                jSC={jSC}
+                onNav={navigateTo}
+                lang={lang}
+              />
             )}
             {view === "buildjobs" && (app.userPerms.jobs_build || app.userPerms.jobs_close) && (
               <BuildJobsView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} openItemId={searchTargetFor("buildjobs")} onOpenItemHandled={clearSearchTarget} activeLogo={app.activeLogo}/>

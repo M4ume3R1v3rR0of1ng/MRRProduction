@@ -26,6 +26,7 @@ import { renderToString } from "react-dom/server";
 import InventoryView from "./InventoryView.jsx";
 import FleetManagementView from "./FleetManagementView.jsx";
 import BuildJobsView from "./BuildJobsView.jsx";
+import ScheduleView from "./ScheduleView.jsx";
 import { tot, oilSt, detSt, predDays, fd, fm } from "../utils/helpers";
 import { NotificationProvider } from "../context/NotificationContext";
 
@@ -166,5 +167,35 @@ describe("shared helpers the views depend on", () => {
   it("totals FIFO batches", () => {
     expect(tot(inv[0])).toBe(142);
     expect(tot(inv[1])).toBe(0);
+  });
+});
+
+// ── ScheduleView ──
+// Added with the full month calendar. It is read-only, so a render test covers
+// most of what can go wrong: the grid builds, history shows, and the nav works.
+describe("ScheduleView", () => {
+  const scheduleProps = {
+    jobs, reqs, vehs, jobTrailers: [{ job_id: "j1", trailer_id: "v2" }],
+    users, jSC, onNav: noop, lang: "en",
+  };
+
+  it("renders the current month with weekday headers", () => {
+    const html = render(ScheduleView, scheduleProps);
+    expect(html).toContain("Schedule");
+    for (const d of ["Sun", "Wed", "Sat"]) expect(html).toContain(d);
+  });
+
+  it("shows a legend explaining the marks", () => {
+    const html = render(ScheduleView, scheduleProps);
+    expect(html).toContain("booked and in the shop");
+    expect(html).toContain("faded = finished");
+  });
+
+  it("renders with nothing scheduled at all", () => {
+    expect(() => render(ScheduleView, { ...scheduleProps, jobs: [], reqs: [] })).not.toThrow();
+  });
+
+  it("renders with no props beyond onNav", () => {
+    expect(() => render(ScheduleView, { onNav: noop })).not.toThrow();
   });
 });
