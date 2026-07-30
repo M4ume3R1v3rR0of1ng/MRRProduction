@@ -14,8 +14,15 @@ async function fetchWithRetry(url, options, retries = 2) {
 }
 
 export async function attemptAccuLynxSync(job, users, config, setJobs) {
-  const totalCost = Array.isArray(job?.items) 
-    ? job.items.reduce((s, i) => {
+  // `items` and `materials` are the same list under two names. The build wizard
+  // writes `materials`; PullInventoryView writes both. Every other reader in the
+  // app does `items || materials` — this one didn't, so a job that reached
+  // completion without a pull having rewritten `items` synced a cost of $0 and
+  // was silently skipped as "no material cost".
+  const lines = Array.isArray(job?.items) ? job.items : (Array.isArray(job?.materials) ? job.materials : null);
+
+  const totalCost = lines
+    ? lines.reduce((s, i) => {
         const itemPrice = i.priceAtPull !== undefined ? i.priceAtPull : (i.cost || i.price || 0);
         return s + (Math.max(0, (i.pulled || 0) - (i.returned || 0))) * itemPrice;
       }, 0)
@@ -26,9 +33,9 @@ export async function attemptAccuLynxSync(job, users, config, setJobs) {
     acculynxJobId: job?.acculynx_job_id || null, // Direct target when the job was linked via the wizard
     paymentDescription: `Material Cost — ${job?.name || job?.title || 'Job'}`, 
     totalMaterialCost: parseFloat(totalCost.toFixed(2)), 
-    lineItems: Array.isArray(job?.items)
-      ? job.items
-          .filter(i => (i.pulled || 0) - (i.returned || 0) > 0) 
+    lineItems: lines
+      ? lines
+          .filter(i => (i.pulled || 0) - (i.returned || 0) > 0)
           .map(i => {
             const itemPrice = i.priceAtPull !== undefined ? i.priceAtPull : (i.cost || i.price || 0); 
             return {

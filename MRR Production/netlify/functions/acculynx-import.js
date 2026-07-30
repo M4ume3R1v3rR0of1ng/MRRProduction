@@ -47,14 +47,41 @@ async function fetchJobsPage(apiKey, pageStartIndex = 0, pageSize = 25, mileston
   return acculynxFetch(`/jobs?pageSize=${pageSize}&recordStartIndex=${pageStartIndex}${milestoneParam}`, apiKey);
 }
 
-// Full details for one job (includes milestone/status, addresses, contact refs)
-async function fetchJobDetails(apiKey, jobId) {
-  return acculynxFetch(`/jobs/${jobId}`, apiKey);
-}
-
-// Customer/contact record tied to the job
+// Customer/contact record tied to the job. Returns firstName/lastName, but its
+// emailAddresses and phoneNumbers are REFERENCE STUBS — `{ id, _link }` with no
+// value on them. The actual address and number live on the sub-collections below.
 async function fetchContact(apiKey, contactId) {
   return acculynxFetch(`/contacts/${contactId}`, apiKey);
+}
+
+// The contact's real email / phone. Verified against the live API:
+//   /contacts/{id}/email-addresses -> { items: [{ id, address, primary, type }] }
+//   /contacts/{id}/phone-numbers   -> { items: [{ id, number, ext, type, primary }] }
+// Prefer the one flagged primary, else take the first.
+function pickPrimary(items) {
+  const list = Array.isArray(items) ? items : [];
+  return list.find((x) => x?.primary) || list[0] || null;
+}
+
+async function fetchContactEmail(apiKey, contactId) {
+  const d = await acculynxFetch(`/contacts/${contactId}/email-addresses`, apiKey);
+  return pickPrimary(d?.items)?.address ?? null;
+}
+
+async function fetchContactPhone(apiKey, contactId) {
+  const d = await acculynxFetch(`/contacts/${contactId}/phone-numbers`, apiKey);
+  return pickPrimary(d?.items)?.number ?? null;
+}
+
+// Which contact is the customer. A job carries `contacts: [{ id, contact: { id },
+// isPrimary }]` — the id we want is the NESTED contact.id, not the join row's id.
+// The old code looked for job.contactId / job.primaryContact.id / job.contact.id,
+// none of which exist on the v2 job resource, so no contact was ever fetched and
+// every customer column imported as null.
+function primaryContactId(job) {
+  const list = Array.isArray(job?.contacts) ? job.contacts : [];
+  const chosen = list.find((c) => c?.isPrimary) || list[0] || null;
+  return chosen?.contact?.id ?? null;
 }
 
 // Map AccuLynx job + contact into your Supabase jobs table shape.
@@ -65,12 +92,21 @@ async function fetchContact(apiKey, contactId) {
 // always written `title`), and Postgres rejects an insert naming a column that
 // doesn't exist. Readers already prefer title: `j.title || j.name` throughout.
 //
-// NOTE: verify the AccuLynx-side field names against a real response from your
-// account — log one and adjust. These follow the v2 docs conventions.
-function mapToSupabaseRow(job, contact, companyId) {
-  const primaryEmail = contact?.emailAddresses?.[0]?.emailAddress ?? null;
-  const primaryPhone = contact?.phoneNumbers?.[0]?.phoneNumber ?? null;
-  const addr = job?.jobSiteAddress ?? {};
+// Field names below are no longer guesses — they were checked against a live
+// response from the Maumee River account (job 22311). The previous mapping used
+// three fields that do not exist on the v2 job resource:
+//
+//   job.milestone.name / job.status  ->  actually `currentMilestone`, a plain string
+//   job.jobSiteAddress               ->  actually `locationAddress`
+//   job.contactId                    ->  actually contacts[].contact.id
+//
+// Postgres accepts those as nulls rather than erroring, so the import looked like
+// it worked while writing a row with nothing in it but the id, PO and title.
+function mapToSupabaseRow(job, customer, companyId) {
+  // locationAddress: { street1, city, state: { abbreviation }, zipCode, country }.
+  // `state` is a nested object, not a string — writing it straight into a text
+  // column would have stored "[object Object]".
+  const addr = job?.locationAddress ?? {};
 
   return {
     // `id` is the table's other PK column and is app-generated text elsewhere, so
@@ -80,15 +116,13 @@ function mapToSupabaseRow(job, contact, companyId) {
     acculynx_job_id: job.id,
     po: job.jobNumber ?? null,
     title: job.jobName ?? null,
-    acculynx_status: job.milestone?.name ?? job.status ?? null,
-    customer_name: contact
-      ? [contact.firstName, contact.lastName].filter(Boolean).join(' ')
-      : null,
-    customer_email: primaryEmail,
-    customer_phone: primaryPhone,
-    address_street: addr.streetAddress ?? null,
+    acculynx_status: job.currentMilestone ?? null,
+    customer_name: customer?.name ?? null,
+    customer_email: customer?.email ?? null,
+    customer_phone: customer?.phone ?? null,
+    address_street: addr.street1 ?? null,
     address_city: addr.city ?? null,
-    address_state: addr.state ?? null,
+    address_state: addr.state?.abbreviation ?? null,
     address_zip: addr.zipCode ?? null,
     last_synced_at: new Date().toISOString(),
   };
@@ -164,23 +198,34 @@ export const handler = async (event) => {
     const jobs = jobsPage.items ?? jobsPage ?? [];
 
     const rows = [];
-    for (const summary of jobs) {
-      // 2. Pull full job details
-      const job = await fetchJobDetails(apiKey, summary.id);
+    for (const job of jobs) {
+      // 2. No per-job GET /jobs/{id} here. Checked against the live API: the list
+      //    response returns the identical key set to the detail response, so that
+      //    was one wasted request per job. Dropping it pays for the contact
+      //    sub-resource calls added below, keeping the request count flat — which
+      //    matters because this runs inside a Netlify function's time limit.
 
-      // 3. Pull the customer contact if the job references one
-      let contact = null;
-      const contactId =
-        job.contactId ?? job.primaryContact?.id ?? job.contact?.id ?? null;
+      // 3. Customer details. Three calls, because the contact record carries the
+      //    name but only reference stubs for email and phone. Email and phone are
+      //    fetched together since neither depends on the other.
+      let customer = null;
+      const contactId = primaryContactId(job);
       if (contactId) {
         try {
-          contact = await fetchContact(apiKey, contactId);
+          const [contact, email, phone] = await Promise.all([
+            fetchContact(apiKey, contactId),
+            fetchContactEmail(apiKey, contactId).catch(() => null),
+            fetchContactPhone(apiKey, contactId).catch(() => null),
+          ]);
+          const name = [contact?.firstName, contact?.lastName].filter(Boolean).join(' ');
+          customer = { name: name || null, email, phone };
         } catch (err) {
+          // A missing contact must not lose the job — import it without them.
           console.warn(`Contact fetch failed for job ${job.id}:`, err.message);
         }
       }
 
-      rows.push(mapToSupabaseRow(job, contact, company.id));
+      rows.push(mapToSupabaseRow(job, customer, company.id));
 
       // Be polite to the API — small delay between jobs
       await new Promise((r) => setTimeout(r, 200));

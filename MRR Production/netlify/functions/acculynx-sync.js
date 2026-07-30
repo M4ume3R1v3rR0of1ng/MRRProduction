@@ -246,6 +246,13 @@ export const handler = async (event) => {
     let notes = [body.paymentDescription, ...itemLines].filter(Boolean).join("\n");
     if (notes.length > 1900) notes = `${notes.slice(0, 1900)}…`;
 
+    // paymentDate is REQUIRED. Without it AccuLynx rejects the whole call with
+    // 400 "PaymentDate cannot be null or empty" — verified against the live API,
+    // and the reason no expense this integration ever sent has landed. The sync
+    // fires when the job is marked complete, so "now" is the honest date; callers
+    // may override it if they ever need to backdate.
+    const paymentDate = body.paymentDate || new Date().toISOString();
+
     const expenseRes = await fetch(
       `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/payments/expense`,
       {
@@ -258,6 +265,7 @@ export const handler = async (event) => {
           to: body.paidTo || "MRR Warehouse",
           amount,
           notes,
+          paymentDate,
           isPaid: true,
           refNumber: body.poNumber && body.poNumber !== "NO_PO" ? String(body.poNumber).slice(0, 255) : undefined,
         }),
