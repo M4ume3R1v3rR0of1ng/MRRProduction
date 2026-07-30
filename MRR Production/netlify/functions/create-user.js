@@ -9,10 +9,89 @@
 //     at company B set the password of an existing company A user would be an
 //     account-takeover hole.
 
-import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
+import { Resend } from "resend";
+import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders, appOrigin, platformFromAddress } from "./_shared/tenant.js";
 import { validatePassword } from "./_shared/password.js";
 
 const VALID_ROLES = ["admin", "warehouse", "coordinator", "manager", "field", "employee", "bookkeeper"];
+
+const MAIL_FROM = platformFromAddress("notifications");
+
+// Company and person names land inside an HTML email. They're admin-supplied free
+// text, so escape them rather than trusting whatever was typed into Settings.
+const esc = (s) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+// Tell a newly added user they have access.
+//
+// Two different emails, because the two paths are genuinely different:
+//
+//   New account      -> a set-your-own-password link, so the admin never has to
+//                       read a temporary password down the phone. Generated with
+//                       Supabase's recovery link, the same mechanism as the
+//                       "Forgot password?" flow, so it lands on ResetPasswordScreen.
+//
+//   Existing account -> NO password link. They already have a password, and
+//                       minting a recovery link for an existing user at the request
+//                       of a DIFFERENT company's admin is the account-takeover hole
+//                       this file's header warns about. They just get told they now
+//                       have access, and sign in the way they already do.
+//
+// Never throws. A failed invite must not fail user creation: the account and the
+// membership are already committed, and the person genuinely does have access. The
+// caller reports the failure so the admin knows to reach out directly.
+async function sendInviteEmail({ admin, targetEmail, name, isNewAccount, companyName, origin }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { invited: false, inviteError: "Email is not configured (RESEND_API_KEY is unset)." };
+
+  try {
+    let actionLink = null;
+    if (isNewAccount) {
+      const { data, error } = await admin.auth.admin.generateLink({
+        type: "recovery",
+        email: targetEmail,
+        options: { redirectTo: origin },
+      });
+      if (error) return { invited: false, inviteError: error.message };
+      actionLink = data?.properties?.action_link || null;
+    }
+
+    const company = esc(companyName);
+    const greeting = name ? `Hi ${esc(name.split(" ")[0])},` : "Hi,";
+
+    const html = isNewAccount
+      ? `<h2>You've been added to ${company}</h2>
+         <p>${greeting}</p>
+         <p>An account has been created for you on the ${company} portal. Set your password to get started.</p>
+         <p style="margin:24px 0">
+           <a href="${actionLink}" style="background:#1f2937;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:600">Set your password</a>
+         </p>
+         <p style="color:#6b7280;font-size:13px">This link expires in 24 hours. If it does, use "Forgot password?" on the sign-in page to get a new one.</p>`
+      : `<h2>You now have access to ${company}</h2>
+         <p>${greeting}</p>
+         <p>Your existing account has been given access to the ${company} portal. Sign in with the password you already use, then pick ${company} from the company switcher.</p>
+         <p style="margin:24px 0">
+           <a href="${origin}" style="background:#1f2937;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:600">Go to the portal</a>
+         </p>`;
+
+    const resend = new Resend(apiKey);
+    const { error: sendError } = await resend.emails.send({
+      from: `${companyName} <${MAIL_FROM}>`,
+      to: targetEmail,
+      subject: isNewAccount ? `Your ${companyName} account is ready` : `You've been added to ${companyName}`,
+      html,
+    });
+    if (sendError) return { invited: false, inviteError: sendError.message };
+
+    return { invited: true, inviteError: null };
+  } catch (err) {
+    return { invited: false, inviteError: err.message };
+  }
+}
 
 export const handler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
@@ -29,7 +108,9 @@ export const handler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Invalid JSON body" }) };
   }
 
-  const { accessToken, name, email, role, password } = body;
+  // sendInvite defaults to true: the old behaviour (create silently, admin relays the
+  // password by hand) is the thing being fixed, so it has to be opted OUT of, not in.
+  const { accessToken, name, email, role, password, sendInvite = true } = body;
   if (!name || !email || !role) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing name, email, or role" }) };
   }
@@ -138,10 +219,25 @@ export const handler = async (event) => {
     // then delete this write and the column together.
     await admin.from("profiles").update({ role }).eq("id", userId);
 
+    // Invite last, and never fatal. Everything above is committed by this point, so a
+    // mail failure is reported alongside ok:true rather than masking a successful add.
+    let invited = false;
+    let inviteError = null;
+    if (sendInvite) {
+      ({ invited, inviteError } = await sendInviteEmail({
+        admin,
+        targetEmail,
+        name: name.trim(),
+        isNewAccount: !existing,
+        companyName: caller.companyName,
+        origin: appOrigin(event.headers?.origin || event.headers?.Origin || ""),
+      }));
+    }
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ ok: true, id: userId, addedExisting: Boolean(existing) }),
+      body: JSON.stringify({ ok: true, id: userId, addedExisting: Boolean(existing), invited, inviteError }),
     };
   } catch (err) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };

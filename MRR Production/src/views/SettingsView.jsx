@@ -246,7 +246,11 @@ export default function SettingsView({
   const tabs = [
     { id: "Permissions", label: "Permissions", icon: "🔒" },
     { id: "Notifications", label: "Notifications", icon: "🔔" },
-    { id: "AccuLynx",   label: "AccuLynx",    icon: "🔗" },
+    // "CRM Integration" rather than "AccuLynx": AccuLynx is the first CRM we
+    // connect to, not the only one planned. Naming the tab after the category
+    // means adding Jobber or ServiceTitan later is a new section in this panel,
+    // not a renamed tab and a broken bookmark.
+    { id: "CRM",        label: "CRM Integration", icon: "🔗" },
     { id: "Branding",   label: "Branding",     icon: "🏢" },
     { id: "Warehouses", label: "Warehouses",   icon: "🏭" },
     { id: "System",     label: "System",       icon: "ℹ️"  },
@@ -616,8 +620,8 @@ export default function SettingsView({
         </Card>
       )}
 
-      {/* ── PANEL: AccuLynx ────────────────────────────────────────────── */}
-      {currentTab === "AccuLynx" && (
+      {/* ── PANEL: CRM Integration ─────────────────────────────────────── */}
+      {currentTab === "CRM" && (
         <Card>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
             <SectionTitle

@@ -29,8 +29,19 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 
+// The app origin a request may be answered on. Falls back to the primary domain
+// for anything not on the allowlist.
+//
+// Use this for any URL that ends up in an email. The raw Origin header is
+// attacker-controlled, so interpolating it straight into a sign-in or
+// set-your-password link would let someone mint a credible phishing link that
+// arrives from our own verified sending domain.
+export function appOrigin(requestOrigin) {
+  return ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : ALLOWED_ORIGINS[0];
+}
+
 export function corsHeaders(requestOrigin) {
-  const origin = ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : ALLOWED_ORIGINS[0];
+  const origin = appOrigin(requestOrigin);
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "POST, OPTIONS",

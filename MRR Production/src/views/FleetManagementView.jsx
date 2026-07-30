@@ -11,6 +11,7 @@ import {
   PhotoUpload,
 } from "../components/UIPrimitives";
 import { C, uid, todayLocal } from "../utils/helpers";
+import { translations } from "../utils/translations";
 import { learnServiceIntervals } from "../utils/patterns";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
@@ -40,10 +41,12 @@ export default function FleetManagementView({
   predDays,
   fd,
   fm,
+  lang = "en",
   openItemId,
   onOpenItemHandled,
 }) {
   const { showToast } = useNotify();
+  const t = translations[lang] || translations.en;
   const [subView, setSubView] = useState("list");
   const [calSel, setCalSel] = useState(null);
   const [filt, setFilt] = useState("all");
@@ -379,11 +382,11 @@ export default function FleetManagementView({
           <h1
             style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}
           >
-            Base Fleet Management
+            {t.fleetTitle}
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-            {vehs.filter((v) => v.type === "truck").length} trucks ·{" "}
-            {vehs.filter((v) => v.type === "trailer").length} trailers
+            {vehs.filter((v) => v.type === "truck").length} {t.trucks} ·{" "}
+            {vehs.filter((v) => v.type === "trailer").length} {t.trailers}
           </p>
         </div>
         <div
@@ -424,7 +427,7 @@ export default function FleetManagementView({
                 setReqModal(true);
               }}
             >
-              🔧 Request Maintenance
+              {t.requestMaintBtn}
             </Btn>
           )}
           {subView === "list" && (
@@ -656,7 +659,7 @@ export default function FleetManagementView({
                           marginBottom: 3,
                         }}
                       >
-                        <span style={{ color: C.sub }}>Mileage</span>
+                        <span style={{ color: C.sub }}>{t.mileage}</span>
                         <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
                           {v.mi.toLocaleString()} mi
                         </span>
@@ -948,7 +951,7 @@ export default function FleetManagementView({
               ],
               ...(sel.type === "truck"
                 ? [
-                    ["Mileage", sel.mi.toLocaleString()],
+                    [t.mileage, sel.mi.toLocaleString()],
                     ["Last Oil @ Mi", sel.lomi.toLocaleString()],
                     ["Miles Rem.", Math.max(0, sel.oii - (sel.mi - sel.lomi))],
                   ]
@@ -1208,7 +1211,7 @@ export default function FleetManagementView({
             />
           </Fld>
           {sel.type === "truck" && (
-            <Fld label="Mileage">
+            <Fld label={t.mileage}>
               <Inp
                 type="number"
                 value={form.mi}

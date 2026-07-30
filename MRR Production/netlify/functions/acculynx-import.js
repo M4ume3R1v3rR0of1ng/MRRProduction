@@ -59,9 +59,11 @@ async function fetchContact(apiKey, contactId) {
 
 // Map AccuLynx job + contact into your Supabase jobs table shape.
 //
-// FIXED: this previously wrote `job_number` and `job_name`, neither of which is a
-// column on `jobs` — Postgres rejects an insert naming an unknown column, so this
-// import has never actually landed a row. The real columns are `po` and `name`.
+// The job title column is `title`, NOT `name`. This wrote `name` until now, which
+// broke the import a second time: supabase/15_jobs_schema_debt.sql dropped
+// jobs.name (it was dead — 0 of 21 rows populated, because the build wizard has
+// always written `title`), and Postgres rejects an insert naming a column that
+// doesn't exist. Readers already prefer title: `j.title || j.name` throughout.
 //
 // NOTE: verify the AccuLynx-side field names against a real response from your
 // account — log one and adjust. These follow the v2 docs conventions.
@@ -77,7 +79,7 @@ function mapToSupabaseRow(job, contact, companyId) {
     company_id: companyId,
     acculynx_job_id: job.id,
     po: job.jobNumber ?? null,
-    name: job.jobName ?? null,
+    title: job.jobName ?? null,
     acculynx_status: job.milestone?.name ?? job.status ?? null,
     customer_name: contact
       ? [contact.firstName, contact.lastName].filter(Boolean).join(' ')
@@ -184,17 +186,21 @@ export const handler = async (event) => {
       await new Promise((r) => setTimeout(r, 200));
     }
 
-    // 4. Upsert, keyed on (company_id, acculynx_job_id).
+    // 4. Upsert, keyed on the primary key (company_id, id).
     //
-    // The old onConflict: 'acculynx_job_id' could never work — no unique constraint
-    // on that column existed, and Postgres rejects an ON CONFLICT that doesn't match
-    // one. supabase/02_tenancy_tables.sql adds the composite constraint this needs.
-    // Composite is also the correct key: two companies each have their own AccuLynx
-    // account, and their job-id spaces are allowed to overlap.
+    // NOT on (company_id, acculynx_job_id): that constraint is gone as of
+    // supabase/17_multi_crew_jobs.sql, because one AccuLynx job can have several
+    // inventory jobs on our side (roofing crew and siding crew each pull their
+    // own materials). See that migration for the full reasoning.
+    //
+    // This is just as idempotent — `id` is derived from the AccuLynx job id in
+    // mapToSupabaseRow, so a re-import of job X targets the same row every time.
+    // It is also safer: keyed this way the import can only ever update rows the
+    // import created, never a job a crew built by hand against the same AccuLynx job.
     if (rows.length > 0) {
       const { error } = await supabase
         .from('jobs')
-        .upsert(rows, { onConflict: 'company_id,acculynx_job_id' });
+        .upsert(rows, { onConflict: 'company_id,id' });
       if (error) throw error;
     }
 

@@ -1,6 +1,7 @@
 // src/views/BuildJobsView.jsx
 import { useState, useMemo, useEffect } from "react";
 import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal } from "../utils/helpers";
+import { translations } from "../utils/translations";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
 import { shouldNotifyJobMove, notifyJobMove } from "../utils/jobNotifications";
@@ -29,11 +30,13 @@ export default function BuildJobs({
   jSC,
   onNav,
   acculynxConfig,
+  lang = "en",
   openItemId,
   onOpenItemHandled,
   activeLogo,
 }) {
   const { showToast } = useNotify();
+  const t = translations[lang] || translations.en;
   const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com" };
   const [subView, setSubView] = useState("list");
   // Bookkeeper-only users (jobs_close without jobs_build) land straight on the
@@ -241,10 +244,12 @@ export default function BuildJobs({
   const applyTemplate = (tpl) => {
     const missing = [];
     const additions = [];
-    (tpl.items || []).forEach((t) => {
-      const item = inv.find((i) => i && i.id === t.iid);
+    // `entry`, not `t` — `t` is the translation dictionary in this component and
+    // shadowing it here would silently break any t.key added inside this loop.
+    (tpl.items || []).forEach((entry) => {
+      const item = inv.find((i) => i && i.id === entry.iid);
       if (!item) {
-        missing.push(t.iname);
+        missing.push(entry.iname);
         return;
       }
       if (wItems.find((x) => x.iid === item.id) || additions.find((x) => x.iid === item.id)) return;
@@ -253,7 +258,7 @@ export default function BuildJobs({
         iname: item.name,
         icat: item.cat,
         unit: item.unit,
-        qty: Math.max(1, parseInt(t.qty) || 1),
+        qty: Math.max(1, parseInt(entry.qty) || 1),
         avail: tot(item),
       });
     });
@@ -266,7 +271,7 @@ export default function BuildJobs({
         "warning",
       );
     } else if (additions.length === 0) {
-      showToast(`Everything in "${tpl.name}" is already on the job list.`, "info");
+      showToast(t.bjTemplateAllPresent.replace("{name}", tpl.name), "info");
     } else {
       showToast(`"${tpl.name}" template applied — ${additions.length} item${additions.length === 1 ? "" : "s"} added. Adjust quantities in the Job List.`, "success");
     }
@@ -281,7 +286,7 @@ export default function BuildJobs({
       return;
     }
     if (!wPO.notes || !wPO.notes.trim()) {
-      showToast("Please add a job description/notes before saving.", "warning");
+      showToast(t.bjNotesRequired, "warning");
       return;
     }
 
@@ -354,8 +359,8 @@ export default function BuildJobs({
       }
       showToast(
         asDraft
-          ? "Job draft saved successfully."
-          : "Job approved and supervisor notified.",
+          ? t.bjDraftSaved
+          : t.bjJobApprovedNotified,
         "success",
       );
       setModal(null);
@@ -370,7 +375,7 @@ export default function BuildJobs({
 
   const doApprove = async () => {
     if (!apAssign) {
-      showToast("Please assign a site supervisor before approval.", "warning");
+      showToast(t.bjAssignBeforeApprove, "warning");
       return;
     }
     setApproving(true);
@@ -430,7 +435,7 @@ export default function BuildJobs({
         });
       }
 
-      showToast("Project successfully approved and assigned.", "success");
+      showToast(t.bjApproved, "success");
       setSel(null);
       setModal(null);
       setApAssign("");
@@ -465,7 +470,7 @@ export default function BuildJobs({
       setJobs((p) => p.filter((j) => j.id !== jobId));
       setJobTrailers?.((p) => p.filter((jt) => jt.job_id !== jobId));
       if (sel?.id === jobId) setSel(null);
-      showToast("Job track purged successfully.", "success");
+      showToast(t.bjPurged, "success");
     } catch (err) {
       console.error("Failed to delete job:", err);
       showToast(
@@ -559,7 +564,7 @@ export default function BuildJobs({
       setSel((p) => (p && p.id === job.id ? updated : p));
       // Email the assigned supervisor if the company enabled "Closed" notifications.
       notifyJobMove({ transition: "closed", job: updated, users, prefs: jobNotifications });
-      showToast("Project closed and archived from pipeline.", "success");
+      showToast(t.bjClosed, "success");
     } catch (err) {
       console.error("Failed to close job:", err);
       showToast(`Database Error: Could not close job. ${err.message}`, "error");
@@ -684,10 +689,10 @@ export default function BuildJobs({
             <Inp
               value={srch}
               onChange={(e) => setSrch(e.target.value)}
-              placeholder="🔍 Search by PO #, job name, or addresses..."
+              placeholder={t.bjSearchPlaceholder}
               style={{ flex: 1, minWidth: 220, maxWidth: 380 }}
             />
-            <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort jobs" style={{ width: "auto" }}>
+            <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.bjSortAria} style={{ width: "auto" }}>
               <option value="newest">↕ Date Created — Newest</option>
               <option value="oldest">↕ Date Created — Oldest</option>
               <option value="name_az">↕ Job Name — A to Z</option>
@@ -837,7 +842,7 @@ export default function BuildJobs({
                         onClick={(e) => {
                           e.stopPropagation();
                           if (!generatePDF(job, users, activeLogo, inv, company)) {
-                            showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning");
+                            showToast(t.bjPopupBlocked, "warning");
                           }
                         }}
                       >
@@ -919,7 +924,7 @@ export default function BuildJobs({
                 sz="sm"
                 onClick={() => {
                   if (!generatePDF(sel, users, activeLogo, inv, company)) {
-                    showToast("Popup blocked — allow popups for this site to open the PDF report.", "warning");
+                    showToast(t.bjPopupBlocked, "warning");
                   }
                 }}
               >
@@ -1059,7 +1064,7 @@ export default function BuildJobs({
             <strong style={{ color: C.navy }}>{sel.po} — {sel.title || sel.name}</strong>
             <div style={{ color: C.sub, marginTop: 2 }}>{Math.max((sel.items || sel.materials || []).length, 0)} items planned</div>
           </div>
-          <Fld label="Assign to Site Supervisor *">
+          <Fld label={t.bjAssignSupervisorReq}>
             <Sel value={apAssign} onChange={(e) => setApAssign(e.target.value)} disabled={approving}>
               <option value="">— Select Site Supervisor —</option>
               {fieldUsers.map((u) => (
@@ -1068,7 +1073,7 @@ export default function BuildJobs({
             </Sel>
           </Fld>
           <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
-            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }} disabled={approving}>Cancel</Btn>
+            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }} disabled={approving}>{t.bjCancel}</Btn>
             <Btn v="teal" onClick={doApprove} style={{ flex: 1, justifyContent: "center" }} disabled={approving}>
               {approving ? "⏳ Approving..." : "✅ Approve & Notify"}
             </Btn>
@@ -1110,7 +1115,7 @@ export default function BuildJobs({
           {wStep === 1 && (
             <div>
               <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: 10 }}>
-                <Inp value={axQ} onChange={(e) => setAxQ(e.target.value)} placeholder="Search AccuLynx job name or PO..." onKeyDown={(e) => e.key === "Enter" && !axL && searchAX()} style={{ flex: 1 }} disabled={axL} />
+                <Inp value={axQ} onChange={(e) => setAxQ(e.target.value)} placeholder={t.bjAxSearchPlaceholder} onKeyDown={(e) => e.key === "Enter" && !axL && searchAX()} style={{ flex: 1 }} disabled={axL} />
                 <Btn v="primary" onClick={searchAX} disabled={axL}>{axL ? "Searching..." : "🔍 Search"}</Btn>
               </div>
               {axR.length > 0 && (
@@ -1135,14 +1140,14 @@ export default function BuildJobs({
                 </div>
               )}
               <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
-                <Fld label="Job PO Number *"><Inp value={wPO.po} onChange={(e) => setWPO({ ...wPO, po: e.target.value })} placeholder="PO-2025-XXX" /></Fld>
-                <Fld label="Job Name *"><Inp value={wPO.name} onChange={(e) => setWPO({ ...wPO, name: e.target.value })} placeholder="Customer / Project Name" /></Fld>
-                <Fld label="Job Address *"><Inp value={wPO.addr} onChange={(e) => setWPO({ ...wPO, addr: e.target.value })} placeholder="123 Main St, Toledo OH" /></Fld>
-                <Fld label="Production Schedule Start Date">
-                  <Inp type="date" aria-label="Production Schedule Start Date" value={wPO.scheduledDate || ""} onChange={(e) => setWPO({ ...wPO, scheduledDate: e.target.value })} />
+                <Fld label={t.bjJobPo}><Inp value={wPO.po} onChange={(e) => setWPO({ ...wPO, po: e.target.value })} placeholder="PO-2025-XXX" /></Fld>
+                <Fld label={t.bjJobName}><Inp value={wPO.name} onChange={(e) => setWPO({ ...wPO, name: e.target.value })} placeholder={t.bjJobNamePlaceholder} /></Fld>
+                <Fld label={t.bjJobAddr}><Inp value={wPO.addr} onChange={(e) => setWPO({ ...wPO, addr: e.target.value })} placeholder={t.bjJobAddrPlaceholder} /></Fld>
+                <Fld label={t.bjSchedStart}>
+                  <Inp type="date" aria-label={t.bjSchedStart} value={wPO.scheduledDate || ""} onChange={(e) => setWPO({ ...wPO, scheduledDate: e.target.value })} />
                 </Fld>
               </div>
-              <Btn v="primary" sz="lg" onClick={() => { if (!wPO.po || !wPO.name) { showToast("PO and Job Name are strictly required fields.", "warning"); return; } setWStep(2); }} style={{ width: "100%", justifyContent: "center", marginTop: 10 }}>Continue →</Btn>
+              <Btn v="primary" sz="lg" onClick={() => { if (!wPO.po || !wPO.name) { showToast(t.bjPoNameRequired, "warning"); return; } setWStep(2); }} style={{ width: "100%", justifyContent: "center", marginTop: 10 }}>{t.bjContinue}</Btn>
             </div>
           )}
 
@@ -1178,7 +1183,7 @@ export default function BuildJobs({
                           <Btn v="primary" sz="sm" onClick={() => applyTemplate(tpl)}>+ Apply</Btn>
                         </div>
                         <div style={{ fontSize: "var(--text-2xs)", color: C.sub, lineHeight: 1.7 }}>
-                          {(tpl.items || []).map((t) => t.iname + (t.qty > 1 ? ` ×${t.qty}` : "")).join(" · ")}
+                          {(tpl.items || []).map((it) => it.iname + (it.qty > 1 ? ` ×${it.qty}` : "")).join(" · ")}
                         </div>
                       </div>
                     ))}
@@ -1190,7 +1195,7 @@ export default function BuildJobs({
 
                 {/* Column B: Real WMS System Catalog Query Feed */}
                 <div style={{ flex: 2, minWidth: 240 }}>
-                  <Inp value={iSrch} onChange={(e) => setISrch(e.target.value)} placeholder="🔍 Search inventory..." style={{ marginBottom: 8 }} />
+                  <Inp value={iSrch} onChange={(e) => setISrch(e.target.value)} placeholder={t.bjSearchInv} style={{ marginBottom: 8 }} />
                   <div style={{ maxHeight: 330, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
                     {(filtInv || []).map((item) => {
                       if (!item) return null;
@@ -1214,7 +1219,7 @@ export default function BuildJobs({
                   <div style={{ background: C.w, borderRadius: "var(--radius-lg)", padding: 12, boxShadow: "var(--shadow-sm)", position: "sticky", top: 0 }}>
                     <h4 style={{ margin: "0 0 10px", color: C.navy, fontSize: "var(--text-base)" }}>📦 Job List ({wItems.length})</h4>
                     {wItems.length === 0 ? (
-                      <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>Add items from the list</p>
+                      <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>{t.bjAddFromList}</p>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                         {wItems.map((i) => (
@@ -1235,7 +1240,7 @@ export default function BuildJobs({
               </div>
               <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
                 <Btn v="ghost" onClick={() => setWStep(1)} style={{ flex: 1, justifyContent: "center" }}>← Back</Btn>
-                <Btn v="primary" onClick={() => { if (wItems.length === 0) { showToast("Add at least one workflow material item to build a job checklist.", "warning"); return; } setWStep(3); }} style={{ flex: 1, justifyContent: "center" }}>Continue →</Btn>
+                <Btn v="primary" onClick={() => { if (wItems.length === 0) { showToast(t.bjAddOneItem, "warning"); return; } setWStep(3); }} style={{ flex: 1, justifyContent: "center" }}>{t.bjContinue}</Btn>
               </div>
             </div>
           )}
@@ -1246,15 +1251,15 @@ export default function BuildJobs({
                 <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{wPO.po} — {wPO.name}</div>
                 <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{wItems.length} items planned</div>
               </div>
-              <Fld label="Job Notes / Description *" hint="Required — describe the scope of work for the crew.">
+              <Fld label={t.bjNotes} hint={t.bjNotesHint}>
                 <TA
                   value={wPO.notes}
                   onChange={(e) => setWPO({ ...wPO, notes: e.target.value })}
-                  placeholder="e.g., Full tear-off and reroof, 30sq, GAF Timberline HDZ shingles..."
+                  placeholder={t.bjNotesPlaceholder}
                   disabled={saving}
                 />
               </Fld>
-              <Fld label="Assign to Site Supervisor" hint="Leave blank to save as draft and assign later.">
+              <Fld label={t.bjAssignSupervisor} hint={t.bjAssignLaterHint}>
                 <Sel value={wAssign} onChange={(e) => setWAssign(e.target.value)} disabled={saving}>
                   <option value="">— Assign later (save as draft) —</option>
                   {fieldUsers.map((u) => (
@@ -1266,7 +1271,7 @@ export default function BuildJobs({
                 {wAssign ? `✅ ${users.find((u) => u.id === wAssign)?.name} will be notified when you approve.` : "⚠️ No supervisor assigned — will save as draft."}
               </div>
               {vehs.some((v) => v.type === "trailer") && (
-                <Fld label="Trailers Needed" hint="Select any trailers this job needs — the site supervisor will see this list.">
+                <Fld label={t.bjTrailersNeeded} hint={t.bjTrailersHint}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                     {vehs.filter((v) => v.type === "trailer").map((v) => {
                       const checked = wTrailers.includes(v.id);

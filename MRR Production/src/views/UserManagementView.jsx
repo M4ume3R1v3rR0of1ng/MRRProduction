@@ -38,6 +38,8 @@ export default function Users({
   const [editing, setEditing] = useState(null);
   const [permUser, setPermUser] = useState(null);
   const [pwForm, setPwForm] = useState({});
+  // Lives outside `form` so resetting the form doesn't silently turn invites off.
+  const [sendInvite, setSendInvite] = useState(true);
 
   const { showToast } = useNotify();
 
@@ -110,20 +112,33 @@ export default function Users({
           showToast("Passwords don't match.", "warning");
           return;
         }
-        // Creates a real Supabase Auth user directly (no invite email) so the
-        // auth.users -> profiles trigger fires with a real, FK-valid id — a
-        // fabricated client-side UUID can never satisfy profiles_id_fkey.
+        // Creates a real Supabase Auth user directly so the auth.users -> profiles
+        // trigger fires with a real, FK-valid id — a fabricated client-side UUID can
+        // never satisfy profiles_id_fkey. The invite email is sent server-side after
+        // the membership lands, so it can include a set-your-password link.
         const accessToken = await getAccessToken();
         const response = await fetch("/.netlify/functions/create-user", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accessToken, password: form.password, ...profilePayload }),
+          body: JSON.stringify({ accessToken, password: form.password, sendInvite, ...profilePayload }),
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
 
         setUsers((p) => [...p, { id: result.id, active: true, ...profilePayload }]);
-        showToast("User created — share the temporary password with them directly.", "success");
+        // The account exists either way. Only the invite can half-fail, so say which
+        // happened — an admin who thinks an invite went out and it didn't will leave
+        // someone locked out waiting for an email.
+        if (!sendInvite) {
+          showToast("User created. Share the temporary password with them directly.", "success");
+        } else if (result.invited) {
+          showToast(`User created. Invite sent to ${profilePayload.email}.`, "success");
+        } else {
+          showToast(
+            `User created, but the invite could not be sent${result.inviteError ? `: ${result.inviteError}` : ""}. Share the temporary password with them directly.`,
+            "warning",
+          );
+        }
       }
       setModal(null);
       setForm({});
@@ -380,12 +395,28 @@ export default function Users({
           </Fld>
           {!editing && (
             <>
-              <Fld label="Temporary Password *" hint={`${PASSWORD_HINT}. Share it with the new user directly.`}>
+              <Fld
+                label="Temporary Password *"
+                hint={`${PASSWORD_HINT}. ${sendInvite ? "A fallback in case the invite email does not arrive." : "Share it with the new user directly."}`}
+              >
                 <Inp type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="e.g. Roof2026start" />
               </Fld>
               <Fld label="Confirm Password *">
                 <Inp type="password" value={form.confirmPassword || ""} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
               </Fld>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: 4 }}>
+                <Toggle on={sendInvite} onChange={() => setSendInvite((v) => !v)} />
+                <div>
+                  <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>
+                    Email them an invite
+                  </div>
+                  <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 1 }}>
+                    {sendInvite
+                      ? "They get a link to set their own password. You do not need to share the temporary one."
+                      : "No email is sent. You will need to give them the temporary password yourself."}
+                  </div>
+                </div>
+              </div>
             </>
           )}
           <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
