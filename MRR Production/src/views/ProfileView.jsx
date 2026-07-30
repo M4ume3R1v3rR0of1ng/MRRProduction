@@ -5,8 +5,10 @@ import { C, displayName } from "../utils/helpers";
 import { Fld, Inp, Btn } from "../components/UIPrimitives";
 import { dispatchSMSAlert } from "../utils/helpers";
 import { sendEmail } from "../utils/email";
+import { translations } from "../utils/translations";
 
-export default function ProfileView({ user, onUpdateUser }) {
+export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   // Identity Info States
   const [name, setName] = useState(user.name || user.full_name || "");
   const [submittingProfile, setSubmittingProfile] = useState(false);
@@ -212,11 +214,11 @@ export default function ProfileView({ user, onUpdateUser }) {
           👤 Personal Profile
         </h1>
         <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>
-          Manage your account identity details
+          {t.profIdentity}
         </p>
 
         <form onSubmit={handleProfileUpdate}>
-          <Fld label="Full Name">
+          <Fld label={t.profFullName}>
             <Inp
               type="text"
               value={name}
@@ -224,7 +226,7 @@ export default function ProfileView({ user, onUpdateUser }) {
               required
             />
           </Fld>
-          <Fld label="Email Address">
+          <Fld label={t.profEmail}>
             <Inp
               type="email"
               value={user.email}
@@ -236,7 +238,7 @@ export default function ProfileView({ user, onUpdateUser }) {
               }}
             />
           </Fld>
-          <Fld label="System Permissions Level">
+          <Fld label={t.profPermLevel}>
             <div
               style={{
                 background: "rgba(245,168,0,0.08)",
@@ -299,7 +301,7 @@ export default function ProfileView({ user, onUpdateUser }) {
           <h3
             style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: "var(--weight-black)", color: C.navy }}
           >
-            Inventory Alert Preferences
+            {t.profAlertPrefs}
           </h3>
         </div>
         <p style={{ margin: "0 0 20px 0", color: C.sub, fontSize: "var(--text-base)" }}>
@@ -308,12 +310,12 @@ export default function ProfileView({ user, onUpdateUser }) {
         </p>
 
         {/* ── PHONE NUMBER ROUTING ENTRY ── */}
-        <Fld label="Cell Phone Number (For SMS)">
+        <Fld label={t.profCellPhone}>
           <Inp
             type="tel"
             value={alertPhone}
             onChange={(e) => setAlertPhone(e.target.value)}
-            placeholder="(xxx) xxx-xxxx"
+            placeholder={t.profPhonePlaceholder}
           />
         </Fld>
 
@@ -329,7 +331,7 @@ export default function ProfileView({ user, onUpdateUser }) {
               marginBottom: 6,
             }}
           >
-            Connected Alert Email
+            {t.profAlertEmail}
           </div>
           <div
             style={{
@@ -372,7 +374,7 @@ export default function ProfileView({ user, onUpdateUser }) {
               onChange={(e) => setAlertSms(e.target.checked)}
               style={{ width: 16, height: 16 }}
             />
-            Enable Text Message (SMS) Alerts
+            {t.profEnableSms}
           </label>
 
           <label
@@ -392,7 +394,7 @@ export default function ProfileView({ user, onUpdateUser }) {
               onChange={(e) => setAlertEmail(e.target.checked)}
               style={{ width: 16, height: 16 }}
             />
-            Enable Email Notifications
+            {t.profEnableEmail}
           </label>
         </div>
 
@@ -442,11 +444,11 @@ export default function ProfileView({ user, onUpdateUser }) {
           🔐 Access Credentials
         </h2>
         <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>
-          Change your current login security details
+          {t.profSecurity}
         </p>
 
         <form onSubmit={handlePasswordChange}>
-          <Fld label="Current Password">
+          <Fld label={t.profCurrentPw}>
             <Inp
               type="password"
               value={currentPass}
@@ -461,7 +463,7 @@ export default function ProfileView({ user, onUpdateUser }) {
               margin: "16px 0",
             }}
           />
-          <Fld label="New Password">
+          <Fld label={t.profNewPw}>
             <Inp
               type="password"
               value={newPass}
@@ -469,7 +471,7 @@ export default function ProfileView({ user, onUpdateUser }) {
               required
             />
           </Fld>
-          <Fld label="Confirm New Password">
+          <Fld label={t.profConfirmPw}>
             <Inp
               type="password"
               value={confirmPass}

@@ -9,6 +9,7 @@ import IdleTimeoutWrapper from "./components/IdleTimeoutWrapper";
 
 // Centralized Stateless Calculation & Helper Utilities
 import { C, tot, oilSt, predDays, detSt, fd, fm } from "./utils/helpers";
+import { translations } from "./utils/translations";
 
 import CompanySwitcher from "./components/CompanySwitcher";
 import { SteadwerkMark, TrussMark, BRAND } from "./components/SteadwerkMark";
@@ -221,7 +222,31 @@ export default function App() {
     }
   };
 
-  const [lang, setLang] = useState("en");
+  // Language survives a reload. Without this it reset to English on every page
+  // load, so a Spanish-speaking crew member had to re-pick Spanish every single
+  // time they opened the app — which made the translations close to useless.
+  // Falls back to the browser's own language before English, so a phone set to
+  // Spanish gets a Spanish portal on first visit with nothing to configure.
+  const [lang, setLang] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sw_lang");
+      if (saved === "en" || saved === "es") return saved;
+    } catch {
+      // Private mode / storage disabled. Fall through to detection.
+    }
+    return typeof navigator !== "undefined" && String(navigator.language || "").toLowerCase().startsWith("es")
+      ? "es"
+      : "en";
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("sw_lang", lang);
+    } catch {
+      // Nothing to do — the picker still works for this session.
+    }
+  }, [lang]);
+  const t = translations[lang] || translations.en;
 
   // ── 🔑 PASSWORD RECOVERY RENDER LAYER ──
   // Takes precedence over the loading splash and the auth check: a recovery link
@@ -231,6 +256,7 @@ export default function App() {
     return (
       <Suspense fallback={<ChunkFallback full />}>
       <ResetPasswordScreen
+        lang={lang}
         onDone={() => {
           // Password changed and session signed out inside the screen. Clear the
           // recovery token from the URL and drop back to a clean login.
@@ -328,6 +354,7 @@ export default function App() {
 
 return (
 <IdleTimeoutWrapper 
+      lang={lang}
       isAuthenticated={!!app.curUser} 
       onLogout={handleLogout}
       timeout={1800000}
@@ -426,24 +453,25 @@ return (
                   onNavigate={navigateTo}
                   onOpenItem={openSearchResult}
                   onInventorySearch={setInventorySearchQuery}
+                  lang={lang}
                 />
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", flexShrink: 0, marginLeft: 24 }}>
-                <SyncIndicator />
+                <SyncIndicator lang={lang} />
                 {app.newJobsForMe > 0 && (
                   <div onClick={() => navigateTo("pull")} style={{ background: C.tB, color: C.tl, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
-                    🎉 {app.newJobsForMe} new job{app.newJobsForMe !== 1 ? "s" : ""}
+                    🎉 {app.newJobsForMe} {app.newJobsForMe === 1 ? t.chromeNewJobOne : t.chromeNewJobMany}
                   </div>
                 )}
                 {app.pendingReqCount > 0 && app.userPerms.maint_manage && (
                   <div onClick={() => navigateTo("requests")} style={{ background: C.pB, color: C.pu, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
-                    🔧 {app.pendingReqCount} pending
+                    🔧 {app.pendingReqCount} {t.chromePending}
                   </div>
                 )}
                 {app.lowStockCount > 0 && app.userPerms.inv_view && (
                   <div onClick={() => navigateTo("inventory")} style={{ background: C.aB, color: C.am, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
-                    ⚠️ {app.lowStockCount} low stock
+                    ⚠️ {app.lowStockCount} {t.chromeLowStock}
                   </div>
                 )}
                 {app.jobsAwaitingCloseCount > 0 && app.userPerms.jobs_close && (
@@ -451,8 +479,8 @@ return (
                     🧾 {app.jobsAwaitingCloseCount} awaiting close
                   </div>
                 )}
-                <CompanySwitcher user={app.curUser} />
-                <RoleBdg role={app.curUser.role} />
+                <CompanySwitcher user={app.curUser} lang={lang} />
+                <RoleBdg role={app.curUser.role} lang={lang} />
               </div>
             </div>
           )}
@@ -507,20 +535,21 @@ return (
               <UserManagementView users={app.users} setUsers={app.setUsers} currentUser={app.curUser} rolePerms={app.rolePerms} userOverrides={app.userOverrides} setUserOverrides={app.setUserOverrides} onUpdateUser={(updated) => { app.setCurUser(updated); app.setUsers((p) => p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u))); }} lang={lang} setLang={setLang} openItemId={searchTargetFor("users")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "settings" && app.userPerms.settings_manage && (
-              <SettingsView warehouses={app.warehouses} company={app.company} setCompany={app.setCompany} jobNotifications={app.jobNotifications} setJobNotifications={app.setJobNotifications} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} />
+              <SettingsView warehouses={app.warehouses} company={app.company} setCompany={app.setCompany} jobNotifications={app.jobNotifications} setJobNotifications={app.setJobNotifications} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} lang={lang} />
             )}
             {view === "logs" && app.userPerms.users_manage && (
-              <AuditLogView perms={app.userPerms} inv={app.inv} users={app.users} companyId={app.curUser?.companyId} />
+              <AuditLogView perms={app.userPerms} inv={app.inv} users={app.users} companyId={app.curUser?.companyId} lang={lang} />
             )}
             {view === "owner" && app.curUser.isPlatformAdmin && (
-              <OwnerConsole user={app.curUser} />
+              <OwnerConsole user={app.curUser} lang={lang} />
             )}
             {view === "billing" && (app.curUser.role === "admin" || app.curUser.isPlatformAdmin) && (
-              <BillingView user={app.curUser} />
+              <BillingView user={app.curUser} lang={lang} />
             )}
             {view === "profile" && (
               <ProfileView
                 user={app.curUser}
+                lang={lang}
                 onUpdateUser={(updated) => {
                   app.setCurUser(updated);
                   app.setUsers((p) => p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)));
@@ -533,7 +562,7 @@ return (
         </div>
       </div>
       <Suspense fallback={null}>
-        <ChatWidget user={app.curUser} />
+        <ChatWidget user={app.curUser} lang={lang} />
       </Suspense>
     </IdleTimeoutWrapper>
   );

@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { supabase, getAccessToken } from "../utils/supabase";
 import { C, tot } from "../utils/helpers";
+import { translations } from "../utils/translations";
 import { BRAND, TrussMark } from "../components/SteadwerkMark";
 import { useNotify } from "../context/NotificationContext";
 
@@ -32,7 +33,8 @@ function fmtBytes(b) {
   return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
-export default function OwnerConsole({ user }) {
+export default function OwnerConsole({ user, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
   const [companies, setCompanies] = useState([]);
   const [usage, setUsage] = useState({}); // company_id -> { total_bytes, object_count }
@@ -74,7 +76,7 @@ export default function OwnerConsole({ user }) {
       const members = (profs || []).map((p) => ({ ...p, role: roleByUser[p.id]?.role, active: roleByUser[p.id]?.active }));
       setViewData({ jobs: jobsRes.data || [], inventory: invRes.data || [], members });
     } catch (err) {
-      showToast(`Could not load ${company.name}: ${err.message}`, "error");
+      showToast(`${t.ocLoadCompanyFail.replace("{name}", company.name)} ${err.message}`, "error");
       setViewData({ jobs: [], inventory: [], members: [] });
     } finally {
       setViewLoading(false);
@@ -88,7 +90,7 @@ export default function OwnerConsole({ user }) {
       supabase.rpc("admin_storage_usage"),
       supabase.rpc("admin_list_platform_admins"),
     ]);
-    if (error) showToast(`Failed to load companies: ${error.message}`, "error");
+    if (error) showToast(`${t.ocLoadCompaniesFail} ${error.message}`, "error");
     else setCompanies(data || []);
     setUsage(Object.fromEntries((usageRows || []).map((u) => [u.company_id, u])));
     setPadmins(adminRows || []);
@@ -101,14 +103,14 @@ export default function OwnerConsole({ user }) {
     if (!email) return;
     const { error } = await supabase.rpc("admin_set_platform_admin", { target_email: email, value: true });
     if (error) showToast(error.message, "error");
-    else { showToast(`${email} is now a platform admin.`, "success"); setAdminEmail(""); await load(); }
+    else { showToast(t.ocNowPlatformAdmin.replace("{email}", email), "success"); setAdminEmail(""); await load(); }
   };
 
   const revokeAdmin = async (email) => {
-    if (email === user.email && !window.confirm("Remove your OWN platform-admin access? You'll lose this console until another admin restores it.")) return;
+    if (email === user.email && !window.confirm(t.ocRevokeOwnConfirm)) return;
     const { error } = await supabase.rpc("admin_set_platform_admin", { target_email: email, value: false });
     if (error) showToast(error.message, "error");
-    else { showToast(`${email} is no longer a platform admin.`, "success"); await load(); }
+    else { showToast(t.ocNoLongerAdmin.replace("{email}", email), "success"); await load(); }
   };
 
   useEffect(() => { load(); }, []);
@@ -118,18 +120,19 @@ export default function OwnerConsole({ user }) {
   if (!user?.isPlatformAdmin) {
     return (
       <div style={{ padding: 40, textAlign: "center", color: C.sub }}>
-        This area is restricted to the platform owner.
+        {t.ocRestricted}
       </div>
     );
   }
 
   const setStatus = async (company, status) => {
-    const verb = status === "suspended" ? "suspend" : status === "active" ? "reactivate" : status;
-    if (!window.confirm(`${verb[0].toUpperCase() + verb.slice(1)} ${company.name}? ${status === "suspended" ? "Their whole team loses access immediately." : ""}`)) return;
+    const verb = status === "suspended" ? t.ocVerbSuspend : status === "active" ? t.ocVerbReactivate : status;
+    const warning = status === "suspended" ? ` ${t.ocSuspendWarning}` : "";
+    if (!window.confirm(`${t.ocStatusConfirm.replace("{verb}", verb).replace("{name}", company.name)}${warning}`)) return;
     setBusyId(company.id);
     const { error } = await supabase.rpc("admin_set_company_status", { target: company.id, new_status: status });
-    if (error) showToast(`Failed: ${error.message}`, "error");
-    else { showToast(`${company.name} is now ${status}.`, "success"); await load(); }
+    if (error) showToast(`${t.ocFailed} ${error.message}`, "error");
+    else { showToast(t.ocStatusChanged.replace("{name}", company.name).replace("{status}", status), "success"); await load(); }
     setBusyId(null);
   };
 
@@ -150,14 +153,14 @@ export default function OwnerConsole({ user }) {
       if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
       const warn = Array.isArray(data.warnings) && data.warnings.length
-        ? ` Some cleanup needs a look: ${data.warnings.join("; ")}`
+        ? ` ${t.ocCleanupWarn} ${data.warnings.join("; ")}`
         : "";
-      showToast(`Deleted ${deleteTarget.name}.${warn}`, warn ? "warning" : "success");
+      showToast(`${t.ocDeleted.replace("{name}", deleteTarget.name)}${warn}`, warn ? "warning" : "success");
       setDeleteTarget(null);
       setConfirmText("");
       await load();
     } catch (err) {
-      showToast(`Delete failed: ${err.message}`, "error");
+      showToast(`${t.ocDeleteFailed} ${err.message}`, "error");
     } finally {
       setDeleting(false);
     }
@@ -169,11 +172,11 @@ export default function OwnerConsole({ user }) {
     e.preventDefault();
     const name = form.name.trim();
     const slug = form.slug.trim() || slugify(name);
-    if (!name) return showToast("Company name is required.", "warning");
+    if (!name) return showToast(t.ocNameRequired, "warning");
     setCreating(true);
     const { error } = await supabase.rpc("admin_create_company", { p_name: name, p_slug: slug, p_status: "trialing" });
-    if (error) showToast(`Failed: ${error.message}`, "error");
-    else { showToast(`Created ${name}. Add its first admin next.`, "success"); setForm({ name: "", slug: "" }); await load(); }
+    if (error) showToast(`${t.ocFailed} ${error.message}`, "error");
+    else { showToast(t.ocCreated.replace("{name}", name), "success"); setForm({ name: "", slug: "" }); await load(); }
     setCreating(false);
   };
 
@@ -185,7 +188,7 @@ export default function OwnerConsole({ user }) {
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
         <TrussMark size={26} />
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 900, color: C.navy, margin: 0 }}>
-          Platform Owner Console
+          {t.ocTitle}
         </h1>
       </div>
       <p style={{ color: C.sub, fontSize: 14, marginBottom: 24 }}>
@@ -195,20 +198,20 @@ export default function OwnerConsole({ user }) {
       {/* Create company */}
       <form onSubmit={createCompany} style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end", background: C.w, border: `1px solid ${C.bd}`, borderRadius: 12, padding: 16, marginBottom: 24 }}>
         <div style={{ flex: "1 1 220px" }}>
-          <label style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>New company</label>
+          <label style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>{t.ocNewCompany}</label>
           <input
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value, slug: f.slug || slugify(e.target.value) }))}
-            placeholder="e.g. Steadwerk Exteriors"
+            placeholder={t.ocNamePlaceholder}
             style={{ width: "100%", padding: "10px 12px", border: `1.5px solid ${C.bd}`, borderRadius: 8, fontSize: 14, boxSizing: "border-box" }}
           />
         </div>
         <div style={{ flex: "1 1 180px" }}>
-          <label style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>Slug</label>
+          <label style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>{t.ocSlug}</label>
           <input
             value={form.slug}
             onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-            placeholder="steadwerk-exteriors"
+            placeholder={t.ocSlugPlaceholder}
             style={{ width: "100%", padding: "10px 12px", border: `1.5px solid ${C.bd}`, borderRadius: 8, fontSize: 14, fontFamily: "var(--font-mono)", boxSizing: "border-box" }}
           />
         </div>
@@ -230,9 +233,9 @@ export default function OwnerConsole({ user }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: C.sub }}>Loading…</td></tr>
+                <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: C.sub }}>{t.ocLoading}</td></tr>
               ) : companies.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: C.sub }}>No companies yet.</td></tr>
+                <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: C.sub }}>{t.ocNoCompanies}</td></tr>
               ) : companies.map((co) => {
                 const st = STATUS_STYLE[co.subscription_status] || { bg: C.lg, fg: C.sub, label: co.subscription_status };
                 const suspended = co.subscription_status === "suspended";
@@ -257,25 +260,25 @@ export default function OwnerConsole({ user }) {
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         <button onClick={() => openCompanyView(co)} disabled={busyId === co.id}
                           style={{ padding: "6px 12px", background: "transparent", color: C.blue, border: `1.5px solid ${C.blue}`, borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                          View
+                          {t.ocView}
                         </button>
                         {suspended ? (
                           <>
                             <button onClick={() => setStatus(co, "active")} disabled={busyId === co.id}
                               style={{ padding: "6px 12px", background: BRAND.pasture, color: "var(--c-on-accent)", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                              Reactivate
+                              {t.ocReactivate}
                             </button>
                             {/* Delete is offered ONLY on suspended rows — suspend-then-delete is the
                                 deliberate two-step that keeps a live company one click from safety. */}
                             <button onClick={() => { setDeleteTarget(co); setConfirmText(""); }} disabled={busyId === co.id}
                               style={{ padding: "6px 12px", background: BRAND.rust, color: "var(--c-on-accent)", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                              Delete
+                              {t.ocDelete}
                             </button>
                           </>
                         ) : (
                           <button onClick={() => setStatus(co, "suspended")} disabled={busyId === co.id}
                             style={{ padding: "6px 12px", background: "transparent", color: BRAND.rust, border: `1.5px solid ${BRAND.rust}`, borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                            Suspend
+                            {t.ocSuspend}
                           </button>
                         )}
                       </div>
@@ -294,10 +297,10 @@ export default function OwnerConsole({ user }) {
           by an existing owner's hand, never self-assigned. */}
       <div style={{ background: C.w, border: `1px solid ${C.bd}`, borderRadius: 12, padding: 20, marginTop: 24 }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-          Platform administrators
+          {t.ocPlatformAdmins}
         </div>
         <div style={{ fontSize: 12, color: C.sub, marginBottom: 14 }}>
-          People who can see this console and manage every company. Grant sparingly.
+          {t.ocPlatformAdminsDesc}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
@@ -314,7 +317,7 @@ export default function OwnerConsole({ user }) {
                 title={padmins.length === 1 ? "Can't remove the last platform admin" : "Revoke"}
                 style={{ padding: "4px 10px", background: "transparent", color: padmins.length === 1 ? C.sub : BRAND.rust, border: `1.5px solid ${padmins.length === 1 ? C.bd : BRAND.rust}`, borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: padmins.length === 1 ? "not-allowed" : "pointer" }}
               >
-                Revoke
+                {t.ocRevoke}
               </button>
             </div>
           ))}
@@ -324,11 +327,11 @@ export default function OwnerConsole({ user }) {
           <input
             value={adminEmail}
             onChange={(e) => setAdminEmail(e.target.value)}
-            placeholder="email of an existing user to promote"
+            placeholder={t.ocPromotePlaceholder}
             style={{ flex: "1 1 240px", padding: "10px 12px", border: `1.5px solid ${C.bd}`, borderRadius: 8, fontSize: 14, boxSizing: "border-box" }}
           />
           <button type="submit" style={{ padding: "10px 18px", background: C.shell, color: "var(--c-shell-ink)", border: "none", borderRadius: 8, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>
-            Grant admin
+            {t.ocGrantAdmin}
           </button>
         </form>
         <div style={{ fontSize: 11, color: C.sub, marginTop: 8 }}>
@@ -349,16 +352,13 @@ export default function OwnerConsole({ user }) {
             style={{ background: C.w, borderRadius: 14, padding: 28, maxWidth: 460, width: "100%", boxShadow: "0 24px 60px rgba(0,0,0,0.4)" }}
           >
             <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 900, color: BRAND.rust, marginBottom: 8 }}>
-              Delete {deleteTarget.name}?
+              {t.ocDeleteTitle.replace("{name}", deleteTarget.name)}
             </div>
             <p style={{ fontSize: 13, color: C.navy, lineHeight: 1.6, margin: "0 0 14px" }}>
-              This permanently removes the company and <strong>everything</strong> in it — all jobs,
-              inventory, vehicles, files, and team memberships. Any Stripe subscription is
-              cancelled and members left with no other company have their logins deleted.
-              This cannot be undone.
+              {t.ocDeleteWarning} <strong>{t.ocDeleteWarningBold}</strong> {t.ocDeleteWarningRest}
             </p>
             <label style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>
-              Type <span style={{ fontFamily: "var(--font-mono)", color: C.navy }}>{deleteTarget.name}</span> to confirm
+              {t.ocTypeToConfirm} <span style={{ fontFamily: "var(--font-mono)", color: C.navy }}>{deleteTarget.name}</span> {t.ocToConfirm}
             </label>
             <input
               autoFocus
@@ -375,7 +375,7 @@ export default function OwnerConsole({ user }) {
                 disabled={deleting}
                 style={{ padding: "9px 16px", background: "transparent", color: C.sub, border: `1.5px solid ${C.bd}`, borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: deleting ? "not-allowed" : "pointer" }}
               >
-                Cancel
+                {t.ocCancel}
               </button>
               <button
                 onClick={deleteCompany}
@@ -405,17 +405,17 @@ export default function OwnerConsole({ user }) {
               <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 900, color: C.navy }}>{viewCompany.name}</div>
               <button onClick={() => setViewCompany(null)} style={{ background: "none", border: "none", fontSize: 22, color: C.sub, cursor: "pointer", lineHeight: 1 }}>×</button>
             </div>
-            <div style={{ fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 16 }}>Read-only oversight · you stay in your own company</div>
+            <div style={{ fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 16 }}>{t.ocReadOnly}</div>
 
             {viewLoading || !viewData ? (
-              <div style={{ padding: 32, textAlign: "center", color: C.sub }}>Loading…</div>
+              <div style={{ padding: 32, textAlign: "center", color: C.sub }}>{t.ocLoading}</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
                 {/* Jobs */}
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Jobs ({viewData.jobs.length})</div>
                   {viewData.jobs.length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.sub }}>No jobs.</div>
+                    <div style={{ fontSize: 13, color: C.sub }}>{t.ocNoJobs}</div>
                   ) : (
                     <div style={{ overflowX: "auto", border: `1px solid ${C.bd}`, borderRadius: 8 }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 560 }}>
@@ -447,7 +447,7 @@ export default function OwnerConsole({ user }) {
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Inventory ({viewData.inventory.length})</div>
                   {viewData.inventory.length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.sub }}>No inventory.</div>
+                    <div style={{ fontSize: 13, color: C.sub }}>{t.ocNoInventory}</div>
                   ) : (
                     <div style={{ overflowX: "auto", border: `1px solid ${C.bd}`, borderRadius: 8 }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 520 }}>
@@ -481,7 +481,7 @@ export default function OwnerConsole({ user }) {
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Team ({viewData.members.length})</div>
                   {viewData.members.length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.sub }}>No members.</div>
+                    <div style={{ fontSize: 13, color: C.sub }}>{t.ocNoMembers}</div>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       {viewData.members.map((m) => (
@@ -497,7 +497,7 @@ export default function OwnerConsole({ user }) {
             )}
 
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
-              <button onClick={() => setViewCompany(null)} style={{ padding: "9px 18px", background: C.shell, color: "var(--c-shell-ink)", border: "none", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>Close</button>
+              <button onClick={() => setViewCompany(null)} style={{ padding: "9px 18px", background: C.shell, color: "var(--c-shell-ink)", border: "none", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>{t.ocClose}</button>
             </div>
           </div>
         </div>

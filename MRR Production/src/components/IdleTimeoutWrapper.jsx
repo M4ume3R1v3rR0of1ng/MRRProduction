@@ -1,8 +1,10 @@
 // src/components/IdleTimeoutWrapper.jsx
 import { useEffect, useRef } from 'react';
 
+import { translations } from "../utils/translations";
 // ── 🟢 FIXED: ACCEPT THE TIMEOUT PROP WITH A 5-MINUTE DEFAULT FALLBACK ──
-export default function IdleTimeoutWrapper({ children, onLogout, isAuthenticated, timeout }) {
+export default function IdleTimeoutWrapper({ children, onLogout, isAuthenticated, timeout, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   
   // Use the passed timeout value (e.g., from App.jsx) or default to 5 minutes if not provided[cite: 4]
   const TIMEOUT_IN_MS = timeout || (5 * 60 * 1000); 
@@ -22,7 +24,7 @@ export default function IdleTimeoutWrapper({ children, onLogout, isAuthenticated
     // Dynamically calculate the printed log message based on the active milliseconds count
     const minutesLogged = Math.round(TIMEOUT_IN_MS / 60 / 1000);
     console.warn(`Session expired due to ${minutesLogged} minutes of inactivity.`);
-    alert(`Your session has expired due to ${minutesLogged} minutes of inactivity. Please log in again.`);
+    alert(t.idleExpired.replace("{minutes}", minutesLogged));
     onLogout(); //[cite: 4]
   };
 

@@ -16,10 +16,12 @@ import { useState } from "react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { validatePassword, PASSWORD_HINT } from "../utils/passwordPolicy";
+import { translations } from "../utils/translations";
 import { Fld } from "../components/UIPrimitives";
 import { SteadwerkLockup, BRAND } from "../components/SteadwerkMark";
 
-export default function ResetPasswordScreen({ onDone }) {
+export default function ResetPasswordScreen({ onDone, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const [pass, setPass] = useState("");
   const [confirm, setConfirm] = useState("");
   const [err, setErr] = useState("");
@@ -107,7 +109,7 @@ export default function ResetPasswordScreen({ onDone }) {
         {done ? (
           <>
             <div style={{ background: "var(--c-pasture-wash)", color: BRAND.pasture, padding: "10px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", marginBottom: 20, fontWeight: "var(--weight-semibold)" }}>
-              Your password has been changed. Sign in with your new password to continue.
+              {t.rpChanged}
             </div>
             <button
               className="mrr-btn"
@@ -125,7 +127,7 @@ export default function ResetPasswordScreen({ onDone }) {
                 boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               }}
             >
-              Continue to sign in →
+              {t.rpContinueSignIn}
             </button>
           </>
         ) : (
@@ -136,26 +138,26 @@ export default function ResetPasswordScreen({ onDone }) {
               </div>
             )}
 
-            <Fld label="New password" hint={PASSWORD_HINT}>
+            <Fld label={t.rpNewPassword} hint={PASSWORD_HINT}>
               <input
                 className="mrr-input"
                 type="password"
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
-                placeholder="At least 8 characters"
+                placeholder={t.rpNewPlaceholder}
                 style={inputStyle}
                 disabled={submitting}
                 autoFocus
               />
             </Fld>
-            <Fld label="Confirm new password">
+            <Fld label={t.rpConfirmPassword}>
               <input
                 className="mrr-input"
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !submitting && submit()}
-                placeholder="Re-enter your new password"
+                placeholder={t.rpConfirmPlaceholder}
                 style={inputStyle}
                 disabled={submitting}
               />

@@ -20,9 +20,11 @@ import {
   Inp,
 } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
+import { translations } from "../utils/translations";
 import { useNotify } from "../context/NotificationContext";
 
 export default function Users({
+  lang = "en",
   users = [],
   setUsers,
   currentUser,
@@ -42,14 +44,15 @@ export default function Users({
   const [sendInvite, setSendInvite] = useState(true);
 
   const { showToast } = useNotify();
+  const t = translations[lang] || translations.en;
 
   const save = async () => {
     const missing = [];
-    if (!form.name) missing.push("name");
-    if (!form.email) missing.push("email");
-    if (!form.role) missing.push("role");
+    if (!form.name) missing.push(t.umFieldName);
+    if (!form.email) missing.push(t.umFieldEmail);
+    if (!form.role) missing.push(t.umFieldRole);
     if (missing.length) {
-      showToast(`Nothing was saved — please fill in the ${missing.join(", ")}.`, "warning");
+      showToast(t.umNothingSaved.replace("{fields}", missing.join(t.umJoinComma)), "warning");
       return;
     }
 
@@ -101,7 +104,7 @@ export default function Users({
         if (editing === currentUser?.id && typeof onUpdateUser === "function") {
           onUpdateUser({ ...currentUser, name: profilePayload.name, full_name: profilePayload.name, email: profilePayload.email });
         }
-        showToast("User updates saved successfully.", "success");
+        showToast(t.umUpdatesSaved, "success");
       } else {
         const problem = validatePassword(form.password);
         if (problem) {
@@ -109,7 +112,7 @@ export default function Users({
           return;
         }
         if (form.password !== form.confirmPassword) {
-          showToast("Passwords don't match.", "warning");
+          showToast(t.umPwMismatch, "warning");
           return;
         }
         // Creates a real Supabase Auth user directly so the auth.users -> profiles
@@ -130,12 +133,12 @@ export default function Users({
         // happened — an admin who thinks an invite went out and it didn't will leave
         // someone locked out waiting for an email.
         if (!sendInvite) {
-          showToast("User created. Share the temporary password with them directly.", "success");
+          showToast(t.umCreatedShare, "success");
         } else if (result.invited) {
-          showToast(`User created. Invite sent to ${profilePayload.email}.`, "success");
+          showToast(t.umCreatedInvited.replace("{email}", profilePayload.email), "success");
         } else {
           showToast(
-            `User created, but the invite could not be sent${result.inviteError ? `: ${result.inviteError}` : ""}. Share the temporary password with them directly.`,
+            `${t.umCreatedInviteFailed}${result.inviteError ? `: ${result.inviteError}` : ""}. ${t.umPwShareHint}`,
             "warning",
           );
         }
@@ -146,7 +149,7 @@ export default function Users({
     } catch (err) {
       console.error("Failed to save profile metrics:", err);
       showToast(
-        `Database Error: Profile updates aborted. ${err.message}`,
+        `${t.umProfileAborted} ${err.message}`,
         "error",
       );
     }
@@ -181,7 +184,7 @@ export default function Users({
     } catch (err) {
       console.error("Failed to update explicit clearance criteria:", err);
       showToast(
-        `Database Error: Clearances failed to sync. ${err.message}`,
+        `${t.umClearanceSyncFail} ${err.message}`,
         "error",
       );
     }
@@ -200,11 +203,11 @@ export default function Users({
         delete n[uid];
         return n;
       });
-      showToast("All user permission overrides wiped clean.", "success");
+      showToast(t.umOverridesWiped, "success");
     } catch (err) {
       console.error("Failed to delete user overrides context:", err);
       showToast(
-        `Database Error: Clearances modification failure. ${err.message}`,
+        `${t.umClearanceModFail} ${err.message}`,
         "error",
       );
     }
@@ -222,7 +225,7 @@ export default function Users({
       return;
     }
     if (pwForm.password !== pwForm.confirmPassword) {
-      showToast("Passwords don't match.", "warning");
+      showToast(t.umPwMismatch, "warning");
       return;
     }
 
@@ -243,11 +246,11 @@ export default function Users({
         `Reset password for user: ${form.email}`,
       );
 
-      showToast("Temporary password set — share it with the user directly.", "success");
+      showToast(t.umTempPwSet, "success");
       setPwForm({});
     } catch (err) {
       console.error("Failed to reset password:", err);
-      showToast(`Password reset failed. ${err.message}`, "error");
+      showToast(`${t.umPwResetFail} ${err.message}`, "error");
     }
   };
 
@@ -272,14 +275,14 @@ export default function Users({
 
   const handleRemoveUser = async (targetUserId) => {
     if (targetUserId === currentUser?.id) {
-      showToast("Security Violation: You cannot remove your own account!", "warning");
+      showToast(t.umCannotRemoveSelf, "warning");
       return;
     }
 
     const matchedUser = users.find(u => u.id === targetUserId);
     if (!matchedUser) return;
 
-    if (!window.confirm(`Permanently remove ${matchedUser.name || 'this user'}? This deletes their account entirely and cannot be undone.`)) return;
+    if (!window.confirm(t.umRemoveConfirm.replace("{name}", matchedUser.name || t.umThisUser))) return;
 
     try {
       const accessToken = await getAccessToken();
@@ -300,10 +303,10 @@ export default function Users({
         `Permanently removed user account: ${matchedUser.email}`
       );
 
-      showToast("User removed.", "success");
+      showToast(t.umUserRemoved, "success");
     } catch (err) {
       console.error("Failed to remove user:", err);
-      showToast(`Database Error: Removal failed. ${err.message}`, "error");
+      showToast(`${t.umRemovalFail} ${err.message}`, "error");
     }
   };
 
@@ -329,7 +332,7 @@ export default function Users({
       </div>
       
       <div style={{ background: C.gL, border: `1px solid ${C.gold}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.navy, lineHeight: 1.7 }}>
-        Role permissions are set in <strong>Settings → Role Permissions</strong>. You can also give individual users custom permission overrides here using the 🔒 button.
+        {t.umRolePermsBlurb.split("{link}")[0]}<strong>{t.umRolePermsLink}</strong>{t.umRolePermsBlurb.split("{link}")[1]}
       </div>
       
       <div style={{ background: C.w, borderRadius: "var(--radius-xl)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
@@ -348,18 +351,18 @@ export default function Users({
                   <td style={{ padding: "14px 14px", fontWeight: "var(--weight-bold)", color: C.navy }}>{u.full_name || u.name || "—"}</td>
                   <td style={{ padding: "14px 14px", color: C.sub }}>{u.email || "—"}</td>
                   <td style={{ padding: "14px 14px" }}>
-                    <RoleBdg role={u.role} />
+                    <RoleBdg role={u.role} lang={lang} />
                   </td>
                   <td style={{ padding: "14px 14px" }}>
                     <Bdg color={u.active ? "green" : "gray"}>{u.active ? "Active" : "Inactive"}</Bdg>
                   </td>
                   <td style={{ padding: "14px 14px", textAlign: "right" }}>
                     <div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "flex-end", alignItems: "center" }}>
-                      <Btn v="ghost" sz="sm" onClick={() => handleOpenPermissionOverrides(u)} title="Configure individual user permission overrides">
+                      <Btn v="ghost" sz="sm" onClick={() => handleOpenPermissionOverrides(u)} title={t.umPermOverridesTitle}>
                         🔒 Override
                       </Btn>
                       <Btn v="ghost" sz="sm" onClick={() => handleEditUser(u)}>
-                        Edit
+                        {t.umEdit}
                       </Btn>
                       <Btn
                         v="danger"
@@ -379,49 +382,49 @@ export default function Users({
       </div>
 
       {modal === "user" && (
-        <Modal title={editing ? "Edit User" : "Add New User"} onClose={() => { setModal(null); setEditing(null); setForm({}); setPwForm({}); }}>
-          <Fld label="Full Name *"><Inp value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Fld>
-          <Fld label="Email Address"><Inp type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="user@company.com" /></Fld>
-          <Fld label="Role *">
+        <Modal title={editing ? t.umModalEditUser : t.umModalAddUser} onClose={() => { setModal(null); setEditing(null); setForm({}); setPwForm({}); }}>
+          <Fld label={t.umFullName}><Inp value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Fld>
+          <Fld label={t.umEmail}><Inp type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t.umEmailPlaceholder} /></Fld>
+          <Fld label={t.umRole}>
             <Sel value={form.role || "field"} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-              <option value="admin">Administrator</option>
-              <option value="manager">Operations Manager</option>
-              <option value="coordinator">Production Coordinator</option>
-              <option value="warehouse">Warehouse Manager</option>
-              <option value="field">Site Supervisor</option>
-              <option value="employee">Employee / Field Staff</option>
-              <option value="bookkeeper">Book Keeper</option>
+              <option value="admin">{t.roleLongAdmin}</option>
+              <option value="manager">{t.roleLongManager}</option>
+              <option value="coordinator">{t.roleLongCoordinator}</option>
+              <option value="warehouse">{t.roleLongWarehouse}</option>
+              <option value="field">{t.roleLongField}</option>
+              <option value="employee">{t.roleLongEmployee}</option>
+              <option value="bookkeeper">{t.roleLongBookkeeper}</option>
             </Sel>
           </Fld>
           {!editing && (
             <>
               <Fld
-                label="Temporary Password *"
-                hint={`${PASSWORD_HINT}. ${sendInvite ? "A fallback in case the invite email does not arrive." : "Share it with the new user directly."}`}
+                label={t.umTempPassword}
+                hint={`${PASSWORD_HINT}. ${sendInvite ? t.umPwFallbackHint : t.umPwShareHint}`}
               >
-                <Inp type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="e.g. Roof2026start" />
+                <Inp type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={t.umPasswordPlaceholder} />
               </Fld>
-              <Fld label="Confirm Password *">
+              <Fld label={t.umConfirmPassword}>
                 <Inp type="password" value={form.confirmPassword || ""} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
               </Fld>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: 4 }}>
                 <Toggle on={sendInvite} onChange={() => setSendInvite((v) => !v)} />
                 <div>
                   <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>
-                    Email them an invite
+                    {t.umEmailInvite}
                   </div>
                   <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 1 }}>
                     {sendInvite
-                      ? "They get a link to set their own password. You do not need to share the temporary one."
-                      : "No email is sent. You will need to give them the temporary password yourself."}
+                      ? t.umInviteOn
+                      : t.umInviteOff}
                   </div>
                 </div>
               </div>
             </>
           )}
           <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-            <Btn v="ghost" onClick={() => { setModal(null); setEditing(null); setForm({}); setPwForm({}); }} style={{ flex: 1, justifyContent: "center" }}>Cancel</Btn>
-            <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }}>{editing ? "Save Changes" : "Add User"}</Btn>
+            <Btn v="ghost" onClick={() => { setModal(null); setEditing(null); setForm({}); setPwForm({}); }} style={{ flex: 1, justifyContent: "center" }}>{t.cancel}</Btn>
+            <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }}>{editing ? t.umSaveChanges : t.umAddUser}</Btn>
           </div>
 
           {editing && (
@@ -432,13 +435,13 @@ export default function Users({
               <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 10 }}>
                 Forgot their password? Set a new temporary one here. Share it with them directly and they will be prompted to change it on next login.
               </div>
-              <Fld label="New Temporary Password" hint={PASSWORD_HINT}>
-                <Inp type="password" value={pwForm.password || ""} onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })} placeholder="e.g. Roof2026start" />
+              <Fld label={t.umNewTempPassword} hint={PASSWORD_HINT}>
+                <Inp type="password" value={pwForm.password || ""} onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })} placeholder={t.umPasswordPlaceholder} />
               </Fld>
-              <Fld label="Confirm New Password">
+              <Fld label={t.umConfirmNewPassword}>
                 <Inp type="password" value={pwForm.confirmPassword || ""} onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })} />
               </Fld>
-              <Btn v="outline" onClick={submitResetPassword} style={{ width: "100%", justifyContent: "center" }}>Set New Password</Btn>
+              <Btn v="outline" onClick={submitResetPassword} style={{ width: "100%", justifyContent: "center" }}>{t.umSetNewPassword}</Btn>
             </div>
           )}
         </Modal>
@@ -451,16 +454,16 @@ export default function Users({
           </div>
           {userOverrides[permUser.id] && Object.keys(userOverrides[permUser.id]).length > 0 && (
             <div style={{ marginBottom: 10, display: "flex", justifyContent: "flex-end" }}>
-              <Btn v="danger" sz="sm" onClick={() => clearOverrides(permUser.id)}>Clear All Overrides</Btn>
+              <Btn v="danger" sz="sm" onClick={() => clearOverrides(permUser.id)}>{t.umClearOverrides}</Btn>
             </div>
           )}
           <div style={{ overflowX: "auto", maxHeight: "380px" }}>
             <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
               <thead>
                 <tr style={{ background: C.lg }}>
-                  <th style={{ padding: "10px 14px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", minWidth: 220 }}>Permission</th>
-                  <th style={{ padding: "10px 14px", textAlign: "center", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", width: 110 }}>Role Default</th>
-                  <th style={{ padding: "10px 14px", textAlign: "center", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", width: 110 }}>This User</th>
+                  <th style={{ padding: "10px 14px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", minWidth: 220 }}>{t.umColPermission}</th>
+                  <th style={{ padding: "10px 14px", textAlign: "center", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", width: 110 }}>{t.umColRoleDefault}</th>
+                  <th style={{ padding: "10px 14px", textAlign: "center", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", width: 110 }}>{t.umColThisUser}</th>
                 </tr>
               </thead>
               {PERM_GROUPS.map(([groupName, keys]) => (
@@ -478,7 +481,7 @@ export default function Users({
                         <td style={{ padding: "10px 14px" }}>
                           <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>
                             {PERM_DEFS[key]?.label || key}
-                            {hasOverride && <span style={{ marginLeft: 6, fontSize: "var(--text-2xs)", color: C.am, fontWeight: "var(--weight-bold)" }}>OVERRIDDEN</span>}
+                            {hasOverride && <span style={{ marginLeft: 6, fontSize: "var(--text-2xs)", color: C.am, fontWeight: "var(--weight-bold)" }}>{t.umOverridden}</span>}
                           </div>
                           <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>{PERM_DEFS[key]?.desc || ""}</div>
                         </td>

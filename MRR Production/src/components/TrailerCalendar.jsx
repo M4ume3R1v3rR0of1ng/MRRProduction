@@ -1,5 +1,6 @@
 // src/components/TrailerCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
+import { translations } from "../utils/translations";
 import { C } from "../utils/helpers";
 import { Btn } from "./UIPrimitives";
 import { supabase } from "../utils/supabase";
@@ -22,7 +23,8 @@ const resolveStatusColor = (statusConfig) => {
   return colorMap[c] ?? c;
 };
 
-export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = [], setJobTrailers, setJobs, jSC = {}, user, perms, onJobClick }) {
+export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = [], setJobTrailers, setJobs, jSC = {}, user, perms, onJobClick, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
   const canEdit = !!perms?.fleet_edit;
   const [draggingId, setDraggingId] = useState(null);
@@ -192,7 +194,7 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
         {canEdit && (
           <button
             onClick={(e) => { e.stopPropagation(); handleRemoveBooking(booking); }}
-            title="Remove this trailer booking"
+            title={t.tcRemoveBooking}
             style={{ position: "absolute", top: 2, right: 2, background: "none", border: "none", cursor: "pointer", fontSize: 12, color: C.sub, lineHeight: 1, padding: 2 }}
           >
             ✕
@@ -221,12 +223,12 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>◀ Prev</Btn>
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>{t.calPrev}</Btn>
           <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", color: C.navy, minWidth: 200, textAlign: "center" }}>
             {weekLabel}
           </div>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>Next ▶</Btn>
-          {!isCurrentWeek && <Btn v="primary" sz="sm" onClick={handleGoToToday}>Today</Btn>}
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>{t.calNext}</Btn>
+          {!isCurrentWeek && <Btn v="primary" sz="sm" onClick={handleGoToToday}>{t.calToday}</Btn>}
         </div>
       </div>
 
@@ -306,7 +308,7 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
             {trailerRows.length === 0 && (
               <tr>
                 <td colSpan={8} style={{ padding: 32, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", fontStyle: "italic" }}>
-                  No trailers registered in the fleet yet.
+                  {t.tcNoTrailers}
                 </td>
               </tr>
             )}

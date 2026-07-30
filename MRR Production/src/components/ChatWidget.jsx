@@ -1,5 +1,6 @@
 // src/components/ChatWidget.jsx
 import { useEffect, useRef, useState } from "react";
+import { translations } from "../utils/translations";
 import { supabase } from "../utils/supabase";
 import { C, compressImg } from "../utils/helpers";
 import { LoadingState, Modal } from "./UIPrimitives";
@@ -21,7 +22,8 @@ function toApiContent(msg) {
   return blocks.length === 1 && blocks[0].type === "text" ? blocks[0].text : blocks;
 }
 
-export default function ChatWidget({ user }) {
+export default function ChatWidget({ user, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
@@ -108,7 +110,7 @@ export default function ChatWidget({ user }) {
   };
 
   const deleteMessage = (index) => {
-    if (!window.confirm("Delete this message?")) return;
+    if (!window.confirm(t.chDeleteConfirm)) return;
     setMessages((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -171,7 +173,7 @@ export default function ChatWidget({ user }) {
           >
             {messages.length === 0 && (
               <p style={{ color: C.sub, fontSize: "var(--text-sm)", textAlign: "center", margin: "var(--space-8) 0" }}>
-                Ask me about jobs, inventory, fleet status, or maintenance requests.
+                {t.cwIntro}
               </p>
             )}
             {messages.map((m, i) => {
@@ -197,7 +199,7 @@ export default function ChatWidget({ user }) {
                       {m.image && (
                         <img
                           src={m.image}
-                          alt="Attachment"
+                          alt={t.chAttachment}
                           onClick={() => setLightboxPhoto(m.image)}
                           style={{ display: "block", maxWidth: "100%", maxHeight: 160, borderRadius: "var(--radius-md)", marginBottom: m.text ? "var(--space-2)" : 0, cursor: "pointer" }}
                         />
@@ -209,7 +211,7 @@ export default function ChatWidget({ user }) {
                   {isEditing && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                       {pendingPhoto && (
-                        <img src={pendingPhoto} alt="Attachment" style={{ maxWidth: 120, borderRadius: "var(--radius-md)" }} />
+                        <img src={pendingPhoto} alt={t.chAttachment} style={{ maxWidth: 120, borderRadius: "var(--radius-md)" }} />
                       )}
                       <input
                         autoFocus
@@ -219,22 +221,22 @@ export default function ChatWidget({ user }) {
                         style={{ padding: "7px 10px", border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", boxSizing: "border-box" }}
                       />
                       <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
-                        <button onClick={cancelEdit} style={{ background: "none", border: "none", color: C.sub, cursor: "pointer", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Cancel</button>
-                        <button onClick={saveEdit} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Save &amp; Resend</button>
+                        <button onClick={cancelEdit} style={{ background: "none", border: "none", color: C.sub, cursor: "pointer", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>{t.chCancel}</button>
+                        <button onClick={saveEdit} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>{t.chSaveResend}</button>
                       </div>
                     </div>
                   )}
 
                   {mine && !isEditing && (
                     <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 2, justifyContent: "flex-end" }}>
-                      <button onClick={() => startEdit(i)} disabled={sending} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: "var(--weight-bold)", padding: 0 }}>Edit</button>
-                      <button onClick={() => deleteMessage(i)} disabled={sending} style={{ background: "none", border: "none", color: C.rd, cursor: "pointer", fontSize: 10, fontWeight: "var(--weight-bold)", padding: 0 }}>Delete</button>
+                      <button onClick={() => startEdit(i)} disabled={sending} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: "var(--weight-bold)", padding: 0 }}>{t.chEdit}</button>
+                      <button onClick={() => deleteMessage(i)} disabled={sending} style={{ background: "none", border: "none", color: C.rd, cursor: "pointer", fontSize: 10, fontWeight: "var(--weight-bold)", padding: 0 }}>{t.chDelete}</button>
                     </div>
                   )}
                 </div>
               );
             })}
-            {sending && <LoadingState label="Thinking..." compact />}
+            {sending && <LoadingState label={t.cwThinking} compact />}
           </div>
 
           {error && (
@@ -245,7 +247,7 @@ export default function ChatWidget({ user }) {
 
           {pendingPhoto && editingIndex === null && (
             <div style={{ position: "relative", width: 52, height: 52, margin: "var(--space-2) 0 0 var(--space-4)" }}>
-              <img src={pendingPhoto} alt="Pending attachment" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "var(--radius-md)", border: `1.5px solid ${C.bd}` }} />
+              <img src={pendingPhoto} alt={t.chPendingAttachment} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "var(--radius-md)", border: `1.5px solid ${C.bd}` }} />
               <button
                 onClick={() => setPendingPhoto(null)}
                 style={{ position: "absolute", top: -6, right: -6, background: C.rd, color: C.onAccent, border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: 10, cursor: "pointer", lineHeight: 1 }}
@@ -260,7 +262,7 @@ export default function ChatWidget({ user }) {
             <button
               onClick={() => fileInputRef.current.click()}
               disabled={sending || editingIndex !== null}
-              title="Attach a photo"
+              title={t.chAttachPhoto}
               style={{ background: C.lg, border: "none", borderRadius: "var(--radius-md)", padding: "9px var(--space-4)", fontSize: "var(--text-md)", cursor: "pointer" }}
             >
               📷
@@ -269,7 +271,7 @@ export default function ChatWidget({ user }) {
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask a question..."
+              placeholder={t.cwAskQuestion}
               disabled={sending || editingIndex !== null}
               style={{ flex: 1, padding: "9px 11px", border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", boxSizing: "border-box" }}
             />
@@ -288,7 +290,7 @@ export default function ChatWidget({ user }) {
                 opacity: draft.trim() || pendingPhoto ? 1 : 0.6,
               }}
             >
-              Send
+              {t.chSend}
             </button>
           </div>
         </div>
@@ -296,7 +298,7 @@ export default function ChatWidget({ user }) {
 
       <button
         onClick={() => setOpen((o) => !o)}
-        title="Steadwerk Assistant"
+        title={t.cwAssistant}
         style={{
           width: 56,
           height: 56,
@@ -316,8 +318,8 @@ export default function ChatWidget({ user }) {
       </button>
 
       {lightboxPhoto && (
-        <Modal title="📷 Attachment" onClose={() => setLightboxPhoto(null)}>
-          <img src={lightboxPhoto} alt="Full size attachment" style={{ width: "100%", borderRadius: "var(--radius-md)" }} />
+        <Modal title={t.chAttachmentLabel} onClose={() => setLightboxPhoto(null)}>
+          <img src={lightboxPhoto} alt={t.chFullSize} style={{ width: "100%", borderRadius: "var(--radius-md)" }} />
         </Modal>
       )}
     </div>

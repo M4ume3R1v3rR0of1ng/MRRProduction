@@ -18,7 +18,10 @@ const BASE_SEATS = 10;
 const PACK_PRICE = 10;
 const PACK_SEATS = 5;
 
-export default function BillingView({ user }) {
+import { translations } from "../utils/translations";
+
+export default function BillingView({ user, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
   const [seats, setSeats] = useState(null); // { used, capacity }
   const [status, setStatus] = useState(null);
@@ -45,7 +48,7 @@ export default function BillingView({ user }) {
   useEffect(() => { load(); }, []);
 
   if (!isAdmin) {
-    return <div style={{ padding: 40, textAlign: "center", color: C.sub }}>Billing is managed by your company's administrator.</div>;
+    return <div style={{ padding: 40, textAlign: "center", color: C.sub }}>{t.blAdminOnly}</div>;
   }
 
   const capacity = seats?.capacity; // null = unlimited (comped)
@@ -55,7 +58,7 @@ export default function BillingView({ user }) {
   const monthly = capacity == null ? null : BASE_PRICE;
 
   const buyPack = async () => {
-    if (!window.confirm(`Add 5 seats for a one-time $${PACK_PRICE}? Your monthly bill stays $${BASE_PRICE}. The seats are yours for as long as your subscription is active.`)) return;
+    if (!window.confirm(t.blAddSeatsConfirm.replace("{pack}", PACK_PRICE).replace("{base}", BASE_PRICE))) return;
     setBusy(true);
     try {
       const accessToken = await getAccessToken();
@@ -72,7 +75,7 @@ export default function BillingView({ user }) {
       if (!data.url) throw new Error("Stripe did not return a checkout URL.");
       window.location.assign(data.url);
     } catch (err) {
-      showToast(`Could not add seats: ${err.message}`, "error");
+      showToast(`${t.blAddSeatsFail} ${err.message}`, "error");
       setBusy(false);
     }
   };
@@ -90,7 +93,7 @@ export default function BillingView({ user }) {
       if (!res.ok || !data.url) throw new Error(data.error || "No billing account yet.");
       window.location.href = data.url;
     } catch (err) {
-      showToast(`Could not open billing: ${err.message}`, "error");
+      showToast(`${t.blOpenBillingFail} ${err.message}`, "error");
       setBusy(false);
     }
   };
@@ -102,18 +105,18 @@ export default function BillingView({ user }) {
     <div style={{ padding: "24px 28px", maxWidth: 640, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
         <TrussMark size={24} />
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 900, color: C.navy, margin: 0 }}>Billing</h1>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 900, color: C.navy, margin: 0 }}>{t.blTitle}</h1>
       </div>
 
       {loading ? (
-        <div style={{ color: C.sub }}>Loading…</div>
+        <div style={{ color: C.sub }}>{t.blLoading}</div>
       ) : (
         <>
           {/* Plan */}
           <div style={card}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Plan</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>{t.blPlan}</div>
             {capacity == null ? (
-              <div style={{ fontSize: 18, fontWeight: 800, color: C.navy }}>Complimentary — unlimited users</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: C.navy }}>{t.blComplimentary}</div>
             ) : (
               <>
                 <div style={{ fontSize: 22, fontWeight: 900, color: C.navy }}>${monthly}<span style={{ fontSize: 14, color: C.sub, fontWeight: 600 }}>/month</span></div>
@@ -131,11 +134,11 @@ export default function BillingView({ user }) {
 
           {/* Seats */}
           <div style={card}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Users</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>{t.blUsers}</div>
             <div style={{ fontSize: 22, fontWeight: 900, color: atLimit ? BRAND.rust : C.navy }}>
               {used}{capacity != null ? <span style={{ color: C.sub, fontWeight: 600 }}> / {capacity}</span> : <span style={{ fontSize: 14, color: C.sub, fontWeight: 600 }}> (unlimited)</span>}
             </div>
-            {atLimit && <div style={{ fontSize: 13, color: BRAND.rust, marginTop: 6 }}>You're at your seat limit. Add a pack to invite more users.</div>}
+            {atLimit && <div style={{ fontSize: 13, color: BRAND.rust, marginTop: 6 }}>{t.blSeatLimit}</div>}
             {capacity != null && (
               <button onClick={buyPack} disabled={busy}
                 style={{ marginTop: 12, padding: "10px 16px", background: C.gold, color: C.navy, border: "none", borderRadius: 8, fontWeight: 800, fontSize: 14, cursor: busy ? "wait" : "pointer" }}>
@@ -146,11 +149,11 @@ export default function BillingView({ user }) {
 
           {/* Manage */}
           <div style={card}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Payment & invoices</div>
-            <div style={{ fontSize: 13, color: C.sub, marginBottom: 12 }}>Update your card, download invoices, and see billing history on Stripe's secure portal.</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>{t.blPaymentInvoices}</div>
+            <div style={{ fontSize: 13, color: C.sub, marginBottom: 12 }}>{t.blPortalBlurb}</div>
             <button onClick={openPortal} disabled={busy}
               style={{ padding: "10px 16px", background: "transparent", color: C.navy, border: `1.5px solid ${C.bd}`, borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: busy ? "wait" : "pointer" }}>
-              Manage payment & invoices →
+              {t.blManagePayment}
             </button>
           </div>
         </>

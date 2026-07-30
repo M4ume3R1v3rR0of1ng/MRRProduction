@@ -141,10 +141,7 @@ export default function BuildJobs({
       !acculynxConfig.enabled ||
       !acculynxConfig.proxyUrl
     ) {
-      showToast(
-        "AccuLynx integration is disabled or proxy endpoint URL is unconfigured in Settings.",
-        "warning",
-      );
+      showToast(t.bjAxDisabled, "warning");
       return;
     }
     setAxL(true);
@@ -165,15 +162,15 @@ export default function BuildJobs({
       setAxR(results);
       if (results.length === 0) {
         const debugHint = data._debug ? ` (API keys: ${data._debug.map(d => d.keys.join(",")).join(" | ")})` : "";
-        showToast(`No AccuLynx jobs found for "${axQ.trim()}".${debugHint}`, "warning");
+        showToast(`${t.bjAxNoResults.replace("{query}", axQ.trim())}${debugHint}`, "warning");
         if (data._debug) console.warn("AccuLynx search debug:", data._debug);
       } else {
-        showToast(`Found ${results.length} job${results.length !== 1 ? "s" : ""} in AccuLynx.`, "success");
+        showToast(results.length === 1 ? t.bjAxFoundOne : t.bjAxFoundMany.replace("{count}", results.length), "success");
       }
     } catch (err) {
       console.error("AccuLynx Live Proxy Query Failure:", err);
       showToast(
-        `Integration Error: Failed fetching AccuLynx data records. ${err.message}`,
+        `${t.bjAxFetchFail} ${err.message}`,
         "error",
       );
       setAxR([]);
@@ -279,10 +276,7 @@ export default function BuildJobs({
 
   const saveJob = async (asDraft) => {
     if (!wPO.po || !wPO.name || wItems.length === 0) {
-      showToast(
-        "Please complete all steps and select project materials first.",
-        "warning",
-      );
+      showToast(t.bjCompleteSteps, "warning");
       return;
     }
     if (!wPO.notes || !wPO.notes.trim()) {
@@ -327,7 +321,7 @@ export default function BuildJobs({
           setJobTrailers?.((p) => [...p, ...trailerRows]);
         } catch (jtErr) {
           console.error("Failed to book trailers for job:", jtErr);
-          showToast(`Job saved, but trailer booking failed: ${jtErr.message}`, "warning");
+          showToast(`${t.bjTrailerBookFail} ${jtErr.message}`, "warning");
         }
       }
 
@@ -367,7 +361,7 @@ export default function BuildJobs({
       resetWiz();
     } catch (err) {
       console.error("Failed to save job:", err);
-      showToast(`Database Error: Could not save job. ${err.message}`, "error");
+      showToast(`${t.bjSaveFail} ${err.message}`, "error");
     } finally {
       setSaving(false);
     }
@@ -442,7 +436,7 @@ export default function BuildJobs({
     } catch (err) {
       console.error("Failed to approve job:", err);
       showToast(
-        `Database Error: Could not approve job. ${err.message}`,
+        `${t.bjApproveFail} ${err.message}`,
         "error",
       );
     } finally {
@@ -474,7 +468,7 @@ export default function BuildJobs({
     } catch (err) {
       console.error("Failed to delete job:", err);
       showToast(
-        `Database Error: Could not delete job record. ${err.message}`,
+        `${t.bjDeleteFail} ${err.message}`,
         "error",
       );
     }
@@ -512,7 +506,11 @@ export default function BuildJobs({
                  <p>🚚 Trailer <strong>${esc(trailerName)}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
         });
       }
-      showToast(`${assignedUser?.name || "Supervisor"} notified that trailer was ${action}.`, "success");
+      showToast(
+        (action === "added" ? t.bjTrailerNotifiedAdded : t.bjTrailerNotifiedRemoved)
+          .replace("{name}", assignedUser?.name || t.bjSupervisorFallback),
+        "success",
+      );
     };
 
     if (existing) {
@@ -524,7 +522,7 @@ export default function BuildJobs({
         await notifySupervisorOfTrailerChange("removed");
       } catch (err) {
         console.error("Failed to remove trailer from job:", err);
-        showToast(`Failed to remove trailer: ${err.message}`, "error");
+        showToast(`${t.bjTrailerRemoveFail} ${err.message}`, "error");
         setJobTrailers((p) => [...p, existing]);
       }
     } else {
@@ -537,7 +535,7 @@ export default function BuildJobs({
         await notifySupervisorOfTrailerChange("added");
       } catch (err) {
         console.error("Failed to assign trailer to job:", err);
-        showToast(`Failed to assign trailer: ${err.message}`, "error");
+        showToast(`${t.bjTrailerAssignFail} ${err.message}`, "error");
         setJobTrailers((p) => p.filter((jt) => jt.id !== newRow.id));
       }
     }
@@ -567,7 +565,7 @@ export default function BuildJobs({
       showToast(t.bjClosed, "success");
     } catch (err) {
       console.error("Failed to close job:", err);
-      showToast(`Database Error: Could not close job. ${err.message}`, "error");
+      showToast(`${t.bjCloseFail} ${err.message}`, "error");
     }
   };
 
@@ -590,13 +588,13 @@ export default function BuildJobs({
       setJobs((p) => p.map((j) => (j.id === job.id ? updated : j)));
       setSel((p) => (p && p.id === job.id ? updated : p));
       showToast(
-        "Job successfully returned to active completed view.",
+        t.bjReopened,
         "success",
       );
     } catch (err) {
       console.error("Failed to reopen job:", err);
       showToast(
-        `Database Error: Could not reopen job. ${err.message}`,
+        `${t.bjReopenFail} ${err.message}`,
         "error",
       );
     }
@@ -630,7 +628,7 @@ export default function BuildJobs({
             🏗️ Build Jobs
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-            Plan inventory, assign site supervisors, manage the pipeline
+            {t.bjSubtitle}
           </p>
         </div>
 
@@ -666,6 +664,7 @@ export default function BuildJobs({
 
       {subView === "calendar" ? (
         <CrewCalendar
+          lang={lang}
           jobs={jobs}
           users={users}
           jSC={jSC}
@@ -693,12 +692,12 @@ export default function BuildJobs({
               style={{ flex: 1, minWidth: 220, maxWidth: 380 }}
             />
             <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.bjSortAria} style={{ width: "auto" }}>
-              <option value="newest">↕ Date Created — Newest</option>
-              <option value="oldest">↕ Date Created — Oldest</option>
-              <option value="name_az">↕ Job Name — A to Z</option>
-              <option value="name_za">↕ Job Name — Z to A</option>
-              <option value="po">↕ PO Number</option>
-              <option value="status">↕ Status</option>
+              <option value="newest">{t.bjSortNewest}</option>
+              <option value="oldest">{t.bjSortOldest}</option>
+              <option value="name_az">{t.bjSortNameAZ}</option>
+              <option value="name_za">{t.bjSortNameZA}</option>
+              <option value="po">{t.bjSortPo}</option>
+              <option value="status">{t.bjSortStatus}</option>
             </Sel>
             {srch && (
               <Btn v="ghost" sz="sm" onClick={() => setSrch("")}>
@@ -832,7 +831,7 @@ export default function BuildJobs({
                           setModal("approve");
                         }}
                       >
-                        Approve & Assign →
+                        {t.bjApproveAssign}
                       </Btn>
                     )}
                     {job.status === "completed" && (
@@ -855,7 +854,7 @@ export default function BuildJobs({
                         sz="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm("Close this job? It will be moved to the Closed list and archived from active work.")) {
+                          if (window.confirm(t.bjCloseConfirm)) {
                             closeJob(job);
                           }
                         }}
@@ -869,7 +868,7 @@ export default function BuildJobs({
                         sz="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (window.confirm("Permanently delete this job record? This cannot be undone.")) {
+                          if (window.confirm(t.bjDeleteConfirm)) {
                             deleteJob(job.id);
                           }
                         }}
@@ -936,7 +935,7 @@ export default function BuildJobs({
                 v="purple"
                 sz="sm"
                 onClick={() => {
-                  if (window.confirm("Close this job? It will be moved to the Closed list and archived from active work.")) {
+                  if (window.confirm(t.bjCloseConfirm)) {
                     closeJob();
                   }
                 }}
@@ -954,7 +953,7 @@ export default function BuildJobs({
                 v="danger"
                 sz="sm"
                 onClick={() => {
-                  if (window.confirm("Delete this draft?")) {
+                  if (window.confirm(t.bjDeleteDraftConfirm)) {
                     deleteJob(sel.id);
                     setModal(null);
                   }
@@ -1058,7 +1057,7 @@ export default function BuildJobs({
       {modal === "approve" && sel && (
         <Modal title={`Approve: ${sel.title || sel.name}`} onClose={() => setModal(null)}>
           <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.tl, fontWeight: "var(--weight-semibold)" }}>
-            Approving will notify the assigned Site Supervisor.
+            {t.bjApproveNotice}
           </div>
           <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)" }}>
             <strong style={{ color: C.navy }}>{sel.po} — {sel.title || sel.name}</strong>
@@ -1066,7 +1065,7 @@ export default function BuildJobs({
           </div>
           <Fld label={t.bjAssignSupervisorReq}>
             <Sel value={apAssign} onChange={(e) => setApAssign(e.target.value)} disabled={approving}>
-              <option value="">— Select Site Supervisor —</option>
+              <option value="">{t.bjSelectSupervisorOpt}</option>
               {fieldUsers.map((u) => (
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
@@ -1140,7 +1139,7 @@ export default function BuildJobs({
                 </div>
               )}
               <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
-                <Fld label={t.bjJobPo}><Inp value={wPO.po} onChange={(e) => setWPO({ ...wPO, po: e.target.value })} placeholder="PO-2025-XXX" /></Fld>
+                <Fld label={t.bjJobPo}><Inp value={wPO.po} onChange={(e) => setWPO({ ...wPO, po: e.target.value })} placeholder={t.bjPoPlaceholder} /></Fld>
                 <Fld label={t.bjJobName}><Inp value={wPO.name} onChange={(e) => setWPO({ ...wPO, name: e.target.value })} placeholder={t.bjJobNamePlaceholder} /></Fld>
                 <Fld label={t.bjJobAddr}><Inp value={wPO.addr} onChange={(e) => setWPO({ ...wPO, addr: e.target.value })} placeholder={t.bjJobAddrPlaceholder} /></Fld>
                 <Fld label={t.bjSchedStart}>
@@ -1171,7 +1170,7 @@ export default function BuildJobs({
                   <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                     {jobTemplates.length === 0 && (
                       <p style={{ fontSize: "var(--text-xs)", color: C.sub, fontStyle: "italic", margin: 0 }}>
-                        No templates yet — create them in Inventory → 🧰 Templates.
+                        {t.bjNoTemplates}
                       </p>
                     )}
                     {jobTemplates.map((tpl) => (
@@ -1207,7 +1206,7 @@ export default function BuildJobs({
                             <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.name}</div>
                             <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{tot(item)} {item.unit} available</div>
                           </div>
-                          {added ? <Bdg color="blue">Added ✓</Bdg> : <Btn v="primary" sz="sm" onClick={() => addWItem(item)}>+ Add</Btn>}
+                          {added ? <Bdg color="blue">{t.bjAdded}</Bdg> : <Btn v="primary" sz="sm" onClick={() => addWItem(item)}>{t.bjAdd}</Btn>}
                         </div>
                       );
                     })}
@@ -1261,7 +1260,7 @@ export default function BuildJobs({
               </Fld>
               <Fld label={t.bjAssignSupervisor} hint={t.bjAssignLaterHint}>
                 <Sel value={wAssign} onChange={(e) => setWAssign(e.target.value)} disabled={saving}>
-                  <option value="">— Assign later (save as draft) —</option>
+                  <option value="">{t.bjAssignLaterOpt}</option>
                   {fieldUsers.map((u) => (
                     <option key={u.id} value={u.id}>{u.name}</option>
                   ))}

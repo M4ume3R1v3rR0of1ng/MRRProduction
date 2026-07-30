@@ -99,7 +99,7 @@ export default function InventoryView({
         "inventory",
       );
     } catch (err) {
-      showToast(`Failed to update special status: ${err.message}`, "error");
+      showToast(`${t.invSpecialFail} ${err.message}`, "error");
     }
   };
 
@@ -111,7 +111,7 @@ export default function InventoryView({
       setInv((p) => p.map((i) => (i.id === id ? { ...i, photo_url } : i)));
       setSel((p) => (p && p.id === id ? { ...p, photo_url } : p));
     } catch (err) {
-      showToast(`Failed to save item photo: ${err.message}`, "error");
+      showToast(`${t.invPhotoFail} ${err.message}`, "error");
     }
   };
 
@@ -139,9 +139,9 @@ export default function InventoryView({
   const patchBatches = (id, batches) => patchItem(id, { batches });
 
   const deleteItem = async () => {
-    if (!sel || !window.confirm(`Permanently delete ${sel.name} from inventory?`)) return;
+    if (!sel || !window.confirm(t.invDeleteConfirm.replace("{name}", sel.name))) return;
     const { error } = await supabase.from("inventory").delete().eq("id", sel.id);
-    if (error) { showToast(`Database Error: ${error.message}`, "error"); return; }
+    if (error) { showToast(`${t.invDbError} ${error.message}`, "error"); return; }
     setInv((p) => p.filter((i) => i.id !== sel.id));
     await logAction(user?.id ?? null, user?.email ?? null, "INV_MUTATION", `Permanently purged catalog blueprint item: "${sel.name}"`, { item_id: sel.id });
     setModal(null);
@@ -157,26 +157,26 @@ export default function InventoryView({
             📦 {t.inventory || "Inventory"}
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-            {inv.length} {lang === "es" ? "posiciones de catálogo registradas" : "catalog positions registered"} ·{" "}
-            {lang === "es" ? "Niveles de stock en tiempo real" : "Real-time stock level counts"}
+            {inv.length} {t.invCatalogPositions} ·{" "}
+            {t.invRealtimeStock}
           </p>
         </div>
         <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
           {perms.inv_bulk_receive && (
             <Btn v="gold" onClick={() => setModal("bulk")}>
               {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
-              📦 {lang === "es" ? "Recibir Pedido en Bloque" : "Receive Bulk Order"}
+              📦 {t.invReceiveBulk}
             </Btn>
           )}
           {perms.inv_edit && (
             <Btn v="outline" onClick={() => setModal("tpl")}>
-              🧰 {lang === "es" ? "Plantillas" : "Templates"}
+              🧰 {t.invTemplates}
             </Btn>
           )}
           {perms.inv_edit && (
             <Btn v="primary" onClick={() => setModal("add")}>
               {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
-              + {lang === "es" ? "Agregar Artículo" : "Add Item"}
+              + {t.invAddItem}
             </Btn>
           )}
         </div>
@@ -198,14 +198,14 @@ export default function InventoryView({
     <Sel value={cat} onChange={(e) => setCat(e.target.value)} style={{ width: "auto" }}>
       {cats.map((c) => (<option key={c} value={c}>{c}</option>))}
     </Sel>
-    <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort inventory" style={{ width: "auto" }}>
-      <option value="name_az">↕ Name — A to Z</option>
-      <option value="name_za">↕ Name — Z to A</option>
-      <option value="cat_az">↕ Category — A to Z</option>
-      <option value="stock_low">↕ Stock — Low to High</option>
-      <option value="stock_high">↕ Stock — High to Low</option>
-      {perms.inv_pricing_view && <option value="price_low">↕ Price — Low to High</option>}
-      {perms.inv_pricing_view && <option value="price_high">↕ Price — High to Low</option>}
+    <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.invSortAria} style={{ width: "auto" }}>
+      <option value="name_az">{t.invSortNameAZ}</option>
+      <option value="name_za">{t.invSortNameZA}</option>
+      <option value="cat_az">{t.invSortCatAZ}</option>
+      <option value="stock_low">{t.invSortStockLow}</option>
+      <option value="stock_high">{t.invSortStockHigh}</option>
+      {perms.inv_pricing_view && <option value="price_low">{t.invSortPriceLow}</option>}
+      {perms.inv_pricing_view && <option value="price_high">{t.invSortPriceHigh}</option>}
     </Sel>
   </div>
 
@@ -306,7 +306,7 @@ export default function InventoryView({
                       <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>per {item.unit?.replace(/s$/, "") || "unit"}</div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>Pricing restricted</div>
+                    <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{t.invPricingRestricted}</div>
                   )}
                 </div>
                 

@@ -2,6 +2,7 @@
 // Warehouse weather + 5-day outlook for the dashboard. Data comes from the
 // /.netlify/functions/weather proxy (Open-Meteo), so no API key touches the browser.
 import { useState, useEffect } from "react";
+import { translations } from "../utils/translations";
 import { C } from "../utils/helpers";
 import { getAccessToken } from "../utils/supabase";
 import { Spinner } from "./UIPrimitives";
@@ -32,7 +33,8 @@ const cardStyle = {
   boxShadow: "var(--shadow-xs)",
 };
 
-export default function WeatherCard() {
+export default function WeatherCard({ lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const [state, setState] = useState({ loading: true, error: null, data: null });
 
   useEffect(() => {
@@ -60,7 +62,7 @@ export default function WeatherCard() {
   const header = (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: "var(--space-2)" }}>
       <h3 style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>
-        🌤️ Warehouse Weather
+        {t.wcTitle}
       </h3>
       <span style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>
         Saint Joe Road · Fort Wayne, IN
@@ -73,7 +75,7 @@ export default function WeatherCard() {
       <div style={cardStyle}>
         {header}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)", padding: "6px 0", color: C.sub, fontSize: "var(--text-xs)" }}>
-          <Spinner size={13} /> Loading forecast…
+          <Spinner size={13} /> {t.wcLoading}
         </div>
       </div>
     );
@@ -84,7 +86,7 @@ export default function WeatherCard() {
       <div style={cardStyle}>
         {header}
         <div style={{ color: C.sub, fontSize: "var(--text-xs)", padding: "4px 0" }}>
-          Weather is unavailable right now.
+          {t.wcUnavailable}
         </div>
       </div>
     );

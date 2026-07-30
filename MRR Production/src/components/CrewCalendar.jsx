@@ -1,5 +1,6 @@
 // src/components/CrewCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
+import { translations } from "../utils/translations";
 import { C, fd } from "../utils/helpers";
 import { Bdg, Btn } from "./UIPrimitives";
 import { supabase } from "../utils/supabase";
@@ -32,7 +33,8 @@ const resolveStatusColor = (statusConfig) => {
   return colorMap[c] ?? c;
 };
 
-export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobClick, setJobs }) {
+export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobClick, setJobs, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
   const [draggingId, setDraggingId] = useState(null);
   const [dragOverKey, setDragOverKey] = useState(null);
@@ -194,17 +196,17 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📅 Weekly Production Crew & Shift Calendar</h2>
-          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>Visual dispatcher mapping active staging jobs across operational project rows.</p>
+          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>{t.ccSubtitle}</p>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>◀ Prev</Btn>
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>{t.calPrev}</Btn>
           <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", color: C.navy, minWidth: 200, textAlign: "center" }}>
             {weekLabel}
           </div>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>Next ▶</Btn>
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>{t.calNext}</Btn>
           {!isCurrentWeek && (
-            <Btn v="primary" sz="sm" onClick={handleGoToToday}>Today</Btn>
+            <Btn v="primary" sz="sm" onClick={handleGoToToday}>{t.calToday}</Btn>
           )}
         </div>
       </div>
@@ -290,7 +292,7 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
               <tr style={{ borderBottom: `1px solid ${C.lg}`, background: "rgba(251,191,36,0.04)" }}>
                 <td style={{ padding: "14px 10px", verticalAlign: "middle", borderRight: `1px solid ${C.lg}` }}>
                   <div style={{ fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: C.am }}>⚠️ Unassigned</div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>No supervisor set</div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>{t.ccNoSupervisor}</div>
                 </td>
                 {weekDays.map((day) => {
                   const dayKey = toLocalDateKey(day);
@@ -325,7 +327,7 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
             {fieldPersonnelList.length === 0 && (
               <tr>
                 <td colSpan={8} style={{ padding: 32, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", fontStyle: "italic" }}>
-                  No field operational crews registered to map schedule lines.
+                  {t.ccNoCrews}
                 </td>
               </tr>
             )}

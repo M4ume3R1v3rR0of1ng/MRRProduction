@@ -1,5 +1,6 @@
 // src/components/MaintenanceCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
+import { translations } from "../utils/translations";
 import { C } from "../utils/helpers";
 import { Bdg, Btn } from "./UIPrimitives";
 import { supabase } from "../utils/supabase";
@@ -19,7 +20,8 @@ const urgencyMeta = (urgency) => {
   return { color: C.blue, label: "Standard" };
 };
 
-export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReqs, onRequestClick }) {
+export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReqs, onRequestClick, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const d = new Date();
@@ -188,13 +190,13 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📅 Weekly Maintenance Schedule</h2>
-          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>Drag a request onto a day to schedule or reschedule it.</p>
+          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>{t.mcSubtitle}</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>◀ Prev</Btn>
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>{t.calPrev}</Btn>
           <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", color: C.navy, minWidth: 200, textAlign: "center" }}>{weekLabel}</div>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>Next ▶</Btn>
-          {!isCurrentWeek && <Btn v="primary" sz="sm" onClick={handleGoToToday}>Today</Btn>}
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>{t.calNext}</Btn>
+          {!isCurrentWeek && <Btn v="primary" sz="sm" onClick={handleGoToToday}>{t.calToday}</Btn>}
         </div>
       </div>
 
@@ -215,7 +217,7 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
           📥 Awaiting Scheduling {unscheduledReqs.length > 0 && `(${unscheduledReqs.length})`}
         </div>
         {unscheduledReqs.length === 0 ? (
-          <div style={{ fontSize: "var(--text-sm)", color: C.sub, fontStyle: "italic" }}>Nothing waiting — drag a scheduled request here to unschedule it.</div>
+          <div style={{ fontSize: "var(--text-sm)", color: C.sub, fontStyle: "italic" }}>{t.mcUnschedule}</div>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
             {unscheduledReqs.map((r) => (
@@ -303,7 +305,7 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
             {vehicleRows.length === 0 && (
               <tr>
                 <td colSpan={8} style={{ padding: 32, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", fontStyle: "italic" }}>
-                  No active maintenance requests to schedule this week.
+                  {t.mcNoRequests}
                 </td>
               </tr>
             )}

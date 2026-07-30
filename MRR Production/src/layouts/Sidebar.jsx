@@ -110,12 +110,12 @@ export default function Sidebar({
       : []),
     // The company's own Billing/accounting tab — its admin only.
     ...((user?.role === "admin" || isPlatformAdmin)
-      ? [{ id: "billing", icon: "💳", label: "Billing" }]
+      ? [{ id: "billing", icon: "💳", label: t.billing }]
       : []),
     // Platform owner only — not a company permission. Visible to you across every
     // tenant; the underlying RPCs re-check is_platform_admin() server-side regardless.
     ...(isPlatformAdmin
-      ? [{ id: "owner", icon: "🏛️", label: "Owner Console" }]
+      ? [{ id: "owner", icon: "🏛️", label: t.ownerConsole }]
       : []),
   ];
   
@@ -190,7 +190,7 @@ export default function Sidebar({
           }}
         >
           {activeLogo ? (
-            <img src={activeLogo} alt="Company logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            <img src={activeLogo} alt={t.sbCompanyLogo} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
           ) : (
             <TrussMark size={30} />
           )}
@@ -366,7 +366,7 @@ export default function Sidebar({
             cursor: "pointer",
             transition: "background 0.2s",
           }}
-          title="Click to manage profile settings"
+          title={t.sbManageProfile}
         >
           <div style={{ width: 30, height: 30, borderRadius: "50%", background: rColor(user.role), display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", fontSize: "var(--text-base)", fontWeight: "var(--weight-black)", color: C.onAccent, flexShrink: 0 }}>
             {user.name ? user.name[0] : user.full_name ? user.full_name[0] : "U"}

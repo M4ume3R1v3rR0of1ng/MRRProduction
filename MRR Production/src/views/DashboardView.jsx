@@ -363,7 +363,7 @@ export default function DashboardView({
               )}
             </div>
           </div>
-          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} />
+          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} lang={lang} />
         </div>
       </div>
     );
@@ -407,7 +407,7 @@ export default function DashboardView({
               ))}
             </div>
           </div>
-          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} />
+          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} lang={lang} />
         </div>
       </div>
     );
@@ -448,7 +448,7 @@ export default function DashboardView({
               })}
             </div>
           </div>
-          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} />
+          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} lang={lang} />
         </div>
       </div>
     );
@@ -540,28 +540,28 @@ export default function DashboardView({
       <div style={{ display: "flex", gap: "var(--space-5)", flexWrap: "wrap", marginBottom: 20, width: "100%" }}>
         <QuickActionCard 
           title={t.pull} 
-          subtitle={lang === "es" ? "Preparar materiales para cargar" : "Stage materials for loading"} 
+          subtitle={t.dashQaStage} 
           icon="📦" 
           color="var(--c-slate)" 
           onClick={() => onNav("pull")} 
         />
         <QuickActionCard 
           title={t.requests} 
-          subtitle={lang === "es" ? "Enviar registro de mantenimiento" : "Submit vehicle maintenance"} 
+          subtitle={t.dashQaMaint} 
           icon="🔧" 
           color="var(--c-plum)" 
           onClick={() => onNav("requests")} 
         />
         <QuickActionCard 
           title={t.myAssignedJobs} 
-          subtitle={lang === "es" ? "Ver lista de trabajos asignados" : "Check assigned work lists"} 
+          subtitle={t.dashQaCheck} 
           icon="📋" 
           color="var(--c-teal)" 
           onClick={() => onNav("pull")} 
         />
         <QuickActionCard 
           title={t.fleet} 
-          subtitle={lang === "es" ? "Reportar herramientas o vehículos dañados" : "Flag down tools or fleet assets"} 
+          subtitle={t.dashQaFlag} 
           icon="⚠️" 
           color="var(--c-rust)" 
           onClick={() => onNav("fleet")} 
@@ -570,7 +570,7 @@ export default function DashboardView({
 
       {/* Warehouse weather — relevant to scheduling roof work; shown for all roles */}
       <div style={{ marginBottom: 20 }}>
-        <WeatherCard />
+        <WeatherCard lang={lang} />
       </div>
 
       {/* Core Evaluation Router Branch */}
@@ -590,29 +590,29 @@ export default function DashboardView({
           <div style={{ textAlign: "center", padding: "8px 0" }}>
             <div style={{ fontSize: 42, marginBottom: 10 }}>🏗️</div>
             <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: "var(--weight-black)", fontSize: "var(--text-lg)" }}>
-              {newJobAlert.title || newJobAlert.name || "Untitled Production Contract"}
+              {newJobAlert.title || newJobAlert.name || t.dashUntitledContract}
             </h3>
             <p style={{ margin: "0 0 14px 0", color: C.sub, fontSize: "var(--text-base)" }}>
-              PO Tracker Number: <strong>{newJobAlert.po || "—"}</strong>
+              {t.dashPoTracker} <strong>{newJobAlert.po || "—"}</strong>
             </p>
             
             <div style={{ background: "var(--c-subtle)", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
-              <strong>📍 {lang === "es" ? "Dirección de Despacho" : "Dispatch Address"}:</strong> {newJobAlert.addr || newJobAlert.address || "No Location Specified"}
+              <strong>📍 {t.dashDispatchAddress}:</strong> {newJobAlert.addr || newJobAlert.address || t.dashNoLocation}
               {newJobAlert.notes && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
-                  <strong>📝 {lang === "es" ? "Instrucciones para la Cuadrilla" : "Crew Instructions"}:</strong> {newJobAlert.notes}
+                  <strong>📝 {t.dashCrewInstructions}:</strong> {newJobAlert.notes}
                 </div>
               )}
             </div>
 
             {alertTrailerNames.length > 0 && (
               <div style={{ background: "var(--c-warn-wash)", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1.5px solid ${C.am}`, marginBottom: 16, fontWeight: "var(--weight-bold)", color: C.am }}>
-                🚚 {lang === "es" ? "Debe llevar remolque(s)" : "Bring trailer(s)"}: {alertTrailerNames.join(", ")}
+                🚚 {t.dashBringTrailers}: {alertTrailerNames.join(", ")}
               </div>
             )}
 
             <Btn v="teal" onClick={() => acknowledgeJob(true)} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
-              {lang === "es" ? "Entendido, Abrir Lista de Materiales →" : "Got It, Open Job Materials Checklist →"}
+              {t.dashGotItMaterials}
             </Btn>
           </div>
         </Modal>
@@ -620,7 +620,7 @@ export default function DashboardView({
 
       {/* New Maintenance Request Alert Overlay — only one blocking modal at a time; job alerts take priority */}
       {!newJobAlert && maintAlert && (
-        <Modal title="🔔 New Maintenance Request" onClose={() => acknowledgeMaint(false)}>
+        <Modal title={t.dashNewMaintReq} onClose={() => acknowledgeMaint(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
             <div style={{ fontSize: 42, marginBottom: 10 }}>🔧</div>
             <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: "var(--weight-black)", fontSize: "var(--text-lg)" }}>
@@ -639,7 +639,7 @@ export default function DashboardView({
             </div>
 
             <Btn v="purple" onClick={() => acknowledgeMaint(true)} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
-              Got It, Open Maintenance Requests →
+              {t.dashGotItMaint}
             </Btn>
           </div>
         </Modal>
@@ -647,7 +647,7 @@ export default function DashboardView({
 
       {/* Maintenance Status Update Alert Overlay — tells the requester their ticket moved (scheduled/completed) */}
       {!newJobAlert && !maintAlert && statusAlert && (
-        <Modal title="🔔 Maintenance Update" onClose={() => acknowledgeStatusUpdate(false)}>
+        <Modal title={t.dashMaintUpdate} onClose={() => acknowledgeStatusUpdate(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
             <div style={{ fontSize: 42, marginBottom: 10 }}>{statusAlert.status === "completed" ? "✅" : "🗓️"}</div>
             <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: "var(--weight-black)", fontSize: "var(--text-lg)" }}>
@@ -680,7 +680,7 @@ export default function DashboardView({
             </div>
 
             <Btn v="teal" onClick={() => acknowledgeStatusUpdate(true)} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
-              Got It, View My Requests →
+              {t.dashGotItMyReq}
             </Btn>
           </div>
         </Modal>

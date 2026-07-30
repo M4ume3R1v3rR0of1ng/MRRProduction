@@ -1,6 +1,7 @@
 // src/components/OmniSearch.jsx
 import { useState, useRef, useEffect, useMemo } from "react";
 import { C } from "../utils/helpers";
+import { translations } from "../utils/translations";
 
 // Case-insensitive match across any of the given string fields
 const match = (txt, ...fields) =>
@@ -13,10 +14,12 @@ export default function OmniSearch({
   reqs = [],
   inv = [],
   perms = {},
+  lang = "en",
   onNavigate,
   onOpenItem,
   onInventorySearch,
 }) {
+  const t = translations[lang] || translations.en;
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -59,16 +62,16 @@ export default function OmniSearch({
 
     // Pages, mirroring the Sidebar's visibility rules
     const pages = [
-      { id: "dashboard", icon: "🏠", label: "Dashboard", keywords: "home overview team chat", show: true },
-      { id: "buildjobs", icon: "🏗️", label: "Build Jobs", keywords: "create job wizard acculynx close po", show: !!(perms.jobs_build || perms.jobs_close) },
-      { id: "pull", icon: "📋", label: "Pull Inventory", keywords: "jobs pull materials return complete", show: true },
-      { id: "inventory", icon: "📦", label: "Inventory", keywords: "stock materials receive batches sku", show: !!perms.inv_view },
-      { id: "fleet", icon: "🚛", label: "Fleet", keywords: "trucks trailers vehicles mileage plates", show: !!perms.fleet_view },
-      { id: "requests", icon: "🔧", label: "Maintenance", keywords: "requests tickets repair service oil", show: !!(perms.maint_submit || perms.maint_manage) },
-      { id: "reports", icon: "📊", label: "Reports", keywords: "analytics costs charts export", show: !!perms.reports_view },
-      { id: "users", icon: "👥", label: "Users", keywords: "staff team accounts profiles roles", show: !!perms.users_manage },
-      { id: "logs", icon: "📜", label: "Audit Logs", keywords: "history activity audit trail", show: !!perms.users_manage },
-      { id: "settings", icon: "⚙️", label: "Settings", keywords: "acculynx permissions api logo config", show: !!perms.settings_manage },
+      { id: "dashboard", icon: "🏠", label: t.dashboard, keywords: "home overview team chat", show: true },
+      { id: "buildjobs", icon: "🏗️", label: t.buildjobs, keywords: "create job wizard acculynx close po", show: !!(perms.jobs_build || perms.jobs_close) },
+      { id: "pull", icon: "📋", label: t.pull, keywords: "jobs pull materials return complete", show: true },
+      { id: "inventory", icon: "📦", label: t.inventory, keywords: "stock materials receive batches sku", show: !!perms.inv_view },
+      { id: "fleet", icon: "🚛", label: t.fleet, keywords: "trucks trailers vehicles mileage plates", show: !!perms.fleet_view },
+      { id: "requests", icon: "🔧", label: t.requests, keywords: "requests tickets repair service oil", show: !!(perms.maint_submit || perms.maint_manage) },
+      { id: "reports", icon: "📊", label: t.reports, keywords: "analytics costs charts export", show: !!perms.reports_view },
+      { id: "users", icon: "👥", label: t.users, keywords: "staff team accounts profiles roles", show: !!perms.users_manage },
+      { id: "logs", icon: "📜", label: t.logs, keywords: "history activity audit trail", show: !!perms.users_manage },
+      { id: "settings", icon: "⚙️", label: t.settings, keywords: "acculynx permissions api logo config", show: !!perms.settings_manage },
     ];
 
     return {
@@ -134,7 +137,9 @@ export default function OmniSearch({
             .filter((i) => match(txt, i.name, i.cat, i.sku, i.unit))
             .slice(0, 4),
     };
-  }, [txt, jobs, users, vehs, reqs, inv, perms]);
+    // `t` belongs here: the page labels above are read from it, so switching
+    // language has to rebuild this list or the nav results stay in the old one.
+  }, [txt, jobs, users, vehs, reqs, inv, perms, t]);
 
   const hasResults =
     results && Object.values(results).some((arr) => arr.length > 0);
@@ -144,53 +149,53 @@ export default function OmniSearch({
     ? [
         {
           key: "pages",
-          header: "🧭 Go To",
+          header: t.osSecGoTo,
           items: results.pages,
           title: (p) => `${p.icon} ${p.label}`,
-          sub: () => "Open page",
+          sub: () => t.osOpenPage,
           onClick: (p) => handleSelection(p.id),
         },
         {
           key: "jobs",
-          header: "🏗️ Jobs",
+          header: t.osSecJobs,
           items: results.jobs,
-          title: (j) => j.title || j.name || "Untitled Job",
+          title: (j) => j.title || j.name || t.osUntitledJob,
           sub: (j) =>
-            `PO: ${j.po || "N/A"} · ${j.addr || "No address"}${j.status ? ` · ${j.status}` : ""}`,
+            `PO: ${j.po || t.osNA} · ${j.addr || t.osNoAddress}${j.status ? ` · ${j.status}` : ""}`,
           onClick: (j) =>
             handleSelection(perms.jobs_build || perms.jobs_close ? "buildjobs" : "pull", j.id),
         },
         {
           key: "users",
-          header: "👥 Staff & Profiles",
+          header: t.osSecStaff,
           items: results.users,
           title: (u) => u.full_name || u.name || u.email,
-          sub: (u) => `${u.email || "No email"} · ${u.role || "No role"}`,
+          sub: (u) => `${u.email || t.osNoEmail} · ${u.role || t.osNoRole}`,
           onClick: (u) => handleSelection("users", u.id),
         },
         {
           key: "vehicles",
-          header: "🚛 Fleet Vehicles",
+          header: t.osSecVehicles,
           items: results.vehicles,
-          title: (v) => v.name || `${v.make || ""} ${v.model || ""}`.trim() || "Vehicle",
+          title: (v) => v.name || `${v.make || ""} ${v.model || ""}`.trim() || t.osVehicle,
           sub: (v) =>
-            `Plate: ${v.plate || "—"} · Driver: ${v.driver || userName(v.assignedTo) || "Unassigned"}`,
+            `${t.osPlate}: ${v.plate || "—"} · ${t.osDriver}: ${v.driver || userName(v.assignedTo) || t.flUnassigned}`,
           onClick: (v) => handleSelection("fleet", v.id),
         },
         {
           key: "requests",
-          header: "🔧 Maintenance Tickets",
+          header: t.osSecTickets,
           items: results.requests,
-          title: (r) => `${r.type || "Request"}${r.vname ? ` — ${r.vname}` : ""}`,
-          sub: (r) => `Status: ${(r.status || "?").toUpperCase()} · Urgency: ${r.urgency || "normal"}`,
+          title: (r) => `${r.type || t.osRequest}${r.vname ? ` — ${r.vname}` : ""}`,
+          sub: (r) => `${t.osStatus}: ${(r.status || "?").toUpperCase()} · ${t.osUrgency}: ${r.urgency || t.osNormal}`,
           onClick: (r) => handleSelection("requests", r.id),
         },
         {
           key: "inventory",
-          header: "📦 Materials & Inventory",
+          header: t.osSecInventory,
           items: results.inventory,
           title: (i) => i.name,
-          sub: (i) => `Category: ${i.cat || "General"} · Unit: ${i.unit || "—"}`,
+          sub: (i) => `${t.osCategory}: ${i.cat || t.osGeneral} · ${t.osUnit}: ${i.unit || "—"}`,
           onClick: (i) => {
             onNavigate("inventory");
             if (typeof onInventorySearch === "function") {
@@ -214,7 +219,7 @@ export default function OmniSearch({
           setIsOpen(true);
         }}
         onFocus={() => setIsOpen(true)}
-        placeholder="Search jobs, staff, trucks, tickets, materials, pages..."
+        placeholder={t.chromeSearchPlaceholder}
         style={{
           width: "100%",
           padding: "10px 14px 10px 12px",
@@ -297,7 +302,7 @@ export default function OmniSearch({
             <div
               style={{ padding: "20px", textAlign: "center", color: "var(--c-sub)" }}
             >
-              No results found for "<strong>{query}</strong>"
+              {t.osNoResults} "<strong>{query}</strong>"
             </div>
           )}
         </div>

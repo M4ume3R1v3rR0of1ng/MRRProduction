@@ -118,3 +118,26 @@ export const MONTH_NAMES = [
 ];
 
 export const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Localized display names for the calendar header and column headings.
+//
+// Intl rather than a second pair of hand-written arrays in translations.js: there
+// is nothing to keep in sync, and a language added later is correct for free.
+// Spanish comes back lowercase from Intl ("enero", "dom"), which is right for prose
+// but wrong for a heading, so capitalize. The arrays above stay as-is — they are
+// the English constants the tests pin.
+const localeFor = (lang) => (lang === "es" ? "es" : "en");
+const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+export function monthNames(lang = "en") {
+  const fmt = new Intl.DateTimeFormat(localeFor(lang), { month: "long" });
+  return Array.from({ length: 12 }, (_, m) => capitalize(fmt.format(new Date(2021, m, 1))));
+}
+
+export function weekdayShort(lang = "en") {
+  const fmt = new Intl.DateTimeFormat(localeFor(lang), { weekday: "short" });
+  // 2021-08-01 was a Sunday, which matches the Sunday-first grid below.
+  return Array.from({ length: 7 }, (_, d) =>
+    capitalize(fmt.format(new Date(2021, 7, 1 + d))).replace(/\.$/, ""),
+  );
+}

@@ -10,7 +10,7 @@
 // that is what this is: look across all three, and look at what already happened.
 import { useMemo, useState } from "react";
 import { C, parseDay, formatDay, todayLocal, fm } from "../utils/helpers";
-import { buildSchedule, monthGrid, MONTH_NAMES, WEEKDAY_SHORT } from "../utils/schedule";
+import { buildSchedule, monthGrid, monthNames, weekdayShort } from "../utils/schedule";
 import { Btn, Bdg, Modal } from "../components/UIPrimitives";
 import { translations } from "../utils/translations";
 
@@ -25,6 +25,8 @@ export default function ScheduleView({
   lang = "en",
 }) {
   const t = translations[lang] || translations.en;
+  const MONTH_NAMES = monthNames(lang);
+  const WEEKDAY_SHORT = weekdayShort(lang);
   const today = todayLocal();
   const todayDate = parseDay(today);
 
@@ -72,29 +74,29 @@ export default function ScheduleView({
             🗓️ {t.schedule || "Schedule"}
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-            {monthTotals.jobs} {monthTotals.jobs === 1 ? "job" : "jobs"} · {monthTotals.maint} in the shop
+            {monthTotals.jobs} {monthTotals.jobs === 1 ? t.schJob : t.schJobs} · {monthTotals.maint} {t.schInShop}
             {monthTotals.conflicts > 0 && (
-              <span style={{ color: C.am, fontWeight: "var(--weight-bold)" }}> · {monthTotals.conflicts} conflict{monthTotals.conflicts > 1 ? "s" : ""}</span>
+              <span style={{ color: C.am, fontWeight: "var(--weight-bold)" }}> · {monthTotals.conflicts} {monthTotals.conflicts > 1 ? t.schConflicts : t.schConflict}</span>
             )}
           </p>
         </div>
         <div className="sw-wrap" style={{ alignItems: "center", gap: "var(--space-3)" }}>
-          <Btn v="ghost" sz="sm" onClick={() => step(-1)} aria-label="Previous month">←</Btn>
+          <Btn v="ghost" sz="sm" onClick={() => step(-1)} aria-label={t.schPrevMonth}>←</Btn>
           <span style={{ minWidth: 148, textAlign: "center", fontFamily: "var(--font-display)", fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-lg)", color: C.navy }}>
             {MONTH_NAMES[cursor.month]} {cursor.year}
           </span>
-          <Btn v="ghost" sz="sm" onClick={() => step(1)} aria-label="Next month">→</Btn>
-          {!isCurrentMonth && <Btn v="outline" sz="sm" onClick={goToday}>Today</Btn>}
+          <Btn v="ghost" sz="sm" onClick={() => step(1)} aria-label={t.schNextMonth}>→</Btn>
+          {!isCurrentMonth && <Btn v="outline" sz="sm" onClick={goToday}>{t.schToday}</Btn>}
         </div>
       </div>
 
       {/* ── legend ── */}
       <div className="sw-wrap" style={{ marginBottom: 12, fontSize: "var(--text-2xs)", color: C.sub, alignItems: "center" }}>
-        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: C.gr, marginRight: 5 }} />Job</span>
-        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: C.pu, marginRight: 5 }} />Shop</span>
-        <span>🚛 trailers out</span>
-        <span style={{ color: C.am }}>⚠️ booked and in the shop the same day</span>
-        <span style={{ opacity: 0.55 }}>faded = finished</span>
+        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: C.gr, marginRight: 5 }} />{t.schLegendJob}</span>
+        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: C.pu, marginRight: 5 }} />{t.schLegendShop}</span>
+        <span>{t.schLegendTrailers}</span>
+        <span style={{ color: C.am }}>{t.schLegendConflict}</span>
+        <span style={{ opacity: 0.55 }}>{t.schLegendFaded}</span>
       </div>
 
       {/* ── month grid ── */}
@@ -195,7 +197,7 @@ export default function ScheduleView({
 
       {monthTotals.jobs === 0 && monthTotals.maint === 0 && (
         <p style={{ marginTop: 14, color: C.sub, fontSize: "var(--text-sm)", textAlign: "center" }}>
-          Nothing scheduled in {MONTH_NAMES[cursor.month]} {cursor.year}. Jobs appear here once they have a scheduled date.
+          {t.schEmpty.replace("{month}", MONTH_NAMES[cursor.month] + " " + cursor.year)}
         </p>
       )}
 
@@ -254,7 +256,7 @@ export default function ScheduleView({
                       <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-md)" }}>🔧 {m.vehicle}</div>
                       <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{m.issue}</div>
                     </div>
-                    {m.finished ? <Bdg color="green">Done</Bdg> : m.urgency === "high" ? <Bdg color="red">Urgent</Bdg> : <Bdg color="gray">Scheduled</Bdg>}
+                    {m.finished ? <Bdg color="green">{t.schDone}</Bdg> : m.urgency === "high" ? <Bdg color="red">{t.schUrgent}</Bdg> : <Bdg color="gray">{t.schScheduled}</Bdg>}
                   </button>
                 ))}
               </div>

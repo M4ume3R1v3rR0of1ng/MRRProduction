@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { C } from '../utils/helpers';
 import { ROLES } from '../database/permissions';
+import { translations } from '../utils/translations';
 import { compressImg } from '../utils/helpers';
 import { useNotify } from '../context/NotificationContext';
 
@@ -143,9 +144,23 @@ export function Bdg({ children, color = 'blue' }) {
   return <span style={{ padding: '3px var(--space-3)', borderRadius: 'var(--radius-pill)', fontSize: 'var(--text-xs)', fontWeight: 'var(--weight-bold)', background: bg[color] || C.lg, color: fg[color] || C.sub, display: 'inline-block' }}>{children}</span>;
 }
 
-export function RoleBdg({ role }) {
+// Role key -> dictionary key. ROLES still owns the colour and the English
+// fallback; only the visible label comes from the active language.
+const ROLE_LABEL_KEYS = {
+  admin: 'roleAdmin',
+  warehouse: 'roleWarehouse',
+  coordinator: 'roleCoordinator',
+  manager: 'roleManager',
+  field: 'roleField',
+  employee: 'roleEmployee',
+  bookkeeper: 'roleBookkeeper',
+};
+
+export function RoleBdg({ role, lang = 'en' }) {
   const r = ROLES[role] || { label: 'Employee', color: 'gray' };
-  return <Bdg color={r.color}>{r.label}</Bdg>;
+  const t = translations[lang] || translations.en;
+  const label = t[ROLE_LABEL_KEYS[role]] || r.label;
+  return <Bdg color={r.color}>{label}</Bdg>;
 }
 
 export function Toggle({ on, onChange, disabled = false }) {

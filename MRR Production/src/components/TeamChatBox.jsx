@@ -1,5 +1,6 @@
 // src/components/TeamChatBox.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { translations } from "../utils/translations";
 import { supabase } from '../utils/supabase';
 import { C, ft, compressImg } from '../utils/helpers';
 import { Modal, LoadingState } from './UIPrimitives';
@@ -21,7 +22,8 @@ function renderWithMentions(text, names) {
   );
 }
 
-export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }) {
+export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, lang = 'en' }) {
+  const t = translations[lang] || translations.en;
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState('');
@@ -198,7 +200,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
   };
 
   const deleteMessage = async (m) => {
-    if (!window.confirm('Delete this message?')) return;
+    if (!window.confirm(t.chDeleteConfirm)) return;
     try {
       const { error: deleteError } = await supabase.from('team_chat_messages').delete().eq('id', m.id).eq('user_id', user?.id);
       if (deleteError) throw deleteError;
@@ -235,9 +237,9 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
         }}
       >
         {loading ? (
-          <LoadingState label="Loading messages..." compact />
+          <LoadingState label={t.chLoadingMessages} compact />
         ) : messages.length === 0 ? (
-          <p style={{ color: C.sub, fontSize: "var(--text-base)", margin: 0, textAlign: 'center', padding: '20px 0' }}>No messages yet. Say hello 👋</p>
+          <p style={{ color: C.sub, fontSize: "var(--text-base)", margin: 0, textAlign: 'center', padding: '20px 0' }}>{t.chNoMessages}</p>
         ) : (
           messages.map((m) => {
             const mine = !!(m.user_id && user?.id && m.user_id === user.id);
@@ -258,8 +260,8 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
                       style={{ padding: '7px 10px', border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", boxSizing: 'border-box' }}
                     />
                     <div style={{ display: 'flex', gap: "var(--space-3)", justifyContent: 'flex-end' }}>
-                      <button onClick={cancelEdit} style={{ background: 'none', border: 'none', color: C.sub, cursor: 'pointer', fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Cancel</button>
-                      <button onClick={saveEdit} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Save</button>
+                      <button onClick={cancelEdit} style={{ background: 'none', border: 'none', color: C.sub, cursor: 'pointer', fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>{t.chCancel}</button>
+                      <button onClick={saveEdit} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>{t.chSave}</button>
                     </div>
                   </div>
                 ) : (
@@ -277,7 +279,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
                     {m.photo && (
                       <img
                         src={m.photo}
-                        alt="Attachment"
+                        alt={t.chAttachment}
                         onClick={() => setLightboxPhoto(m.photo)}
                         style={{ display: 'block', maxWidth: '100%', maxHeight: 160, borderRadius: "var(--radius-md)", marginBottom: m.message ? 6 : 0, cursor: 'pointer' }}
                       />
@@ -293,8 +295,8 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
                     </span>
                     {mine && (
                       <>
-                        <button onClick={() => startEdit(m)} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", padding: 0 }}>Edit</button>
-                        <button onClick={() => deleteMessage(m)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", padding: 0 }}>Delete</button>
+                        <button onClick={() => startEdit(m)} style={{ background: 'none', border: 'none', color: C.blue, cursor: 'pointer', fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", padding: 0 }}>{t.chEdit}</button>
+                        <button onClick={() => deleteMessage(m)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", padding: 0 }}>{t.chDelete}</button>
                       </>
                     )}
                   </div>
@@ -329,7 +331,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
 
       {pendingPhoto && (
         <div style={{ position: 'relative', width: 60, height: 60, marginBottom: 8 }}>
-          <img src={pendingPhoto} alt="Pending attachment" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: "var(--radius-md)", border: `1.5px solid ${C.bd}` }} />
+          <img src={pendingPhoto} alt={t.chPendingAttachment} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: "var(--radius-md)", border: `1.5px solid ${C.bd}` }} />
           <button
             onClick={() => setPendingPhoto(null)}
             style={{ position: 'absolute', top: -6, right: -6, background: C.rd, color: C.onAccent, border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: "var(--text-xs)", cursor: 'pointer', lineHeight: 1 }}
@@ -343,7 +345,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
         <input ref={fileInputRef} type="file" accept="image/*" onChange={attachPhoto} style={{ display: 'none' }} />
         <button
           onClick={() => fileInputRef.current.click()}
-          title="Attach a photo"
+          title={t.chAttachPhoto}
           style={{ background: C.lg, border: 'none', borderRadius: "var(--radius-md)", padding: '9px 12px', fontSize: "var(--text-md)", cursor: 'pointer' }}
         >
           📷
@@ -352,7 +354,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message... (@ to mention)"
+          placeholder={t.chTypeMessage}
           style={{ flex: 1, padding: '9px 11px', border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", boxSizing: 'border-box' }}
         />
         <button
@@ -360,13 +362,13 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead }
           disabled={(!draft.trim() && !pendingPhoto) || sending}
           style={{ background: C.blue, color: C.onAccent, border: 'none', borderRadius: "var(--radius-md)", padding: '9px 16px', fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", cursor: draft.trim() || pendingPhoto ? 'pointer' : 'default', opacity: draft.trim() || pendingPhoto ? 1 : 0.6 }}
         >
-          Send
+          {t.chSend}
         </button>
       </div>
 
       {lightboxPhoto && (
-        <Modal title="📷 Attachment" onClose={() => setLightboxPhoto(null)}>
-          <img src={lightboxPhoto} alt="Full size attachment" style={{ width: '100%', borderRadius: "var(--radius-md)" }} />
+        <Modal title={t.chAttachmentLabel} onClose={() => setLightboxPhoto(null)}>
+          <img src={lightboxPhoto} alt={t.chFullSize} style={{ width: '100%', borderRadius: "var(--radius-md)" }} />
         </Modal>
       )}
     </div>

@@ -88,7 +88,7 @@ export default function FleetManagementView({
 
   const setPhoto = async (id, data) => {
     if (!data && !perms.fleet_photo_delete) {
-      showToast("Only managers or admins can delete vehicle photos.", "error");
+      showToast(t.flPhotoDeletePerm, "error");
       return;
     }
     try {
@@ -98,7 +98,7 @@ export default function FleetManagementView({
       setVehs((p) => p.map((v) => (v.id === id ? { ...v, photo_url } : v)));
       setSel((p) => (p && p.id === id ? { ...p, photo_url } : p));
     } catch (err) {
-      showToast(`Failed to save vehicle photo: ${err.message}`, "error");
+      showToast(`${t.flPhotoSaveFail} ${err.message}`, "error");
     }
   };
 
@@ -120,10 +120,10 @@ export default function FleetManagementView({
     // the modal sits there, nothing is written, and no one finds out until the numbers
     // are wrong later.
     const missing = [];
-    if (!form.mi) missing.push("odometer reading");
-    if (!form.date) missing.push("date");
+    if (!form.mi) missing.push(t.flFieldOdometer);
+    if (!form.date) missing.push(t.flFieldDate);
     if (missing.length) {
-      showToast(`Nothing was logged — please enter the ${missing.join(" and ")}.`, "warning");
+      showToast(t.flNothingLogged.replace("{fields}", missing.join(` ${t.flJoinAnd} `)), "warning");
       return;
     }
     const mi = parseFloat(form.mi);
@@ -131,7 +131,7 @@ export default function FleetManagementView({
       const live = await fetchLiveVehicle(sel.id, "mi,mil");
       // Validate against the live odometer, not this device's snapshot.
       if (mi < (parseFloat(live.mi) || 0)) {
-        showToast("Cannot be less than current mileage.", "info");
+        showToast(t.flMileageTooLow, "info");
         return;
       }
       const changes = {
@@ -146,16 +146,16 @@ export default function FleetManagementView({
       setModal(null);
       setForm({});
     } catch (err) {
-      showToast(`Database Error: Could not log mileage. ${err.message}`, "error");
+      showToast(`${t.flMileageLogFail} ${err.message}`, "error");
     }
   };
 
   const logSvc = async () => {
     const missing = [];
-    if (!form.type) missing.push("service type");
-    if (!form.date) missing.push("date");
+    if (!form.type) missing.push(t.flFieldServiceType);
+    if (!form.date) missing.push(t.flFieldDate);
     if (missing.length) {
-      showToast(`Nothing was logged — please enter the ${missing.join(" and ")}.`, "warning");
+      showToast(t.flNothingLogged.replace("{fields}", missing.join(` ${t.flJoinAnd} `)), "warning");
       return;
     }
     const e = {
@@ -193,7 +193,7 @@ export default function FleetManagementView({
         "fleet"
       );
     } catch (err) {
-      showToast(`Database Error: Could not log service record. ${err.message}`, "error");
+      showToast(`${t.flServiceLogFail} ${err.message}`, "error");
     }
   };
 
@@ -208,7 +208,7 @@ export default function FleetManagementView({
       setModal(null);
       setForm({});
     } catch (err) {
-      showToast(`Database Error: Could not save assignment. ${err.message}`, "error");
+      showToast(`${t.flAssignmentFail} ${err.message}`, "error");
     }
   };
 
@@ -247,9 +247,9 @@ export default function FleetManagementView({
         "maintenance"
       );
 
-      showToast("Maintenance request filed successfully!", "success");
+      showToast(t.flMaintFiled, "success");
     } catch (err) {
-      showToast(`Database Error: Could not file request. ${err.message}`, "error");
+      showToast(`${t.flMaintFileFail} ${err.message}`, "error");
     }
   };
 
@@ -283,10 +283,10 @@ export default function FleetManagementView({
         "fleet"
       );
 
-      showToast("Vehicle details saved.", "success");
+      showToast(t.flVehicleSaved, "success");
       setIsEditingInfo(false);
     } catch (err) {
-      showToast(`Database Error: Could not save vehicle changes. ${err.message}`, "error");
+      showToast(`${t.flVehicleSaveFail} ${err.message}`, "error");
     } finally {
       setSavingVehicleInfo(false);
     }
@@ -295,7 +295,7 @@ export default function FleetManagementView({
  const handleRemoveVehicle = async (vehicleId, vehicleName) => {
     if (
       !window.confirm(
-        `Are you sure you want to permanently remove ${vehicleName} from the fleet roster?`,
+        t.flRemoveConfirm.replace("{name}", vehicleName),
       )
     )
       return;
@@ -306,7 +306,7 @@ export default function FleetManagementView({
       .eq("id", vehicleId);
       
     if (error) {
-      showToast(`Database Error: ${error.message}`, "error");
+      showToast(`${t.flDbError} ${error.message}`, "error");
     } else {
       await logAction(
         user.id,
@@ -318,7 +318,7 @@ export default function FleetManagementView({
       );
 
       setVehs((prev) => prev.filter((v) => v.id !== vehicleId));
-      showToast("Vehicle successfully removed from roster.", "success");
+      showToast(t.flVehicleRemoved, "success");
     }
   };
   const vReqs = sel
@@ -334,7 +334,7 @@ export default function FleetManagementView({
           textAlign: "center", marginTop: 10
         }}>
           <span style={{ fontSize: "48px", marginBottom: 16 }}>🚛</span>
-          <h3 style={{ margin: "0 0 8px 0", color: "var(--c-slate)", fontWeight: "var(--weight-extrabold)" }}>Fleet Registry Empty</h3>
+          <h3 style={{ margin: "0 0 8px 0", color: "var(--c-slate)", fontWeight: "var(--weight-extrabold)" }}>{t.flRegistryEmpty}</h3>
           <p style={{ margin: "0 0 20px 0", color: "var(--c-sub)", fontSize: "var(--text-base)", maxWidth: "340px" }}>
             No company vehicles are currently configured for tracking at the Saint Joe Road Warehouse.
           </p>
@@ -404,7 +404,7 @@ export default function FleetManagementView({
               onClick={() => setIsAddVehicleOpen(true)}
               style={{ fontWeight: "var(--weight-extrabold)" }}
             >
-              + Add Vehicle
+              {t.flAddVehicle}
             </Btn>
           )}
           {/* ── 🟢 ADD HERE: THE LOG INSPECTION TOGGLE ACTION BUTTON ── */}
@@ -415,7 +415,7 @@ export default function FleetManagementView({
               onClick={() => setIsInspectOpen(true)}
               style={{ fontWeight: "var(--weight-extrabold)" }}
             >
-              📋 Log Inspection
+              {t.flLogInspection}
             </Btn>
           )}
           {perms.maint_submit && (
@@ -432,29 +432,32 @@ export default function FleetManagementView({
           )}
           {subView === "list" && (
             <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-              {["all", "truck", "trailer"].map((f) => (
+              {[
+                ["all", t.flFilterAll],
+                ["truck", t.flFilterTrucks],
+                ["trailer", t.flFilterTrailers],
+              ].map(([f, label]) => (
                 <Btn
                   key={f}
                   v={filt === f ? "primary" : "ghost"}
                   sz="sm"
                   onClick={() => setFilt(f)}
-                  style={{ textTransform: "capitalize" }}
                 >
-                  {f === "all" ? "All" : f + "s"}
+                  {label}
                 </Btn>
               ))}
-              <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="Sort vehicles" style={{ width: "auto" }}>
-                <option value="name_az">↕ Name — A to Z</option>
-                <option value="name_za">↕ Name — Z to A</option>
-                <option value="year_new">↕ Year — Newest</option>
-                <option value="year_old">↕ Year — Oldest</option>
-                <option value="mi_high">↕ Mileage — High to Low</option>
-                <option value="mi_low">↕ Mileage — Low to High</option>
+              <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.flSortAria} style={{ width: "auto" }}>
+                <option value="name_az">{t.flSortNameAZ}</option>
+                <option value="name_za">{t.flSortNameZA}</option>
+                <option value="year_new">{t.flSortYearNew}</option>
+                <option value="year_old">{t.flSortYearOld}</option>
+                <option value="mi_high">{t.flSortMiHigh}</option>
+                <option value="mi_low">{t.flSortMiLow}</option>
               </Sel>
             </div>
           )}
           <div style={{ display: "flex", gap: 5 }}>
-            {[["list", "📋 List"], ["calendar", "📅 Trailer Calendar"]].map(([v, label]) => (
+            {[["list", t.flViewList], ["calendar", t.flViewTrailerCal]].map(([v, label]) => (
               <Btn
                 key={v}
                 v={subView === v ? "primary" : "ghost"}
@@ -471,6 +474,7 @@ export default function FleetManagementView({
       {subView === "calendar" ? (
         <div style={{ flex: 1, overflowY: "auto", paddingRight: 6, paddingBottom: 24 }}>
           <TrailerCalendar
+            lang={lang}
             vehs={vehs}
             jobs={jobs}
             jobTrailers={jobTrailers}
@@ -511,16 +515,16 @@ export default function FleetManagementView({
                 vehicle.status === "out_of_service" ||
                 oilStatus === "overdue"
               ) {
-                return { dot: "🔴", label: "Out of Service", color: C.rd };
+                return { dot: "🔴", label: t.flStatusOutOfService, color: C.rd };
               }
               if (
                 oilStatus === "soon" ||
                 detailStatus === "soon" ||
                 vehicle.status === "service_due"
               ) {
-                return { dot: "🟡", label: "Service Due", color: C.am };
+                return { dot: "🟡", label: t.flStatusServiceDue, color: C.am };
               }
-              return { dot: "🟢", label: "Active", color: C.gr };
+              return { dot: "🟢", label: t.flStatusActive, color: C.gr };
             };
 
             const fleetStatus = getFleetStatus(v, os, ds);
@@ -745,16 +749,16 @@ export default function FleetManagementView({
       )}
 
       {calSel && (
-        <Modal title={calSel.title || calSel.name || "Job Details"} onClose={() => setCalSel(null)}>
-          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>PO:</strong> {calSel.po}</p>
-          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>Address:</strong> {calSel.addr || "N/A"}</p>
-          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>Scheduled:</strong> {calSel.scheduledDate || "N/A"}</p>
+        <Modal title={calSel.title || calSel.name || t.flJobDetails} onClose={() => setCalSel(null)}>
+          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>{t.flPoLabel}</strong> {calSel.po}</p>
+          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>{t.flAddressLabel}</strong> {calSel.addr || "N/A"}</p>
+          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>{t.flScheduledLabel}</strong> {calSel.scheduledDate || "N/A"}</p>
           <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}>
-            <strong>Site Supervisor:</strong> {users.find((u) => u.id === (calSel.assignedto || calSel.assignedTo))?.name || "Unassigned"}
+            <strong>{t.flSupervisorLabel}</strong> {users.find((u) => u.id === (calSel.assignedto || calSel.assignedTo))?.name || t.flUnassigned}
           </p>
           <p style={{ margin: 0, fontSize: "var(--text-sm)", color: C.sub }}>
-            <strong>Trailers:</strong>{" "}
-            {jobTrailers.filter((jt) => jt.job_id === calSel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || "None assigned"}
+            <strong>{t.flTrailersLabel}</strong>{" "}
+            {jobTrailers.filter((jt) => jt.job_id === calSel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || t.flNoneAssigned}
           </p>
         </Modal>
       )}
@@ -866,27 +870,27 @@ export default function FleetManagementView({
                 border: `1.5px solid ${C.bd}`,
               }}
             >
-              <Fld label="Vehicle Display Name / Nickname">
+              <Fld label={t.flDisplayName}>
                 <Inp
                   value={form.name || ""}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </Fld>
               <div className="sw-grid-3" style={{ gap: "var(--space-3)" }}>
-                <Fld label="Year">
+                <Fld label={t.flYear}>
                   <Inp
                     type="number"
                     value={form.yr || ""}
                     onChange={(e) => setForm({ ...form, yr: e.target.value })}
                   />
                 </Fld>
-                <Fld label="Make">
+                <Fld label={t.flMake}>
                   <Inp
                     value={form.make || ""}
                     onChange={(e) => setForm({ ...form, make: e.target.value })}
                   />
                 </Fld>
-                <Fld label="Model">
+                <Fld label={t.flModel}>
                   <Inp
                     value={form.model || ""}
                     onChange={(e) =>
@@ -896,16 +900,16 @@ export default function FleetManagementView({
                 </Fld>
               </div>
               <div className="sw-grid-2" style={{ gap: "var(--space-3)" }}>
-                <Fld label="License Plate">
+                <Fld label={t.flLicensePlate}>
                   <Inp
                     value={form.plate || ""}
                     onChange={(e) => setForm({ ...form, plate: e.target.value })}
                   />
                 </Fld>
-                <Fld label="Asset Type">
+                <Fld label={t.flAssetType}>
                   <Sel value={form.type || "truck"} onChange={(e) => setForm({ ...form, type: e.target.value })}>
-                    <option value="truck">Truck</option>
-                    <option value="trailer">Trailer</option>
+                    <option value="truck">{t.flTruck}</option>
+                    <option value="trailer">{t.flTrailer}</option>
                   </Sel>
                 </Fld>
               </div>
@@ -921,12 +925,12 @@ export default function FleetManagementView({
           )}
 
           <div style={{ marginBottom: 16 }}>
-            <Fld label="Vehicle Photo">
+            <Fld label={t.flVehiclePhoto}>
               <PhotoUpload
                 current={sel.photo_url || null}
                 onUpload={(data) => setPhoto(sel.id, data)}
                 canRemove={!!perms.fleet_photo_delete}
-                label="Upload vehicle photo"
+                label={t.flUploadPhoto}
                 maxDim={600}
                 quality={0.75}
                 previewHeight={200}
@@ -1033,11 +1037,11 @@ export default function FleetManagementView({
               textTransform: "uppercase",
             }}
           >
-            Service History
+            {t.flServiceHistory}
           </h4>
           {sel.sl.length === 0 ? (
             <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
-              No service records.
+              {t.flNoServiceRecords}
             </p>
           ) : (
             [...sel.sl]
@@ -1096,12 +1100,12 @@ export default function FleetManagementView({
           title={`Assign Driver — ${sel.name}`}
           onClose={() => setModal(null)}
         >
-          <Fld label="Assigned Driver">
+          <Fld label={t.flAssignedDriver}>
             <Sel
               value={form.assignedTo || ""}
               onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
             >
-              <option value="">— Unassigned —</option>
+              <option value="">{t.flUnassignedOpt}</option>
               {users
                 .filter((u) => u.active)
                 .map((u) => (
@@ -1117,14 +1121,14 @@ export default function FleetManagementView({
               onClick={() => setModal(null)}
               style={{ flex: 1, justifyContent: "center" }}
             >
-              Cancel
+              {t.cancel}
             </Btn>
             <Btn
               v="primary"
               onClick={assignUser}
               style={{ flex: 1, justifyContent: "center" }}
             >
-              Save
+              {t.flSave}
             </Btn>
           </div>
         </Modal>
@@ -1145,16 +1149,16 @@ export default function FleetManagementView({
               color: C.sub,
             }}
           >
-            Current: <strong>{sel.mi.toLocaleString()} mi</strong>
+            {t.flCurrent} <strong>{sel.mi.toLocaleString()} mi</strong>
           </div>
-          <Fld label="Date">
+          <Fld label={t.flDate}>
             <Inp
               type="date"
               value={form.date}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
             />
           </Fld>
-          <Fld label="Odometer (miles)">
+          <Fld label={t.flOdometer}>
             <Inp
               type="number"
               value={form.mi}
@@ -1167,14 +1171,14 @@ export default function FleetManagementView({
               onClick={() => setModal(null)}
               style={{ flex: 1, justifyContent: "center" }}
             >
-              Cancel
+              {t.cancel}
             </Btn>
             <Btn
               v="primary"
               onClick={logMi}
               style={{ flex: 1, justifyContent: "center" }}
             >
-              Save
+              {t.flSave}
             </Btn>
           </div>
         </Modal>
@@ -1185,25 +1189,27 @@ export default function FleetManagementView({
           title={`Log Service — ${sel.name}`}
           onClose={() => setModal(null)}
         >
-          <Fld label="Service Type">
+          <Fld label={t.flServiceType}>
             <Sel
               value={form.type || "Oil Change"}
               onChange={(e) => setForm({ ...form, type: e.target.value })}
             >
+              {/* The VALUE stays English on purpose — it is written to the service
+                  record. Only the visible label follows the language. */}
               {[
-                "Oil Change",
-                "Tire Rotation",
-                "Brake Service",
-                "Repair",
-                "Detail",
-                "Inspection",
-                "Other",
-              ].map((t) => (
-                <option key={t}>{t}</option>
+                ["Oil Change", t.svcOilChange],
+                ["Tire Rotation", t.svcTireRotation],
+                ["Brake Service", t.svcBrakeService],
+                ["Repair", t.svcRepair],
+                ["Detail", t.svcDetail],
+                ["Inspection", t.svcInspection],
+                ["Other", t.svcOther],
+              ].map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
               ))}
             </Sel>
           </Fld>
-          <Fld label="Date">
+          <Fld label={t.flDate}>
             <Inp
               type="date"
               value={form.date}
@@ -1219,14 +1225,14 @@ export default function FleetManagementView({
               />
             </Fld>
           )}
-          <Fld label="Performed By">
+          <Fld label={t.flPerformedBy}>
             <Inp
               value={form.by || ""}
               onChange={(e) => setForm({ ...form, by: e.target.value })}
-              placeholder="Shop or employee"
+              placeholder={t.flShopOrEmployee}
             />
           </Fld>
-          <Fld label="Cost ($)">
+          <Fld label={t.flCost}>
             <Inp
               type="number"
               step="0.01"
@@ -1234,7 +1240,7 @@ export default function FleetManagementView({
               onChange={(e) => setForm({ ...form, cost: e.target.value })}
             />
           </Fld>
-          <Fld label="Notes">
+          <Fld label={t.flNotes}>
             <Inp
               value={form.notes || ""}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -1246,14 +1252,14 @@ export default function FleetManagementView({
               onClick={() => setModal(null)}
               style={{ flex: 1, justifyContent: "center" }}
             >
-              Cancel
+              {t.cancel}
             </Btn>
             <Btn
               v="primary"
               onClick={logSvc}
               style={{ flex: 1, justifyContent: "center" }}
             >
-              Save
+              {t.flSave}
             </Btn>
           </div>
         </Modal>

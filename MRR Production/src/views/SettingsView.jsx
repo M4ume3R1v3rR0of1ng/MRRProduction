@@ -10,6 +10,7 @@ import {
 } from "../database/permissions";
 import { Btn, Bdg, Fld, Inp, Sel, Toggle } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
+import { translations } from "../utils/translations";
 import { useNotify } from "../context/NotificationContext";
 // ── 🆕 IMPORT ADDED ──────────────────────────────────────────────────────────
 import { fetchAccuLynxJob } from "../utils/accuLynxSync";
@@ -125,8 +126,10 @@ export default function SettingsView({
   users,
   setUsers,
   curUser,
+  lang = "en",
 }) {
   const { showToast } = useNotify();
+  const t = translations[lang] || translations.en;
   const [currentTab, setCurrentTab] = useState("Permissions");
   // Company display name + tax, stored in companies.branding via set_company_branding.
   // This is what the top bar, sidebar, and every PDF report read — so a tenant controls
@@ -172,9 +175,9 @@ export default function SettingsView({
       );
       if (error) throw error;
       if (typeof setJobNotifications === "function") setJobNotifications(value);
-      showToast("Notification rules saved.", "success");
+      showToast(t.stNotifsSaved, "success");
     } catch (err) {
-      showToast(`Could not save: ${err.message}`, "error");
+      showToast(`${t.stCouldNotSave} ${err.message}`, "error");
     } finally {
       setSavingNotif(false);
     }
@@ -200,7 +203,7 @@ export default function SettingsView({
   const saveBranding = async () => {
     const name = brandForm.displayName.trim();
     if (!name) {
-      showToast("Company name can't be empty.", "warning");
+      showToast(t.stNameEmpty, "warning");
       return;
     }
     // Percent in the field, fraction in the DB. Blank = leave it to the 7% default.
@@ -209,7 +212,7 @@ export default function SettingsView({
     if (pct !== "") {
       const n = parseFloat(pct);
       if (!Number.isFinite(n) || n < 0) {
-        showToast("Tax rate must be a non-negative number (percent).", "warning");
+        showToast(t.stTaxRateInvalid, "warning");
         return;
       }
       taxRate = n / 100;
@@ -228,9 +231,9 @@ export default function SettingsView({
       if (typeof setCompany === "function") {
         setCompany((prev) => (prev ? { ...prev, branding: data || { ...prev.branding, ...patch } } : prev));
       }
-      showToast("Company details saved.", "success");
+      showToast(t.stCompanySaved, "success");
     } catch (err) {
-      showToast(`Could not save: ${err.message}`, "error");
+      showToast(`${t.stCouldNotSave} ${err.message}`, "error");
     } finally {
       setSavingBrand(false);
     }
@@ -276,9 +279,9 @@ export default function SettingsView({
       if (error) throw error;
       setWarehouses((prev) => [...prev, newEntry]);
       setWhForm({ name: "", location: "", code: "" });
-      showToast("Warehouse added.", "success");
+      showToast(t.stWarehouseAdded, "success");
     } catch (err) {
-      showToast("Failed to add warehouse: " + err.message, "error");
+      showToast(t.stWarehouseAddFail + " " + err.message, "error");
     }
   };
 
@@ -295,13 +298,13 @@ export default function SettingsView({
       if (error) throw error;
       setRolePerms((prev) => ({ ...prev, [targetRole]: next }));
     } catch (err) {
-      showToast(`Permission update failed: ${err.message}`, "error");
+      showToast(`${t.stPermUpdateFail} ${err.message}`, "error");
     }
   };
 
   const handleResetRole = async (targetRole) => {
     const defaults = DEFAULT_ROLE_PERMS?.[targetRole] || {};
-    if (!window.confirm(`Reset all permissions for "${targetRole}" to defaults?`)) return;
+    if (!window.confirm(t.stResetRoleConfirm.replace("{role}", targetRole))) return;
 
     try {
       const { error } = await supabase.from("role_permissions").upsert(
@@ -310,9 +313,9 @@ export default function SettingsView({
       );
       if (error) throw error;
       setRolePerms((prev) => ({ ...prev, [targetRole]: defaults }));
-      showToast(`${targetRole} permissions reset.`, "success");
+      showToast(t.stRoleReset.replace("{role}", targetRole), "success");
     } catch (err) {
-      showToast(`Reset failed: ${err.message}`, "error");
+      showToast(`${t.stResetFail} ${err.message}`, "error");
     }
   };
 
@@ -335,7 +338,7 @@ export default function SettingsView({
           v: apiKey,
         });
         if (keyError) {
-          showToast(`Failed to save AccuLynx key: ${keyError.message}`, "error");
+          showToast(`${t.stAxKeySaveFail} ${keyError.message}`, "error");
           return;
         }
       }
@@ -350,7 +353,7 @@ export default function SettingsView({
       );
 
       if (error) {
-        showToast(`Failed to save AccuLynx settings: ${error.message}`, "error");
+        showToast(`${t.stAxSettingsSaveFail} ${error.message}`, "error");
         return;
       }
 
@@ -376,11 +379,11 @@ export default function SettingsView({
           throw new Error(errText);
         }
 
-        showToast("AccuLynx Gateway synchronization confirmed and running successfully! 🔄", "success");
+        showToast(t.stAxSyncOk, "success");
       } catch (pingErr) {
         // The credentials above did save successfully — only the connection test failed.
         console.warn("Proxy handshake notification summary:", pingErr);
-        showToast(`Credentials saved, but the gateway test failed: ${pingErr.message || "Network Timeout"}`, "warning");
+        showToast(`${t.stAxGatewayFail} ${pingErr.message || t.stNetworkTimeout}`, "warning");
       }
     } finally {
       setSavingAx(false);
@@ -410,7 +413,7 @@ export default function SettingsView({
     try {
       await compressImg(file, 400, 0.85, async (base64Data) => {
         if (!base64Data) {
-          showToast("Image compression failed.", "error");
+          showToast(t.stCompressFail, "error");
           return;
         }
         // The logo lives on the company row now, not in `settings`. The login screen
@@ -422,10 +425,10 @@ export default function SettingsView({
         });
         if (error) throw error;
         if (typeof setLogos === "function") setLogos(base64Data);
-        showToast("Logo saved.", "success");
+        showToast(t.stLogoSaved, "success");
       }, (msg) => showToast(msg, "error"));
     } catch (err) {
-      showToast(`Logo upload failed: ${err.message}`, "error");
+      showToast(`${t.stLogoUploadFail} ${err.message}`, "error");
     } finally {
       e.target.value = "";
     }
@@ -434,16 +437,16 @@ export default function SettingsView({
   // Clear the logo back to null on the company row (same merge RPC, same admin gate).
   // Reports, the sidebar, and the login screen all fall back to the default mark.
   const handleRemoveLogo = async () => {
-    if (!window.confirm("Remove the company logo? Reports, the sidebar, and the login screen will fall back to the default mark.")) return;
+    if (!window.confirm(t.stRemoveLogoConfirm)) return;
     try {
       const { error } = await supabase.rpc("set_company_branding", {
         patch: { logo: null },
       });
       if (error) throw error;
       if (typeof setLogos === "function") setLogos(null);
-      showToast("Logo removed.", "success");
+      showToast(t.stLogoRemoved, "success");
     } catch (err) {
-      showToast(`Could not remove logo: ${err.message}`, "error");
+      showToast(`${t.stLogoRemoveFail} ${err.message}`, "error");
     }
   };
 
@@ -482,7 +485,7 @@ export default function SettingsView({
       {/* ── PANEL: Permissions ─────────────────────────────────────────── */}
       {currentTab === "Permissions" && (
         <Card>
-          <SectionTitle icon="🔒" title="Role Permissions" subtitle="Control what each role can see and do across the system." />
+          <SectionTitle icon="🔒" title={t.stRolePerms} subtitle={t.stRolePermsDesc} />
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: 860 }}>
 
@@ -495,7 +498,7 @@ export default function SettingsView({
                 marginBottom: 8,
               }}>
                 <div style={{ width: "36%", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: T.slateL, textTransform: "uppercase", letterSpacing: "0.6px" }}>
-                  Permission
+                  {t.stPermission}
                 </div>
                 <div style={{ width: "64%", display: "flex" }}>
                   {/* BUG FIX #5 — guard on roleArray before destructuring */}
@@ -583,7 +586,7 @@ export default function SettingsView({
         <Card>
           <SectionTitle
             icon="🔔"
-            title="Job Move Notifications"
+            title={t.stJobMoveNotifs}
             subtitle="Email the assigned supervisor automatically when one of their jobs changes status. Each move is independent."
           />
           <div style={{ border: `1px solid ${T.border}`, borderRadius: T.radius, overflow: "hidden", marginTop: 8 }}>
@@ -626,14 +629,14 @@ export default function SettingsView({
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
             <SectionTitle
               icon="🔗"
-              title="AccuLynx Integration"
+              title={t.stAxIntegration}
               subtitle="When a job is marked Complete, the dashboard uploads the material cost PDF and adds a payment line item to AccuLynx automatically."
             />
             {/* 🟢 Status pill updated to seamlessly allow headless environment configurations */}
             <StatusPill
               active={!!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl)}
-              labelOn="Connected"
-              labelOff="Not configured"
+              labelOn={t.stConnected}
+              labelOff={t.stNotConfigured}
             />
           </div>
 
@@ -643,15 +646,15 @@ export default function SettingsView({
 
           <form onSubmit={handleSaveAccuLynx}>
             <div className="sw-grid-2" style={{ gap: "var(--space-7)", marginBottom: 20 }}>
-              <Fld label="API Access Token">
+              <Fld label={t.stApiToken}>
                 <Inp
                   type="password"
                   value={acculynxConfig?.apiKey || ""}
                   onChange={(e) => setAccuLynxConfig((p) => ({ ...p, apiKey: e.target.value }))}
-                  placeholder="Enter your AccuLynx API key"
+                  placeholder={t.stApiTokenPlaceholder}
                 />
               </Fld>
-              <Fld label="Proxy Gateway URL">
+              <Fld label={t.stProxyUrl}>
                 <Inp
                   type="text"
                   value={acculynxConfig?.proxyUrl || ""}
@@ -674,8 +677,8 @@ export default function SettingsView({
                   onChange={() => setAccuLynxConfig((p) => ({ ...p, enabled: !p.enabled }))}
                 />
                 <div>
-                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)" }}>Enable integration</div>
-                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>Allow the dashboard to contact AccuLynx</div>
+                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)" }}>{t.stEnableIntegration}</div>
+                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>{t.stEnableIntegrationDesc}</div>
                 </div>
               </label>
               <label style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", cursor: "pointer" }}>
@@ -684,8 +687,8 @@ export default function SettingsView({
                   onChange={() => setAccuLynxConfig((p) => ({ ...p, autoSync: !p.autoSync }))}
                 />
                 <div>
-                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)" }}>Auto-sync on completion</div>
-                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>Fire automatically when a job is marked complete</div>
+                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)" }}>{t.stAutoSync}</div>
+                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>{t.stAutoSyncDesc}</div>
                 </div>
               </label>
             </div>
@@ -699,9 +702,9 @@ export default function SettingsView({
 
           {/* ── 🆕 TEST JOB LOOKUP SECTION ADDED ───────────────────────────────── */}
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
-            <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)", marginBottom: 10 }}>Test job lookup</div>
+            <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)", marginBottom: 10 }}>{t.stTestLookup}</div>
             <div style={{ display: "flex", gap: "var(--space-3)" }}>
-              <Inp value={lookupPo} onChange={(e) => setLookupPo(e.target.value)} placeholder="Enter PO number" />
+              <Inp value={lookupPo} onChange={(e) => setLookupPo(e.target.value)} placeholder={t.stPoPlaceholder} />
               <Btn type="button" onClick={handleTestLookup} disabled={lookingUp}>
                 {lookingUp ? "⏳" : "🔍 Lookup"}
               </Btn>
@@ -725,35 +728,35 @@ export default function SettingsView({
         <Card>
           <SectionTitle
             icon="🏢"
-            title="Company Details"
-            subtitle="Your company name and tax line appear on every PDF report, the top bar, and the sidebar."
+            title={t.stCompanyDetails}
+            subtitle={t.stCompanyDetailsDesc}
           />
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-4)", paddingTop: 12, marginBottom: 8 }}>
-            <Fld label="Company Name" hint="Shown as the header on job reports and across the app.">
+            <Fld label={t.stCompanyName} hint={t.stCompanyNameHint}>
               <Inp
                 value={brandForm.displayName}
                 onChange={(e) => setBrandForm({ ...brandForm, displayName: e.target.value })}
-                placeholder="e.g. Your Company Name"
+                placeholder={t.stCompanyNamePlaceholder}
                 disabled={savingBrand}
               />
             </Fld>
-            <Fld label="Company Tagline" hint="Optional line on your dashboard header — a city, slogan, or team name.">
+            <Fld label={t.stTagline} hint={t.stTaglineHint}>
               <Inp
                 value={brandForm.tagline}
                 onChange={(e) => setBrandForm({ ...brandForm, tagline: e.target.value })}
-                placeholder="e.g. Toledo's roofing crew since 2004"
+                placeholder={t.stTaglinePlaceholder}
                 disabled={savingBrand}
               />
             </Fld>
-            <Fld label="Brand Accent Color" hint="Themes your buttons, dashboard header, and highlights across the app.">
+            <Fld label={t.stAccentColor} hint={t.stAccentColorHint}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <input
                   type="color"
                   value={brandForm.accent || "var(--c-amber)"}
                   onChange={(e) => setBrandForm({ ...brandForm, accent: e.target.value })}
                   disabled={savingBrand}
-                  aria-label="Brand accent color"
+                  aria-label={t.stAccentAria}
                   style={{ width: 48, height: 38, border: `1.5px solid ${T.border}`, borderRadius: T.radius, background: "none", cursor: "pointer", padding: 2 }}
                 />
                 <code style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{(brandForm.accent || "var(--c-amber)").toUpperCase()}</code>
@@ -764,20 +767,20 @@ export default function SettingsView({
                     disabled={savingBrand}
                     style={{ background: "none", border: "none", color: T.blue, fontSize: "var(--text-sm)", fontWeight: 700, cursor: "pointer", padding: 0 }}
                   >
-                    Reset
+                    {t.stReset}
                   </button>
                 )}
               </div>
             </Fld>
-            <Fld label="State" hint="Fills in this state's base sales-tax rate. You can still fine-tune the rate.">
+            <Fld label={t.stState} hint={t.stStateHint}>
               <Sel value={brandForm.state} onChange={(e) => applyState(e.target.value)} disabled={savingBrand}>
-                <option value="">Select a state…</option>
+                <option value="">{t.stSelectState}</option>
                 {US_STATES.map((s) => (
                   <option key={s.code} value={s.code}>{s.name}</option>
                 ))}
               </Sel>
             </Fld>
-            <Fld label="Sales Tax Rate (%)" hint="Auto-filled from your state, or set it by hand. Local county/city tax may add on top. Leave blank for 7%.">
+            <Fld label={t.stTaxRate} hint="Auto-filled from your state, or set it by hand. Local county/city tax may add on top. Leave blank for 7%.">
               <Inp
                 type="number"
                 step="0.01"
@@ -787,11 +790,11 @@ export default function SettingsView({
                 disabled={savingBrand}
               />
             </Fld>
-            <Fld label="Tax Label" hint='How the tax line reads, e.g. "Ohio Sales Tax". Defaults to "Sales Tax".'>
+            <Fld label={t.stTaxLabel} hint={t.stTaxLabelHint}>
               <Inp
                 value={brandForm.taxLabel}
                 onChange={(e) => setBrandForm({ ...brandForm, taxLabel: e.target.value })}
-                placeholder="Sales Tax"
+                placeholder={t.stSalesTax}
                 disabled={savingBrand}
               />
             </Fld>
@@ -804,8 +807,8 @@ export default function SettingsView({
 
           <SectionTitle
             icon="🖼️"
-            title="Company Logo"
-            subtitle="Your logo appears in the sidebar, login screen, and all PDF reports."
+            title={t.stCompanyLogo}
+            subtitle={t.stCompanyLogoDesc}
           />
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12 }}>
@@ -817,7 +820,7 @@ export default function SettingsView({
               }}>
                 <img
                   src={logos}
-                  alt="Current company logo"
+                  alt={t.stCurrentLogo}
                   style={{ maxHeight: 80, maxWidth: 240, display: "block", objectFit: "contain" }}
                 />
               </div>
@@ -838,7 +841,7 @@ export default function SettingsView({
               <div style={{ fontWeight: "var(--weight-bold)", color: T.blue, fontSize: "var(--text-md)" }}>
                 {logos ? "Replace logo" : "Upload logo"}
               </div>
-              <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>PNG, JPG, or SVG — compressed automatically</div>
+              <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{t.stLogoFormats}</div>
               <input type="file" accept="image/*" onChange={handleLogoFileChange} style={{ display: "none" }} />
             </label>
 
@@ -856,8 +859,8 @@ export default function SettingsView({
         <Card>
           <SectionTitle
             icon="🏭"
-            title="Warehouse Facilities"
-            subtitle="Manage physical branches connected to material balance feeds."
+            title={t.stWarehouses}
+            subtitle={t.stWarehousesDesc}
           />
 
           {/* BUG FIX #4 — added success toast in handleAddWarehouse above */}
@@ -869,30 +872,30 @@ export default function SettingsView({
             border: `1px solid ${T.border}`,
           }}>
             <div style={{ flex: 2, minWidth: 180 }}>
-              <Fld label="Facility Name">
+              <Fld label={t.stFacilityName}>
                 <Inp
                   value={whForm.name}
                   onChange={(e) => setWhForm({ ...whForm, name: e.target.value })}
-                  placeholder="e.g. Saint Joe Road"
+                  placeholder={t.stFacilityPlaceholder}
                   required
                 />
               </Fld>
             </div>
             <div style={{ flex: 1, minWidth: 90 }}>
-              <Fld label="Code">
+              <Fld label={t.stCode}>
                 <Inp
                   value={whForm.code}
                   onChange={(e) => setWhForm({ ...whForm, code: e.target.value })}
-                  placeholder="e.g. SJR"
+                  placeholder={t.stCodePlaceholder}
                 />
               </Fld>
             </div>
             <div style={{ flex: 2, minWidth: 180 }}>
-              <Fld label="Location">
+              <Fld label={t.stLocation}>
                 <Inp
                   value={whForm.location}
                   onChange={(e) => setWhForm({ ...whForm, location: e.target.value })}
-                  placeholder="e.g. Fort Wayne, IN"
+                  placeholder={t.stLocationPlaceholder}
                 />
               </Fld>
             </div>
@@ -928,11 +931,11 @@ export default function SettingsView({
                     📍 {w.location || "No address logged"}
                   </div>
                 </div>
-                <StatusPill active={w.active} labelOn="Operational" labelOff="Inactive" />
+                <StatusPill active={w.active} labelOn={t.stOperational} labelOff={t.stInactive} />
               </div>
             )) : (
               <p style={{ margin: 0, fontSize: "var(--text-base)", color: T.slateL, fontStyle: "italic", textAlign: "center", padding: "32px 0" }}>
-                No warehouses registered yet. Add one above.
+                {t.stNoWarehouses}
               </p>
             )}
           </div>
@@ -942,7 +945,7 @@ export default function SettingsView({
       {/* ── PANEL: System ──────────────────────────────────────────────── */}
       {currentTab === "System" && (
         <Card>
-          <SectionTitle icon="ℹ️" title="System Information" />
+          <SectionTitle icon="ℹ️" title={t.stSystemInfo} />
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "var(--space-5)" }}>
             {[

@@ -1,8 +1,10 @@
 // src/components/SyncIndicator.jsx
 import { useState, useEffect } from "react";
 import { C } from "../utils/helpers";
+import { translations } from "../utils/translations";
 
-export default function SyncIndicator() {
+export default function SyncIndicator({ lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -32,7 +34,7 @@ export default function SyncIndicator() {
   if (isOnline) {
     return (
       <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "12px", fontWeight: "var(--weight-bold)", color: C.gr }}>
-        <span>🟢</span> Connected
+        <span>🟢</span> {t.chromeConnected}
       </span>
     );
   }
@@ -50,9 +52,9 @@ export default function SyncIndicator() {
         padding: "4px 10px",
         borderRadius: "20px"
       }}
-      title="Changes are safely cached locally on this device"
+      title={t.chromeOfflineCached}
     >
-      <span>🟡</span> Offline — {pendingCount > 0 ? `${pendingCount} changes` : "Changes"} will sync later
+      <span>🟡</span> {t.chromeOffline} — {pendingCount > 0 ? `${pendingCount} ${t.chromeOfflineChanges}` : t.chromeOfflineChangesGeneric} {t.chromeOfflineSuffix}
     </span>
   );
 }

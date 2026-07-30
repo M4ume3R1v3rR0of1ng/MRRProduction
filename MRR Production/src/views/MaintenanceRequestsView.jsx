@@ -293,7 +293,7 @@ export default function MaintenanceRequestsView({
       )}
 
       {subView === "calendar" ? (
-        <MaintenanceCalendar reqs={reqs} vehs={vehs} user={activeUser} setReqs={setReqs} onRequestClick={(r) => setSel(r)} />
+        <MaintenanceCalendar reqs={reqs} vehs={vehs} user={activeUser} setReqs={setReqs} onRequestClick={(r) => setSel(r)} lang={lang} />
       ) : (
       <>
       {/* Filter Tabs + Sort */}

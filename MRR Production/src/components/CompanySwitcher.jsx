@@ -3,10 +3,12 @@
 // Renders nothing at all for the ~99% of users who belong to exactly one company.
 // Only someone with memberships in several (you, Sam) ever sees it.
 import { useEffect, useState } from "react";
+import { translations } from "../utils/translations";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 
-export default function CompanySwitcher({ user }) {
+export default function CompanySwitcher({ user, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const [memberships, setMemberships] = useState([]);
   const [switching, setSwitching] = useState(false);
 
@@ -47,7 +49,7 @@ export default function CompanySwitcher({ user }) {
       value={user.companyId || ""}
       onChange={(e) => switchTo(e.target.value)}
       disabled={switching}
-      title="Switch company"
+      title={t.csSwitchCompany}
       style={{
         background: "var(--c-surface)",
         color: C.navy,

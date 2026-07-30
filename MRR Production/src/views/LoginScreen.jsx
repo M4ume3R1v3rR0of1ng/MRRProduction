@@ -80,7 +80,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
       return setErr("Company name, your name, and email are all required.");
     }
     if (!pass || pass.length < 8) {
-      return setErr("Choose a password of at least 8 characters.");
+      return setErr(t.lgChoosePassword8);
     }
     setSubmitting(true);
     try {
@@ -140,7 +140,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
     setNotice("");
     const target = email.trim().toLowerCase();
     if (!target) {
-      setErr("Enter your email above first, then tap “Forgot password”.");
+      setErr(t.lgEnterEmailFirst);
       return;
     }
     setSubmitting(true);
@@ -329,7 +329,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
             <SteadwerkLockup size={64} />
           </div>
           <div style={{ fontSize: "var(--text-base)", color: C.sub, marginTop: 4 }}>
-            {choices ? "Choose a company to continue" : mode === "signup" ? "Start your company on Steadwerk" : t.loginSubtitle}
+            {choices ? t.lgChooseCompany : mode === "signup" ? t.lgStartCompany : t.loginSubtitle}
           </div>
         </div>
 
@@ -420,24 +420,24 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
             {/* Signup-only: the company being created + the person creating it. */}
             {mode === "signup" && (
               <>
-                <Fld label="Company name">
+                <Fld label={t.lgCompanyName}>
                   <input
                     className="mrr-input"
                     type="text"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="e.g. Steadwerk Exteriors"
+                    placeholder={t.lgCompanyPlaceholder}
                     style={inputStyle}
                     disabled={submitting}
                   />
                 </Fld>
-                <Fld label="Your name">
+                <Fld label={t.lgYourName}>
                   <input
                     className="mrr-input"
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Jane Contractor"
+                    placeholder={t.lgYourNamePlaceholder}
                     style={inputStyle}
                     disabled={submitting}
                   />
@@ -451,7 +451,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@yourcompany.com"
+                placeholder={t.lgEmailPlaceholder}
                 style={inputStyle}
                 disabled={submitting}
               />
@@ -463,7 +463,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && !submitting && (mode === "signup" ? trySignup() : tryLogin())}
-                placeholder={mode === "signup" ? "Choose a password (8+ characters)" : t.password}
+                placeholder={mode === "signup" ? t.lgPasswordPlaceholder : t.password}
                 style={inputStyle}
                 disabled={submitting}
               />
@@ -497,13 +497,13 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                   disabled={submitting}
                   style={{ background: "none", border: "none", color: BRAND.amberDeep, fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer", padding: 0, fontSize: "var(--text-base)" }}
                 >
-                  Forgot password?
+                  {t.lgForgotPassword}
                 </button>
               </div>
             )}
 
             {mode === "signup" && (
-              <Fld label="Billing">
+              <Fld label={t.lgBilling}>
                 <div style={{ display: "flex", gap: 8 }}>
                   {[
                     { id: "monthly", title: `$${MONTHLY_PRICE}/mo`, note: "Billed monthly" },
@@ -556,8 +556,8 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
               disabled={submitting}
             >
               {submitting
-                ? (mode === "signup" ? "Starting checkout…" : t.processingQuery)
-                : (mode === "signup" ? "Continue to payment →" : t.signIn)}
+                ? (mode === "signup" ? t.lgStartingCheckout : t.processingQuery)
+                : (mode === "signup" ? t.lgContinuePayment : t.signIn)}
             </button>
 
             {mode === "login" && (
@@ -579,20 +579,20 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                     textUnderlineOffset: 2,
                   }}
                 >
-                  Steadwerk Terms and Conditions
+                  {t.lgTerms}
                 </button>.
               </p>
             )}
 
             {mode === "login" ? (
               <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.6 }}>
-                Need access to an existing company? Ask its administrator to add you.
+                {t.lgNeedAccess}
                 <br />
                 <button
                   onClick={() => { setMode("signup"); setErr(""); setNotice(""); }}
                   style={{ background: "none", border: "none", color: BRAND.amberDeep, fontWeight: 800, cursor: "pointer", padding: "6px 0 0", fontSize: "var(--text-base)" }}
                 >
-                  Start your own company →
+                  {t.lgStartOwn}
                 </button>
               </div>
             ) : (

@@ -4,7 +4,10 @@ import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { Bdg, Sel, Inp, Btn, SkeletonTable } from "../components/UIPrimitives";
 
-export default function AuditLogView({ perms, inv = [], users = [], companyId }) {
+import { translations } from "../utils/translations";
+
+export default function AuditLogView({ perms, inv = [], users = [], companyId, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   // A failed fetch must not render as "no history" — that reads as innocence.
@@ -160,10 +163,10 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
     >
       <div>
         <h2 style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
-          🏭 Audit Logs
+          {t.alHeading}
         </h2>
         <p style={{ margin: "10px 0 16px", color: C.sub, fontSize: "var(--text-sm)" }}>
-          System-wide compliance event tracking. Administrative view only.
+          {t.alSubtitle}
         </p>
       </div>
 
@@ -199,7 +202,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
               setSearch(e.target.value);
               setCurrentPage(1); // Snap back to page 1 during keyword mutation searches
             }}
-            placeholder="Filter by email, keywords, or facility..."
+            placeholder={t.alFilterPlaceholder}
             style={{ flex: 1, minWidth: 240 }}
           />
           <Sel
@@ -207,7 +210,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
             onChange={(e) => setActionFilter(e.target.value)}
             style={{ width: 220 }}
           >
-            <option value="all">All Action Classes</option>
+            <option value="all">{t.alAllActionClasses}</option>
             <option value="LOGIN">LOGIN</option>
             <option value="LOGOUT">LOGOUT</option>
             <option value="INVENTORY_PULL">INVENTORY_PULL</option>
@@ -227,11 +230,11 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
             <Inp
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search item, PO/invoice, supplier, or who received it..."
+              placeholder={t.alReceiptSearchPlaceholder}
               style={{ flex: 1, minWidth: 240 }}
             />
             <Sel value={ledgerWho} onChange={(e) => setLedgerWho(e.target.value)} style={{ width: 220 }}>
-              <option value="all">Anyone</option>
+              <option value="all">{t.alAnyone}</option>
               {ledgerPeople.map((id) => (
                 <option key={id} value={id}>{nameOf(id)}</option>
               ))}
@@ -290,12 +293,12 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
               </tbody>
             </table>
             {filteredLedger.length === 0 && (
-              <p style={{ color: C.sub, fontSize: "var(--text-sm)", padding: "16px 0" }}>No receipts match.</p>
+              <p style={{ color: C.sub, fontSize: "var(--text-sm)", padding: "16px 0" }}>{t.alNoReceipts}</p>
             )}
           </div>
         </div>
       ) : loading ? (
-        <SkeletonTable rows={8} cols={["24%", "20%", "16%", "16%", "24%"]} label="Loading audit history" />
+        <SkeletonTable rows={8} cols={["24%", "20%", "16%", "16%", "24%"]} label={t.alLoadingHistory} />
       ) : loadError ? (
         <div style={{ background: "var(--c-rust-wash)", border: "1.5px solid var(--c-rust)", borderRadius: "var(--radius-lg)", padding: "24px", textAlign: "center", color: "var(--c-rust)" }}>
           <div style={{ fontSize: "var(--text-md)", fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
@@ -408,7 +411,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
                 ) : (
                   <tr>
                     <td colSpan={6} style={{ textAlign: "center", padding: "32px 0", color: C.sub, fontStyle: "italic" }}>
-                      No matching historical logs found matching specified query conditions.
+                      {t.alNoLogs}
                     </td>
                   </tr>
                 )}
@@ -437,7 +440,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
               >
-                ◀ Prev
+                {t.alPrev}
               </Btn>
               <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy, padding: "0 8px" }}>
                 Page {currentPage} of {totalPages}
@@ -448,7 +451,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
               >
-                Next ▶
+                {t.alNext}
               </Btn>
             </div>
           </div>
@@ -483,7 +486,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
             }}
           >
             <h4 style={{ margin: "0 0 12px 0", color: C.navy, fontSize: 15 }}>
-              Structural Payload Trace Inspector
+              {t.alInspectorTitle}
             </h4>
             <div
               style={{
@@ -520,7 +523,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId })
                 cursor: "pointer",
               }}
             >
-              Close Inspector
+              {t.alCloseInspector}
             </button>
           </div>
         </div>
