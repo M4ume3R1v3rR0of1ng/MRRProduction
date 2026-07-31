@@ -830,6 +830,15 @@ export const translations = {
     flFilterTrailers: "Trailers",
     flViewList: "📋 List",
     flViewTrailerCal: "📅 Trailer Calendar",
+    training: "Training",
+    trainingTitle: "Training & help",
+    trainingSubtitle:
+      "Short walkthroughs of the parts people ask about most. Watch what you need and get back to work.",
+    trainingPlay: "Play",
+    trainingNoVideo: "Your browser can’t play this video.",
+    trainingDownload: "Download it instead.",
+    trainingMoreComing:
+      "More walkthroughs are on the way. Receiving stock, fleet inspections, and the maintenance board are next. If there is something you would rather see covered first, tell your administrator and it moves up the list.",
     flStatusOutOfService: "Out of Service",
     flStatusServiceDue: "Service Due",
     flStatusActive: "Active",
@@ -1752,6 +1761,15 @@ export const translations = {
     flFilterTrailers: "Remolques",
     flViewList: "📋 Lista",
     flViewTrailerCal: "📅 Calendario de Remolques",
+    training: "Capacitación",
+    trainingTitle: "Capacitación y ayuda",
+    trainingSubtitle:
+      "Guías breves de las partes que más se preguntan. Vea lo que necesite y vuelva al trabajo.",
+    trainingPlay: "Reproducir",
+    trainingNoVideo: "Su navegador no puede reproducir este video.",
+    trainingDownload: "Descárguelo en su lugar.",
+    trainingMoreComing:
+      "Vienen más guías en camino. Recepción de material, inspecciones de flota y el tablero de mantenimiento son las siguientes. Si prefiere que se cubra otro tema primero, dígaselo a su administrador y subirá en la lista.",
     flStatusOutOfService: "Fuera de Servicio",
     flStatusServiceDue: "Servicio Pendiente",
     flStatusActive: "Activo",

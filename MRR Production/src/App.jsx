@@ -33,6 +33,7 @@ import LandingPage from "./views/LandingPage";
 const LoginScreen = lazy(() => import("./views/LoginScreen"));
 const TermsPage = lazy(() => import("./views/TermsPage"));
 const TrainingPage = lazy(() => import("./views/TrainingPage"));
+const TrainingView = lazy(() => import("./views/TrainingView"));
 const ResetPasswordScreen = lazy(() => import("./views/ResetPasswordScreen"));
 const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
 const BillingView = lazy(() => import("./views/BillingView"));
@@ -557,6 +558,12 @@ return (
             )}
             {view === "billing" && (app.curUser.role === "admin" || app.curUser.isPlatformAdmin) && (
               <BillingView user={app.curUser} lang={lang} />
+            )}
+            {/* No permission gate. Training is how someone learns the parts of
+                the app they already have access to; gating it would hide the
+                explanation from exactly the people who need it most. */}
+            {view === "training" && (
+              <TrainingView lang={lang} />
             )}
             {view === "profile" && (
               <ProfileView

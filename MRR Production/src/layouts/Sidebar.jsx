@@ -117,6 +117,10 @@ export default function Sidebar({
     ...(isPlatformAdmin
       ? [{ id: "owner", icon: "🏛️", label: t.ownerConsole }]
       : []),
+    // Last, and deliberately ungated: everyone can be stuck, including the roles
+    // with the fewest permissions. Sits below the work items because it is a
+    // place you go when something else isn't working, not part of the daily loop.
+    { id: "training", icon: "🎓", label: t.training || "Training" },
   ];
   
   const rColor = (r) =>

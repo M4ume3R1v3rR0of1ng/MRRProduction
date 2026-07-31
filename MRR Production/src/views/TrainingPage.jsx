@@ -13,15 +13,11 @@
 //
 // ADDING A VIDEO
 //
-// Append to VIDEOS below. Nothing else needs touching — the page, the count in
-// the header, and the deep-link anchors are all generated from that list.
-//
-// Files go in public/, which Vite copies to dist/ verbatim, so a file saved at
-// public/steadwerk-foo.mp4 resolves at /steadwerk-foo.mp4. Self-hosting is not a
-// preference here: the CSP in public/_headers is default-src 'self' with no
-// media-src, so a YouTube or Vimeo embed would be blocked outright. Serving the
-// file from our own origin is what makes it play at all.
+// Edit src/data/trainingVideos.js. The list is shared with the in-app view
+// (src/views/TrainingView.jsx) so a clip added once shows up in both places.
+// Everything on this page is generated from it.
 import { useEffect, useRef, useState } from "react";
+import { TRAINING_VIDEOS } from "../data/trainingVideos";
 
 const Badge = ({ size = 30 }) => (
   <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
@@ -30,19 +26,7 @@ const Badge = ({ size = 30 }) => (
   </svg>
 );
 
-// The whole library. `src` must be a path under public/. `poster` is optional —
-// without one the CSS lattice below stands in, which is why no thumbnail assets
-// are required to add a video.
-const VIDEOS = [
-  {
-    id: "full-tour",
-    eyebrow: "The full tour",
-    title: "Build a job to a costed report",
-    blurb:
-      "The whole loop, start to finish. Build the job, approve it, pull the materials, return what came back, and read the costed report that falls out the other end.",
-    src: "/steadwerk-demo.mp4",
-  },
-];
+const VIDEOS = TRAINING_VIDEOS;
 
 const CSS = `
 .sw-training {
