@@ -1,3 +1,19 @@
+# Secrets — never commit.
+#
+# Deployed builds read these from the Netlify environment; only local
+# `netlify dev` needs a file on disk. That file holds the keys that actually
+# matter — SUPABASE_SERVICE_ROLE_KEY (bypasses every RLS policy in supabase/),
+# STRIPE_SECRET_KEY, ANTHROPIC_API_KEY, RESEND_API_KEY, ACCULYNX_IMPORT_SECRET.
+#
+# A .env was committed once already (5519ea2, untracked again in 80af63c). That
+# one happened to hold only VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, both
+# public by design and both shipped in the client bundle anyway, so nothing
+# leaked. The next one would not be so lucky. Anything committed here is in the
+# history on two GitHub remotes and has to be treated as burned.
+.env
+.env.*
+!.env.example
+
 # Local Netlify folder
 .netlify
 
@@ -12,6 +28,7 @@ Home-SOC-Project/
 Internship/
 Keylogger/
 phishing-url-detector/
+Vitaal/
 
 # Archives
 *.zip
