@@ -833,6 +833,15 @@ export const translations = {
     flStatusOutOfService: "Out of Service",
     flStatusServiceDue: "Service Due",
     flStatusActive: "Active",
+    flStatusInService: "In Service",
+    flLendSpare: "Lend a spare",
+    flLendSpareHelp:
+      "This vehicle is booked in for service. Pick a spare for its driver to use in the meantime. Only vehicles with no driver assigned are shown. The driver moves back automatically when the service is marked complete.",
+    flNoSparesFree:
+      "Every other vehicle already has a driver assigned, or is booked for service itself. Free one up first, then come back.",
+    flSpareOut: "Spare out:",
+    flSpareLent: "Spare assigned. The driver moves back when this service is completed.",
+    flSpareLendFailed: "Could not lend that vehicle.",
     flJobDetails: "Job Details",
     flUnassigned: "Unassigned",
     flNoneAssigned: "None assigned",
@@ -1746,6 +1755,15 @@ export const translations = {
     flStatusOutOfService: "Fuera de Servicio",
     flStatusServiceDue: "Servicio Pendiente",
     flStatusActive: "Activo",
+    flStatusInService: "En el Taller",
+    flLendSpare: "Prestar un repuesto",
+    flLendSpareHelp:
+      "Este vehículo está programado para servicio. Elija un repuesto para que lo use su conductor mientras tanto. Solo se muestran los vehículos sin conductor asignado. El conductor regresa automáticamente cuando el servicio se marca como completado.",
+    flNoSparesFree:
+      "Todos los demás vehículos ya tienen conductor asignado, o están programados para servicio. Libere uno primero y vuelva.",
+    flSpareOut: "Repuesto prestado:",
+    flSpareLent: "Repuesto asignado. El conductor regresa cuando se complete este servicio.",
+    flSpareLendFailed: "No se pudo prestar ese vehículo.",
     flJobDetails: "Detalles del Trabajo",
     flUnassigned: "Sin Asignar",
     flNoneAssigned: "Ninguno asignado",

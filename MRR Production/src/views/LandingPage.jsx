@@ -476,34 +476,9 @@ const CSS = `
 .sw-landing .faq .ans { padding:0 40px 24px 0; color:var(--ink-soft); font-size:15.5px; line-height:1.7; }
 .sw-landing .faq .ans b { color:var(--ink); font-weight:600; }
 
-/* ---- demo video. There is no poster image on disk, so the still is built in
-   CSS from the same lattice and gradient the hero uses. That keeps it on brand,
-   costs no asset, and means the thumbnail is not whatever frame 1 happens to be.
-   The overlay is a real button, so it is focusable and keyboard-operable; the
-   video keeps its native controls for everything after the first play. ---- */
-.sw-landing .vid { position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--line); box-shadow:var(--shadow); background:#000; }
-.sw-landing .vid video { display:block; width:100%; aspect-ratio:16 / 9; object-fit:contain; background:#000; }
-.sw-landing .vid-poster {
-  position:absolute; inset:0; padding:0; border:0; cursor:pointer; font-family:inherit; color:var(--on-dark);
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
-  background:
-    repeating-linear-gradient(115deg, transparent 0 46px, rgba(201,123,45,.07) 46px 48px),
-    radial-gradient(ellipse at 50% 34%, #2F353C 0%, #23282D 55%, #171B1F 100%);
-  transition:opacity .42s ease, visibility .42s;
-}
-.sw-landing .vid.playing .vid-poster { opacity:0; visibility:hidden; pointer-events:none; }
-.sw-landing .vid-play {
-  width:74px; height:74px; border-radius:50%; display:grid; place-items:center;
-  background:var(--accent); color:#23282D; font-size:23px; padding-left:5px;
-  box-shadow:0 10px 34px rgba(0,0,0,.42);
-  transition:transform .26s cubic-bezier(.2,.8,.2,1), box-shadow .26s ease;
-}
-.sw-landing .vid-poster:hover .vid-play, .sw-landing .vid-poster:focus-visible .vid-play { transform:scale(1.08); box-shadow:0 14px 44px color-mix(in srgb, var(--accent) 55%, transparent); }
-.sw-landing .vid-ttl { font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:clamp(17px,2.4vw,23px); letter-spacing:-.01em; }
-.sw-landing .vid-meta { font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.24em; color:rgba(237,230,218,.62); }
-@media (prefers-reduced-motion: reduce){
-  .sw-landing .vid-poster, .sw-landing .vid-play { transition:none; }
-}
+/* The demo video player moved to src/views/TrainingPage.jsx along with the
+   section it lived in. Its .vid / .vid-poster / .vid-play rules went with it,
+   scoped under .sw-training there. Nothing on this page renders a video now. */
 
 .sw-landing .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
 @media (max-width:780px){ .sw-landing .steps { grid-template-columns:1fr; } }
@@ -628,20 +603,18 @@ const ThemeIcon = ({ id }) => (
   </svg>
 );
 
-export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
+export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowTraining }) {
   const [theme, setTheme] = useState(readStoredTheme); // null = follow OS preference
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState("");
   const [pulled, setPulled] = useState(false);
-  const [playing, setPlaying] = useState(false);
   const [clock, setClock] = useState(() =>
     new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }).toUpperCase(),
   );
   const rootRef = useRef(null);
   const progRef = useRef(null);
   const mockRef = useRef(null);
-  const videoRef = useRef(null);
 
   // Close the mobile sheet on Escape, and on any resize back up to the desktop
   // breakpoint — otherwise a sheet left open while rotating a tablet stays
@@ -779,14 +752,6 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
       return next;
     });
 
-  const startVideo = () => {
-    setPlaying(true);
-    const v = videoRef.current;
-    // play() rejects on some mobile autoplay policies even from a tap. The
-    // poster is already down at that point, so the native controls take over.
-    if (v) Promise.resolve(v.play()).catch(() => {});
-  };
-
   const scrollTop = (e) => {
     e.preventDefault();
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -812,6 +777,10 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
           </nav>
           <div className="nav-actions">
             <button className="theme-btn nav-hide-sm" type="button" onClick={toggleTheme} aria-label="Switch light or dark theme"><ThemeIcon id="sw-tm-nav" /></button>
+            {/* Help sits with the actions rather than the section links because it
+                leaves the page, while every nav-link scrolls within it. Mixing the
+                two reads as a jump to an anchor that isn't there. */}
+            <button className="btn btn-ghost nav-hide-sm" type="button" onClick={onShowTraining}>Help</button>
             <button className="btn btn-ghost nav-hide-sm" type="button" onClick={onSignIn}>Sign in</button>
             {/* Not nav-hide-sm: this is the primary conversion action, and hiding it
                 below 820px stripped it from the sticky bar on exactly the phones
@@ -834,7 +803,15 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
           <div className="nav-sheet-in">
             <a href="#features" onClick={scrollTo("features")}>What it does</a>
             <a href="#glimpse" onClick={scrollTo("glimpse")}>In the wild</a>
-            <a href="#demo" onClick={scrollTo("demo")}>Watch the demo</a>
+            {/* Was an anchor to the #demo band. The tour lives on the training
+                page now, so this leaves the page instead of scrolling — and the
+                sheet has to close itself first, which an anchor would not do. */}
+            <a
+              href="#help"
+              onClick={(e) => { e.preventDefault(); setMenuOpen(false); onShowTraining?.(); }}
+            >
+              Help &amp; training
+            </a>
             <a href="#pricing" onClick={scrollTo("pricing")}>Pricing</a>
             <a href="#story" onClick={scrollTo("story")}>Story</a>
             <div className="nav-sheet-foot">
@@ -856,7 +833,16 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
               <p className="hero-sub">Warehouse and fleet software for the crews who run on trucks, materials, and people. Set up in an afternoon. Home by supper.</p>
               <div className="hero-cta">
                 <button className="btn btn-primary btn-lg" type="button" onClick={onStart}>Start your company</button>
-                <a className="btn hero-ghost btn-play btn-lg" href="#demo" onClick={scrollTo("demo")}>Watch the demo</a>
+                {/* Still the same recording, just no longer a band on this page.
+                    Kept as the secondary hero action because it is the strongest
+                    thing to offer someone not ready to click Start. */}
+                <a
+                  className="btn hero-ghost btn-play btn-lg"
+                  href="#help"
+                  onClick={(e) => { e.preventDefault(); onShowTraining?.(); }}
+                >
+                  Watch the demo
+                </a>
               </div>
               <div className="hero-meta">
                 <span><b>No IT department.</b> No six-figure system.</span>
@@ -988,35 +974,11 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms }) {
         </div>
       </section>
 
-      {/* ── DEMO VIDEO ──
-          Self-hosted so the strict CSP (default-src 'self', no media-src) serves it.
-          Drop the recording at public/steadwerk-demo.mp4 (Vite ships public/ to dist/
-          verbatim, so it resolves at /steadwerk-demo.mp4). The browser uses the video's
-          first frame as the still; add public/steadwerk-demo-poster.jpg plus a
-          poster attr here for a custom thumbnail. */}
-      <section className="band" id="demo">
-        <div className="wrap">
-          <div className="band-head reveal">
-            <span className="eyebrow">Watch · The full tour</span>
-            <h2>See a job go from build to costed report.</h2>
-            <p>The whole loop, start to finish. No sales call to sit through first.</p>
-          </div>
-          <div className="reveal" style={{ maxWidth: 940, margin: "0 auto" }}>
-            <div className={playing ? "vid playing" : "vid"}>
-              <video ref={videoRef} controls preload="metadata" playsInline onPlay={() => setPlaying(true)}>
-                <source src="/steadwerk-demo.mp4" type="video/mp4" />
-                Your browser can’t play this video.{" "}
-                <a href="/steadwerk-demo.mp4">Download it instead.</a>
-              </video>
-              <button className="vid-poster" type="button" onClick={startVideo} aria-label="Play the Steadwerk demo">
-                <span className="vid-play" aria-hidden="true">▶</span>
-                <span className="vid-ttl">Build a job to a costed report</span>
-                <span className="vid-meta">THE FULL TOUR</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* The demo video used to sit here as a #demo band. It moved to
+          src/views/TrainingPage.jsx so there is one player to maintain rather
+          than two pointed at the same file, and so cold traffic does not carry a
+          video element it mostly scrolls past. Every "Watch the demo" control on
+          this page now opens that page via onShowTraining. */}
 
       {/* ── PRICING ── */}
       <section className="band glass" id="pricing">

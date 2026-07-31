@@ -32,6 +32,7 @@ import LandingPage from "./views/LandingPage";
 
 const LoginScreen = lazy(() => import("./views/LoginScreen"));
 const TermsPage = lazy(() => import("./views/TermsPage"));
+const TrainingPage = lazy(() => import("./views/TrainingPage"));
 const ResetPasswordScreen = lazy(() => import("./views/ResetPasswordScreen"));
 const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
 const BillingView = lazy(() => import("./views/BillingView"));
@@ -323,6 +324,16 @@ export default function App() {
         </Suspense>
       );
     }
+    // Public help & training page — the product tour and future walkthroughs.
+    // Lazy like Terms: it carries its own stylesheet and a video element, and
+    // cold traffic landing on the marketing page should not pay for either.
+    if (authView === "training") {
+      return (
+        <Suspense fallback={<ChunkFallback full />}>
+          <TrainingPage onBack={() => backFromAuthView("landing")} />
+        </Suspense>
+      );
+    }
     // Public front door. The marketing landing page hands off to the login/signup
     // form via its Sign in / Start your company buttons.
     if (authView === "landing") {
@@ -331,6 +342,7 @@ export default function App() {
           onSignIn={() => { setLoginMode("login"); goAuthView("login"); }}
           onStart={() => { setLoginMode("signup"); goAuthView("login"); }}
           onShowTerms={() => { setTermsReturn("landing"); goAuthView("terms"); }}
+          onShowTraining={() => goAuthView("training")}
         />
       );
     }

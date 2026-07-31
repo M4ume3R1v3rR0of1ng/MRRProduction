@@ -59,9 +59,81 @@ export default function FleetManagementView({
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [savingVehicleInfo, setSavingVehicleInfo] = useState(false);
   const predictedServices = sel ? learnServiceIntervals(sel) : [];
+
+  // Vehicles that can stand in for one in the shop: no driver on them, and not
+  // themselves scheduled for service. Excludes the serviced vehicle implicitly
+  // (it is blocked, so it fails the second test).
+  const availableSpares = (forReq) =>
+    vehs.filter(
+      (x) =>
+        x.id !== forReq?.vid &&
+        !x.assignedTo &&
+        !reqs.some((r) => r.vid === x.id && r.status === "scheduled"),
+    );
+
+  // Lend a spare while a vehicle is in for service.
+  //
+  // The three writes this implies (remember the current driver, move them onto
+  // the spare, clear the serviced truck) go through one RPC because they must
+  // land together. As three supabase calls from here, a failure on the second
+  // leaves a driver on two vehicles or on none, and the fleet screen is the only
+  // place anyone would notice. See supabase/19_maintenance_vehicle_swap.sql.
+  const confirmSwap = async (replacementId) => {
+    if (!swapReq || !replacementId || swapping) return;
+    setSwapping(true);
+    try {
+      const { error } = await supabase.rpc("assign_replacement_vehicle", {
+        p_request_id: swapReq.id,
+        p_replacement_vehicle_id: replacementId,
+      });
+      if (error) throw error;
+
+      const driverId = vehs.find((x) => x.id === swapReq.vid)?.assignedTo || null;
+
+      // Mirror the RPC locally instead of refetching. The grid renders off these
+      // two lists, and a refetch would blank and repaint the whole fleet for a
+      // change that touches three rows.
+      setVehs((p) =>
+        p.map((x) =>
+          x.id === replacementId
+            ? { ...x, assignedTo: driverId }
+            : x.id === swapReq.vid
+              ? { ...x, assignedTo: null }
+              : x,
+        ),
+      );
+      setReqs((p) =>
+        p.map((r) =>
+          r.id === swapReq.id
+            ? { ...r, replacement_vehicle_id: replacementId, original_driver_id: driverId }
+            : r,
+        ),
+      );
+
+      await logAction(
+        user.id,
+        user.email,
+        "FLEET_STATUS_CHANGE",
+        `Lent "${vehs.find((x) => x.id === replacementId)?.name || replacementId}" to the driver of "${swapReq.vname || swapReq.vid}" while it is in for service.`,
+        { vehicle_id: swapReq.vid, request_id: swapReq.id, replacement_id: replacementId },
+        "fleet",
+      );
+
+      showToast(t.flSpareLent, "success");
+      setSwapReq(null);
+    } catch (err) {
+      showToast(`${t.flSpareLendFailed} ${err.message}`, "error");
+    } finally {
+      setSwapping(false);
+    }
+  };
   // Which dialog is open stays here; each dialog owns its own form state.
   const [isInspectOpen, setIsInspectOpen] = useState(false);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+  // The scheduled maintenance request we are lending a spare against, plus an
+  // in-flight flag so a double click can't fire the RPC twice.
+  const [swapReq, setSwapReq] = useState(null);
+  const [swapping, setSwapping] = useState(false);
   const vehSorters = {
     name_az: (a, b) => (a.name || "").localeCompare(b.name || "", undefined, { numeric: true }),
     name_za: (a, b) => (b.name || "").localeCompare(a.name || "", undefined, { numeric: true }),
@@ -510,6 +582,17 @@ export default function FleetManagementView({
           {filtered.map((v) => {
             const os = oilSt(v);
             const ds = detSt(v);
+            // Blocked means SCHEDULED, not merely requested. Submitting a request
+            // needs only maint_submit, so treating 'pending' as blocking would let
+            // any driver pull a truck off the road by asking for service. Moving a
+            // request to 'scheduled' needs maint_manage, i.e. someone agreed. The
+            // same rule is enforced in the database — see supabase/19.
+            //
+            // Declared up here because fleetStatus below reads it.
+            const blockingReq = reqs.find(
+              (r) => r.vid === v.id && r.status === "scheduled",
+            );
+            const isBlocked = !!blockingReq;
             const getFleetStatus = (vehicle, oilStatus, detailStatus) => {
               if (
                 vehicle.status === "out_of_service" ||
@@ -527,7 +610,11 @@ export default function FleetManagementView({
               return { dot: "🟢", label: t.flStatusActive, color: C.gr };
             };
 
-            const fleetStatus = getFleetStatus(v, os, ds);
+            // Being in the shop outranks every other status line. An oil-change
+            // warning on a truck nobody can drive is noise.
+            const fleetStatus = isBlocked
+              ? { dot: "🔧", label: t.flStatusInService, color: C.pu }
+              : getFleetStatus(v, os, ds);
             const bc =
               os === "overdue" || ds === "overdue"
                 ? C.rd
@@ -552,7 +639,13 @@ export default function FleetManagementView({
                   overflow: "hidden",
                   cursor: "pointer",
                   boxShadow: "var(--shadow-sm)",
-                  border: `2px solid ${bc}`,
+                  border: `2px solid ${isBlocked ? C.pu : bc}`,
+                  // Dimmed, not hidden. The truck still exists and people need to
+                  // see when it is due back, so the card stays clickable and the
+                  // detail view stays reachable. Opacity lives here rather than a
+                  // grayscale filter because a filter would also drain the purple
+                  // border that marks it as blocked.
+                  opacity: isBlocked ? 0.72 : 1,
                 }}
               >
                 <div
@@ -568,6 +661,13 @@ export default function FleetManagementView({
                 >
                   <span>{fleetStatus.dot}</span>
                   <span>{fleetStatus.label}</span>
+                  {/* The date lives on the status line, not on the photo: the
+                      photo is desaturated when blocked and would drain it. */}
+                  {isBlocked && blockingReq.scheduled_date && (
+                    <span style={{ fontWeight: "var(--weight-bold)", opacity: 0.8 }}>
+                      · {fd(blockingReq.scheduled_date)}
+                    </span>
+                  )}
                 </div>
                 <div
                   style={{
@@ -578,6 +678,9 @@ export default function FleetManagementView({
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    // Only the photo is desaturated. Doing this to the whole card
+                    // would flatten the status colours that carry the meaning.
+                    filter: isBlocked ? "grayscale(1)" : "none",
                   }}
                 >
                   {photo ? (
@@ -651,6 +754,38 @@ export default function FleetManagementView({
                       }}
                     >
                       👤 {asgn.name}
+                    </div>
+                  )}
+                  {/* Offered at the moment of need, on the card of the truck that
+                      just went out of service, rather than buried in the detail
+                      modal. stopPropagation so it doesn't also open that modal.
+                      Hidden once a spare is already out, because the RPC refuses a
+                      second loan and a button that always errors is worse than none. */}
+                  {isBlocked && !blockingReq.replacement_vehicle_id && perms.fleet_edit && (
+                    <Btn
+                      v="purple"
+                      sz="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSwapReq(blockingReq);
+                      }}
+                      style={{ width: "100%", marginBottom: 8, justifyContent: "center" }}
+                    >
+                      🔑 {t.flLendSpare}
+                    </Btn>
+                  )}
+                  {isBlocked && blockingReq.replacement_vehicle_id && (
+                    <div
+                      style={{
+                        fontSize: "var(--text-2xs)",
+                        color: C.pu,
+                        fontWeight: "var(--weight-bold)",
+                        marginBottom: 6,
+                      }}
+                    >
+                      🔑 {t.flSpareOut}{" "}
+                      {vehs.find((x) => x.id === blockingReq.replacement_vehicle_id)?.name ||
+                        blockingReq.replacement_vehicle_id}
                     </div>
                   )}
                   {v.type === "truck" && (
@@ -1288,6 +1423,74 @@ export default function FleetManagementView({
 
       {isInspectOpen && (
         <InspectionModal vehs={vehs} user={user} onClose={() => setIsInspectOpen(false)} />
+      )}
+
+      {swapReq && (
+        <Modal
+          title={`${t.flLendSpare} — ${swapReq.vname || swapReq.vid}`}
+          onClose={() => { if (!swapping) setSwapReq(null); }}
+        >
+          <p style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 14 }}>
+            {t.flLendSpareHelp}
+          </p>
+
+          {availableSpares(swapReq).length === 0 ? (
+            // Say why there is nothing to pick. "No vehicles available" alone sends
+            // people hunting for a bug when the real answer is that every truck
+            // already has a driver.
+            <div
+              style={{
+                padding: 16,
+                borderRadius: "var(--radius-lg)",
+                background: C.lg,
+                fontSize: "var(--text-sm)",
+                color: C.sub,
+              }}
+            >
+              {t.flNoSparesFree}
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {availableSpares(swapReq).map((x) => (
+                <button
+                  key={x.id}
+                  disabled={swapping}
+                  onClick={() => confirmSwap(x.id)}
+                  className="mrr-card-click"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    padding: "10px 12px",
+                    borderRadius: "var(--radius-lg)",
+                    border: `2px solid ${C.lg}`,
+                    background: C.w,
+                    cursor: swapping ? "wait" : "pointer",
+                    textAlign: "left",
+                    width: "100%",
+                  }}
+                >
+                  <span>
+                    <span style={{ fontWeight: "var(--weight-extrabold)", color: C.navy }}>
+                      {x.type === "truck" ? "🚛" : "🚜"} {x.name}
+                    </span>
+                    <span style={{ display: "block", fontSize: "var(--text-2xs)", color: C.sub }}>
+                      {x.yr} {x.make} {x.model} · #{x.plate}
+                    </span>
+                  </span>
+                  <Bdg color="green">{t.flUnassigned}</Bdg>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+            <Btn v="ghost" onClick={() => setSwapReq(null)} disabled={swapping}>
+              {t.cancel}
+            </Btn>
+          </div>
+        </Modal>
       )}
 
     </div>
