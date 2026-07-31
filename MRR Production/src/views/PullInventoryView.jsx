@@ -45,6 +45,10 @@ export default function PullInventory({
   const [pulling, setPulling] = useState(false);
   const [returning, setReturning] = useState(false);
   const [sortBy, setSortBy] = useState("newest");
+  // "all" | "approved" | "active". Defaults to all so the view opens showing the
+  // whole queue — narrowing is a choice the user makes, not a state they land in
+  // and have to notice they are in.
+  const [statusFilt, setStatusFilt] = useState("all");
   const [editForm, setEditForm] = useState({});
   const [editItems, setEditItems] = useState([]);
   const [editItemSearch, setEditItemSearch] = useState("");
@@ -240,10 +244,27 @@ export default function PullInventory({
   // Completed/closed jobs drop off this view — Pull Inventory is a work queue,
   // and finished jobs remain reachable from Build Jobs (PDF, close-out).
   const isOpenJob = (j) => j && j.status !== "draft" && j.status !== "completed" && j.status !== "closed";
-  const myJobs = (isField
+  // Everything this user is allowed to see here, before the status filter. Kept
+  // separate so the filter counts below describe the whole queue rather than
+  // whatever slice is currently on screen.
+  const openJobs = isField
     ? jobs.filter((j) => isOpenJob(j) && (j.assignedto === user.id || j.assignedTo === user.id))
-    : jobs.filter(isOpenJob)
-  ).sort(jobSorters[sortBy] || jobSorters.newest);
+    : jobs.filter(isOpenJob);
+
+  // The two states this view actually acts on. Approved jobs are waiting to be
+  // pulled; active ones have been pulled and are waiting to be returned and
+  // completed. Which button a card shows is driven by exactly this distinction,
+  // so being able to filter by it is the difference between "where is my job"
+  // and "there it is".
+  const statusCounts = {
+    all: openJobs.length,
+    approved: openJobs.filter((j) => j.status === "approved").length,
+    active: openJobs.filter((j) => j.status === "active").length,
+  };
+
+  const myJobs = openJobs
+    .filter((j) => statusFilt === "all" || j.status === statusFilt)
+    .sort(jobSorters[sortBy] || jobSorters.newest);
 
   const openJob = async (j) => {
     if (!j) return;
@@ -525,6 +546,33 @@ export default function PullInventory({
             {isField ? t.pullYourJobs : t.pullAllJobs}
           </p>
         </div>
+        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
+        {/* Counts come from the unfiltered queue on purpose: the point of the
+            number is to say what is behind the OTHER buttons before you press
+            them. The dot emoji stays even though the selected button is already
+            colour-coded, because an unselected button is plain ghost grey and
+            colour would then be the only thing distinguishing them. */}
+        <div role="group" aria-label={t.pullFilterAria} style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          {[
+            { id: "all", dot: "▦", label: t.pullFilterAllShort, full: t.pullFilterAll, count: statusCounts.all, tone: "primary" },
+            { id: "approved", dot: "", label: t.pullFilterApprovedShort, full: t.pullFilterApproved, count: statusCounts.approved, tone: "gold" },
+            { id: "active", dot: "", label: t.pullFilterActiveShort, full: t.pullFilterActive, count: statusCounts.active, tone: "green" },
+          ].map((f) => {
+            const on = statusFilt === f.id;
+            return (
+              <Btn
+                key={f.id}
+                v={on ? f.tone : "ghost"}
+                sz="sm"
+                onClick={() => setStatusFilt(f.id)}
+                aria-pressed={on}
+                title={f.full}
+              >
+                {f.dot} {f.label} ({f.count})
+              </Btn>
+            );
+          })}
+        </div>
         <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.pullSortAria} style={{ width: "auto" }}>
           <option value="newest">↕ {t.pullSortNewest}</option>
           <option value="oldest">↕ {t.pullSortOldest}</option>
@@ -533,12 +581,23 @@ export default function PullInventory({
           <option value="po">↕ {t.pullSortPO}</option>
           <option value="status">↕ {t.status}</option>
         </Sel>
+        </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {myJobs.length === 0 && (
           <div style={{ background: C.w, padding: 32, borderRadius: "var(--radius-xl)", textAlign: "center", color: C.sub, boxShadow: "var(--shadow-sm)" }}>
-            {t.pullAllCaughtUp}
+            {/* "All caught up" is only true when nothing is hidden. With a filter
+                on and jobs behind it, that message sends someone hunting for a
+                bug that is really a dropdown two feet above their cursor. */}
+            {openJobs.length === 0 ? t.pullAllCaughtUp : t.pullNoneMatchFilter}
+            {openJobs.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <Btn v="ghost" sz="sm" onClick={() => setStatusFilt("all")}>
+                  {t.pullShowAllJobs} ({statusCounts.all})
+                </Btn>
+              </div>
+            )}
           </div>
         )}
         {myJobs.map((job) => {

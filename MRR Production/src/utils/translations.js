@@ -508,6 +508,17 @@ export const translations = {
     // Pull Inventory View
     pullYourJobs: "Your assigned jobs",
     pullAllJobs: "All active jobs in pipeline",
+    pullFilterAria: "Filter jobs by status",
+    // Short forms sit on the buttons; the long ones become the tooltip, so the
+    // row stays compact on a phone without losing what the status actually means.
+    pullFilterAllShort: "All",
+    pullFilterApprovedShort: "Approved",
+    pullFilterActiveShort: "Active",
+    pullFilterAll: "Every open job, approved and active",
+    pullFilterApproved: "Approved. Waiting to be pulled.",
+    pullFilterActive: "Active. Pulled already, waiting to be returned and completed.",
+    pullNoneMatchFilter: "No jobs match that filter right now.",
+    pullShowAllJobs: "Show all open jobs",
     pullSortAria: "Sort jobs",
     pullSortNewest: "Date Created — Newest",
     pullSortOldest: "Date Created — Oldest",
@@ -1439,6 +1450,15 @@ export const translations = {
     // Pull Inventory View
     pullYourJobs: "Sus trabajos asignados",
     pullAllJobs: "Todos los trabajos activos en curso",
+    pullFilterAria: "Filtrar trabajos por estado",
+    pullFilterAllShort: "Todos",
+    pullFilterApprovedShort: "Aprobados",
+    pullFilterActiveShort: "Activos",
+    pullFilterAll: "Todos los trabajos abiertos, aprobados y activos",
+    pullFilterApproved: "Aprobados. Esperando a que se surtan.",
+    pullFilterActive: "Activos. Ya surtidos, esperando devolución y cierre.",
+    pullNoneMatchFilter: "Ningún trabajo coincide con ese filtro ahora.",
+    pullShowAllJobs: "Mostrar todos los trabajos abiertos",
     pullSortAria: "Ordenar trabajos",
     pullSortNewest: "Fecha de Creación — Más Reciente",
     pullSortOldest: "Fecha de Creación — Más Antigua",
