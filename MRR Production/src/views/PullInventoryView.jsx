@@ -244,26 +244,35 @@ export default function PullInventory({
   // Completed/closed jobs drop off this view — Pull Inventory is a work queue,
   // and finished jobs remain reachable from Build Jobs (PDF, close-out).
   const isOpenJob = (j) => j && j.status !== "draft" && j.status !== "completed" && j.status !== "closed";
-  // Everything this user is allowed to see here, before the status filter. Kept
-  // separate so the filter counts below describe the whole queue rather than
-  // whatever slice is currently on screen.
-  const openJobs = isField
-    ? jobs.filter((j) => isOpenJob(j) && (j.assignedto === user.id || j.assignedTo === user.id))
-    : jobs.filter(isOpenJob);
 
-  // The two states this view actually acts on. Approved jobs are waiting to be
-  // pulled; active ones have been pulled and are waiting to be returned and
-  // completed. Which button a card shows is driven by exactly this distinction,
-  // so being able to filter by it is the difference between "where is my job"
-  // and "there it is".
+  // Everything this user may see here. Completed is INCLUDED at this level and
+  // excluded from the work queue below.
+  //
+  // It has to be reachable somewhere in this view. Completing a job drops it out
+  // of the queue instantly, and if the PDF popup was blocked on the way out there
+  // was no way back to the report — the 📄 PDF / Sync buttons further down are
+  // written for exactly that recovery and could never render, because the list
+  // they render from had already filtered completed jobs away. Closed jobs stay
+  // out: those are finished business and live in Build Jobs.
+  const visibleJob = (j) => j && j.status !== "draft" && j.status !== "closed";
+  const mine = isField
+    ? jobs.filter((j) => visibleJob(j) && (j.assignedto === user.id || j.assignedTo === user.id))
+    : jobs.filter(visibleJob);
+
+  // The work queue: what still needs doing. This is what "All" means, and it is
+  // deliberately not "everything on this screen" — a finished job is not work.
+  const openJobs = mine.filter(isOpenJob);
+
+  // Counts come from the whole set, not the current slice, so each button says
+  // what is behind the others before you press them.
   const statusCounts = {
     all: openJobs.length,
     approved: openJobs.filter((j) => j.status === "approved").length,
     active: openJobs.filter((j) => j.status === "active").length,
+    completed: mine.filter((j) => j.status === "completed").length,
   };
 
-  const myJobs = openJobs
-    .filter((j) => statusFilt === "all" || j.status === statusFilt)
+  const myJobs = (statusFilt === "all" ? openJobs : mine.filter((j) => j.status === statusFilt))
     .sort(jobSorters[sortBy] || jobSorters.newest);
 
   const openJob = async (j) => {
@@ -554,9 +563,17 @@ export default function PullInventory({
             colour would then be the only thing distinguishing them. */}
         <div role="group" aria-label={t.pullFilterAria} style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
           {[
+            // Geometric marks, not emoji: the coloured-circle emoji I first used
+            // here were silently stripped from this file on save (astral-plane
+            // codepoints; the BMP ▦ survived). These also read as a progression,
+            // empty to half to done, which the emoji never did.
             { id: "all", dot: "▦", label: t.pullFilterAllShort, full: t.pullFilterAll, count: statusCounts.all, tone: "primary" },
-            { id: "approved", dot: "", label: t.pullFilterApprovedShort, full: t.pullFilterApproved, count: statusCounts.approved, tone: "gold" },
-            { id: "active", dot: "", label: t.pullFilterActiveShort, full: t.pullFilterActive, count: statusCounts.active, tone: "green" },
+            { id: "approved", dot: "○", label: t.pullFilterApprovedShort, full: t.pullFilterApproved, count: statusCounts.approved, tone: "gold" },
+            { id: "active", dot: "◐", label: t.pullFilterActiveShort, full: t.pullFilterActive, count: statusCounts.active, tone: "green" },
+            // Not part of "All": finished work is not queue work. It is here so a
+            // job that vanished on completion stays findable, and so the PDF can
+            // be reopened when the popup was blocked.
+            { id: "completed", dot: "●", label: t.pullFilterCompletedShort, full: t.pullFilterCompleted, count: statusCounts.completed, tone: "sky" },
           ].map((f) => {
             const on = statusFilt === f.id;
             return (
@@ -792,7 +809,21 @@ export default function PullInventory({
               </tbody>
             </table>
           </div>
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+          {/* Sticky for the same reason as the return modal below: this is the
+              last child of a scrolling body, and the confirm button should never
+              be something you have to discover by scrolling. */}
+          <div
+            style={{
+              display: "flex",
+              gap: "var(--space-4)",
+              position: "sticky",
+              bottom: 0,
+              margin: "0 calc(var(--space-8) * -1) calc(var(--space-8) * -1)",
+              padding: "var(--space-4) var(--space-8) var(--space-8)",
+              background: C.w,
+              borderTop: `1px solid ${C.lg}`,
+            }}
+          >
             <Btn v="ghost" onClick={() => { setModal(null); setSel(null); setPullQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={pulling}>{t.cancel}</Btn>
             <Btn v="teal" sz="lg" onClick={confirmPull} style={{ flex: 2, justifyContent: "center" }} disabled={pulling}>
               {pulling ? t.pullInProgress : t.pullConfirm}
@@ -871,7 +902,24 @@ export default function PullInventory({
               )}
             </table>
           </div>
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+          {/* Sticky. Modal is maxHeight:92vh with overflowY:auto, and this row is
+              the LAST child of a padded body — so on a phone, a job with seven
+              items pushes "Complete Job" below the fold with nothing on screen
+              suggesting it is there. The table just runs off the bottom and the
+              modal reads as finished. Nothing errors because nothing is pressed.
+              Negative margins let the bar span the modal edge to edge. */}
+          <div
+            style={{
+              display: "flex",
+              gap: "var(--space-4)",
+              position: "sticky",
+              bottom: 0,
+              margin: "0 calc(var(--space-8) * -1) calc(var(--space-8) * -1)",
+              padding: "var(--space-4) var(--space-8) var(--space-8)",
+              background: C.w,
+              borderTop: `1px solid ${C.lg}`,
+            }}
+          >
             <Btn v="ghost" onClick={() => { setModal(null); setRetQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={returning}>{t.cancel}</Btn>
             <Btn v="green" sz="lg" onClick={confirmReturn} style={{ flex: 2, justifyContent: "center" }} disabled={returning}>
               {returning ? t.pullCompiling : t.pullCompleteJob}
