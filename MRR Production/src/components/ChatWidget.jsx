@@ -73,7 +73,16 @@ export default function ChatWidget({ user, lang = "en" }) {
         }),
       });
 
-      const result = await response.json();
+      // Read as text first. A crashed or missing function returns an empty body,
+      // and calling .json() on that throws "Unexpected end of JSON input" — which
+      // hides the status code that actually explains the failure.
+      const raw = await response.text();
+      let result;
+      try {
+        result = raw ? JSON.parse(raw) : {};
+      } catch {
+        throw new Error(`Server returned an unreadable response (${response.status}).`);
+      }
       if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`);
 
       setMessages((prev) => [...prev, { role: "assistant", text: result.reply }]);

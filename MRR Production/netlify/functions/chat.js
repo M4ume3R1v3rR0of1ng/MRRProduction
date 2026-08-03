@@ -88,6 +88,24 @@ const TOOLS = [
       },
     },
   },
+  {
+    name: "recommend_maintenance",
+    description:
+      "Produce a ranked, actionable maintenance to-do list for the fleet. Combines oil-change and detail status, each vehicle's own learned service cadence, and chronic repeat-repair patterns into one priority-ordered list with the evidence behind each item. Use this for questions like 'what maintenance should we do', 'what's due', 'what needs attention', or 'what should I schedule this month'. Prefer this over get_fleet_status when the user wants advice rather than raw numbers.",
+    input_schema: {
+      type: "object",
+      properties: {
+        vehicle_name: {
+          type: "string",
+          description: "Limit recommendations to vehicles whose name or plate contains this text. Omit for the whole fleet.",
+        },
+        horizon_days: {
+          type: "number",
+          description: "How far ahead to include predicted upcoming services, in days. Defaults to 30. Overdue items are always included regardless.",
+        },
+      },
+    },
+  },
 ];
 
 // Mirrors src/utils/patterns.js — duplicated rather than imported because this
@@ -177,6 +195,175 @@ function detectFleetTrends(reqs, { recentDays = 30, baselineDays = 90, minRecent
     }
   }
   return results.sort((a, b) => b.recentCount - a.recentCount);
+}
+
+// --- Maintenance recommendation engine ---------------------------------------
+//
+// Mirrors oilSt / detSt / predDays in src/utils/helpers.js, duplicated for the
+// same reason as the pattern helpers above: this file runs standalone in the
+// function bundle and can't import the frontend's ESM modules.
+//
+// The scoring and ranking below happen HERE, not in the model. Asking an LLM to
+// do arithmetic across two dozen vehicles and then sort the results is exactly
+// the kind of task it gets quietly wrong, and a wrong maintenance ranking is
+// worse than no ranking at all. The model's job is to explain this list, not to
+// derive it.
+
+const DAY_MS = 86400000;
+
+// Stored dates are plain calendar days ("YYYY-MM-DD"). Parse and format both
+// ends in one frame (UTC) so a projection never drifts across a day boundary —
+// the same mixed-reference-frame bug helpers.js calls out for detSt.
+function parseDay(value) {
+  if (!value) return null;
+  const [y, m, d] = String(value).split("T")[0].split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(Date.UTC(y, m - 1, d));
+}
+
+function oilStatus(v) {
+  if (v.type !== "truck") return null;
+  const interval = Number(v.oii);
+  if (!interval || interval <= 0) return null;
+  const milesSince = (Number(v.mi) || 0) - (Number(v.lomi) || 0);
+  const pct = milesSince / interval;
+  return {
+    milesSince: Math.round(milesSince),
+    interval,
+    milesRemaining: Math.round(interval - milesSince),
+    state: pct >= 1 ? "overdue" : pct >= 0.8 ? "soon" : "ok",
+  };
+}
+
+// Days until the oil change comes due, projected from how fast this truck
+// actually accrues miles rather than a fleet-wide guess.
+function daysUntilOilDue(v) {
+  if (v.type !== "truck" || !Array.isArray(v.mil) || v.mil.length < 2) return null;
+  const log = v.mil
+    .filter((e) => e?.dt && typeof e.mi === "number" && parseDay(e.dt))
+    .sort((a, b) => parseDay(a.dt) - parseDay(b.dt));
+  if (log.length < 2) return null;
+  const spanDays = (parseDay(log[log.length - 1].dt) - parseDay(log[0].dt)) / DAY_MS;
+  if (spanDays < 1) return null;
+  const milesPerDay = (log[log.length - 1].mi - log[0].mi) / spanDays;
+  if (milesPerDay <= 0) return null;
+  const remaining = Number(v.oii) - ((Number(v.mi) || 0) - (Number(v.lomi) || 0));
+  return remaining <= 0 ? 0 : Math.round(remaining / milesPerDay);
+}
+
+function detailStatus(v) {
+  const interval = Number(v.dii);
+  if (!interval || interval <= 0) return null;
+  // No recorded detail date means it has never been done — overdue, matching detSt.
+  if (!v.ldd) return { daysSince: null, interval, state: "overdue" };
+  const day = parseDay(v.ldd);
+  if (!day) return null;
+  const elapsed = (Date.now() - day.getTime()) / DAY_MS;
+  return {
+    daysSince: Math.round(elapsed),
+    interval,
+    state: elapsed >= interval ? "overdue" : elapsed >= interval * 0.8 ? "soon" : "ok",
+  };
+}
+
+// Priority is a fixed scale, not a tuned model: overdue beats predicted, and a
+// chronic fault outranks routine upkeep because it points at a root cause that
+// keeps generating work.
+const PRIORITY = {
+  oilOverdue: 100,
+  chronic: 90,
+  serviceOverdue: 80,
+  oilSoon: 60,
+  detailOverdue: 50,
+  serviceSoon: 40,
+  detailSoon: 30,
+};
+
+// Exported for direct testing: the ranking is the part worth pinning down, and
+// it's pure, so it can be exercised without a session or a database.
+export function buildMaintenanceRecommendations(vehicles, reqs, { horizonDays = 30 } = {}) {
+  const chronic = detectChronicIssues(reqs);
+  const trends = detectFleetTrends(reqs);
+  const trendingTypes = new Set(trends.map((t) => t.issueType));
+  const now = Date.now();
+  const recs = [];
+
+  const add = (v, priority, urgency, item, reason, evidence) =>
+    recs.push({
+      vehicle: v.name,
+      plate: v.plate || null,
+      item,
+      urgency,
+      reason,
+      evidence,
+      priority,
+    });
+
+  for (const v of vehicles) {
+    // A retired truck doesn't need an oil change. Recommending one wastes the
+    // reader's attention and makes the whole list look untrustworthy.
+    if (String(v.status || "").toLowerCase() === "retired") continue;
+
+    const oil = oilStatus(v);
+    if (oil?.state === "overdue") {
+      add(v, PRIORITY.oilOverdue, "overdue", "Oil change",
+        `${oil.milesSince} mi since the last change against a ${oil.interval} mi interval, ${Math.abs(oil.milesRemaining)} mi past due.`,
+        oil);
+    } else if (oil?.state === "soon") {
+      const eta = daysUntilOilDue(v);
+      add(v, PRIORITY.oilSoon, "due_soon", "Oil change",
+        `${oil.milesRemaining} mi left of a ${oil.interval} mi interval${eta !== null ? `, roughly ${eta} days at this truck's own mileage rate` : ""}.`,
+        { ...oil, estimatedDaysUntilDue: eta });
+    }
+
+    const detail = detailStatus(v);
+    if (detail?.state === "overdue") {
+      add(v, PRIORITY.detailOverdue, "overdue", "Detail",
+        detail.daysSince === null
+          ? "No detail has ever been recorded for this vehicle."
+          : `${detail.daysSince} days since the last detail against a ${detail.interval} day interval.`,
+        detail);
+    } else if (detail?.state === "soon") {
+      add(v, PRIORITY.detailSoon, "due_soon", "Detail",
+        `${detail.daysSince} days since the last detail, interval is ${detail.interval} days.`,
+        detail);
+    }
+
+    // Learned per-vehicle cadence: what this truck's own service history says
+    // is coming, as opposed to the configured interval.
+    for (const s of learnServiceIntervals(v)) {
+      const due = parseDay(s.predictedNextDate);
+      if (!due) continue;
+      const inDays = Math.round((due.getTime() - now) / DAY_MS);
+      const basis = `history shows about every ${s.avgIntervalDays} days across ${s.sampleSize} prior interval${s.sampleSize === 1 ? "" : "s"}`;
+      const plural = (n) => `${n} day${Math.abs(n) === 1 ? "" : "s"}`;
+      if (inDays < 0) {
+        add(v, PRIORITY.serviceOverdue, "overdue", s.type,
+          `Projected due ${s.predictedNextDate}, ${plural(Math.abs(inDays))} ago (${basis}).`, s);
+      } else if (inDays === 0) {
+        add(v, PRIORITY.serviceOverdue, "overdue", s.type,
+          `Projected due today, ${s.predictedNextDate} (${basis}).`, s);
+      } else if (inDays <= horizonDays) {
+        add(v, PRIORITY.serviceSoon, "due_soon", s.type,
+          `Projected due ${s.predictedNextDate}, in ${plural(inDays)} (${basis}).`, s);
+      }
+    }
+
+    for (const c of chronic.filter((g) => g.vid === v.id)) {
+      add(v, PRIORITY.chronic, "investigate", c.issueType,
+        `${c.count} "${c.issueType}" requests in the last 60 days. Repeat repairs point at an underlying fault rather than a one-off${trendingTypes.has(c.issueType) ? ", and this issue type is also trending fleet-wide" : ""}.`,
+        { ...c, trendingFleetWide: trendingTypes.has(c.issueType) });
+    }
+  }
+
+  recs.sort((a, b) => b.priority - a.priority || String(a.vehicle).localeCompare(String(b.vehicle)));
+
+  return {
+    horizon_days: horizonDays,
+    vehicles_reviewed: vehicles.length,
+    recommendations: recs.slice(0, 40),
+    fleet_trends: trends,
+  };
 }
 
 // Mirrors src/database/permissions.js getEffectivePerms() — keep in sync.
@@ -317,6 +504,35 @@ async function executeTool(admin, perms, companyId, name, input) {
 
       return result;
     }
+    case "recommend_maintenance": {
+      if (!perms.maint_manage && !perms.fleet_view) {
+        return { error: "This user does not have permission to view maintenance recommendations." };
+      }
+      const [{ data: vehData, error: vehError }, { data: reqData, error: reqError }] = await Promise.all([
+        admin.from("vehicles").select("*").eq("company_id", companyId).limit(200),
+        admin.from("maintenance_requests").select("*").eq("company_id", companyId).limit(500),
+      ]);
+      if (vehError) return { error: vehError.message };
+      if (reqError) return { error: reqError.message };
+
+      let vehicles = vehData || [];
+      if (input.vehicle_name) {
+        const needle = input.vehicle_name.toLowerCase();
+        vehicles = vehicles.filter(
+          (v) => (v.name || "").toLowerCase().includes(needle) || (v.plate || "").toLowerCase().includes(needle),
+        );
+        if (vehicles.length === 0) {
+          return { error: `No vehicle found matching "${input.vehicle_name}".` };
+        }
+      }
+
+      // Chronic/trend detection reads the whole company's request history even
+      // when the caller asked about one truck — a fleet-wide spike is context
+      // that changes the recommendation for the single vehicle too.
+      const horizonDays =
+        Number.isFinite(input.horizon_days) && input.horizon_days > 0 ? Math.min(input.horizon_days, 365) : 30;
+      return buildMaintenanceRecommendations(vehicles, reqData || [], { horizonDays });
+    }
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -365,6 +581,7 @@ export const handler = async (event) => {
     const systemPrompt = `You are the in-app assistant for ${caller.companyName}'s warehouse & fleet management system, an internal tool for warehouse staff, site supervisors, and office managers.
 You are talking to ${profile?.full_name || profile?.name || "a user"} (role: ${caller.role}).
 Answer questions about jobs, inventory, fleet vehicles, maintenance requests, and maintenance patterns/predictions using the tools provided — never invent data.
+When asked what maintenance to do, what is due, or what needs attention, call recommend_maintenance. It returns an already-ranked list: present it in that order, lead with the overdue items, and cite the reason it gives. Do not re-sort it or compute your own mileage math.
 All data you can see belongs to ${caller.companyName}. Never speculate about other companies on the platform; you have no access to them.
 If a tool returns a permission error, tell the user plainly they don't have access to that information rather than guessing or making something up.
 Keep answers short and directly useful — this is an internal ops tool, not a chatty assistant.`;
