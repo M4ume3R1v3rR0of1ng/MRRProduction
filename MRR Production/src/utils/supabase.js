@@ -25,6 +25,22 @@ export async function updateRowStrict(table, id, fields) {
   return { error: null };
 }
 
+// True when the request never reached PostgREST at all — a dropped hotspot, DNS,
+// TLS, or an edge 5xx that came back without CORS headers. postgrest-js turns a
+// rejected fetch into an error shaped `{ message: "TypeError: Failed to fetch",
+// code: "" }`, which reads exactly like a database error and is not one.
+//
+// The distinction is not cosmetic. A database error means nothing was written. A
+// transport error means the browser does not know: the transaction may have
+// COMMITTED with only the reply lost. Any caller that offers a retry has to tell
+// them apart, because retrying the second case double-applies the write.
+export const isTransportError = (err) =>
+  !!err &&
+  !err.code &&
+  /Failed to fetch|NetworkError|Load failed|Network request failed|ECONNRESET|ETIMEDOUT/i.test(
+    err.message || "",
+  );
+
 // Current user's Supabase session token, sent to Netlify functions so they can
 // verify the caller server-side instead of trusting an unauthenticated request.
 export async function getAccessToken() {

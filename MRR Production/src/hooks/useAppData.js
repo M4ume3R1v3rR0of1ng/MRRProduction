@@ -5,7 +5,6 @@ import { storage } from "../utils/storage";
 import { useNotify } from "../context/NotificationContext";
 import { SEED_U, SEED_W, SEED_I, SEED_V, SEED_JOBS } from "../data/seeds";
 import { DEFAULT_ROLE_PERMS, getEffectivePerms } from "../database/permissions";
-import { processOfflineQueue } from "../utils/offlineSync";
 import { tot } from "../utils/helpers";
 import { DEFAULT_JOB_NOTIFICATIONS } from "../utils/jobNotifications";
 
@@ -322,14 +321,6 @@ export function useAppData() {
   useEffect(() => { if (!loading) storage.set("mrr-v7-roleperms", JSON.stringify(rolePerms)).catch(() => {}); }, [rolePerms, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-userov", JSON.stringify(userOverrides)).catch(() => {}); }, [userOverrides, loading]);
   useEffect(() => { if (!loading) storage.set("mrr-v7-acculynx", JSON.stringify(acculynxConfig)).catch(() => {}); }, [acculynxConfig, loading]);
-
-  // ── 📡 OFFLINE BACKEND RETRY LISTENER ──
-  useEffect(() => {
-    const handleReconnect = () => processOfflineQueue(showToast);
-    window.addEventListener("online", handleReconnect);
-    if (navigator.onLine) processOfflineQueue(showToast);
-    return () => window.removeEventListener("online", handleReconnect);
-  }, [showToast]);
 
   // ── 💬 TEAM CHAT UNREAD TRACKING ──
   const [chatUnread, setChatUnread] = useState(0);

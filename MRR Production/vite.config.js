@@ -38,7 +38,9 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/\.netlify\//],
         // Deliberately NO runtime caching of Supabase responses: stale inventory,
         // job, or cost data would be worse than an honest offline error. The shell
-        // loads offline; live data follows the app's own online/offline handling.
+        // loads offline, and that is the whole of the offline story — there is no
+        // write queue behind it. Every write goes straight to Supabase and fails
+        // visibly without a connection, which is what the SyncIndicator warns about.
       },
       devOptions: {
         // Keep the service worker OFF during `npm run dev` so it can't cache stale

@@ -12,7 +12,7 @@ vi.mock("./supabase", () => ({
   getAccessToken: vi.fn(),
 }));
 
-const { doFifo, newestPrice, recostLine } = await import("./helpers");
+const { doFifo, newestPrice, recostLine, applyReturnBatch, returnBatchId } = await import("./helpers");
 
 const batch = (rcvd, qty, price, rem = qty) => ({ id: `b_${rcvd}_${price}`, rcvd, qty, price, rem });
 
@@ -195,6 +195,58 @@ describe("recostLine — repricing a job after a batch price correction", () => 
     const line = { pulled: 3, consumed: [{ bid: "b_ridge", qty: 3, price: 0 }] };
     recostLine(line, "b_ridge", 84.2);
     expect(line.consumed[0].price).toBe(0);
+  });
+});
+
+// Reported from the field on PO 21940: "Complete Job & Generate PDF" failed with
+// "TypeError: Failed to fetch" — the browser never got a response. The crew's only
+// move is to press it again, so the retry has to be safe. These are money tests:
+// the failure mode is stock the warehouse never received.
+describe("applyReturnBatch — a retried completion must not double-credit stock", () => {
+  const live = [batch("2026-07-01", 10, 10, 4)];
+  const ret = { jobId: "acx_21940", iid: "ridge_vent", qty: 2, price: 83, by: "u1", rcvd: "2026-08-05" };
+
+  it("posts the returned material back as a new batch", () => {
+    const after = applyReturnBatch(live, ret);
+    expect(after).toHaveLength(2);
+    const added = after.find((b) => b.id === returnBatchId("acx_21940", "ridge_vent"));
+    expect(added).toMatchObject({ qty: 2, rem: 2, price: 83, rcvd: "2026-08-05", by: "u1" });
+  });
+
+  it("is a no-op when the same return already landed", () => {
+    // The commit reached the database and the response was lost. The retry reads
+    // batches that already contain the return. Appending again would hand the
+    // warehouse 2 rolls that never came back.
+    const first = applyReturnBatch(live, ret);
+    const second = applyReturnBatch(first, ret);
+    expect(second).toBe(first);
+    expect(second.filter((b) => b.qty === 2)).toHaveLength(1);
+  });
+
+  it("does not resurrect stock consumed between the two attempts", () => {
+    // Another job pulled the returned rolls before the retry. Re-applying with a
+    // fresh `rem` would undo that pull.
+    const first = applyReturnBatch(live, ret);
+    const drained = first.map((b) => (b.qty === 2 ? { ...b, rem: 0 } : b));
+    expect(applyReturnBatch(drained, ret).find((b) => b.qty === 2).rem).toBe(0);
+  });
+
+  it("keys the batch per job and per item, so separate returns stay separate", () => {
+    // Migration 17: one AccuLynx job legitimately carries several inventory jobs,
+    // one per crew. Their returns of the same item must not collide.
+    expect(returnBatchId("acx_21940", "ridge_vent")).not.toBe(returnBatchId("acx_21940_siding", "ridge_vent"));
+    const both = applyReturnBatch(applyReturnBatch(live, ret), { ...ret, jobId: "acx_21940_siding" });
+    expect(both).toHaveLength(3);
+  });
+
+  it("does not mutate the batches it was given", () => {
+    const before = JSON.parse(JSON.stringify(live));
+    applyReturnBatch(live, ret);
+    expect(live).toEqual(before);
+  });
+
+  it("tolerates an item with no batch history", () => {
+    expect(applyReturnBatch(null, ret)).toHaveLength(1);
   });
 });
 

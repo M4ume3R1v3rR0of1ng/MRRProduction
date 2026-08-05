@@ -968,7 +968,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowTrai
           </div>
           <div className="steps reveal stagger">
             <div className="step"><span className="idx">STEP 01</span><h3>Raise the frame</h3><p>Add your yard, your trucks, and your crew. Enter what you've got on the shelf, or bring it in from where it already lives.</p></div>
-            <div className="step"><span className="idx">STEP 02</span><h3>Run the day</h3><p>Pull materials to jobs, track the fleet, flag maintenance from the office desk or the cab of a truck with no signal.</p></div>
+            <div className="step"><span className="idx">STEP 02</span><h3>Run the day</h3><p>Pull materials to jobs, track the fleet, flag maintenance from the office desk or the cab of a truck.</p></div>
             <div className="step"><span className="idx">STEP 03</span><h3>Home by supper</h3><p>Jobs close themselves out with a costed report. The counting's done before you've hung up your coat.</p></div>
           </div>
         </div>
@@ -1026,8 +1026,9 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowTrai
       {/* ── FAQ ──
           Native <details> so it works before React hydrates, keyboard-navigates
           for free, and stays open to Ctrl+F. Every answer here is checked against
-          what the product actually does — the offline answer in particular is
-          scoped to queued writes, which is what offlineSync.js really provides. */}
+          what the product actually does. Nothing here may claim the app works
+          without a connection: offline write queuing was removed, and every write
+          now goes straight to Supabase. */}
       <section className="band" id="faq">
         <div className="wrap">
           <div className="band-head reveal">

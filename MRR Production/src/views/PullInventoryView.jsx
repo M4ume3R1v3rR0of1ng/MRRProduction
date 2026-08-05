@@ -1,13 +1,13 @@
 // src/views/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
 import { useState, useEffect } from "react";
-import { C, fd, fm, doFifo, uid, tot, ft, mkJI, mergePullTracking, todayLocal } from "../utils/helpers";
+import { C, fd, fm, doFifo, uid, tot, ft, mkJI, mergePullTracking, todayLocal, applyReturnBatch } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { generatePDF } from "../utils/pdfGenerator";
 import { attemptAccuLynxSync } from "../utils/accuLynxSync";
 import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
-import { supabase, updateRowStrict } from "../utils/supabase";
+import { supabase, updateRowStrict, isTransportError } from "../utils/supabase";
 import { sendLowStockAlerts } from "../utils/lowStockAlerts";
 import { useNotify } from "../context/NotificationContext";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
@@ -419,6 +419,35 @@ export default function PullInventory({
 
     const rawItems = sel.items || sel.materials || [];
 
+    // Hoisted out of the try so the recovery path in the catch can still finish
+    // the job off when it turns out the commit landed and only the reply was lost.
+    let updatedJob = null;
+    let newInv = inv;
+
+    // Everything that happens once the job is genuinely completed. Shared by the
+    // happy path and the recovery path so a lost response finishes identically to
+    // a clean one — same local state, same PDF, same AccuLynx sync, same emails.
+    const finish = () => {
+      setInv(newInv);
+      setJobs((p) => p.map((j) => (j.id === sel.id ? updatedJob : j)));
+      // Email the assigned supervisor if the company enabled "Completed".
+      notifyJobMove({ transition: "completed", job: updatedJob, users, prefs: jobNotifications });
+      showToast(t.pullJobCompleted, "success");
+      setModal(null);
+      setRetQtys({});
+
+      setTimeout(() => {
+        if (!generatePDF(updatedJob, users, activeLogo, newInv, company)) {
+          showToast(t.pullPopupBlocked1, "warning");
+        }
+        if (acculynxConfig?.autoSync) {
+          attemptAccuLynxSync(updatedJob, users, acculynxConfig, setJobs);
+        }
+      }, 300);
+
+      setSel(null);
+    };
+
     try {
       // Re-read current batches for the items being returned so the return
       // batch stacks on top of live warehouse data. Only these rows get
@@ -442,21 +471,26 @@ export default function PullInventory({
         if (!item) return null;
         const ret = Math.min(parseFloat(retQtys[item.iid]) || 0, item.pulled || 0);
         if (ret > 0 && freshById.has(item.iid)) {
-          const nb = {
-            id: uid(),
-            rcvd: todayLocal(),
-            qty: ret,
-            price: item.priceAtPull || 0,
-            by: user.id,
-            rem: ret,
-          };
-          changedBatches.set(item.iid, [...freshById.get(item.iid), nb]);
+          // Deterministic batch id, so pressing Complete again after a dropped
+          // connection re-posts the same return instead of a second one. See
+          // applyReturnBatch.
+          changedBatches.set(
+            item.iid,
+            applyReturnBatch(freshById.get(item.iid), {
+              jobId: sel.id,
+              iid: item.iid,
+              qty: ret,
+              price: item.priceAtPull || 0,
+              by: user.id,
+              rcvd: todayLocal(),
+            }),
+          );
         }
         return { ...item, returned: ret };
       }).filter(Boolean);
 
       const completedAt = new Date().toISOString();
-      const updatedJob = {
+      updatedJob = {
         ...sel,
         status: "completed",
         completed: completedAt,
@@ -464,6 +498,7 @@ export default function PullInventory({
         items: updItems,
         materials: updItems,
       };
+      newInv = inv.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i));
 
       // Same transaction guarantee as the pull: returned stock and the job's
       // completion land together, or neither does.
@@ -476,27 +511,38 @@ export default function PullInventory({
       });
       if (commitErr) throw commitErr;
 
-      const newInv = inv.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i));
-      setInv(newInv);
-      setJobs((p) => p.map((j) => (j.id === sel.id ? updatedJob : j)));
-      // Email the assigned supervisor if the company enabled "Completed".
-      notifyJobMove({ transition: "completed", job: updatedJob, users, prefs: jobNotifications });
-      showToast(t.pullJobCompleted, "success");
-      setModal(null);
-      setRetQtys({});
-
-      setTimeout(() => {
-        if (!generatePDF(updatedJob, users, activeLogo, newInv, company)) {
-          showToast(t.pullPopupBlocked1, "warning");
-        }
-        if (acculynxConfig?.autoSync) {
-          attemptAccuLynxSync(updatedJob, users, acculynxConfig, setJobs);
-        }
-      }, 300);
-
-      setSel(null);
+      finish();
     } catch (err) {
       console.error("Failed to complete job procedures:", err);
+
+      // "TypeError: Failed to fetch" is the browser reporting that no response
+      // ever came back — a truck losing its hotspot mid-request. Labelling that a
+      // "Database Error" points every investigation at the wrong system, and it
+      // buries the part that matters: the transaction may have COMMITTED with only
+      // the reply lost, leaving the job completed server-side while this device
+      // still shows it active, with no PDF and no AccuLynx sync. So ask the
+      // database which of the two happened rather than guessing.
+      if (isTransportError(err) && updatedJob) {
+        try {
+          const { data: row, error: probeErr } = await supabase
+            .from("jobs")
+            .select("status,completed,completedAt")
+            .eq("id", sel.id)
+            .maybeSingle();
+          if (!probeErr && row?.status === "completed") {
+            // Carry the timestamp the database actually recorded, not the one
+            // this attempt generated — the commit that landed was the earlier one.
+            updatedJob = { ...updatedJob, completed: row.completed, completedAt: row.completedAt };
+            finish();
+            return;
+          }
+        } catch {
+          // Still no signal. Fall through to the honest message below.
+        }
+        showToast(t.pullReturnOffline, "error");
+        return;
+      }
+
       showToast(`${t.pullReturnError} ${err.message}`, "error");
     } finally {
       setReturning(false);

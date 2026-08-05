@@ -312,6 +312,31 @@ export const mergePullTracking = (editedItems, liveItems) => {
   });
 };
 
+// Returning unused material posts it back to stock as a new batch. The id is
+// derived from the job and the item instead of uid(), because this particular
+// write gets retried by hand.
+//
+// The crew completes a job from a truck. The commit reaches the database and the
+// response is lost on the way back, so the browser reports "TypeError: Failed to
+// fetch" and the button re-enables. They press it again — there is nothing else
+// to do. With a random id the second attempt reads the live batches (which now
+// already contain the first return), appends a SECOND one, and the warehouse
+// gains stock that never physically came back. Nobody finds out: the count is
+// higher, not lower, so nothing runs short.
+//
+// A deterministic id makes the retry recognisable, which is what makes it safe.
+export const returnBatchId = (jobId, iid) => `ret_${jobId}_${iid}`;
+
+// Idempotent by design: if the return already landed, the live batches come back
+// untouched. Deliberately does NOT re-apply with a fresh `rem` — stock that was
+// pulled again between the two attempts must not be resurrected by a retry.
+export const applyReturnBatch = (batches, { jobId, iid, qty, price, by, rcvd }) => {
+  const live = batches || [];
+  const id = returnBatchId(jobId, iid);
+  if (live.some((b) => b && b.id === id)) return live;
+  return [...live, { id, rcvd, qty, price: price || 0, by, rem: qty }];
+};
+
 // 11. Additional helper functions can be added here as needed for future features or utilities.
 export const predDays = (v) => {
   if (v.type !== "truck" || !v.mil || v.mil.length < 2) return null;
