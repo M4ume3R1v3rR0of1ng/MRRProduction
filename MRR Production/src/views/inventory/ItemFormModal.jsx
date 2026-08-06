@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { supabase, updateRowStrict } from "../../utils/supabase";
 import { C, uid, fm, newestPrice, todayLocal } from "../../utils/helpers";
+import { displayNameOf } from "../../utils/people";
 import { Btn, Fld, Inp, Modal, Sel } from "../../components/UIPrimitives";
 import { logAction } from "../../utils/logger";
 import { useNotify } from "../../context/NotificationContext";
@@ -34,7 +35,7 @@ export const isPriceChange = (raw, oldPrice, canEditPricing) => {
 // Current price lives on the newest batch by received date, so a price edit
 // rewrites it there. With no receipt history there is nothing to rewrite, so a
 // zero-quantity batch is seeded to carry the price instead.
-export const applyPriceToBatches = (batches, newPrice, byUserId) => {
+export const applyPriceToBatches = (batches, newPrice, byUserId, byName = null) => {
   const list = [...(batches || [])];
   if (list.length === 0) {
     return [{
@@ -43,6 +44,8 @@ export const applyPriceToBatches = (batches, newPrice, byUserId) => {
       qty: 0,
       price: newPrice,
       by: byUserId || "system",
+      // See utils/people: an id alone cannot survive the person being removed.
+      byName: byName || null,
       rem: 0,
     }];
   }
@@ -121,7 +124,7 @@ export default function ItemFormModal({ item = null, user, perms = {}, fetchLive
       if (priceChanged) {
         // Live batches, not the in-memory copy: another device may have received
         // stock since this session loaded, and rewriting a stale array erases it.
-        updatedFields.batches = applyPriceToBatches(await fetchLiveBatches(item.id), newPrice, user?.id);
+        updatedFields.batches = applyPriceToBatches(await fetchLiveBatches(item.id), newPrice, user?.id, displayNameOf(user));
       }
 
       const { error } = await updateRowStrict("inventory", item.id, updatedFields);

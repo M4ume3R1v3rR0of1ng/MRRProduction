@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { updateRowStrict } from "../../utils/supabase";
 import { C, fd, fm, recostLine } from "../../utils/helpers";
+import { resolveBatchPerson } from "../../utils/people";
 import { Btn, Fld, Inp, Modal } from "../../components/UIPrimitives";
 import { logAction } from "../../utils/logger";
 import { useNotify } from "../../context/NotificationContext";
@@ -151,7 +152,8 @@ export default function BatchCorrectionModal({
     <Modal title={`Correct Batch — ${fd(batch.rcvd)}`} onClose={close}>
       <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px", marginBottom: "var(--space-4)", fontSize: "var(--text-xs)", color: C.sub }}>
         Received {fd(batch.rcvd)} · {batch.qty} {item.unit} · {batch.rem} remaining · by{" "}
-        {users.find((u) => u.id === batch.by)?.name || "Unknown"}
+        {/* Third copy of the same broken lookup. See utils/people. */}
+        {resolveBatchPerson(users, batch)}
         <div style={{ marginTop: 4 }}>Quantities aren't editable here — use 🔧 Adjust Stock for those.</div>
       </div>
 

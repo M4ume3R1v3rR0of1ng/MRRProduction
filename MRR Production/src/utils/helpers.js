@@ -226,7 +226,13 @@ export function compressImg(file, maxDim, quality, cb, onError) {
 // 10. The Standard First-In-First-Out (FIFO) Inventory Depletion Logic
 // Allows pulling past what's physically on hand — the remainder is tracked
 // as a negative synthetic batch instead of blocking the pull.
-export const doFifo = (item, qty) => {
+//
+// `meta` stamps that negative row with WHO pulled it and WHICH job. It used to be
+// written as an anonymous `by: "system"` with no reference, so an item sitting at
+// -1 was untraceable: the ledger showed "received by system" and the audit_logs
+// entry naming the job was deleted after 30 days. The batch row outlives the purge,
+// so the provenance has to live here.
+export const doFifo = (item, qty, meta = {}) => {
   const s = [...item.batches].sort(
     (a, b) => new Date(a.rcvd) - new Date(b.rcvd),
   );
@@ -255,9 +261,14 @@ export const doFifo = (item, qty) => {
       rcvd: todayLocal(),
       qty: -r,
       price: lastPrice,
-      by: "system",
+      // Falls back to "system" only when the caller supplied nothing, which keeps
+      // rows written before `meta` existed reading the same way they always did.
+      by: meta.by || "system",
+      byName: meta.byName || null,
       rem: -r,
       short: true,
+      ...(meta.jobId ? { jobId: meta.jobId } : {}),
+      ...(meta.ref ? { ref: meta.ref } : {}),
     };
     u.push(neg);
     // Recorded as consumed too — those units were issued to the job and billed at the
@@ -266,6 +277,28 @@ export const doFifo = (item, qty) => {
   }
 
   return { batches: u, cost: c, shortfall: Math.max(0, r), consumed };
+};
+
+// Five different things live in `batches`, and only one of them is a supplier
+// delivery. Anything reading the batch list has to classify before it judges, or it
+// flags a return for having no PO and buries the receipts that genuinely lack one.
+//
+//   shortfall  — doFifo's synthetic negative row when a pull exceeded stock
+//   adjustment — Adjust Stock's correction row
+//   return     — pull screen re-entry (deterministic ret_ id, priced at the job's blend)
+//   price-only — Edit Materials' qty:0 row, created to hold a price
+//   receipt    — an actual delivery; the only kind that owes a PO/vendor
+//
+// The adjustment test is a prefix, not equality: AdjustStockModal appends the typed
+// reason ("Manual Adjustment — damaged in yard"), so an exact match silently missed
+// every correction anyone bothered to explain and re-labelled it a receipt with a
+// missing invoice.
+export const batchKind = (b) => {
+  if (!b) return "receipt";
+  if (b.short || b.by === "system") return "shortfall";
+  if (String(b.ref || "").startsWith("Manual Adjustment")) return "adjustment";
+  if (!String(b.id || "").startsWith("b_")) return "return";
+  return (parseFloat(b.qty) || 0) === 0 ? "price-only" : "receipt";
 };
 
 // Re-derive a pulled job line's cost with ONE batch repriced — what a batch price
@@ -330,11 +363,13 @@ export const returnBatchId = (jobId, iid) => `ret_${jobId}_${iid}`;
 // Idempotent by design: if the return already landed, the live batches come back
 // untouched. Deliberately does NOT re-apply with a fresh `rem` — stock that was
 // pulled again between the two attempts must not be resurrected by a retry.
-export const applyReturnBatch = (batches, { jobId, iid, qty, price, by, rcvd }) => {
+export const applyReturnBatch = (batches, { jobId, iid, qty, price, by, byName = null, rcvd }) => {
   const live = batches || [];
   const id = returnBatchId(jobId, iid);
   if (live.some((b) => b && b.id === id)) return live;
-  return [...live, { id, rcvd, qty, price: price || 0, by, rem: qty }];
+  // byName alongside by, for the same reason doFifo stamps its shortfall row: the
+  // id stops resolving the day that person is removed from the company.
+  return [...live, { id, rcvd, qty, price: price || 0, by, byName, rem: qty }];
 };
 
 // 11. Additional helper functions can be added here as needed for future features or utilities.

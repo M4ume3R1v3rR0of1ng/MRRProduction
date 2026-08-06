@@ -2,6 +2,36 @@
 import { supabase } from "./supabase";
 
 /**
+ * Every action_type this app actually writes, gathered from the logAction call
+ * sites. Both audit screens build their filter dropdown from this.
+ *
+ * They used to hardcode their own lists, and both were wrong in the same way:
+ * they offered types nothing has ever written (INVENTORY_ADJUST, MAT_RECEIVE,
+ * MAINTENANCE), so choosing one returned an empty table forever — which reads as
+ * "this never happens here" rather than "this filter is broken". They also
+ * omitted types that ARE written, so those events were unreachable by filter.
+ *
+ * If you add a logAction call with a new type, add it here.
+ */
+export const ACTION_TYPES = [
+  "LOGIN",
+  "LOGOUT",
+  "INVENTORY_PULL",
+  "INV_MUTATION",
+  "JOB_BUILD_CREATE",
+  "JOB_BUILD_EDIT",
+  "JOB_BUILD_CLOSE",
+  "JOB_BUILD_REOPEN",
+  "JOB_BUILD_DRAFT",
+  "JOB_BUILD_DELETE",
+  "FLEET_STATUS_CHANGE",
+  "FLEET_MAINTENANCE",
+  "MAINTENANCE_REQUEST_CREATE",
+  "USER_MANAGEMENT",
+  "PERM_CHANGE",
+];
+
+/**
  * Commits a highly detailed, device-aware audit event to Supabase.
  *
  * @param {string} userId - UUID of the executing employee profile

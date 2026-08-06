@@ -8,6 +8,7 @@
 // exact field shape the destination dialog expected. They now just say which
 // dialog to open, and the dialog seeds itself.
 import { C, fd, fm, tot, newestPrice } from "../../utils/helpers";
+import { resolveBatchPerson } from "../../utils/people";
 import { Btn, Modal, PhotoUpload } from "../../components/UIPrimitives";
 
 // Oldest first: the batch FIFO will draw from next is the first one with stock
@@ -80,7 +81,10 @@ export default function ItemDetailModal({
                   {b.vendor && <span style={{ color: C.sub }}> · {b.vendor}</span>}
                   {b.ref && <span style={{ color: C.tl }}> · {b.ref}</span>}
                 </div>
-                <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>By: {users.find((u) => u.id === b.by)?.name || "Unknown"}</div>
+                {/* `?.name || "Unknown"` here found the right person and threw the
+                    answer away — profiles keep the name in full_name — and could
+                    never resolve a pre-Auth id at all. See utils/people. */}
+                <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>By: {resolveBatchPerson(users, b)}</div>
               </div>
               <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                 <div>

@@ -48,6 +48,10 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
     mentionQuery !== null
       ? users
           .filter((u) => u.id !== user?.id)
+          // Deactivated staff are readable now (supabase/21) so their names still
+          // appear on the history they made. They must not be @-mentionable: the
+          // mention would notify nobody and imply they are still on the crew.
+          .filter((u) => u.active !== false)
           .filter((u) => (u.full_name || u.name || '').toLowerCase().includes(mentionQuery))
           .slice(0, 5)
       : [];

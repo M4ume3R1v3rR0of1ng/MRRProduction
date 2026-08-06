@@ -10,6 +10,7 @@ import { useState } from "react";
 import { updateRowStrict } from "../../utils/supabase";
 import { sendLowStockAlerts } from "../../utils/lowStockAlerts";
 import { C, uid, tot, newestPrice, todayLocal } from "../../utils/helpers";
+import { displayNameOf } from "../../utils/people";
 import { Btn, Fld, Inp, Modal, TA } from "../../components/UIPrimitives";
 import { logAction } from "../../utils/logger";
 import { useNotify } from "../../context/NotificationContext";
@@ -22,7 +23,7 @@ import { useNotify } from "../../context/NotificationContext";
 // Going DOWN drains oldest-first, matching how a pull consumes. Draining newest
 // first would leave the oldest, cheapest units on the shelf forever and quietly
 // inflate the cost of every later job.
-export const applyStockCorrection = (liveBatches, newQty, { byUserId, reasonSuffix = "", fallbackPrice = 0 } = {}) => {
+export const applyStockCorrection = (liveBatches, newQty, { byUserId, byName = null, reasonSuffix = "", fallbackPrice = 0 } = {}) => {
   const batches = [...(liveBatches || [])];
   const current = tot({ batches });
   const delta = newQty - current;
@@ -36,6 +37,8 @@ export const applyStockCorrection = (liveBatches, newQty, { byUserId, reasonSuff
         qty: delta,
         price: newestPrice({ batches }) || fallbackPrice || 0,
         by: byUserId || "system",
+        // See utils/people: an id alone cannot survive the person being removed.
+        byName: byName || null,
         rem: delta,
         ref: `Manual Adjustment${reasonSuffix}`,
       },
@@ -84,6 +87,7 @@ export default function AdjustStockModal({ item, user, users, fetchLiveBatches, 
       const current = tot({ batches: liveBatches });
       const updatedBatches = applyStockCorrection(liveBatches, newQty, {
         byUserId: user?.id,
+        byName: displayNameOf(user),
         reasonSuffix,
         fallbackPrice: newestPrice(item),
       });

@@ -14,6 +14,7 @@ import ItemFormModal from "./inventory/ItemFormModal";
 import ReceiveBatchModal from "./inventory/ReceiveBatchModal";
 import AdjustStockModal from "./inventory/AdjustStockModal";
 import BatchCorrectionModal from "./inventory/BatchCorrectionModal";
+import InventoryCountTab from "./inventory/InventoryCountTab";
 
 
 export default function InventoryView({
@@ -30,6 +31,10 @@ export default function InventoryView({
 }) {
   const t = translations[lang] || translations.en;
   const [saving, setSaving] = useState(false);
+  // "catalog" is the live stock grid; "count" is the monthly physical count and
+  // the variance it exposes. They share this screen because they are the same
+  // subject seen two ways: what the books say, and whether the books are true.
+  const [tab, setTab] = useState("catalog");
   const [srch, setSrch] = useState(inventorySearchQuery);
   const [cat, setCat] = useState("All");
   const [sortBy, setSortBy] = useState("name_az");
@@ -161,7 +166,7 @@ export default function InventoryView({
             {t.invRealtimeStock}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", visibility: tab === "catalog" ? "visible" : "hidden" }}>
           {perms.inv_bulk_receive && (
             <Btn v="gold" onClick={() => setModal("bulk")}>
               {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
@@ -182,10 +187,36 @@ export default function InventoryView({
         </div>
       </div>
 
+      <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: 16, borderBottom: `2px solid ${C.bd}` }}>
+        {[
+          ["catalog", `📦 ${t.invTabCatalog}`, t.invTabCatalogHint],
+          ["count", `🧮 ${t.invTabCount}`, t.invTabCountHint],
+        ].map(([k, label, hint]) => (
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            title={hint}
+            style={{
+              background: "none", border: "none", cursor: "pointer", padding: "8px 14px",
+              fontSize: "var(--text-sm)", fontWeight: "var(--weight-extrabold)",
+              color: tab === k ? C.navy : C.sub,
+              borderBottom: tab === k ? `3px solid ${C.gold}` : "3px solid transparent",
+              marginBottom: -2,
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "count" ? (
+        <InventoryCountTab inv={inv} jobs={jobs} users={users} user={user} perms={perms} lang={lang} />
+      ) : (
+      <>
       <div style={{ display: "flex", gap: "var(--space-4)", marginBottom: 14, flexWrap: "wrap" }}>
-        <Inp 
+        <Inp
           /* ── 🟢 FIXED: TRANSLATED SEARCH INPUT PLACEHOLDER ── */
-          placeholder={t.searchInventory || "🔍 Search items..."} 
+          placeholder={t.searchInventory || "🔍 Search items..."}
           value={srch} 
           onChange={(e) => {
             setSrch(e.target.value);
@@ -217,11 +248,17 @@ export default function InventoryView({
           // Traffic light: RED = order now (out, or at/below the reorder point),
           // YELLOW = getting close, GREEN = healthy. `critical` drives the 🚨 flag.
           const getStockStatusMeta = (currentStock, alertThreshold) => {
-            const t = alertThreshold || 0;
-            if (currentStock <= 0) return { dot: "🔴", label: "Out of Stock", color: STOCK_RED, critical: true };
-            if (currentStock <= t) return { dot: "🔴", label: "Reorder Now", color: STOCK_RED, critical: true };
-            if (currentStock <= t * 1.5) return { dot: "🟡", label: "Getting Low", color: STOCK_YELLOW, critical: false };
-            return { dot: "🟢", label: "In Stock", color: STOCK_GREEN, critical: false };
+            const th = alertThreshold || 0;
+            // Below zero is NOT the same as empty, and collapsing the two into
+            // "Out of Stock" was hiding the more serious of the two. Empty means
+            // order more. Negative means the books are provably wrong: more was
+            // issued than ever existed, so nothing on this card can be trusted
+            // until someone counts the shelf.
+            if (currentStock < 0) return { dot: "🛑", label: t.invStockNegative, color: STOCK_RED, critical: true, negative: true };
+            if (currentStock === 0) return { dot: "🔴", label: t.invStockOut, color: STOCK_RED, critical: true };
+            if (currentStock <= th) return { dot: "🔴", label: t.invStockReorder, color: STOCK_RED, critical: true };
+            if (currentStock <= th * 1.5) return { dot: "🟡", label: t.invStockLow, color: STOCK_YELLOW, critical: false };
+            return { dot: "🟢", label: t.invStockIn, color: STOCK_GREEN, critical: false };
           };
 
           const stockStatus = getStockStatusMeta(stock, item.alrt);
@@ -299,6 +336,15 @@ export default function InventoryView({
                   <div>
                     <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color: stockStatus.color }}>{stock}</div>
                     <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{item.unit} available</div>
+                    {/* Says what to DO about it. A red number alone gets read as
+                        "we are out", and the person restocks instead of recounting
+                        — which leaves the negative in place and the next job
+                        costed against stock that was never there. */}
+                    {stockStatus.negative && (
+                      <div style={{ fontSize: "var(--text-2xs)", color: STOCK_RED, fontWeight: "var(--weight-bold)", marginTop: 2, maxWidth: 150, lineHeight: 1.3 }}>
+                        {t.invNegativeHint}
+                      </div>
+                    )}
                   </div>
                   {perms.inv_pricing_view ? (
                     <div style={{ textAlign: "right" }}>
@@ -325,6 +371,8 @@ export default function InventoryView({
           );
         })}
       </div>
+      </>
+      )}
 
       {/* ── 🧰 JOB MATERIAL TEMPLATES MANAGER ── */}
       {modal === "tpl" && <JobTemplatesModal inv={inv} onClose={() => setModal(null)} />}

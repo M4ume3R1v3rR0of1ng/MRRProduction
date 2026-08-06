@@ -1245,7 +1245,9 @@ export default function FleetManagementView({
                 .filter((u) => u.active)
                 .map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.name}
+                    {/* profiles keep the name in full_name; `u.name` alone renders
+                        a blank option for every real profile row. */}
+                    {u.full_name || u.name || u.email}
                   </option>
                 ))}
             </Sel>

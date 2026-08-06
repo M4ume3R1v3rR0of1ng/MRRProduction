@@ -12,7 +12,7 @@ vi.mock("./supabase", () => ({
   getAccessToken: vi.fn(),
 }));
 
-const { doFifo, newestPrice, recostLine, applyReturnBatch, returnBatchId } = await import("./helpers");
+const { doFifo, newestPrice, recostLine, applyReturnBatch, returnBatchId, batchKind } = await import("./helpers");
 
 const batch = (rcvd, qty, price, rem = qty) => ({ id: `b_${rcvd}_${price}`, rcvd, qty, price, rem });
 
@@ -69,6 +69,63 @@ describe("doFifo — consumption order and cost", () => {
     const batches = [batch("2026-07-01", 10, 10)];
     doFifo({ batches }, 5);
     expect(batches[0].rem).toBe(10);
+  });
+});
+
+describe("batchKind — telling five kinds of row apart", () => {
+  it("calls a supplier delivery a receipt", () => {
+    expect(batchKind({ id: "b_abc", qty: 20, ref: "PO-1001", vendor: "ABC" })).toBe("receipt");
+  });
+
+  it("recognises a correction that carries the reason someone typed", () => {
+    // The bug this fixes: the test was `ref === "Manual Adjustment"`, but
+    // AdjustStockModal writes `Manual Adjustment${reasonSuffix}`. So every
+    // correction anyone bothered to EXPLAIN fell through and was relabelled a
+    // supplier receipt, then flagged red for having no vendor.
+    expect(batchKind({ id: "b_x", qty: 4, ref: "Manual Adjustment — damaged in yard" })).toBe("adjustment");
+    expect(batchKind({ id: "b_x", qty: 4, ref: "Manual Adjustment" })).toBe("adjustment");
+  });
+
+  it("calls an over-pull a shortfall however it was stamped", () => {
+    // `by` is now the person who pulled, not "system", so the `short` flag has to
+    // carry the classification on its own.
+    expect(batchKind({ id: "neg_1", qty: -3, rem: -3, short: true, by: "u1" })).toBe("shortfall");
+    expect(batchKind({ id: "neg_1", qty: -3, rem: -3, by: "system" })).toBe("shortfall");
+  });
+
+  it("recognises material coming back off a job by its non-receipt id", () => {
+    expect(batchKind({ id: "ret_j1_i1", qty: 5, rem: 5 })).toBe("return");
+  });
+
+  it("calls a quantity-less row a price entry", () => {
+    expect(batchKind({ id: "b_x", qty: 0, rem: 0, price: 12 })).toBe("price-only");
+  });
+
+  it("does not throw on a missing row", () => {
+    expect(batchKind(null)).toBe("receipt");
+  });
+});
+
+describe("doFifo — recording who caused a shortfall", () => {
+  it("stamps the puller and the job onto the negative row", () => {
+    // Without this an item found at -1 is untraceable: the audit_logs entry that
+    // named the job is deleted at 30 days, and the batch row is all that is left.
+    const res = doFifo({ batches: [batch("2026-07-01", 2, 15)] }, 3, {
+      by: "u7",
+      jobId: "j42",
+      ref: "PO 1234 · Smith Residence",
+    });
+    const short = res.batches.find((b) => b.short);
+    expect(short.by).toBe("u7");
+    expect(short.jobId).toBe("j42");
+    expect(short.ref).toBe("PO 1234 · Smith Residence");
+  });
+
+  it("still reads as system when the caller supplies nothing", () => {
+    // Rows written before `meta` existed must keep classifying the same way.
+    const short = doFifo({ batches: [batch("2026-07-01", 2, 15)] }, 3).batches.find((b) => b.short);
+    expect(short.by).toBe("system");
+    expect(short.ref).toBeUndefined();
   });
 });
 

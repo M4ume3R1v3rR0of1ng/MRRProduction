@@ -2,6 +2,7 @@
 // ── Pull Inventory ────────────────────────────────
 import { useState, useEffect } from "react";
 import { C, fd, fm, doFifo, uid, tot, ft, mkJI, mergePullTracking, todayLocal, applyReturnBatch } from "../utils/helpers";
+import { displayNameOf } from "../utils/people";
 import { translations } from "../utils/translations";
 import { generatePDF } from "../utils/pdfGenerator";
 import { attemptAccuLynxSync } from "../utils/accuLynxSync";
@@ -44,6 +45,10 @@ export default function PullInventory({
 
   const [pulling, setPulling] = useState(false);
   const [returning, setReturning] = useState(false);
+  // Lines that would take stock below zero, held for confirmation. Non-null means
+  // the pull was computed against LIVE batches, found a shortfall, and stopped
+  // before committing anything. See confirmPull.
+  const [shortWarn, setShortWarn] = useState(null);
   const [sortBy, setSortBy] = useState("newest");
   // "all" | "approved" | "active". Defaults to all so the view opens showing the
   // whole queue — narrowing is a choice the user makes, not a state they land in
@@ -303,16 +308,24 @@ export default function PullInventory({
     onOpenItemHandled?.();
   }, [openItemId]);
 
-  const confirmPull = async () => {
+  // `force` is the second press, after the shortfall dialog. The first press
+  // computes the whole pull, and if anything would go negative it stops and shows
+  // what and by how much — nothing is written on that pass.
+  const confirmPull = async (force = false) => {
     if (!sel) return;
     setPulling(true);
 
     const updItems = [...(sel.items || sel.materials || [])];
-    const shortItems = [];
+    const shortRows = [];
     // Batches touched by this pull, keyed by inventory id. Only these rows get
     // written back — writing the whole in-memory list here used to overwrite
     // stock other devices had received since this session loaded.
     const changedBatches = new Map();
+    // Stamped onto the synthetic negative batch so an item found at -1 six months
+    // from now still names the job that took it. audit_logs cannot answer that:
+    // it is purged at 30 days. The batch row is not.
+    const jobRef = `${sel.po ? `PO ${sel.po}` : "No PO"} · ${sel.title || sel.name || "Untitled job"}`;
+    const pulledAt = todayLocal();
 
     try {
       // Re-read current batches for the job's items so FIFO deducts from
@@ -335,9 +348,21 @@ export default function PullInventory({
         if (qty <= 0) continue;
         if (!freshById.has(item.iid)) continue;
 
-        const res = doFifo({ batches: freshById.get(item.iid) }, qty);
+        const res = doFifo({ batches: freshById.get(item.iid) }, qty, {
+          by: user.id,
+          byName: displayNameOf(user),
+          jobId: sel.id,
+          ref: jobRef,
+        });
         if (res.shortfall > 0) {
-          shortItems.push(item.iname || item.name);
+          shortRows.push({
+            iid: item.iid,
+            name: item.iname || item.name,
+            unit: item.unit || "",
+            requested: qty,
+            available: qty - res.shortfall,
+            short: res.shortfall,
+          });
         }
 
         changedBatches.set(item.iid, res.batches);
@@ -347,6 +372,11 @@ export default function PullInventory({
           updItems[ji] = {
             ...updItems[ji],
             pulled: qty,
+            // The day the material physically left, which is not the day the job
+            // closes. Monthly reconciliation files usage by this; without it a job
+            // pulled in January and completed in February moves a month's worth of
+            // consumption into the wrong period. See utils/inventoryCounts.
+            pulledAt,
             priceAtPull: ppu,
             pullCost: res.cost,
             // The batch-by-batch split behind priceAtPull. priceAtPull is a blended
@@ -358,11 +388,16 @@ export default function PullInventory({
         }
       }
 
-      if (shortItems.length > 0) {
-        showToast(
-          t.pullShortStock.replace("{items}", shortItems.join(", ")),
-          "warning",
-        );
+      // Pulling past on-hand is allowed — the roof still needs doing and the
+      // warehouse count is sometimes just stale. But it must be a decision, not a
+      // side effect discovered afterwards in a toast. The old code committed the
+      // negative first and mentioned it second.
+      //
+      // This check runs on FRESH batches, not the modal's snapshot, so it reflects
+      // what another device received or pulled while this screen sat open.
+      if (shortRows.length > 0 && !force) {
+        setShortWarn(shortRows);
+        return;
       }
 
       const updatedJob = { ...sel, status: "active", items: updItems, materials: updItems };
@@ -401,8 +436,16 @@ export default function PullInventory({
         showToast,
       );
 
-      await handlePullMaterials(sel.id, updItems);
-      showToast(t.pullPulledOk, "success");
+      await handlePullMaterials(sel.id, updItems, shortRows);
+      if (shortRows.length > 0) {
+        showToast(
+          t.pullShortStock.replace("{items}", shortRows.map((r) => `${r.name} (${r.short} ${r.unit})`.trim()).join(", ")),
+          "warning",
+        );
+      } else {
+        showToast(t.pullPulledOk, "success");
+      }
+      setShortWarn(null);
       setModal(null);
       setPullQtys({});
     } catch (err) {
@@ -482,6 +525,7 @@ export default function PullInventory({
               qty: ret,
               price: item.priceAtPull || 0,
               by: user.id,
+              byName: displayNameOf(user),
               rcvd: todayLocal(),
             }),
           );
@@ -557,13 +601,40 @@ export default function PullInventory({
     return null;
   };
 
-  const handlePullMaterials = async (jobId, materialsList) => {
+  // The audit entry for a pull.
+  //
+  // It used to read "Dispatched staging materials out for Job PO #123 (Smith)" and
+  // nothing else. The item list went into metadata under a nested `payload` key
+  // that the Audit Log screen never rendered, so in practice the log recorded that
+  // SOMETHING was pulled and never what. The description now carries the line count
+  // and any shortfall, and the metadata is flat so the Inspect panel can show it.
+  const handlePullMaterials = async (jobId, materialsList, shortRows = []) => {
+    const lines = (materialsList || []).filter((i) => i && (i.pulled || 0) > 0);
+    const jobName = sel.title || sel.name || "Untitled job";
+    const shortNote = shortRows.length
+      ? ` Went short on ${shortRows.map((r) => `${r.name} (${r.short} ${r.unit})`.trim()).join(", ")}. Stock is now negative, check the count.`
+      : "";
+
     await logAction(
       user.id,
       user.email,
       "INVENTORY_PULL",
-      `Dispatched staging materials out for Job PO #${sel.po} (${sel.title || sel.name}).`,
-      { targetId: sel.id, payload: { itemsPulled: materialsList } },
+      `Pulled ${lines.length} material line${lines.length === 1 ? "" : "s"} for PO ${sel.po || "n/a"} (${jobName}).${shortNote}`,
+      {
+        job_id: jobId,
+        po: sel.po || null,
+        job_name: jobName,
+        line_count: lines.length,
+        lines: lines.map((i) => ({
+          item: i.iname || i.name,
+          qty: i.pulled,
+          unit: i.unit || "",
+          planned: i.planned ?? i.qty ?? null,
+          unit_cost: i.priceAtPull ?? null,
+        })),
+        short: shortRows.map((r) => ({ item: r.name, short: r.short, unit: r.unit, available: r.available })),
+      },
+      "pull",
     );
   };
 
@@ -871,8 +942,67 @@ export default function PullInventory({
             }}
           >
             <Btn v="ghost" onClick={() => { setModal(null); setSel(null); setPullQtys({}); }} style={{ flex: 1, justifyContent: "center" }} disabled={pulling}>{t.cancel}</Btn>
-            <Btn v="teal" sz="lg" onClick={confirmPull} style={{ flex: 2, justifyContent: "center" }} disabled={pulling}>
+            {/* Wrapped, not passed by reference: onClick hands the click event
+                through as the first argument, and an event object is truthy — so
+                `onClick={confirmPull}` would arrive as force=true and skip the
+                shortfall confirmation entirely. */}
+            <Btn v="teal" sz="lg" onClick={() => confirmPull()} style={{ flex: 2, justifyContent: "center" }} disabled={pulling}>
               {pulling ? t.pullInProgress : t.pullConfirm}
+            </Btn>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Going negative ──────────────────────────────────────────────────
+          Raised BEFORE anything is written, computed against live batches rather
+          than this device's snapshot. The pull is still allowed: a crew standing
+          on a roof cannot wait for a recount, and the warehouse number is wrong
+          often enough that blocking would strand them. But it has to be chosen. */}
+      {shortWarn && (
+        <Modal title={t.pullShortTitle} onClose={() => { if (!pulling) setShortWarn(null); }}>
+          <div style={{ background: C.rB, border: `1.5px solid ${C.rd}`, borderRadius: "var(--radius-md)", padding: "12px 14px", marginBottom: 14 }}>
+            <div style={{ fontWeight: "var(--weight-bold)", color: C.rd, marginBottom: 4, fontSize: "var(--text-base)" }}>
+              ⚠️ {t.pullShortHeading}
+            </div>
+            <div style={{ fontSize: "var(--text-sm)", color: C.navy, lineHeight: 1.45 }}>
+              {t.pullShortBody}
+            </div>
+          </div>
+
+          <div className="sw-table-scroll">
+            <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14, fontSize: "var(--text-base)" }}>
+              <thead>
+                <tr style={{ background: C.lg }}>
+                  {[t.colItem, t.colOnHand, t.colActualPull, t.colShortBy].map((h) => (
+                    <th key={h} style={{ padding: "8px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {shortWarn.map((r) => (
+                  <tr key={r.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
+                    <td style={{ padding: "9px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{r.name}</td>
+                    <td style={{ padding: "9px 10px" }}>{r.available} {r.unit}</td>
+                    <td style={{ padding: "9px 10px" }}>{r.requested} {r.unit}</td>
+                    <td style={{ padding: "9px 10px", fontWeight: "var(--weight-black)", color: C.rd }}>
+                      −{r.short} {r.unit}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 14, lineHeight: 1.45 }}>
+            {t.pullShortFootnote}
+          </div>
+
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+            <Btn v="ghost" onClick={() => setShortWarn(null)} disabled={pulling} style={{ flex: 1, justifyContent: "center" }}>
+              {t.pullShortCancel}
+            </Btn>
+            <Btn v="gold" onClick={() => confirmPull(true)} disabled={pulling} style={{ flex: 1, justifyContent: "center" }}>
+              {pulling ? t.pullInProgress : t.pullShortProceed}
             </Btn>
           </div>
         </Modal>

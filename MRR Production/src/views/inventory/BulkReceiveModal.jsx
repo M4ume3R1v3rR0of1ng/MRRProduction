@@ -15,6 +15,7 @@ import { useMemo, useState } from "react";
 import { supabase, updateRowStrict } from "../../utils/supabase";
 import { sendLowStockAlerts } from "../../utils/lowStockAlerts";
 import { C, uid, fm, tot, newestPrice, todayLocal } from "../../utils/helpers";
+import { displayNameOf } from "../../utils/people";
 import { Btn, Fld, Inp, Modal } from "../../components/UIPrimitives";
 import { logAction } from "../../utils/logger";
 import { useNotify } from "../../context/NotificationContext";
@@ -125,6 +126,10 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
             qty: parseFloat(bi.qty),
             price: bi.rate,
             by: user?.id || "system",
+            // The name as well as the id. An id alone goes anonymous the day that
+            // person is removed from the company, because "Remove" deletes the
+            // membership and, if it was their last, the profile too. See utils/people.
+            byName: displayNameOf(user),
             rem: parseFloat(bi.qty),
             ref: meta.po || "",
             vendor: meta.vendor || "",

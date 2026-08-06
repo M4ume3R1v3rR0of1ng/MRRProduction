@@ -9,6 +9,7 @@ import { useState } from "react";
 import { updateRowStrict } from "../../utils/supabase";
 import { sendLowStockAlerts } from "../../utils/lowStockAlerts";
 import { C, uid, tot, newestPrice } from "../../utils/helpers";
+import { displayNameOf } from "../../utils/people";
 import { Btn, Fld, Inp, Modal } from "../../components/UIPrimitives";
 import { logAction } from "../../utils/logger";
 import { useNotify } from "../../context/NotificationContext";
@@ -54,6 +55,8 @@ export default function ReceiveBatchModal({ item, user, users, perms = {}, fetch
       qty,
       price: price || newestPrice(item),
       by: user?.id || "system",
+      // See BulkReceiveModal: the id alone cannot survive the person leaving.
+      byName: displayNameOf(user),
       rem: qty,
       // Bulk receive always captured these; this form never did, which is why 31
       // of 32 deliveries carry no paperwork. Optional: a correction batch has no

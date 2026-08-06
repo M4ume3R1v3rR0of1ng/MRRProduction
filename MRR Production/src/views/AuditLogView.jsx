@@ -1,10 +1,12 @@
 // src/views/AuditLogView.jsx
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "../utils/supabase";
-import { C } from "../utils/helpers";
+import { C, batchKind } from "../utils/helpers";
 import { Bdg, Sel, Inp, Btn, SkeletonTable } from "../components/UIPrimitives";
 
 import { translations } from "../utils/translations";
+import { ACTION_TYPES } from "../utils/logger";
+import { makePersonResolver, personLabel } from "../utils/people";
 
 export default function AuditLogView({ perms, inv = [], users = [], companyId, lang = "en" }) {
   const t = translations[lang] || translations.en;
@@ -28,7 +30,23 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
   const [mode, setMode] = useState("logs");
   const [ledgerWho, setLedgerWho] = useState("all");
 
-  const nameOf = (id) => users.find((u) => u.id === id)?.name || "Unknown";
+  // Resolving a person id to a name. See utils/people for why "Unknown" was
+  // covering three different faults, including a pre-Auth id that still belongs
+  // to someone who works here.
+  const resolve = useMemo(() => makePersonResolver(users), [users]);
+  const personOf = (id, stampedName) => {
+    const p = resolve(id, stampedName);
+    const label = personLabel(p, t);
+    const known = p.kind === "member" || p.kind === "legacy" || p.kind === "stamped";
+    return {
+      label,
+      tone: known ? C.navy : p.kind === "unknown" ? C.am : C.sub,
+      muted: !known,
+      // The raw id on hover, so an unresolved row can be chased rather than shrugged at.
+      title: known ? undefined : p.id || undefined,
+    };
+  };
+  const nameOf = (id) => personOf(id).label;
 
   const ledger = useMemo(() => {
     const rows = [];
@@ -44,25 +62,17 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
           rem: parseFloat(b.rem) || 0,
           price: parseFloat(b.price) || 0,
           by: b.by,
+          // The name recorded on the row itself, for rows written since
+          // batches started carrying it. Survives the person being deleted.
+          byName: b.byName || null,
           ref: b.ref || "",
           vendor: b.vendor || "",
-          // Five different things live in `batches`, and only one of them is a supplier
-          // delivery. Flagging a missing PO on a return or a shortfall would bury the
-          // receipts that genuinely lack one, so classify before judging:
-          //   shortfall  — doFifo's synthetic negative row when a pull exceeds stock
-          //   adjustment — Adjust Stock's correction row
-          //   return     — pull screen re-entry (bare uid(), priced at the job's blend)
-          //   price-only — Edit Materials' qty:0 row, created to hold a price
-          //   receipt    — an actual delivery; the only kind that owes a PO/vendor
-          kind: b.short || b.by === "system"
-            ? "shortfall"
-            : b.ref === "Manual Adjustment"
-              ? "adjustment"
-              : !String(b.id || "").startsWith("b_")
-                ? "return"
-                : (parseFloat(b.qty) || 0) === 0
-                  ? "price-only"
-                  : "receipt",
+          jobId: b.jobId || null,
+          // Shared with the monthly reconciliation (utils/inventoryCounts) so both
+          // read the batch list the same way. It also fixes the adjustment test,
+          // which used to compare `ref` for exact equality and therefore missed
+          // every correction that had a reason typed into it.
+          kind: batchKind(b),
         });
       }
     }
@@ -79,7 +89,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
     return ledger.filter((r) => {
       if (ledgerWho !== "all" && r.by !== ledgerWho) return false;
       if (!q) return true;
-      return [r.itemName, r.ref, r.vendor, nameOf(r.by)].some((v) =>
+      return [r.itemName, r.ref, r.vendor, personOf(r.by, r.byName).label].some((v) =>
         (v || "").toLowerCase().includes(q),
       );
     });
@@ -116,17 +126,48 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
       }
     }
     loadLogs();
-  }, [actionFilter, retryTick]);
+    // companyId belongs here. The query filters on it, so without it a switch
+    // between companies (or a companyId that resolves after first paint) left the
+    // previous tenant's log on screen with no refetch.
+  }, [actionFilter, retryTick, companyId]);
+
+  // Where an action was taken. logger.js records this as metadata.active_view.
+  //
+  // This column used to read `l.warehouse_code`, a column NOTHING writes, and fell
+  // back to a hardcoded "SJR" — so every row on every tenant's screen claimed to
+  // have happened in one particular Maumee River warehouse. It was not merely
+  // uninformative, it was wrong, and it leaked one company's warehouse code to all
+  // the others. Replaced with the screen the action came from, which is real data
+  // and answers the question people were actually asking of that column.
+  const VIEW_LABELS = {
+    pull: "Pull Inventory",
+    inventory: "Inventory",
+    production: "Build Jobs",
+    login: "Sign in",
+    system_core: "—",
+  };
+  const whereOf = (l) => {
+    const v = l?.metadata?.active_view;
+    if (!v) return "—";
+    return VIEW_LABELS[v] || v.replace(/_/g, " ");
+  };
 
   const filteredLogs = useMemo(() => {
     // user_email/description can be null on system-generated entries — an
     // unguarded .toLowerCase() here crashed the whole view on search.
-    return logs.filter(
-      (l) =>
-        search === "" ||
-        (l.user_email || "").toLowerCase().includes(search.toLowerCase()) ||
-        (l.description || "").toLowerCase().includes(search.toLowerCase()) ||
-        (l.warehouse_code || "").toLowerCase().includes(search.toLowerCase()),
+    const q = search.trim().toLowerCase();
+    if (!q) return logs;
+    return logs.filter((l) =>
+      [
+        l.user_email,
+        l.description,
+        l.action_type,
+        whereOf(l),
+        // The job a pull belongs to lives in the metadata, and searching by PO is
+        // the first thing anyone tries when tracing where material went.
+        l.metadata?.po,
+        l.metadata?.job_name,
+      ].some((v) => String(v || "").toLowerCase().includes(q)),
     );
   }, [logs, search]);
 
@@ -211,15 +252,15 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
             style={{ width: 220 }}
           >
             <option value="all">{t.alAllActionClasses}</option>
-            <option value="LOGIN">LOGIN</option>
-            <option value="LOGOUT">LOGOUT</option>
-            <option value="INVENTORY_PULL">INVENTORY_PULL</option>
-            <option value="INV_MUTATION">INV_MUTATION</option>
-            <option value="PERM_CHANGE">PERM_CHANGE</option>
-            <option value="INVENTORY_ADJUST">INVENTORY_ADJUST</option>
-            <option value="FLEET_STATUS_CHANGE">FLEET_STATUS_CHANGE</option>
-            <option value="MAINTENANCE_REQUEST_CREATE">MAINTENANCE_REQUEST_CREATE</option>
-            <option value="JOB_BUILD_CREATE">JOB_BUILD_CREATE</option>
+            {/* Exactly the action types logAction is actually called with, taken
+                from the call sites. The old list offered INVENTORY_ADJUST, which
+                no code path has ever written (Adjust Stock logs INV_MUTATION), so
+                selecting it returned an empty table forever and read as "nobody
+                has ever adjusted stock". It also omitted six types that ARE
+                written, including every JOB_BUILD_* event. */}
+            {ACTION_TYPES.map((a) => (
+              <option key={a} value={a}>{a}</option>
+            ))}
           </Sel>
         </div>
       )}
@@ -241,16 +282,32 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
             </Sel>
           </div>
 
-          <p style={{ margin: "0 0 12px", color: C.sub, fontSize: "var(--text-xs)" }}>
-            {filteredLedger.length} of {ledger.length} receipts · sourced from the batches themselves, so
+          <p style={{ margin: "0 0 8px", color: C.sub, fontSize: "var(--text-xs)" }}>
+            {filteredLedger.length} of {ledger.length} rows · sourced from the batches themselves, so
             this survives the 30-day log purge.
           </p>
+
+          {/* The ledger is not a list of deliveries, which is what most people
+              assume from the column headers. Five different kinds of row live in
+              it and they mean opposite things — a "shortfall" is material leaving
+              on a job, sitting in the same table as material arriving from a
+              supplier. Saying so up front is cheaper than the support call. */}
+          <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-xs)", color: C.sub, lineHeight: 1.6 }}>
+            <strong style={{ color: C.navy }}>{t.alLegendTitle}</strong>
+            <div style={{ marginTop: 4 }}>
+              <span style={{ color: C.navy, fontWeight: "var(--weight-bold)" }}>{t.alLegendReceiptName}</span> {t.alLegendReceipt}<br />
+              <span style={{ color: C.am, fontWeight: "var(--weight-bold)" }}>{t.alTagReturn}</span> {t.alLegendReturn}<br />
+              <span style={{ color: C.am, fontWeight: "var(--weight-bold)" }}>{t.alTagAdjust}</span> {t.alLegendAdjust}<br />
+              <span style={{ color: C.sub, fontWeight: "var(--weight-bold)" }}>{t.alTagPrice}</span> {t.alLegendPrice}<br />
+              <span style={{ color: C.rd, fontWeight: "var(--weight-bold)" }}>{t.alTagShort}</span> {t.alLegendShort}
+            </div>
+          </div>
 
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-xs)" }}>
               <thead>
                 <tr style={{ textAlign: "left", color: C.sub, textTransform: "uppercase" }}>
-                  {["Date", "Item", "Qty", "Remaining", ...(perms?.inv_pricing_view ? ["Unit Price", "Value"] : []), "Received By", "Invoice / PO", "Supplier"].map((h) => (
+                  {["Date", "Item", "Qty", "Remaining", ...(perms?.inv_pricing_view ? ["Unit Price", "Value"] : []), t.alColWho, t.alColRef, "Supplier"].map((h) => (
                     <th key={h} style={{ padding: "8px 10px", fontSize: "var(--text-2xs)", whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -259,16 +316,20 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                 {filteredLedger.map((r) => {
                   const unpriced = r.price === 0 && r.rem > 0;
                   const isReceipt = r.kind === "receipt";
-                  const tag = { shortfall: ["pulled short", C.rd], adjustment: ["stock adjustment", C.am], return: ["returned", C.am], "price-only": ["price entry", C.sub] }[r.kind];
+                  const isShort = r.kind === "shortfall";
+                  const tag = { shortfall: [t.alTagShort, C.rd], adjustment: [t.alTagAdjust, C.am], return: [t.alTagReturn, C.am], "price-only": [t.alTagPrice, C.sub] }[r.kind];
+                  // A shortfall row is not a delivery, so the person on it is
+                  // whoever PULLED past the shelf, not whoever received stock.
+                  const person = personOf(r.by, r.byName);
                   return (
-                    <tr key={r.key} style={{ borderTop: `1px solid ${C.lg}` }}>
+                    <tr key={r.key} style={{ borderTop: `1px solid ${C.lg}`, background: isShort ? C.rB : "transparent" }}>
                       <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: C.sub }}>{r.rcvd}</td>
                       <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>
                         {r.itemName}
                         {tag && <span style={{ color: tag[1], fontWeight: "normal" }}> · {tag[0]}</span>}
                       </td>
                       <td style={{ padding: "8px 10px" }}>{r.qty} {r.unit}</td>
-                      <td style={{ padding: "8px 10px", color: r.rem === 0 ? C.sub : C.gr, fontWeight: "var(--weight-bold)" }}>{r.rem}</td>
+                      <td style={{ padding: "8px 10px", color: r.rem === 0 ? C.sub : r.rem < 0 ? C.rd : C.gr, fontWeight: "var(--weight-bold)" }}>{r.rem}</td>
                       {perms?.inv_pricing_view && (
                         <>
                           <td style={{ padding: "8px 10px", color: unpriced ? C.rd : C.blue, fontWeight: "var(--weight-bold)", whiteSpace: "nowrap" }}>
@@ -277,15 +338,21 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                           <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>${(r.rem * r.price).toFixed(2)}</td>
                         </>
                       )}
-                      <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: r.kind === "shortfall" ? C.sub : C.navy }}>
-                        {r.kind === "shortfall" ? "system" : nameOf(r.by)}
+                      <td
+                        style={{ padding: "8px 10px", whiteSpace: "nowrap", color: person.tone, fontStyle: person.muted ? "italic" : "normal" }}
+                        title={person.title || undefined}
+                      >
+                        {isShort ? `${t.alPulledBy} ${person.label}` : person.label}
                       </td>
-                      {/* Only a real delivery owes a PO/vendor — everything else has none by nature. */}
-                      <td style={{ padding: "8px 10px", fontFamily: "monospace", color: r.ref ? C.navy : isReceipt ? C.rd : C.sub }}>
-                        {r.ref || (isReceipt ? "missing" : "—")}
+                      {/* Only a real delivery owes a PO/vendor — everything else has none by nature.
+                          A shortfall now carries the job it was pulled for, which is
+                          the whole point: the audit_logs entry naming that job is
+                          deleted at 30 days, and this row is not. */}
+                      <td style={{ padding: "8px 10px", fontFamily: "monospace", color: r.ref ? (isShort ? C.rd : C.navy) : isReceipt ? C.rd : C.sub }}>
+                        {r.ref || (isReceipt ? t.alMissing : isShort ? t.alJobNotRecorded : "—")}
                       </td>
                       <td style={{ padding: "8px 10px", color: r.vendor ? C.navy : isReceipt ? C.rd : C.sub }}>
-                        {r.vendor || (isReceipt ? "missing" : "—")}
+                        {r.vendor || (isReceipt ? t.alMissing : "—")}
                       </td>
                     </tr>
                   );
@@ -335,7 +402,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                     "Timestamp",
                     "Operator",
                     "Action Type",
-                    "Warehouse",
+                    t.alColWhere,
                     "Activity Log narrative",
                     "Inspect",
                   ].map((h) => (
@@ -381,16 +448,22 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                           {l.action_type}
                         </Bdg>
                       </td>
-                      <td style={{ padding: "12px 10px", fontWeight: "var(--weight-semibold)" }}>
-                        🏭 {l.warehouse_code || "SJR"}
+                      <td style={{ padding: "12px 10px", fontWeight: "var(--weight-semibold)", whiteSpace: "nowrap" }}>
+                        {whereOf(l)}
                       </td>
                       <td style={{ padding: "12px 10px", color: "var(--c-barnwood)", lineHeight: 1.4 }}>
                         {l.description}
                       </td>
                       <td style={{ padding: "12px 10px" }}>
-                        {l.payload && Object.keys(l.payload).length > 0 ? (
+                        {/* `metadata`, not `payload`. logger.js has always written
+                            this column as metadata; this button read `payload`,
+                            which nothing writes, so it rendered "—" on every row
+                            ever logged and the detail behind each action — the
+                            item list, the quantities, the job — was recorded and
+                            then permanently invisible. */}
+                        {l.metadata && Object.keys(l.metadata).length > 0 ? (
                           <button
-                            onClick={() => setActivePayload(l.payload)}
+                            onClick={() => setActivePayload(l.metadata)}
                             style={{
                               background: "none",
                               border: "none",
@@ -398,9 +471,10 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                               fontWeight: "var(--weight-bold)",
                               cursor: "pointer",
                               fontSize: "var(--text-sm)",
+                              textDecoration: "underline",
                             }}
                           >
-                            [{Object.keys(l.payload).length} keys]
+                            {t.alViewDetail}
                           </button>
                         ) : (
                           <span style={{ color: C.sub }}>—</span>
@@ -488,6 +562,51 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
             <h4 style={{ margin: "0 0 12px 0", color: C.navy, fontSize: 15 }}>
               {t.alInspectorTitle}
             </h4>
+
+            {/* A raw JSON dump is the right escape hatch and the wrong default.
+                For a pull, the questions are "what went out" and "did anything go
+                short", so answer those in plain rows and keep the JSON below for
+                anything this does not know how to render. */}
+            {activePayload.job_name && (
+              <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px", marginBottom: 12, fontSize: "var(--text-sm)" }}>
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                  {activePayload.po ? `PO ${activePayload.po} · ` : ""}{activePayload.job_name}
+                </div>
+              </div>
+            )}
+
+            {Array.isArray(activePayload.lines) && activePayload.lines.length > 0 && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: "var(--text-2xs)", textTransform: "uppercase", color: C.sub, fontWeight: "var(--weight-bold)", marginBottom: 4 }}>
+                  {t.alDetailMaterials}
+                </div>
+                <div style={{ maxHeight: 160, overflowY: "auto" }}>
+                  {activePayload.lines.map((ln, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "4px 0", borderBottom: `1px solid ${C.lg}`, fontSize: "var(--text-sm)" }}>
+                      <span style={{ color: C.navy, fontWeight: "var(--weight-semibold)" }}>{ln.item}</span>
+                      <span style={{ color: C.sub, whiteSpace: "nowrap" }}>
+                        {ln.qty} {ln.unit}
+                        {ln.planned != null && ln.planned !== ln.qty ? ` (${t.alPlannedWas} ${ln.planned})` : ""}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {Array.isArray(activePayload.short) && activePayload.short.length > 0 && (
+              <div style={{ background: C.rB, border: `1.5px solid ${C.rd}`, borderRadius: "var(--radius-md)", padding: "10px 12px", marginBottom: 12 }}>
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.rd, fontSize: "var(--text-sm)", marginBottom: 4 }}>
+                  ⚠️ {t.alDetailShort}
+                </div>
+                {activePayload.short.map((s, i) => (
+                  <div key={i} style={{ fontSize: "var(--text-sm)", color: C.navy }}>
+                    {s.item}: {t.alDetailShortBy} {s.short} {s.unit}
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div
               style={{
                 background: "var(--c-shell)",

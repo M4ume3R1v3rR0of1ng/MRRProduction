@@ -126,6 +126,26 @@ describe("InventoryView", () => {
   it("renders with an empty catalog", () => {
     expect(() => render(InventoryView, { ...inventoryProps, inv: [] })).not.toThrow();
   });
+
+  it("offers both tabs and opens on the catalog", () => {
+    const html = render(InventoryView, inventoryProps);
+    expect(html).toContain("Catalog");
+    expect(html).toContain("Monthly Count");
+    // The count sheet is a sibling tab, not the landing state. Opening on it
+    // would put a data-entry screen in front of everyone who came to look up
+    // stock, which is what this view is mostly used for.
+    expect(html).toContain("Weathered Wood Shingle");
+  });
+
+  it("calls a negative balance something other than out of stock", () => {
+    // These are two different problems with two different responses: empty means
+    // reorder, negative means the books are wrong and someone has to recount.
+    // Collapsing them lost the more serious of the two.
+    const negative = [{ id: "i9", name: "Atlas Box Vent", cat: "Vents", unit: "ea", alrt: 5, batches: [{ id: "neg_1", rcvd: "2026-07-01", qty: -1, rem: -1, price: 24, short: true, by: "u1" }] }];
+    const html = render(InventoryView, { ...inventoryProps, inv: negative, inventorySearchQuery: "" });
+    expect(html).toContain("Negative, recount");
+    expect(html).not.toContain("Out of Stock");
+  });
 });
 
 describe("FleetManagementView", () => {

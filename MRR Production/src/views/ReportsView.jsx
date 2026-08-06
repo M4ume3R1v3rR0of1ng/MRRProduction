@@ -5,6 +5,7 @@ import { C, fd, fm, tot, newestPrice, todayLocal } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { Btn, Sel, Bdg, Modal, SkeletonTable } from "../components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "../context/NotificationContext";
+import { ACTION_TYPES } from "../utils/logger";
 
 // ── 🔄 SHARED NATIVE SPREADSHEET DOWNLOAD ENGINE ──
 const triggerNativeDownload = (filename, headers, rows) => {
@@ -591,10 +592,12 @@ function AuditTrailReport({ t, companyId }) {
           <div style={{ marginTop: 8 }}>
             <Sel value={actionTypeFilter} onChange={(e) => setActionTypeFilter(e.target.value)} style={{ padding: "4px 8px", fontSize: "var(--text-sm)" }}>
               <option value="all">{t.rptFilterActionAll}</option>
-              <option value="INVENTORY_PULL">INVENTORY_PULL</option>
-              <option value="PERM_CHANGE">PERM_CHANGE</option>
-              <option value="MAT_RECEIVE">MAT_RECEIVE</option>
-              <option value="MAINTENANCE">MAINTENANCE</option>
+              {/* MAT_RECEIVE and MAINTENANCE were offered here and are written
+                  nowhere, so both returned an empty table permanently. Single
+                  source in utils/logger now. */}
+              {ACTION_TYPES.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
             </Sel>
           </div>
         </div>
