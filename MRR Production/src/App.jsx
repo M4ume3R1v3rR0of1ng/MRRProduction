@@ -84,7 +84,6 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [inventorySearchQuery, setInventorySearchQuery] = useState("");
   // Deep-link from OmniSearch: which record the destination view should open
   const [searchOpenTarget, setSearchOpenTarget] = useState(null); // { view, id }

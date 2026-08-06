@@ -1,6 +1,27 @@
 // src/components/ErrorBoundary.jsx
 import React from 'react';
 import { C } from '../utils/helpers';
+import { translations } from '../utils/translations';
+
+// This boundary is mounted in main.jsx, ABOVE <App/>, which is where the app's
+// `lang` state lives — so it can never be handed the language as a prop. That is
+// why ebTitle/ebExceptionMessage sat translated but unused since they were
+// written. Reading the persisted choice straight from localStorage is the way in,
+// using the same key and the same fallback order App itself uses.
+//
+// A crash screen is a bad moment to switch someone into a language they do not
+// read, and it is the screen most likely to be photographed and sent to you.
+function crashLang() {
+  try {
+    const saved = localStorage.getItem('sw_lang');
+    if (saved === 'en' || saved === 'es') return saved;
+  } catch {
+    // Private mode or storage disabled. Fall through to detection.
+  }
+  return typeof navigator !== 'undefined' && String(navigator.language || '').toLowerCase().startsWith('es')
+    ? 'es'
+    : 'en';
+}
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -38,7 +59,7 @@ export default class ErrorBoundary extends React.Component {
         }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>⚠️</div>
           <h1 style={{ color: 'var(--c-slate)', fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", margin: '0 0 8px 0' }}>
-            System Interface Interrupted
+            {(translations[crashLang()] || translations.en).ebTitle}
           </h1>
           <p style={{ color: 'var(--c-sub)', fontSize: "var(--text-md)", maxWidth: 440, margin: '0 0 24px 0', lineHeight: 1.5 }}>
             A runtime error occurred in the user interface layer. Staging inventories, warehouse records, and contract pipelines remain safe in Supabase.
@@ -56,7 +77,7 @@ export default class ErrorBoundary extends React.Component {
             boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
           }}>
             <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: 'var(--c-rust)', textTransform: 'uppercase', marginBottom: 6 }}>
-              Exception Message
+              {(translations[crashLang()] || translations.en).ebExceptionMessage}
             </div>
             <pre style={{
               margin: 0,

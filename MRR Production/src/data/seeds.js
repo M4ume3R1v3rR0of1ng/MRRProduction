@@ -3,8 +3,6 @@
 // ── Document Factory Constructors ──
 export const mkB = (id, rcvd, qty, price, by, rem) => ({ id, rcvd, qty, price, by, rem });
 export const mkI = (id, name, cat, unit, alrt, ...batches) => ({ id, name, cat, unit, alrt, batches });
-export const mkT = (id, name, mi, lomi, oii, dii, ldd, mil, sl) => ({ id, name, type: 'truck', mi, lomi, oii, dii, ldd, mil: mil || [], sl: sl || [] });
-export const mkTr = (id, name, dii, ldd) => ({ id, name, type: 'trailer', dii, ldd, mi: 0, mil: [], sl: [] });
 export const mkJI = (iid, iname, icat, unit, planned, pulled = 0, ret = 0, ppu = 0, cost = 0) => ({ iid, iname, icat, unit, planned, pulled, returned: ret, priceAtPull: ppu, pullCost: cost });
 export const mkJob = (id, po, name, addr, notes, status, assignedTo, createdBy, createdAt, approvedAt, completedAt, newFor, items, sync = null) => ({ id, po, name, addr, notes, status, assignedTo, createdBy, createdAt, approvedAt, completedAt, newForAssigned: newFor, items, syncStatus: sync, syncedAt: '', syncPayload: null, syncNote: '' });
 
@@ -32,11 +30,6 @@ export const SEED_V = [
 ];
 
 // ── Maintenance Request Models ──
-export const SEED_REQ = [
-  { id: 'r1', vid: 'v1', vname: 'Truck 1 (MRR-001)', vtype: 'truck', type: 'Oil Change', urgency: 'normal', notes: 'Due soon based on mileage.', uid: 'u3', uname: 'Tyler Field', at: '2025-05-15T08:30:00', status: 'pending', scheduledDate: '', completedAt: '', whNotes: '' },
-  { id: 'r2', vid: 'v2', vname: 'Truck 2 (MRR-002)', vtype: 'truck', type: 'Repair', urgency: 'urgent', notes: 'Brakes grinding when stopping.', uid: 'u7', uname: 'Marco Rivera', at: '2025-05-16T14:15:00', status: 'scheduled', scheduledDate: '2025-05-20', completedAt: '', whNotes: 'Scheduled with Toledo Truck Service.' },
-];
-
 // ── User Identity Roster (Passwords Completely Evicted) ──
 export const SEED_U = [
   { id: 'u1', name: 'Sam', email: 'sam@maumeeriverroofing.com', role: 'admin', active: true },

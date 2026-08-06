@@ -30,7 +30,6 @@ export default function InventoryView({
   lang = "en",
 }) {
   const t = translations[lang] || translations.en;
-  const [saving, setSaving] = useState(false);
   // "catalog" is the live stock grid; "count" is the monthly physical count and
   // the variance it exposes. They share this screen because they are the same
   // subject seen two ways: what the books say, and whether the books are true.

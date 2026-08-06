@@ -14,6 +14,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase, updateRowStrict } from "../../utils/supabase";
 import { C, fm } from "../../utils/helpers";
 import { resolvePersonName } from "../../utils/people";
+import { downloadCSV } from "../../utils/csvExport";
 import { Btn, Inp, Sel, SkeletonTable } from "../../components/UIPrimitives";
 import { logAction } from "../../utils/logger";
 import { useNotify } from "../../context/NotificationContext";
@@ -27,8 +28,6 @@ import {
   periodLabel,
   shiftPeriod,
 } from "../../utils/inventoryCounts";
-
-const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
 
 export default function InventoryCountTab({ inv = [], jobs = [], users = [], user, perms, lang = "en" }) {
   const t = translations[lang] || translations.en;
@@ -242,23 +241,17 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
 
   const exportCsv = () => {
     const headers = ["Item", "Category", "Unit", "Opening", "Opening source", "Received", "Adjusted", "Pulled", "Returned", "Net used", "Expected", "Counted", "Variance", ...(canSeeMoney ? ["Unit price", "Variance value"] : [])];
+    // Raw values: downloadCSV quotes and escapes only what needs it. Counted and
+    // variance stay blank when null, because an uncounted line is not a zero.
     const rows = lines.map((l) => [
-      csvCell(l.name), csvCell(l.cat), csvCell(l.unit),
-      l.opening, csvCell(l.openingSource), l.received, l.adjusted, l.pulled, l.returned, l.used,
+      l.name, l.cat, l.unit,
+      l.opening, l.openingSource, l.received, l.adjusted, l.pulled, l.returned, l.used,
       l.expected,
-      l.counted == null ? "" : l.counted,
-      l.variance == null ? "" : l.variance,
+      l.counted ?? "",
+      l.variance ?? "",
       ...(canSeeMoney ? [l.price, l.variance == null ? "" : (l.variance * l.price).toFixed(2)] : []),
     ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `inventory-count-${period}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadCSV(`inventory-count-${period}.csv`, headers, rows);
   };
 
   const periodOptions = useMemo(() => {

@@ -31,7 +31,6 @@ export const BRAND = {
 };
 
 export const TAGLINE = "EVERY JOB. EVERY TRUCK.";
-export const TAGLINE_ALT = "WORK RUNS STEADY.";
 
 // The bare truss — a barn frame, pegged, no nails. Reads at 16px.
 export function TrussMark({ color = BRAND.amber, size = 40 }) {

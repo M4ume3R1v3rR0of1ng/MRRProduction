@@ -5,31 +5,11 @@ import { C, fd, fm, tot, newestPrice, todayLocal } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { Btn, Sel, Bdg, Modal, SkeletonTable } from "../components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "../context/NotificationContext";
+// One CSV writer for the app. The local copy this replaced wrapped every field
+// in quotes and escaped none of them, so an item like 9" Roller Covers shifted
+// every column after it. See utils/csvExport.
+import { downloadCSV } from "../utils/csvExport";
 import { ACTION_TYPES } from "../utils/logger";
-
-// ── 🔄 SHARED NATIVE SPREADSHEET DOWNLOAD ENGINE ──
-const triggerNativeDownload = (filename, headers, rows) => {
-  const csvContent = [
-    headers.join(","),
-    ...rows.map((row) => row.join(","))
-  ].join("\n");
-
-  try {
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = "hidden";
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (err) {
-    console.error(`Native export stream failed for ${filename}:`, err);
-  }
-};
 
 // ── 📊 TREND COMPONENT 1: JOB PROFITABILITY & MATERIAL USAGE BY PROJECT ──
 function JobProfitabilityReport({ jobs, t }) {
@@ -65,17 +45,17 @@ function JobProfitabilityReport({ jobs, t }) {
       const marginPct = targetRevenue > 0 ? ((profit / targetRevenue) * 100).toFixed(1) : "0.0";
 
       return [
-        `"${j.po || ""}"`,
-        `"${j.name || ""}"`,
+        j.po || "",
+        j.name || "",
         targetRevenue.toFixed(2),
         actCost.toFixed(2),
         profit.toFixed(2),
-        `"${marginPct}%"`,
-        `"${topItemName}"`
+        `${marginPct}%`,
+        topItemName
       ];
     });
 
-    triggerNativeDownload(`mrr-job-profitability-${todayLocal()}.csv`, headers, rows);
+    downloadCSV(`mrr-job-profitability-${todayLocal()}.csv`, headers, rows);
   };
 
   return (
@@ -172,14 +152,14 @@ function InventoryCostTrendsReport({ inv, t }) {
     const headers = ["Material Description", "Historical Avg Cost", "Current Market Cost", "Pricing Trend Status", "Capital Asset Value"];
     
     const csvRows = filteredTrends.map((r) => [
-      `"${r.name || ""}"`,
+      r.name || "",
       r.averageBatchCost.toFixed(2),
       r.currentPrice.toFixed(2),
-      `"${r.trendDirection}"`,
+      r.trendDirection,
       r.warehouseAssetCapital.toFixed(2)
     ]);
 
-    triggerNativeDownload(`mrr-inventory-cost-trends-${todayLocal()}.csv`, headers, csvRows);
+    downloadCSV(`mrr-inventory-cost-trends-${todayLocal()}.csv`, headers, csvRows);
   };
 
   return (
@@ -286,14 +266,14 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
     const headers = ["Vehicle Description", "Plate Code", "Total Maintenance Action Count", "Cumulative Investment", "Asset Cost Warning Profile"];
     
     const csvRows = fleetMetrics.map((v) => [
-      `"${v.yr || ""} ${v.make || ""} ${v.name || ""}"`,
-      `"${v.plates || v.plate || ""}"`,
+      `${v.yr || ""} ${v.make || ""} ${v.name || ""}`.trim(),
+      v.plates || v.plate || "",
       v.serviceLogsCount,
       v.totalRepairInvestment.toFixed(2),
-      `"${v.vehicleRiskLevel}"`
+      v.vehicleRiskLevel
     ]);
 
-    triggerNativeDownload(`mrr-fleet-depreciation-ledger-${todayLocal()}.csv`, headers, csvRows);
+    downloadCSV(`mrr-fleet-depreciation-ledger-${todayLocal()}.csv`, headers, csvRows);
   };
 
 const handleDeleteInspection = async (id, vehicleName) => {
@@ -575,13 +555,13 @@ function AuditTrailReport({ t, companyId }) {
     const headers = ["Timestamp Code", "Operator Email", "Action Flag", "Log Description Narrative"];
     
     const csvRows = logs.map((l) => [
-      `"${formatFullTimestamp(l.created_at)}"`,
-      `"${l.user_email || ""}"`,
-      `"${l.action_type || ""}"`,
-      `"${l.description || ""}"`
+      formatFullTimestamp(l.created_at),
+      l.user_email || "",
+      l.action_type || "",
+      l.description || ""
     ]);
 
-    triggerNativeDownload(`mrr-system-audit-trail-${todayLocal()}.csv`, headers, csvRows);
+    downloadCSV(`mrr-system-audit-trail-${todayLocal()}.csv`, headers, csvRows);
   };
 
   return (
