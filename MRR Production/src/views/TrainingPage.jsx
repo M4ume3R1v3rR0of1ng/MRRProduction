@@ -181,7 +181,7 @@ export default function TrainingPage({ onBack }) {
               <h2>{clip.title}</h2>
               <p>{clip.blurb}</p>
             </div>
-            <div className={started[clip.id] ? "vid playing" : "vid"}>
+            <div className={started[clip.id] ? "vid sw-video-half playing" : "vid sw-video-half"}>
               <video
                 ref={(el) => { refs.current[clip.id] = el; }}
                 controls

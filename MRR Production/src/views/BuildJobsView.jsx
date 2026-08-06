@@ -68,10 +68,6 @@ export default function BuildJobs({
   const [approving, setApproving] = useState(false);
 
   // ── ✏️ EDIT JOB STATE ──────────────────────────────────────────────────────
-  // ── 🆕 ACCULYNX ESTIMATE TRACKING STATE ───────────────────────────────────
-  const [axEstimateItems, setAxEstimateItems] = useState([]);
-  const [loadingEstimate, setLoadingEstimate] = useState(false);
-
   const fieldUsers = users.filter(
     (u) => (u.role === "field" || u.role === "Site Supervisor") && u.active,
   );
@@ -131,7 +127,6 @@ export default function BuildJobs({
     setISrch("");
     setAxQ("");
     setAxR([]);
-    setAxEstimateItems([]);
   };
 
   const searchAX = async () => {
@@ -179,30 +174,23 @@ export default function BuildJobs({
     }
   };
 
-  // ── 🆕 FETCH ESTIMATE DATA FROM THE INTEGRATED PROXY GATEWAY ──────────────
-  const fetchJobEstimateChecklist = async (targetId) => {
-    if (!targetId) return;
-    setLoadingEstimate(true);
-    try {
-      const accessToken = await getAccessToken();
-      const response = await fetch(acculynxConfig.proxyUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "getJob", acculynxJobId: targetId, accessToken }),
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      
-      // Look up items safely off the normalized job schema or raw contract payload records
-      const items = data?.job?._raw?.estimateItems || data?.job?.estimateItems || [];
-      setAxEstimateItems(Array.isArray(items) ? items : []);
-    } catch (err) {
-      console.warn("Failed fetching structural job blueprint lines:", err);
-      setAxEstimateItems([]);
-    } finally {
-      setLoadingEstimate(false);
-    }
-  };
+  // AccuLynx estimate import was removed here on 2026-08-06.
+  //
+  // fetchJobEstimateChecklist ran on every job selection, stored the result in
+  // state nothing ever read, and rendered nothing. It was also looking in the
+  // wrong place: it read estimateItems off the job resource, but the proxy's
+  // getJob calls GET /jobs/{id}, and AccuLynx v2 keeps estimate lines on a
+  // separate resource — so the array was almost certainly always empty.
+  //
+  // Reviving it is not a rendering job. It needs a new proxy action for the
+  // estimates endpoint, and then the actual work: mapping AccuLynx line items
+  // ("GAF Timberline HDZ, 32 SQ") onto catalog items and units (rolls, boxes,
+  // tubes). There is no shared SKU and the units do not correspond, so that is a
+  // mapping table someone has to own and keep current.
+  //
+  // utils/jobTemplates.js already solves "stop retyping the material list" by
+  // keyword-matching named packages onto live inventory. Prefer improving that
+  // unless per-roof quantities are worth the mapping burden.
 
   const addWItem = (item) => {
     if (wItems.find((i) => i.iid === item.id)) return;
@@ -1125,8 +1113,6 @@ export default function BuildJobs({
                       onClick={() => {
                         setWPO({ po: j.po, name: j.name, addr: j.addr, notes: "", scheduledDate: "", acculynxJobId: j.acculynxJobId });
                         setAxR([]);
-                        // Trigger async checklist query when selecting job profile
-                        fetchJobEstimateChecklist(j.acculynxJobId);
                       }}
                       style={{ padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${C.lg}`, background: C.w }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = C.lg)}

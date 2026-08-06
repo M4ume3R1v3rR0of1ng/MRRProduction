@@ -95,7 +95,24 @@ export default function TrainingView({ lang = "en" }) {
                 operable. Once play starts it drops away and the video's native
                 controls own everything after that — no custom transport to
                 maintain or to get wrong on mobile. */}
-            <div style={{ position: "relative", background: "#000" }}>
+            {/* sw-video-half caps this at half width on desktop. The poster
+                button below is inset:0 against THIS element, so the cap has to
+                live here rather than on the <video>, or the overlay would keep
+                the old full-width footprint and sit off the frame. */}
+            {/* Rounded and inset now that it no longer bleeds to the card edge.
+                At full width it borrowed the card's own bottom corners; centered
+                with gutters either side it needs its own, or it reads as a black
+                block someone forgot to finish. */}
+            <div
+              className="sw-video-half"
+              style={{
+                position: "relative",
+                background: "#000",
+                borderRadius: "var(--radius-lg)",
+                overflow: "hidden",
+                marginBottom: "var(--space-5)",
+              }}
+            >
               <video
                 ref={(el) => { refs.current[clip.id] = el; }}
                 controls

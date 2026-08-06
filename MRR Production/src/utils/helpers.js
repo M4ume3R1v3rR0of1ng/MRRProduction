@@ -398,44 +398,17 @@ export const detSt = (v) => {
   return d >= v.dii ? "overdue" : d >= v.dii * 0.8 ? "soon" : "ok";
 };
 
-export const canReceiveSMS = (userProfile) => {
-  return (
-    userProfile &&
-    userProfile.receive_sms_alerts &&
-    userProfile.phone_number &&
-    userProfile.phone_number.trim().length >= 10
-  );
-};
-/**
- * Dispatches an SMS alert payload over the secure Supabase Edge Function gateway.
- * @param {string} phone - Target recipient cell number.
- * @param {string} textMsg - Text notification body copy.
- */
-export const dispatchSMSAlert = async (phone, textMsg) => {
-  if (!phone || !textMsg) return;
+// SMS alerting was removed here on 2026-08-06. canReceiveSMS and dispatchSMSAlert
+// lived at this spot and were never called from anywhere in the app; the Supabase
+// Edge Function they targeted ("send-sms") does not exist in this repo either.
+// Meanwhile Profile offered a "text me alerts" checkbox, so the app collected a
+// phone number and an explicit consent for a channel that could not deliver.
+//
+// Rebuilding it is not a matter of restoring these two functions: business SMS in
+// the US requires A2P 10DLC brand and campaign registration before the first
+// message will send. Do that first, then the edge function, then the toggle.
+// profiles.phone_number is still collected and still used by OmniSearch.
 
-  // Normalize phone formatting to strict E.164 compliance string
-  let cleanPhone = phone.replace(/\D/g, "");
-  if (cleanPhone.length === 10) {
-    cleanPhone = `+1${cleanPhone}`; // Enforces standard US country routing prefix
-  } else if (!cleanPhone.startsWith("+")) {
-    cleanPhone = `+${cleanPhone}`;
-  }
-
-  try {
-    const { data, error } = await supabase.functions.invoke("send-sms", {
-      body: { to: cleanPhone, message: textMsg },
-    });
-
-    if (error) {
-      console.error("SMS Gateway Relay Error:", error.message);
-    } else {
-      console.log("SMS notification packet dispatched cleanly:", data);
-    }
-  } catch (err) {
-    console.error("Failed to connect to SMS Edge Function:", err);
-  }
-};
 export function mkJI(iid, name, cat, unit, plannedQty = 1) {
   return {
     iid: iid,

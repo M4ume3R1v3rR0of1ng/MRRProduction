@@ -481,6 +481,24 @@ button:disabled {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Training video player, held to half the width it would otherwise take.
+   The clip is 16/9 with width:100%, so it grew to fill whatever column it sat
+   in and dominated a page that is mostly text. Constraining the WRAPPER rather
+   than the <video> keeps the poster overlay, which is absolutely positioned to
+   inset:0, aligned with the frame it covers.
+
+   Halving stops at 900px. Below that the column is already narrow, and half of
+   narrow is a video nobody can follow — the point of the cap is to stop a wide
+   desktop column being swallowed, not to shrink small screens further. */
+.sw-video-half {
+  max-width: 50%;
+  margin-inline: auto;
+}
+
+@media (max-width: 900px) {
+  .sw-video-half { max-width: 100%; }
+}
+
 /* A row of actions or filters that should wrap instead of overflowing. */
 .sw-wrap {
   display: flex;

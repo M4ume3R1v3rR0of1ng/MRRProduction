@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C, displayName } from "../utils/helpers";
 import { Fld, Inp, Btn } from "../components/UIPrimitives";
-import { dispatchSMSAlert } from "../utils/helpers";
 import { sendEmail } from "../utils/email";
 import { translations } from "../utils/translations";
 
@@ -16,7 +15,6 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
 
   // Low Stock Routing Alert States
   const [alertPhone, setAlertPhone] = useState(user?.phone_number || "");
-  const [alertSms, setAlertSms] = useState(user?.receive_sms_alerts || false);
   const [alertEmail, setAlertEmail] = useState(
     user?.receive_email_alerts || false,
   );
@@ -35,7 +33,6 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
     if (user) {
       setName(user.name || user.full_name || "");
       setAlertPhone(user.phone_number || "");
-      setAlertSms(user.receive_sms_alerts || false);
       setAlertEmail(user.receive_email_alerts || false);
     }
   }, [user]);
@@ -90,7 +87,6 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
       .from("profiles")
       .update({
         phone_number: alertPhone.trim(),
-        receive_sms_alerts: alertSms,
         receive_email_alerts: alertEmail,
       })
       .eq("id", user.id);
@@ -126,7 +122,6 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
     onUpdateUser({
       ...user,
       phone_number: alertPhone.trim(),
-      receive_sms_alerts: alertSms,
       receive_email_alerts: alertEmail,
     });
 
@@ -309,8 +304,11 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
           thresholds.
         </p>
 
-        {/* ── PHONE NUMBER ROUTING ENTRY ── */}
-        <Fld label={t.profCellPhone}>
+        {/* The number is kept even though nothing texts it: OmniSearch matches
+            on phone_number, so this is how you look a teammate up by their
+            number. The hint says so, because a phone field sitting under an
+            "alerts" heading otherwise still reads as "we will text you". */}
+        <Fld label={t.profCellPhone} hint={t.profCellPhoneHint}>
           <Inp
             type="tel"
             value={alertPhone}
@@ -357,26 +355,15 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
             marginBottom: 20,
           }}
         >
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-4)",
-              fontSize: "var(--text-base)",
-              fontWeight: "var(--weight-semibold)",
-              color: C.navy,
-              cursor: "pointer",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={alertSms}
-              onChange={(e) => setAlertSms(e.target.checked)}
-              style={{ width: 16, height: 16 }}
-            />
-            {t.profEnableSms}
-          </label>
-
+          {/* The "text me alerts" toggle was removed here, deliberately.
+              Nothing in the app has ever sent an SMS: dispatchSMSAlert was never
+              called from anywhere, and the Supabase Edge Function it targeted
+              ("send-sms") does not exist. So this checkbox collected a phone
+              number and an explicit consent for a service that could not run,
+              and reported success for it.
+              Sending business SMS in the US also needs A2P 10DLC registration
+              before the first message, so this is a project rather than a
+              missing function call. Put the toggle back when that exists. */}
           <label
             style={{
               display: "flex",

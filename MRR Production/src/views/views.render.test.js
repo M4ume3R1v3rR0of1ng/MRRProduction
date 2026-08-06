@@ -127,6 +127,15 @@ describe("InventoryView", () => {
     expect(() => render(InventoryView, { ...inventoryProps, inv: [] })).not.toThrow();
   });
 
+  it("hides the Monthly Count tab without inv_count", () => {
+    // Default roles: only admin (all-true) and warehouse carry inv_count.
+    // Coordinator, manager, field, employee and bookkeeper must not see it.
+    const noCount = new Proxy({}, { get: (_, k) => k !== "inv_count" });
+    const html = render(InventoryView, { ...inventoryProps, perms: noCount });
+    expect(html).not.toContain("Monthly Count");
+    expect(html).toContain("Catalog"); // the rest of Inventory is untouched
+  });
+
   it("offers both tabs and opens on the catalog", () => {
     const html = render(InventoryView, inventoryProps);
     expect(html).toContain("Catalog");

@@ -187,10 +187,16 @@ export default function InventoryView({
         </div>
       </div>
 
+      {/* The count tab is hidden entirely without inv_count, rather than shown
+          disabled. A greyed tab advertises a feature and invites a request; this
+          is warehouse-floor work that most roles have no part in. Admin resolves
+          every permission to true (see getEffectivePerms), so it always appears
+          for them. Hiding the tab is presentation only — canEdit inside the tab
+          still gates the writes. */}
       <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: 16, borderBottom: `2px solid ${C.bd}` }}>
         {[
           ["catalog", `📦 ${t.invTabCatalog}`, t.invTabCatalogHint],
-          ["count", `🧮 ${t.invTabCount}`, t.invTabCountHint],
+          ...(perms.inv_count ? [["count", `🧮 ${t.invTabCount}`, t.invTabCountHint]] : []),
         ].map(([k, label, hint]) => (
           <button
             key={k}
@@ -209,7 +215,11 @@ export default function InventoryView({
         ))}
       </div>
 
-      {tab === "count" ? (
+      {/* Checked again here, not just on the tab button. Someone whose permission
+          is revoked while sitting on the count tab would otherwise keep the sheet
+          on screen, because `tab` is component state and losing the button does
+          not change it. */}
+      {tab === "count" && perms.inv_count ? (
         <InventoryCountTab inv={inv} jobs={jobs} users={users} user={user} perms={perms} lang={lang} />
       ) : (
       <>
