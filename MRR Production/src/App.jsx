@@ -541,7 +541,7 @@ return (
               <MaintenanceRequestsView reqs={app.reqs} setReqs={app.setReqs} vehs={app.vehs} users={app.users} user={app.curUser} perms={app.userPerms} lang={lang} setLang={setLang} openItemId={searchTargetFor("requests")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "reports" && app.userPerms.reports_view && (
-              <ReportsView jobs={app.jobs} users={app.users} user={app.curUser} perms={app.userPerms} inv={app.inv} vehs={app.vehs} reqs={app.reqs} lang={lang} setLang={setLang} />
+              <ReportsView jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inv={app.inv} vehs={app.vehs} reqs={app.reqs} lang={lang} setLang={setLang} />
             )}
             {view === "users" && app.userPerms.users_manage && (
               <UserManagementView users={app.users} setUsers={app.setUsers} currentUser={app.curUser} rolePerms={app.rolePerms} userOverrides={app.userOverrides} setUserOverrides={app.setUserOverrides} onUpdateUser={(updated) => { app.setCurUser(updated); app.setUsers((p) => p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u))); }} lang={lang} setLang={setLang} openItemId={searchTargetFor("users")} onOpenItemHandled={clearSearchTarget} />

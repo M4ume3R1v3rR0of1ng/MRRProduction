@@ -1,120 +1,265 @@
 // src/views/ReportsView.jsx
 import { useState, useEffect } from "react";
-import { supabase } from "../utils/supabase";
+import { supabase, updateRowStrict } from "../utils/supabase";
 import { C, fd, fm, tot, newestPrice, todayLocal } from "../utils/helpers";
 import { translations } from "../utils/translations";
-import { Btn, Sel, Bdg, Modal, SkeletonTable } from "../components/UIPrimitives"; // Added Modal wrapper primitives
+import { Btn, Sel, Bdg, Inp, Modal, SkeletonTable } from "../components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "../context/NotificationContext";
 // One CSV writer for the app. The local copy this replaced wrapped every field
 // in quotes and escaped none of them, so an item like 9" Roller Covers shifted
 // every column after it. See utils/csvExport.
 import { downloadCSV } from "../utils/csvExport";
-import { ACTION_TYPES } from "../utils/logger";
+import { ACTION_TYPES, logAction } from "../utils/logger";
+import {
+  actualMaterialCost,
+  materialsVariancePct,
+  contractValue,
+  grossProfit,
+  grossMarginPct,
+  materialCostRatioPct,
+  summarizeJobs,
+} from "../utils/jobCosting";
 
-// ── 📊 TREND COMPONENT 1: JOB PROFITABILITY & MATERIAL USAGE BY PROJECT ──
-function JobProfitabilityReport({ jobs, t }) {
+// ── 📊 TREND COMPONENT 1: JOB PROFITABILITY ──
+//
+// Revenue comes from jobs.contract_value, which a person enters. It used to be
+// `estimatedMaterialCost * 3.2`, which made the margin column a constant: any job
+// spending its estimate reported 68.75%, and the trophy threshold was 65%. See
+// utils/jobCosting for the full account.
+//
+// A job with no contract value shows "not set" and is excluded from every
+// revenue-derived figure. Its material cost is still shown, because that comes
+// from the batches and is known either way.
+function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
   const completedJobs = jobs.filter((j) => j.status === "completed" || j.status === "closed");
-  
+  const canSeeRevenue = !!perms?.jobs_revenue;
+  const summary = summarizeJobs(completedJobs);
+  const { showToast } = useNotify();
+
+  // Contract values are entered right here rather than only in Edit Job.
+  // Backfilling history through a modal means opening, typing, saving and closing
+  // once per job; this screen is already the list of exactly which jobs are
+  // missing one, so it is the right place to fix them.
+  const [editingId, setEditingId] = useState(null);
+  const [draftValue, setDraftValue] = useState("");
+  const [savingId, setSavingId] = useState(null);
+
+  const beginEdit = (job) => {
+    setEditingId(job.id);
+    setDraftValue(job.contract_value == null ? "" : String(job.contract_value));
+  };
+
+  const saveValue = async (job) => {
+    const raw = draftValue.trim();
+    // Empty clears it back to unpriced, which has to stay possible: a value
+    // entered against the wrong job needs an undo that is not "type 0".
+    const parsed = raw === "" ? null : parseFloat(raw);
+    if (raw !== "" && (!Number.isFinite(parsed) || parsed < 0)) {
+      showToast(t.rptContractValueInvalid, "warning");
+      return;
+    }
+    setSavingId(job.id);
+    try {
+      const { error } = await updateRowStrict("jobs", job.id, { contract_value: parsed });
+      if (error) throw error;
+      setJobs?.((prev) => prev.map((j) => (j.id === job.id ? { ...j, contract_value: parsed } : j)));
+      await logAction(
+        user?.id ?? null,
+        user?.email ?? null,
+        "JOB_BUILD_EDIT",
+        `Set contract value on "${job.title || job.name}" (PO: ${job.po || "n/a"}) to ${parsed === null ? "not set" : parsed}`,
+        { job_id: job.id, po: job.po || null, contract_value: parsed },
+        "reports",
+      );
+      setEditingId(null);
+    } catch (err) {
+      console.error("Failed to save contract value:", err);
+      showToast(`${t.rptContractValueFail} ${err.message}`, "error");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const topMaterial = (job) => {
+    let name = t.rptNone;
+    let most = 0;
+    (job.items || job.materials || []).forEach((i) => {
+      if (!i) return;
+      const net = (parseFloat(i.pulled) || 0) - (parseFloat(i.returned) || 0);
+      if (net > most) { most = net; name = i.iname + " (" + net + " " + (i.unit || "pcs") + ")"; }
+    });
+    return name;
+  };
+
   const handleExportExcel = () => {
     if (completedJobs.length === 0) return;
-    const headers = ["PO Number", "Project Name", "Est. Revenue", "Actual Material Cost", "Net Gross Profit", "Gross Margin %", "Top Shipped Material"];
-    
+    const headers = [
+      "PO Number", "Project Name", "Material Cost", "Materials vs Plan %",
+      ...(canSeeRevenue ? ["Contract Value", "Gross Profit (materials only)", "Gross Margin %", "Material Cost % of Contract"] : []),
+      "Top Material",
+    ];
     const rows = completedJobs.map((j) => {
-      let estCost = 0;
-      let actCost = 0;
-      let topItemName = "None";
-      let maxQty = 0;
-
-      (j.items || j.materials || []).forEach((i) => {
-        const fallbackPrice = i.priceAtPull || 0;
-        const pulledQty = parseFloat(i.pulled) || 0;
-        const returnedQty = parseFloat(i.returned) || 0;
-        const netUsed = pulledQty - returnedQty;
-
-        estCost += (parseFloat(i.planned) || 0) * fallbackPrice;
-        actCost += netUsed * fallbackPrice;
-
-        if (netUsed > maxQty) {
-          maxQty = netUsed;
-          topItemName = `${i.iname} (${netUsed} ${i.unit || "pcs"})`;
-        }
-      });
-
-      const targetRevenue = estCost * 3.2;
-      const profit = targetRevenue - actCost;
-      const marginPct = targetRevenue > 0 ? ((profit / targetRevenue) * 100).toFixed(1) : "0.0";
-
+      const variance = materialsVariancePct(j);
+      const profit = grossProfit(j);
+      const margin = grossMarginPct(j);
+      const ratio = materialCostRatioPct(j);
       return [
         j.po || "",
-        j.name || "",
-        targetRevenue.toFixed(2),
-        actCost.toFixed(2),
-        profit.toFixed(2),
-        `${marginPct}%`,
-        topItemName
+        j.title || j.name || "",
+        actualMaterialCost(j).toFixed(2),
+        // Blank, not 0 — an unplanned job has no baseline to vary from.
+        variance === null ? "" : variance.toFixed(1),
+        ...(canSeeRevenue ? [
+          contractValue(j) ?? "",
+          profit === null ? "" : profit.toFixed(2),
+          margin === null ? "" : margin.toFixed(1),
+          ratio === null ? "" : ratio.toFixed(1),
+        ] : []),
+        topMaterial(j),
       ];
     });
-
-    downloadCSV(`mrr-job-profitability-${todayLocal()}.csv`, headers, rows);
+    downloadCSV("mrr-job-profitability-" + todayLocal() + ".csv", headers, rows);
   };
+
+  const cell = { padding: "10px 12px" };
+  const notSet = <span style={{ color: C.sub, fontStyle: "italic" }}>{t.rptNotSet}</span>;
 
   return (
     <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: "var(--space-4)" }}>
         <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>{t.rptJobProfTitle}</h2>
         <Btn v="green" sz="sm" onClick={handleExportExcel}>{t.rptExportProfitability}</Btn>
       </div>
+
+      {/* Two disclosures the old report needed and never carried. Neither is
+          decoration: without the first, margin reads as whole-job profit; without
+          the second, an owner assumes the total covers every job. */}
+      <div style={{ background: C.aB, border: "1.5px solid " + C.am, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.navy, lineHeight: 1.5 }}>
+        ⚠️ {t.rptMaterialsOnlyNote}
+      </div>
+
+      {canSeeRevenue && summary.unpricedCount > 0 && (
+        <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.sub }}>
+          {t.rptUnpricedNote.replace("{n}", summary.unpricedCount).replace("{total}", summary.jobCount)}
+        </div>
+      )}
+
       <div style={{ overflowX: "auto" }}>
         <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
           <thead>
             <tr style={{ background: C.lg }}>
-              {[t.rptColPO, t.rptColProject, t.rptColEstRevenue, t.rptColRealizedCost, t.rptColGrossProfit, t.rptColGrossMargin, t.rptColPrimaryMaterial].map((h) => (
+              {[
+                t.rptColPO, t.rptColProject, t.rptColRealizedCost, t.rptColMaterialsVsPlan,
+                ...(canSeeRevenue ? [t.rptColContractValue, t.rptColGrossProfit, t.rptColGrossMargin] : []),
+                t.rptColPrimaryMaterial,
+              ].map((h) => (
                 <th key={h} style={{ padding: "10px 12px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {completedJobs.map((job) => {
-              let estCost = 0;
-              let actCost = 0;
-              let topItemName = t.rptNone;
-              let maxQty = 0;
-
-              (job.items || job.materials || []).forEach((i) => {
-                const price = i.priceAtPull || 0;
-                const netUsed = (parseFloat(i.pulled) || 0) - (parseFloat(i.returned) || 0);
-                estCost += (parseFloat(i.planned) || 0) * price;
-                actCost += netUsed * price;
-
-                if (netUsed > maxQty) {
-                  maxQty = netUsed;
-                  topItemName = `${i.iname} (${netUsed} ${i.unit})`;
-                }
-              });
-
-              const revenueVal = estCost * 3.2;
-              const grossProfit = revenueVal - actCost;
-              const marginPercentage = revenueVal > 0 ? ((grossProfit / revenueVal) * 100).toFixed(1) : "0.0";
-              const healthyMargin = parseFloat(marginPercentage) >= 65;
-
+              const variance = materialsVariancePct(job);
+              const revenue = contractValue(job);
+              const profit = grossProfit(job);
+              const margin = grossMarginPct(job);
               return (
-                <tr key={job.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                  <td style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)" }}>{job.po}</td>
-                  <td style={{ padding: "10px 12px" }}>{job.name}</td>
-                  <td style={{ padding: "10px 12px", color: C.sub }}>{fm(revenueVal)}</td>
-                  <td style={{ padding: "10px 12px", color: C.navy }}>{fm(actCost)}</td>
-                  <td style={{ padding: "10px 12px", color: C.gr, fontWeight: "var(--weight-bold)" }}>{fm(grossProfit)}</td>
-                  <td style={{ padding: "10px 12px" }}>
-                    <Bdg color={healthyMargin ? "green" : "amber"}>{marginPercentage}% {healthyMargin ? "🏆" : "⚠️"}</Bdg>
+                <tr key={job.id} style={{ borderBottom: "1px solid " + C.lg }}>
+                  <td style={{ ...cell, fontWeight: "var(--weight-bold)" }}>{job.po}</td>
+                  <td style={cell}>{job.title || job.name}</td>
+                  <td style={{ ...cell, color: C.navy }}>{fm(actualMaterialCost(job))}</td>
+                  <td style={cell}>
+                    {variance === null ? notSet : (
+                      <Bdg color={variance > 10 ? "red" : variance > 0 ? "amber" : "green"}>
+                        {variance > 0 ? "+" : ""}{variance.toFixed(1)}%
+                      </Bdg>
+                    )}
                   </td>
-                  <td style={{ padding: "10px 12px", fontSize: "var(--text-sm)", color: C.blue, fontWeight: "var(--weight-semibold)" }}>{topItemName}</td>
+                  {canSeeRevenue && (
+                    <>
+                      <td style={{ ...cell, color: C.sub }}>
+                        {editingId === job.id ? (
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <Inp
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              autoFocus
+                              value={draftValue}
+                              onChange={(e) => setDraftValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveValue(job);
+                                if (e.key === "Escape") setEditingId(null);
+                              }}
+                              style={{ width: 110, padding: "4px 8px" }}
+                              disabled={savingId === job.id}
+                            />
+                            <Btn v="primary" sz="sm" onClick={() => saveValue(job)} disabled={savingId === job.id}>
+                              {savingId === job.id ? "..." : "✓"}
+                            </Btn>
+                            <Btn v="ghost" sz="sm" onClick={() => setEditingId(null)} disabled={savingId === job.id}>✕</Btn>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => beginEdit(job)}
+                            title={t.rptSetContractValue}
+                            style={{
+                              background: "none",
+                              border: revenue === null ? `1px dashed ${C.am}` : "none",
+                              borderRadius: "var(--radius-sm)",
+                              padding: revenue === null ? "2px 8px" : 0,
+                              cursor: "pointer",
+                              font: "inherit",
+                              color: revenue === null ? C.am : C.navy,
+                            }}
+                          >
+                            {revenue === null ? `+ ${t.rptNotSet}` : fm(revenue)}
+                          </button>
+                        )}
+                      </td>
+                      <td style={{ ...cell, color: profit === null ? C.sub : profit < 0 ? C.rd : C.gr, fontWeight: "var(--weight-bold)" }}>
+                        {profit === null ? notSet : fm(profit)}
+                      </td>
+                      <td style={cell}>
+                        {margin === null ? notSet : (
+                          <Bdg color={margin < 0 ? "red" : margin < 40 ? "amber" : "green"}>{margin.toFixed(1)}%</Bdg>
+                        )}
+                      </td>
+                    </>
+                  )}
+                  <td style={{ ...cell, fontSize: "var(--text-sm)", color: C.blue, fontWeight: "var(--weight-semibold)" }}>{topMaterial(job)}</td>
                 </tr>
               );
             })}
             {completedJobs.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: C.sub }}>{t.rptNoCompletedLines}</td></tr>
+              <tr><td colSpan={canSeeRevenue ? 8 : 5} style={{ padding: 24, textAlign: "center", color: C.sub }}>{t.rptNoCompletedLines}</td></tr>
             )}
           </tbody>
+          {completedJobs.length > 0 && (
+            <tfoot>
+              <tr style={{ background: "rgba(15, 23, 42, 0.05)" }}>
+                <td colSpan={2} style={{ ...cell, fontWeight: "var(--weight-extrabold)", color: C.navy }}>
+                  {t.rptTotalsAcross.replace("{n}", canSeeRevenue ? summary.pricedCount : summary.jobCount)}
+                </td>
+                <td style={{ ...cell, fontWeight: "var(--weight-bold)" }}>
+                  {fm(canSeeRevenue ? summary.materialCostOfPriced : summary.materialCost)}
+                </td>
+                <td style={cell} />
+                {canSeeRevenue && (
+                  <>
+                    <td style={{ ...cell, fontWeight: "var(--weight-bold)" }}>{fm(summary.revenue)}</td>
+                    <td style={{ ...cell, fontWeight: "var(--weight-black)", color: summary.grossProfit === null ? C.sub : summary.grossProfit < 0 ? C.rd : C.gr }}>
+                      {summary.grossProfit === null ? notSet : fm(summary.grossProfit)}
+                    </td>
+                    <td style={{ ...cell, fontWeight: "var(--weight-bold)" }}>
+                      {summary.grossMarginPct === null ? notSet : summary.grossMarginPct.toFixed(1) + "%"}
+                    </td>
+                  </>
+                )}
+                <td style={cell} />
+              </tr>
+            </tfoot>
+          )}
         </table>
       </div>
     </div>
@@ -621,6 +766,7 @@ function AuditTrailReport({ t, companyId }) {
 // ── MAIN CORE VIEW INTERFACE CONTAINER ──
 export default function Reports({
   jobs = [],
+  setJobs,
   users = [],
   user,
   perms,
@@ -706,7 +852,7 @@ export default function Reports({
       </div>
 
       <div>
-        {activeTab === "Jobs" && <JobProfitabilityReport jobs={jobs} t={t} />}
+        {activeTab === "Jobs" && <JobProfitabilityReport jobs={jobs} setJobs={setJobs} user={user} perms={perms} t={t} />}
         {activeTab === "Inventory" && perms.inv_pricing_view && ( <InventoryCostTrendsReport inv={inv} t={t} /> )}
         {activeTab === "Fleet" && perms.inv_pricing_view && ( <FleetCostTrendsReport vehs={vehs} reqs={reqs} t={t} companyId={user?.companyId} /> )}
         {activeTab === "Audit" && perms.users_manage && <AuditTrailReport t={t} companyId={user?.companyId} />}

@@ -51,6 +51,7 @@ export default function BuildJobs({
     addr: "",
     notes: "",
     scheduledDate: "",
+    contractValue: "",
     acculynxJobId: null, // Tracked target unique reference
   });
   const [wItems, setWItems] = useState([]);
@@ -120,7 +121,7 @@ export default function BuildJobs({
 
   const resetWiz = () => {
     setWStep(1);
-    setWPO({ po: "", name: "", addr: "", notes: "", scheduledDate: "", acculynxJobId: null });
+    setWPO({ po: "", name: "", addr: "", notes: "", scheduledDate: "", contractValue: "", acculynxJobId: null });
     setWItems([]);
     setWAssign("");
     setWTrailers([]);
@@ -294,6 +295,12 @@ export default function BuildJobs({
       syncNote: "",
       materials: wItems.map((i) => mkJI(i.iid, i.iname, i.icat, i.unit, i.qty)),
       acculynx_job_id: wPO.acculynxJobId || null,
+      // null, not 0, when left blank. See utils/jobCosting: 0 would report the job
+      // as a total loss instead of excluding it from margin.
+      contract_value:
+        perms.jobs_revenue && wPO.contractValue !== "" && wPO.contractValue != null
+          ? parseFloat(wPO.contractValue)
+          : null,
     };
 
     try {
@@ -1033,6 +1040,7 @@ export default function BuildJobs({
           inv={inv}
           fieldUsers={fieldUsers}
           activeUser={activeUser}
+          perms={perms}
           onSaved={(updated) => {
             setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
             setSel(updated);
@@ -1128,6 +1136,27 @@ export default function BuildJobs({
                 <Fld label={t.bjJobPo}><Inp value={wPO.po} onChange={(e) => setWPO({ ...wPO, po: e.target.value })} placeholder={t.bjPoPlaceholder} /></Fld>
                 <Fld label={t.bjJobName}><Inp value={wPO.name} onChange={(e) => setWPO({ ...wPO, name: e.target.value })} placeholder={t.bjJobNamePlaceholder} /></Fld>
                 <Fld label={t.bjJobAddr}><Inp value={wPO.addr} onChange={(e) => setWPO({ ...wPO, addr: e.target.value })} placeholder={t.bjJobAddrPlaceholder} /></Fld>
+                {/* Captured at creation, when the number is in front of whoever is
+                    building the job. Left optional on purpose: forcing it here would
+                    push people to type a placeholder, and a wrong contract value is
+                    worse than a blank one — blank keeps the job out of margin
+                    reporting, a guess quietly corrupts it. */}
+                {perms.jobs_revenue && (
+                  <Fld label={t.bjContractValue} hint={t.bjContractValueHint}>
+                    <div style={{ position: "relative" }}>
+                      <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}>$</span>
+                      <Inp
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={wPO.contractValue || ""}
+                        onChange={(e) => setWPO({ ...wPO, contractValue: e.target.value })}
+                        placeholder="e.g. 14500.00"
+                        style={{ paddingLeft: 22 }}
+                      />
+                    </div>
+                  </Fld>
+                )}
                 <Fld label={t.bjSchedStart}>
                   <Inp type="date" aria-label={t.bjSchedStart} value={wPO.scheduledDate || ""} onChange={(e) => setWPO({ ...wPO, scheduledDate: e.target.value })} />
                 </Fld>

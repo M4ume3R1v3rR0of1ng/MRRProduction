@@ -36,8 +36,23 @@ describe("formFromJob", () => {
   it("reads a modern record", () => {
     expect(formFromJob(modernJob)).toEqual({
       po: "PO-77", name: "Maumee Re-roof", addr: "1 Main St", notes: "back lot",
-      scheduledDate: "2026-08-01", assignedto: "u1",
+      scheduledDate: "2026-08-01", assignedto: "u1", contractValue: "",
     });
+  });
+
+  it("shows an unpriced job as blank, never as 0", () => {
+    // A 0 in this box saves as a real zero, and a job "sold for nothing" reads as
+    // a total loss in the margin report. Blank is what keeps it out of the
+    // calculation entirely. See utils/jobCosting.
+    expect(formFromJob(modernJob).contractValue).toBe("");
+    expect(formFromJob({ contract_value: null }).contractValue).toBe("");
+  });
+
+  it("round-trips an existing contract value into the input", () => {
+    // numeric(12,2) comes back from Supabase as a string or a number depending on
+    // the driver; the input needs a string either way.
+    expect(formFromJob({ contract_value: 14500 }).contractValue).toBe("14500");
+    expect(formFromJob({ contract_value: "14500.50" }).contractValue).toBe("14500.50");
   });
 
   it("reads name and supervisor from the legacy field names", () => {

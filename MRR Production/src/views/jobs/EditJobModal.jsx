@@ -29,6 +29,10 @@ export const formFromJob = (job = {}) => ({
   notes: job.notes || "",
   scheduledDate: job.scheduledDate || "",
   assignedto: job.assignedto || job.assignedTo || "",
+  // Blank, not 0, when unset. "" round-trips to null on save, which is what keeps
+  // an unfilled job out of the margin calculation instead of reading as a total
+  // loss. See utils/jobCosting.
+  contractValue: job.contract_value == null ? "" : String(job.contract_value),
 });
 
 export const itemsFromJob = (job = {}) => (job.items || job.materials || []).filter(Boolean);
@@ -39,7 +43,7 @@ export const addableInventory = (inv = [], chosen = [], query = "") =>
     (i) => (i?.name || "").toLowerCase().includes(query.toLowerCase()) && !chosen.find((x) => x.iid === i.id),
   );
 
-export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUser, onSaved, onClose }) {
+export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUser, perms = {}, onSaved, onClose }) {
   const [form, setForm] = useState(() => formFromJob(job));
   const [items, setItems] = useState(() => itemsFromJob(job));
   const [search, setSearch] = useState("");
@@ -87,6 +91,11 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
         notes: form.notes,
         scheduledDate: form.scheduledDate,
         assignedto: form.assignedto,
+        // Only written by someone allowed to set it, so opening this dialog
+        // without jobs_revenue cannot blank a value already on the job.
+        ...(perms.jobs_revenue
+          ? { contract_value: form.contractValue === "" ? null : parseFloat(form.contractValue) }
+          : {}),
         items: mergedItems,
         materials: mergedItems,
       };
@@ -139,6 +148,27 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
           </Sel>
         </Fld>
       </div>
+      {perms.jobs_revenue && (
+        <Fld
+          label="Contract Value"
+          hint="What the customer is paying. Leave blank if not known yet — blank keeps the job out of margin reporting rather than counting it as a loss."
+        >
+          <div style={{ position: "relative" }}>
+            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}>$</span>
+            <Inp
+              type="number"
+              step="0.01"
+              min="0"
+              value={form.contractValue}
+              onChange={(e) => setForm({ ...form, contractValue: e.target.value })}
+              placeholder="e.g. 14500.00"
+              style={{ paddingLeft: 22 }}
+              disabled={saving}
+            />
+          </div>
+        </Fld>
+      )}
+
       <Fld label="Notes">
         <TA value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} disabled={saving} />
       </Fld>
