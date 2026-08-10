@@ -9,6 +9,7 @@
 // only impure part is the actual send, which is injectable.
 
 import { sendEmail, escapeHtml } from "./email";
+import { defaultPrefs } from "./automations";
 
 // The status a job just ENTERED → how it's described to the supervisor. Keys match the
 // four transitions the enforcement trigger already gates (see supabase/12).
@@ -35,11 +36,10 @@ export const JOB_MOVE_EVENTS = {
   },
 };
 
-// `approved` defaults ON because an approval/assignment email already fired
-// unconditionally before this feature — gating it behind a default-off toggle would
-// silently stop a notification people rely on. The three genuinely new moves default
-// OFF: turning on new outbound email is a deliberate admin choice, not a surprise.
-export const DEFAULT_JOB_NOTIFICATIONS = { approved: true, active: false, completed: false, closed: false };
+// Defaults now live in the shared automations registry alongside the maintenance ones,
+// so Settings → Automations and this module cannot drift apart. Re-exported because a
+// handful of call sites already import the name from here.
+export const DEFAULT_JOB_NOTIFICATIONS = defaultPrefs("jobs");
 
 // Pure: does this company want an email for this transition?
 export function shouldNotifyJobMove(transition, prefs) {

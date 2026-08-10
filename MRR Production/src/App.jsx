@@ -535,10 +535,10 @@ return (
               <InventoryView inv={app.inv} setInv={app.setInv} jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} />
             )}
             {view === "fleet" && app.userPerms.fleet_view && (
-              <FleetManagementView vehs={app.vehs} setVehs={app.setVehs} reqs={app.reqs} setReqs={app.setReqs} jobs={app.jobs} setJobs={app.setJobs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} jSC={jSC} users={app.users} user={app.curUser} perms={app.userPerms} oilSt={oilSt} detSt={detSt} predDays={predDays} fd={fd} fm={fm} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} openItemId={searchTargetFor("fleet")} onOpenItemHandled={clearSearchTarget} />
+              <FleetManagementView vehs={app.vehs} setVehs={app.setVehs} reqs={app.reqs} setReqs={app.setReqs} jobs={app.jobs} setJobs={app.setJobs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} jSC={jSC} users={app.users} user={app.curUser} perms={app.userPerms} maintenanceNotifications={app.maintenanceNotifications} maintManagers={app.maintManagers} oilSt={oilSt} detSt={detSt} predDays={predDays} fd={fd} fm={fm} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} openItemId={searchTargetFor("fleet")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "requests" && (app.userPerms.maint_submit || app.userPerms.maint_manage) && (
-              <MaintenanceRequestsView reqs={app.reqs} setReqs={app.setReqs} vehs={app.vehs} users={app.users} user={app.curUser} perms={app.userPerms} lang={lang} setLang={setLang} openItemId={searchTargetFor("requests")} onOpenItemHandled={clearSearchTarget} />
+              <MaintenanceRequestsView reqs={app.reqs} setReqs={app.setReqs} vehs={app.vehs} users={app.users} user={app.curUser} perms={app.userPerms} maintenanceNotifications={app.maintenanceNotifications} maintManagers={app.maintManagers} lang={lang} setLang={setLang} openItemId={searchTargetFor("requests")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "reports" && app.userPerms.reports_view && (
               <ReportsView jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inv={app.inv} vehs={app.vehs} reqs={app.reqs} lang={lang} setLang={setLang} />
@@ -547,7 +547,7 @@ return (
               <UserManagementView users={app.users} setUsers={app.setUsers} currentUser={app.curUser} rolePerms={app.rolePerms} userOverrides={app.userOverrides} setUserOverrides={app.setUserOverrides} onUpdateUser={(updated) => { app.setCurUser(updated); app.setUsers((p) => p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u))); }} lang={lang} setLang={setLang} openItemId={searchTargetFor("users")} onOpenItemHandled={clearSearchTarget} />
             )}
             {view === "settings" && app.userPerms.settings_manage && (
-              <SettingsView warehouses={app.warehouses} company={app.company} setCompany={app.setCompany} jobNotifications={app.jobNotifications} setJobNotifications={app.setJobNotifications} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} lang={lang} />
+              <SettingsView warehouses={app.warehouses} company={app.company} setCompany={app.setCompany} jobNotifications={app.jobNotifications} setJobNotifications={app.setJobNotifications} maintenanceNotifications={app.maintenanceNotifications} setMaintenanceNotifications={app.setMaintenanceNotifications} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} lang={lang} />
             )}
             {view === "logs" && app.userPerms.users_manage && (
               <AuditLogView perms={app.userPerms} inv={app.inv} users={app.users} companyId={app.curUser?.companyId} lang={lang} />

@@ -14,7 +14,7 @@ import {
   Modal,
   PhotoUpload,
 } from "../components/UIPrimitives";
-import { sendEmail } from "../utils/email";
+import { notifyMaintFiled, notifyMaintStatus } from "../utils/maintenanceNotifications";
 import { useNotify } from "../context/NotificationContext";
 import { logAction } from "../utils/logger";
 import MaintenanceCalendar from "../components/MaintenanceCalendar";
@@ -27,6 +27,8 @@ export default function MaintenanceRequestsView({
   user,
   perms,
   curUser,
+  maintenanceNotifications,
+  maintManagers = [],
   lang,
   openItemId,
   onOpenItemHandled,
@@ -139,6 +141,15 @@ export default function MaintenanceRequestsView({
       "maintenance"
     );
 
+    // Same fire-and-forget dispatch as the Fleet view's copy of this flow: the ticket is
+    // already saved, so the relay must never turn a successful filing into an error.
+    notifyMaintFiled({
+      req: createdRecord,
+      recipients: maintManagers,
+      prefs: maintenanceNotifications,
+      excludeUserId: user.id,
+    });
+
     setReqs((prev) => [createdRecord, ...prev]);
     showToast(t.maintFiledOk, "success");
 
@@ -185,6 +196,19 @@ export default function MaintenanceRequestsView({
       { ticket_id: id, status_transition: status, scheduler_notes: whNotes },
       "maintenance"
     );
+
+    // Email the requester the same news the dashboard popup carries. `notifyRequester`
+    // already encodes "this wasn't the requester's own edit"; actorId re-checks it inside
+    // the helper so the rule holds if this call is ever moved.
+    if (notifyRequester) {
+      notifyMaintStatus({
+        status,
+        req: { ...currentTicket, wh_notes: whNotes, scheduled_date: scheduledDate, completed_at: completedAt },
+        users,
+        prefs: maintenanceNotifications,
+        actorId: user.id,
+      });
+    }
 
     setReqs((p) =>
       p.map((r) =>

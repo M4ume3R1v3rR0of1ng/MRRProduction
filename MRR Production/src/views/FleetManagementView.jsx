@@ -17,6 +17,7 @@ import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 import TrailerCalendar from "../components/TrailerCalendar";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
+import { notifyMaintFiled } from "../utils/maintenanceNotifications";
 import MaintenanceRequestModal from "./fleet/MaintenanceRequestModal";
 import AddVehicleModal from "./fleet/AddVehicleModal";
 import InspectionModal from "./fleet/InspectionModal";
@@ -36,6 +37,8 @@ export default function FleetManagementView({
   users,
   user,
   perms,
+  maintenanceNotifications,
+  maintManagers = [],
   oilSt,
   detSt,
   predDays,
@@ -318,6 +321,16 @@ export default function FleetManagementView({
         { ticket_id: created.id || "N/A", vehicle_id: r.vid, issue_types: r.type },
         "maintenance"
       );
+
+      // Tell the people who can schedule it. Deliberately not awaited: the request is
+      // already saved, and a slow or failed relay must not hold up the confirmation
+      // toast or surface as a filing error. notifyMaintFiled resolves either way.
+      notifyMaintFiled({
+        req: created,
+        recipients: maintManagers,
+        prefs: maintenanceNotifications,
+        excludeUserId: user.id,
+      });
 
       showToast(t.flMaintFiled, "success");
     } catch (err) {

@@ -15,6 +15,12 @@ import { useNotify } from "../context/NotificationContext";
 // ── 🆕 IMPORT ADDED ──────────────────────────────────────────────────────────
 import { fetchAccuLynxJob } from "../utils/accuLynxSync";
 import { US_STATES, stateByCode } from "../utils/salesTax";
+import {
+  AUTOMATION_GROUPS,
+  automationsForGroup,
+  mergePrefs,
+  serializePrefs,
+} from "../utils/automations";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const T = {
@@ -119,6 +125,8 @@ export default function SettingsView({
   setCompany,
   jobNotifications = {},
   setJobNotifications,
+  maintenanceNotifications = {},
+  setMaintenanceNotifications,
   rolePerms,
   setRolePerms,
   acculynxConfig,
@@ -144,42 +152,39 @@ export default function SettingsView({
   });
   const [savingBrand, setSavingBrand] = useState(false);
 
-  // Job-move email rules. Persisted to settings(key='job_notifications'), same shape
-  // and upsert path as acculynx_config / job_templates.
-  const JOB_MOVE_ROWS = [
-    { key: "approved", label: "Approved", desc: "A draft is approved and assigned — the supervisor gets the go-ahead." },
-    { key: "active", label: "Materials pulled", desc: "Inventory is pulled and the job goes active." },
-    { key: "completed", label: "Completed", desc: "Unused stock is returned and the job is marked done." },
-    { key: "closed", label: "Closed", desc: "The job is closed out and archived." },
-  ];
-  const [notifForm, setNotifForm] = useState({
-    approved: jobNotifications.approved ?? true,
-    active: jobNotifications.active ?? false,
-    completed: jobNotifications.completed ?? false,
-    closed: jobNotifications.closed ?? false,
-  });
-  const [savingNotif, setSavingNotif] = useState(false);
+  // Automation rules, rendered straight off the shared registry in utils/automations.
+  // Each group owns one settings row and saves independently, on the same upsert path as
+  // acculynx_config / job_templates. Adding an automation is an entry in the registry —
+  // nothing in this file needs to change.
+  const GROUP_STATE = {
+    jobs: { stored: jobNotifications, apply: setJobNotifications },
+    maintenance: { stored: maintenanceNotifications, apply: setMaintenanceNotifications },
+  };
+  const [automationForm, setAutomationForm] = useState(() =>
+    Object.fromEntries(AUTOMATION_GROUPS.map((g) => [g.id, mergePrefs(g.id, GROUP_STATE[g.id]?.stored)])),
+  );
+  // Which group is mid-save, so one Save button spins without freezing the others.
+  const [savingGroup, setSavingGroup] = useState(null);
 
-  const saveNotifications = async () => {
-    setSavingNotif(true);
+  const toggleAutomation = (groupId, key) =>
+    setAutomationForm((p) => ({ ...p, [groupId]: { ...p[groupId], [key]: !p[groupId]?.[key] } }));
+
+  const saveAutomations = async (group) => {
+    setSavingGroup(group.id);
     try {
-      const value = {
-        approved: !!notifForm.approved,
-        active: !!notifForm.active,
-        completed: !!notifForm.completed,
-        closed: !!notifForm.closed,
-      };
+      const value = serializePrefs(group.id, automationForm[group.id]);
       const { error } = await supabase.from("settings").upsert(
-        { key: "job_notifications", value: JSON.stringify(value), updated_at: new Date().toISOString() },
+        { key: group.settingsKey, value: JSON.stringify(value), updated_at: new Date().toISOString() },
         { onConflict: "company_id,key" },
       );
       if (error) throw error;
-      if (typeof setJobNotifications === "function") setJobNotifications(value);
+      const apply = GROUP_STATE[group.id]?.apply;
+      if (typeof apply === "function") apply(value);
       showToast(t.stNotifsSaved, "success");
     } catch (err) {
       showToast(`${t.stCouldNotSave} ${err.message}`, "error");
     } finally {
-      setSavingNotif(false);
+      setSavingGroup(null);
     }
   };
 
@@ -248,7 +253,10 @@ export default function SettingsView({
 
   const tabs = [
     { id: "Permissions", label: "Permissions", icon: "🔒" },
-    { id: "Notifications", label: "Notifications", icon: "🔔" },
+    // "Automations" rather than "Notifications": email is the first thing this panel
+    // switches on, not the only thing planned, and the rows already read as rules
+    // rather than as a notification inbox.
+    { id: "Automations", label: "Automations", icon: "🔔" },
     // "CRM Integration" rather than "AccuLynx": AccuLynx is the first CRM we
     // connect to, not the only one planned. Naming the tab after the category
     // means adding Jobber or ServiceTitan later is a new section in this panel,
@@ -581,46 +589,52 @@ export default function SettingsView({
         </Card>
       )}
 
-      {/* ── PANEL: Notifications ──────────────────────────────────────── */}
-      {currentTab === "Notifications" && (
-        <Card>
-          <SectionTitle
-            icon="🔔"
-            title={t.stJobMoveNotifs}
-            subtitle="Email the assigned supervisor automatically when one of their jobs changes status. Each move is independent."
-          />
-          <div style={{ border: `1px solid ${T.border}`, borderRadius: T.radius, overflow: "hidden", marginTop: 8 }}>
-            {JOB_MOVE_ROWS.map((row, idx) => (
-              <div
-                key={row.key}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  gap: "var(--space-4)", padding: "14px 16px",
-                  borderTop: idx === 0 ? "none" : `1px solid ${T.border}`,
-                  background: T.white,
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy || T.slate, fontSize: "var(--text-base)" }}>{row.label}</div>
-                  <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{row.desc}</div>
-                </div>
-                <Toggle
-                  on={!!notifForm[row.key]}
-                  onChange={() => setNotifForm((p) => ({ ...p, [row.key]: !p[row.key] }))}
-                />
+      {/* ── PANEL: Automations ────────────────────────────────────────── */}
+      {currentTab === "Automations" && (
+        <>
+          {AUTOMATION_GROUPS.map((group) => (
+            <Card key={group.id} style={{ marginBottom: 20 }}>
+              <SectionTitle
+                icon={group.icon}
+                title={`${group.label} ${t.stAutomationsTitle}`}
+                subtitle={group.blurb}
+              />
+              <div style={{ border: `1px solid ${T.border}`, borderRadius: T.radius, overflow: "hidden", marginTop: 8 }}>
+                {automationsForGroup(group.id).map((row, idx) => (
+                  <div
+                    key={row.key}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      gap: "var(--space-4)", padding: "14px 16px",
+                      borderTop: idx === 0 ? "none" : `1px solid ${T.border}`,
+                      background: T.white,
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: "var(--weight-bold)", color: T.navy || T.slate, fontSize: "var(--text-base)" }}>{row.label}</div>
+                      <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{row.desc}</div>
+                      <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 4 }}>
+                        ✉️ {t.stAutomationSendsTo} <strong>{row.recipient}</strong>
+                      </div>
+                    </div>
+                    <Toggle
+                      on={!!automationForm[group.id]?.[row.key]}
+                      onChange={() => toggleAutomation(group.id, row.key)}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+                <Btn v="primary" onClick={() => saveAutomations(group)} disabled={savingGroup === group.id}>
+                  {savingGroup === group.id ? "Saving…" : t.stSaveAutomations}
+                </Btn>
+              </div>
+            </Card>
+          ))}
+          <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 4 }}>
+            {t.stAutomationsFootnote}
           </div>
-          <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 12 }}>
-            Emails go to the job's assigned site supervisor (the field user on the job). A job with no
-            assigned supervisor, or one without an email on file, is skipped silently.
-          </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-            <Btn v="primary" onClick={saveNotifications} disabled={savingNotif}>
-              {savingNotif ? "Saving…" : "Save Notification Rules"}
-            </Btn>
-          </div>
-        </Card>
+        </>
       )}
 
       {/* ── PANEL: CRM Integration ─────────────────────────────────────── */}

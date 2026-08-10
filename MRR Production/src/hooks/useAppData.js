@@ -6,7 +6,8 @@ import { useNotify } from "../context/NotificationContext";
 import { SEED_U, SEED_W, SEED_I, SEED_V, SEED_JOBS } from "../data/seeds";
 import { DEFAULT_ROLE_PERMS, getEffectivePerms } from "../database/permissions";
 import { tot } from "../utils/helpers";
-import { DEFAULT_JOB_NOTIFICATIONS } from "../utils/jobNotifications";
+import { defaultPrefs, mergePrefs, groupById } from "../utils/automations";
+import { resolveMaintManagers } from "../utils/maintenanceNotifications";
 
 export function useAppData() {
   const [loading, setLoading] = useState(true);
@@ -48,9 +49,10 @@ export function useAppData() {
   const [logos, setLogos] = useState(null);
   // The company this session is working in: { id, name, slug, branding }.
   const [company, setCompany] = useState(null);
-  // Per-company job-move email rules, from settings(key='job_notifications').
-  // Off by default — automatic outbound email is opt-in per Settings → Notifications.
-  const [jobNotifications, setJobNotifications] = useState(DEFAULT_JOB_NOTIFICATIONS);
+  // Per-company automation rules, one settings row per group (see utils/automations).
+  // Off by default — automatic outbound email is opt-in per Settings → Automations.
+  const [jobNotifications, setJobNotifications] = useState(() => defaultPrefs("jobs"));
+  const [maintenanceNotifications, setMaintenanceNotifications] = useState(() => defaultPrefs("maintenance"));
 
   const { showToast } = useNotify();
 
@@ -269,16 +271,24 @@ export function useAppData() {
             }
             trackProgress(7);
           })(),
-          (async () => {
-            const { data, error } = await supabase.from("settings").select("value").eq("key", "job_notifications").maybeSingle();
+          // One settings row per automation group. Read them in parallel and merge each
+          // onto its registry defaults, so a key added to the registry after a company
+          // last saved resolves to that key's default instead of undefined.
+          ...[
+            ["jobs", setJobNotifications],
+            ["maintenance", setMaintenanceNotifications],
+          ].map(([groupId, setPrefs]) => (async () => {
+            const settingsKey = groupById(groupId)?.settingsKey;
+            if (!settingsKey) return;
+            const { data, error } = await supabase.from("settings").select("value").eq("key", settingsKey).maybeSingle();
             if (!error && data?.value) {
               try {
-                setJobNotifications((p) => ({ ...p, ...JSON.parse(data.value) }));
+                setPrefs(mergePrefs(groupId, JSON.parse(data.value)));
               } catch (e) {
-                console.error("Failed to parse stored job-notification prefs:", e);
+                console.error(`Failed to parse stored ${groupId} automation prefs:`, e);
               }
             }
-          })(),
+          })()),
         ]);
 
         setLoadErrors(failedTables);
@@ -440,6 +450,14 @@ export function useAppData() {
     return getEffectivePerms(curUser, rolePerms, userOverrides);
   }, [curUser, rolePerms, userOverrides]);
 
+  // Who a new maintenance request emails: the maint_manage holders, resolved once here
+  // rather than threading rolePerms and userOverrides into every view that can file one.
+  // Same predicate as the dashboard popup, so the email and the popup always agree.
+  const maintManagers = useMemo(
+    () => resolveMaintManagers(users, rolePerms, userOverrides),
+    [users, rolePerms, userOverrides],
+  );
+
   // ── 🔔 SIGN-IN ALERT: tell whoever can close jobs how many are waiting ──
   useEffect(() => {
     if (!curUser) return;
@@ -492,6 +510,9 @@ export function useAppData() {
     setCompany,
     jobNotifications,
     setJobNotifications,
+    maintenanceNotifications,
+    setMaintenanceNotifications,
+    maintManagers,
     pendingReqCount,
     lowStockCount,
     newJobsForMe,

@@ -68,7 +68,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
           fontWeight: "var(--weight-semibold)",
         }}
       >
-        Your request will be sent to the Warehouse Manager for scheduling.
+        Your request goes to the maintenance queue for scheduling.
       </div>
       <Fld label="Vehicle *">
         <Sel
