@@ -562,7 +562,7 @@ return (
                 the app they already have access to; gating it would hide the
                 explanation from exactly the people who need it most. */}
             {view === "training" && (
-              <TrainingView lang={lang} />
+              <TrainingView lang={lang} user={app.curUser} company={app.company} trainingMedia={app.trainingMedia} setTrainingMedia={app.setTrainingMedia} />
             )}
             {view === "profile" && (
               <ProfileView

@@ -19,13 +19,136 @@ import { useRef, useState } from "react";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { TRAINING_VIDEOS } from "../data/trainingVideos";
+import { supabase } from "../utils/supabase";
+import { useNotify } from "../context/NotificationContext";
+import { logAction } from "../utils/logger";
+import { Btn, Fld, Inp, TA } from "../components/UIPrimitives";
+import { uploadFileToBucket, removeFromBucket } from "../utils/storageBucketUpload";
+import {
+  orderedMedia,
+  validateMediaForm,
+  mediaObjectPath,
+  mediaRow,
+  formatBytes,
+  MAX_VIDEO_BYTES,
+  MAX_IMAGE_BYTES,
+  VIDEO_TYPES,
+  IMAGE_TYPES,
+} from "../utils/trainingMedia";
 
-export default function TrainingView({ lang = "en" }) {
+const BUCKET = "training-media";
+
+export default function TrainingView({
+  lang = "en",
+  user,
+  company,
+  trainingMedia = [],
+  setTrainingMedia,
+}) {
   const t = translations[lang] || translations.en;
+  const { showToast } = useNotify();
+  // Uploading is an admin act: this media shows up for the whole company on login.
+  // Matches the storage and row policies in supabase/26 — the UI hiding the panel is
+  // convenience, the database is what actually enforces it.
+  const isAdmin = user?.role === "admin";
+
   // Which clips have been started, keyed by id so several videos each track
   // their own poster rather than sharing one flag.
   const [started, setStarted] = useState({});
   const refs = useRef({});
+  const fileRef = useRef(null);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [form, setForm] = useState({ title: "", blurb: "", file: null });
+  const [uploading, setUploading] = useState(false);
+
+  const items = orderedMedia(TRAINING_VIDEOS, trainingMedia);
+
+  const resetForm = () => {
+    setForm({ title: "", blurb: "", file: null });
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const submitMedia = async () => {
+    const check = validateMediaForm(form);
+    if (!check.ok) {
+      showToast(check.error, "info");
+      return;
+    }
+    if (!company?.id) {
+      showToast("No active company on this session, so there is nowhere to file this.", "error");
+      return;
+    }
+
+    setUploading(true);
+    let uploadedPath = null;
+    try {
+      const path = mediaObjectPath(company.id, form.file);
+      const { url, path: storedPath } = await uploadFileToBucket(BUCKET, path, form.file);
+      uploadedPath = storedPath;
+
+      const row = {
+        ...mediaRow({
+          title: form.title,
+          blurb: form.blurb,
+          kind: check.kind,
+          url,
+          sortOrder: trainingMedia.length,
+          user,
+        }),
+        object_path: storedPath,
+      };
+
+      const { data, error } = await supabase.from("training_media").insert([row]).select();
+      if (error) throw error;
+
+      const created = data?.[0] || row;
+      setTrainingMedia?.((p) => [...p, created]);
+
+      await logAction(
+        user.id,
+        user.email,
+        "TRAINING_MEDIA_ADD",
+        `Added training ${check.kind}: "${row.title}"`,
+        { media_id: created.id, kind: check.kind, object_path: storedPath },
+        "training",
+      );
+
+      showToast(t.trAddedOk, "success");
+      resetForm();
+      setAddOpen(false);
+    } catch (err) {
+      // The file landed but the row did not, so nothing would ever reference it.
+      // Clean it up rather than leaving a paid-for orphan in the bucket.
+      if (uploadedPath) await removeFromBucket(BUCKET, uploadedPath);
+      showToast(`${t.trAddFail} ${err.message}`, "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeMedia = async (item) => {
+    if (!window.confirm(t.trRemoveConfirm.replace("{title}", item.title))) return;
+    try {
+      const { error } = await supabase.from("training_media").delete().eq("id", item.id);
+      if (error) throw error;
+      if (item.object_path) await removeFromBucket(BUCKET, item.object_path);
+      setTrainingMedia?.((p) => p.filter((m) => m.id !== item.id));
+
+      await logAction(
+        user.id,
+        user.email,
+        "TRAINING_MEDIA_REMOVE",
+        `Removed training ${item.kind}: "${item.title}"`,
+        { media_id: item.id, object_path: item.object_path },
+        "training",
+      );
+
+      showToast(t.trRemovedOk, "success");
+    } catch (err) {
+      showToast(`${t.trRemoveFail} ${err.message}`, "error");
+    }
+  };
 
   const start = (id) => () => {
     setStarted((p) => ({ ...p, [id]: true }));
@@ -53,8 +176,81 @@ export default function TrainingView({ lang = "en" }) {
         </p>
       </div>
 
+      {isAdmin && (
+        <div
+          style={{
+            background: C.w,
+            borderRadius: "var(--radius-xl)",
+            boxShadow: "var(--shadow-sm)",
+            padding: "var(--space-5)",
+            marginBottom: "var(--space-6)",
+            border: `1px solid ${C.bd}`,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-md)" }}>
+                🎬 {t.trAdminTitle}
+              </div>
+              <div style={{ color: C.sub, fontSize: "var(--text-sm)", marginTop: 4, maxWidth: "70ch" }}>
+                {t.trAdminBlurb}
+              </div>
+            </div>
+            <Btn v={addOpen ? "ghost" : "primary"} sz="sm" onClick={() => { setAddOpen(!addOpen); resetForm(); }}>
+              {addOpen ? t.trCancel : `➕ ${t.trAddMedia}`}
+            </Btn>
+          </div>
+
+          {addOpen && (
+            <div style={{ marginTop: "var(--space-5)", borderTop: `1px solid ${C.bd}`, paddingTop: "var(--space-5)" }}>
+              <Fld label={t.trTitle}>
+                <Inp
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="e.g. How we tarp a roof"
+                  disabled={uploading}
+                />
+              </Fld>
+              <Fld label={t.trBlurb} hint={t.trBlurbHint}>
+                <TA
+                  value={form.blurb}
+                  onChange={(e) => setForm({ ...form, blurb: e.target.value })}
+                  disabled={uploading}
+                />
+              </Fld>
+              <Fld
+                label={t.trFile}
+                hint={`${t.trFileHint} ${formatBytes(MAX_VIDEO_BYTES)} ${t.trFileHintVideo}, ${formatBytes(MAX_IMAGE_BYTES)} ${t.trFileHintPhoto}.`}
+              >
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept={[...VIDEO_TYPES, ...IMAGE_TYPES].join(",")}
+                  disabled={uploading}
+                  onChange={(e) => setForm({ ...form, file: e.target.files?.[0] || null })}
+                  style={{ fontSize: "var(--text-sm)", color: C.navy }}
+                />
+              </Fld>
+              {form.file && (
+                <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 12 }}>
+                  {form.file.name} — {formatBytes(form.file.size)}
+                </div>
+              )}
+              <Btn v="primary" onClick={submitMedia} disabled={uploading}>
+                {uploading ? t.trUploading : t.trUpload}
+              </Btn>
+              {uploading && (
+                <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 8 }}>
+                  {t.trUploadingNote}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        {TRAINING_VIDEOS.map((clip) => (
+        {items.map((clip) => (
           <div
             key={clip.id}
             style={{
@@ -65,26 +261,39 @@ export default function TrainingView({ lang = "en" }) {
             }}
           >
             <div style={{ padding: "var(--space-5) var(--space-5) var(--space-4)" }}>
-              <div
-                style={{
-                  fontSize: "var(--text-2xs)",
-                  letterSpacing: ".14em",
-                  textTransform: "uppercase",
-                  fontWeight: "var(--weight-extrabold)",
-                  color: C.am,
-                  marginBottom: 6,
-                }}
-              >
-                {clip.eyebrow}
-              </div>
-              <div
-                style={{
-                  fontSize: "var(--text-lg)",
-                  fontWeight: "var(--weight-extrabold)",
-                  color: C.navy,
-                }}
-              >
-                {clip.title}
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-4)" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: "var(--text-2xs)",
+                      letterSpacing: ".14em",
+                      textTransform: "uppercase",
+                      fontWeight: "var(--weight-extrabold)",
+                      color: C.am,
+                      marginBottom: 6,
+                    }}
+                  >
+                    {/* Uploads carry no eyebrow. Falling back to who added it is more
+                        use than an empty strip of whitespace above the title. */}
+                    {clip.eyebrow || (clip.created_by_name ? `${t.trAddedBy} ${clip.created_by_name}` : t.trYourLibrary)}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "var(--text-lg)",
+                      fontWeight: "var(--weight-extrabold)",
+                      color: C.navy,
+                    }}
+                  >
+                    {clip.title}
+                  </div>
+                </div>
+                {/* Bundled clips ship in the build and belong to Steadwerk, so there is
+                    nothing a tenant admin could delete even if the button were here. */}
+                {isAdmin && !clip.bundled && (
+                  <Btn v="danger" sz="sm" onClick={() => removeMedia(clip)}>
+                    🗑️ {t.trRemove}
+                  </Btn>
+                )}
               </div>
               <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: "6px 0 0", maxWidth: "72ch" }}>
                 {clip.blurb}
@@ -113,21 +322,33 @@ export default function TrainingView({ lang = "en" }) {
                 marginBottom: "var(--space-5)",
               }}
             >
-              <video
-                ref={(el) => { refs.current[clip.id] = el; }}
-                controls
-                preload="metadata"
-                playsInline
-                poster={clip.poster || undefined}
-                onPlay={() => setStarted((p) => ({ ...p, [clip.id]: true }))}
-                style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "contain", background: "#000" }}
-              >
-                <source src={clip.src} type="video/mp4" />
-                {t.trainingNoVideo}{" "}
-                <a href={clip.src} style={{ color: C.am }}>{t.trainingDownload}</a>
-              </video>
+              {/* Bundled clips carry `src` (a path under public/); uploads carry `url`
+                  (a Supabase CDN link, which is why public/_headers now names that
+                  origin under media-src). */}
+              {clip.kind === "photo" ? (
+                <img
+                  src={clip.url || clip.src}
+                  alt={clip.title}
+                  loading="lazy"
+                  style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "contain", background: "#000" }}
+                />
+              ) : (
+                <video
+                  ref={(el) => { refs.current[clip.id] = el; }}
+                  controls
+                  preload="metadata"
+                  playsInline
+                  poster={clip.poster || undefined}
+                  onPlay={() => setStarted((p) => ({ ...p, [clip.id]: true }))}
+                  style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "contain", background: "#000" }}
+                >
+                  <source src={clip.src || clip.url} />
+                  {t.trainingNoVideo}{" "}
+                  <a href={clip.src || clip.url} style={{ color: C.am }}>{t.trainingDownload}</a>
+                </video>
+              )}
 
-              {!started[clip.id] && (
+              {clip.kind !== "photo" && !started[clip.id] && (
                 <button
                   type="button"
                   onClick={start(clip.id)}

@@ -63,3 +63,40 @@ export async function uploadPhotoToBucket(bucketName, companyId, fileId, base64S
     throw err;
   }
 }
+
+/**
+ * Uploads a raw File straight through, for anything that is not a compressed photo.
+ *
+ * uploadPhotoToBucket above cannot do this job: it base64-decodes in a loop and hardcodes
+ * image/jpeg, which for a 100 MB training video means holding roughly 130 MB of base64
+ * plus the decoded copy in memory and then mislabelling the result as a JPEG. Files that
+ * arrive from an <input type="file"> are already Blobs and need none of that.
+ *
+ * `upsert: false` because the path from mediaObjectPath is unique per upload; a collision
+ * here means a bug worth surfacing rather than silently overwriting someone's clip.
+ *
+ * @returns {Promise<{ url: string, path: string }>} public CDN URL and the object path,
+ *          the latter so a later delete can remove the file and not just the row.
+ */
+export async function uploadFileToBucket(bucketName, filePath, file) {
+  if (!file) throw new Error("uploadFileToBucket: no file given.");
+  if (!filePath) throw new Error("uploadFileToBucket: filePath is required (tenant-scoped storage).");
+
+  const { error } = await supabase.storage.from(bucketName).upload(filePath, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type || "application/octet-stream",
+  });
+  if (error) throw error;
+
+  const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+  return { url: publicUrl, path: filePath };
+}
+
+/** Removes an uploaded object. Best-effort: used to avoid orphaning a file when the
+ *  metadata insert that should have followed the upload fails. */
+export async function removeFromBucket(bucketName, filePath) {
+  if (!filePath) return;
+  const { error } = await supabase.storage.from(bucketName).remove([filePath]);
+  if (error) console.error(`[Storage] Could not remove ${bucketName}/${filePath}:`, error);
+}

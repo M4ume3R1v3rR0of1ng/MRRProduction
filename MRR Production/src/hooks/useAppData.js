@@ -53,6 +53,9 @@ export function useAppData() {
   // Off by default — automatic outbound email is opt-in per Settings → Automations.
   const [jobNotifications, setJobNotifications] = useState(() => defaultPrefs("jobs"));
   const [maintenanceNotifications, setMaintenanceNotifications] = useState(() => defaultPrefs("maintenance"));
+  // Company-uploaded training clips and photos. The bundled product tour is NOT here:
+  // it ships in the build via src/data/trainingVideos.js. See supabase/26.
+  const [trainingMedia, setTrainingMedia] = useState([]);
 
   const { showToast } = useNotify();
 
@@ -270,6 +273,22 @@ export function useAppData() {
               setAccuLynxConfig((p) => ({ ...p, apiKeyConfigured: true }));
             }
             trackProgress(7);
+          })(),
+          (async () => {
+            // Ordered here rather than in the view so the list is already right if
+            // anything else ever renders it. A missing table (migration 26 not run)
+            // leaves the library empty rather than failing the whole boot.
+            const { data, error } = await supabase
+              .from("training_media")
+              .select("*")
+              .eq("company_id", activeCompanyId)
+              .order("sort_order", { ascending: true })
+              .order("created_at", { ascending: true });
+            if (error) {
+              console.error("Training media failed to load:", error);
+              return;
+            }
+            setTrainingMedia(data || []);
           })(),
           // One settings row per automation group. Read them in parallel and merge each
           // onto its registry defaults, so a key added to the registry after a company
@@ -513,6 +532,8 @@ export function useAppData() {
     maintenanceNotifications,
     setMaintenanceNotifications,
     maintManagers,
+    trainingMedia,
+    setTrainingMedia,
     pendingReqCount,
     lowStockCount,
     newJobsForMe,

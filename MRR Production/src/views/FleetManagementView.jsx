@@ -8,6 +8,7 @@ import {
   Inp,
   Sel,
   Modal,
+  TA,
   PhotoUpload,
 } from "../components/UIPrimitives";
 import { C, uid, todayLocal } from "../utils/helpers";
@@ -18,6 +19,7 @@ import { useNotify } from "../context/NotificationContext";
 import TrailerCalendar from "../components/TrailerCalendar";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import { notifyMaintFiled } from "../utils/maintenanceNotifications";
+import { vehicleStatusKind, isGrounded, isUndispatchable, groundingPatch } from "../utils/fleetStatus";
 import MaintenanceRequestModal from "./fleet/MaintenanceRequestModal";
 import AddVehicleModal from "./fleet/AddVehicleModal";
 import InspectionModal from "./fleet/InspectionModal";
@@ -50,6 +52,19 @@ export default function FleetManagementView({
 }) {
   const { showToast } = useNotify();
   const t = translations[lang] || translations.en;
+
+  // How each status kind from utils/fleetStatus renders. Red is reserved for a truck
+  // that is genuinely off the road, i.e. one a person grounded. An overdue oil change is
+  // a maintenance warning on a truck you can still drive, so it gets the deep-amber warn
+  // token rather than sharing the destructive colour and the "Out of Service" wording.
+  const STATUS_DISPLAY = {
+    grounded:    { dot: "🔴", label: t.flStatusOutOfService, color: C.rd },
+    in_shop:     { dot: "🔧", label: t.flStatusInService,    color: C.pu },
+    oil_overdue: { dot: "🟠", label: t.flStatusOilOverdue,   color: C.am },
+    service_due: { dot: "🟡", label: t.flStatusServiceDue,   color: C.gold },
+    active:      { dot: "🟢", label: t.flStatusActive,       color: C.gr },
+  };
+
   const [subView, setSubView] = useState("list");
   const [calSel, setCalSel] = useState(null);
   const [filt, setFilt] = useState("all");
@@ -61,16 +76,20 @@ export default function FleetManagementView({
   const [reqVid, setReqVid] = useState("");
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [savingVehicleInfo, setSavingVehicleInfo] = useState(false);
+  const [groundModal, setGroundModal] = useState(false);
+  const [groundReason, setGroundReason] = useState("");
+  const [grounding, setGrounding] = useState(false);
   const predictedServices = sel ? learnServiceIntervals(sel) : [];
 
-  // Vehicles that can stand in for one in the shop: no driver on them, and not
-  // themselves scheduled for service. Excludes the serviced vehicle implicitly
+  // Vehicles that can stand in for one in the shop: no driver on them, not themselves
+  // scheduled for service, and not grounded. Excludes the serviced vehicle implicitly
   // (it is blocked, so it fails the second test).
   const availableSpares = (forReq) =>
     vehs.filter(
       (x) =>
         x.id !== forReq?.vid &&
         !x.assignedTo &&
+        !isUndispatchable(x) &&
         !reqs.some((r) => r.vid === x.id && r.status === "scheduled"),
     );
 
@@ -335,6 +354,44 @@ export default function FleetManagementView({
       showToast(t.flMaintFiled, "success");
     } catch (err) {
       showToast(`${t.flMaintFileFail} ${err.message}`, "error");
+    }
+  };
+
+  // Ground a vehicle, or put it back on the road. Deliberately separate from
+  // saveVehicleInfo: that dialog edits identity fields (name, plate, make) and is behind
+  // an "Edit Vehicle Name/Plate" button, which is not where anyone would look to pull a
+  // truck off the road.
+  const setServiceStatus = async (grounded, reason) => {
+    if (!sel) return;
+    setGrounding(true);
+    const changes = groundingPatch(grounded, reason);
+    try {
+      const { error } = await updateRowStrict("vehicles", sel.id, changes);
+      if (error) throw error;
+
+      const updated = { ...sel, ...changes };
+      setVehs((p) => p.map((v) => (v.id === sel.id ? updated : v)));
+      setSel(updated);
+
+      // The row does not carry who or when; this entry is that record. See the note in
+      // supabase/25 on why there are no oos_by / oos_at columns.
+      await logAction(
+        user.id,
+        user.email,
+        "FLEET_STATUS_CHANGE",
+        grounded
+          ? `Took "${updated.name}" out of service${changes.oos_reason ? `: ${changes.oos_reason}` : ""}`
+          : `Returned "${updated.name}" to service`,
+        { vehicle_id: sel.id, status: changes.status, reason: changes.oos_reason },
+        "fleet",
+      );
+
+      showToast(grounded ? t.flGrounded : t.flReturned, "success");
+      setGroundModal(false);
+    } catch (err) {
+      showToast(`${t.flGroundFail} ${err.message}`, "error");
+    } finally {
+      setGrounding(false);
     }
   };
 
@@ -606,28 +663,13 @@ export default function FleetManagementView({
               (r) => r.vid === v.id && r.status === "scheduled",
             );
             const isBlocked = !!blockingReq;
-            const getFleetStatus = (vehicle, oilStatus, detailStatus) => {
-              if (
-                vehicle.status === "out_of_service" ||
-                oilStatus === "overdue"
-              ) {
-                return { dot: "🔴", label: t.flStatusOutOfService, color: C.rd };
-              }
-              if (
-                oilStatus === "soon" ||
-                detailStatus === "soon" ||
-                vehicle.status === "service_due"
-              ) {
-                return { dot: "🟡", label: t.flStatusServiceDue, color: C.am };
-              }
-              return { dot: "🟢", label: t.flStatusActive, color: C.gr };
-            };
-
-            // Being in the shop outranks every other status line. An oil-change
-            // warning on a truck nobody can drive is noise.
-            const fleetStatus = isBlocked
-              ? { dot: "🔧", label: t.flStatusInService, color: C.pu }
-              : getFleetStatus(v, os, ds);
+            // Precedence lives in utils/fleetStatus so it can be tested without the
+            // theme or translations. Note "Out of Service" now means only a deliberate
+            // grounding; an overdue oil change gets its own red label, because sharing
+            // one made people hunt for a switch that turns off a mileage calculation.
+            const fleetStatus = STATUS_DISPLAY[
+              vehicleStatusKind({ vehicle: v, oilStatus: os, detailStatus: ds, blocked: isBlocked })
+            ];
             const bc =
               os === "overdue" || ds === "overdue"
                 ? C.rd
@@ -994,6 +1036,24 @@ export default function FleetManagementView({
                   : "Edit Vehicle Name/Plate"}
               </Btn>
             )}
+            {perms.fleet_edit && (
+              isGrounded(sel) ? (
+                <Btn v="green" sz="sm" disabled={grounding} onClick={() => setServiceStatus(false)}>
+                  ✅ {grounding ? "…" : t.flReturnToService}
+                </Btn>
+              ) : (
+                <Btn
+                  v="outline"
+                  sz="sm"
+                  onClick={() => {
+                    setGroundReason("");
+                    setGroundModal(true);
+                  }}
+                >
+                  🔴 {t.flGroundVehicle}
+                </Btn>
+              )
+            )}
             {user.role === "admin" && (
               <Btn
                 v="danger"
@@ -1007,6 +1067,23 @@ export default function FleetManagementView({
               </Btn>
             )}
           </div>
+
+          {isGrounded(sel) && (
+            <div
+              style={{
+                background: C.rB,
+                border: `1.5px solid ${C.rd}`,
+                borderRadius: "var(--radius-md)",
+                padding: "10px 14px",
+                marginBottom: 14,
+                fontSize: "var(--text-sm)",
+                color: C.rd,
+                fontWeight: "var(--weight-semibold)",
+              }}
+            >
+              🔴 {t.flGroundedBadge} {sel.oos_reason || t.flStatusOutOfService}
+            </div>
+          )}
 
           {isEditingInfo && (
             <div
@@ -1410,6 +1487,45 @@ export default function FleetManagementView({
               style={{ flex: 1, justifyContent: "center" }}
             >
               {t.flSave}
+            </Btn>
+          </div>
+        </Modal>
+      )}
+
+      {groundModal && sel && perms.fleet_edit && (
+        <Modal title={`🔴 ${t.flGroundTitle}`} onClose={() => setGroundModal(false)}>
+          <div
+            style={{
+              background: C.aB,
+              border: `1.5px solid ${C.am}`,
+              borderRadius: "var(--radius-md)",
+              padding: "10px 14px",
+              marginBottom: 14,
+              fontSize: "var(--text-sm)",
+              color: C.am,
+              fontWeight: "var(--weight-semibold)",
+            }}
+          >
+            {sel.name} — {t.flGroundNote}
+          </div>
+          <Fld label={t.flGroundReason} hint={t.flGroundReasonHint}>
+            <TA
+              value={groundReason}
+              onChange={(e) => setGroundReason(e.target.value)}
+              placeholder="e.g. Blown transmission, waiting on parts"
+            />
+          </Fld>
+          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+            <Btn v="ghost" onClick={() => setGroundModal(false)} style={{ flex: 1, justifyContent: "center" }}>
+              Cancel
+            </Btn>
+            <Btn
+              v="danger"
+              disabled={grounding}
+              onClick={() => setServiceStatus(true, groundReason)}
+              style={{ flex: 1, justifyContent: "center" }}
+            >
+              {grounding ? "Saving…" : t.flGroundVehicle}
             </Btn>
           </div>
         </Modal>
