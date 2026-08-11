@@ -107,6 +107,9 @@ export default defineConfig({
     // pure. The one place that touches a browser global (pdfGenerator calls
     // window.open) stubs it itself, so jsdom would cost startup time and buy nothing.
     environment: 'node',
-    include: ['src/**/*.test.js'],
+    // Netlify functions are covered too. The AccuLynx expense-notes cap is exactly
+    // the fiddly boundary arithmetic that belongs under test, and it lives in
+    // netlify/functions/_shared rather than src.
+    include: ['src/**/*.test.js', 'netlify/**/*.test.js'],
   },
 });

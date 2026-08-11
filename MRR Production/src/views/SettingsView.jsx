@@ -663,7 +663,7 @@ export default function SettingsView({
             <SectionTitle
               icon="🔗"
               title={t.stAxIntegration}
-              subtitle="When a job is marked Complete, the dashboard can post the material cost to AccuLynx and attach the completion report PDF to the job file."
+              subtitle="Files the job completion report PDF in the AccuLynx job's Documents. The PDF button in Pull Inventory only opens the report for printing; uploading is Sync Upload's job."
             />
             {/* 🟢 Status pill updated to seamlessly allow headless environment configurations */}
             <StatusPill
@@ -724,19 +724,9 @@ export default function SettingsView({
                   <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>{t.stAutoSyncDesc}</div>
                 </div>
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", cursor: "pointer" }}>
-                <Toggle
-                  on={!!acculynxConfig?.uploadReport}
-                  onChange={() => setAccuLynxConfig((p) => ({ ...p, uploadReport: !p.uploadReport }))}
-                />
-                <div>
-                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)" }}>{t.stUploadReport}</div>
-                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>{t.stUploadReportDesc}</div>
-                </div>
-              </label>
             </div>
 
-            {acculynxConfig?.uploadReport && (
+            {acculynxConfig?.enabled && (
               <div style={{ marginBottom: 24 }}>
                 <Fld label={t.stDocFolder}>
                   <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>

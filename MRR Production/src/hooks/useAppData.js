@@ -45,11 +45,9 @@ export function useAppData() {
     enabled: false,
     autoSync: true,
     proxyUrl: "",
-    // Report upload is opt-in so nobody already connected starts hitting a new
-    // failure on completion. Once on, it needs no further setup: with no explicit
-    // folder chosen the server files into "Job Paperwork", which is where the office
-    // puts these by hand today.
-    uploadReport: false,
+    // No explicit folder chosen means the server files into "Job Paperwork", which
+    // is where the office puts these by hand today, so this needs no setup beyond
+    // the API token.
     documentFolderId: "",
     documentFolderName: "Job Paperwork",
   });

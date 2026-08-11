@@ -22,16 +22,6 @@ async function persistSyncState(jobId, fields) {
   if (error) console.warn('Could not persist AccuLynx sync state:', error.message);
 }
 
-// Retries are for READS only. The default sync action creates an Additional Job
-// Expense, which is not idempotent: if an attempt reaches AccuLynx and the reply is
-// lost, retrying books the material cost onto the job a SECOND time. This helper
-// used to retry everything, including that write, and it also retried a non-ok
-// response with no delay at all — so one 502 from a request that had already
-// created the expense became three expenses.
-//
-// Each attempt gets its own timeout rather than one shared deadline for the whole
-// sequence. With a single AbortController the first abort poisons the signal, so
-// every later attempt failed instantly and the "retry" was decorative.
 // Shown instead of the proxy's bare "Not authenticated", which points at the wrong
 // thing entirely: nothing is wrong with AccuLynx or the API key.
 const SESSION_EXPIRED = 'Your sign-in session expired. Reload the page and sign in again, then retry.';
@@ -46,6 +36,14 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
+// Retries are for READS only. Uploading a document is a create: if an attempt
+// reaches AccuLynx and the reply is lost, retrying files a SECOND copy of the same
+// report onto the job. So the upload gets exactly one attempt, and only lookups
+// come through here.
+//
+// Each attempt gets its own timeout rather than one shared deadline for the whole
+// sequence. With a single AbortController the first abort poisons the signal, so
+// every later attempt fails instantly and the "retry" is decorative.
 async function fetchRead(url, options, { retries = 2, timeoutMs = 15000 } = {}) {
   let lastErr;
   for (let i = 0; i <= retries; i++) {
@@ -61,118 +59,52 @@ async function fetchRead(url, options, { retries = 2, timeoutMs = 15000 } = {}) 
   throw lastErr || new Error('Request failed');
 }
 
-export async function attemptAccuLynxSync(job, users, config, setJobs) {
-  // `items` and `materials` are the same list under two names. The build wizard
-  // writes `materials`; PullInventoryView writes both. Every other reader in the
-  // app does `items || materials` — this one didn't, so a job that reached
-  // completion without a pull having rewritten `items` synced a cost of $0 and
-  // was silently skipped as "no material cost".
-  const lines = Array.isArray(job?.items) ? job.items : (Array.isArray(job?.materials) ? job.materials : null);
-
-  const totalCost = lines
-    ? lines.reduce((s, i) => {
-        const itemPrice = i.priceAtPull !== undefined ? i.priceAtPull : (i.cost || i.price || 0);
-        return s + (Math.max(0, (i.pulled || 0) - (i.returned || 0))) * itemPrice;
-      }, 0)
-    : 0;
-  
-  const payload = {
-    poNumber: job?.po || 'NO_PO',
-    acculynxJobId: job?.acculynx_job_id || null, // Direct target when the job was linked via the wizard
-    paymentDescription: `Material Cost — ${job?.name || job?.title || 'Job'}`, 
-    totalMaterialCost: parseFloat(totalCost.toFixed(2)), 
-    lineItems: lines
-      ? lines
-          .filter(i => (i.pulled || 0) - (i.returned || 0) > 0)
-          .map(i => {
-            const itemPrice = i.priceAtPull !== undefined ? i.priceAtPull : (i.cost || i.price || 0); 
-            return {
-              name: i.iname || i.name || 'Unknown Material', 
-              category: i.icat || i.category || 'Materials', 
-              unit: i.unit || 'units', 
-              quantity: (i.pulled || 0) - (i.returned || 0), 
-              unitPrice: itemPrice, 
-              totalCost: parseFloat((((i.pulled || 0) - (i.returned || 0)) * itemPrice).toFixed(2)), 
-            };
-          })
-      : [],
-  };
-
-  if (!config || !config.enabled || !config.proxyUrl) {
-    const note = 'Configure AccuLynx in Settings to enable auto-sync.';
-    if (typeof setJobs === 'function') {
-      setJobs(p => p.map(j => j.id === job?.id ? {
-        ...j,
-        syncStatus: 'manual',
-        syncNote: note,
-        // Payload stays in memory only. It is recomputable from the job's items,
-        // so persisting it would duplicate material lines somewhere they can drift.
-        syncPayload: payload,
-      } : j));
-    }
+// The one thing this app sends to AccuLynx: the completion report PDF, filed as a
+// document on the job. Named "Sync Upload" in the UI.
+//
+// It used to also post the material cost as an Additional Job Expense. That is
+// gone. The PDF already carries the full itemised breakdown, categories, tax and
+// total, so the expense was a second, lossier copy of the same numbers that had to
+// survive a 250-character notes field and a non-idempotent create.
+//
+// Separately, the 📄 PDF button does NOT upload. Generating a report to read and
+// filing it in the CRM are different intentions, and merging them meant every
+// reprint of a finished job dropped another copy into Job Paperwork.
+export async function syncJobReportToAccuLynx({
+  job, users = [], config, setJobs,
+  activeLogo = null, inv = [], company = null,
+}) {
+  if (!config?.enabled || !config?.proxyUrl) {
+    const note = 'Configure AccuLynx in Settings to enable upload.';
+    applyJobState(setJobs, job?.id, { syncStatus: 'manual', syncNote: note });
     await persistSyncState(job?.id, { syncStatus: 'manual', syncNote: note });
-    return;
+    return { ok: false, skipped: true, error: note };
   }
 
-  try {
-    const accessToken = await getAccessToken();
-    // A null token can only produce a 401 "Not authenticated" from the proxy, which
-    // reads like an AccuLynx problem and sends people to check their API key. Fail
-    // here instead, naming the thing they can actually act on.
-    if (!accessToken) throw new Error(SESSION_EXPIRED);
-    // No retry: this call creates an expense. 30s because the request is a chain —
-    // browser to the Netlify function, the function verifying the session against
-    // Supabase, then AccuLynx. AccuLynx itself answers in about 300ms; the old 8s
-    // budget was being eaten by the hops in front of it, most visibly by a cold
-    // function on the first call after a deploy or a `netlify dev` start.
-    const res = await fetchWithTimeout(config.proxyUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // ── 🟢 FIXED: The key is hidden inside the secure Authorization header ──
-        'Authorization': `Bearer ${config.apiKey || ''}`
-      },
-      body: JSON.stringify({ ...payload, accessToken }), // 🟢 The JSON payload string is now completely clean of keys
-    }, 30000);
+  const result = await uploadJobReportToAccuLynx({ job, users, activeLogo, inv, company, config });
 
-    const responseData = await res.json().catch(() => ({}));
-
-    if (res.ok) {
-      const syncedAt = new Date().toISOString();
-      const note = responseData.message || 'Cost data synchronized onto AccuLynx file record.';
-      if (typeof setJobs === 'function') {
-        setJobs(p => p.map(j => j.id === job.id ? {
-          ...j,
-          syncStatus: 'synced',
-          syncedAt,
-          syncNote: note,
-          syncPayload: payload,
-        } : j));
-      }
-      await persistSyncState(job.id, { syncStatus: 'synced', syncedAt, syncNote: note });
-    } else {
-      const upstreamError = responseData?.error || responseData?.message || `HTTP ${res.status}`;
-      throw new Error(upstreamError);
-    }
-  } catch (err) {
-    // A timeout means the outcome is UNKNOWN, not that nothing was written: the
-    // expense may have been created with only the reply lost. Say so, because the
-    // obvious next move is to hit Retry, and a blind retry on a create is how one
-    // job ends up billed twice. The server now de-duplicates, but the person
-    // reading this still deserves to know which kind of failure they are looking at.
-    const errorMsg = err.name === 'AbortError'
-      ? 'AccuLynx request timed out. The cost may or may not have posted — check the job in AccuLynx before retrying.'
-      : err.message;
-    if (typeof setJobs === 'function') {
-      setJobs(p => p.map(j => j.id === job.id ? {
-        ...j,
-        syncStatus: 'failed',
-        syncNote: errorMsg,
-        syncPayload: payload,
-      } : j));
-    }
-    await persistSyncState(job.id, { syncStatus: 'failed', syncNote: errorMsg });
+  if (result.ok) {
+    const fields = {
+      syncStatus: 'synced',
+      syncedAt: result.uploadedAt,
+      syncNote: result.message || 'Report filed on the AccuLynx job.',
+      report_uploaded_at: result.uploadedAt,
+      report_file_name: result.filename,
+    };
+    applyJobState(setJobs, job?.id, fields);
+    await persistSyncState(job?.id, fields);
+  } else if (!result.skipped) {
+    const fields = { syncStatus: 'failed', syncNote: result.error };
+    applyJobState(setJobs, job?.id, fields);
+    await persistSyncState(job?.id, fields);
   }
+
+  return result;
+}
+
+function applyJobState(setJobs, jobId, fields) {
+  if (typeof setJobs !== 'function' || !jobId) return;
+  setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, ...fields } : j)));
 }
 
 // ── Document folders (Settings dropdown) ─────────────────────────────────────
@@ -193,9 +125,9 @@ export async function fetchAccuLynxDocumentFolders(config) {
 }
 
 // ── Upload the completion report PDF onto the AccuLynx job ───────────────────
-// Renders the report to real PDF bytes and files it on the job. Kept separate from
-// attemptAccuLynxSync so a failed upload can't lose the cost sync, or the reverse:
-// they hit different AccuLynx endpoints and fail for different reasons.
+// The transport half: render the report to real PDF bytes and post them. Kept
+// separate from syncJobReportToAccuLynx, which owns recording the outcome on the
+// job, so the upload itself stays callable without touching any state.
 export async function uploadJobReportToAccuLynx({ job, users, activeLogo, inv, company, config }) {
   if (!config?.enabled || !config?.proxyUrl) {
     return { ok: false, skipped: true, error: "AccuLynx integration is not configured." };
@@ -236,12 +168,10 @@ export async function uploadJobReportToAccuLynx({ job, users, activeLogo, inv, c
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
 
-    // Recorded so the app can answer "is this job's paperwork already in AccuLynx"
-    // without uploading a second copy to find out.
-    const uploadedAt = new Date().toISOString();
-    await persistSyncState(job?.id, { report_uploaded_at: uploadedAt, report_file_name: filename });
-
-    return { ok: true, message: data.message, filename, uploadedAt };
+    // Transport only: the caller records this on the job. Persisting here as well
+    // meant two database writes per upload, and left this function unusable by
+    // anything that does not want a write as a side effect.
+    return { ok: true, message: data.message, filename, uploadedAt: new Date().toISOString() };
   } catch (err) {
     clearTimeout(timeout);
     return { ok: false, error: err.name === "AbortError" ? "AccuLynx upload timed out" : err.message };

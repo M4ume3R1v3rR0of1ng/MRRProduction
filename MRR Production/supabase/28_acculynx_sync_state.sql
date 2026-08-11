@@ -42,9 +42,9 @@ alter table public.jobs
 -- typo'd status falls through every UI branch and renders as nothing, so the
 -- database refuses it rather than letting it show up as a blank badge.
 --
---   synced  cost expense accepted by AccuLynx
+--   synced  report PDF filed on the AccuLynx job
 --   failed  attempted, AccuLynx or the network refused
---   manual  no usable AccuLynx config; the office enters it by hand
+--   manual  no usable AccuLynx config; the office files it by hand
 --   NULL    never attempted
 --
 -- Safe to add against live data: the writer never existed, so every row is NULL.
@@ -58,10 +58,10 @@ begin
 end $$;
 
 comment on column public.jobs."syncStatus" is
-  'Result of the last AccuLynx cost sync. NULL = never attempted, which is NOT the '
-  'same as "not configured" — conflating those two was the bug this migration ends.';
+  'Result of the last AccuLynx report upload. NULL = never attempted, which is NOT '
+  'the same as "not configured" — conflating those two was the bug this migration ends.';
 comment on column public.jobs."syncedAt" is
-  'ISO timestamp of the last successful cost sync. Empty/NULL while unsynced.';
+  'ISO timestamp of the last successful upload. Empty/NULL while never sent.';
 comment on column public.jobs."syncNote" is
   'Human-readable outcome or error text from the last sync attempt.';
 comment on column public.jobs."syncPayload" is

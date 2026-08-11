@@ -1,6 +1,7 @@
 // netlify/functions/acculynx-sync.js
 
 import { adminClient, resolveCaller } from "./_shared/tenant.js";
+import { buildExpenseNotes } from "./_shared/expenseNotes.js";
 
 const ALLOWED_ORIGINS = [
   "https://steadwerk.com",
@@ -404,14 +405,9 @@ export const handler = async (event) => {
     }
 
     // AccuLynx has no /lineitems endpoint; material costs are recorded as an
-    // Additional Job Expense payment. The per-item breakdown goes in `notes`.
-    const itemLines = Array.isArray(body.lineItems)
-      ? body.lineItems.map((li) =>
-          `${li.name} — ${li.quantity} ${li.unit} @ $${Number(li.unitPrice || 0).toFixed(2)} = $${Number(li.totalCost || 0).toFixed(2)}`
-        )
-      : [];
-    let notes = [body.paymentDescription, ...itemLines].filter(Boolean).join("\n");
-    if (notes.length > 1900) notes = `${notes.slice(0, 1900)}…`;
+    // Additional Job Expense payment, and `notes` carries what fits of the
+    // breakdown. The cap is 250 characters — see _shared/expenseNotes.js.
+    const notes = buildExpenseNotes(body.paymentDescription, body.lineItems);
 
     // paymentDate is REQUIRED. Without it AccuLynx rejects the whole call with
     // 400 "PaymentDate cannot be null or empty" — verified against the live API,

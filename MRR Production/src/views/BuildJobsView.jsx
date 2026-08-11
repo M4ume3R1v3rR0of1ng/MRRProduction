@@ -8,7 +8,7 @@ import { shouldNotifyJobMove, notifyJobMove } from "../utils/jobNotifications";
 import { supabase, getAccessToken, updateRowStrict } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
 import CrewCalendar from "../components/CrewCalendar";
-import { openJobReport } from "../utils/jobReport";
+import { generatePDF } from "../utils/pdfGenerator";
 import { syncStatusOf, reportUploadedAtOf } from "../utils/accuLynxSync";
 import { logAction } from "../utils/logger";
 
@@ -799,10 +799,9 @@ export default function BuildJobs({
                         <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
                       </span>
                       <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>· {job.po}</span>
-                      {syncStatusOf(job) === "synced" && <Bdg color="sky">☁️ AccuLynx Synced</Bdg>}
-                      {syncStatusOf(job) === "failed" && <Bdg color="red">⚠️ Sync Failed</Bdg>}
-                      {syncStatusOf(job) === "manual" && <Bdg color="amber">📋 Sync Pending</Bdg>}
-                      {reportUploadedAtOf(job) && <Bdg color="green">{t.pullReportFiled}</Bdg>}
+                      {(syncStatusOf(job) === "synced" || reportUploadedAtOf(job)) && <Bdg color="green">{t.pullReportFiled}</Bdg>}
+                      {syncStatusOf(job) === "failed" && !reportUploadedAtOf(job) && <Bdg color="red">{t.pullUploadFailed}</Bdg>}
+                      {syncStatusOf(job) === "manual" && <Bdg color="amber">{t.pullConfigureSync}</Bdg>}
                     </div>
                     <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2 }}>{job.title || job.name}</div>
                     <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 6 }}>{job.addr}</div>
@@ -842,10 +841,9 @@ export default function BuildJobs({
                         sz="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          openJobReport({
-                            job, users, activeLogo, inv, company,
-                            acculynxConfig, showToast, t, popupBlockedMsg: t.bjPopupBlocked, setJobs,
-                          });
+                          if (!generatePDF(job, users, activeLogo, inv, company)) {
+                            showToast(t.bjPopupBlocked, "warning");
+                          }
                         }}
                       >
                         📄 PDF
@@ -925,10 +923,9 @@ export default function BuildJobs({
                 v="green"
                 sz="sm"
                 onClick={() => {
-                  openJobReport({
-                    job: sel, users, activeLogo, inv, company,
-                    acculynxConfig, showToast, t, popupBlockedMsg: t.bjPopupBlocked, setJobs,
-                  });
+                  if (!generatePDF(sel, users, activeLogo, inv, company)) {
+                    showToast(t.bjPopupBlocked, "warning");
+                  }
                 }}
               >
                 📄 Download PDF Report
