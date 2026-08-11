@@ -22,9 +22,7 @@
 import Stripe from "stripe";
 import { adminClient } from "./_shared/tenant.js";
 
-// Seats included in the BASE plan only. Crew packs are one-time purchases and
-// leave no subscription item behind, so they can't be read from here — they live
-// on companies.purchased_seat_packs and are added in applyStatus below.
+// Seats included in the BASE plan only.
 //
 // Returns null if we can't read items, which means "leave capacity alone" rather
 // than "this company has no seats".
@@ -44,9 +42,35 @@ function baseSeatsFromSubscription(sub) {
   return seats > 0 ? seats : 10;
 }
 
-// Purchased packs only count while the company is actually paying for the base
-// plan. A lapsed subscription drops the ceiling back to the base allowance.
+// Crew packs currently BILLED on the subscription, monthly or annual cadence.
+//
+// This is a mirror of Stripe's line-item quantity, not a running total: a customer can
+// change it from the hosted billing portal without touching our UI, so the subscription
+// is the truth and we re-read it on every event. Packs bought under the old ONE-TIME
+// pricing are NOT here — they live on companies.purchased_seat_packs, are grandfathered
+// permanently, and are added on top in applyStatus below. See supabase/27.
+//
+// Returns null when items are unreadable, so the caller can leave the stored value alone
+// rather than zeroing a paying customer's seats on a malformed event.
+function recurringPacksFromSubscription(sub) {
+  const items = sub?.items?.data;
+  if (!Array.isArray(items)) return null;
+  const packPriceIds = [
+    process.env.STRIPE_SEAT_PACK_PRICE_ID,
+    process.env.STRIPE_SEAT_PACK_ANNUAL_PRICE_ID,
+  ].filter(Boolean);
+  if (packPriceIds.length === 0) return null;
+  let packs = 0;
+  for (const it of items) {
+    if (packPriceIds.includes(it.price?.id)) packs += it.quantity || 0;
+  }
+  return packs;
+}
+
+// Packs only count while the company is actually paying for the base plan. A lapsed
+// subscription drops the ceiling back to the base allowance.
 const SUBSCRIBED_STATUSES = ["trialing", "active", "past_due"];
+const PACK_SEATS = 5;
 
 // Stripe subscription.status  →  our companies.subscription_status
 function mapStripeStatus(stripeStatus) {
@@ -64,7 +88,7 @@ function mapStripeStatus(stripeStatus) {
 
 // Apply a status (and optionally a seat capacity) to the company behind a Stripe
 // subscription/customer, unless the company is manually suspended (owner's lever wins).
-async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscriptionId, baseSeats }, status) {
+async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscriptionId, baseSeats, recurringPacks }, status) {
   if (!status) return;
 
   // Resolve the company: explicit id first, else by the stored Stripe ids.
@@ -84,7 +108,7 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
 
   const { data: co } = await admin
     .from("companies")
-    .select("subscription_status, purchased_seat_packs")
+    .select("subscription_status, purchased_seat_packs, recurring_seat_packs")
     .eq("id", id)
     .single();
   if (co?.subscription_status === "suspended") {
@@ -93,13 +117,22 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
   }
 
   const patch = { subscription_status: status };
+
+  // Mirror the billed pack quantity whenever we could read it, even if capacity itself
+  // is not being recomputed on this event, so the stored mirror never lags Stripe.
+  const billedPacks = typeof recurringPacks === "number" ? recurringPacks : co?.recurring_seat_packs || 0;
+  if (typeof recurringPacks === "number") patch.recurring_seat_packs = recurringPacks;
+
   // Only touch seat_capacity when we actually read a base allowance off a
   // subscription. Never overwrite a comped company's NULL (unlimited) here — that
   // only happens for a company that has a Stripe subscription, i.e. a paying one.
   if (typeof baseSeats === "number") {
-    const packs = co?.purchased_seat_packs || 0;
+    // Grandfathered one-time packs plus packs currently billed. Both grant the same
+    // seats; only the second kind stops when the subscription does — and when it
+    // lapses the whole lot drops to base anyway. See supabase/27.
+    const grandfathered = co?.purchased_seat_packs || 0;
     patch.seat_capacity = SUBSCRIBED_STATUSES.includes(status)
-      ? baseSeats + 5 * packs
+      ? baseSeats + PACK_SEATS * (grandfathered + billedPacks)
       : baseSeats;
   }
 
@@ -144,8 +177,11 @@ export const handler = async (event) => {
       case "checkout.session.completed": {
         const s = stripeEvent.data.object;
 
-        // A one-time crew pack, not a new subscription. This is the ONLY place a
-        // pack is credited: the money is confirmed landed, so the seats are real.
+        // LEGACY: a one-time crew pack under the pre-27 pricing. Nothing creates these
+        // sessions any more (add-seats now edits the subscription directly), but a
+        // checkout opened just before the switch can still complete and land here, and
+        // Stripe replays events for up to three days. Dropping this branch would take
+        // money and hand over no seats.
         if (s.metadata?.purpose === "seat_pack") {
           const companyId = s.metadata.company_id;
           const packs = parseInt(s.metadata.packs, 10);
@@ -166,14 +202,17 @@ export const handler = async (event) => {
           // (unlimited) capacity — adding a number there would cap them.
           const { data: co } = await admin
             .from("companies")
-            .select("seat_capacity, subscription_status")
+            .select("seat_capacity, subscription_status, recurring_seat_packs")
             .eq("id", companyId)
             .single();
 
           if (typeof co?.seat_capacity === "number" && SUBSCRIBED_STATUSES.includes(co.subscription_status)) {
+            // Include the recurring packs. The pre-27 version of this line was
+            // `10 + 5 * newTotal`, which would now wipe out every pack the company is
+            // currently paying for the moment a late one-time session settled.
             await admin
               .from("companies")
-              .update({ seat_capacity: 10 + 5 * newTotal })
+              .update({ seat_capacity: 10 + PACK_SEATS * (newTotal + (co.recurring_seat_packs || 0)) })
               .eq("id", companyId);
           }
           break;
@@ -196,6 +235,7 @@ export const handler = async (event) => {
           stripeCustomerId: sub.customer,
           stripeSubscriptionId: sub.id,
           baseSeats: baseSeatsFromSubscription(sub),
+          recurringPacks: recurringPacksFromSubscription(sub),
         }, mapStripeStatus(sub.status));
         break;
       }

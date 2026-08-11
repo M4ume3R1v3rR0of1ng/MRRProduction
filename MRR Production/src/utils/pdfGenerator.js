@@ -16,7 +16,11 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-export function generatePDF(job, users, activeLogo, inv = [], company = null) {
+// The numbers behind the job report, computed once and shared by both renderers:
+// the printable HTML popup below, and the binary PDF in jobReportPdf.js that gets
+// uploaded to AccuLynx. Two renderers reading two copies of this arithmetic is how
+// the report on screen and the report in the CRM quietly start disagreeing.
+export function buildJobReportModel(job, users, inv = [], company = null) {
   const sup = users.find(u => u.id === (job.assignedto || job.assignedTo));
 
   // The report header is the TENANT's name — pulled from their company row, never
@@ -62,10 +66,34 @@ export function generatePDF(job, users, activeLogo, inv = [], company = null) {
   const grandTotal = Object.values(cats).flat().reduce((s, i) => s + i.total, 0);
   const salesTax = grandTotal * SALES_TAX_RATE;
   const totalWithTax = grandTotal + salesTax;
+
+  return {
+    companyName,
+    jobName: job.title || job.name,
+    po: job.po,
+    addr: job.addr,
+    supervisor: sup ? sup.name : 'N/A',
+    completedAt: new Date(job.completedAt || job.completed || Date.now()),
+    notes: job.notes,
+    categories: Object.entries(cats).map(([name, items]) => ({
+      name,
+      items,
+      subtotal: items.reduce((s, i) => s + i.total, 0),
+    })),
+    taxLabel,
+    taxPct,
+    grandTotal,
+    salesTax,
+    totalWithTax,
+  };
+}
+
+export function generatePDF(job, users, activeLogo, inv = [], company = null) {
+  const m = buildJobReportModel(job, users, inv, company);
+  const { companyName, taxLabel, taxPct, grandTotal, salesTax, totalWithTax } = m;
   const fp = n => '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  
-  const catRows = Object.entries(cats).map(([cat, items]) => {
-    const catTotal = items.reduce((s, i) => s + i.total, 0);
+
+  const catRows = m.categories.map(({ name: cat, items, subtotal: catTotal }) => {
     return `
       <tr style="background:#EEF2FA">
         <td colspan="7" style="padding:8px 14px;font-weight:900;color:#0E2D6B">${escapeHtml(cat)}</td>
@@ -96,7 +124,7 @@ export function generatePDF(job, users, activeLogo, inv = [], company = null) {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Job Report — ${escapeHtml(job.po)}</title>
+      <title>Job Report — ${escapeHtml(m.po)}</title>
       <style>
         *{box-sizing:border-box}
         body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#1A202C}
@@ -117,14 +145,14 @@ export function generatePDF(job, users, activeLogo, inv = [], company = null) {
       </div>
       <hr style="border:2px solid #F5A800;margin-bottom:24px">
       <table style="margin-top:0;width:auto;min-width:400px">
-        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Job Name</td><td style="border:none;font-weight:700;font-size:14px">${escapeHtml(job.title || job.name)}</td></tr>
-        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">PO Number</td><td style="border:none">${escapeHtml(job.po)}</td></tr>
-        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Address</td><td style="border:none">${escapeHtml(job.addr)}</td></tr>
-        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Site Supervisor</td><td style="border:none">${escapeHtml(sup ? sup.name : 'N/A')}</td></tr>
-        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Date Completed</td><td style="border:none">${new Date(job.completedAt || job.completed || Date.now()).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</td></tr>
-        ${job.notes ? `<tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Notes</td><td style="border:none">${escapeHtml(job.notes)}</td></tr>` : ''}
+        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Job Name</td><td style="border:none;font-weight:700;font-size:14px">${escapeHtml(m.jobName)}</td></tr>
+        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">PO Number</td><td style="border:none">${escapeHtml(m.po)}</td></tr>
+        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Address</td><td style="border:none">${escapeHtml(m.addr)}</td></tr>
+        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Site Supervisor</td><td style="border:none">${escapeHtml(m.supervisor)}</td></tr>
+        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Date Completed</td><td style="border:none">${m.completedAt.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</td></tr>
+        ${m.notes ? `<tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Notes</td><td style="border:none">${escapeHtml(m.notes)}</td></tr>` : ''}
       </table>
-      <h3 style="margin:28px 0 4px;color:#0E2D6B;font-size:14px;text-transform:uppercase;letter-spacing:.5px">Materials Used — Pulled minus Returned</h3>
+      <h3 style="margin:28px 0 4px;color:#0E2D6B;font-size:14px;text-transform:uppercase;letter-spacing:.5px">Materials Used - Pulled minus Returned</h3>
       <table>
         <thead>
           <tr>

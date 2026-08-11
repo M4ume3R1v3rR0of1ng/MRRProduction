@@ -15,7 +15,9 @@
 // yet added.
 //
 // Pricing: the base plan is $99/mo and includes 10 users (STRIPE_BASE_PRICE_ID).
-// Extra seats are sold in +5 packs for a ONE-TIME $10 (STRIPE_SEAT_PACK_PRICE_ID),
+// Extra seats are sold in +5 packs for a RECURRING $10/mo (STRIPE_SEAT_PACK_PRICE_ID,
+// or STRIPE_SEAT_PACK_ANNUAL_PRICE_ID for a company on annual billing). Packs are not
+// sold here — add-seats.js edits the subscription directly. See supabase/27.
 // bought later from the Billing tab via add-seats.js — checkout here starts with
 // the base plan only. The base plan opens with a 14-day free trial (see
 // trial_period_days below).

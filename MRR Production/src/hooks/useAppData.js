@@ -45,6 +45,13 @@ export function useAppData() {
     enabled: false,
     autoSync: true,
     proxyUrl: "",
+    // Report upload is opt-in so nobody already connected starts hitting a new
+    // failure on completion. Once on, it needs no further setup: with no explicit
+    // folder chosen the server files into "Job Paperwork", which is where the office
+    // puts these by hand today.
+    uploadReport: false,
+    documentFolderId: "",
+    documentFolderName: "Job Paperwork",
   });
   const [logos, setLogos] = useState(null);
   // The company this session is working in: { id, name, slug, branding }.

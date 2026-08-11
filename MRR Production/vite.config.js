@@ -31,6 +31,11 @@ export default defineConfig({
       workbox: {
         // Precache the app shell so the portal opens offline.
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        // jsPDF and its dependencies are ~800KB raw. They are dynamically imported
+        // and only ever load for a company that has AccuLynx report upload switched
+        // on, so precaching them would make every crew on a job-site connection pay
+        // for a PDF engine they never open. They still cache normally once fetched.
+        globIgnores: ['**/pdf-vendor-*.js'],
         cleanupOutdatedCaches: true,
         // SPA: serve index.html for offline navigations, but never for Netlify
         // functions — those must hit the network.
@@ -52,6 +57,32 @@ export default defineConfig({
       },
     }),
   ],
+  // jsPDF is reached only through a dynamic import(), so Vite's scanner does not
+  // see it at server start. The first report upload then triggers dep discovery
+  // and a re-optimize, which drops the in-flight request — surfacing as
+  // "Failed to fetch dynamically imported module: .../jobReportPdf.js" and losing
+  // that upload. Pre-bundling them at boot means the first import already resolves.
+  optimizeDeps: {
+    include: ['jspdf', 'jspdf-autotable'],
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        // Corral the PDF engine into predictably-named chunks so the service worker
+        // can exclude them from the precache by name (see globIgnores above).
+        // html2canvas/dompurify are optional jsPDF deps used only by its .html()
+        // renderer, which this app never calls — they get emitted, never fetched.
+        manualChunks(id) {
+          // Kept OUT of the main pdf-vendor chunk on purpose: jsPDF imports these
+          // two lazily and only from its .html() renderer, which this app never
+          // calls. In their own chunk they are emitted but never fetched; folded in
+          // with jsPDF they would add ~230KB to every report upload.
+          if (/node_modules[\\/](html2canvas|dompurify)/.test(id)) return 'pdf-vendor-html';
+          if (/node_modules[\\/](jspdf|jspdf-autotable|core-js)/.test(id)) return 'pdf-vendor';
+        },
+      },
+    },
+  },
   server: {
     // Pin the dev port so Netlify Dev (8888) always proxies to the right place.
     // Without strictPort, a stale Vite squatting 5173 pushes this one to 5174 while

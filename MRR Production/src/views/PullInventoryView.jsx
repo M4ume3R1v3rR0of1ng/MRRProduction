@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import { C, fd, fm, doFifo, uid, tot, ft, mkJI, mergePullTracking, todayLocal, applyReturnBatch } from "../utils/helpers";
 import { displayNameOf } from "../utils/people";
 import { translations } from "../utils/translations";
-import { generatePDF } from "../utils/pdfGenerator";
-import { attemptAccuLynxSync } from "../utils/accuLynxSync";
+import { openJobReport } from "../utils/jobReport";
+import { attemptAccuLynxSync, syncStatusOf, syncNoteOf, syncedAtOf, reportUploadedAtOf } from "../utils/accuLynxSync";
 import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { supabase, updateRowStrict, isTransportError } from "../utils/supabase";
@@ -480,9 +480,13 @@ export default function PullInventory({
       setRetQtys({});
 
       setTimeout(() => {
-        if (!generatePDF(updatedJob, users, activeLogo, newInv, company)) {
-          showToast(t.pullPopupBlocked1, "warning");
-        }
+        // Opens the printable report and files it on the AccuLynx job. The upload is
+        // on its own toggle, separate from autoSync: the cost line and the report PDF
+        // go to different endpoints, and a company may want one without the other.
+        openJobReport({
+          job: updatedJob, users, activeLogo, inv: newInv, company,
+          acculynxConfig, showToast, t, popupBlockedMsg: t.pullPopupBlocked1, setJobs,
+        });
         if (acculynxConfig?.autoSync) {
           attemptAccuLynxSync(updatedJob, users, acculynxConfig, setJobs);
         }
@@ -593,12 +597,20 @@ export default function PullInventory({
     }
   };
 
+  // Two independent facts, so two badges: the cost expense and the report PDF go to
+  // different AccuLynx endpoints and either can land without the other.
   const syncBadge = (job) => {
-    if (!job || !job.syncStatus || job.status !== "completed") return null;
-    if (job.syncStatus === "synced") return <Bdg color="sky">{t.pullSynced}</Bdg>;
-    if (job.syncStatus === "failed") return <Bdg color="red">{t.pullSyncFailed}</Bdg>;
-    if (job.syncStatus === "manual") return <Bdg color="amber">{t.pullConfigureSync}</Bdg>;
+    if (!job || job.status !== "completed") return null;
+    const status = syncStatusOf(job);
+    if (status === "synced") return <Bdg color="sky">{t.pullSynced}</Bdg>;
+    if (status === "failed") return <Bdg color="red">{t.pullSyncFailed}</Bdg>;
+    if (status === "manual") return <Bdg color="amber">{t.pullConfigureSync}</Bdg>;
     return null;
+  };
+
+  const reportBadge = (job) => {
+    if (!job || job.status !== "completed" || !reportUploadedAtOf(job)) return null;
+    return <Bdg color="green">{t.pullReportFiled}</Bdg>;
   };
 
   // The audit entry for a pull.
@@ -770,6 +782,7 @@ export default function PullInventory({
                     {isNew && <Bdg color="teal">🔔 {t.pullNew}</Bdg>}
                     <span style={{ fontSize: "var(--text-sm)", color: C.sub }}>{job.po || t.pullNoPoHash}</span>
                     {syncBadge(job)}
+                    {reportBadge(job)}
                   </div>
                   <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2 }}>
                     {job.title || job.name}
@@ -820,7 +833,7 @@ export default function PullInventory({
                   )}
                   {job.status === "completed" && (
                     <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                      <Btn v="green" sz="sm" onClick={() => { if (!generatePDF(job, users, activeLogo, inv, company)) showToast(t.pullPopupBlocked2, "warning"); }}>📄 PDF</Btn>
+                      <Btn v="green" sz="sm" onClick={() => openJobReport({ job, users, activeLogo, inv, company, acculynxConfig, showToast, t, popupBlockedMsg: t.pullPopupBlocked2, setJobs })}>📄 PDF</Btn>
                       <Btn v="sky" sz="sm" onClick={() => setSyncModal(job)}>{t.pullSyncStatus}</Btn>
                     </div>
                   )}
@@ -1276,35 +1289,70 @@ export default function PullInventory({
           </div>
           {sel.status === "completed" && (
             <div style={{ marginTop: 10, display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
-              <Btn v="green" onClick={() => { if (!generatePDF(sel, users, activeLogo, inv, company)) showToast(t.pullPopupBlocked2, "warning"); }}>📄 PDF</Btn>
+              <Btn v="green" onClick={() => openJobReport({ job: sel, users, activeLogo, inv, company, acculynxConfig, showToast, t, popupBlockedMsg: t.pullPopupBlocked2, setJobs })}>📄 PDF</Btn>
               <Btn v="sky" onClick={() => setSyncModal(sel)}>{t.pullAccuLynxSync}</Btn>
             </div>
           )}
         </Modal>
       )}
 
-      {syncModal && (
+      {syncModal && (() => {
+        // Three states, not two. syncStatus lives in React state only and is wiped by
+        // any refresh, so a missing value means "no sync attempted in this session" —
+        // NOT "AccuLynx isn't set up". Conflating them told correctly-configured
+        // companies to go configure AccuLynx, on every completed job, after every
+        // reload. Only claim "not configured" when the config is genuinely absent.
+        const axReady = !!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl);
+        const syncState = syncStatusOf(syncModal) || (axReady ? "pending" : "manual");
+        const filedAt = reportUploadedAtOf(syncModal);
+        return (
         <Modal title={`${t.pullAccuLynxSyncTitle} — ${syncModal.po || t.pullNoPoHash}`} onClose={() => setSyncModal(null)}>
           <div style={{ marginBottom: 14 }}>
-            {syncModal.syncStatus === "synced" && (
+            {syncState === "synced" && (
               <div style={{ background: C.sB, border: `1.5px solid ${C.sl}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
                 <div style={{ fontWeight: "var(--weight-bold)", color: C.sl, marginBottom: 4 }}>{t.pullSyncSuccess}</div>
-                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{syncModal.syncNote}</div>
-                {syncModal.syncedAt && <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 4 }}>{t.pullSyncedAt}: {ft(syncModal.syncedAt)}</div>}
+                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{syncNoteOf(syncModal)}</div>
+                {syncedAtOf(syncModal) && <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 4 }}>{t.pullSyncedAt}: {ft(syncedAtOf(syncModal))}</div>}
               </div>
             )}
-            {syncModal.syncStatus === "failed" && (
+            {syncState === "failed" && (
               <div style={{ background: C.rB, border: `1.5px solid ${C.rd}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
                 <div style={{ fontWeight: "var(--weight-bold)", color: C.rd, marginBottom: 4 }}>{t.pullSyncFailed}</div>
-                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{syncModal.syncNote}</div>
+                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{syncNoteOf(syncModal)}</div>
               </div>
             )}
-            {(syncModal.syncStatus === "manual" || !syncModal.syncStatus) && (
+            {syncState === "manual" && (
               <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
                 <div style={{ fontWeight: "var(--weight-bold)", color: C.am, marginBottom: 4 }}>{t.pullAutoSyncNotConfig}</div>
                 <div style={{ fontSize: "var(--text-sm)", color: C.navy }}>{t.pullConfigureAccuLynx}</div>
               </div>
             )}
+            {syncState === "pending" && (
+              <div style={{ background: C.sB, border: `1.5px solid ${C.sl}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.sl, marginBottom: 4 }}>{t.pullSyncPending}</div>
+                <div style={{ fontSize: "var(--text-sm)", color: C.navy }}>{t.pullSyncPendingDesc}</div>
+              </div>
+            )}
+
+            {/* The report PDF is a separate fact from the cost expense — different
+                endpoint, different failure mode — so it gets its own line rather
+                than being folded into the sync status above. */}
+            <div style={{
+              marginTop: 10,
+              background: filedAt ? C.gB : "var(--c-shell)",
+              border: `1.5px solid ${filedAt ? C.gr : C.lg}`,
+              borderRadius: "var(--radius-md)",
+              padding: "12px 14px",
+            }}>
+              <div style={{ fontWeight: "var(--weight-bold)", color: filedAt ? C.gr : C.sub, marginBottom: 4 }}>
+                {filedAt ? t.pullReportFiledTitle : t.pullReportNotFiled}
+              </div>
+              <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>
+                {filedAt
+                  ? `${t.pullReportFiledAt}: ${ft(filedAt)}${syncModal.report_file_name ? ` · ${syncModal.report_file_name}` : ""}`
+                  : (acculynxConfig?.uploadReport ? t.pullReportNotFiledDesc : t.pullReportUploadOff)}
+              </div>
+            </div>
           </div>
           {syncModal.syncPayload && (
             <>
@@ -1317,13 +1365,18 @@ export default function PullInventory({
             </>
           )}
           <div style={{ display: "flex", gap: "var(--space-3)" }}>
-            {(syncModal.syncStatus === "failed" || syncModal.syncStatus === "manual") && (
-              <Btn v="sky" onClick={() => { attemptAccuLynxSync(syncModal, users, acculynxConfig, setJobs); setSyncModal(null); }} style={{ flex: 1, justifyContent: "center" }}>{t.pullRetrySync}</Btn>
+            {/* "pending" gets the button too: an unsynced job is exactly the case
+                where you want to push it, and before this the modal offered nothing
+                but Close. Retrying a synced job stays deliberately unavailable so a
+                stray click can't post a second expense onto the AccuLynx file. */}
+            {(syncState === "failed" || syncState === "manual" || syncState === "pending") && (
+              <Btn v="sky" onClick={() => { attemptAccuLynxSync(syncModal, users, acculynxConfig, setJobs); setSyncModal(null); }} style={{ flex: 1, justifyContent: "center" }}>{syncState === "pending" ? t.pullSyncNow : t.pullRetrySync}</Btn>
             )}
             <Btn v="ghost" onClick={() => setSyncModal(null)} style={{ flex: 1, justifyContent: "center" }}>{t.close}</Btn>
           </div>
         </Modal>
-      )}
+        );
+      })()}
     </div>
   );
 }

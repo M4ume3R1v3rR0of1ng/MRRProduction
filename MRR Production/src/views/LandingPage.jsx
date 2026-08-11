@@ -17,6 +17,11 @@ import { useEffect, useRef, useState } from "react";
 // happen, so change these together or not at all.
 const BASE_PRICE = 99;
 const BASE_SEATS = 10;
+// RECURRING, per month, per pack. This was a one-time charge until supabase/27 moved
+// crew packs back onto the subscription; the copy below says "a month" in three places
+// and the FAQ in a fourth. Advertising a one-time price against a recurring charge is
+// the exact refund request the note above warns about, so if this ever moves again,
+// move the words with it.
 const PACK_PRICE = 10;
 const PACK_SEATS = 5;
 const TRIAL_DAYS = 14;
@@ -1009,15 +1014,15 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowTrai
               <span className="code">CREW PACK</span>
               <div className="fig">
                 <span className="amt">${PACK_PRICE}</span>
-                <span className="per">once, per pack</span>
+                <span className="per">/ month, per pack</span>
               </div>
-              <div className="what">Another {PACK_SEATS} people, whenever you need them.</div>
+              <div className="what">Another {PACK_SEATS} people, for as long as you need them.</div>
               <ul className="rate-list">
-                <li>Buy a pack from your Billing tab in two clicks.</li>
-                <li>You pay the ${PACK_PRICE} once. It's not another subscription.</li>
-                <li>The seats stay yours for as long as you're with us.</li>
+                <li>Add or drop a pack from your Billing tab in two clicks.</li>
+                <li>Prorated both ways, so a pack you hold a week costs a week.</li>
+                <li>Drop it the month the season ends and the charge stops.</li>
               </ul>
-              <p>Hire five in the spring and it costs you ${PACK_PRICE}, one time. Your monthly bill is still ${BASE_PRICE}.</p>
+              <p>Hire five for the busy season and it's ${PACK_PRICE} a month while you need them. Let them go in the autumn and your bill goes back to ${BASE_PRICE}.</p>
             </div>
           </div>
         </div>
@@ -1039,7 +1044,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowTrai
             <details>
               <summary>What does it cost, all in?</summary>
               <div className="ans">
-                <b>${BASE_PRICE} a month</b> covers up to {BASE_SEATS} people and every feature. Nothing gets held back for a bigger plan. Past {BASE_SEATS}, another {PACK_SEATS} people cost <b>${PACK_PRICE} one time</b>, not another monthly line. No setup fee, no per-job fee, no onboarding charge.
+                <b>${BASE_PRICE} a month</b> covers up to {BASE_SEATS} people and every feature. Nothing gets held back for a bigger plan. Past {BASE_SEATS}, another {PACK_SEATS} people cost <b>${PACK_PRICE} a month</b>, and you can drop the pack again when the season turns. No setup fee, no per-job fee, no onboarding charge.
               </div>
             </details>
             <details>

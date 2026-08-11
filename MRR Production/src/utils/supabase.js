@@ -43,7 +43,21 @@ export const isTransportError = (err) =>
 
 // Current user's Supabase session token, sent to Netlify functions so they can
 // verify the caller server-side instead of trusting an unauthenticated request.
+//
+// getSession() alone is not enough. The access token expires after an hour, and
+// once it has, getSession() hands back null whenever the background refresh has
+// not run — a backgrounded tab, a laptop resumed from sleep, a transient network
+// failure during the automatic attempt. Returning null there made every Netlify
+// function reply "Not authenticated" to somebody sitting in front of a working,
+// logged-in app, which reads as a broken integration rather than a stale token.
+//
+// So ask for the refresh explicitly before giving up. Only a genuinely dead
+// refresh token returns null, and that one really does mean "sign in again".
 export async function getAccessToken() {
   const { data: { session } = {} } = await supabase.auth.getSession();
-  return session?.access_token || null;
+  if (session?.access_token) return session.access_token;
+
+  const { data, error } = await supabase.auth.refreshSession();
+  if (error) return null;
+  return data?.session?.access_token || null;
 }

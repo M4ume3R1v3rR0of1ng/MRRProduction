@@ -8,7 +8,8 @@ import { shouldNotifyJobMove, notifyJobMove } from "../utils/jobNotifications";
 import { supabase, getAccessToken, updateRowStrict } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
 import CrewCalendar from "../components/CrewCalendar";
-import { generatePDF } from "../utils/pdfGenerator";
+import { openJobReport } from "../utils/jobReport";
+import { syncStatusOf, reportUploadedAtOf } from "../utils/accuLynxSync";
 import { logAction } from "../utils/logger";
 
 import { fetchJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
@@ -143,17 +144,22 @@ export default function BuildJobs({
     setAxL(true);
     try {
       const accessToken = await getAccessToken();
+      // Without this the proxy answers 401 "Not authenticated", which reads as an
+      // AccuLynx credential problem and sends people to re-enter their API key.
+      if (!accessToken) throw new Error(t.bjSessionExpired);
       const response = await fetch(acculynxConfig.proxyUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "search", query: axQ.trim(), accessToken }),
       });
-      if (!response.ok)
+      // The proxy always says WHY in the body — an inactive membership, a lapsed
+      // subscription, no AccuLynx key for this company. Throwing on the status code
+      // alone discarded that and left a bare "403" on screen with nothing to act on.
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok)
         throw new Error(
-          `Server returned HTTP Error Status: ${response.status}`,
+          data.error || `Server returned HTTP Error Status: ${response.status}`,
         );
-      const data = await response.json();
-      if (!data.ok) throw new Error(data.error || "Search failed");
       const results = Array.isArray(data.jobs) ? data.jobs : [];
       setAxR(results);
       if (results.length === 0) {
@@ -793,9 +799,10 @@ export default function BuildJobs({
                         <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
                       </span>
                       <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>· {job.po}</span>
-                      {job.syncStatus === "synced" && <Bdg color="sky">☁️ AccuLynx Synced</Bdg>}
-                      {job.syncStatus === "failed" && <Bdg color="red">⚠️ Sync Failed</Bdg>}
-                      {job.syncStatus === "manual" && <Bdg color="amber">📋 Sync Pending</Bdg>}
+                      {syncStatusOf(job) === "synced" && <Bdg color="sky">☁️ AccuLynx Synced</Bdg>}
+                      {syncStatusOf(job) === "failed" && <Bdg color="red">⚠️ Sync Failed</Bdg>}
+                      {syncStatusOf(job) === "manual" && <Bdg color="amber">📋 Sync Pending</Bdg>}
+                      {reportUploadedAtOf(job) && <Bdg color="green">{t.pullReportFiled}</Bdg>}
                     </div>
                     <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2 }}>{job.title || job.name}</div>
                     <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 6 }}>{job.addr}</div>
@@ -835,9 +842,10 @@ export default function BuildJobs({
                         sz="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (!generatePDF(job, users, activeLogo, inv, company)) {
-                            showToast(t.bjPopupBlocked, "warning");
-                          }
+                          openJobReport({
+                            job, users, activeLogo, inv, company,
+                            acculynxConfig, showToast, t, popupBlockedMsg: t.bjPopupBlocked, setJobs,
+                          });
                         }}
                       >
                         📄 PDF
@@ -917,9 +925,10 @@ export default function BuildJobs({
                 v="green"
                 sz="sm"
                 onClick={() => {
-                  if (!generatePDF(sel, users, activeLogo, inv, company)) {
-                    showToast(t.bjPopupBlocked, "warning");
-                  }
+                  openJobReport({
+                    job: sel, users, activeLogo, inv, company,
+                    acculynxConfig, showToast, t, popupBlockedMsg: t.bjPopupBlocked, setJobs,
+                  });
                 }}
               >
                 📄 Download PDF Report

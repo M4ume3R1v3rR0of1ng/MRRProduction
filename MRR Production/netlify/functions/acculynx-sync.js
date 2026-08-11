@@ -127,6 +127,132 @@ export const handler = async (event) => {
       }
     }
 
+    // Folder ids are per-company, so the id for "Job Paperwork" differs per tenant
+    // and can only be discovered at runtime from their own AccuLynx account.
+    //
+    // Two things here are easy to get wrong and were, verified against the live API
+    // on 2026-08-11: the path is NOT /company/documentfolders (that 404s), and the
+    // id field is `documentFolderId`, not `id` — reading `id` yields undefined for
+    // every folder, so the list comes back empty rather than erroring.
+    const listDocumentFolders = async () => {
+      const res = await fetch(
+        "https://api.acculynx.com/api/v2/company-settings/job-file-settings/document-folders?pageSize=100&recordStartIndex=0",
+        { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } }
+      );
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`AccuLynx folder list failed: HTTP ${res.status} ${txt}`);
+      }
+      const d = await res.json();
+      const raw = Array.isArray(d?.items) ? d.items : (Array.isArray(d) ? d : []);
+      return raw
+        .map((f) => ({ id: f.documentFolderId, name: f.name || "Unnamed folder" }))
+        .filter((f) => f.id);
+    };
+
+    // ── Document folders: populates the Settings dropdown ────────────────
+    if (body.action === "documentFolders") {
+      try {
+        return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, folders: await listDocumentFolders() }) };
+      } catch (err) {
+        return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ ok: false, error: err.message }) };
+      }
+    }
+
+    // ── Upload the completion report PDF onto the AccuLynx job ───────────
+    // AccuLynx has no "create invoice" endpoint — invoices are read-only in v2.
+    // The closest thing to sending one back is attaching the report as a job
+    // document, which is what the office actually opens.
+    if (body.action === "uploadDocument") {
+      try {
+        const { documentFolderId, fileName, fileBase64, description } = body;
+        // Wizard-linked jobs carry the id; unlinked ones resolve by PO, and as with
+        // expenses the match must be an exact jobNumber — a best guess would file a
+        // customer's cost report onto somebody else's job.
+        let acculynxJobId = body.acculynxJobId || null;
+        if (!acculynxJobId && body.poNumber && body.poNumber !== "NO_PO") {
+          const lookup = await fetch(
+            `https://api.acculynx.com/api/v2/jobs/search?pageSize=25&recordStartIndex=0`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+              body: JSON.stringify({ searchTerm: body.poNumber }),
+            }
+          );
+          if (lookup.ok) {
+            const d = await lookup.json();
+            const candidates = d?.data || d?.items || d?.jobs || d?.results || (Array.isArray(d) ? d : []);
+            acculynxJobId = candidates.find((j) => String(j.jobNumber) === String(body.poNumber))?.id || null;
+          }
+        }
+        if (!acculynxJobId) {
+          return {
+            statusCode: 404,
+            headers: corsHeaders,
+            body: JSON.stringify({ ok: false, error: `No AccuLynx job matches "${body.poNumber || "(no PO)"}" — upload skipped to avoid filing the report on the wrong job` }),
+          };
+        }
+        // The office files these in "Job Paperwork" by hand today, so that folder is
+        // the default and needs no setup. An explicit id from Settings still wins,
+        // and the name is matched case-insensitively because a tenant may have typed
+        // it as "Job paperwork".
+        let folderId = documentFolderId || null;
+        if (!folderId) {
+          const wanted = String(body.documentFolderName || "Job Paperwork").trim().toLowerCase();
+          const folders = await listDocumentFolders();
+          folderId = folders.find((f) => String(f.name).trim().toLowerCase() === wanted)?.id || null;
+          if (!folderId) {
+            return {
+              statusCode: 404,
+              headers: corsHeaders,
+              body: JSON.stringify({
+                ok: false,
+                error: `No AccuLynx document folder named "${body.documentFolderName || "Job Paperwork"}". Pick one in Settings. Folders found: ${folders.map((f) => f.name).join(", ") || "none"}`,
+              }),
+            };
+          }
+        }
+        if (!fileBase64) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Missing file payload" }) };
+        }
+
+        const bytes = Buffer.from(fileBase64, "base64");
+        // Netlify caps a function request body at 6MB and base64 inflates by ~33%.
+        // A material report is tens of KB; anything near the cap is a bug upstream,
+        // and failing here names the real problem instead of a truncated upload.
+        if (bytes.length === 0 || bytes.length > 4 * 1024 * 1024) {
+          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Report PDF is empty or too large to upload" }) };
+        }
+
+        // Node 18+ on Netlify has FormData/Blob natively, so the multipart body
+        // needs no extra dependency. Do NOT set Content-Type by hand — fetch has
+        // to append its own multipart boundary.
+        const form = new FormData();
+        form.append("file", new Blob([bytes], { type: "application/pdf" }), fileName || "JobReport.pdf");
+        form.append("documentFolderId", folderId);
+        if (description) form.append("description", String(description).slice(0, 500));
+
+        const upRes = await fetch(`https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/documents`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiKey}` },
+          body: form,
+        });
+
+        if (!upRes.ok) {
+          const txt = await upRes.text();
+          throw new Error(`AccuLynx document upload failed ${upRes.status}: ${txt}`);
+        }
+
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ ok: true, message: "Completion report uploaded to the AccuLynx job file." }),
+        };
+      } catch (err) {
+        return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ ok: false, error: err.message }) };
+      }
+    }
+
     // ── ACTION: GET JOB PULL DETAILS (WITH DEFENSIVE NORMALIZATION) ──────
     if (body.action === "getJob") {
       try {
@@ -236,6 +362,47 @@ export const handler = async (event) => {
 
     const acculynxJobId = acculynxJob.id;
 
+    // ── Do not bill the same job twice ───────────────────────────────────
+    // Creating an expense is not idempotent, and the client cannot tell a lost
+    // reply from a failed write: a request that times out may well have posted.
+    // The obvious next move for whoever sees "Sync Failed" is to press Retry,
+    // and without this that books the material cost onto the job a second time.
+    //
+    // Matching on amount AND our PO reference, because a company legitimately
+    // has several expenses on one job (dumpster, labor) and only OUR line is the
+    // one being replayed.
+    const expenseRef = body.poNumber && body.poNumber !== "NO_PO" ? String(body.poNumber).slice(0, 50) : null;
+    try {
+      const existingRes = await fetch(
+        `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/payments?pageSize=100&recordStartIndex=0`,
+        { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } }
+      );
+      if (existingRes.ok) {
+        const existing = await existingRes.json();
+        const priorPayments = Array.isArray(existing?.items) ? existing.items : [];
+        const duplicate = priorPayments.find(
+          (p) => Math.abs(Number(p.amount) - amount) < 0.005 &&
+                 (!expenseRef || String(p.refNumber || "") === expenseRef)
+        );
+        if (duplicate) {
+          return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: JSON.stringify({
+              ok: true,
+              acculynxJobId,
+              alreadyRecorded: true,
+              message: `This material cost is already on the AccuLynx job (${amount.toFixed(2)}). Nothing was posted a second time.`,
+            }),
+          };
+        }
+      }
+      // A failed duplicate check is not a reason to abandon the sync. It only
+      // means we post without the guard, which is the old behaviour.
+    } catch {
+      // fall through and post
+    }
+
     // AccuLynx has no /lineitems endpoint; material costs are recorded as an
     // Additional Job Expense payment. The per-item breakdown goes in `notes`.
     const itemLines = Array.isArray(body.lineItems)
@@ -267,7 +434,10 @@ export const handler = async (event) => {
           notes,
           paymentDate,
           isPaid: true,
-          refNumber: body.poNumber && body.poNumber !== "NO_PO" ? String(body.poNumber).slice(0, 255) : undefined,
+          // 50, not 255: AccuLynx caps refNumber at 50 and 400s the whole call
+          // past that. It also has to match the slice the duplicate check above
+          // uses, or a replay would fail to recognise its own earlier expense.
+          refNumber: expenseRef || undefined,
         }),
       }
     );

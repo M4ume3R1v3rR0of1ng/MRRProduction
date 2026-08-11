@@ -15,6 +15,8 @@
         "npm:@supabase/supabase-js@^2.106.2",
         "npm:@vite-pwa/assets-generator@^1.0.2",
         "npm:@vitejs/plugin-react@4",
+        "npm:jspdf-autotable@^5.0.8",
+        "npm:jspdf@^4.2.1",
         "npm:react-dom@^18.2.0",
         "npm:react@^18.2.0",
         "npm:resend@^6.12.4",

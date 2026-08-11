@@ -13,7 +13,7 @@ import { logAction } from "../utils/logger";
 import { translations } from "../utils/translations";
 import { useNotify } from "../context/NotificationContext";
 // ── 🆕 IMPORT ADDED ──────────────────────────────────────────────────────────
-import { fetchAccuLynxJob } from "../utils/accuLynxSync";
+import { fetchAccuLynxJob, fetchAccuLynxDocumentFolders } from "../utils/accuLynxSync";
 import { US_STATES, stateByCode } from "../utils/salesTax";
 import {
   AUTOMATION_GROUPS,
@@ -250,6 +250,8 @@ export default function SettingsView({
   const [lookupPo, setLookupPo]         = useState("");
   const [lookupResult, setLookupResult] = useState(null);
   const [lookingUp, setLookingUp]       = useState(false);
+  const [docFolders, setDocFolders]     = useState([]);
+  const [loadingFolders, setLoadingFolders] = useState(false);
 
   const tabs = [
     { id: "Permissions", label: "Permissions", icon: "🔒" },
@@ -395,6 +397,23 @@ export default function SettingsView({
       }
     } finally {
       setSavingAx(false);
+    }
+  };
+
+  // AccuLynx requires a destination folder id on every document upload, and folder
+  // ids are per-company, so this can only be filled in after the token is saved.
+  const handleLoadFolders = async () => {
+    setLoadingFolders(true);
+    try {
+      const folders = await fetchAccuLynxDocumentFolders(acculynxConfig);
+      setDocFolders(folders);
+      if (folders.length === 0) {
+        showToast(`${t.stLoadFoldersFail} none found`, "warning");
+      }
+    } catch (err) {
+      showToast(`${t.stLoadFoldersFail} ${err.message}`, "error");
+    } finally {
+      setLoadingFolders(false);
     }
   };
 
@@ -644,7 +663,7 @@ export default function SettingsView({
             <SectionTitle
               icon="🔗"
               title={t.stAxIntegration}
-              subtitle="When a job is marked Complete, the dashboard uploads the material cost PDF and adds a payment line item to AccuLynx automatically."
+              subtitle="When a job is marked Complete, the dashboard can post the material cost to AccuLynx and attach the completion report PDF to the job file."
             />
             {/* 🟢 Status pill updated to seamlessly allow headless environment configurations */}
             <StatusPill
@@ -705,7 +724,53 @@ export default function SettingsView({
                   <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>{t.stAutoSyncDesc}</div>
                 </div>
               </label>
+              <label style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", cursor: "pointer" }}>
+                <Toggle
+                  on={!!acculynxConfig?.uploadReport}
+                  onChange={() => setAccuLynxConfig((p) => ({ ...p, uploadReport: !p.uploadReport }))}
+                />
+                <div>
+                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)" }}>{t.stUploadReport}</div>
+                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>{t.stUploadReportDesc}</div>
+                </div>
+              </label>
             </div>
+
+            {acculynxConfig?.uploadReport && (
+              <div style={{ marginBottom: 24 }}>
+                <Fld label={t.stDocFolder}>
+                  <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
+                    <Sel
+                      value={acculynxConfig?.documentFolderId || ""}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        // Store the name alongside the id purely so the picker can label
+                        // the saved folder before the list has been fetched again.
+                        const name = docFolders.find((f) => f.id === id)?.name || "";
+                        setAccuLynxConfig((p) => ({ ...p, documentFolderId: id, documentFolderName: name }));
+                      }}
+                      style={{ flex: 1 }}
+                    >
+                      <option value="">{t.stDocFolderNone}</option>
+                      {/* A previously saved folder still shows while the list is unloaded,
+                          so opening Settings can't silently blank an existing choice. */}
+                      {docFolders.length === 0 && acculynxConfig?.documentFolderId && (
+                        <option value={acculynxConfig.documentFolderId}>
+                          {acculynxConfig.documentFolderName || acculynxConfig.documentFolderId}
+                        </option>
+                      )}
+                      {docFolders.map((f) => (
+                        <option key={f.id} value={f.id}>{f.name}</option>
+                      ))}
+                    </Sel>
+                    <Btn v="ghost" type="button" onClick={handleLoadFolders} disabled={loadingFolders}>
+                      {loadingFolders ? "⏳" : `📁 ${t.stLoadFolders}`}
+                    </Btn>
+                  </div>
+                </Fld>
+                <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 6 }}>{t.stDocFolderHint}</div>
+              </div>
+            )}
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
               <Btn v="primary" type="submit" disabled={savingAx}>
