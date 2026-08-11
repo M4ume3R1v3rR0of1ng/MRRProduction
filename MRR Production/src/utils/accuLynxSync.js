@@ -1,5 +1,6 @@
 // src/utils/accuLynxSync.js
 import { getAccessToken, updateRowStrict } from './supabase';
+import { buildJobReportModel } from './pdfGenerator';
 
 // ── Reading sync state off a job ─────────────────────────────────────────────
 // "syncStatus"/"syncedAt"/"syncNote" are real columns on public.jobs and always
@@ -62,12 +63,15 @@ async function fetchRead(url, options, { retries = 2, timeoutMs = 15000 } = {}) 
 // The one thing this app sends to AccuLynx: the completion report PDF, filed as a
 // document on the job. Named "Sync Upload" in the UI.
 //
-// It used to also post the material cost as an Additional Job Expense. That is
-// gone. The PDF already carries the full itemised breakdown, categories, tax and
-// total, so the expense was a second, lossier copy of the same numbers that had to
-// survive a 250-character notes field and a non-idempotent create.
+// Two writes to two different AccuLynx endpoints:
+//   1. the completion report PDF, filed as a document on the job
+//   2. the material cost, posted as an Additional Job Expense (TAX INCLUDED)
 //
-// Separately, the 📄 PDF button does NOT upload. Generating a report to read and
+// They do not gate each other. Different endpoints, different failure modes, and
+// either can land without the other — so a refused expense must never cost you the
+// paperwork, and a refused upload must never hide a posted cost.
+//
+// Separately, the 📄 PDF button does NOT sync. Generating a report to read and
 // filing it in the CRM are different intentions, and merging them meant every
 // reprint of a finished job dropped another copy into Job Paperwork.
 export async function syncJobReportToAccuLynx({
@@ -81,30 +85,121 @@ export async function syncJobReportToAccuLynx({
     return { ok: false, skipped: true, error: note };
   }
 
-  const result = await uploadJobReportToAccuLynx({ job, users, activeLogo, inv, company, config });
+  const report = await uploadJobReportToAccuLynx({ job, users, activeLogo, inv, company, config });
+  const cost = await postJobCostToAccuLynx({ job, users, inv, company, config });
 
-  if (result.ok) {
-    const fields = {
-      syncStatus: 'synced',
-      syncedAt: result.uploadedAt,
-      syncNote: result.message || 'Report filed on the AccuLynx job.',
-      report_uploaded_at: result.uploadedAt,
-      report_file_name: result.filename,
-    };
-    applyJobState(setJobs, job?.id, fields);
-    await persistSyncState(job?.id, fields);
-  } else if (!result.skipped) {
-    const fields = { syncStatus: 'failed', syncNote: result.error };
-    applyJobState(setJobs, job?.id, fields);
-    await persistSyncState(job?.id, fields);
+  // Report the halves separately. Collapsing them into one "failed" hides which of
+  // the two actually landed, and the whole point of recording this is to answer
+  // that without opening AccuLynx.
+  const parts = [
+    report.ok ? 'Report filed.' : report.skipped ? null : `Report failed: ${report.error}`,
+    cost.ok ? cost.message : cost.skipped ? null : `Cost failed: ${cost.error}`,
+  ].filter(Boolean);
+  const note = parts.join(' ') || 'Nothing to send.';
+
+  const anyFailed = (!report.ok && !report.skipped) || (!cost.ok && !cost.skipped);
+  const at = report.uploadedAt || new Date().toISOString();
+
+  const fields = anyFailed
+    ? { syncStatus: 'failed', syncNote: note }
+    : { syncStatus: 'synced', syncedAt: at, syncNote: note };
+
+  // Only claim the report is filed when it genuinely is — this column is what stops
+  // a later sync from uploading a second copy.
+  if (report.ok) {
+    fields.report_uploaded_at = report.uploadedAt;
+    fields.report_file_name = report.filename;
   }
 
-  return result;
+  applyJobState(setJobs, job?.id, fields);
+  await persistSyncState(job?.id, fields);
+
+  return { ok: !anyFailed, report, cost, error: anyFailed ? note : undefined, message: note };
 }
 
 function applyJobState(setJobs, jobId, fields) {
   if (typeof setJobs !== 'function' || !jobId) return;
   setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, ...fields } : j)));
+}
+
+const money = (n) => '$' + Number(n).toFixed(2);
+
+// ── Post the material cost as an Additional Job Expense ──────────────────────
+//
+// The amount is m.totalWithTax — the TAX-INCLUSIVE figure, and the exact number
+// printed as "TOTAL MATERIAL COST" on the PDF. This used to post the pre-tax
+// subtotal, so the expense in AccuLynx and the report attached to the same job
+// disagreed by the tax on every job.
+//
+// Both numbers now come from one call to buildJobReportModel, which is also what
+// the PDF renders from. They cannot drift, because there is only one calculation.
+async function postJobCostToAccuLynx({ job, users, inv, company, config }) {
+  const m = buildJobReportModel(job, users, inv, company);
+  const amount = parseFloat(m.totalWithTax.toFixed(2));
+
+  if (!(amount > 0)) {
+    return { ok: false, skipped: true, error: 'No material cost to post.' };
+  }
+
+  const lineItems = m.categories
+    .flatMap((c) => c.items)
+    .filter((i) => i.used > 0)
+    .map((i) => ({
+      name: i.iname || 'Unknown Material',
+      category: i.icat || 'Materials',
+      unit: i.unit || 'units',
+      quantity: i.used,
+      unitPrice: i.unitPrice,
+      totalCost: parseFloat(i.total.toFixed(2)),
+    }));
+
+  // Second line spells out the tax so the number is auditable from AccuLynx alone,
+  // without opening the PDF to find out why the expense is not the sum of the items.
+  const paymentDescription =
+    `Material Cost - ${job?.name || job?.title || 'Job'}\n` +
+    `${money(m.grandTotal)} + ${m.taxLabel} ${m.taxPct}% ${money(m.salesTax)} = ${money(amount)}`;
+
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) throw new Error(SESSION_EXPIRED);
+
+    // One attempt only: creating an expense is not idempotent. The server also
+    // de-duplicates on amount + PO before posting, which is what makes a retry
+    // after an ambiguous timeout safe.
+    const res = await fetchWithTimeout(config.proxyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey || ''}`,
+      },
+      body: JSON.stringify({
+        poNumber: job?.po || 'NO_PO',
+        acculynxJobId: job?.acculynx_job_id || null,
+        paymentDescription,
+        totalMaterialCost: amount,
+        lineItems,
+        accessToken,
+      }),
+    }, 30000);
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.ok === false) throw new Error(data?.error || `HTTP ${res.status}`);
+
+    return {
+      ok: true,
+      amount,
+      alreadyRecorded: !!data.alreadyRecorded,
+      message: data.message || `Cost ${money(amount)} posted to AccuLynx.`,
+    };
+  } catch (err) {
+    // A timeout means the outcome is UNKNOWN, not that nothing was written.
+    return {
+      ok: false,
+      error: err.name === 'AbortError'
+        ? `Cost post timed out. ${money(amount)} may or may not have posted — check the job in AccuLynx before retrying.`
+        : err.message,
+    };
+  }
 }
 
 // ── Document folders (Settings dropdown) ─────────────────────────────────────

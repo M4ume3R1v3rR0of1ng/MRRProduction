@@ -663,7 +663,7 @@ export default function SettingsView({
             <SectionTitle
               icon="🔗"
               title={t.stAxIntegration}
-              subtitle="Files the job completion report PDF in the AccuLynx job's Documents. The PDF button in Pull Inventory only opens the report for printing; uploading is Sync Upload's job."
+              subtitle="Sync Upload files the completion report PDF in the AccuLynx job's Documents and posts the material cost, including tax, as an Additional Job Expense. The PDF button in Pull Inventory only opens the report for printing."
             />
             {/* 🟢 Status pill updated to seamlessly allow headless environment configurations */}
             <StatusPill
