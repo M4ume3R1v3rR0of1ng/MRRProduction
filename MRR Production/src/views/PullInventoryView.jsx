@@ -18,6 +18,7 @@ import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
 import { notifyJobMove } from "../utils/jobNotifications";
 import JobHandoff from "../components/JobHandoff";
+import SearchBar, { matchesQuery } from "../components/SearchBar";
 
 export default function PullInventory({
   jobs = [],
@@ -56,6 +57,7 @@ export default function PullInventory({
   // before committing anything. See confirmPull.
   const [shortWarn, setShortWarn] = useState(null);
   const [sortBy, setSortBy] = useState("newest");
+  const [srch, setSrch] = useState("");
   // "all" | "approved" | "active". Defaults to all so the view opens showing the
   // whole queue — narrowing is a choice the user makes, not a state they land in
   // and have to notice they are in.
@@ -289,6 +291,9 @@ export default function PullInventory({
   };
 
   const myJobs = (statusFilt === "all" ? openJobs : mine.filter((j) => j.status === statusFilt))
+    // Same three fields Build Jobs searches — PO, name, address — because those
+    // are what someone standing at the warehouse door actually has to hand.
+    .filter((j) => matchesQuery(srch, [j.po, j.title || j.name, j.addr]))
     .sort(jobSorters[sortBy] || jobSorters.newest);
 
   const openJob = async (j) => {
@@ -780,6 +785,16 @@ export default function PullInventory({
             );
           })}
         </div>
+        </div>
+      </div>
+
+      <SearchBar
+        value={srch}
+        onChange={setSrch}
+        placeholder={t.pullSearchPlaceholder}
+        resultCount={myJobs.length}
+        lang={lang}
+      >
         <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.pullSortAria} style={{ width: "auto" }}>
           <option value="newest">↕ {t.pullSortNewest}</option>
           <option value="oldest">↕ {t.pullSortOldest}</option>
@@ -788,8 +803,7 @@ export default function PullInventory({
           <option value="po">↕ {t.pullSortPO}</option>
           <option value="status">↕ {t.status}</option>
         </Sel>
-        </div>
-      </div>
+      </SearchBar>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {myJobs.length === 0 && (
@@ -797,10 +811,19 @@ export default function PullInventory({
             {/* "All caught up" is only true when nothing is hidden. With a filter
                 on and jobs behind it, that message sends someone hunting for a
                 bug that is really a dropdown two feet above their cursor. */}
-            {openJobs.length === 0 ? t.pullAllCaughtUp : t.pullNoneMatchFilter}
+            {/* Three different empty states, because they need three different
+                fixes: nothing to do, a filter hiding things, or a search that
+                matched nothing. Telling someone "all caught up" while their own
+                search term is hiding six jobs sends them hunting for a bug. */}
+            {openJobs.length === 0 ? t.pullAllCaughtUp : srch ? t.pullNoneMatchSearch.replace("{query}", srch) : t.pullNoneMatchFilter}
             {openJobs.length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <Btn v="ghost" sz="sm" onClick={() => setStatusFilt("all")}>
+              <div style={{ marginTop: 12, display: "flex", gap: "var(--space-2)", justifyContent: "center", flexWrap: "wrap" }}>
+                {srch && (
+                  <Btn v="ghost" sz="sm" onClick={() => setSrch("")}>
+                    ✕ {t.pullClearSearch}
+                  </Btn>
+                )}
+                <Btn v="ghost" sz="sm" onClick={() => { setStatusFilt("all"); setSrch(""); }}>
                   {t.pullShowAllJobs} ({statusCounts.all})
                 </Btn>
               </div>

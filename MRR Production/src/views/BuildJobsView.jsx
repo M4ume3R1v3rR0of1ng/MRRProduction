@@ -2,6 +2,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal } from "../utils/helpers";
 import JobHandoff from "../components/JobHandoff";
+import SearchBar from "../components/SearchBar";
 import { translations } from "../utils/translations";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
@@ -755,21 +756,16 @@ export default function BuildJobs({
         />
       ) : (
         <>
-          <div
-            style={{
-              display: "flex",
-              gap: "var(--space-4)",
-              marginBottom: 10,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
+          {/* Was an inline copy of this markup. Moved to the shared component when
+              Pull Inventory, Fleet and Maintenance grew the same control — four
+              search boxes that drift apart is four times the surprise. */}
+          <SearchBar
+            value={srch}
+            onChange={setSrch}
+            placeholder={t.bjSearchPlaceholder}
+            resultCount={shown.length}
+            lang={lang}
           >
-            <Inp
-              value={srch}
-              onChange={(e) => setSrch(e.target.value)}
-              placeholder={t.bjSearchPlaceholder}
-              style={{ flex: 1, minWidth: 220, maxWidth: 380 }}
-            />
             <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.bjSortAria} style={{ width: "auto" }}>
               <option value="newest">{t.bjSortNewest}</option>
               <option value="oldest">{t.bjSortOldest}</option>
@@ -778,17 +774,7 @@ export default function BuildJobs({
               <option value="po">{t.bjSortPo}</option>
               <option value="status">{t.bjSortStatus}</option>
             </Sel>
-            {srch && (
-              <Btn v="ghost" sz="sm" onClick={() => setSrch("")}>
-                ✕ Clear
-              </Btn>
-            )}
-            {srch && (
-              <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>
-                {shown.length} result{shown.length !== 1 ? "s" : ""}
-              </span>
-            )}
-          </div>
+          </SearchBar>
 
           <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: 14, flexWrap: "wrap" }}>
             {/* Approved and Active are gone on purpose. Once a job is approved it is

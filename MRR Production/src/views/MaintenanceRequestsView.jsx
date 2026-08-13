@@ -18,6 +18,7 @@ import { notifyMaintFiled, notifyMaintStatus } from "../utils/maintenanceNotific
 import { useNotify } from "../context/NotificationContext";
 import { logAction } from "../utils/logger";
 import MaintenanceCalendar from "../components/MaintenanceCalendar";
+import SearchBar, { matchesQuery } from "../components/SearchBar";
 
 export default function MaintenanceRequestsView({
   reqs,
@@ -39,6 +40,7 @@ export default function MaintenanceRequestsView({
 
   const [filt, setFilt] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+  const [srch, setSrch] = useState("");
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
   const [subView, setSubView] = useState("list");
@@ -67,6 +69,11 @@ export default function MaintenanceRequestsView({
       if (filt === "active") return r.status === "pending" || r.status === "scheduled";
       return r.status === filt;
     })
+    // vname and uname are the denormalised copies already on the row, so the
+    // vehicle and the person who filed it are searchable without resolving ids —
+    // which also means a ticket from a since-deleted account stays findable.
+    // r.type can be an array; String() joins it, which is fine for a substring match.
+    .filter((r) => matchesQuery(srch, [r.vname, r.uname, r.notes, r.type]))
     .sort(reqSorters[sortBy] || reqSorters.newest);
 
   // Deep-link from OmniSearch: open the matching ticket card on arrival
@@ -358,6 +365,14 @@ export default function MaintenanceRequestsView({
           <option value="status">↕ {t.status}</option>
         </Sel>
       </div>
+
+      <SearchBar
+        value={srch}
+        onChange={setSrch}
+        placeholder={t.maintSearchPlaceholder}
+        resultCount={filtered.length}
+        lang={lang}
+      />
 
       {/* Cards Stream Canvas */}
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>

@@ -17,6 +17,7 @@ import { learnServiceIntervals } from "../utils/patterns";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 import TrailerCalendar from "../components/TrailerCalendar";
+import SearchBar, { matchesQuery } from "../components/SearchBar";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import { notifyMaintFiled } from "../utils/maintenanceNotifications";
 import { vehicleStatusKind, isGrounded, isUndispatchable, groundingPatch } from "../utils/fleetStatus";
@@ -69,6 +70,7 @@ export default function FleetManagementView({
   const [calSel, setCalSel] = useState(null);
   const [filt, setFilt] = useState("all");
   const [sortBy, setSortBy] = useState("name_az");
+  const [srch, setSrch] = useState("");
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
@@ -166,6 +168,9 @@ export default function FleetManagementView({
   };
   const filtered = vehs
     .filter((v) => filt === "all" || v.type === filt)
+    // Name, plate, make and model — the four things someone has when they are
+    // looking at a truck in the yard, or reading one off a text message.
+    .filter((v) => matchesQuery(srch, [v.name, v.plate, v.make, v.model]))
     .sort(vehSorters[sortBy] || vehSorters.name_az);
 
   // Deep-link from OmniSearch: open the matching vehicle card on arrival
@@ -612,6 +617,19 @@ export default function FleetManagementView({
           </div>
         </div>
       </div>
+
+      {/* List only. The trailer calendar is a different shape of question — "who
+          has this trailer next week" — and a name filter over it would hide the
+          bookings that make the calendar worth looking at. */}
+      {subView === "list" && (
+        <SearchBar
+          value={srch}
+          onChange={setSrch}
+          placeholder={t.flSearchPlaceholder}
+          resultCount={filtered.length}
+          lang={lang}
+        />
+      )}
 
       {subView === "calendar" ? (
         <div style={{ flex: 1, overflowY: "auto", paddingRight: 6, paddingBottom: 24 }}>
