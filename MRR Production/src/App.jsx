@@ -143,6 +143,18 @@ export default function App() {
   const companyDisplayName =
     app.company?.branding?.displayName || app.company?.name || app.curUser?.companyName || "Steadwerk";
 
+  // The platform operator's own tenant — no roofing operations, so the app is the
+  // Owner Console rather than the product. See supabase/32.
+  const isPlatformCompany = app.company?.is_platform_company === true;
+
+  // "dashboard" is the wrong landing here: it renders crews, trucks and job counts
+  // for a company that has none, and the sidebar no longer offers it. Move to the
+  // console once, when the flag first resolves, and only from the default view so
+  // this can never yank someone off a screen they navigated to themselves.
+  useEffect(() => {
+    if (isPlatformCompany && view === "dashboard") setView("owner");
+  }, [isPlatformCompany, view]);
+
   // ── 🧭 BROWSER NATIVE HISTORY POPSTATE INTERCEPTOR ──
   // Two separate navigation spaces share one history stack: the public flow
   // (landing / login / terms, keyed by `authView`) and the signed-in portal
@@ -433,6 +445,7 @@ return (
             setCollapsed={setCollapsed}
             companyName={companyDisplayName}
             isPlatformAdmin={app.curUser?.isPlatformAdmin}
+            isPlatformCompany={isPlatformCompany}
             pendingReqs={app.pendingReqCount}
             lowStock={app.lowStockCount}
             newJobsForMe={app.newJobsForMe}

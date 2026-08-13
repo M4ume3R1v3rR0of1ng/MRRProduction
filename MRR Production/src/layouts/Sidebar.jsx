@@ -23,6 +23,7 @@ export default function Sidebar({
   activeLogo,
   companyName,
   isPlatformAdmin,
+  isPlatformCompany,
   perms,
   // ── 🟢 NEW: ACCEPT LANG MATRIX CONTROL ARGS ──
   lang = "en",
@@ -59,6 +60,31 @@ export default function Sidebar({
   }[theme];
 
   // ── 🟢 TRANSLATED DYNAMIC SIDEBAR Blueprints ──
+  //
+  // Inside the platform operator's own tenant (supabase/32) the roofing product is
+  // not the job — running the platform is. Dashboard, Schedule, Pull Inventory and
+  // Help are ungated below and would otherwise survive any permission change, and
+  // getEffectivePerms short-circuits role 'admin' to all-true anyway, so this is a
+  // separate list rather than a filter over the operational one.
+  //
+  // Everything here administers Steadwerk itself: the platform, its own staff, the
+  // audit trail, and its settings. Enter a CUSTOMER's company from the Owner
+  // Console and the flag is false for that company, so the full portal below comes
+  // back — which is what you went in there for.
+  const platformNavItems = [
+    { id: "owner", icon: "🏛️", label: t.ownerConsole },
+    { id: "billing", icon: "💳", label: t.billing },
+    ...(perms.users_manage
+      ? [
+          { id: "users", icon: "👥", label: t.users || "Users" },
+          { id: "logs", icon: "📜", label: t.logs || "Audit Logs" },
+        ]
+      : []),
+    ...(perms.settings_manage
+      ? [{ id: "settings", icon: "⚙️", label: t.settings || "Settings" }]
+      : []),
+  ];
+
  const navItems = [
     { id: "dashboard", icon: "🏠", label: t.dashboard || "Dashboard", badge: chatUnread, badgeColor: C.rd },
     // No permission gate: it only surfaces jobs and maintenance the viewer can
@@ -122,7 +148,13 @@ export default function Sidebar({
     // place you go when something else isn't working, not part of the daily loop.
     { id: "training", icon: "🎓", label: t.training || "Training" },
   ];
-  
+
+  // Training stays in both lists: the platform operator is the person most likely
+  // to be answering a customer's question about how a screen works.
+  const items = isPlatformCompany
+    ? [...platformNavItems, { id: "training", icon: "🎓", label: t.training || "Training" }]
+    : navItems;
+
   const rColor = (r) =>
     r === "warehouse"
       ? C.pu
@@ -224,7 +256,7 @@ export default function Sidebar({
 
       {/* Main Navigation Links */}
       <nav style={{ flex: 1, padding: "10px 6px" }}>
-        {navItems.map((item) => (
+        {items.map((item) => (
           <button
             key={item.id}
             onClick={() => onNav(item.id)}

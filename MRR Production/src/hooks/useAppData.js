@@ -198,6 +198,54 @@ export function useAppData() {
         // can say so, because fake data that looks real is worse than none.
         const failedTables = [];
 
+        // The platform operator's own tenant (Steadwerk). It runs no roofing
+        // operations, so every query below would return an empty set — eleven round
+        // trips to prove there are no jobs at a company that will never have one.
+        // The nav hides those views anyway (see Sidebar), so skip straight to the
+        // company row, which is all the Owner Console shell needs.
+        //
+        // Read from `companies` rather than my_company() because that RPC is one of
+        // the queries in the block being skipped, and this decision has to be made
+        // before the block runs.
+        let platformCompany = false;
+        if (activeCompanyId) {
+          const { data: coFlag } = await supabase
+            .from("companies")
+            .select("id, name, slug, branding, is_platform_company")
+            .eq("id", activeCompanyId)
+            .maybeSingle();
+          platformCompany = coFlag?.is_platform_company === true;
+          if (platformCompany) {
+            setCompany(coFlag);
+            if (coFlag.branding?.logo) setLogos(coFlag.branding.logo);
+            setInv([]);
+            setVehs([]);
+            setJobs([]);
+            setReqs([]);
+            setJobTrailers([]);
+            setWH([]);
+            setTrainingMedia([]);
+            // Users and permissions DO matter here: Steadwerk has staff, and the
+            // Users and Settings screens stay available to administer them.
+            const { data: mems } = await supabase
+              .from("memberships")
+              .select("user_id, role, active")
+              .eq("company_id", activeCompanyId);
+            const memberIds = (mems || []).map((m) => m.user_id);
+            const { data: profs } = memberIds.length
+              ? await supabase.from("profiles").select("*").in("id", memberIds)
+              : { data: [] };
+            const roleByUser = Object.fromEntries((mems || []).map((m) => [m.user_id, m]));
+            setUsers((profs || []).map((p) => {
+              const m = roleByUser[p.id];
+              return m ? { ...p, role: m.role, active: m.active } : p;
+            }));
+            setLoadErrors([]);
+            setLoadingProgress(100);
+            return;
+          }
+        }
+
         // No active company: signed out, or signed in but not placed in one yet.
         //
         // Every query below filters on company_id, and PostgREST serialises a null
