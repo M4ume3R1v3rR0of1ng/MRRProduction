@@ -235,6 +235,21 @@ export default function App() {
   const searchTargetFor = (v) => (searchOpenTarget?.view === v ? searchOpenTarget.id : null);
   const clearSearchTarget = () => setSearchOpenTarget(null);
 
+  // A job that just moved down the pipeline, handed to whichever screen now owns
+  // it: { view, id, label }. The label is what the destination card's badge says,
+  // so "Just built" and "Just completed" can use one mechanism.
+  //
+  // Deliberately NOT the search target above: that one opens the job's detail
+  // modal, and this is meant to leave the card sitting there glowing until the
+  // person actually goes and touches it.
+  const [jobHighlight, setJobHighlight] = useState(null);
+  const showJobIn = (targetView, jobId, label) => {
+    setJobHighlight({ view: targetView, id: jobId, label });
+    navigateTo(targetView);
+  };
+  const highlightFor = (v) => (jobHighlight?.view === v ? jobHighlight : null);
+  const clearJobHighlight = () => setJobHighlight(null);
+
   // Clearing curUser alone left the underlying Supabase session (and its token
   // in localStorage) valid and reusable — logout/idle-timeout must actually
   // invalidate it server-side too.
@@ -559,10 +574,10 @@ return (
               />
             )}
             {view === "buildjobs" && (app.userPerms.jobs_build || app.userPerms.jobs_close) && (
-              <BuildJobsView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} openItemId={searchTargetFor("buildjobs")} onOpenItemHandled={clearSearchTarget} activeLogo={app.activeLogo}/>
+              <BuildJobsView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} openItemId={searchTargetFor("buildjobs")} onOpenItemHandled={clearSearchTarget} activeLogo={app.activeLogo} highlight={highlightFor("buildjobs")} onHighlightCleared={clearJobHighlight} onShowJobIn={showJobIn}/>
             )}
             {view === "pull" && (
-              <PullInventoryView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} activeLogo={app.activeLogo} acculynxConfig={app.acculynxConfig} jSC={jSC} lang={lang} setLang={setLang} openItemId={searchTargetFor("pull")} onOpenItemHandled={clearSearchTarget} />
+              <PullInventoryView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} activeLogo={app.activeLogo} acculynxConfig={app.acculynxConfig} jSC={jSC} lang={lang} setLang={setLang} openItemId={searchTargetFor("pull")} onOpenItemHandled={clearSearchTarget} highlight={highlightFor("pull")} onHighlightCleared={clearJobHighlight} onShowJobIn={showJobIn} />
             )}
             {view === "inventory" && app.userPerms.inv_view && (
               <InventoryView inv={app.inv} setInv={app.setInv} jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} />

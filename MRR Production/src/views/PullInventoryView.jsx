@@ -1,11 +1,14 @@
 // src/views/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
-import { useState, useEffect } from "react";
-import { C, fd, fm, doFifo, uid, tot, ft, mkJI, mergePullTracking, todayLocal, applyReturnBatch } from "../utils/helpers";
+import { useState, useEffect, useRef } from "react";
+import { C, fd, fm, doFifo, uid, tot, mkJI, mergePullTracking, todayLocal, applyReturnBatch } from "../utils/helpers";
 import { displayNameOf } from "../utils/people";
 import { translations } from "../utils/translations";
 import { generatePDF } from "../utils/pdfGenerator";
-import { syncJobReportToAccuLynx, syncStatusOf, syncNoteOf, syncedAtOf, reportUploadedAtOf } from "../utils/accuLynxSync";
+// syncStatusOf / reportUploadedAtOf are read only to answer "is this report already
+// filed", which stops a retry after a failed commit from filing a second copy.
+// The badge and sync modal that used to need the rest went with the Completed tab.
+import { syncJobReportToAccuLynx, syncStatusOf, reportUploadedAtOf } from "../utils/accuLynxSync";
 import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { supabase, updateRowStrict, isTransportError } from "../utils/supabase";
@@ -14,6 +17,7 @@ import { useNotify } from "../context/NotificationContext";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
 import { notifyJobMove } from "../utils/jobNotifications";
+import JobHandoff from "../components/JobHandoff";
 
 export default function PullInventory({
   jobs = [],
@@ -34,18 +38,19 @@ export default function PullInventory({
   lang,
   openItemId,
   onOpenItemHandled,
+  highlight,
+  onHighlightCleared,
+  onShowJobIn,
 }) {
-  const { showToast } = useNotify();
+  const { showToast, confirm } = useNotify();
   const t = translations[lang] || translations.en;
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
   const [pullQtys, setPullQtys] = useState({});
   const [retQtys, setRetQtys] = useState({});
-  const [syncModal, setSyncModal] = useState(null);
 
   const [pulling, setPulling] = useState(false);
   const [returning, setReturning] = useState(false);
-  const [closing, setClosing] = useState(false);
   // Lines that would take stock below zero, held for confirmation. Non-null means
   // the pull was computed against LIVE batches, found a shortfall, and stopped
   // before committing anything. See confirmPull.
@@ -59,6 +64,11 @@ export default function PullInventory({
   const [editItems, setEditItems] = useState([]);
   const [editItemSearch, setEditItemSearch] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // The handed-over card, so the effect below can scroll to it.
+  const highlightRef = useRef(null);
+  // The pipeline hand-off card: { job, kind }. See JobHandoff.
+  const [handoff, setHandoff] = useState(null);
 
   const isField = user.role === "field";
 
@@ -94,11 +104,15 @@ export default function PullInventory({
     setEditItems((p) => p.map((x) => (x.iid === iid ? { ...x, planned: Math.max(0, parseFloat(val) || 0) } : x)));
   };
 
-  const removeEditItem = (item) => {
+  const removeEditItem = async (item) => {
     if (item.pulled > 0) {
-      if (!window.confirm(`"${item.iname}" ${t.pullRemoveConfirm.replace("{qty}", item.pulled).replace("{unit}", item.unit || "")}`)) {
-        return;
-      }
+      const go = await confirm({
+        title: t.pullRemoveTitle,
+        message: `"${item.iname}" ${t.pullRemoveConfirm.replace("{qty}", item.pulled).replace("{unit}", item.unit || "")}`,
+        confirmLabel: t.pullRemoveYes,
+        tone: "danger",
+      });
+      if (!go) return;
     }
     setEditItems((p) => p.filter((x) => x.iid !== item.iid));
   };
@@ -251,23 +265,20 @@ export default function PullInventory({
   // and finished jobs remain reachable from Build Jobs (PDF, close-out).
   const isOpenJob = (j) => j && j.status !== "draft" && j.status !== "completed" && j.status !== "closed";
 
-  // Everything this user may see here. Completed is INCLUDED at this level and
-  // excluded from the work queue below.
+  // This view is now purely a work queue: approved and active, nothing else.
   //
-  // It has to be reachable somewhere in this view. Completing a job drops it out
-  // of the queue instantly, and if the PDF popup was blocked on the way out there
-  // was no way back to the report — the 📄 PDF / Sync buttons further down are
-  // written for exactly that recovery and could never render, because the list
-  // they render from had already filtered completed jobs away. Closed jobs stay
-  // out: those are finished business and live in Build Jobs.
-  const visibleJob = (j) => j && j.status !== "draft" && j.status !== "closed";
+  // Completed jobs used to stay visible here so a blocked PDF popup could be
+  // recovered from the Completed tab. That tab, and the PDF / Sync / Close buttons
+  // it existed to reach, are gone: the report is filed by autoSync on completion
+  // and again, if needed, by Close in Build Jobs — which is where the close-out
+  // work now happens. So there is nothing left on a completed job to come back
+  // for, and showing them here only pads the queue with finished work.
+  const visibleJob = isOpenJob;
   const mine = isField
     ? jobs.filter((j) => visibleJob(j) && (j.assignedto === user.id || j.assignedTo === user.id))
     : jobs.filter(visibleJob);
 
-  // The work queue: what still needs doing. This is what "All" means, and it is
-  // deliberately not "everything on this screen" — a finished job is not work.
-  const openJobs = mine.filter(isOpenJob);
+  const openJobs = mine;
 
   // Counts come from the whole set, not the current slice, so each button says
   // what is behind the others before you press them.
@@ -275,7 +286,6 @@ export default function PullInventory({
     all: openJobs.length,
     approved: openJobs.filter((j) => j.status === "approved").length,
     active: openJobs.filter((j) => j.status === "active").length,
-    completed: mine.filter((j) => j.status === "completed").length,
   };
 
   const myJobs = (statusFilt === "all" ? openJobs : mine.filter((j) => j.status === statusFilt))
@@ -300,6 +310,25 @@ export default function PullInventory({
       }
     }
   };
+
+  // Arriving from "See in Pull Inventory". Scroll the handed-over job into view so
+  // it is not merely highlighted somewhere below the fold. If the filter in force
+  // hides it, widen to "all" first — landing on a screen that does not contain the
+  // job you were just sent to is worse than no navigation at all.
+  useEffect(() => {
+    if (!highlight?.id) return;
+    const target = jobs.find((j) => String(j.id) === String(highlight.id));
+    // Only move the filter when the current one would hide the job. Prefer the
+    // job's own status over widening to "all": the hand-off card just said it is
+    // Active, so landing on Active shows the same thing the message promised.
+    if (target && statusFilt !== "all" && target.status !== statusFilt) {
+      setStatusFilt(["approved", "active"].includes(target.status) ? target.status : "all");
+    }
+    const id = setTimeout(() => {
+      highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+    return () => clearTimeout(id);
+  }, [highlight?.id, jobs, statusFilt]);
 
   // Deep-link from OmniSearch: open the matching job card on arrival
   useEffect(() => {
@@ -449,6 +478,10 @@ export default function PullInventory({
       setShortWarn(null);
       setModal(null);
       setPullQtys({});
+      // The job does not leave this screen, but it does leave the queue you were
+      // looking at — Approved to Active. Same hand-off question as the others:
+      // it disappeared from where you were standing.
+      setHandoff({ job: updatedJob, kind: "pulled" });
     } catch (err) {
       console.error("Failed to finalize material pull layout:", err);
       showToast(`${t.pullPullAborted} ${err.message}`, "error");
@@ -470,34 +503,69 @@ export default function PullInventory({
 
     // Everything that happens once the job is genuinely completed. Shared by the
     // happy path and the recovery path so a lost response finishes identically to
-    // a clean one — same local state, same PDF, same AccuLynx sync, same emails.
+    // a clean one. The paperwork is NOT here any more — it now runs before the
+    // commit, as a gate on it. See the paperwork block below.
     const finish = () => {
       setInv(newInv);
       setJobs((p) => p.map((j) => (j.id === sel.id ? updatedJob : j)));
       // Email the assigned supervisor if the company enabled "Completed".
       notifyJobMove({ transition: "completed", job: updatedJob, users, prefs: jobNotifications });
-      showToast(t.pullJobCompleted, "success");
       setModal(null);
       setRetQtys({});
-
-      setTimeout(() => {
-        // The PDF is for the person standing here — it opens to print or save and
-        // goes nowhere else. Sending anything to AccuLynx is the sync's job.
-        if (!generatePDF(updatedJob, users, activeLogo, newInv, company)) {
-          showToast(t.pullPopupBlocked1, "warning");
-        }
-        if (acculynxConfig?.autoSync) {
-          syncJobReportToAccuLynx({
-            job: updatedJob, users, config: acculynxConfig, setJobs,
-            activeLogo, inv: newInv, company,
-          }).then((r) => {
-            if (r.ok) showToast(t.pullReportUploaded, "success");
-            else if (!r.skipped) showToast(`${t.pullReportUploadFail} ${r.error}`, "warning");
-          });
-        }
-      }, 300);
-
       setSel(null);
+      // Completing takes the job off this screen entirely — it is now the office's
+      // to close out. Say so, rather than letting it silently vanish.
+      setHandoff({ job: updatedJob, kind: "completed" });
+    };
+
+    // The report has to exist and be filed BEFORE the job is marked complete.
+    //
+    // It used to run 300ms AFTER the commit, in a setTimeout, so a blocked popup
+    // or a failed upload produced a warning toast on a job that was already
+    // finished and out of the queue — the paperwork silently never happened and
+    // nothing prompted anyone to fix it.
+    //
+    // Each failure now stops the completion and asks. It asks rather than refuses
+    // because the roof really is done, and a popup blocker is not a good reason to
+    // leave a job open — but that has to be a decision someone makes, not a
+    // default. Returning false leaves the job untouched: nothing is committed and
+    // no stock has moved.
+    const paperworkOk = async () => {
+      if (!generatePDF(updatedJob, users, activeLogo, newInv, company)) {
+        const go = await confirm({
+          title: t.pullPdfBlockedTitle,
+          message: t.pullPdfBlockedAsk,
+          detail: t.pullPdfBlockedDetail,
+          confirmLabel: t.pullCompleteAnyway,
+          cancelLabel: t.pullDontComplete,
+          tone: "danger",
+        });
+        if (!go) return false;
+      }
+
+      // Skip when the report is already filed: AccuLynx has no replace-document
+      // call, so a retry after a failed commit would file a second copy.
+      const alreadyFiled = syncStatusOf(sel) === "synced" || !!reportUploadedAtOf(sel);
+      if (acculynxConfig?.autoSync && !alreadyFiled) {
+        const r = await syncJobReportToAccuLynx({
+          job: updatedJob, users, config: acculynxConfig, setJobs,
+          activeLogo, inv: newInv, company,
+        });
+        if (r.ok) {
+          showToast(t.pullReportUploaded, "success");
+        } else if (!r.skipped) {
+          const go = await confirm({
+            title: t.pullSyncFailedTitle,
+            message: t.pullSyncFailedAsk,
+            detail: r.error,
+            confirmLabel: t.pullCompleteAnyway,
+            cancelLabel: t.pullDontComplete,
+            tone: "danger",
+          });
+          if (!go) return false;
+        }
+      }
+      return true;
     };
 
     try {
@@ -553,6 +621,13 @@ export default function PullInventory({
       };
       newInv = inv.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i));
 
+      // The gate. Nothing below this line runs unless the report is produced and
+      // filed, or the user has explicitly chosen to finish without it.
+      if (!(await paperworkOk())) {
+        setReturning(false);
+        return;
+      }
+
       // Same transaction guarantee as the pull: returned stock and the job's
       // completion land together, or neither does.
       const { error: commitErr } = await supabase.rpc("commit_job_materials", {
@@ -602,62 +677,6 @@ export default function PullInventory({
     }
   };
 
-  // One fact now: did the report PDF reach AccuLynx. syncStatus and
-  // report_uploaded_at describe the same upload, so this reads whichever is set —
-  // report_uploaded_at also covers jobs filed before the status was recorded.
-  const syncBadge = (job) => {
-    if (!job || job.status !== "completed") return null;
-    const status = syncStatusOf(job);
-    if (status === "synced" || reportUploadedAtOf(job)) return <Bdg color="green">{t.pullReportFiled}</Bdg>;
-    if (status === "failed") return <Bdg color="red">{t.pullUploadFailed}</Bdg>;
-    if (status === "manual") return <Bdg color="amber">{t.pullConfigureSync}</Bdg>;
-    return null;
-  };
-
-  // Same "filed" test the green badge uses, so the Close button and the badge can
-  // never disagree about whether the paperwork is in.
-  const reportIsFiled = (job) => syncStatusOf(job) === "synced" || !!reportUploadedAtOf(job);
-
-  // Closing is a bookkeeping act, so it waits for the report. But report_uploaded_at
-  // is only ever written by a successful AccuLynx upload — a company that doesn't
-  // use AccuLynx can never file one, and gating on it alone would leave their
-  // completed jobs permanently un-closable from this screen. So the report is
-  // required only when AccuLynx is actually configured to receive it.
-  const canCloseJob = (job) =>
-    perms.jobs_close &&
-    job?.status === "completed" &&
-    (reportIsFiled(job) || !acculynxConfig?.enabled);
-
-  const closeJob = async (job) => {
-    if (!job || closing) return;
-    setClosing(true);
-    const closedAt = new Date().toISOString();
-    try {
-      const { error } = await updateRowStrict("jobs", job.id, { status: "closed", closedAt });
-      if (error) throw error;
-
-      await logAction(
-        user.id,
-        user.email,
-        "JOB_BUILD_CLOSE",
-        `Archived and locked completed job contract file for: "${job.title || job.name}" (PO: ${job.po}) from Pull Inventory`,
-        { job_id: job.id, archived_timestamp: closedAt },
-        "production",
-      );
-
-      const updated = { ...job, status: "closed", closedAt };
-      setJobs((p) => p.map((j) => (j.id === job.id ? updated : j)));
-      setSel((p) => (p && p.id === job.id ? updated : p));
-      // Email the assigned supervisor if the company enabled "Closed" notifications.
-      notifyJobMove({ transition: "closed", job: updated, users, prefs: jobNotifications });
-      showToast(t.pullClosed, "success");
-    } catch (err) {
-      console.error("Failed to close job:", err);
-      showToast(`${t.pullCloseFail} ${err.message}`, "error");
-    } finally {
-      setClosing(false);
-    }
-  };
 
   // The audit entry for a pull.
   //
@@ -745,10 +764,6 @@ export default function PullInventory({
             { id: "all", dot: "▦", label: t.pullFilterAllShort, full: t.pullFilterAll, count: statusCounts.all, tone: "primary" },
             { id: "approved", dot: "○", label: t.pullFilterApprovedShort, full: t.pullFilterApproved, count: statusCounts.approved, tone: "gold" },
             { id: "active", dot: "◐", label: t.pullFilterActiveShort, full: t.pullFilterActive, count: statusCounts.active, tone: "green" },
-            // Not part of "All": finished work is not queue work. It is here so a
-            // job that vanished on completion stays findable, and so the PDF can
-            // be reopened when the popup was blocked.
-            { id: "completed", dot: "●", label: t.pullFilterCompletedShort, full: t.pullFilterCompleted, count: statusCounts.completed, tone: "sky" },
           ].map((f) => {
             const on = statusFilt === f.id;
             return (
@@ -809,25 +824,33 @@ export default function PullInventory({
             0,
           );
 
+          // The job that was just built in Build Jobs and handed over. Pulses until
+          // touched — the point is to survive the trip between two screens, so it
+          // cannot be a flash that ends on a timer the user might miss.
+          const isHighlighted = highlight?.id && String(job.id) === String(highlight.id);
+
           return (
             <div
               key={job.id}
-              className="mrr-card-hover"
+              ref={isHighlighted ? highlightRef : null}
+              className={`mrr-card-hover${isHighlighted ? " mrr-card-hail" : ""}`}
+              onClick={isHighlighted ? () => onHighlightCleared?.() : undefined}
               style={{
                 background: C.w,
                 borderRadius: "var(--radius-xl)",
                 padding: 16,
                 boxShadow: "var(--shadow-sm)",
-                border: `2px solid ${isNew ? C.tl : job.status === "active" ? C.am : "transparent"}`,
+                border: `2px solid ${isHighlighted ? C.gold : isNew ? C.tl : job.status === "active" ? C.am : "transparent"}`,
+                cursor: isHighlighted ? "pointer" : undefined,
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, flexWrap: "wrap", gap: "var(--space-4)" }}>
                 <div>
                   <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 5, flexWrap: "wrap" }}>
                     <Bdg color={st.c}>{st.icon} {st.l}</Bdg>
+                    {isHighlighted && <Bdg color="gold">✨ {highlight.label || t.pullJustBuilt}</Bdg>}
                     {isNew && <Bdg color="teal">🔔 {t.pullNew}</Bdg>}
                     <span style={{ fontSize: "var(--text-sm)", color: C.sub }}>{job.po || t.pullNoPoHash}</span>
-                    {syncBadge(job)}
                   </div>
                   <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2 }}>
                     {job.title || job.name}
@@ -875,22 +898,6 @@ export default function PullInventory({
                     >
                       {t.pullReturnComplete}
                     </Btn>
-                  )}
-                  {job.status === "completed" && (
-                    <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                      <Btn v="green" sz="sm" onClick={() => { if (!generatePDF(job, users, activeLogo, inv, company)) showToast(t.pullPopupBlocked2, "warning"); }}>📄 PDF</Btn>
-                      <Btn v="sky" sz="sm" onClick={() => setSyncModal(job)}>{t.pullSyncUpload}</Btn>
-                      {canCloseJob(job) && (
-                        <Btn
-                          v="purple"
-                          sz="sm"
-                          disabled={closing}
-                          onClick={() => { if (window.confirm(t.pullCloseConfirm)) closeJob(job); }}
-                        >
-                          🔒 {t.pullCloseJob}
-                        </Btn>
-                      )}
-                    </div>
                   )}
                   <Btn v="ghost" sz="sm" onClick={() => openJob(job)}>{t.pullDetails}</Btn>
                 </div>
@@ -1342,86 +1349,33 @@ export default function PullInventory({
               </tbody>
             </table>
           </div>
-          {sel.status === "completed" && (
-            <div style={{ marginTop: 10, display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
-              <Btn v="green" onClick={() => { if (!generatePDF(sel, users, activeLogo, inv, company)) showToast(t.pullPopupBlocked2, "warning"); }}>📄 PDF</Btn>
-              <Btn v="sky" onClick={() => setSyncModal(sel)}>{t.pullSyncUpload}</Btn>
-              {canCloseJob(sel) && (
-                <Btn
-                  v="purple"
-                  disabled={closing}
-                  onClick={() => { if (window.confirm(t.pullCloseConfirm)) closeJob(sel); }}
-                >
-                  🔒 {closing ? t.pullClosing : t.pullCloseJob}
-                </Btn>
-              )}
-            </div>
-          )}
         </Modal>
       )}
 
-      {syncModal && (() => {
-        // Three states, not two. syncStatus lives in React state only and is wiped by
-        // any refresh, so a missing value means "no sync attempted in this session" —
-        // NOT "AccuLynx isn't set up". Conflating them told correctly-configured
-        // companies to go configure AccuLynx, on every completed job, after every
-        // reload. Only claim "not configured" when the config is genuinely absent.
-        const axReady = !!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl);
-        const syncState = syncStatusOf(syncModal) || (axReady ? "pending" : "manual");
-        const filedAt = reportUploadedAtOf(syncModal);
-        const fileName = syncModal.report_file_name;
+      {/* ── Pipeline hand-off ──
+          Two destinations from this screen. A pull keeps the job here but moves it
+          from Approved to Active; completing sends it to Build Jobs for close-out.
+          The Build Jobs button only renders for someone who can actually open that
+          screen — a site supervisor completes jobs but has neither jobs_build nor
+          jobs_close, and pointing them at a tab they cannot reach is worse than
+          telling them plainly that the office has it now. */}
+      {handoff && (() => {
+        const pulled = handoff.kind === "pulled";
+        const canFollow = pulled || perms.jobs_build || perms.jobs_close;
         return (
-        <Modal title={`${t.pullAccuLynxUploadTitle} - ${syncModal.po || t.pullNoPoHash}`} onClose={() => setSyncModal(null)}>
-          <div style={{ marginBottom: 14 }}>
-            {syncState === "synced" && (
-              <div style={{ background: C.gB, border: `1.5px solid ${C.gr}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.gr, marginBottom: 4 }}>{t.pullReportFiledTitle}</div>
-                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{syncNoteOf(syncModal)}</div>
-                {(filedAt || syncedAtOf(syncModal)) && (
-                  <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 4 }}>
-                    {t.pullReportFiledAt}: {ft(filedAt || syncedAtOf(syncModal))}{fileName ? ` · ${fileName}` : ""}
-                  </div>
-                )}
-              </div>
-            )}
-            {syncState === "failed" && (
-              <div style={{ background: C.rB, border: `1.5px solid ${C.rd}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.rd, marginBottom: 4 }}>{t.pullUploadFailed}</div>
-                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{syncNoteOf(syncModal)}</div>
-              </div>
-            )}
-            {syncState === "manual" && (
-              <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.am, marginBottom: 4 }}>{t.pullUploadNotConfig}</div>
-                <div style={{ fontSize: "var(--text-sm)", color: C.navy }}>{t.pullConfigureAccuLynx}</div>
-              </div>
-            )}
-            {syncState === "pending" && (
-              <div style={{ background: "var(--c-shell)", border: `1.5px solid ${C.lg}`, borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.sub, marginBottom: 4 }}>{t.pullReportNotFiled}</div>
-                <div style={{ fontSize: "var(--text-sm)", color: C.navy }}>{t.pullReportNotFiledDesc}</div>
-              </div>
-            )}
-          </div>
-          <div style={{ display: "flex", gap: "var(--space-3)" }}>
-            {/* "pending" gets the button too: an unsent job is exactly the case where
-                you want to push it, and before this the modal offered nothing but
-                Close. A job already filed does NOT, because AccuLynx has no
-                replace-document call — a second press files a second copy. */}
-            {(syncState === "failed" || syncState === "manual" || syncState === "pending") && (
-              <Btn v="sky" onClick={() => {
-                syncJobReportToAccuLynx({
-                  job: syncModal, users, config: acculynxConfig, setJobs, activeLogo, inv, company,
-                }).then((r) => {
-                  if (r.ok) showToast(t.pullReportUploaded, "success");
-                  else if (!r.skipped) showToast(`${t.pullReportUploadFail} ${r.error}`, "warning");
-                });
-                setSyncModal(null);
-              }} style={{ flex: 1, justifyContent: "center" }}>{syncState === "pending" ? t.pullUploadNow : t.pullRetryUpload}</Btn>
-            )}
-            <Btn v="ghost" onClick={() => setSyncModal(null)} style={{ flex: 1, justifyContent: "center" }}>{t.close}</Btn>
-          </div>
-        </Modal>
+          <JobHandoff
+            job={handoff.job}
+            title={pulled ? t.pullHandoffPulledTitle : t.pullHandoffCompletedTitle}
+            message={pulled ? t.pullHandoffPulledMsg : (canFollow ? t.pullHandoffCompletedMsg : t.pullHandoffCompletedMsgField)}
+            actionLabel={canFollow ? (pulled ? t.pullHandoffSeeActive : t.pullHandoffSeeInBuild) : null}
+            onGo={canFollow ? () => {
+              const j = handoff.job;
+              setHandoff(null);
+              onShowJobIn?.(pulled ? "pull" : "buildjobs", j.id, pulled ? t.pullJustPulled : t.pullJustCompleted);
+            } : null}
+            onClose={() => setHandoff(null)}
+            closeLabel={t.bjBuildAnother}
+          />
         );
       })()}
     </div>

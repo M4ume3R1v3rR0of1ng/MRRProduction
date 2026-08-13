@@ -1,6 +1,7 @@
 // src/views/BuildJobsView.jsx
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal } from "../utils/helpers";
+import JobHandoff from "../components/JobHandoff";
 import { translations } from "../utils/translations";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
@@ -9,7 +10,7 @@ import { supabase, getAccessToken, updateRowStrict } from "../utils/supabase";
 import { useNotify } from "../context/NotificationContext";
 import CrewCalendar from "../components/CrewCalendar";
 import { generatePDF } from "../utils/pdfGenerator";
-import { syncStatusOf, reportUploadedAtOf } from "../utils/accuLynxSync";
+import { syncJobReportToAccuLynx, syncStatusOf, reportUploadedAtOf } from "../utils/accuLynxSync";
 import { logAction } from "../utils/logger";
 
 import { fetchJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
@@ -35,8 +36,11 @@ export default function BuildJobs({
   openItemId,
   onOpenItemHandled,
   activeLogo,
+  highlight,
+  onHighlightCleared,
+  onShowJobIn,
 }) {
-  const { showToast } = useNotify();
+  const { showToast, confirm } = useNotify();
   const t = translations[lang] || translations.en;
   const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com" };
   const [subView, setSubView] = useState("list");
@@ -68,11 +72,36 @@ export default function BuildJobs({
 
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
+  // Close now uploads before it archives, so it is slow enough to double-press.
+  const [closing, setClosing] = useState(false);
+  // The pipeline hand-off card: { job, kind }. See components/JobHandoff.
+  const [handoff, setHandoff] = useState(null);
+  // The handed-over card, so the effect above can scroll to it.
+  const highlightRef = useRef(null);
 
   // ── ✏️ EDIT JOB STATE ──────────────────────────────────────────────────────
   const fieldUsers = users.filter(
     (u) => (u.role === "field" || u.role === "Site Supervisor") && u.active,
   );
+
+  // Arriving from a hand-off elsewhere in the pipeline: a job completed in Pull
+  // Inventory, or one just closed here. Widen the filter if the current one hides
+  // it, then scroll it into view — being sent to a screen that does not contain
+  // the job you were sent to see is worse than not navigating at all.
+  useEffect(() => {
+    if (!highlight?.id) return;
+    const target = jobs.find((j) => String(j.id) === String(highlight.id));
+    // Only move the filter when the current one would hide the job, and prefer the
+    // job's own status over widening to "all" — the hand-off card just named the
+    // destination ("under Closed"), so land on exactly that.
+    if (target && filt !== "all" && target.status !== filt) {
+      setFilt(["draft", "completed", "closed"].includes(target.status) ? target.status : "all");
+    }
+    const id = setTimeout(() => {
+      highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+    return () => clearTimeout(id);
+  }, [highlight?.id, jobs, filt]);
 
   // Deep-link from OmniSearch: open the matching job card on arrival
   useEffect(() => {
@@ -352,14 +381,17 @@ export default function BuildJobs({
           });
         }
       }
-      showToast(
-        asDraft
-          ? t.bjDraftSaved
-          : t.bjJobApprovedNotified,
-        "success",
-      );
       setModal(null);
       resetWiz();
+
+      // A draft goes nowhere yet, so it just toasts. An approved job has landed in
+      // the crew's queue, and that hand-off is the thing worth confirming — with a
+      // way to go and look at it rather than a line of text that disappears.
+      if (asDraft) {
+        showToast(t.bjDraftSaved, "success");
+      } else {
+        setHandoff({ job, kind: "built" });
+      }
     } catch (err) {
       console.error("Failed to save job:", err);
       showToast(`${t.bjSaveFail} ${err.message}`, "error");
@@ -542,8 +574,52 @@ export default function BuildJobs({
     }
   };
 
+  // Closing IS filing. A job is closed when its paperwork has reached AccuLynx, so
+  // the upload runs first and a failure leaves the job open — closing it with
+  // nothing sent would archive it out of the queue and lose the only prompt anyone
+  // had to send it.
+  //
+  // Two cases skip the upload rather than block on it:
+  //
+  //   * Already filed. autoSync files the report the moment the crew completes the
+  //     job, so by the time it reaches this queue it usually IS filed. Re-running
+  //     the upload would put a second copy of the same report on the AccuLynx job.
+  //   * AccuLynx not configured. There is nowhere to file, so requiring it would
+  //     make Close permanently unavailable for a company that doesn't use AccuLynx.
   const closeJob = async (job = sel) => {
-    if (!job) return;
+    if (!job || closing) return;
+
+    const alreadyFiled = syncStatusOf(job) === "synced" || !!reportUploadedAtOf(job);
+    const axReady = !!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl);
+
+    setClosing(true);
+    if (!alreadyFiled && axReady) {
+      const r = await syncJobReportToAccuLynx({
+        job, users, config: acculynxConfig, setJobs, activeLogo, inv, company,
+      });
+      if (!r.ok) {
+        // Ask rather than refuse. A job whose money is collected and whose roof is
+        // finished should not stay open forever because AccuLynx is down — but
+        // closing it with no report filed has to be a deliberate choice, because
+        // closing is what takes it off the queue that would have reminded anyone.
+        const go = await confirm({
+          title: t.bjCloseSyncFailTitle,
+          message: t.bjCloseSyncFailAsk,
+          detail: r.error,
+          confirmLabel: t.bjCloseAnyway,
+          cancelLabel: t.bjDontClose,
+          tone: "danger",
+        });
+        if (!go) {
+          showToast(`${t.bjCloseSyncFail} ${r.error}`, "error");
+          setClosing(false);
+          return;
+        }
+      } else {
+        showToast(t.bjCloseSynced, "success");
+      }
+    }
+
     const closedAt = new Date().toISOString();
     try {
       const { error } = await updateRowStrict("jobs", job.id, { status: "closed", closedAt });
@@ -563,10 +639,12 @@ export default function BuildJobs({
       setSel((p) => (p && p.id === job.id ? updated : p));
       // Email the assigned supervisor if the company enabled "Closed" notifications.
       notifyJobMove({ transition: "closed", job: updated, users, prefs: jobNotifications });
-      showToast(t.bjClosed, "success");
+      setHandoff({ job: updated, kind: "closed" });
     } catch (err) {
       console.error("Failed to close job:", err);
       showToast(`${t.bjCloseFail} ${err.message}`, "error");
+    } finally {
+      setClosing(false);
     }
   };
 
@@ -713,11 +791,14 @@ export default function BuildJobs({
           </div>
 
           <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: 14, flexWrap: "wrap" }}>
+            {/* Approved and Active are gone on purpose. Once a job is approved it is
+                the crew's work, and Pull Inventory is where that work is tracked —
+                two screens listing the same live jobs meant two places to look and
+                no answer to which one was current. What is left here is the two
+                ends this screen owns: building a job, and closing it out after. */}
             {[
               ["all", "All Jobs"],
               ["draft", "Drafts"],
-              ["approved", "Approved"],
-              ["active", "Active"],
               ["completed", "Completed"],
               ["closed", "Closed"],
             ].map(([k, l]) => (
@@ -769,12 +850,17 @@ export default function BuildJobs({
               };
 
               const statusMeta = getJobStatusMeta(job.status);
+              // Handed here from elsewhere in the pipeline. Pulses until the card is
+              // opened, which is also what clears it — see the highlight effect above.
+              const isHighlighted = highlight?.id && String(job.id) === String(highlight.id);
 
               return (
                 <div
                   key={job.id}
-                  className="mrr-card-click"
+                  ref={isHighlighted ? highlightRef : null}
+                  className={`mrr-card-click${isHighlighted ? " mrr-card-hail" : ""}`}
                   onClick={() => {
+                    if (isHighlighted) onHighlightCleared?.();
                     setSel(job);
                     setModal("detail");
                   }}
@@ -784,7 +870,7 @@ export default function BuildJobs({
                     padding: 16,
                     cursor: "pointer",
                     boxShadow: "var(--shadow-sm)",
-                    border: `2px solid ${statusMeta.color}`,
+                    border: `2px solid ${isHighlighted ? C.gold : statusMeta.color}`,
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "flex-start",
@@ -799,6 +885,7 @@ export default function BuildJobs({
                         <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
                       </span>
                       <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>· {job.po}</span>
+                      {isHighlighted && <Bdg color="gold">✨ {highlight.label}</Bdg>}
                       {(syncStatusOf(job) === "synced" || reportUploadedAtOf(job)) && <Bdg color="green">{t.pullReportFiled}</Bdg>}
                       {syncStatusOf(job) === "failed" && !reportUploadedAtOf(job) && <Bdg color="red">{t.pullUploadFailed}</Bdg>}
                       {syncStatusOf(job) === "manual" && <Bdg color="amber">{t.pullConfigureSync}</Bdg>}
@@ -853,25 +940,33 @@ export default function BuildJobs({
                       <Btn
                         v="purple"
                         sz="sm"
-                        onClick={(e) => {
+                        disabled={closing}
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          if (window.confirm(t.bjCloseConfirm)) {
-                            closeJob(job);
-                          }
+                          const go = await confirm({
+                            title: t.bjCloseTitle,
+                            message: t.bjCloseConfirm,
+                            confirmLabel: t.bjCloseAndFile,
+                          });
+                          if (go) closeJob(job);
                         }}
                       >
-                        🔒 Close
+                        🔒 {closing ? t.bjClosing : "Close"}
                       </Btn>
                     )}
                     {perms.jobs_approve && (
                       <Btn
                         v="danger"
                         sz="sm"
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          if (window.confirm(t.bjDeleteConfirm)) {
-                            deleteJob(job.id);
-                          }
+                          const go = await confirm({
+                            title: t.bjDeleteTitle,
+                            message: t.bjDeleteConfirm,
+                            confirmLabel: t.bjDeleteYes,
+                            tone: "danger",
+                          });
+                          if (go) deleteJob(job.id);
                         }}
                       >
                         🗑️ Delete
@@ -935,13 +1030,17 @@ export default function BuildJobs({
               <Btn
                 v="purple"
                 sz="sm"
-                onClick={() => {
-                  if (window.confirm(t.bjCloseConfirm)) {
-                    closeJob();
-                  }
+                disabled={closing}
+                onClick={async () => {
+                  const go = await confirm({
+                    title: t.bjCloseTitle,
+                    message: t.bjCloseConfirm,
+                    confirmLabel: t.bjCloseAndFile,
+                  });
+                  if (go) closeJob();
                 }}
               >
-                🔒 Close Job
+                🔒 {closing ? t.bjClosing : "Close Job"}
               </Btn>
             )}
             {perms.jobs_close && sel.status === "closed" && (
@@ -953,8 +1052,14 @@ export default function BuildJobs({
               <Btn
                 v="danger"
                 sz="sm"
-                onClick={() => {
-                  if (window.confirm(t.bjDeleteDraftConfirm)) {
+                onClick={async () => {
+                  const go = await confirm({
+                    title: t.bjDeleteTitle,
+                    message: t.bjDeleteDraftConfirm,
+                    confirmLabel: t.bjDeleteYes,
+                    tone: "danger",
+                  });
+                  if (go) {
                     deleteJob(sel.id);
                     setModal(null);
                   }
@@ -1319,6 +1424,43 @@ export default function BuildJobs({
           )}
         </Modal>
       )}
+
+      {/* ── Job built ──
+          The hand-off. An approved job leaves this screen for the crew's queue, and
+          a toast that fades after four seconds is a poor way to say so — especially
+          now that Approved and Active are no longer filters here, so there is
+          nothing left on this page to go and look at.
+          "See in Pull Inventory" is the answer to the question the toast provoked
+          and could not answer: where did it go? */}
+      {/* ── Pipeline hand-off ──
+          Building sends the job to the crew's queue; closing archives it into the
+          Closed list on this screen. Both make it vanish from where you were
+          standing, so both say where it went. */}
+      {handoff && (() => {
+        const built = handoff.kind === "built";
+        const supervisor = users.find((u) => u.id === handoff.job.assignedto);
+        return (
+          <JobHandoff
+            job={handoff.job}
+            title={built ? t.bjCreatedTitle : t.bjClosedTitle}
+            message={
+              built
+                ? (handoff.job.assignedto
+                    ? t.bjCreatedAssigned.replace("{name}", supervisor?.full_name || supervisor?.name || t.bjCreatedTheCrew)
+                    : t.bjCreatedUnassigned)
+                : t.bjClosedMsg
+            }
+            actionLabel={built ? `📋 ${t.bjSeeInPull}` : `🔒 ${t.bjSeeInClosed}`}
+            onGo={() => {
+              const j = handoff.job;
+              setHandoff(null);
+              onShowJobIn?.(built ? "pull" : "buildjobs", j.id, built ? t.pullJustBuilt : t.bjJustClosed);
+            }}
+            onClose={() => setHandoff(null)}
+            closeLabel={t.bjBuildAnother}
+          />
+        );
+      })()}
     </div>
   );
 }
