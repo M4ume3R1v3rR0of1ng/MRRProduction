@@ -37,6 +37,44 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   }
 }
 
+// Read a proxy reply, and when it is not ours, SAY SO.
+//
+// Every failure in this integration has surfaced as a bare status code, because the
+// old code did `JSON.parse(...).catch(() => ({}))` and then fell back to
+// `HTTP ${status}` when `data.error` was missing. That hid the actual problem three
+// separate times: a 404 from Vite when the app was on :5173 instead of `netlify dev`
+// on :8888, and a 403 from Squarespace when the domain was pointed away from
+// Netlify — both reported as if AccuLynx had refused something.
+//
+// Our function ALWAYS answers JSON. So a non-JSON body is proof the request never
+// reached it, which is a completely different problem with a completely different
+// fix, and the message now names it.
+//
+// `requireOk` preserves a distinction the call sites already drew. The reads demand
+// a truthy `ok`, because a reply without one carries no folders and no job, and
+// returning success there hands the caller undefined. The cost post fails only on an
+// explicit `ok: false`, which is the check it has always used.
+async function readProxyJson(res, url, { requireOk = false } = {}) {
+  const text = await res.text();
+  let data = null;
+  try { data = JSON.parse(text); } catch { /* handled below */ }
+
+  if (data === null) {
+    let where = 'the configured proxy URL';
+    try { where = new URL(url, window.location.origin).host; } catch { /* keep default */ }
+    throw new Error(
+      `HTTP ${res.status} from ${where}, and the reply was not JSON. The request never reached a Netlify function. ` +
+      `Check the Proxy Gateway URL in Settings (it should be /.netlify/functions/acculynx-sync), ` +
+      `and that the app is running under \`netlify dev\` rather than plain Vite.`
+    );
+  }
+
+  if (!res.ok || (requireOk ? !data.ok : data.ok === false)) {
+    throw new Error(data.error || data.message || `HTTP ${res.status}`);
+  }
+  return data;
+}
+
 // Retries are for READS only. Uploading a document is a create: if an attempt
 // reaches AccuLynx and the reply is lost, retrying files a SECOND copy of the same
 // report onto the job. So the upload gets exactly one attempt, and only lookups
@@ -182,8 +220,7 @@ async function postJobCostToAccuLynx({ job, users, inv, company, config }) {
       }),
     }, 30000);
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data.ok === false) throw new Error(data?.error || `HTTP ${res.status}`);
+    const data = await readProxyJson(res, config.proxyUrl);
 
     return {
       ok: true,
@@ -214,8 +251,7 @@ export async function fetchAccuLynxDocumentFolders(config) {
     body: JSON.stringify({ action: "documentFolders", accessToken }),
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+  const data = await readProxyJson(res, config.proxyUrl, { requireOk: true });
   return data.folders || [];
 }
 
@@ -260,8 +296,7 @@ export async function uploadJobReportToAccuLynx({ job, users, activeLogo, inv, c
     });
     clearTimeout(timeout);
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+    const data = await readProxyJson(res, config.proxyUrl, { requireOk: true });
 
     // Transport only: the caller records this on the job. Persisting here as well
     // meant two database writes per upload, and left this function unusable by
@@ -293,7 +328,6 @@ export async function fetchAccuLynxJob({ poNumber, acculynxJobId }, config) {
     body: JSON.stringify({ action: "getJob", poNumber, acculynxJobId, accessToken }),
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || !data.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+  const data = await readProxyJson(res, config.proxyUrl, { requireOk: true });
   return data.job;
 }

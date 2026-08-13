@@ -90,6 +90,13 @@
      lighten in dark mode, so this inverts with them. */
   --c-on-accent:    #FFFFFF;
 
+  /* Paper white that must NOT invert, because a camera is reading it rather than
+     a person. The MFA QR code is black modules on a transparent ground: on a dark
+     surface that is black-on-black and will not scan, and inverting the code
+     breaks scanners that assume a light quiet zone. The dark block repeats this
+     token at the SAME value on purpose — see the note there. */
+  --c-scan-paper:   #FFFFFF;
+
   /* ── Typography scale ── */
   --text-2xs: 10px;
   --text-xs: 11px;
@@ -181,6 +188,12 @@
   --c-shell:        #16191D;
   --c-shell-ink:    #EDE6DA;
   --c-on-accent:    #1B1F24;
+
+  /* Identical to the light value, and that is the point: this backs a QR code,
+     which a phone camera has to read. Flipping it dark would make the code
+     unscannable. Restated here rather than omitted so the parity check passes
+     and the next person sees the decision instead of an apparent gap. */
+  --c-scan-paper:   #FFFFFF;
 
   /* The light shadows are tinted slate at 5-14% alpha, which is invisible on a
      dark ground. Dark elevation has to come from near-black at much higher

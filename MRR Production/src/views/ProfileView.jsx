@@ -5,6 +5,7 @@ import { C, displayName } from "../utils/helpers";
 import { Fld, Inp, Btn } from "../components/UIPrimitives";
 import { sendEmail } from "../utils/email";
 import { translations } from "../utils/translations";
+import MfaPanel from "../components/MfaPanel";
 
 export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
   const t = translations[lang] || translations.en;
@@ -491,6 +492,11 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
           </Btn>
         </form>
       </div>
+
+      {/* CARD 4: Two-Factor Authentication. Directly under the password card on
+          purpose — it is the same subject, and it is the half that still holds
+          when the password is the part that leaks. */}
+      <MfaPanel user={user} lang={lang} />
     </div>
   );
 }

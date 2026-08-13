@@ -11,6 +11,7 @@ import { C, tot } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { BRAND, TrussMark } from "../components/SteadwerkMark";
 import { useNotify } from "../context/NotificationContext";
+import { logAction } from "../utils/logger";
 
 const STATUS_STYLE = {
   active:    { bg: "var(--c-pasture-wash)", fg: BRAND.pasture, label: "Active" },
@@ -23,6 +24,12 @@ const STATUS_STYLE = {
 function fmtDate(d) {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+// Whole dollars. Every amount here is a monthly subscription total, so the cents
+// are always .00 or .50 and showing them just adds noise to a scanned column.
+function fmtMoney(n) {
+  return `$${(Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
 function fmtBytes(b) {
@@ -38,6 +45,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
   const { showToast } = useNotify();
   const [companies, setCompanies] = useState([]);
   const [usage, setUsage] = useState({}); // company_id -> { total_bytes, object_count }
+  const [revenue, setRevenue] = useState({}); // company_id -> admin_revenue_summary row
   const [padmins, setPadmins] = useState([]);
   const [adminEmail, setAdminEmail] = useState("");
   const [loading, setLoading] = useState(true);
@@ -53,6 +61,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
   const [viewCompany, setViewCompany] = useState(null);
   const [viewData, setViewData] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
+  const [viewBilling, setViewBilling] = useState(null); // admin-billing payload, or { error }
 
   // Load a target company's operational data READ-ONLY. This works because a platform
   // admin's RLS already permits reading any company's rows; we just query with an
@@ -60,6 +69,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
   const openCompanyView = async (company) => {
     setViewCompany(company);
     setViewData(null);
+    setViewBilling(null);
     setViewLoading(true);
     try {
       const [jobsRes, invRes, memsRes] = await Promise.all([
@@ -75,6 +85,22 @@ export default function OwnerConsole({ user, lang = "en" }) {
       const roleByUser = Object.fromEntries(mems.map((m) => [m.user_id, m]));
       const members = (profs || []).map((p) => ({ ...p, role: roleByUser[p.id]?.role, active: roleByUser[p.id]?.active }));
       setViewData({ jobs: jobsRes.data || [], inventory: invRes.data || [], members });
+
+      // Billing comes from Stripe, so it is fetched separately and allowed to fail
+      // on its own. A Stripe outage should cost you the invoice list, not the whole
+      // drill-in.
+      try {
+        const accessToken = await getAccessToken();
+        const res = await fetch("/.netlify/functions/admin-billing", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken, companyId: company.id }),
+        });
+        const bill = await res.json().catch(() => ({}));
+        setViewBilling(res.ok && bill.ok ? bill : { error: bill.error || `HTTP ${res.status}` });
+      } catch (err) {
+        setViewBilling({ error: err.message });
+      }
     } catch (err) {
       showToast(`${t.ocLoadCompanyFail.replace("{name}", company.name)} ${err.message}`, "error");
       setViewData({ jobs: [], inventory: [], members: [] });
@@ -85,15 +111,20 @@ export default function OwnerConsole({ user, lang = "en" }) {
 
   const load = async () => {
     setLoading(true);
-    const [{ data, error }, { data: usageRows }, { data: adminRows }] = await Promise.all([
+    const [{ data, error }, { data: usageRows }, { data: adminRows }, { data: revRows }] = await Promise.all([
       supabase.rpc("admin_list_companies"),
       supabase.rpc("admin_storage_usage"),
       supabase.rpc("admin_list_platform_admins"),
+      supabase.rpc("admin_revenue_summary"),
     ]);
     if (error) showToast(`${t.ocLoadCompaniesFail} ${error.message}`, "error");
     else setCompanies(data || []);
     setUsage(Object.fromEntries((usageRows || []).map((u) => [u.company_id, u])));
     setPadmins(adminRows || []);
+    // Keyed by company id so the table can look a row's revenue up without a second
+    // pass. An empty map (migration 30 not run yet) leaves the column showing "—"
+    // rather than breaking the console.
+    setRevenue(Object.fromEntries((revRows || []).map((r) => [r.id, r])));
     setLoading(false);
   };
 
@@ -166,6 +197,35 @@ export default function OwnerConsole({ user, lang = "en" }) {
     }
   };
 
+  // Step into a tenant and work as its admin. Distinct from the read-only drill-in
+  // above: that is for looking, this is for fixing.
+  //
+  // The audit entry is written BEFORE the switch, so it lands in the owner's own
+  // company log where it is attributable to them rather than appearing inside the
+  // customer's history as though one of their staff did it. The reload is the same
+  // reasoning as CompanySwitcher: every list and permission in memory belongs to
+  // the previous company and none of it may survive the move.
+  const enterCompany = async (company) => {
+    if (!window.confirm(t.ocEnterConfirm.replace("{name}", company.name))) return;
+    setBusyId(company.id);
+    try {
+      await logAction(
+        user.id,
+        user.email,
+        "PLATFORM_ENTER_COMPANY",
+        `Platform owner entered "${company.name}" (${company.slug}) as admin.`,
+        { company_id: company.id },
+        "production",
+      );
+      const { error } = await supabase.rpc("set_active_company", { target: company.id });
+      if (error) throw error;
+      window.location.reload();
+    } catch (err) {
+      showToast(`${t.ocFailed} ${err.message}`, "error");
+      setBusyId(null);
+    }
+  };
+
   const slugify = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
   const createCompany = async (e) => {
@@ -183,6 +243,13 @@ export default function OwnerConsole({ user, lang = "en" }) {
   const totalActive = companies.filter((c) => ["active", "trialing", "past_due"].includes(c.subscription_status)).length;
   const totalBytes = Object.values(usage).reduce((s, u) => s + (Number(u.total_bytes) || 0), 0);
 
+  // Platform MRR. Only companies the RPC marked is_billed contribute, so comped
+  // tenants and trials count as zero — see the header of supabase/30 for why.
+  const revRows = Object.values(revenue);
+  const totalMrr = revRows.reduce((s, r) => s + (Number(r.mrr) || 0), 0);
+  const payingCount = revRows.filter((r) => r.is_billed).length;
+  const trialCount = revRows.filter((r) => r.subscription_status === "trialing").length;
+
   return (
     <div style={{ padding: "24px 28px", maxWidth: 1100, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
@@ -191,9 +258,48 @@ export default function OwnerConsole({ user, lang = "en" }) {
           {t.ocTitle}
         </h1>
       </div>
-      <p style={{ color: C.sub, fontSize: 14, marginBottom: 24 }}>
-        {companies.length} companies · {totalActive} paying · {fmtBytes(totalBytes)} stored across the platform · signed in as {user.email}
+      <p style={{ color: C.sub, fontSize: 14, marginBottom: 18 }}>
+        {companies.length} companies · {totalActive} active · {fmtBytes(totalBytes)} stored across the platform · signed in as {user.email}
       </p>
+
+      {/* ── The business, in one line ──
+          MRR leads because it is the number that decides everything else. ARR is
+          just MRR × 12 and is shown because it is the figure people quote, not
+          because it is separately measured. Trials sit beside them rather than
+          inside them: nothing has been charged yet, so folding them into revenue
+          would report money that does not exist. */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 12,
+          marginBottom: 24,
+        }}
+      >
+        {[
+          { label: "Monthly recurring", value: fmtMoney(totalMrr), tone: BRAND.pasture, big: true },
+          { label: "Annual run rate", value: fmtMoney(totalMrr * 12), tone: C.navy },
+          { label: "Paying companies", value: String(payingCount), tone: C.navy },
+          { label: "In trial", value: String(trialCount), tone: trialCount > 0 ? BRAND.amberDeep : C.sub },
+        ].map((s) => (
+          <div
+            key={s.label}
+            style={{
+              background: C.w,
+              border: `1px solid ${C.bd}`,
+              borderRadius: 12,
+              padding: "14px 16px",
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+              {s.label}
+            </div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: s.big ? 28 : 22, fontWeight: 900, color: s.tone, lineHeight: 1.1 }}>
+              {s.value}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* Create company */}
       <form onSubmit={createCompany} style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end", background: C.w, border: `1px solid ${C.bd}`, borderRadius: 12, padding: 16, marginBottom: 24 }}>
@@ -223,22 +329,23 @@ export default function OwnerConsole({ user, lang = "en" }) {
       {/* Company table */}
       <div style={{ background: C.w, border: `1px solid ${C.bd}`, borderRadius: 12, overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: 720 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: 820 }}>
             <thead>
               <tr style={{ background: C.lg, textAlign: "left" }}>
-                {["Company", "Status", "Users", "Storage", "Created", "Last activity", "Actions"].map((h) => (
+                {["Company", "Status", "MRR", "Users", "Storage", "Created", "Last activity", "Actions"].map((h) => (
                   <th key={h} style={{ padding: "12px 14px", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, color: C.sub, fontWeight: 800 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: C.sub }}>{t.ocLoading}</td></tr>
+                <tr><td colSpan={8} style={{ padding: 24, textAlign: "center", color: C.sub }}>{t.ocLoading}</td></tr>
               ) : companies.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: 24, textAlign: "center", color: C.sub }}>{t.ocNoCompanies}</td></tr>
+                <tr><td colSpan={8} style={{ padding: 24, textAlign: "center", color: C.sub }}>{t.ocNoCompanies}</td></tr>
               ) : companies.map((co) => {
                 const st = STATUS_STYLE[co.subscription_status] || { bg: C.lg, fg: C.sub, label: co.subscription_status };
                 const suspended = co.subscription_status === "suspended";
+                const rev = revenue[co.id];
                 return (
                   <tr key={co.id} style={{ borderTop: `1px solid ${C.bd}` }}>
                     <td style={{ padding: "12px 14px" }}>
@@ -248,8 +355,39 @@ export default function OwnerConsole({ user, lang = "en" }) {
                     <td style={{ padding: "12px 14px" }}>
                       <span style={{ background: st.bg, color: st.fg, padding: "3px 10px", borderRadius: 20, fontSize: 12, fontWeight: 800 }}>{st.label}</span>
                     </td>
+                    {/* Comped and trialing companies show a dash, not $0. Zero reads
+                        as "this customer pays nothing", which is a problem; a dash
+                        reads as "not billed", which is the actual situation. */}
+                    <td style={{ padding: "12px 14px" }}>
+                      {!rev ? (
+                        <span style={{ color: C.sub }}>—</span>
+                      ) : rev.is_billed ? (
+                        <>
+                          <span style={{ fontWeight: 800, color: BRAND.pasture }}>{fmtMoney(rev.mrr)}</span>
+                          {rev.billing_interval === "annual" && (
+                            <span style={{ fontSize: 11, color: C.sub, marginLeft: 5 }} title="Billed annually, shown as its monthly equivalent">
+                              annual
+                            </span>
+                          )}
+                          {rev.recurring_packs > 0 && (
+                            <div style={{ fontSize: 11, color: C.sub }}>
+                              base + {rev.recurring_packs} pack{rev.recurring_packs === 1 ? "" : "s"}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ color: C.sub }} title={co.subscription_status === "trialing" ? "In trial — nothing charged yet" : "No Stripe subscription (comped)"}>
+                          {co.subscription_status === "trialing" ? "trial" : "comped"}
+                        </span>
+                      )}
+                    </td>
                     <td style={{ padding: "12px 14px", color: C.navy }}>
                       {co.active_user_count}{co.user_count !== co.active_user_count ? <span style={{ color: C.sub }}> / {co.user_count}</span> : null}
+                      {rev?.grandfathered_packs > 0 && (
+                        <div style={{ fontSize: 11, color: C.sub }} title="Seat packs bought under the old one-time pricing. They grant capacity but are never billed again.">
+                          +{rev.grandfathered_packs} grandfathered
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: "12px 14px", color: C.sub }} title={`${usage[co.id]?.object_count || 0} files`}>
                       {fmtBytes(usage[co.id]?.total_bytes)}
@@ -262,6 +400,14 @@ export default function OwnerConsole({ user, lang = "en" }) {
                           style={{ padding: "6px 12px", background: "transparent", color: C.blue, border: `1.5px solid ${C.blue}`, borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
                           {t.ocView}
                         </button>
+                        {/* Not offered for the company you are already in — there is
+                            nowhere to go, and the button would look like a no-op. */}
+                        {co.id !== user.companyId && (
+                          <button onClick={() => enterCompany(co)} disabled={busyId === co.id}
+                            style={{ padding: "6px 12px", background: "transparent", color: C.plum, border: `1.5px solid ${C.plum}`, borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                            {t.ocEnter}
+                          </button>
+                        )}
                         {suspended ? (
                           <>
                             <button onClick={() => setStatus(co, "active")} disabled={busyId === co.id}
@@ -411,6 +557,91 @@ export default function OwnerConsole({ user, lang = "en" }) {
               <div style={{ padding: 32, textAlign: "center", color: C.sub }}>{t.ocLoading}</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+                {/* Billing — Stripe's own numbers, not the modelled MRR from
+                    supabase/30. When these two disagree, the price constants in
+                    that migration are the thing that is wrong. */}
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+                    Billing
+                  </div>
+                  {!viewBilling ? (
+                    <div style={{ fontSize: 13, color: C.sub }}>{t.ocLoading}</div>
+                  ) : viewBilling.error ? (
+                    <div style={{ fontSize: 13, color: BRAND.rust }}>{viewBilling.error}</div>
+                  ) : !viewBilling.billed ? (
+                    <div style={{ fontSize: 13, color: C.sub }}>{t.ocNotBilled}</div>
+                  ) : (
+                    <>
+                      <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 12, fontSize: 13 }}>
+                        <div>
+                          <div style={{ color: C.sub, fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Charging</div>
+                          <div style={{ fontWeight: 800, color: C.navy }}>
+                            {fmtMoney(viewBilling.subscription?.total)}
+                            <span style={{ color: C.sub, fontWeight: 600 }}>
+                              {viewBilling.subscription?.items?.[0]?.interval === "year" ? " / year" : " / month"}
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ color: C.sub, fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Renews</div>
+                          <div style={{ color: C.navy }}>{fmtDate(viewBilling.subscription?.currentPeriodEnd)}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: C.sub, fontSize: 11, fontWeight: 800, textTransform: "uppercase" }}>Card</div>
+                          <div style={{ color: C.navy }}>
+                            {viewBilling.card ? `${viewBilling.card.brand} ···· ${viewBilling.card.last4}` : "—"}
+                          </div>
+                        </div>
+                        {viewBilling.subscription?.cancelAtPeriodEnd && (
+                          <div style={{ color: BRAND.rust, fontWeight: 800, alignSelf: "center" }}>
+                            {t.ocCancelsAtPeriodEnd}
+                          </div>
+                        )}
+                      </div>
+
+                      {viewBilling.invoices.length === 0 ? (
+                        <div style={{ fontSize: 13, color: C.sub }}>{t.ocNoInvoices}</div>
+                      ) : (
+                        <div style={{ overflowX: "auto", border: `1px solid ${C.bd}`, borderRadius: 8 }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 460 }}>
+                            <thead><tr style={{ background: C.lg, textAlign: "left" }}>
+                              {["Invoice", "Date", "Amount", "Status", ""].map((h) => (
+                                <th key={h} style={{ padding: "8px 10px", fontSize: 11, textTransform: "uppercase", color: C.sub, fontWeight: 800 }}>{h}</th>
+                              ))}
+                            </tr></thead>
+                            <tbody>
+                              {viewBilling.invoices.map((inv) => (
+                                <tr key={inv.id} style={{ borderTop: `1px solid ${C.bd}` }}>
+                                  <td style={{ padding: "7px 10px", fontFamily: "var(--font-mono)", fontSize: 12, color: C.sub }}>{inv.number || inv.id}</td>
+                                  <td style={{ padding: "7px 10px", color: C.sub }}>{fmtDate(inv.created)}</td>
+                                  <td style={{ padding: "7px 10px", fontWeight: 700, color: C.navy }}>{fmtMoney(inv.amountDue)}</td>
+                                  <td style={{ padding: "7px 10px" }}>
+                                    <span style={{ color: inv.status === "paid" ? BRAND.pasture : inv.status === "open" ? BRAND.amberDeep : C.sub, fontWeight: 700, textTransform: "capitalize" }}>
+                                      {inv.status}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: "7px 10px" }}>
+                                    {inv.hostedUrl && (
+                                      <a href={inv.hostedUrl} target="_blank" rel="noopener noreferrer" style={{ color: C.blue, fontWeight: 700, fontSize: 12 }}>
+                                        View
+                                      </a>
+                                    )}
+                                    {inv.pdfUrl && (
+                                      <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: C.blue, fontWeight: 700, fontSize: 12, marginLeft: 10 }}>
+                                        PDF
+                                      </a>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
                 {/* Jobs */}
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Jobs ({viewData.jobs.length})</div>

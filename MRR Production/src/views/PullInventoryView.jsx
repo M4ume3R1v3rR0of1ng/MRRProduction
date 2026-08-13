@@ -45,6 +45,7 @@ export default function PullInventory({
 
   const [pulling, setPulling] = useState(false);
   const [returning, setReturning] = useState(false);
+  const [closing, setClosing] = useState(false);
   // Lines that would take stock below zero, held for confirmation. Non-null means
   // the pull was computed against LIVE batches, found a shortfall, and stopped
   // before committing anything. See confirmPull.
@@ -613,6 +614,51 @@ export default function PullInventory({
     return null;
   };
 
+  // Same "filed" test the green badge uses, so the Close button and the badge can
+  // never disagree about whether the paperwork is in.
+  const reportIsFiled = (job) => syncStatusOf(job) === "synced" || !!reportUploadedAtOf(job);
+
+  // Closing is a bookkeeping act, so it waits for the report. But report_uploaded_at
+  // is only ever written by a successful AccuLynx upload — a company that doesn't
+  // use AccuLynx can never file one, and gating on it alone would leave their
+  // completed jobs permanently un-closable from this screen. So the report is
+  // required only when AccuLynx is actually configured to receive it.
+  const canCloseJob = (job) =>
+    perms.jobs_close &&
+    job?.status === "completed" &&
+    (reportIsFiled(job) || !acculynxConfig?.enabled);
+
+  const closeJob = async (job) => {
+    if (!job || closing) return;
+    setClosing(true);
+    const closedAt = new Date().toISOString();
+    try {
+      const { error } = await updateRowStrict("jobs", job.id, { status: "closed", closedAt });
+      if (error) throw error;
+
+      await logAction(
+        user.id,
+        user.email,
+        "JOB_BUILD_CLOSE",
+        `Archived and locked completed job contract file for: "${job.title || job.name}" (PO: ${job.po}) from Pull Inventory`,
+        { job_id: job.id, archived_timestamp: closedAt },
+        "production",
+      );
+
+      const updated = { ...job, status: "closed", closedAt };
+      setJobs((p) => p.map((j) => (j.id === job.id ? updated : j)));
+      setSel((p) => (p && p.id === job.id ? updated : p));
+      // Email the assigned supervisor if the company enabled "Closed" notifications.
+      notifyJobMove({ transition: "closed", job: updated, users, prefs: jobNotifications });
+      showToast(t.pullClosed, "success");
+    } catch (err) {
+      console.error("Failed to close job:", err);
+      showToast(`${t.pullCloseFail} ${err.message}`, "error");
+    } finally {
+      setClosing(false);
+    }
+  };
+
   // The audit entry for a pull.
   //
   // It used to read "Dispatched staging materials out for Job PO #123 (Smith)" and
@@ -834,6 +880,16 @@ export default function PullInventory({
                     <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
                       <Btn v="green" sz="sm" onClick={() => { if (!generatePDF(job, users, activeLogo, inv, company)) showToast(t.pullPopupBlocked2, "warning"); }}>📄 PDF</Btn>
                       <Btn v="sky" sz="sm" onClick={() => setSyncModal(job)}>{t.pullSyncUpload}</Btn>
+                      {canCloseJob(job) && (
+                        <Btn
+                          v="purple"
+                          sz="sm"
+                          disabled={closing}
+                          onClick={() => { if (window.confirm(t.pullCloseConfirm)) closeJob(job); }}
+                        >
+                          🔒 {t.pullCloseJob}
+                        </Btn>
+                      )}
                     </div>
                   )}
                   <Btn v="ghost" sz="sm" onClick={() => openJob(job)}>{t.pullDetails}</Btn>
@@ -1290,6 +1346,15 @@ export default function PullInventory({
             <div style={{ marginTop: 10, display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
               <Btn v="green" onClick={() => { if (!generatePDF(sel, users, activeLogo, inv, company)) showToast(t.pullPopupBlocked2, "warning"); }}>📄 PDF</Btn>
               <Btn v="sky" onClick={() => setSyncModal(sel)}>{t.pullSyncUpload}</Btn>
+              {canCloseJob(sel) && (
+                <Btn
+                  v="purple"
+                  disabled={closing}
+                  onClick={() => { if (window.confirm(t.pullCloseConfirm)) closeJob(sel); }}
+                >
+                  🔒 {closing ? t.pullClosing : t.pullCloseJob}
+                </Btn>
+              )}
             </div>
           )}
         </Modal>

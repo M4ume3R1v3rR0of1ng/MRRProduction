@@ -98,13 +98,37 @@ export function useAppData() {
             .eq("id", session.user.id)
             .maybeSingle();
 
-          if (prof?.active && prof.active_company_id) {
-            activeCompanyId = prof.active_company_id;
+          let targetCompanyId = prof?.active ? prof.active_company_id : null;
+
+          // No company selected yet. A password sign-in always picks one, through
+          // set_active_company() in LoginScreen — but an OAuth return never runs
+          // that code: Google hands the browser back with a session already made
+          // and no form submit to hang the selection off. With exactly one active
+          // membership there is nothing to choose, so take it here rather than
+          // bouncing the user to a picker with a single button on it. Two or more
+          // is left unset on purpose: that choice is theirs, and LoginScreen has
+          // the picker for it.
+          if (prof?.active && !targetCompanyId) {
+            const { data: memberships } = await supabase
+              .from("memberships")
+              .select("company_id")
+              .eq("user_id", session.user.id)
+              .eq("active", true);
+            if (memberships?.length === 1) {
+              const { error: pickErr } = await supabase.rpc("set_active_company", {
+                target: memberships[0].company_id,
+              });
+              if (!pickErr) targetCompanyId = memberships[0].company_id;
+            }
+          }
+
+          if (targetCompanyId) {
+            activeCompanyId = targetCompanyId;
             const { data: membership } = await supabase
               .from("memberships")
               .select("role, company_id, companies ( name )")
               .eq("user_id", session.user.id)
-              .eq("company_id", prof.active_company_id)
+              .eq("company_id", targetCompanyId)
               .eq("active", true)
               .maybeSingle();
 
@@ -118,6 +142,30 @@ export function useAppData() {
                 companyId: membership.company_id,
                 companyName: membership.companies?.name || null,
                 isPlatformAdmin: prof.is_platform_admin === true,
+              });
+            } else if (prof.is_platform_admin === true) {
+              // The platform owner visiting a tenant they hold no membership in.
+              // There is no membership row to read a role or a company name off,
+              // so take the name from companies directly — their RLS already
+              // permits it. The server agrees they act as 'admin' here; see
+              // active_role() in supabase/31.
+              const { data: co } = await supabase
+                .from("companies")
+                .select("name")
+                .eq("id", targetCompanyId)
+                .maybeSingle();
+              setCurUser({
+                id: session.user.id,
+                email: session.user.email,
+                name: prof.full_name,
+                role: "admin",
+                active: true,
+                companyId: targetCompanyId,
+                companyName: co?.name || null,
+                isPlatformAdmin: true,
+                // Drives the persistent banner. Being inside someone else's data
+                // must never be a state you can forget you are in.
+                isVisiting: true,
               });
             }
           }
@@ -149,6 +197,33 @@ export function useAppData() {
         // Empty now renders empty. A FAILED query still records the failure so the UI
         // can say so, because fake data that looks real is worse than none.
         const failedTables = [];
+
+        // No active company: signed out, or signed in but not placed in one yet.
+        //
+        // Every query below filters on company_id, and PostgREST serialises a null
+        // filter as the literal string "null" — which Postgres rejects the moment
+        // it casts to uuid ("invalid input syntax for type uuid: \"null\"", 22P02).
+        // So this block used to fire eleven malformed requests on every logged-out
+        // boot and then report them as failed tables, which surfaces a data-loss
+        // warning to someone whose session simply has nothing to load.
+        //
+        // Clearing rather than just returning matters on a user→user switch: the
+        // previous account's inventory and jobs are still in state, and leaving
+        // them there would show one company's data to the next person.
+        if (!activeCompanyId) {
+          setInv([]);
+          setVehs([]);
+          setJobs([]);
+          setReqs([]);
+          setJobTrailers([]);
+          setWH([]);
+          setUsers([]);
+          setUserOverrides({});
+          setTrainingMedia([]);
+          setLoadErrors([]);
+          setLoadingProgress(100);
+          return;
+        }
 
         await Promise.all([
           (async () => {

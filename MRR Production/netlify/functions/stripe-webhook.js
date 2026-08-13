@@ -67,6 +67,29 @@ function recurringPacksFromSubscription(sub) {
   return packs;
 }
 
+// Which cadence is this subscription billed on, 'monthly' or 'annual'?
+//
+// create-checkout records the customer's choice in the subscription metadata, but
+// metadata is only set on subscriptions WE opened and a customer can switch cadence
+// from the hosted billing portal afterwards. So read it off the base plan's Price
+// instead, which is true in both cases. Every recurring item in one Stripe
+// subscription must share an interval (see add-seats.js), so the base item answers
+// for the whole subscription.
+//
+// Returns null when unreadable, so the caller leaves the stored value alone rather
+// than flipping a paying annual customer to monthly on a malformed event.
+function billingIntervalFromSubscription(sub) {
+  const items = sub?.items?.data;
+  if (!Array.isArray(items) || items.length === 0) return null;
+  const basePriceIds = [process.env.STRIPE_BASE_PRICE_ID, process.env.STRIPE_ANNUAL_PRICE_ID].filter(Boolean);
+  const base = items.find((it) => basePriceIds.includes(it.price?.id)) || items[0];
+  switch (base?.price?.recurring?.interval) {
+    case "year":  return "annual";
+    case "month": return "monthly";
+    default:      return null;
+  }
+}
+
 // Packs only count while the company is actually paying for the base plan. A lapsed
 // subscription drops the ceiling back to the base allowance.
 const SUBSCRIBED_STATUSES = ["trialing", "active", "past_due"];
@@ -88,7 +111,7 @@ function mapStripeStatus(stripeStatus) {
 
 // Apply a status (and optionally a seat capacity) to the company behind a Stripe
 // subscription/customer, unless the company is manually suspended (owner's lever wins).
-async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscriptionId, baseSeats, recurringPacks }, status) {
+async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscriptionId, baseSeats, recurringPacks, billingInterval }, status) {
   if (!status) return;
 
   // Resolve the company: explicit id first, else by the stored Stripe ids.
@@ -122,6 +145,13 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
   // is not being recomputed on this event, so the stored mirror never lags Stripe.
   const billedPacks = typeof recurringPacks === "number" ? recurringPacks : co?.recurring_seat_packs || 0;
   if (typeof recurringPacks === "number") patch.recurring_seat_packs = recurringPacks;
+
+  // Same mirror discipline as the pack count: write it only when we actually read a
+  // cadence off the subscription. Without this the owner console prices an annual
+  // company at the monthly rate, overstating its MRR by $16.50. See supabase/30.
+  if (billingInterval === "monthly" || billingInterval === "annual") {
+    patch.billing_interval = billingInterval;
+  }
 
   // Only touch seat_capacity when we actually read a base allowance off a
   // subscription. Never overwrite a comped company's NULL (unlimited) here — that
@@ -236,6 +266,7 @@ export const handler = async (event) => {
           stripeSubscriptionId: sub.id,
           baseSeats: baseSeatsFromSubscription(sub),
           recurringPacks: recurringPacksFromSubscription(sub),
+          billingInterval: billingIntervalFromSubscription(sub),
         }, mapStripeStatus(sub.status));
         break;
       }

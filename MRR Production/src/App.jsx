@@ -12,6 +12,7 @@ import { C, tot, oilSt, predDays, detSt, fd, fm } from "./utils/helpers";
 import { translations } from "./utils/translations";
 
 import CompanySwitcher from "./components/CompanySwitcher";
+import VisitingBanner from "./components/VisitingBanner";
 import { SteadwerkMark, TrussMark, BRAND } from "./components/SteadwerkMark";
 import Sidebar from "./layouts/Sidebar";
 
@@ -119,6 +120,21 @@ export default function App() {
     });
     return () => subscription?.unsubscribe();
   }, []);
+
+  // Someone holding a live session must never land on the marketing page. This is
+  // the OAuth return: Google redirects to the app origin with a session in place,
+  // but if no company is selected yet useAppData can't build curUser, and
+  // authView's "landing" default would strand them on the hero with no way to
+  // finish signing in. LoginScreen picks the session up and shows the company
+  // picker, so send them there.
+  useEffect(() => {
+    if (app.loading || app.curUser) return;
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data: { session } = {} }) => {
+      if (!cancelled && session?.user) setAuthView("login");
+    });
+    return () => { cancelled = true; };
+  }, [app.loading, app.curUser]);
 
   // The active tenant's name for display. branding.displayName (editable in Settings)
   // wins over the canonical companies.name, which itself beats the membership copy.
@@ -381,7 +397,11 @@ return (
       width: "100vw",
       overflow: "hidden" // Prevents the whole browser page from ever scrolling
     }}>
-        
+
+        {/* Renders nothing unless the platform owner is inside a tenant they are
+            not a member of. See components/VisitingBanner. */}
+        <VisitingBanner user={app.curUser} onLogout={handleLogout} lang={lang} />
+
         {/* 📱 MOBILE HEADER NAVIGATION BAR */}
         {isMobile && (
           <div style={{ background: C.shell, color: C.shellInk, padding: "0 20px", height: 50, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>

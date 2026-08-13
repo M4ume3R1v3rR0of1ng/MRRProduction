@@ -117,7 +117,14 @@ export async function resolveCaller(admin, accessToken) {
     .eq("company_id", companyId)
     .single();
 
-  if (!membership || membership.active === false) {
+  // The platform owner may be VISITING a tenant they hold no membership in — see
+  // supabase/31. active_company_id() resolves for them in SQL, so this mirror has
+  // to resolve too, or every function in this directory 403s the moment the owner
+  // steps into a customer's portal to fix something.
+  const isPlatformAdmin = profile.is_platform_admin === true;
+  const isVisiting = (!membership || membership.active === false) && isPlatformAdmin;
+
+  if ((!membership || membership.active === false) && !isPlatformAdmin) {
     return { error: { status: 403, message: "You are not an active member of this company." } };
   }
 
@@ -132,7 +139,12 @@ export async function resolveCaller(admin, accessToken) {
   }
 
   // The kill switch, enforced server-side. 402 Payment Required is the honest code.
-  if (!USABLE_SUBSCRIPTION_STATES.includes(company.subscription_status)) {
+  //
+  // A visiting platform admin is exempt, matching the SQL: a lapsed or suspended
+  // tenant is exactly when you need to get in and look, and the owner must not be
+  // locked out of their own product by a customer's billing state. A normal member
+  // of that same company still gets the 402.
+  if (!isVisiting && !USABLE_SUBSCRIPTION_STATES.includes(company.subscription_status)) {
     return {
       error: {
         status: 402,
@@ -157,8 +169,11 @@ export async function resolveCaller(admin, accessToken) {
       companyId,
       companyName: company.name,
       companySlug: company.slug,
-      role: membership.role,
-      isPlatformAdmin: profile.is_platform_admin === true,
+      // No membership row to read a role from while visiting; the owner acts as
+      // admin there, same as active_role() returns in SQL.
+      role: membership?.role || (isVisiting ? "admin" : undefined),
+      isPlatformAdmin,
+      isVisiting,
       integrations: secrets?.integrations || {},
     },
   };
