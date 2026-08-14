@@ -1,7 +1,7 @@
 // src/views/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
-import { useState, useEffect, useRef } from "react";
-import { C, fd, fm, doFifo, uid, tot, mkJI, mergePullTracking, todayLocal, applyReturnBatch, jobStatusMeta } from "../utils/helpers";
+import { useState, useEffect, useRef, Fragment } from "react";
+import { C, fd, fm, doFifo, uid, tot, mkJI, mergePullTracking, todayLocal, applyReturnBatch, groupJobsByDay, jobStatusMeta } from "../utils/helpers";
 import { displayNameOf } from "../utils/people";
 import { translations } from "../utils/translations";
 import { generatePDF } from "../utils/pdfGenerator";
@@ -56,7 +56,10 @@ export default function PullInventory({
   // the pull was computed against LIVE batches, found a shortfall, and stopped
   // before committing anything. See confirmPull.
   const [shortWarn, setShortWarn] = useState(null);
-  const [sortBy, setSortBy] = useState("newest");
+  // Oldest first, matching Build Jobs: the queue reads in creation order, so the
+  // job that has been waiting longest is at the top rather than buried at the
+  // bottom. The dropdown still offers newest-first.
+  const [sortBy, setSortBy] = useState("oldest");
   const [srch, setSrch] = useState("");
   // "all" | "approved" | "active". Defaults to all so the view opens showing the
   // whole queue — narrowing is a choice the user makes, not a state they land in
@@ -294,7 +297,12 @@ export default function PullInventory({
     // Same three fields Build Jobs searches — PO, name, address — because those
     // are what someone standing at the warehouse door actually has to hand.
     .filter((j) => matchesQuery(srch, [j.po, j.title || j.name, j.addr]))
-    .sort(jobSorters[sortBy] || jobSorters.newest);
+    .sort(jobSorters[sortBy] || jobSorters.oldest);
+
+  // Date bands, same as Build Jobs. myJobs is already sorted and groupJobsByDay
+  // keeps that order inside each band, so the dropdown orders the jobs within a
+  // day while the days themselves stay in sequence.
+  const dayGroups = groupJobsByDay(myJobs, { newestFirst: sortBy === "newest" });
 
   const openJob = async (j) => {
     if (!j) return;
@@ -764,8 +772,8 @@ export default function PullInventory({
         lang={lang}
       >
         <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.pullSortAria} style={{ width: "auto" }}>
-          <option value="newest">↕ {t.pullSortNewest}</option>
           <option value="oldest">↕ {t.pullSortOldest}</option>
+          <option value="newest">↕ {t.pullSortNewest}</option>
           <option value="name_az">↕ {t.pullSortNameAZ}</option>
           <option value="name_za">↕ {t.pullSortNameZA}</option>
           <option value="po">↕ {t.pullSortPO}</option>
@@ -818,9 +826,13 @@ export default function PullInventory({
         })}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+      {/* The Build Jobs layout: a tiling grid of cards under creation-date
+          headers, one grid for the whole list with the headers spanning every
+          column. A day holding a single job would otherwise stretch that card the
+          full width of the screen. */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "var(--space-4)" }}>
         {myJobs.length === 0 && (
-          <div style={{ background: C.w, padding: 32, borderRadius: "var(--radius-xl)", textAlign: "center", color: C.sub, boxShadow: "var(--shadow-sm)" }}>
+          <div style={{ gridColumn: "1 / -1", background: C.w, padding: 32, borderRadius: "var(--radius-xl)", textAlign: "center", color: C.sub, boxShadow: "var(--shadow-sm)" }}>
             {/* "All caught up" is only true when nothing is hidden. With a filter
                 on and jobs behind it, that message sends someone hunting for a
                 bug that is really a dropdown two feet above their cursor. */}
@@ -843,48 +855,65 @@ export default function PullInventory({
             )}
           </div>
         )}
-        {myJobs.map((job) => {
-          if (!job) return null;
-          const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
-          const jobTrailerNames = jobTrailers
-            .filter((jt) => jt.job_id === job.id)
-            .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
-            .filter(Boolean);
-          // Same treatment as the Build Jobs card: a dot, a colour and an
-          // uppercase label, from the shared helper. jSC still drives the pill
-          // badges inside the detail modal.
-          const statusMeta = jobStatusMeta(job.status);
-          const isNew = (job.newforassigned) && (job.assignedto === user.id || job.assignedTo === user.id);
-          
-          const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
-          
-          const totalCost = currentItems.reduce(
-            (s, i) => s + (i ? ((i.pulled || 0) - (i.returned || 0)) * (i.priceAtPull || 0) : 0),
-            0,
-          );
+        {dayGroups.map(([day, dayJobs]) => (
+          <Fragment key={day || "undated"}>
+            <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: 4 }}>
+              <h2 style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: "var(--weight-extrabold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.4px", whiteSpace: "nowrap" }}>
+                {day ? fd(day) : "No date recorded"}
+              </h2>
+              {day === todayLocal() && <Bdg color="amber">Today</Bdg>}
+              <span style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-semibold)", whiteSpace: "nowrap" }}>
+                {dayJobs.length} job{dayJobs.length === 1 ? "" : "s"}
+              </span>
+              {/* Rule to the right edge, so the header reads as a divider across
+                  the row and not as a stray line of text. */}
+              <div style={{ flex: 1, height: 1, background: C.bd }} />
+            </div>
+            {dayJobs.map((job) => {
+              if (!job) return null;
+              const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
+              const jobTrailerNames = jobTrailers
+                .filter((jt) => jt.job_id === job.id)
+                .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
+                .filter(Boolean);
+              // Same treatment as the Build Jobs card: a dot, a colour and an
+              // uppercase label, from the shared helper. jSC still drives the pill
+              // badges inside the detail modal.
+              const statusMeta = jobStatusMeta(job.status);
+              const isNew = (job.newforassigned) && (job.assignedto === user.id || job.assignedTo === user.id);
 
-          // The job that was just built in Build Jobs and handed over. Pulses until
-          // touched — the point is to survive the trip between two screens, so it
-          // cannot be a flash that ends on a timer the user might miss.
-          const isHighlighted = highlight?.id && String(job.id) === String(highlight.id);
+              const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
 
-          return (
-            <div
-              key={job.id}
-              ref={isHighlighted ? highlightRef : null}
-              className={`mrr-card-hover${isHighlighted ? " mrr-card-hail" : ""}`}
-              onClick={isHighlighted ? () => onHighlightCleared?.() : undefined}
-              style={{
-                background: C.w,
-                borderRadius: "var(--radius-xl)",
-                padding: 16,
-                boxShadow: "var(--shadow-sm)",
-                border: `2px solid ${isHighlighted ? C.gold : isNew ? C.tl : statusMeta.color}`,
-                cursor: isHighlighted ? "pointer" : undefined,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, flexWrap: "wrap", gap: "var(--space-4)" }}>
-                <div>
+              const totalCost = currentItems.reduce(
+                (s, i) => s + (i ? ((i.pulled || 0) - (i.returned || 0)) * (i.priceAtPull || 0) : 0),
+                0,
+              );
+
+              // The job that was just built in Build Jobs and handed over. Pulses until
+              // touched — the point is to survive the trip between two screens, so it
+              // cannot be a flash that ends on a timer the user might miss.
+              const isHighlighted = highlight?.id && String(job.id) === String(highlight.id);
+
+              return (
+                <div
+                  key={job.id}
+                  ref={isHighlighted ? highlightRef : null}
+                  className={`mrr-card-hover${isHighlighted ? " mrr-card-hail" : ""}`}
+                  onClick={isHighlighted ? () => onHighlightCleared?.() : undefined}
+                  style={{
+                    background: C.w,
+                    borderRadius: "var(--radius-xl)",
+                    padding: 14,
+                    boxShadow: "var(--shadow-sm)",
+                    border: `2px solid ${isHighlighted ? C.gold : isNew ? C.tl : statusMeta.color}`,
+                    cursor: isHighlighted ? "pointer" : undefined,
+                    // Column, so the action row can be pushed to the bottom edge
+                    // and line up with its neighbours across a row of cards.
+                    display: "flex",
+                    flexDirection: "column",
+                    minWidth: 0,
+                  }}
+                >
                   <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: statusMeta.color }}>
                       <span>{statusMeta.dot}</span>
@@ -894,7 +923,10 @@ export default function PullInventory({
                     {isHighlighted && <Bdg color="gold">✨ {highlight.label || t.pullJustBuilt}</Bdg>}
                     {isNew && <Bdg color="teal">🔔 {t.pullNew}</Bdg>}
                   </div>
-                  <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2 }}>
+                  {/* Clamped to one line: an address is worth reading in full, but
+                      a job title that wraps just shoves every card in the row
+                      taller. The full title heads the pull and return dialogs. */}
+                  <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {job.title || job.name}
                   </div>
                   <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 4 }}>{job.addr || job.address}</div>
@@ -904,83 +936,101 @@ export default function PullInventory({
                       {t.pullBringTrailer} {jobTrailerNames.join(", ")}
                     </div>
                   )}
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 7, alignItems: "flex-end" }}>
-                  {perms.jobs_pull && job.status === "approved" && (
-                    <Btn
-                      v="teal"
-                      sz="sm"
-                      onClick={() => {
-                        openJob(job);
-                        const q = {};
-                        currentItems.forEach((i) => {
-                          if (i) q[i.iid] = i.planned || i.qty || 0;
-                        });
-                        setPullQtys(q);
-                        setModal("pull");
-                        setSel(job);
-                      }}
-                    >
-                      🚛 {t.pullPullMaterials}
-                    </Btn>
-                  )}
-                  {perms.jobs_complete && job.status === "active" && (
-                    <Btn
-                      v="gold"
-                      sz="sm"
-                      onClick={() => {
-                        setSel(job);
-                        const q = {};
-                        currentItems.forEach((i) => {
-                          if (i) q[i.iid] = 0;
-                        });
-                        setRetQtys(q);
-                        setModal("return");
-                      }}
-                    >
-                      {t.pullReturnComplete}
-                    </Btn>
-                  )}
-                  <Btn v="ghost" sz="sm" onClick={() => openJob(job)}>{t.pullDetails}</Btn>
-                </div>
-              </div>
-              <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 10, display: "flex", gap: "var(--space-3)", overflowX: "auto", paddingBottom: 4 }}>
-                {currentItems.slice(0, 6).map((item) => {
-                  if (!item) return null;
-                  return (
-                    <div
-                      key={item.iid || item.id}
-                      style={{
-                        background: item.pulled > 0 ? C.gB : C.lg,
-                        borderRadius: 7,
-                        padding: "5px 10px",
-                        flexShrink: 0,
-                        border: item.pulled > 0 ? `1px solid ${C.gr}` : "none",
-                      }}
-                    >
-                      <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.navy, whiteSpace: "nowrap" }}>{item.iname || item.name}</div>
-                      <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
-                        {item.pulled > 0
-                          ? `${(item.pulled || 0) - (item.returned || 0)} ${t.pullUsed}`
-                          : `${item.planned || item.qty || 0} ${item.unit || ""} ${t.pullPlanned}`}
+
+                  {/* The material strip scrolls sideways inside the card. In a
+                      340px column six chips no longer fit, which is what the
+                      overflow was always there for. */}
+                  <div style={{ marginTop: 10, borderTop: `1px solid ${C.lg}`, paddingTop: 10, display: "flex", gap: "var(--space-3)", overflowX: "auto", paddingBottom: 4 }}>
+                    {currentItems.slice(0, 6).map((item) => {
+                      if (!item) return null;
+                      return (
+                        <div
+                          key={item.iid || item.id}
+                          style={{
+                            background: item.pulled > 0 ? C.gB : C.lg,
+                            borderRadius: 7,
+                            padding: "5px 10px",
+                            flexShrink: 0,
+                            border: item.pulled > 0 ? `1px solid ${C.gr}` : "none",
+                          }}
+                        >
+                          <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.navy, whiteSpace: "nowrap" }}>{item.iname || item.name}</div>
+                          <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                            {item.pulled > 0
+                              ? `${(item.pulled || 0) - (item.returned || 0)} ${t.pullUsed}`
+                              : `${item.planned || item.qty || 0} ${item.unit || ""} ${t.pullPlanned}`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {currentItems.length > 6 && (
+                      <div style={{ background: C.lg, borderRadius: 7, padding: "5px 10px", flexShrink: 0, display: "flex", alignItems: "center", fontSize: "var(--text-2xs)", color: C.sub }}>
+                        +{currentItems.length - 6} {t.pullMore}
                       </div>
-                    </div>
-                  );
-                })}
-                {currentItems.length > 6 && (
-                  <div style={{ background: C.lg, borderRadius: 7, padding: "5px 10px", flexShrink: 0, display: "flex", alignItems: "center", fontSize: "var(--text-2xs)", color: C.sub }}>
-                    +{currentItems.length - 6} {t.pullMore}
+                    )}
                   </div>
-                )}
-              </div>
-              {perms.inv_pricing_view && job.status === "completed" && totalCost > 0 && (
-                <div style={{ marginTop: 8, borderTop: `1px solid ${C.lg}`, paddingTop: 8, display: "flex", justifyContent: "flex-end" }}>
-                  <span style={{ fontWeight: "var(--weight-black)", fontSize: 15, color: C.gr }}>{t.pullTotal}: {fm(totalCost)}</span>
+
+                  {/* Actions sat in a right-hand column beside the text, which in a
+                      340px card left them a strip too narrow to hold "Pull
+                      Materials". They now run along the bottom edge, pinned so
+                      they line up across a row of cards of different heights. */}
+                  <div
+                    style={{
+                      marginTop: "auto",
+                      paddingTop: 10,
+                      marginBottom: -2,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-end",
+                      gap: "var(--space-2)",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    {perms.inv_pricing_view && job.status === "completed" && totalCost > 0 && (
+                      <span style={{ marginRight: "auto", fontWeight: "var(--weight-black)", fontSize: 15, color: C.gr }}>{t.pullTotal}: {fm(totalCost)}</span>
+                    )}
+                    <Btn v="ghost" sz="sm" onClick={() => openJob(job)}>{t.pullDetails}</Btn>
+                    {perms.jobs_pull && job.status === "approved" && (
+                      <Btn
+                        v="teal"
+                        sz="sm"
+                        onClick={() => {
+                          openJob(job);
+                          const q = {};
+                          currentItems.forEach((i) => {
+                            if (i) q[i.iid] = i.planned || i.qty || 0;
+                          });
+                          setPullQtys(q);
+                          setModal("pull");
+                          setSel(job);
+                        }}
+                      >
+                        🚛 {t.pullPullMaterials}
+                      </Btn>
+                    )}
+                    {perms.jobs_complete && job.status === "active" && (
+                      <Btn
+                        v="gold"
+                        sz="sm"
+                        onClick={() => {
+                          setSel(job);
+                          const q = {};
+                          currentItems.forEach((i) => {
+                            if (i) q[i.iid] = 0;
+                          });
+                          setRetQtys(q);
+                          setModal("return");
+                        }}
+                      >
+                        {t.pullReturnComplete}
+                      </Btn>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          );
-        })}
+              );
+            })}
+          </Fragment>
+        ))}
       </div>
 
       {modal === "pull" && sel && (

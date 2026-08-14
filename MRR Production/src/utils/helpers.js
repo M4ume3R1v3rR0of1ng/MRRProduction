@@ -387,6 +387,36 @@ export const predDays = (v) => {
 export const displayName = (user) =>
   (user?.name || user?.full_name || "").split(" ")[0] || "User";
 
+// Jobs bucketed into date bands: [ ["2026-08-12", [job, job]], … ].
+//
+// Build Jobs and Pull Inventory both list the pipeline under creation-date
+// headers, and the two have to agree on three fiddly points: local calendar days
+// rather than UTC ones, junk timestamps, and where undated rows go.
+//
+// The incoming order is preserved inside each band, so whatever sort the screen
+// already applied becomes the within-day order. Only the bands are re-ordered.
+export const groupJobsByDay = (list, { newestFirst = false } = {}) => {
+  const buckets = new Map();
+  (list || []).forEach((job) => {
+    if (!job) return;
+    const raw = job.created || job.createdAt;
+    // formatDay on an unparseable value yields "NaN-NaN-NaN". Older imported rows
+    // do carry junk here, and a header reading "NaN" is worse than an honest
+    // "no date" bucket.
+    const key = raw ? formatDay(raw) : "";
+    const day = key.includes("NaN") ? "" : key;
+    if (!buckets.has(day)) buckets.set(day, []);
+    buckets.get(day).push(job);
+  });
+  // "YYYY-MM-DD" compares correctly as a string. Undated jobs go last rather than
+  // opening the screen with the rows that are missing their data.
+  return [...buckets.entries()].sort(([a], [b]) => {
+    if (!a) return 1;
+    if (!b) return -1;
+    return newestFirst ? b.localeCompare(a) : a.localeCompare(b);
+  });
+};
+
 // The status line at the top of a job card: a dot, a colour, and a label.
 //
 // Build Jobs and Pull Inventory list the same jobs, so a job that reads

@@ -1,6 +1,6 @@
 // src/views/BuildJobsView.jsx
-import { useState, useMemo, useEffect, useRef } from "react";
-import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal, jobStatusMeta } from "../utils/helpers";
+import { useState, useMemo, useEffect, useRef, Fragment } from "react";
+import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal, groupJobsByDay, jobStatusMeta } from "../utils/helpers";
 import JobHandoff from "../components/JobHandoff";
 import SearchBar from "../components/SearchBar";
 import { translations } from "../utils/translations";
@@ -69,7 +69,10 @@ export default function BuildJobs({
   const [axL, setAxL] = useState(false);
   const [apAssign, setApAssign] = useState("");
   const [srch, setSrch] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
+  // Oldest first: the pipeline reads in the order the jobs were created, so the
+  // work that has been waiting longest is at the top rather than buried at the
+  // bottom of sixty cards. The dropdown still offers newest-first.
+  const [sortBy, setSortBy] = useState("oldest");
 
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);
@@ -147,8 +150,21 @@ export default function BuildJobs({
             (j.title || j.name || "").toLowerCase().includes(q) ||
             (j.addr || "").toLowerCase().includes(q)),
       )
-      .sort(sorters[sortBy] || sorters.newest);
+      .sort(sorters[sortBy] || sorters.oldest);
   }, [jobs, filt, srch, sortBy]);
+
+  // The list always renders in date bands. The sort dropdown then decides the
+  // order WITHIN each day — pick "PO" and every day's jobs run in PO order, with
+  // the days themselves still in sequence. Sorting used to switch the headers off
+  // entirely, which made "sort by PO" and "sort by date" two different screens.
+  // `shown` arrives already sorted and groupJobsByDay keeps that order inside each
+  // band, so the dropdown becomes the within-day sort at no extra cost. The bands
+  // themselves stay chronological whatever it is doing inside them, because a date
+  // band out of date order is not a date band.
+  const dayGroups = useMemo(
+    () => groupJobsByDay(shown, { newestFirst: sortBy === "newest" }),
+    [shown, sortBy],
+  );
 
   const resetWiz = () => {
     setWStep(1);
@@ -767,8 +783,8 @@ export default function BuildJobs({
             lang={lang}
           >
             <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.bjSortAria} style={{ width: "auto" }}>
-              <option value="newest">{t.bjSortNewest}</option>
               <option value="oldest">{t.bjSortOldest}</option>
+              <option value="newest">{t.bjSortNewest}</option>
               <option value="name_az">{t.bjSortNameAZ}</option>
               <option value="name_za">{t.bjSortNameZA}</option>
               <option value="po">{t.bjSortPo}</option>
@@ -814,143 +830,204 @@ export default function BuildJobs({
             ))}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-            {shown.map((job) => {
-              const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
-              const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
-              const pulledCount = currentItems.filter((i) => i && i.pulled > 0).length;
+          {/* A tiling grid, not a single column of full-width bars.
 
-              // Shared with Pull Inventory (utils/helpers) so the same job reads
-              // the same on both screens.
-              const statusMeta = jobStatusMeta(job.status);
-              // Handed here from elsewhere in the pipeline. Pulses until the card is
-              // opened, which is also what clears it — see the highlight effect above.
-              const isHighlighted = highlight?.id && String(job.id) === String(highlight.id);
-
-              return (
-                <div
-                  key={job.id}
-                  ref={isHighlighted ? highlightRef : null}
-                  className={`mrr-card-click${isHighlighted ? " mrr-card-hail" : ""}`}
-                  onClick={() => {
-                    if (isHighlighted) onHighlightCleared?.();
-                    setSel(job);
-                    setModal("detail");
-                  }}
-                  style={{
-                    background: C.w,
-                    borderRadius: "var(--radius-xl)",
-                    padding: 16,
-                    cursor: "pointer",
-                    boxShadow: "var(--shadow-sm)",
-                    border: `2px solid ${isHighlighted ? C.gold : statusMeta.color}`,
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: "var(--space-5)",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: statusMeta.color }}>
-                        <span>{statusMeta.dot}</span>
-                        <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
-                      </span>
-                      <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>· {job.po}</span>
-                      {isHighlighted && <Bdg color="gold">✨ {highlight.label}</Bdg>}
-                      {(syncStatusOf(job) === "synced" || reportUploadedAtOf(job)) && <Bdg color="green">{t.pullReportFiled}</Bdg>}
-                      {syncStatusOf(job) === "failed" && !reportUploadedAtOf(job) && <Bdg color="red">{t.pullUploadFailed}</Bdg>}
-                      {syncStatusOf(job) === "manual" && <Bdg color="amber">{t.pullConfigureSync}</Bdg>}
-                    </div>
-                    <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2 }}>{job.title || job.name}</div>
-                    <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 6 }}>{job.addr}</div>
-                    <div style={{ display: "flex", gap: "var(--space-6)", fontSize: "var(--text-xs)", color: C.sub, flexWrap: "wrap" }}>
-                      <span>📦 {Math.max(currentItems.length, 0)} items</span>
-                      {sup ? <span>👤 {sup.name}</span> : <span style={{ color: C.am }}>⚠️ Unassigned</span>}
-                      <span>Created {fd(job.created || job.createdAt)}</span>
-                    </div>
-                  </div>
-
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    {(job.status === "active" || job.status === "completed") && (
-                      <div style={{ marginBottom: 8 }}>
-                        <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginBottom: 3 }}>{pulledCount}/{currentItems.length} pulled</div>
-                        <div style={{ height: 5, width: 90, background: C.lg, borderRadius: 3 }}>
-                          <div style={{ height: "100%", width: `${currentItems.length > 0 ? (pulledCount / currentItems.length) * 100 : 0}%` }} />
-                        </div>
-                      </div>
-                    )}
-                    {perms.jobs_approve && job.status === "draft" && (
-                      <Btn
-                        v="teal"
-                        sz="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSel(job);
-                          setApAssign(job.assignedto || job.assignedTo || "");
-                          setModal("approve");
-                        }}
-                      >
-                        {t.bjApproveAssign}
-                      </Btn>
-                    )}
-                    {job.status === "completed" && (
-                      <Btn
-                        v="green"
-                        sz="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!generatePDF(job, users, activeLogo, inv, company)) {
-                            showToast(t.bjPopupBlocked, "warning");
-                          }
-                        }}
-                      >
-                        📄 PDF
-                      </Btn>
-                    )}
-                    {perms.jobs_close && job.status === "completed" && (
-                      <Btn
-                        v="purple"
-                        sz="sm"
-                        disabled={closing}
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const go = await confirm({
-                            title: t.bjCloseTitle,
-                            message: t.bjCloseConfirm,
-                            confirmLabel: t.bjCloseAndFile,
-                          });
-                          if (go) closeJob(job);
-                        }}
-                      >
-                        🔒 {closing ? t.bjClosing : "Close"}
-                      </Btn>
-                    )}
-                    {perms.jobs_approve && (
-                      <Btn
-                        v="danger"
-                        sz="sm"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const go = await confirm({
-                            title: t.bjDeleteTitle,
-                            message: t.bjDeleteConfirm,
-                            confirmLabel: t.bjDeleteYes,
-                            tone: "danger",
-                          });
-                          if (go) deleteJob(job.id);
-                        }}
-                      >
-                        🗑️ Delete
-                      </Btn>
-                    )}
-                  </div>
+              Each card only ever held about 300px of text, so on anything wider
+              than a phone the old row was mostly empty space with the buttons
+              flung out to the far right — and sixty jobs meant sixty screens of
+              scrolling. Columns are 340px minimum and stretch to fill, so the
+              layout is three-up on a desktop, two-up on a tablet, and collapses
+              to the old single column on a phone without a media query. */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "var(--space-4)" }}>
+            {/* One grid for the whole list, with the day headers spanning every
+                column, rather than a separate grid per day: a day holding a single
+                job would stretch that card the full width of the screen, which is
+                the shape this just moved away from. A Fragment adds no DOM node,
+                so the header and the cards stay direct children of the grid. */}
+            {dayGroups.map(([day, dayJobs]) => (
+              <Fragment key={day || "undated"}>
+                <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: 4 }}>
+                  <h2 style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: "var(--weight-extrabold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.4px", whiteSpace: "nowrap" }}>
+                    {day ? fd(day) : "No date recorded"}
+                  </h2>
+                  {day === todayLocal() && <Bdg color="amber">Today</Bdg>}
+                  <span style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-semibold)", whiteSpace: "nowrap" }}>
+                    {dayJobs.length} job{dayJobs.length === 1 ? "" : "s"}
+                  </span>
+                  {/* Rule to the right edge, so the header reads as a divider
+                      across the row and not as a stray line of text. */}
+                  <div style={{ flex: 1, height: 1, background: C.bd }} />
                 </div>
-              );
-            })}
+                {dayJobs.map((job) => {
+                  const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
+                  const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
+                  const pulledCount = currentItems.filter((i) => i && i.pulled > 0).length;
+
+                  // Shared with Pull Inventory (utils/helpers) so the same job reads
+                  // the same on both screens.
+                  const statusMeta = jobStatusMeta(job.status);
+                  // Handed here from elsewhere in the pipeline. Pulses until the card is
+                  // opened, which is also what clears it — see the highlight effect above.
+                  const isHighlighted = highlight?.id && String(job.id) === String(highlight.id);
+
+                  const showProgress = job.status === "active" || job.status === "completed";
+                  // Delete renders for anyone who can approve, so that permission alone
+                  // is enough to give the card a footer. Without this check a draft
+                  // viewed by a builder would draw an empty bordered strip.
+                  const hasFooter = showProgress || perms.jobs_approve || job.status === "completed";
+
+                  return (
+                    <div
+                      key={job.id}
+                      ref={isHighlighted ? highlightRef : null}
+                      className={`mrr-card-click${isHighlighted ? " mrr-card-hail" : ""}`}
+                      onClick={() => {
+                        if (isHighlighted) onHighlightCleared?.();
+                        setSel(job);
+                        setModal("detail");
+                      }}
+                      style={{
+                        background: C.w,
+                        borderRadius: "var(--radius-xl)",
+                        padding: 14,
+                        cursor: "pointer",
+                        boxShadow: "var(--shadow-sm)",
+                        border: `2px solid ${isHighlighted ? C.gold : statusMeta.color}`,
+                        // Column, so the footer can be pushed to the bottom edge and
+                        // line up with its neighbours across a row of unequal cards.
+                        display: "flex",
+                        flexDirection: "column",
+                        minWidth: 0,
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: statusMeta.color }}>
+                          <span>{statusMeta.dot}</span>
+                          <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
+                        </span>
+                        <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>· {job.po}</span>
+                        {isHighlighted && <Bdg color="gold">✨ {highlight.label}</Bdg>}
+                        {(syncStatusOf(job) === "synced" || reportUploadedAtOf(job)) && <Bdg color="green">{t.pullReportFiled}</Bdg>}
+                        {syncStatusOf(job) === "failed" && !reportUploadedAtOf(job) && <Bdg color="red">{t.pullUploadFailed}</Bdg>}
+                        {syncStatusOf(job) === "manual" && <Bdg color="amber">{t.pullConfigureSync}</Bdg>}
+                      </div>
+                      {/* Clamped to one line: an address that wraps is worth reading in
+                          full, but a job title that wraps just shoves every card in the
+                          row taller. The full title is the modal's heading. */}
+                      <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.title || job.name}</div>
+                      <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 8 }}>{job.addr}</div>
+                      {/* Row gap as well as column gap — this wraps to two lines in a
+                          narrow column, and the old single `gap: space-6` left the
+                          wrapped line sitting on top of the one above it. */}
+                      <div style={{ display: "flex", gap: "2px var(--space-4)", fontSize: "var(--text-xs)", color: C.sub, flexWrap: "wrap" }}>
+                        <span>📦 {Math.max(currentItems.length, 0)} items</span>
+                        {sup ? <span>👤 {sup.name}</span> : <span style={{ color: C.am }}>⚠️ Unassigned</span>}
+                        {/* No "Created …" line: the day header above every card
+                            now says it, on every sort. */}
+                      </div>
+
+                      {hasFooter && (
+                        <div
+                          style={{
+                            // Pinned to the bottom of the card, so the buttons sit on
+                            // one line across a row instead of stepping up and down
+                            // with each card's address length.
+                            marginTop: "auto",
+                            paddingTop: 10,
+                            marginBottom: -2,
+                            borderTop: `1px solid ${C.lg}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "flex-end",
+                            gap: "var(--space-2)",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          {showProgress && (
+                            <div style={{ marginRight: "auto", minWidth: 90 }}>
+                              <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginBottom: 3 }}>{pulledCount}/{currentItems.length} pulled</div>
+                              {/* The fill had no background and was therefore invisible:
+                                  every job showed an empty track whatever it had pulled. */}
+                              <div style={{ height: 5, width: 90, background: C.lg, borderRadius: 3, overflow: "hidden" }}>
+                                <div style={{ height: "100%", borderRadius: 3, background: statusMeta.color, width: `${currentItems.length > 0 ? (pulledCount / currentItems.length) * 100 : 0}%` }} />
+                              </div>
+                            </div>
+                          )}
+                          {perms.jobs_approve && job.status === "draft" && (
+                            <Btn
+                              v="teal"
+                              sz="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSel(job);
+                                setApAssign(job.assignedto || job.assignedTo || "");
+                                setModal("approve");
+                              }}
+                            >
+                              {t.bjApproveAssign}
+                            </Btn>
+                          )}
+                          {job.status === "completed" && (
+                            <Btn
+                              v="green"
+                              sz="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!generatePDF(job, users, activeLogo, inv, company)) {
+                                  showToast(t.bjPopupBlocked, "warning");
+                                }
+                              }}
+                            >
+                              📄 PDF
+                            </Btn>
+                          )}
+                          {perms.jobs_close && job.status === "completed" && (
+                            <Btn
+                              v="purple"
+                              sz="sm"
+                              disabled={closing}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const go = await confirm({
+                                  title: t.bjCloseTitle,
+                                  message: t.bjCloseConfirm,
+                                  confirmLabel: t.bjCloseAndFile,
+                                });
+                                if (go) closeJob(job);
+                              }}
+                            >
+                              🔒 {closing ? t.bjClosing : "Close"}
+                            </Btn>
+                          )}
+                          {perms.jobs_approve && (
+                            <Btn
+                              v="danger"
+                              sz="sm"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                const go = await confirm({
+                                  title: t.bjDeleteTitle,
+                                  message: t.bjDeleteConfirm,
+                                  confirmLabel: t.bjDeleteYes,
+                                  tone: "danger",
+                                });
+                                if (go) deleteJob(job.id);
+                              }}
+                            >
+                              🗑️ Delete
+                            </Btn>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </Fragment>
+            ))}
             {shown.length === 0 && (
-              <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 30, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", boxShadow: "var(--shadow-sm)" }}>
+              /* Spans every column: in a grid the empty state would otherwise sit
+                 in a lone 340px box at the far left of the screen. */
+              <div style={{ gridColumn: "1 / -1", background: C.w, borderRadius: "var(--radius-xl)", padding: 30, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", boxShadow: "var(--shadow-sm)" }}>
                 No {filt === "all" ? "" : filt + " "}jobs. {perms.jobs_build && filt === "all" && ' Click "+ New Job" to get started.'}
               </div>
             )}
