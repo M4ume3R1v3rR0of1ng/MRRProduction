@@ -1,7 +1,7 @@
 // src/views/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
 import { useState, useEffect, useRef } from "react";
-import { C, fd, fm, doFifo, uid, tot, mkJI, mergePullTracking, todayLocal, applyReturnBatch } from "../utils/helpers";
+import { C, fd, fm, doFifo, uid, tot, mkJI, mergePullTracking, todayLocal, applyReturnBatch, jobStatusMeta } from "../utils/helpers";
 import { displayNameOf } from "../utils/people";
 import { translations } from "../utils/translations";
 import { generatePDF } from "../utils/pdfGenerator";
@@ -747,44 +747,12 @@ export default function PullInventory({
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "var(--space-3)", marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-4)", marginBottom: 16 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>📋 {t.pull}</h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
             {isField ? t.pullYourJobs : t.pullAllJobs}
           </p>
-        </div>
-        <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", alignItems: "center" }}>
-        {/* Counts come from the unfiltered queue on purpose: the point of the
-            number is to say what is behind the OTHER buttons before you press
-            them. The dot emoji stays even though the selected button is already
-            colour-coded, because an unselected button is plain ghost grey and
-            colour would then be the only thing distinguishing them. */}
-        <div role="group" aria-label={t.pullFilterAria} style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-          {[
-            // Geometric marks, not emoji: the coloured-circle emoji I first used
-            // here were silently stripped from this file on save (astral-plane
-            // codepoints; the BMP ▦ survived). These also read as a progression,
-            // empty to half to done, which the emoji never did.
-            { id: "all", dot: "▦", label: t.pullFilterAllShort, full: t.pullFilterAll, count: statusCounts.all, tone: "primary" },
-            { id: "approved", dot: "○", label: t.pullFilterApprovedShort, full: t.pullFilterApproved, count: statusCounts.approved, tone: "gold" },
-            { id: "active", dot: "◐", label: t.pullFilterActiveShort, full: t.pullFilterActive, count: statusCounts.active, tone: "green" },
-          ].map((f) => {
-            const on = statusFilt === f.id;
-            return (
-              <Btn
-                key={f.id}
-                v={on ? f.tone : "ghost"}
-                sz="sm"
-                onClick={() => setStatusFilt(f.id)}
-                aria-pressed={on}
-                title={f.full}
-              >
-                {f.dot} {f.label} ({f.count})
-              </Btn>
-            );
-          })}
-        </div>
         </div>
       </div>
 
@@ -804,6 +772,51 @@ export default function PullInventory({
           <option value="status">↕ {t.status}</option>
         </Sel>
       </SearchBar>
+
+      {/* Same place and same shape as the Build Jobs tabs: directly under the
+          search box, label first, count in a pill. These used to sit up beside
+          the page title with a geometric mark and a "(3)" suffix, so the two
+          screens that list the same jobs asked you to look in two places for the
+          same control.
+
+          Counts still come from the unfiltered queue on purpose: the point of the
+          number is to say what is behind the OTHER tabs before you press them. */}
+      <div role="group" aria-label={t.pullFilterAria} style={{ display: "flex", gap: "var(--space-2)", marginBottom: 14, flexWrap: "wrap" }}>
+        {[
+          { id: "all", label: t.pullFilterAllShort, full: t.pullFilterAll, count: statusCounts.all },
+          { id: "approved", label: t.pullFilterApprovedShort, full: t.pullFilterApproved, count: statusCounts.approved },
+          { id: "active", label: t.pullFilterActiveShort, full: t.pullFilterActive, count: statusCounts.active },
+        ].map((f) => {
+          const on = statusFilt === f.id;
+          return (
+            <Btn
+              key={f.id}
+              v={on ? "primary" : "ghost"}
+              sz="sm"
+              onClick={() => setStatusFilt(f.id)}
+              aria-pressed={on}
+              title={f.full}
+            >
+              {f.label}
+              {f.count > 0 && (
+                <span
+                  style={{
+                    marginLeft: 4,
+                    background: on ? "rgba(255,255,255,0.3)" : C.lg,
+                    color: on ? C.onAccent : C.sub,
+                    borderRadius: 20,
+                    fontSize: "var(--text-2xs)",
+                    padding: "1px 6px",
+                    fontWeight: "var(--weight-extrabold)",
+                  }}
+                >
+                  {f.count}
+                </span>
+              )}
+            </Btn>
+          );
+        })}
+      </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {myJobs.length === 0 && (
@@ -837,7 +850,10 @@ export default function PullInventory({
             .filter((jt) => jt.job_id === job.id)
             .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
             .filter(Boolean);
-          const st = jSC[job.status] || { c: "gray", icon: "📋", l: job.status };
+          // Same treatment as the Build Jobs card: a dot, a colour and an
+          // uppercase label, from the shared helper. jSC still drives the pill
+          // badges inside the detail modal.
+          const statusMeta = jobStatusMeta(job.status);
           const isNew = (job.newforassigned) && (job.assignedto === user.id || job.assignedTo === user.id);
           
           const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
@@ -863,17 +879,20 @@ export default function PullInventory({
                 borderRadius: "var(--radius-xl)",
                 padding: 16,
                 boxShadow: "var(--shadow-sm)",
-                border: `2px solid ${isHighlighted ? C.gold : isNew ? C.tl : job.status === "active" ? C.am : "transparent"}`,
+                border: `2px solid ${isHighlighted ? C.gold : isNew ? C.tl : statusMeta.color}`,
                 cursor: isHighlighted ? "pointer" : undefined,
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10, flexWrap: "wrap", gap: "var(--space-4)" }}>
                 <div>
-                  <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 5, flexWrap: "wrap" }}>
-                    <Bdg color={st.c}>{st.icon} {st.l}</Bdg>
+                  <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: statusMeta.color }}>
+                      <span>{statusMeta.dot}</span>
+                      <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
+                    </span>
+                    <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>· {job.po || t.pullNoPoHash}</span>
                     {isHighlighted && <Bdg color="gold">✨ {highlight.label || t.pullJustBuilt}</Bdg>}
                     {isNew && <Bdg color="teal">🔔 {t.pullNew}</Bdg>}
-                    <span style={{ fontSize: "var(--text-sm)", color: C.sub }}>{job.po || t.pullNoPoHash}</span>
                   </div>
                   <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2 }}>
                     {job.title || job.name}

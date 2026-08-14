@@ -1,6 +1,6 @@
 // src/views/BuildJobsView.jsx
 import { useState, useMemo, useEffect, useRef } from "react";
-import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal } from "../utils/helpers";
+import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal, jobStatusMeta } from "../utils/helpers";
 import JobHandoff from "../components/JobHandoff";
 import SearchBar from "../components/SearchBar";
 import { translations } from "../utils/translations";
@@ -820,22 +820,9 @@ export default function BuildJobs({
               const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
               const pulledCount = currentItems.filter((i) => i && i.pulled > 0).length;
 
-              const getJobStatusMeta = (status) => {
-                switch (status?.toLowerCase()) {
-                  case "completed":
-                  case "closed":
-                    return { dot: "🟢", color: C.gr, label: "Completed" };
-                  case "active":
-                    return { dot: "🟡", color: C.am, label: "In Progress" };
-                  case "approved":
-                    return { dot: "🟡", color: C.blue, label: "Approved" };
-                  case "draft":
-                  default:
-                    return { dot: "🔴", color: C.rd, label: "Delayed / Draft" };
-                }
-              };
-
-              const statusMeta = getJobStatusMeta(job.status);
+              // Shared with Pull Inventory (utils/helpers) so the same job reads
+              // the same on both screens.
+              const statusMeta = jobStatusMeta(job.status);
               // Handed here from elsewhere in the pipeline. Pulses until the card is
               // opened, which is also what clears it — see the highlight effect above.
               const isHighlighted = highlight?.id && String(job.id) === String(highlight.id);

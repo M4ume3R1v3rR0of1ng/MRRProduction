@@ -387,6 +387,30 @@ export const predDays = (v) => {
 export const displayName = (user) =>
   (user?.name || user?.full_name || "").split(" ")[0] || "User";
 
+// The status line at the top of a job card: a dot, a colour, and a label.
+//
+// Build Jobs and Pull Inventory list the same jobs, so a job that reads
+// "🟡 APPROVED" on one screen has to read the same on the other. This used to be
+// a private function in Build Jobs while Pull Inventory drew a jSC badge, and the
+// two disagreed on both wording and shape for the same row.
+//
+// jSC (App.jsx) is still the source for badges inside modals and calendars, where
+// the pill shape is wanted. This is the card-header treatment only.
+export const jobStatusMeta = (status) => {
+  switch (String(status || "").toLowerCase()) {
+    case "completed":
+    case "closed":
+      return { dot: "🟢", color: C.gr, label: "Completed" };
+    case "active":
+      return { dot: "🟡", color: C.am, label: "In Progress" };
+    case "approved":
+      return { dot: "🟡", color: C.blue, label: "Approved" };
+    case "draft":
+    default:
+      return { dot: "🔴", color: C.rd, label: "Delayed / Draft" };
+  }
+};
+
 export const detSt = (v) => {
   if (!v.ldd) return "overdue";
   // parseDay, not new Date: this subtracts a stored calendar day from the local
