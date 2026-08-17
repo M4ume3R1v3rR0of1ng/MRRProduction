@@ -57,10 +57,13 @@ comment on column public.companies.billing_interval is
 -- price change in Stripe means editing this function. They live in one block at
 -- the top for exactly that reason.
 --
--- pack_annual is the one value not stated anywhere else in the codebase — the
--- annual pack exists only as a Stripe Price id. 100.00/yr is the same "two months
--- free" ratio the base plan uses (990 vs 12 × 99). CONFIRM IT AGAINST STRIPE and
--- correct it here if it differs.
+-- pack_annual = 100.00 is CONFIRMED against the Steadwerk Stripe account
+-- (2026-08-14), not derived. All four constants below are now verified.
+--
+-- It also holds the same discount as the base plan, which is worth knowing before
+-- anyone "tidies" one of them: 100 against 12 × 10 = 120 is 16.7% off, and 990
+-- against 12 × 99 = 1188 is the same 16.7%. Annual is two months free on both
+-- lines. Change one and the pricing stops telling a consistent story.
 --
 -- Every column reference below is alias-qualified. A bare one collides with the
 -- RETURNS TABLE OUT column of the same name and throws "column reference is

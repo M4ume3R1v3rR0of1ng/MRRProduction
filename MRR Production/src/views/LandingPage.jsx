@@ -24,6 +24,9 @@ const BASE_SEATS = 10;
 // move the words with it.
 const PACK_PRICE = 10;
 const PACK_SEATS = 5;
+// Applies to BOTH cadences. trial_period_days lives on subscription_data in
+// create-checkout, not on a price, so it covers whichever of the monthly or
+// annual Price ends up in line_items.
 const TRIAL_DAYS = 14;
 // Discounted 12-month prepay. Must match the STRIPE_ANNUAL_PRICE_ID amount and the
 // display prices in LoginScreen's signup toggle.
@@ -1050,7 +1053,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowTrai
             <details>
               <summary>Is there a free trial?</summary>
               <div className="ans">
-                Yes, <b>{TRIAL_DAYS} days</b>. We take card details at signup so nothing stops working the day the trial ends, but you aren't charged until it does. Cancel before then and you pay nothing.
+                Yes, <b>{TRIAL_DAYS} days</b>, on both monthly and yearly. We take card details at signup so nothing stops working the day the trial ends, but you aren't charged until it does. Cancel before then and you pay nothing.
               </div>
             </details>
             <details>

@@ -190,14 +190,28 @@ export default function BillingView({ user, lang = "en" }) {
             )}
           </div>
 
-          {/* Manage */}
+          {/* Manage
+              A comped company has no Stripe customer at all — admin_create_company
+              makes the company row, and only create-checkout.js ever creates a
+              customer. billing-portal.js therefore has nothing to open and returns
+              "No billing account for this company yet".
+              capacity == null is the marker for comped, set by supabase/09: only
+              Stripe-billed companies carry a numeric ceiling. The card above
+              already says "Complimentary" off the same signal, so offering a
+              payment portal underneath it was the screen contradicting itself. */}
           <div style={card}>
             <div style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>{t.blPaymentInvoices}</div>
-            <div style={{ fontSize: 13, color: C.sub, marginBottom: 12 }}>{t.blPortalBlurb}</div>
-            <button onClick={openPortal} disabled={busy}
-              style={{ padding: "10px 16px", background: "transparent", color: C.navy, border: `1.5px solid ${C.bd}`, borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: busy ? "wait" : "pointer" }}>
-              {t.blManagePayment}
-            </button>
+            {capacity == null ? (
+              <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.6 }}>{t.blNoBillingAccount}</div>
+            ) : (
+              <>
+                <div style={{ fontSize: 13, color: C.sub, marginBottom: 12 }}>{t.blPortalBlurb}</div>
+                <button onClick={openPortal} disabled={busy}
+                  style={{ padding: "10px 16px", background: "transparent", color: C.navy, border: `1.5px solid ${C.bd}`, borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: busy ? "wait" : "pointer" }}>
+                  {t.blManagePayment}
+                </button>
+              </>
+            )}
           </div>
         </>
       )}
