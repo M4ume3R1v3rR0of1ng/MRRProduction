@@ -79,6 +79,21 @@ export default defineConfig({
           // with jsPDF they would add ~230KB to every report upload.
           if (/node_modules[\\/](html2canvas|dompurify)/.test(id)) return 'pdf-vendor-html';
           if (/node_modules[\\/](jspdf|jspdf-autotable|core-js)/.test(id)) return 'pdf-vendor';
+
+          // Every view is already lazy, so what was left in the entry chunk was
+          // almost entirely two dependencies that never change between deploys:
+          // the Supabase client (~690KB raw, auth-js alone is half of it) and
+          // React. Folded into the entry they were re-downloaded in full on every
+          // release, because the entry hash changes whenever any app code does.
+          //
+          // Split out, they keep their hash across deploys and stay in cache. Both
+          // are still static imports fetched on first paint, so this trades no
+          // startup latency for it — Vite emits modulepreload for both.
+          //
+          // iceberg-js is here because it arrives as a dependency of
+          // @supabase/storage-js, not on its own.
+          if (/node_modules[\\/](@supabase[\\/]|iceberg-js)/.test(id)) return 'supabase-vendor';
+          if (/node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react-vendor';
         },
       },
     },
