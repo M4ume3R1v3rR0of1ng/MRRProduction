@@ -121,12 +121,12 @@ export default function App() {
     return () => subscription?.unsubscribe();
   }, []);
 
-  // Someone holding a live session must never land on the marketing page. This is
-  // the OAuth return: Google redirects to the app origin with a session in place,
-  // but if no company is selected yet useAppData can't build curUser, and
-  // authView's "landing" default would strand them on the hero with no way to
-  // finish signing in. LoginScreen picks the session up and shows the company
-  // picker, so send them there.
+  // Someone holding a live session must never land on the marketing page. A stored
+  // session can come back without a company selected — most often someone who
+  // belongs to more than one and has not picked yet. useAppData then can't build
+  // curUser, and authView's "landing" default would strand them on the hero with
+  // no way to finish signing in. LoginScreen picks the session up and shows the
+  // company picker, so send them there.
   useEffect(() => {
     if (app.loading || app.curUser) return;
     let cancelled = false;

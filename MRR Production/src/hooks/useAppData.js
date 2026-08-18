@@ -100,14 +100,13 @@ export function useAppData() {
 
           let targetCompanyId = prof?.active ? prof.active_company_id : null;
 
-          // No company selected yet. A password sign-in always picks one, through
-          // set_active_company() in LoginScreen — but an OAuth return never runs
-          // that code: Google hands the browser back with a session already made
-          // and no form submit to hang the selection off. With exactly one active
-          // membership there is nothing to choose, so take it here rather than
-          // bouncing the user to a picker with a single button on it. Two or more
-          // is left unset on purpose: that choice is theirs, and LoginScreen has
-          // the picker for it.
+          // No company selected yet. Signing in through the form always picks one,
+          // through set_active_company() in LoginScreen — but a session restored
+          // from storage never runs that code, because there was no form submit to
+          // hang the selection off. With exactly one active membership there is
+          // nothing to choose, so take it here rather than bouncing the user to a
+          // picker with a single button on it. Two or more is left unset on
+          // purpose: that choice is theirs, and LoginScreen has the picker for it.
           if (prof?.active && !targetCompanyId) {
             const { data: memberships } = await supabase
               .from("memberships")

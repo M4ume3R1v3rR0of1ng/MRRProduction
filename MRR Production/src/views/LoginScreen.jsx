@@ -30,16 +30,15 @@ const MONTHLY_PRICE = 99;
 const ANNUAL_PRICE = 990; // "2 months free" vs 12 × monthly
 const ANNUAL_SAVINGS_PCT = Math.round((1 - ANNUAL_PRICE / (MONTHLY_PRICE * 12)) * 100);
 
-// Google sign-in needs an OAuth client created in Google Cloud Console and pasted
-// into Supabase → Authentication → Providers. Until that exists the provider is
-// disabled and Supabase answers "Unsupported provider", so the button would be a
-// dead control on the login screen. It stays hidden until this is set to "true"
-// in the Netlify environment — a config change, not a code change.
+// NO federated sign-in here, on purpose. Google was built and then removed: crews
+// sign in under an address their company controls, and an identity provider the
+// company does not administer is the wrong shape for that. Email and password is
+// the whole login story, with the MFA gate below applying to every path into the
+// app. Do not re-add a provider button without deciding who owns the directory.
 //
-// The plumbing behind it (session pickup on return, the company fallback) is NOT
-// gated: it is what makes any redirect-based sign-in land correctly, and it is
-// harmless when no provider is enabled.
-const GOOGLE_AUTH_ENABLED = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === "true";
+// What stayed behind is the session-restore effect further down. It is not OAuth
+// plumbing; it recovers any valid session that useAppData could not resolve to a
+// company on its own.
 
 export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang, initialMode = "login", onBack, onShowTerms }) {
   const t = translations[lang] || translations.en;
@@ -90,12 +89,12 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
     }
   }, []);
 
-  // The OAuth return. Google sends the browser back with a session already
-  // established, so there is no form submit to hang the post-login work off.
-  // useAppData restores the session by itself when profiles.active_company_id is
-  // set; this covers when it isn't — a first-ever Google sign-in, or someone in
-  // more than one company who hasn't picked yet — which would otherwise leave
-  // them staring at a login form while holding a perfectly valid session.
+  // Pick up a session that already exists when this screen mounts, where there is
+  // no form submit to hang the post-login work off. useAppData restores the
+  // session by itself when profiles.active_company_id is set; this covers when it
+  // isn't — most often someone who belongs to more than one company and has not
+  // picked yet — which would otherwise leave them staring at a login form while
+  // holding a perfectly valid session.
   useEffect(() => {
     if (resolvedSessionRef.current) return;
     let cancelled = false;
@@ -145,34 +144,6 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
       window.location.href = data.url;
     } catch {
       setErr("Network error starting checkout.");
-      setSubmitting(false);
-    }
-  };
-
-  // ── Google sign-in ─────────────────────────────────────────────────────────
-  // The redirect flow, deliberately NOT the Google Identity Services widget. The
-  // production CSP in public/_headers is `script-src 'self'` with no frame-src,
-  // which blocks that SDK and One Tap outright; a top-level redirect needs no CSP
-  // change at all.
-  //
-  // Supabase attaches this identity to the EXISTING account when Google returns a
-  // verified email matching one, so auth.users.id is preserved. That matters more
-  // here than anywhere else in the app: profiles.is_platform_admin and
-  // memberships.user_id both hang off that id, and a new id would mean a fresh
-  // profile with no membership and no owner access. Password sign-in stays enabled
-  // as the fallback and is not replaced by this.
-  const signInWithGoogle = async () => {
-    setErr("");
-    setNotice("");
-    setSubmitting(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    // On success the browser is already navigating to Google, so `submitting` is
-    // left on deliberately — the form stays disabled through the handoff.
-    if (error) {
-      setErr(error.message);
       setSubmitting(false);
     }
   };
@@ -314,10 +285,11 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
   };
 
   // Everything that happens AFTER the identity is proven, regardless of how it was
-  // proven. Password sign-in calls this with the user it just got back; the OAuth
-  // return calls it with the user off the restored session. Keeping one copy means
-  // a Google sign-in can never drift from the password path on the checks that
-  // matter — deactivated accounts, missing memberships, which company you land in.
+  // proven. The password form calls this with the user it just got back; the
+  // session-restore effect calls it with the user off the stored session. Keeping
+  // one copy means a restored session can never drift from the form path on the
+  // checks that matter — deactivated accounts, missing memberships, which company
+  // you land in.
   const resolveAuthedUser = async (user, { remember = false } = {}) => {
     try {
       const { data: profileData, error: profileError } = await supabase
@@ -356,24 +328,17 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
         // out — leaving a valid session lying around for an account with no access
         // is pointless and confusing.
         await supabase.auth.signOut();
-        // Same dead end, two very different causes. Reached through Google it
-        // almost always means the identity was NOT linked to the existing account
-        // and a brand-new auth user was created instead, which is a Supabase
-        // provider-config problem, not a missing invite. Saying "ask your
-        // administrator" there sends the one person who could fix it looking in
-        // the wrong place.
-        const viaOAuth = (user.app_metadata?.provider || "email") !== "email";
-        setErr(
-          viaOAuth
-            ? "That Google account isn't linked to a Steadwerk login. Sign in with your email and password instead."
-            : "Your account isn't attached to a company yet. Ask your administrator to add you.",
-        );
+        // Email and password is the only way in, so there is exactly one cause
+        // left: the account exists in auth but nobody has attached it to a
+        // company. That is an invite the administrator still owes them.
+        setErr("Your account isn't attached to a company yet. Ask your administrator to add you.");
         setSubmitting(false);
         return;
       }
 
-      // Only the password form owns the "remember my email" box. An OAuth return
-      // must not clear a saved address just because that checkbox isn't on screen.
+      // Only the password form owns the "remember my email" box. A restored
+      // session must not clear a saved address just because that checkbox isn't
+      // on screen.
       if (remember) {
         if (rememberMe) {
           localStorage.setItem("mrr_remember_email", email.trim().toLowerCase());
@@ -754,54 +719,6 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                 ? (mode === "signup" ? t.lgStartingCheckout : t.processingQuery)
                 : (mode === "signup" ? t.lgContinuePayment : t.signIn)}
             </button>
-
-            {/* Google sign-in. Offered only on the sign-in tab — the signup tab has to
-                collect a company name and a card, which an OAuth redirect skips past.
-                The mark is an inline SVG on purpose: img-src in the production CSP
-                does not allow Google's CDN, so a hosted logo would render broken. */}
-            {mode === "login" && GOOGLE_AUTH_ENABLED && (
-              <>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 16px" }}>
-                  <span style={{ flex: 1, height: 1, background: C.bd }} />
-                  <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                    {t.lgOr}
-                  </span>
-                  <span style={{ flex: 1, height: 1, background: C.bd }} />
-                </div>
-
-                <button
-                  className="mrr-btn"
-                  type="button"
-                  onClick={signInWithGoogle}
-                  disabled={submitting}
-                  style={{
-                    width: "100%",
-                    padding: "13px",
-                    background: "var(--c-surface)",
-                    color: C.navy,
-                    border: `1.5px solid ${C.bd}`,
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "var(--text-base)",
-                    fontWeight: "var(--weight-bold)",
-                    cursor: submitting ? "not-allowed" : "pointer",
-                    opacity: submitting ? 0.7 : 1,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 10,
-                    marginBottom: 16,
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" style={{ flexShrink: 0 }}>
-                    <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z" />
-                    <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z" />
-                    <path fill="#FBBC05" d="M3.97 10.72a5.41 5.41 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z" />
-                    <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
-                  </svg>
-                  {t.lgGoogle}
-                </button>
-              </>
-            )}
 
             {mode === "login" && (
               <p style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.6, margin: "0 0 16px" }}>
