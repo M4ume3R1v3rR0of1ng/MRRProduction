@@ -44,16 +44,33 @@ create table if not exists public.schema_migrations (
   checked_at  timestamptz not null default now()
 );
 
-comment on table public.schema_migrations is
-  'Which supabase/*.sql files are applied to this database. Populated by probing the live schema, not by trusting a log. Re-run supabase/33_migration_ledger.sql to refresh.';
-
+-- Immediately after the create, and before anything else touches the table: the
+-- SQL Editor's advisor reads statements in order and warns about a table that is
+-- created without RLS following right behind it.
+--
 -- Only the platform operator needs to read this, and nothing should write it from
--- a browser session. Service role and platform admins only.
+-- a browser session. Service role (which bypasses RLS) and platform admins only.
 alter table public.schema_migrations enable row level security;
 
-drop policy if exists schema_migrations_platform_admin_read on public.schema_migrations;
-create policy schema_migrations_platform_admin_read on public.schema_migrations
-  for select using (public.is_platform_admin());
+-- Guarded create rather than `drop policy if exists` + `create policy`. The two
+-- are equivalent here, but DROP makes the SQL Editor flag the whole script as
+-- containing destructive operations, and this file is meant to be the one thing
+-- in this directory you can run without reading it twice.
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public'
+      and tablename  = 'schema_migrations'
+      and policyname = 'schema_migrations_platform_admin_read'
+  ) then
+    create policy schema_migrations_platform_admin_read on public.schema_migrations
+      for select using (public.is_platform_admin());
+  end if;
+end $$;
+
+comment on table public.schema_migrations is
+  'Which supabase/*.sql files are applied to this database. Populated by probing the live schema, not by trusting a log. Re-run supabase/33_migration_ledger.sql to refresh.';
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Probe helpers. Each returns true when the named object exists.
@@ -263,14 +280,19 @@ end $$;
 
 -- The three that leave no distinguishable trace. Recorded so the ledger lists
 -- every file rather than silently omitting the ones it cannot check.
+--
+-- The notes are deliberately PROSE, with the confirming queries kept in the
+-- Verify block at the bottom of this file instead. The SQL Editor's advisor reads
+-- table names out of string literals too, so an embedded `from public.inventory`
+-- here made it warn that this script exposes inventory.batches, which it does not.
 insert into public.schema_migrations (filename, present, status, note, checked_at)
 values
   ('11_fix_admin_list.sql', null, 'undetectable',
-   'CREATE OR REPLACE over admin_list_companies() from 06. Confirm by running: select * from admin_list_companies(); it threw "column reference created_at is ambiguous" before the fix.', now()),
+   'Bug fix replacing admin_list_companies() from 06. The function exists either way, so presence proves nothing. See Verify block, check A.', now()),
   ('13_fix_has_perm.sql', null, 'undetectable',
-   'CREATE OR REPLACE over has_perm() from 12. Confirm by running: select public.has_perm(''jobs_pull''); it threw 42883 "operator does not exist: text = uuid" before the fix.', now()),
+   'Bug fix replacing has_perm() from 12. The function exists either way, so presence proves nothing. See Verify block, check B.', now()),
   ('22_backfill_batch_by_name.sql', null, 'undetectable',
-   'Optional data backfill of byName into inventory.batches, no schema change. Confirm with: select count(*) from public.inventory i, jsonb_array_elements(i.batches) b join public.profiles p on p.id::text = b->>''by'' where jsonb_typeof(i.batches) = ''array'' and not (b ? ''byName''); zero means every resolvable batch is stamped.', now())
+   'Optional data backfill stamping byName onto stored batch rows. No schema change. See Verify block, check C.', now())
 on conflict (filename) do update
   set present = excluded.present,
       status  = excluded.status,
@@ -294,8 +316,35 @@ commit;
 --   where status = 'missing' order by filename;
 --
 -- An empty second result means 01 through 33 are all in, except the three marked
--- 'undetectable' which you confirm by hand using the query in their note.
+-- 'undetectable', which you confirm by hand with the three checks below.
 --
+-- ── Check A · did 11_fix_admin_list.sql run? ─────────────────────────────────
+-- Before the fix this threw: column reference "created_at" is ambiguous.
+-- If it returns rows, 11 is in.
+--
+--   select * from public.admin_list_companies();
+--
+-- ── Check B · did 13_fix_has_perm.sql run? ───────────────────────────────────
+-- Before the fix this threw 42883: operator does not exist: text = uuid.
+-- If it returns true or false rather than erroring, 13 is in.
+--
+--   select public.has_perm('jobs_pull');
+--
+-- ── Check C · did 22_backfill_batch_by_name.sql run? ─────────────────────────
+-- Counts stored batch entries that still carry no byName stamp even though their
+-- 'by' id resolves to a live profile. Zero means the backfill has been applied
+-- (or there was nothing it could stamp). Anything above zero means 22 has work
+-- left to do. Rows whose 'by' matches no profile are correctly excluded: 22
+-- cannot invent what was already lost.
+--
+--   select count(*)
+--   from public.inventory i
+--   cross join lateral jsonb_array_elements(i.batches) as b
+--   join public.profiles p on p.id::text = b->>'by'
+--   where jsonb_typeof(i.batches) = 'array'
+--     and not (b ? 'byName');
+--
+-- ─────────────────────────────────────────────────────────────────────────────
 -- Re-run this whole file after applying any future migration, and add a probe for
 -- it in the do-block above. A migration with no probe is a migration nobody can
 -- verify later.

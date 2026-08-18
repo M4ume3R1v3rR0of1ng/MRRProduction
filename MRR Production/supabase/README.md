@@ -19,8 +19,8 @@ refresh it, and after a restore or on a fresh environment.
 
 Three files leave no distinguishable trace and are marked `undetectable`:
 `11` and `13` are `create or replace` fixes over functions `06` and `12` already
-created, and `22` is an optional data backfill. Each carries a `note` with a
-query that confirms it by hand.
+created, and `22` is an optional data backfill. Confirm those three by hand using
+checks A, B and C in the `Verify` block at the bottom of `33_migration_ledger.sql`.
 
 ## Rules
 
