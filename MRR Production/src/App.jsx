@@ -430,8 +430,13 @@ return (
         <VisitingBanner user={app.curUser} onLogout={handleLogout} lang={lang} />
 
         {/* 📱 MOBILE HEADER NAVIGATION BAR */}
+        {/* The status-bar inset is PADDING on this bar, not a margin above it, so
+            the bar's own dark background fills the notch area. A margin would
+            expose the page ground behind the clock and leave a pale stripe across
+            the top of an otherwise dark app. Left/right insets cover landscape,
+            where the notch moves to one side. */}
         {isMobile && (
-          <div style={{ background: C.shell, color: C.shellInk, padding: "0 20px", height: 50, display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>
+          <div style={{ background: C.shell, color: C.shellInk, padding: "var(--safe-top) calc(20px + var(--safe-right)) 0 calc(20px + var(--safe-left))", height: "var(--chrome-total)", boxSizing: "border-box", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>
             {/* The TENANT's name, not the platform's. This header sits inside their
                 portal — hardcoding "MAUMEE RIVER ROOFING" here would have greeted
                 every other company by your company's name. */}
@@ -447,7 +452,11 @@ return (
 
         {/* 🗺️ CONTAINER ROUTER NAVIGATION DRAWER LAYOUT */}
         {/* (Added height constraint to sidebar element) */}
-        <div style={{ width: isMobile ? "100%" : collapsed ? 64 : 260, display: isMobile && !mobileMenuOpen ? "none" : "block", position: isMobile ? "fixed" : "relative", top: isMobile ? 50 : 0, left: 0, height: isMobile ? "calc(100vh - 50px)" : "100vh", zIndex: 99, overflowY: "auto", flexShrink: 0 }}>
+        {/* The drawer hangs off the bottom of the header, so it starts at the bar
+            height PLUS the status-bar inset and loses that same amount of height.
+            paddingBottom keeps the last nav item clear of the home indicator,
+            which otherwise sits on top of it and eats the tap. */}
+        <div style={{ width: isMobile ? "100%" : collapsed ? 64 : 260, display: isMobile && !mobileMenuOpen ? "none" : "block", position: isMobile ? "fixed" : "relative", top: isMobile ? "var(--chrome-total)" : 0, left: 0, height: isMobile ? "calc(100vh - var(--chrome-total))" : "100vh", paddingBottom: isMobile ? "var(--safe-bottom)" : 0, boxSizing: "border-box", zIndex: 99, overflowY: "auto", flexShrink: 0 }}>
           <Sidebar
             cur={view}
             onNav={(v) => {
@@ -478,9 +487,13 @@ return (
           flex: 1, 
           display: "flex", 
           flexDirection: "column", 
-          minWidth: 0, 
+          minWidth: 0,
           height: "100%", // Inherit frozen screen layout constraints
-          marginTop: isMobile ? 50 : 0,
+          marginTop: isMobile ? "var(--chrome-total)" : 0,
+          // Keeps the bottom of every view clear of the home indicator on an
+          // installed iOS app. 0px everywhere else.
+          paddingBottom: isMobile ? "var(--safe-bottom)" : 0,
+          boxSizing: "border-box",
           overflow: "hidden"
         }}>
           {app.loadErrors.length > 0 && (

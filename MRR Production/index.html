@@ -3,7 +3,13 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- viewport-fit=cover is REQUIRED by the apple-mobile-web-app-status-bar-style
+       below. "black-translucent" makes iOS hand the web view the whole screen and
+       draw the status bar on top of it; without viewport-fit=cover the
+       env(safe-area-inset-*) values all report 0px, so there is no way to pad the
+       app out from under the clock and the home indicator. The two settings only
+       work as a pair. See the --safe-* tokens in src/tokens.css. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Steadwerk</title>
   <meta name="description" content="Warehouse & fleet software — tools that work as hard as you do." />
   <!-- App icons (Steadwerk truss mark, not the old Maumee mascot) -->

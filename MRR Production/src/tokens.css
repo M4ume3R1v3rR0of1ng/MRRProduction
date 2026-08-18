@@ -207,6 +207,39 @@
   color-scheme: dark;
 }
 
+/* ── Device safe areas (installed iOS home-screen app) ──────────────────────
+   index.html sets apple-mobile-web-app-status-bar-style="black-translucent",
+   which tells iOS to give the web view the FULL screen and paint the status bar
+   on top of it. That is what makes an installed PWA look like a real app instead
+   of a page with a grey band above it, but it means the top of the layout sits
+   underneath the clock and battery, and the bottom sits under the home indicator,
+   unless we pad it back out ourselves.
+
+   These four values are how. They come from the viewport-fit=cover meta in
+   index.html — WITHOUT that meta every one of them reports 0px and this whole
+   block silently does nothing.
+
+   The 0px fallbacks matter as much as the values: on desktop, on Android, and in
+   a normal mobile browser tab there are no insets, env() resolves to the
+   fallback, and every calc() below collapses to the number it always was. So this
+   changes nothing anywhere except a notched iPhone running the installed app.
+
+   Used by the mobile chrome in App.jsx. Reach for these rather than hardcoding a
+   44px or 34px notch height: the insets differ per device and per orientation,
+   and they are 0 on the devices that have no notch at all. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* The mobile header's own bar height, and what it occupies once the status bar
+     inset is added on top. App.jsx offsets the drawer and the content pane by the
+     total, so the three stay in step if the bar height ever changes. */
+  --chrome-bar: 50px;
+  --chrome-total: calc(50px + env(safe-area-inset-top, 0px));
+}
+
 /* ── Global base ── */
 html {
   -webkit-text-size-adjust: 100%;
