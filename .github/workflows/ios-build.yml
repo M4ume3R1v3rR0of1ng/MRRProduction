@@ -39,10 +39,11 @@ on:
 jobs:
   build:
     name: Compile for iOS Simulator
-    # macos-latest tracks whatever GitHub currently ships. Once this is green,
-    # consider pinning it (macos-15, macos-26, ...) so an Xcode bump on their side
-    # cannot break your build without a commit from you.
-    runs-on: macos-latest
+    # Pinned rather than macos-latest. The build went green here first on
+    # 2026-08-19, and GitHub rotates what "latest" means along with the bundled
+    # Xcode. Pinning means an Xcode bump breaks the build on a commit that
+    # changes this line, instead of on an unrelated Tuesday. Bump deliberately.
+    runs-on: macos-15
     timeout-minutes: 30
 
     defaults:

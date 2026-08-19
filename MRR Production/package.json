@@ -5,7 +5,7 @@
     "dev": "netlify dev",
     "dev:ui-only": "vite",
     "build": "vite build --mode production",
-    "build:ios": "vite build --mode ios && cap sync ios",
+    "build:ios": "vite build --mode ios && cap sync ios && node scripts/normalize-spm-paths.mjs",
     "ios:open": "cap open ios",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.109.1",
+    "@capacitor/camera": "^8.2.3",
     "@capacitor/core": "^8.5.0",
     "@capacitor/ios": "^8.5.0",
     "@supabase/supabase-js": "^2.106.2",

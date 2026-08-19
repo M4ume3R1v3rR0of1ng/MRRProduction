@@ -4,6 +4,7 @@ import { ROLES } from '../database/permissions';
 import { translations } from '../utils/translations';
 import { compressImg } from '../utils/helpers';
 import { useNotify } from '../context/NotificationContext';
+import { HAS_NATIVE_CAMERA, capturePhoto } from '../utils/photoCapture';
 
 export function Spinner({ size = 18, color }) {
   return (
@@ -171,13 +172,47 @@ export function Toggle({ on, onChange, disabled = false }) {
   );
 }
 
+// Every field photo in the app comes through here: vehicle shots, inspection
+// evidence, maintenance requests, product photos, and job before/after pairs.
+// That makes it the one place worth teaching about the native camera — six call
+// sites pick it up without changing.
 export function PhotoUpload({ current, onUpload, maxDim = 350, quality = 0.72, label = 'Upload Photo', previewHeight = 160, canRemove = true }) {
   const ref = useRef();
   const notify = useNotify();
+
+  // Both paths converge on the same compressImg call. Whatever the photo came
+  // from, it is resized and re-encoded identically before anyone stores it.
+  const accept = (file) => {
+    if (file) compressImg(file, maxDim, quality, onUpload, (msg) => notify?.showToast?.(msg, 'error'));
+  };
+
   const handle = e => {
-    const f = e.target.files[0];
-    if (f) compressImg(f, maxDim, quality, onUpload, (msg) => notify?.showToast?.(msg, 'error'));
+    accept(e.target.files[0]);
     e.target.value = '';
+  };
+
+  // iOS: the native camera sheet. Everywhere else: the hidden file input, which
+  // is the behaviour this component has always had.
+  const openPicker = async () => {
+    if (!HAS_NATIVE_CAMERA) {
+      ref.current?.click();
+      return;
+    }
+    try {
+      const file = await capturePhoto();
+      // null means they backed out of the sheet. Nothing to report.
+      if (file) accept(file);
+    } catch (err) {
+      // Reaching here almost always means the permission was denied, and iOS
+      // will not prompt a second time — the only way back is Settings. Say that,
+      // because "couldn't take photo" leaves someone tapping a button that has
+      // already decided not to work.
+      notify?.showToast?.(
+        'Steadwerk needs camera access to attach a photo. Turn it on in Settings > Steadwerk.',
+        'error',
+      );
+      console.error('Native photo capture failed:', err);
+    }
   };
   return (
     <div>
@@ -189,12 +224,17 @@ export function PhotoUpload({ current, onUpload, maxDim = 350, quality = 0.72, l
           )}
         </div>
       ) : (
-        <div style={{ height: previewHeight, background: C.lg, borderRadius: 'var(--radius-lg)', border: `2px dashed ${C.bd}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--space-4)', cursor: 'pointer', gap: 'var(--space-2)' }} onClick={() => ref.current.click()}>
+        <div style={{ height: previewHeight, background: C.lg, borderRadius: 'var(--radius-lg)', border: `2px dashed ${C.bd}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--space-4)', cursor: 'pointer', gap: 'var(--space-2)' }} onClick={openPicker}>
           <span style={{ fontSize: 28 }}>📷</span>
           <span style={{ fontSize: 'var(--text-sm)', color: C.sub, fontWeight: 'var(--weight-semibold)' }}>{label}</span>
         </div>
       )}
-      <input ref={ref} type="file" accept="image/*" onChange={handle} style={{ display: 'none' }} />
+      {/* Not rendered in the iOS build: there is no code path left that clicks
+          it, and an orphaned file input is one refactor away from becoming the
+          web picker appearing on a phone again. */}
+      {!HAS_NATIVE_CAMERA && (
+        <input ref={ref} type="file" accept="image/*" onChange={handle} style={{ display: 'none' }} />
+      )}
     </div>
   );
 }

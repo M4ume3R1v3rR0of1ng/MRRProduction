@@ -24,6 +24,18 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- REQUIRED by @capacitor/camera. iOS does not fail politely when a usage
+	     string is missing: the moment code touches the camera or the photo
+	     library the system TERMINATES the app, with no JavaScript error and
+	     nothing in the webview console. It reads as a random crash.
+
+	     This text is shown verbatim in the permission dialog, so it says what
+	     the photo is for rather than asking for access in the abstract. Apple
+	     also rejects vague or boilerplate strings under Guideline 5.1.1. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Steadwerk uses the camera to attach photos to jobs, vehicle inspections and maintenance requests.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Steadwerk lets you attach photos you have already taken to jobs, vehicle inspections and maintenance requests.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
