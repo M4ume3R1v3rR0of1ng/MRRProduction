@@ -122,6 +122,11 @@ export default defineConfig({
     // pure. The one place that touches a browser global (pdfGenerator calls
     // window.open) stubs it itself, so jsdom would cost startup time and buy nothing.
     environment: 'node',
+    // Stubs the Supabase env vars before any module is imported. Without it the
+    // nine suites that reach utils/supabase.js throw on import, and they only
+    // ever passed locally because Vite was loading the gitignored .env off disk.
+    // See src/test/setup.js for the full story.
+    setupFiles: ['./src/test/setup.js'],
     // Netlify functions are covered too. The AccuLynx expense-notes cap is exactly
     // the fiddly boundary arithmetic that belongs under test, and it lives in
     // netlify/functions/_shared rather than src.

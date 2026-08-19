@@ -73,11 +73,19 @@ jobs:
       # --mode ios loads .env.ios, which strips the landing page, the signup flow
       # and BillingView. See src/utils/platform.js for why that is not optional.
       #
-      # The two secrets are OPTIONAL. Unset, the build still compiles, which is
-      # all this workflow is checking; the resulting app simply cannot reach
-      # Supabase. Set them in Settings > Secrets and variables > Actions if you
-      # want the artifact to be a working app. Both are public values that ship
-      # in the client bundle regardless, so they are not sensitive.
+      # The two secrets are optional FOR THIS WORKFLOW, which only asks whether
+      # the project compiles, and it compiles either way.
+      #
+      # They are not optional for a usable app. src/utils/supabase.js throws at
+      # module load when they are missing, so an artifact built without them does
+      # not merely lose its backend — it dies on launch with a blank screen.
+      # Vite inlines these at build time, so they must be present HERE, not on
+      # the device. Set them in Settings > Secrets and variables > Actions before
+      # trusting any build you intend to install. Both ship in the client bundle
+      # regardless and are governed entirely by RLS, so neither is sensitive.
+      #
+      # The test step above deliberately does NOT get them: src/test/setup.js
+      # stubs fake values so the suite never depends on a live project.
       - name: Build web bundle and sync to Xcode
         run: npm run build:ios
         env:
