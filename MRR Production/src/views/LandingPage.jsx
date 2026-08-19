@@ -643,7 +643,7 @@ const ThemeIcon = ({ id }) => (
   </svg>
 );
 
-export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowTraining }) {
+export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPrivacy, onShowTraining }) {
   const [theme, setTheme] = useState(readStoredTheme); // null = follow OS preference
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -1192,6 +1192,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowTrai
               <li><button type="button" onClick={onStart}>Start your company</button></li>
               <li><button type="button" onClick={onSignIn}>Sign in</button></li>
               <li><button type="button" onClick={onShowTerms}>Terms &amp; Conditions</button></li>
+              <li><button type="button" onClick={onShowPrivacy}>Privacy Policy</button></li>
               <li><a href="mailto:help@steadwerk.com">help@steadwerk.com</a></li>
             </ul>
           </div>

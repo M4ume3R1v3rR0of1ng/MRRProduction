@@ -34,6 +34,7 @@ import LandingPage from "./views/LandingPage";
 
 const LoginScreen = lazy(() => import("./views/LoginScreen"));
 const TermsPage = lazy(() => import("./views/TermsPage"));
+const PrivacyPage = lazy(() => import("./views/PrivacyPage"));
 const TrainingPage = lazy(() => import("./views/TrainingPage"));
 const TrainingView = lazy(() => import("./views/TrainingView"));
 const ResetPasswordScreen = lazy(() => import("./views/ResetPasswordScreen"));
@@ -378,6 +379,18 @@ export default function App() {
         </Suspense>
       );
     }
+    // Public Privacy Policy. Shares termsReturn with the Terms page above: both
+    // are reachable from the same two places and both go back where they came
+    // from, so a second piece of state would only be a second thing to keep in
+    // step. Apple requires a reachable privacy URL for App Store review, and
+    // this route is it.
+    if (authView === "privacy") {
+      return (
+        <Suspense fallback={<ChunkFallback full />}>
+          <PrivacyPage onBack={() => backFromAuthView(termsReturn)} />
+        </Suspense>
+      );
+    }
     // Public help & training page — the product tour and future walkthroughs.
     // Lazy like Terms: it carries its own stylesheet and a video element, and
     // cold traffic landing on the marketing page should not pay for either.
@@ -400,6 +413,7 @@ export default function App() {
           onSignIn={() => { setLoginMode("login"); goAuthView("login"); }}
           onStart={() => { setLoginMode("signup"); goAuthView("login"); }}
           onShowTerms={() => { setTermsReturn("landing"); goAuthView("terms"); }}
+          onShowPrivacy={() => { setTermsReturn("landing"); goAuthView("privacy"); }}
           onShowTraining={() => goAuthView("training")}
         />
       );
@@ -414,6 +428,7 @@ export default function App() {
         initialMode={loginMode}
         onBack={() => backFromAuthView("landing")}
         onShowTerms={() => { setTermsReturn("login"); goAuthView("terms"); }}
+        onShowPrivacy={() => { setTermsReturn("login"); goAuthView("privacy"); }}
         activeLogo={app.activeLogo}
         lang={lang}
         setLang={setLang}

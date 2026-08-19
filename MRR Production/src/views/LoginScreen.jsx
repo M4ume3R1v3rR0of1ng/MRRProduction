@@ -41,7 +41,7 @@ const ANNUAL_SAVINGS_PCT = Math.round((1 - ANNUAL_PRICE / (MONTHLY_PRICE * 12)) 
 // plumbing; it recovers any valid session that useAppData could not resolve to a
 // company on its own.
 
-export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang, initialMode = "login", onBack, onShowTerms }) {
+export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang, initialMode = "login", onBack, onShowTerms, onShowPrivacy }) {
   const t = translations[lang] || translations.en;
   // "login" = existing user signing in · "signup" = public "start a company" flow.
   // initialMode lets the landing page open us straight on the right tab.
@@ -746,6 +746,25 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                   }}
                 >
                   {t.lgTerms}
+                </button>{" "}
+                and our{" "}
+                <button
+                  type="button"
+                  onClick={onShowPrivacy}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    color: BRAND.amberDeep,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontSize: "inherit",
+                    fontFamily: "inherit",
+                    textDecoration: "underline",
+                    textUnderlineOffset: 2,
+                  }}
+                >
+                  {t.lgPrivacy}
                 </button>.
               </p>
             )}
