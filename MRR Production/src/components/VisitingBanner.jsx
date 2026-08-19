@@ -57,7 +57,10 @@ export default function VisitingBanner({ user, onLogout, lang = "en" }) {
         zIndex: 900,
         background: C.rust,
         color: "var(--c-on-accent)",
-        padding: "9px 16px",
+        // Extra bottom padding lifts the text off the iOS home indicator while the
+        // banner's own rust background still runs to the physical screen edge.
+        // --safe-bottom is 0px everywhere else.
+        padding: "9px 16px calc(9px + var(--safe-bottom))",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

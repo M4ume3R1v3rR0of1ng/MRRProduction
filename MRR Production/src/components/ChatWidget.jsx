@@ -132,8 +132,11 @@ export default function ChatWidget({ user, lang = "en" }) {
     }
   };
 
+  // Offsets clear the iOS home indicator and, in landscape, the rounded corner.
+  // Both insets are 0px off a notched device, so this is the same corner
+  // placement it always had.
   return (
-    <div style={{ position: "fixed", bottom: "var(--space-8)", right: "var(--space-8)", zIndex: 2000 }}>
+    <div style={{ position: "fixed", bottom: "calc(var(--space-8) + var(--safe-bottom))", right: "calc(var(--space-8) + var(--safe-right))", zIndex: 2000 }}>
       {open && (
         <div
           style={{

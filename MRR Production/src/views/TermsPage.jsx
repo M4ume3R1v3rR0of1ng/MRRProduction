@@ -44,6 +44,9 @@ const CSS = `
 /* top bar */
 .sw-terms .bar {
   position:sticky; top:0; z-index:20; color:var(--on-dark);
+  /* Clears the iOS status bar in the installed app. Padding rather than a margin
+     so the bar's own gradient fills the notch. 0px everywhere else. */
+  padding-top:var(--safe-top);
   background:radial-gradient(ellipse at 50% -60%, var(--bar-1), var(--bar-2));
   border-bottom:1px solid rgba(0,0,0,.2);
 }

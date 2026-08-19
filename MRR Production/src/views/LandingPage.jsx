@@ -87,7 +87,13 @@ const CSS = `
 .sw-landing a:hover { text-decoration:underline; text-underline-offset:3px; }
 .sw-landing :focus-visible { outline:2.5px solid var(--accent); outline-offset:3px; border-radius:2px; }
 
-.sw-landing .wrap { width:100%; max-width:1120px; margin:0 auto; padding:0 28px; }
+/* The side insets keep content off the rounded corners and the notch when the
+   installed app is held in landscape. Both resolve to 0px on every other device
+   and orientation, so this stays the plain 28px gutter it has always been. */
+.sw-landing .wrap {
+  width:100%; max-width:1120px; margin:0 auto;
+  padding:0 calc(28px + var(--safe-right)) 0 calc(28px + var(--safe-left));
+}
 .sw-landing .tnum { font-variant-numeric:tabular-nums; }
 
 .sw-landing .mk-rect { fill:var(--ink); }
@@ -132,6 +138,17 @@ const CSS = `
 
 .sw-landing .nav {
   position:sticky; top:0; z-index:50;
+  /* Installed on an iPhone home screen, the app owns the whole screen and iOS
+     paints the clock and battery ON TOP of this bar (see the black-translucent
+     status-bar style in index.html). Without this the wordmark renders underneath
+     the clock and the CTA underneath the battery.
+
+     It has to be PADDING, not a margin or a top offset: the bar's blurred
+     translucent background then extends up behind the status bar, so the clock
+     sits on the nav's own ground instead of on whatever section happens to be
+     scrolling past underneath it. --safe-top is 0px everywhere else, so desktop
+     and ordinary browser tabs are untouched. */
+  padding-top:var(--safe-top);
   background:color-mix(in srgb, var(--ground) 88%, transparent);
   backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--line);
   transition:background .28s ease, box-shadow .28s ease;
@@ -253,6 +270,21 @@ const CSS = `
      label and drops the arrow rather than the other way round. */
   .sw-landing .nav-in .btn-primary::after { display:none; }
   .sw-landing .nav-in .btn-primary { padding:12px 16px; font-size:14.5px; }
+}
+
+/* Below this the bar genuinely runs out of room: the badge, the STEADWERK
+   wordmark, the full CTA label and the burger together need more than a 390px
+   phone has once the 28px gutters are taken off. The CTA was wrapping onto two
+   lines and shoving the burger into the battery icon.
+
+   The wordmark is what goes. The badge still carries the brand at the top of a
+   page that says STEADWERK in the hero anyway, whereas a two-line button in a
+   sticky bar looks broken. nowrap makes that non-negotiable rather than relying
+   on the label staying short. */
+@media (max-width:430px){
+  .sw-landing .brand .wm { display:none; }
+  .sw-landing .nav-in .btn-primary { white-space:nowrap; padding:11px 14px; font-size:14px; }
+  .sw-landing .nav-actions { gap:10px; }
 }
 @media (prefers-reduced-motion: reduce){
   .sw-landing .nav-sheet, .sw-landing .nav-burger i { transition:none; }

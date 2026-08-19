@@ -62,6 +62,9 @@ const CSS = `
 .sw-training .bar {
   background:linear-gradient(180deg, var(--bar-1), var(--bar-2));
   color:var(--on-dark); position:sticky; top:0; z-index:20;
+  /* Clears the iOS status bar in the installed app. Padding rather than a margin
+     so the bar's own gradient fills the notch. 0px everywhere else. */
+  padding-top:var(--safe-top);
   border-bottom:1px solid rgba(0,0,0,.28);
 }
 .sw-training .bar-in { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 24px; }
