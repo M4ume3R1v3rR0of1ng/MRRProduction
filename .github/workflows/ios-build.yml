@@ -1,0 +1,146 @@
+# Compile the iOS app on a macOS runner.
+#
+# WHAT THIS ANSWERS: "does the Capacitor project actually build?" Nobody on this
+# team has a Mac, so without this the first time anyone finds out is when they
+# rent one. It builds for the SIMULATOR and does no code signing, which means it
+# needs no Apple Developer account, no certificates and no provisioning profile.
+# It runs today, on a repo with none of that set up.
+#
+# WHAT IT DOES NOT DO: produce anything installable on a real iPhone or uploadable
+# to TestFlight. Both need a paid Apple Developer account and signing assets. See
+# the block at the bottom of this file for what to add once enrollment completes.
+#
+# NOTE ON PATHS: the git repo root is one level ABOVE the app. Everything lives in
+# "MRR Production/", space included, which is why every path here is prefixed and
+# quoted.
+
+name: iOS build
+
+on:
+  push:
+    branches: [main]
+    # Only the things that can actually change the iOS build. Web-only edits
+    # (netlify functions, supabase migrations, the landing page) do not need a
+    # macOS runner, and macOS minutes bill at ten times the Linux rate.
+    paths:
+      - 'MRR Production/src/**'
+      - 'MRR Production/ios/**'
+      - 'MRR Production/public/**'
+      - 'MRR Production/index.html'
+      - 'MRR Production/package.json'
+      - 'MRR Production/package-lock.json'
+      - 'MRR Production/capacitor.config.json'
+      - 'MRR Production/vite.config.js'
+      - 'MRR Production/.env.ios'
+      - '.github/workflows/ios-build.yml'
+  # Lets you run it by hand from the Actions tab without pushing anything.
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compile for iOS Simulator
+    # macos-latest tracks whatever GitHub currently ships. Once this is green,
+    # consider pinning it (macos-15, macos-26, ...) so an Xcode bump on their side
+    # cannot break your build without a commit from you.
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: 'MRR Production'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: 'MRR Production/package-lock.json'
+
+      # ci, not install: fails loudly if package-lock.json and package.json have
+      # drifted, rather than quietly resolving something different from local.
+      - name: Install dependencies
+        run: npm ci
+
+      # Cheap, and it fails in seconds rather than after a five-minute Xcode
+      # compile. A broken bundle cannot produce a working app anyway.
+      - name: Unit tests
+        run: npm test
+
+      # vite build --mode ios && cap sync ios.
+      #
+      # --mode ios loads .env.ios, which strips the landing page, the signup flow
+      # and BillingView. See src/utils/platform.js for why that is not optional.
+      #
+      # The two secrets are OPTIONAL. Unset, the build still compiles, which is
+      # all this workflow is checking; the resulting app simply cannot reach
+      # Supabase. Set them in Settings > Secrets and variables > Actions if you
+      # want the artifact to be a working app. Both are public values that ship
+      # in the client bundle regardless, so they are not sensitive.
+      - name: Build web bundle and sync to Xcode
+        run: npm run build:ios
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      # -scheme App resolves because ios/App/App.xcodeproj/xcshareddata/xcschemes/
+      # App.xcscheme is committed. Xcode generates schemes into xcuserdata by
+      # default, which is gitignored, so on a fresh clone like this one an
+      # unshared scheme would fail with "scheme not found".
+      #
+      # CODE_SIGNING_ALLOWED=NO is what removes the need for an Apple account.
+      # A simulator build does not need a signed binary.
+      - name: Compile (unsigned, simulator)
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Confirm the app bundle exists
+        run: |
+          APP=$(find build/Build/Products -name 'App.app' -maxdepth 3 | head -1)
+          if [ -z "$APP" ]; then
+            echo "No App.app was produced. The compile step passed but emitted nothing."
+            exit 1
+          fi
+          echo "Built: $APP"
+          du -sh "$APP"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NEXT STAGE: TestFlight
+#
+# Deliberately not written yet, because every line of it would fail today. It
+# needs an Apple Developer Program membership, and an ORGANIZATION enrolment
+# needs a D-U-N-S number for the business, which takes days to weeks. Individual
+# enrolment is faster but puts a personal name on the App Store listing as the
+# seller, which is wrong for a product companies pay $99/month for.
+#
+# Once enrolment completes, this becomes a second job that:
+#
+#   1. Imports a signing certificate and provisioning profile from secrets
+#      (fastlane match, or apple-actions/import-codesign-certs).
+#   2. Swaps -sdk iphonesimulator for a real device archive:
+#        xcodebuild -scheme App -configuration Release \
+#          -archivePath build/App.xcarchive archive
+#   3. Exports a signed .ipa with an ExportOptions.plist.
+#   4. Uploads with xcrun altool or apple-actions/upload-testflight-build,
+#      authenticating with an App Store Connect API key.
+#
+# Secrets it will need:
+#   APPSTORE_ISSUER_ID, APPSTORE_KEY_ID, APPSTORE_PRIVATE_KEY
+#   BUILD_CERTIFICATE_BASE64, P12_PASSWORD, PROVISIONING_PROFILE_BASE64
+#
+# Do not add that job before the compile job above is green. A signing failure on
+# top of a compile failure is two problems reported as one.
+# ─────────────────────────────────────────────────────────────────────────────
