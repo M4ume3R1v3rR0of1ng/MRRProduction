@@ -5,12 +5,16 @@
     "dev": "netlify dev",
     "dev:ui-only": "vite",
     "build": "vite build --mode production",
+    "build:ios": "vite build --mode ios && cap sync ios",
+    "ios:open": "cap open ios",
     "test": "vitest run",
     "test:watch": "vitest",
     "preview": "vite preview"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.109.1",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
     "@supabase/supabase-js": "^2.106.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
@@ -20,6 +24,7 @@
     "stripe": "^22.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
     "@vite-pwa/assets-generator": "^1.0.2",
     "@vitejs/plugin-react": "^4.0.0",
     "vite": "^7.3.6",

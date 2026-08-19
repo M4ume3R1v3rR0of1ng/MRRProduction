@@ -10,6 +10,7 @@ import IdleTimeoutWrapper from "./components/IdleTimeoutWrapper";
 // Centralized Stateless Calculation & Helper Utilities
 import { C, tot, oilSt, predDays, detSt, fd, fm } from "./utils/helpers";
 import { translations } from "./utils/translations";
+import { IS_IOS_APP } from "./utils/platform";
 
 import CompanySwitcher from "./components/CompanySwitcher";
 import VisitingBanner from "./components/VisitingBanner";
@@ -37,7 +38,12 @@ const TrainingPage = lazy(() => import("./views/TrainingPage"));
 const TrainingView = lazy(() => import("./views/TrainingView"));
 const ResetPasswordScreen = lazy(() => import("./views/ResetPasswordScreen"));
 const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
-const BillingView = lazy(() => import("./views/BillingView"));
+// The conditional is load-bearing, not belt-and-braces. Gating only the render
+// site leaves this lazy() declaration referencing the chunk, so Rollup still
+// emits BillingView into the App Store bundle: unreachable, but shipped. Putting
+// the import() in a branch that folds away at build time is what actually keeps
+// the seat-purchase and Stripe-portal code out of the binary.
+const BillingView = IS_IOS_APP ? null : lazy(() => import("./views/BillingView"));
 const DashboardView = lazy(() => import("./views/DashboardView"));
 const ScheduleView = lazy(() => import("./views/ScheduleView"));
 const ProfileView = lazy(() => import("./views/ProfileView"));
@@ -105,7 +111,11 @@ export default function App() {
   // logging out or finishing a password reset drops returning users straight to
   // the login form instead of back through marketing. loginMode picks which tab
   // the LoginScreen opens on ("login" vs. the self-serve "start a company" flow).
-  const [authView, setAuthView] = useState("landing");
+  //
+  // The iOS app opens on the login form and can never reach "landing": that page
+  // publishes the subscription rates, and an App Store build that shows a price
+  // is an App Store build that owes Apple In-App Purchase. See utils/platform.js.
+  const [authView, setAuthView] = useState(IS_IOS_APP ? "login" : "landing");
   const [loginMode, setLoginMode] = useState("login");
   // Where "← Back" on the Terms page should return to, since it's reachable from
   // both the landing footer and the login disclaimer.
@@ -165,8 +175,9 @@ export default function App() {
       const state = event.state || {};
       if (!app.curUser) {
         // The very first entry of a visit has no state object at all, and that
-        // entry is always the landing page.
-        setAuthView(state.authView || "landing");
+        // entry is always the landing page. On iOS there is no landing page, so
+        // the floor is the login form: popping back must never surface pricing.
+        setAuthView(state.authView || (IS_IOS_APP ? "login" : "landing"));
         return;
       }
       setView(state.view || "dashboard");
@@ -379,7 +390,11 @@ export default function App() {
     }
     // Public front door. The marketing landing page hands off to the login/signup
     // form via its Sign in / Start your company buttons.
-    if (authView === "landing") {
+    // The !IS_IOS_APP guard is what actually keeps LandingPage out of the App
+    // Store bundle: it is the only reference to the component, so with the flag
+    // folded to false at build time the whole marketing page and every rate on it
+    // is dropped rather than merely made unreachable.
+    if (!IS_IOS_APP && authView === "landing") {
       return (
         <LandingPage
           onSignIn={() => { setLoginMode("login"); goAuthView("login"); }}
@@ -616,7 +631,11 @@ return (
             {view === "owner" && app.curUser.isPlatformAdmin && (
               <OwnerConsole user={app.curUser} lang={lang} />
             )}
-            {view === "billing" && (app.curUser.role === "admin" || app.curUser.isPlatformAdmin) && (
+            {/* Sold outside the app on iOS. BillingView buys seat packs and opens
+                the Stripe portal, both of which are purchases Apple would require
+                to run through In-App Purchase. The flag is first in the chain so
+                the component drops out of the App Store bundle entirely. */}
+            {!IS_IOS_APP && view === "billing" && (app.curUser.role === "admin" || app.curUser.isPlatformAdmin) && (
               <BillingView user={app.curUser} lang={lang} />
             )}
             {/* No permission gate. Training is how someone learns the parts of

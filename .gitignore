@@ -13,6 +13,10 @@
 .env
 .env.*
 !.env.example
+# .env.ios holds no secrets: one line, VITE_APP_PLATFORM=ios. It has to be
+# committed or the App Store build is not reproducible from a clean checkout,
+# which is exactly what a CI macOS runner starts from. See src/utils/platform.js.
+!.env.ios
 
 # Local Netlify folder
 .netlify
@@ -22,7 +26,13 @@ node_modules/
 
 # Personal projects living in Documents that should stay out of this repo
 vuln-scanner/
-App
+# Anchored with a leading slash on purpose. As a bare "App" this matched a
+# directory of that name at ANY depth, which silently swallowed
+# "MRR Production/ios/App" — the entire generated Xcode project, including
+# project.pbxproj, Info.plist and AppDelegate.swift. Nothing warns you: the files
+# sit on disk, `git add -A` skips them, and a CI macOS runner clones a repo with
+# no iOS project in it. The leading slash confines this to Documents/App.
+/App
 Baseline/
 Home-SOC-Project/
 Internship/

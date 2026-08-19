@@ -7,6 +7,7 @@ import { logAction } from "../utils/logger";
 import { TrussMark, TAGLINE } from "../components/SteadwerkMark";
 import { translations } from "../utils/translations"; // 🟢 Imported Dictionary
 import { readTheme, saveTheme, applyTheme } from "../utils/theme";
+import { IS_IOS_APP } from "../utils/platform";
 
 export default function Sidebar({
   cur,
@@ -73,7 +74,10 @@ export default function Sidebar({
   // back — which is what you went in there for.
   const platformNavItems = [
     { id: "owner", icon: "🏛️", label: t.ownerConsole },
-    { id: "billing", icon: "💳", label: t.billing },
+    // Hidden on iOS along with the view itself. A nav row that routes to a
+    // screen the App Store build does not contain is a dead tap, and one that
+    // said "Billing" would invite the reviewer to go looking for a purchase.
+    ...(IS_IOS_APP ? [] : [{ id: "billing", icon: "💳", label: t.billing }]),
     ...(perms.users_manage
       ? [
           { id: "users", icon: "👥", label: t.users || "Users" },
@@ -134,8 +138,9 @@ export default function Sidebar({
     ...(perms.settings_manage
       ? [{ id: "settings", icon: "⚙️", label: t.settings || "Settings" }]
       : []),
-    // The company's own Billing/accounting tab — its admin only.
-    ...((user?.role === "admin" || isPlatformAdmin)
+    // The company's own Billing/accounting tab — its admin only, and never in
+    // the iOS build. See the platform list above and utils/platform.js.
+    ...(!IS_IOS_APP && (user?.role === "admin" || isPlatformAdmin)
       ? [{ id: "billing", icon: "💳", label: t.billing }]
       : []),
     // Platform owner only — not a company permission. Visible to you across every

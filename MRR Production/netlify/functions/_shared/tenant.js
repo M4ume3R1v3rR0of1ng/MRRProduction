@@ -27,6 +27,15 @@ const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:8888",
   "http://localhost:3000",
+  // The iOS app. Capacitor serves the bundled build from a custom scheme rather
+  // than from https, so the browser sends this as the Origin on every call.
+  // Without it appOrigin() falls through to steadwerk.com, the CORS header comes
+  // back naming a different origin, and WKWebView blocks EVERY function response:
+  // billing, email, user creation, AccuLynx, chat, weather. The app loads and
+  // then nothing in it works, which reads like a broken backend rather than a
+  // missing string. Set by "iosScheme": "capacitor" in capacitor.config.json;
+  // changing that value means changing this one.
+  "capacitor://localhost",
 ];
 
 // The app origin a request may be answered on. Falls back to the primary domain

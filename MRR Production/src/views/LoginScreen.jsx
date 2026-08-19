@@ -17,6 +17,7 @@
 //      the world. Your email already determines your company via memberships.
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../utils/supabase";
+import { IS_IOS_APP } from "../utils/platform";
 import { C } from "../utils/helpers";
 import { Fld } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
@@ -44,7 +45,12 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
   const t = translations[lang] || translations.en;
   // "login" = existing user signing in · "signup" = public "start a company" flow.
   // initialMode lets the landing page open us straight on the right tab.
-  const [mode, setMode] = useState(initialMode);
+  //
+  // Pinned to "login" on iOS. Nothing in that build sets initialMode to "signup"
+  // today, since the only caller is the landing page's onStart and there is no
+  // landing page there — but this is the last gate in front of a Stripe checkout
+  // in an App Store binary, so it does not rely on that staying true.
+  const [mode, setMode] = useState(IS_IOS_APP ? "login" : initialMode);
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
@@ -744,7 +750,14 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
               </p>
             )}
 
-            {mode === "login" ? (
+            {/* On iOS this whole block goes. "Start your own company" is the door
+                into trySignup(), which posts to create-checkout and hands off to
+                Stripe — a purchase, which Apple requires to run through In-App
+                Purchase. The App Store build offers no way in and no explanation
+                of where to get one, because naming the website as the place to
+                buy is itself steering. Owners sign up on the web and their crew
+                signs in here. See utils/platform.js. */}
+            {IS_IOS_APP ? null : mode === "login" ? (
               <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.6 }}>
                 {t.lgNeedAccess}
                 <br />

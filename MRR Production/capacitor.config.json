@@ -1,0 +1,12 @@
+{
+  "appId": "com.steadwerk.app",
+  "appName": "Steadwerk",
+  "webDir": "dist",
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "server": {
+    "iosScheme": "capacitor"
+  }
+}
