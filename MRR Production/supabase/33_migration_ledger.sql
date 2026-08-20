@@ -302,21 +302,35 @@ on conflict (filename) do update
 commit;
 
 -- ═════════════════════════════════════════════════════════════════════════════
--- Verify
+-- The answer.
 --
--- The whole point of the file. Anything in the 'missing' list has not been run:
+-- This select is the last statement in the file ON PURPOSE, and it must stay
+-- last. The Supabase SQL Editor displays the result of the FINAL statement only,
+-- so a file that ends on `commit;` reports "Success. No rows returned" and shows
+-- you nothing at all. The first version of this file did exactly that: it did all
+-- its work correctly, said nothing about it, and left the reader to go and find
+-- a verification query buried in a comment. That is what running it several times
+-- looking for an answer feels like. See the same warning in 00_introspect.sql.
 --
---   select filename, status, note
---   from public.schema_migrations
---   order by filename;
+-- Missing first, because those are the ones that need action. 'undetectable'
+-- next, then everything verified.
 --
--- Just the gaps:
---
---   select filename, note from public.schema_migrations
---   where status = 'missing' order by filename;
---
--- An empty second result means 01 through 33 are all in, except the three marked
--- 'undetectable', which you confirm by hand with the three checks below.
+--   missing       this migration has NOT been run. The note says which object
+--                 was looked for and not found.
+--   undetectable  cannot be probed. Confirm by hand with checks A, B and C below.
+--   verified      the object that migration creates is present.
+-- ═════════════════════════════════════════════════════════════════════════════
+select
+  status,
+  filename,
+  note
+from public.schema_migrations
+order by
+  case status when 'missing' then 0 when 'undetectable' then 1 else 2 end,
+  filename;
+
+-- ═════════════════════════════════════════════════════════════════════════════
+-- The three that have to be confirmed by hand
 --
 -- ── Check A · did 11_fix_admin_list.sql run? ─────────────────────────────────
 -- Before the fix this threw: column reference "created_at" is ambiguous.

@@ -6,16 +6,24 @@ only ordering, and several files depend on the one before it.
 
 ## Which ones are applied?
 
-Run [`33_migration_ledger.sql`](33_migration_ledger.sql), then:
-
-```sql
-select filename, note from public.schema_migrations
-where status = 'missing' order by filename;
-```
+Run [`33_migration_ledger.sql`](33_migration_ledger.sql). It prints the answer
+itself: the last statement in the file is a select over the ledger, with
+anything `missing` sorted to the top.
 
 That is the authoritative answer. The ledger does not trust a log, it probes the
 live schema for the object each migration creates. Re-run the file any time to
 refresh it, and after a restore or on a fresh environment.
+
+| status | meaning |
+|--------|---------|
+| `missing` | Not run. The `note` names the object that was looked for and not found. |
+| `undetectable` | Cannot be probed. Confirm by hand with checks A, B and C at the bottom of the file. |
+| `verified` | The object that migration creates is present. |
+
+If the result comes back empty, the probes did not run. If it says "Success. No
+rows returned" with no grid at all, you are looking at an older copy of the file
+that ended on `commit;`: the Supabase SQL Editor only ever shows the result of
+the last statement, so that version did its work and reported nothing.
 
 Three files leave no distinguishable trace and are marked `undetectable`:
 `11` and `13` are `create or replace` fixes over functions `06` and `12` already
