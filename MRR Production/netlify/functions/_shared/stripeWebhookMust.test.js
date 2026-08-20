@@ -1,5 +1,12 @@
+// Lives in _shared/ rather than next to the function it tests, and must stay
+// here. Netlify treats every TOP-LEVEL file in netlify/functions/ as a function
+// to deploy, and rejects any name that is not alphanumeric, hyphen or
+// underscore. A ".test.js" file up there fails the whole production deploy with
+// "Incorrect function names", which is not obviously about a test file at all.
+// Paths beginning with _ are skipped, which is why expenseNotes.test.js has
+// always been fine here. Learned by breaking the deploy on 2026-08-20.
 import { describe, it, expect } from "vitest";
-import { must } from "./stripe-webhook.js";
+import { must } from "../stripe-webhook.js";
 
 // must() is what turns a failed Supabase call into a thrown error, which the
 // handler's catch turns into a 500, which makes Stripe retry.
