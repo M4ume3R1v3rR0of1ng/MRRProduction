@@ -1,0 +1,92 @@
+# The cheap check that runs on everything.
+#
+# WHY THIS EXISTS SEPARATELY FROM ios-build.yml
+#
+# The iOS workflow filters itself down to paths that can affect an Xcode build,
+# because macOS runners bill at ten times the Linux rate. That is right for it,
+# but it left a hole: netlify/**, supabase/** and the root config were covered by
+# no CI at all. A Netlify function could be broken and nothing would notice.
+#
+# Which is not theoretical. The commit that added error handling to
+# stripe-webhook.js also put a .test.js file among the deployable functions and
+# failed the production deploy, and no check caught it before Netlify did.
+#
+# So: no path filters here on purpose. This runs on every push. It is Linux, it
+# is about a minute, and the whole point is that nothing slips past it.
+#
+# NOTE ON PATHS: the git repo root is one level ABOVE the app. Everything lives in
+# "MRR Production/", space included.
+
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A second push while the first is still running makes the first irrelevant.
+# Cancel it rather than paying for an answer about code nobody has any more.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests and builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: 'MRR Production'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: 'MRR Production/package-lock.json'
+
+      # ci, not install: fails loudly if package-lock.json and package.json have
+      # drifted, rather than quietly resolving something different from local.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      # Tests do not import every module, so they cannot catch a syntax error or a
+      # bad import in a file nothing covers. The build does, and it is the same
+      # command Netlify runs, so a green build here means a green deploy there.
+      - name: Web build
+        run: npm run build
+
+      # The App Store bundle takes a different path through the code: --mode ios
+      # loads .env.ios, which folds IS_IOS_APP to true and drops the landing page,
+      # the signup flow and BillingView. That tree-shaking can break on its own,
+      # and nothing else here would notice.
+      #
+      # Deliberately `vite build` and not `npm run build:ios`. The latter also runs
+      # `cap sync ios`, which is a Capacitor platform operation better left to the
+      # macOS job that actually compiles the thing.
+      - name: iOS bundle build
+        run: npx vite build --mode ios
+
+      # The mistake that broke production on 2026-08-20. Netlify treats every
+      # top-level file in netlify/functions/ as a function to deploy and rejects
+      # any name containing a dot, so a stray .test.js there fails the whole site
+      # build with "Incorrect function names" and no mention of tests. Underscore
+      # paths like _shared/ are skipped, which is where such tests belong.
+      - name: No test files among deployable Netlify functions
+        run: |
+          found=$(ls netlify/functions/*.js 2>/dev/null | grep '\.test\.' || true)
+          if [ -n "$found" ]; then
+            echo "These would be deployed as Netlify functions and will fail the build:"
+            echo "$found"
+            echo "Move them into netlify/functions/_shared/ , which Netlify skips."
+            exit 1
+          fi
+          echo "None. Deploy-safe."
