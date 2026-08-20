@@ -1,7 +1,36 @@
-.env
+# Project-level ignores. The repo root is one level up (Documents/.gitignore),
+# and that file owns the secrets rules and the unrelated-projects list. This one
+# owns build output and tooling artifacts belonging to THIS app, so the two do
+# not have to be kept in step.
+
+# Dependencies
 node_modules/
+
+# Build output
 dist/
-.netlify/
-.env.local
 build/
+
+# vite-plugin-pwa's DEV service worker, regenerated on every `npm run dev`.
+# Three files and ~135 KB of Workbox were committed here before this rule
+# existed. It is generated, it is never deployed (the real worker is emitted
+# into dist/ by the production build), and a stale copy in the repo is one more
+# thing that can disagree with the code that made it.
+dev-dist/
+
+# Netlify Dev's local state.
+.netlify/
+
+# Netlify Dev writes this when it boots its Deno edge runtime, even though this
+# project has no edge functions at all: every function under netlify/functions
+# is a normal Node one. It is a byproduct of running the dev server, not a
+# dependency of anything we ship. Delete it freely if it reappears.
+deno.lock
+
+# Secrets. Also covered at the repo root, deliberately repeated so that moving
+# or cloning this directory on its own cannot silently drop the protection.
+# .env.example and .env.ios are the exceptions and hold no secrets; the root
+# .gitignore carries the negations that allow them.
+.env
+.env.local
+
 .DS_Store
