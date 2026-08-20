@@ -4,6 +4,7 @@ import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal, groupJobsByDay, job
 import JobHandoff from "../components/JobHandoff";
 import SearchBar from "../components/SearchBar";
 import { translations } from "../utils/translations";
+import { useStickySort } from "../hooks/useStickySort";
 import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "../components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
 import { shouldNotifyJobMove, notifyJobMove } from "../utils/jobNotifications";
@@ -16,6 +17,12 @@ import { logAction } from "../utils/logger";
 
 import { fetchJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
 import EditJobModal from "./jobs/EditJobModal";
+
+// The values of the <option> list in this view's sort dropdown, in the same
+// order. useStickySort checks a remembered choice against this before trusting
+// it, so a sort that is renamed or removed later degrades to the default rather
+// than leaving the control blank. Keep it in step with the JSX.
+const SORTS = ["oldest", "newest", "name_az", "name_za", "po", "status"];
 
 export default function BuildJobs({
   jobs = [],
@@ -72,7 +79,7 @@ export default function BuildJobs({
   // Oldest first: the pipeline reads in the order the jobs were created, so the
   // work that has been waiting longest is at the top rather than buried at the
   // bottom of sixty cards. The dropdown still offers newest-first.
-  const [sortBy, setSortBy] = useState("oldest");
+  const [sortBy, setSortBy] = useStickySort("jobs", SORTS, "oldest");
 
   const [saving, setSaving] = useState(false);
   const [approving, setApproving] = useState(false);

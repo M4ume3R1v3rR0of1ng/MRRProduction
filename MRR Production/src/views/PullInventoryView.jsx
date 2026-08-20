@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Fragment } from "react";
 import { C, fd, fm, doFifo, uid, tot, mkJI, mergePullTracking, todayLocal, applyReturnBatch, groupJobsByDay, jobStatusMeta } from "../utils/helpers";
 import { displayNameOf } from "../utils/people";
 import { translations } from "../utils/translations";
+import { useStickySort } from "../hooks/useStickySort";
 import { generatePDF } from "../utils/pdfGenerator";
 // syncStatusOf / reportUploadedAtOf are read only to answer "is this report already
 // filed", which stops a retry after a failed commit from filing a second copy.
@@ -19,6 +20,12 @@ import { sendEmail, escapeHtml as esc } from "../utils/email";
 import { notifyJobMove } from "../utils/jobNotifications";
 import JobHandoff from "../components/JobHandoff";
 import SearchBar, { matchesQuery } from "../components/SearchBar";
+
+// The values of the <option> list in this view's sort dropdown, in the same
+// order. useStickySort checks a remembered choice against this before trusting
+// it, so a sort that is renamed or removed later degrades to the default rather
+// than leaving the control blank. Keep it in step with the JSX.
+const SORTS = ["oldest", "newest", "name_az", "name_za", "po", "status"];
 
 export default function PullInventory({
   jobs = [],
@@ -59,7 +66,7 @@ export default function PullInventory({
   // Oldest first, matching Build Jobs: the queue reads in creation order, so the
   // job that has been waiting longest is at the top rather than buried at the
   // bottom. The dropdown still offers newest-first.
-  const [sortBy, setSortBy] = useState("oldest");
+  const [sortBy, setSortBy] = useStickySort("pull", SORTS, "oldest");
   const [srch, setSrch] = useState("");
   // "all" | "approved" | "active". Defaults to all so the view opens showing the
   // whole queue — narrowing is a choice the user makes, not a state they land in

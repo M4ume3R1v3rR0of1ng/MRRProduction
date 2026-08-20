@@ -6,6 +6,7 @@ import { Btn, Inp, Sel } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
 import { translations } from "../utils/translations";
+import { useStickySort } from "../hooks/useStickySort";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import JobTemplatesModal from "./inventory/JobTemplatesModal";
 import BulkReceiveModal from "./inventory/BulkReceiveModal";
@@ -36,7 +37,31 @@ export default function InventoryView({
   const [tab, setTab] = useState("catalog");
   const [srch, setSrch] = useState(inventorySearchQuery);
   const [cat, setCat] = useState("All");
-  const [sortBy, setSortBy] = useState("name_az");
+  // The two price sorts only exist for someone who may see pricing, so the valid
+  // list is built from the same condition that renders the options. That is what
+  // lets useStickySort drop a remembered "price_low" if the permission goes away,
+  // rather than leaving the dropdown showing blank.
+  const sortOptions = useMemo(
+    () => [
+      { value: "name_az", label: t.invSortNameAZ },
+      { value: "name_za", label: t.invSortNameZA },
+      { value: "cat_az", label: t.invSortCatAZ },
+      { value: "stock_low", label: t.invSortStockLow },
+      { value: "stock_high", label: t.invSortStockHigh },
+      ...(perms.inv_pricing_view
+        ? [
+            { value: "price_low", label: t.invSortPriceLow },
+            { value: "price_high", label: t.invSortPriceHigh },
+          ]
+        : []),
+    ],
+    [t, perms.inv_pricing_view],
+  );
+  const [sortBy, setSortBy] = useStickySort(
+    "inventory",
+    sortOptions.map((o) => o.value),
+    "name_az",
+  );
   const [modal, setModal] = useState(null);
   const [sel, setSel] = useState(null);
   // Which batch the correction dialog is opened on. Sibling of `sel`; the
@@ -239,13 +264,9 @@ export default function InventoryView({
       {cats.map((c) => (<option key={c} value={c}>{c}</option>))}
     </Sel>
     <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.invSortAria} style={{ width: "auto" }}>
-      <option value="name_az">{t.invSortNameAZ}</option>
-      <option value="name_za">{t.invSortNameZA}</option>
-      <option value="cat_az">{t.invSortCatAZ}</option>
-      <option value="stock_low">{t.invSortStockLow}</option>
-      <option value="stock_high">{t.invSortStockHigh}</option>
-      {perms.inv_pricing_view && <option value="price_low">{t.invSortPriceLow}</option>}
-      {perms.inv_pricing_view && <option value="price_high">{t.invSortPriceHigh}</option>}
+      {sortOptions.map((o) => (
+        <option key={o.value} value={o.value}>{o.label}</option>
+      ))}
     </Sel>
   </div>
 

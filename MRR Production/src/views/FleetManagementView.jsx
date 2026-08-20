@@ -13,6 +13,7 @@ import {
 } from "../components/UIPrimitives";
 import { C, uid, todayLocal } from "../utils/helpers";
 import { translations } from "../utils/translations";
+import { useStickySort } from "../hooks/useStickySort";
 import { learnServiceIntervals } from "../utils/patterns";
 import { logAction } from "../utils/logger";
 import { useNotify } from "../context/NotificationContext";
@@ -27,6 +28,12 @@ import InspectionModal from "./fleet/InspectionModal";
 
 
 // ── MAIN VIEW COMPONENT (The Only Default Export) ──
+// The values of the <option> list in this view's sort dropdown, in the same
+// order. useStickySort checks a remembered choice against this before trusting
+// it, so a sort that is renamed or removed later degrades to the default rather
+// than leaving the control blank. Keep it in step with the JSX.
+const SORTS = ["name_az", "name_za", "year_new", "year_old", "mi_high", "mi_low"];
+
 export default function FleetManagementView({
   vehs,
   setVehs,
@@ -69,7 +76,7 @@ export default function FleetManagementView({
   const [subView, setSubView] = useState("list");
   const [calSel, setCalSel] = useState(null);
   const [filt, setFilt] = useState("all");
-  const [sortBy, setSortBy] = useState("name_az");
+  const [sortBy, setSortBy] = useStickySort("fleet", SORTS, "name_az");
   const [srch, setSrch] = useState("");
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);

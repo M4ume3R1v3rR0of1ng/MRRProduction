@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase, updateRowStrict } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
+import { useStickySort } from "../hooks/useStickySort";
 import { detectChronicIssues, detectFleetTrends } from "../utils/patterns";
 import {
   Btn,
@@ -19,6 +20,12 @@ import { useNotify } from "../context/NotificationContext";
 import { logAction } from "../utils/logger";
 import MaintenanceCalendar from "../components/MaintenanceCalendar";
 import SearchBar, { matchesQuery } from "../components/SearchBar";
+
+// The values of the <option> list in this view's sort dropdown, in the same
+// order. useStickySort checks a remembered choice against this before trusting
+// it, so a sort that is renamed or removed later degrades to the default rather
+// than leaving the control blank. Keep it in step with the JSX.
+const SORTS = ["newest", "oldest", "urgency", "vehicle_az", "vehicle_za", "status"];
 
 export default function MaintenanceRequestsView({
   reqs,
@@ -39,7 +46,7 @@ export default function MaintenanceRequestsView({
   const activeUser = user || curUser || { id: "system", email: "unknown@mrr.com", name: "Crew Member" };
 
   const [filt, setFilt] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useStickySort("maint", SORTS, "newest");
   const [srch, setSrch] = useState("");
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
