@@ -109,6 +109,35 @@ function mapStripeStatus(stripeStatus) {
   }
 }
 
+// Unwrap a supabase-js result, or throw with enough context to find it.
+//
+// WHY THIS EXISTS
+//
+// Every query in this file used to destructure `{ data }` and drop `{ error }` on
+// the floor. That is quietly catastrophic here specifically, because this file is
+// where money turns into access: a failed write means somebody paid and got
+// nothing, and the handler still answered Stripe with 200, so Stripe never
+// retried and no one ever found out.
+//
+// It is not hypothetical. Migrations 16 and 27 were never applied to production,
+// so `companies` had neither purchased_seat_packs nor recurring_seat_packs. The
+// select below returned an error and null data, the suspended-company guard
+// silently stopped guarding, and any update carrying a pack count failed against
+// the missing column without a word. It took a schema audit to find, months
+// later. See supabase/33_migration_ledger.sql.
+//
+// Throwing routes it to the handler's catch, which logs and returns 500, which
+// tells Stripe to retry. That is right for a transient database fault and, for a
+// permanent one like a missing column, turns an invisible failure into a loud
+// repeating one. Loud and repeating is strictly better than silent.
+// Exported only so it can be tested. It is the one thing standing between a
+// failed write and a payment that bought nothing, which makes it worth covering
+// even at three lines.
+export function must(what, result) {
+  if (result.error) throw new Error(`${what}: ${result.error.message}`);
+  return result.data;
+}
+
 // Apply a status (and optionally a seat capacity) to the company behind a Stripe
 // subscription/customer, unless the company is manually suspended (owner's lever wins).
 async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscriptionId, baseSeats, recurringPacks, billingInterval }, status) {
@@ -116,12 +145,22 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
 
   // Resolve the company: explicit id first, else by the stored Stripe ids.
   let id = companyId || null;
+  // maybeSingle: no match is a legitimate answer here (the next lookup may find
+  // it, or this really is an event for a company we do not have), so only a real
+  // failure throws. Without the check, a broken read looked exactly like "no such
+  // company" and the event was dropped as unmappable.
   if (!id && stripeSubscriptionId) {
-    const { data } = await admin.from("company_secrets").select("company_id").eq("stripe_subscription_id", stripeSubscriptionId).maybeSingle();
+    const data = must(
+      "look up company by stripe_subscription_id",
+      await admin.from("company_secrets").select("company_id").eq("stripe_subscription_id", stripeSubscriptionId).maybeSingle(),
+    );
     id = data?.company_id || null;
   }
   if (!id && stripeCustomerId) {
-    const { data } = await admin.from("company_secrets").select("company_id").eq("stripe_customer_id", stripeCustomerId).maybeSingle();
+    const data = must(
+      "look up company by stripe_customer_id",
+      await admin.from("company_secrets").select("company_id").eq("stripe_customer_id", stripeCustomerId).maybeSingle(),
+    );
     id = data?.company_id || null;
   }
   if (!id) {
@@ -129,12 +168,23 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
     return;
   }
 
-  const { data: co } = await admin
-    .from("companies")
-    .select("subscription_status, purchased_seat_packs, recurring_seat_packs")
-    .eq("id", id)
-    .single();
-  if (co?.subscription_status === "suspended") {
+  // maybeSingle, not single, on purpose. single() treats "no rows" as an error,
+  // so wrapping it in must() would make a company deleted between the secrets
+  // lookup and here throw, and Stripe would retry that forever. A missing row is
+  // reported once and dropped; a genuine query failure throws.
+  const co = must(
+    "read company for status apply",
+    await admin
+      .from("companies")
+      .select("subscription_status, purchased_seat_packs, recurring_seat_packs")
+      .eq("id", id)
+      .maybeSingle(),
+  );
+  if (!co) {
+    console.warn(`stripe-webhook: company ${id} referenced by Stripe no longer exists; ignoring '${status}'.`);
+    return;
+  }
+  if (co.subscription_status === "suspended") {
     console.log(`stripe-webhook: company ${id} is suspended; ignoring billing status '${status}'.`);
     return;
   }
@@ -143,7 +193,10 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
 
   // Mirror the billed pack quantity whenever we could read it, even if capacity itself
   // is not being recomputed on this event, so the stored mirror never lags Stripe.
-  const billedPacks = typeof recurringPacks === "number" ? recurringPacks : co?.recurring_seat_packs || 0;
+  // `co.` rather than `co?.` from here down: the guard above already returned on
+  // a missing row, so optional chaining would only suggest a null that cannot
+  // reach this point.
+  const billedPacks = typeof recurringPacks === "number" ? recurringPacks : co.recurring_seat_packs || 0;
   if (typeof recurringPacks === "number") patch.recurring_seat_packs = recurringPacks;
 
   // Same mirror discipline as the pack count: write it only when we actually read a
@@ -160,18 +213,28 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
     // Grandfathered one-time packs plus packs currently billed. Both grant the same
     // seats; only the second kind stops when the subscription does — and when it
     // lapses the whole lot drops to base anyway. See supabase/27.
-    const grandfathered = co?.purchased_seat_packs || 0;
+    const grandfathered = co.purchased_seat_packs || 0;
     patch.seat_capacity = SUBSCRIBED_STATUSES.includes(status)
       ? baseSeats + PACK_SEATS * (grandfathered + billedPacks)
       : baseSeats;
   }
 
-  await admin.from("companies").update(patch).eq("id", id);
+  // THE write. Everything above only decides what this says. If it fails and we
+  // swallow it, the company keeps whatever status it had while Stripe believes
+  // the change landed: a paid signup stays locked out, or a cancelled account
+  // keeps working. This is the single most important error check in the file.
+  must("apply company status/capacity", await admin.from("companies").update(patch).eq("id", id));
 
   if (stripeSubscriptionId) {
-    await admin.from("company_secrets")
-      .update({ stripe_subscription_id: stripeSubscriptionId })
-      .eq("company_id", id);
+    // Losing this quietly is how a company ends up unreachable by later events:
+    // applyStatus resolves the company from these stored ids, so a subscription
+    // id that never got written means the next webhook cannot find them.
+    must(
+      "store stripe_subscription_id",
+      await admin.from("company_secrets")
+        .update({ stripe_subscription_id: stripeSubscriptionId })
+        .eq("company_id", id),
+    );
   }
 }
 
@@ -222,28 +285,40 @@ export const handler = async (event) => {
 
           // Increment in the database rather than read-modify-write here, so two
           // packs bought at once can't overwrite each other.
-          const { data: newTotal, error } = await admin.rpc("record_seat_pack_purchase", {
-            target: companyId,
-            packs,
-          });
-          if (error) throw new Error(`record_seat_pack_purchase failed: ${error.message}`);
+          // This one already checked its error. It is the reason the missing
+          // record_seat_pack_purchase() would at least have been noticed here,
+          // had anyone still been opening these sessions.
+          const newTotal = must(
+            "record_seat_pack_purchase",
+            await admin.rpc("record_seat_pack_purchase", { target: companyId, packs }),
+          );
 
           // Raise the ceiling to match, but never touch a comped company's NULL
           // (unlimited) capacity — adding a number there would cap them.
-          const { data: co } = await admin
-            .from("companies")
-            .select("seat_capacity, subscription_status, recurring_seat_packs")
-            .eq("id", companyId)
-            .single();
+          const co = must(
+            "read company for seat pack capacity",
+            await admin
+              .from("companies")
+              .select("seat_capacity, subscription_status, recurring_seat_packs")
+              .eq("id", companyId)
+              .maybeSingle(),
+          );
 
           if (typeof co?.seat_capacity === "number" && SUBSCRIBED_STATUSES.includes(co.subscription_status)) {
             // Include the recurring packs. The pre-27 version of this line was
             // `10 + 5 * newTotal`, which would now wipe out every pack the company is
             // currently paying for the moment a late one-time session settled.
-            await admin
-              .from("companies")
-              .update({ seat_capacity: 10 + PACK_SEATS * (newTotal + (co.recurring_seat_packs || 0)) })
-              .eq("id", companyId);
+            //
+            // Checked, because the packs are already paid for and recorded by the
+            // RPC above. Failing here without a word would take the money, bank the
+            // pack count, and never raise the ceiling it bought.
+            must(
+              "raise seat capacity after seat pack purchase",
+              await admin
+                .from("companies")
+                .update({ seat_capacity: 10 + PACK_SEATS * (newTotal + (co.recurring_seat_packs || 0)) })
+                .eq("id", companyId),
+            );
           }
           break;
         }
