@@ -333,14 +333,30 @@ order by
 -- The three that have to be confirmed by hand
 --
 -- ── Check A · did 11_fix_admin_list.sql run? ─────────────────────────────────
--- Before the fix this threw: column reference "created_at" is ambiguous.
--- If it returns rows, 11 is in.
+-- Read the installed source, do NOT call the function.
 --
---   select * from public.admin_list_companies();
+-- Calling it here cannot answer the question. admin_list_companies() opens with
+--     if not public.is_platform_admin() then raise exception ...
+-- and the SQL Editor carries no JWT, so auth.uid() is NULL, is_platform_admin()
+-- is false, and it raises "Platform admin access required" on line 4. That is the
+-- guard doing its job, not the bug: the ambiguous max(created_at) sits further
+-- down in the return query, which the raise never reaches. An earlier version of
+-- this check called the function and was useless for exactly that reason.
+--
+-- 11 fixed the ambiguity by aliasing the audit-log subquery, turning
+-- max(created_at) into max(al.created_at). So look for the alias:
+--
+--   select pg_get_functiondef('public.admin_list_companies()'::regprocedure)
+--            like '%max(al.created_at)%' as fix_11_applied;
+--
+-- true = 11 is in. false = the pre-fix version is installed, and the Owner
+-- Console company list is throwing 42702 for anyone who actually is an admin.
 --
 -- ── Check B · did 13_fix_has_perm.sql run? ───────────────────────────────────
 -- Before the fix this threw 42883: operator does not exist: text = uuid.
--- If it returns true or false rather than erroring, 13 is in.
+-- RETURNING AT ALL is the pass. The value is not the answer: in the SQL Editor
+-- auth.uid() is NULL, so false is the correct and expected result even on a
+-- database where everything is applied. Only an exception means 13 is missing.
 --
 --   select public.has_perm('jobs_pull');
 --
