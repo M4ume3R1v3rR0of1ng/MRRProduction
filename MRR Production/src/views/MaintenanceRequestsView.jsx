@@ -20,6 +20,7 @@ import { useNotify } from "../context/NotificationContext";
 import { logAction } from "../utils/logger";
 import MaintenanceCalendar from "../components/MaintenanceCalendar";
 import SearchBar, { matchesQuery } from "../components/SearchBar";
+import CompleteServiceModal from "./fleet/CompleteServiceModal";
 
 // The values of the <option> list in this view's sort dropdown, in the same
 // order. useStickySort checks a remembered choice against this before trusting
@@ -31,6 +32,7 @@ export default function MaintenanceRequestsView({
   reqs,
   setReqs,
   vehs,
+  setVehs,
   users,
   user,
   perms,
@@ -51,6 +53,10 @@ export default function MaintenanceRequestsView({
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
   const [subView, setSubView] = useState("list");
+
+  // The ticket "Complete Service" was opened against. Separate from `sel` so the
+  // review modal underneath stays mounted with its own state while this one is open.
+  const [completeServiceReq, setCompleteServiceReq] = useState(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTicket, setNewTicket] = useState({
@@ -143,7 +149,19 @@ export default function MaintenanceRequestsView({
       return;
     }
 
-    const createdRecord = data && data[0] ? data[0] : requestPayload;
+    if (!data || !data[0]) {
+      // The insert committed server-side but PostgREST couldn't read the row back
+      // (most commonly a SELECT policy that doesn't match the new row yet). Falling
+      // back to requestPayload here would add a ticket to local state with no id —
+      // every later action on it (Approve & Schedule, status changes, delete) would
+      // then match zero rows against the real row and fail with a confusing "record
+      // no longer exists" error. Surface the problem now instead of silently faking
+      // success.
+      showToast(t.maintSubmitUnconfirmed, "error");
+      return;
+    }
+
+    const createdRecord = data[0];
 
     // ── 🟢 AUDIT LOG: NEW TICKET CREATED ──
     await logAction(
@@ -266,6 +284,74 @@ export default function MaintenanceRequestsView({
     setSel(null);
     setForm({});
     showToast(t.maintDeletedOk, "success");
+  };
+
+  // Close out a scheduled ticket in one step: log the service to the vehicle,
+  // mark the request completed, and optionally reassign its driver — all in one
+  // database round trip. See supabase/34_complete_maintenance_service.sql for why
+  // this is a single RPC and not three separate writes from here.
+  const completeService = async (req, details) => {
+    const { data, error } = await supabase.rpc("complete_maintenance_service", {
+      p_request_id: req.id,
+      p_service_type: details.serviceType,
+      p_service_date: details.serviceDate,
+      p_performed_by: details.performedBy,
+      p_notes: details.notes,
+      p_cost: details.cost,
+      p_mileage: details.mileage,
+      // undefined here would drop the key entirely and the RPC's own default
+      // (no change) would apply anyway — passed explicitly so the intent reads
+      // the same in this call as it does in the SQL.
+      p_reassign_driver_id: details.reassignDriverId === undefined ? null : details.reassignDriverId,
+    });
+    if (error) throw error;
+
+    const nowIso = new Date().toISOString();
+    const notifyRequester = String(req.uid) !== String(user.id);
+
+    setReqs((p) =>
+      p.map((r) =>
+        r.id === req.id
+          ? { ...r, status: "completed", wh_notes: details.notes || r.wh_notes, completed_at: nowIso }
+          : r,
+      ),
+    );
+
+    // Re-read the vehicle(s) the RPC touched rather than reconstructing the change
+    // here. The service log entry's generated id, and — when this ticket had lent a
+    // spare — what the completion trigger (19_maintenance_vehicle_swap.sql) decided
+    // to do with both trucks' drivers, are only known to the database.
+    const vehicleIds = [req.vid, req.replacement_vehicle_id].filter(Boolean);
+    const { data: freshVehs, error: refetchErr } = await supabase
+      .from("vehicles")
+      .select("*")
+      .in("id", vehicleIds);
+    if (!refetchErr && freshVehs) {
+      setVehs((p) => p.map((v) => freshVehs.find((f) => f.id === v.id) || v));
+    }
+
+    await logAction(
+      user.id,
+      user.email,
+      "FLEET_MAINTENANCE",
+      `Completed service for "${req.vname}": ${details.serviceType}${details.cost ? ` ($${details.cost})` : ""}`,
+      { ticket_id: req.id, vehicle_id: req.vid, service: data?.service || details },
+      "maintenance"
+    );
+
+    if (notifyRequester) {
+      notifyMaintStatus({
+        status: "completed",
+        req: { ...req, wh_notes: details.notes, completed_at: nowIso },
+        users,
+        prefs: maintenanceNotifications,
+        actorId: user.id,
+      });
+    }
+
+    setSel(null);
+    setForm({});
+    showToast(t.maintStatusUpdated, "success");
   };
 
   const pendingCount = reqs.filter((r) => r.status === "pending").length;
@@ -637,10 +723,7 @@ export default function MaintenanceRequestsView({
               <div style={{ borderTop: `1px solid ${C.bd}`, paddingTop: 14, marginTop: 6 }}>
                 <h3 style={{ margin: "0 0 10px 0", fontSize: "var(--text-md)", color: C.navy }}>{t.maintCompleteServiceLogs}</h3>
                 {sel.wh_notes && <div style={{ marginBottom: 10 }}><strong>{t.maintScheduleInfo}</strong> {sel.wh_notes}</div>}
-                <Fld label={t.maintFinalNotes}>
-                  <TA placeholder={t.maintFinalPlaceholder} onChange={(e) => setForm({ ...form, whNotes: e.target.value })} />
-                </Fld>
-                <Btn v="green" style={{ width: "100%", justifyContent: "center" }} onClick={() => updateStatus(sel.id, "completed", form.whNotes)}>{t.maintCompleteClose}</Btn>
+                <Btn v="green" style={{ width: "100%", justifyContent: "center" }} onClick={() => { setCompleteServiceReq(sel); setSel(null); }}>{t.maintCompleteClose}</Btn>
               </div>
             )}
 
@@ -653,6 +736,17 @@ export default function MaintenanceRequestsView({
             )}
           </div>
         </Modal>
+      )}
+
+      {completeServiceReq && (
+        <CompleteServiceModal
+          req={completeServiceReq}
+          vehs={vehs}
+          users={users}
+          user={activeUser}
+          onClose={() => setCompleteServiceReq(null)}
+          onSubmit={(details) => completeService(completeServiceReq, details)}
+        />
       )}
 
     </div>

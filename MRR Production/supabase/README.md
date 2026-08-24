@@ -90,6 +90,7 @@ in SQL, change it there too.
 | 31 | `31_platform_admin_entry.sql` | Lets the platform owner enter a tenant they do not belong to. |
 | 32 | `32_platform_company.sql` | Marks one company as the operator's own tenant. **Needs a manual check.** |
 | 33 | `33_migration_ledger.sql` | Records which of the above are applied, by probing the schema. |
+| 34 | `34_complete_maintenance_service.sql` | "Complete Service" as one atomic step: logs the service to the vehicle, closes the request, and optionally reassigns the driver. |
 
 ## Adding a migration
 

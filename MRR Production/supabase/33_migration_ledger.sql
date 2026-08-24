@@ -276,6 +276,10 @@ begin
   perform public._mig_record('33_migration_ledger.sql',
     public._mig_has_table('schema_migrations'),
     'this file');
+
+  perform public._mig_record('34_complete_maintenance_service.sql',
+    public._mig_has_function('complete_maintenance_service'),
+    'function complete_maintenance_service()');
 end $$;
 
 -- The three that leave no distinguishable trace. Recorded so the ledger lists

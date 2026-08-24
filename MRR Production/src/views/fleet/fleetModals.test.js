@@ -9,6 +9,7 @@ import { renderToString } from "react-dom/server";
 import MaintenanceRequestModal from "./MaintenanceRequestModal.jsx";
 import AddVehicleModal, { buildVehicle } from "./AddVehicleModal.jsx";
 import InspectionModal, { vehicleLabel } from "./InspectionModal.jsx";
+import CompleteServiceModal, { guessServiceType } from "./CompleteServiceModal.jsx";
 import { oilSt } from "../../utils/helpers";
 import { NotificationProvider } from "../../context/NotificationContext";
 
@@ -112,5 +113,33 @@ describe("renders", () => {
 
   it("InspectionModal renders with no fleet", () => {
     expect(() => render(InspectionModal, { vehs: [] })).not.toThrow();
+  });
+
+  it("CompleteServiceModal shows the vehicle and the scheduling notes", () => {
+    const req = { id: "r1", vid: "v1", vname: "Truck 3 (ABC-1234)", type: "Brake Service, Electrical Issue", wh_notes: "Bring it in Thursday" };
+    const html = render(CompleteServiceModal, { req, vehs, users: [], onSubmit: () => {} });
+    expect(html).toContain("Complete Service");
+    expect(html).toContain("Truck 3 (ABC-1234)");
+    expect(html).toContain("Bring it in Thursday");
+  });
+
+  it("CompleteServiceModal survives a request with no matching vehicle", () => {
+    const req = { id: "r1", vid: "gone", vname: "Unknown Fleet Asset", type: "" };
+    expect(() => render(CompleteServiceModal, { req, vehs, users: [], onSubmit: () => {} })).not.toThrow();
+  });
+});
+
+describe("guessServiceType", () => {
+  it("picks the first reported issue when it matches a known service type", () => {
+    expect(guessServiceType("Brake Service, Electrical Issue")).toBe("Brake Service");
+  });
+
+  it("falls back to blank when nothing reported matches a known type", () => {
+    expect(guessServiceType("Weird Noise")).toBe("");
+  });
+
+  it("falls back to blank on empty or missing input", () => {
+    expect(guessServiceType("")).toBe("");
+    expect(guessServiceType(undefined)).toBe("");
   });
 });

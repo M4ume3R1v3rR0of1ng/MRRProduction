@@ -341,7 +341,16 @@ export default function FleetManagementView({
         .select();
       if (error) throw error;
 
-      const created = data && data[0] ? data[0] : payload;
+      if (!data || !data[0]) {
+        // Same gotcha as MaintenanceRequestsView.handleCreateRequest: the insert
+        // committed but PostgREST returned no row back (a SELECT policy that
+        // doesn't match it yet, most likely). Using `payload` as a stand-in would
+        // add an id-less ticket to local state, and every later action on it would
+        // fail against the real row with "record no longer exists". Fail loudly now.
+        throw new Error(t.maintSubmitUnconfirmed);
+      }
+
+      const created = data[0];
       setReqs((p) => [created, ...p]);
 
       await logAction(
