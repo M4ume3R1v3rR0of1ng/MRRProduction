@@ -34,3 +34,9 @@ deno.lock
 .env.local
 
 .DS_Store
+
+# Claude Code's own local session state — per-machine settings and a lock file
+# it writes for scheduled/background tasks. .claude/skills/ stays tracked;
+# these two do not belong in history, they were only ever staged by accident.
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

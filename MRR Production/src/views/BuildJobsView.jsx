@@ -17,6 +17,7 @@ import { logAction } from "../utils/logger";
 
 import { fetchJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
 import EditJobModal from "./jobs/EditJobModal";
+import CorrectReturnModal from "./jobs/CorrectReturnModal";
 
 // The values of the <option> list in this view's sort dropdown, in the same
 // order. useStickySort checks a remembered choice against this before trusting
@@ -1100,6 +1101,11 @@ export default function BuildJobs({
                 🔒 {closing ? t.bjClosing : "Close Job"}
               </Btn>
             )}
+            {perms.jobs_close && sel.status === "completed" && (
+              <Btn v="outline" sz="sm" onClick={() => setModal("correctReturn")}>
+                {t.bjCorrectReturn}
+              </Btn>
+            )}
             {perms.jobs_close && sel.status === "closed" && (
               <Btn v="ghost" sz="sm" onClick={() => reopenJob()}>
                 ↩ Reopen
@@ -1209,6 +1215,21 @@ export default function BuildJobs({
           fieldUsers={fieldUsers}
           activeUser={activeUser}
           perms={perms}
+          onSaved={(updated) => {
+            setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
+            setSel(updated);
+            setModal("detail");
+          }}
+          onClose={() => setModal("detail")}
+        />
+      )}
+
+      {/* ── 📂 MODAL: CORRECT A WRONG RETURN ON A COMPLETED JOB ── */}
+      {modal === "correctReturn" && sel && (
+        <CorrectReturnModal
+          job={sel}
+          activeUser={activeUser}
+          t={t}
           onSaved={(updated) => {
             setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
             setSel(updated);

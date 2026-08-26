@@ -280,6 +280,10 @@ begin
   perform public._mig_record('34_complete_maintenance_service.sql',
     public._mig_has_function('complete_maintenance_service'),
     'function complete_maintenance_service()');
+
+  perform public._mig_record('35_correct_job_return.sql',
+    public._mig_has_function('correct_job_return'),
+    'function correct_job_return()');
 end $$;
 
 -- The three that leave no distinguishable trace. Recorded so the ledger lists

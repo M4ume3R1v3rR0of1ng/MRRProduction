@@ -91,6 +91,7 @@ in SQL, change it there too.
 | 32 | `32_platform_company.sql` | Marks one company as the operator's own tenant. **Needs a manual check.** |
 | 33 | `33_migration_ledger.sql` | Records which of the above are applied, by probing the schema. |
 | 34 | `34_complete_maintenance_service.sql` | "Complete Service" as one atomic step: logs the service to the vehicle, closes the request, and optionally reassigns the driver. |
+| 35 | `35_correct_job_return.sql` | Lets a `jobs_close` holder correct a wrong returned quantity on a completed job, without re-triggering completion. Refuses if the stock being clawed back has already been pulled for another job. |
 
 ## Adding a migration
 
