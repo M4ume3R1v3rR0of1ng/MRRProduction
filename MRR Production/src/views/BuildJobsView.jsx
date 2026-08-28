@@ -18,6 +18,7 @@ import { logAction } from "../utils/logger";
 import { fetchJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
 import EditJobModal from "./jobs/EditJobModal";
 import CorrectReturnModal from "./jobs/CorrectReturnModal";
+import PullAddedMaterialsModal from "./jobs/PullAddedMaterialsModal";
 
 // The values of the <option> list in this view's sort dropdown, in the same
 // order. useStickySort checks a remembered choice against this before trusting
@@ -31,6 +32,7 @@ export default function BuildJobs({
   jobNotifications = {},
   setJobs,
   inv = [],
+  setInv,
   vehs = [],
   jobTrailers = [],
   setJobTrailers,
@@ -1101,11 +1103,6 @@ export default function BuildJobs({
                 🔒 {closing ? t.bjClosing : "Close Job"}
               </Btn>
             )}
-            {perms.jobs_close && sel.status === "completed" && (
-              <Btn v="outline" sz="sm" onClick={() => setModal("correctReturn")}>
-                {t.bjCorrectReturn}
-              </Btn>
-            )}
             {perms.jobs_close && sel.status === "closed" && (
               <Btn v="ghost" sz="sm" onClick={() => reopenJob()}>
                 ↩ Reopen
@@ -1221,10 +1218,14 @@ export default function BuildJobs({
             setModal("detail");
           }}
           onClose={() => setModal("detail")}
+          onCorrectReturn={perms.jobs_close ? () => setModal("correctReturn") : undefined}
+          onPullAdded={perms.jobs_pull ? () => setModal("pullAdded") : undefined}
         />
       )}
 
-      {/* ── 📂 MODAL: CORRECT A WRONG RETURN ON A COMPLETED JOB ── */}
+      {/* ── 📂 MODAL: CORRECT A WRONG RETURN ON A COMPLETED JOB ──
+          Reached from inside Edit Job, so it hands control back there rather
+          than to the detail drawer underneath it. */}
       {modal === "correctReturn" && sel && (
         <CorrectReturnModal
           job={sel}
@@ -1233,9 +1234,30 @@ export default function BuildJobs({
           onSaved={(updated) => {
             setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
             setSel(updated);
-            setModal("detail");
+            setModal("edit");
           }}
-          onClose={() => setModal("detail")}
+          onClose={() => setModal("edit")}
+        />
+      )}
+
+      {/* ── 📂 MODAL: PULL A LINE ADDED AFTER THE INITIAL PULL ──
+          Also reached from inside Edit Job — same hand-back as above. */}
+      {modal === "pullAdded" && sel && (
+        <PullAddedMaterialsModal
+          job={sel}
+          inv={inv}
+          users={users}
+          activeUser={activeUser}
+          t={t}
+          onSaved={(updated, changedBatches) => {
+            setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
+            setSel(updated);
+            setModal("edit");
+            if (changedBatches && typeof setInv === "function") {
+              setInv((p) => p.map((i) => (changedBatches[i.id] ? { ...i, batches: changedBatches[i.id] } : i)));
+            }
+          }}
+          onClose={() => setModal("edit")}
         />
       )}
 

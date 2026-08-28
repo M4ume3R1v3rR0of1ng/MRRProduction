@@ -284,6 +284,10 @@ begin
   perform public._mig_record('35_correct_job_return.sql',
     public._mig_has_function('correct_job_return'),
     'function correct_job_return()');
+
+  perform public._mig_record('36_pull_added_job_materials.sql',
+    public._mig_has_function('pull_added_job_materials'),
+    'function pull_added_job_materials()');
 end $$;
 
 -- The three that leave no distinguishable trace. Recorded so the ledger lists

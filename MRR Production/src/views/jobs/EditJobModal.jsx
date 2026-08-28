@@ -43,7 +43,7 @@ export const addableInventory = (inv = [], chosen = [], query = "") =>
     (i) => (i?.name || "").toLowerCase().includes(query.toLowerCase()) && !chosen.find((x) => x.iid === i.id),
   );
 
-export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUser, perms = {}, onSaved, onClose }) {
+export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUser, perms = {}, onSaved, onClose, onCorrectReturn, onPullAdded }) {
   const [form, setForm] = useState(() => formFromJob(job));
   const [items, setItems] = useState(() => itemsFromJob(job));
   const [search, setSearch] = useState("");
@@ -51,6 +51,21 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
   const { showToast } = useNotify();
 
   const addable = addableInventory(inv, items, search);
+
+  // Against the job as SAVED, not the in-progress `items` state above — a
+  // line just added in this edit and not yet saved has pulled: 0 same as a
+  // genuinely-added-after-the-pull line, and offering to pull it here would
+  // be pulling stock for something the job doesn't actually have yet.
+  const savedItems = itemsFromJob(job);
+  const canCorrectReturn = !!onCorrectReturn && perms.jobs_close && job.status === "completed";
+  // Not "closed" — same boundary Correct Return already draws (and Edit Job
+  // itself: its own button above is hidden once a job is closed), so this
+  // never becomes a control that's live in the RPC but unreachable in the UI.
+  const canPullAdded =
+    !!onPullAdded &&
+    perms.jobs_pull &&
+    ["active", "completed"].includes(job.status) &&
+    savedItems.some((i) => i && (i.pulled || 0) === 0);
 
   const addItem = (item) => setItems((p) => [...p, mkJI(item.id, item.name, item.cat, item.unit, 1)]);
   const updateQty = (iid, val) =>
@@ -173,7 +188,23 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
         <TA value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} disabled={saving} />
       </Fld>
 
-      <h4 style={{ margin: "16px 0 8px", color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>Materials Checklist</h4>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)", margin: "16px 0 8px" }}>
+        <h4 style={{ margin: 0, color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>Materials Checklist</h4>
+        {(canCorrectReturn || canPullAdded) && (
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            {canPullAdded && (
+              <Btn v="outline" sz="sm" onClick={() => onPullAdded()} disabled={saving}>
+                🚛 Pull Added Materials
+              </Btn>
+            )}
+            {canCorrectReturn && (
+              <Btn v="outline" sz="sm" onClick={() => onCorrectReturn()} disabled={saving}>
+                🔄 Correct Return
+              </Btn>
+            )}
+          </div>
+        )}
+      </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 10 }}>
         {items.length === 0 ? (

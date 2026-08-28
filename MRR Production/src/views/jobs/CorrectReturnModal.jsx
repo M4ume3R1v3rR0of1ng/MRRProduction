@@ -14,6 +14,9 @@
 // correct_job_return (supabase/35) is a dedicated RPC that adjusts the
 // existing batch by the delta instead, and only touches `returned` — `pulled`
 // is not editable here, this is not a general job-materials editor.
+//
+// Reached from inside Edit Job (EditJobModal), alongside Pull Added
+// Materials, rather than as its own top-level button on the job detail view.
 import { useState } from "react";
 import { supabase } from "../../utils/supabase";
 import { C } from "../../utils/helpers";
