@@ -54,9 +54,9 @@ const PullInventoryView = lazy(() => import("./views/PullInventoryView"));
 const FleetManagementView = lazy(() => import("./views/FleetManagementView"));
 const MaintenanceRequestsView = lazy(() => import("./views/MaintenanceRequestsView"));
 const ReportsView = lazy(() => import("./views/ReportsView"));
-const UserManagementView = lazy(() => import("./views/UserManagementView"));
+const UserManagementView = lazy(() => import("./features/users/UserManagementView"));
 const SettingsView = lazy(() => import("./features/settings/SettingsView"));
-const AuditLogView = lazy(() => import("./views/AuditLogView"));
+const AuditLogView = lazy(() => import("./features/users/AuditLogView"));
 
 // The assistant is a floating widget, useful but never the reason someone opened
 // the app, so it loads after the view they actually asked for.

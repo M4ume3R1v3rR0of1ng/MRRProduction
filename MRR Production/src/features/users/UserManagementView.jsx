@@ -1,14 +1,16 @@
-// src/views/UserManagementView.jsx
+// src/features/users/UserManagementView.jsx
 import { useState, useEffect } from "react";
-import { supabase, getAccessToken } from "../utils/supabase";
-import { C, uid } from "../utils/helpers";
-import { validatePassword, PASSWORD_HINT } from "../utils/passwordPolicy";
+import { supabase, getAccessToken } from "@/utils/supabase";
+import { C, uid } from "@/utils/helpers";
+// passwordPolicy.js lives in features/auth/ (its primary domain) — resolve
+// this to @/features/auth/passwordPolicy when that feature moves.
+import { validatePassword, PASSWORD_HINT } from "@/utils/passwordPolicy";
 import {
   PERM_DEFS,
   PERM_GROUPS,
   ROLE_COLS,
   ROLES,
-} from "../database/permissions";
+} from "@/database/permissions";
 import {
   Btn,
   Bdg,
@@ -18,10 +20,10 @@ import {
   Fld,
   Sel,
   Inp,
-} from "../components/UIPrimitives";
-import { logAction } from "../utils/logger";
-import { translations } from "../utils/translations";
-import { useNotify } from "../context/NotificationContext";
+} from "@/components/UIPrimitives";
+import { logAction } from "@/utils/logger";
+import { translations } from "@/utils/translations";
+import { useNotify } from "@/context/NotificationContext";
 
 export default function Users({
   lang = "en",
