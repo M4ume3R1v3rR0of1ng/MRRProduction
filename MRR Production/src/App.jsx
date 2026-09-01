@@ -32,12 +32,12 @@ import Sidebar from "./layouts/Sidebar";
 // Every view below has exactly one default export, which React.lazy requires.
 import LandingPage from "./views/LandingPage";
 
-const LoginScreen = lazy(() => import("./views/LoginScreen"));
+const LoginScreen = lazy(() => import("./features/auth/LoginScreen"));
 const TermsPage = lazy(() => import("./views/TermsPage"));
 const PrivacyPage = lazy(() => import("./views/PrivacyPage"));
 const TrainingPage = lazy(() => import("./views/TrainingPage"));
 const TrainingView = lazy(() => import("./features/training/TrainingView"));
-const ResetPasswordScreen = lazy(() => import("./views/ResetPasswordScreen"));
+const ResetPasswordScreen = lazy(() => import("./features/auth/ResetPasswordScreen"));
 const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
 // The conditional is load-bearing, not belt-and-braces. Gating only the render
 // site leaves this lazy() declaration referencing the chunk, so Rollup still
@@ -47,7 +47,7 @@ const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
 const BillingView = IS_IOS_APP ? null : lazy(() => import("./features/billing/BillingView"));
 const DashboardView = lazy(() => import("./views/DashboardView"));
 const ScheduleView = lazy(() => import("./views/ScheduleView"));
-const ProfileView = lazy(() => import("./views/ProfileView"));
+const ProfileView = lazy(() => import("./features/auth/ProfileView"));
 const InventoryView = lazy(() => import("./views/InventoryView.jsx"));
 const BuildJobsView = lazy(() => import("./views/BuildJobsView"));
 const PullInventoryView = lazy(() => import("./views/PullInventoryView"));

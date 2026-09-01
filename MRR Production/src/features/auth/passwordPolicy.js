@@ -1,4 +1,4 @@
-// src/utils/passwordPolicy.js
+// src/features/auth/passwordPolicy.js
 //
 // Supabase Auth enforces a character-class policy on every password it accepts
 // (lowercase + uppercase + digit, on top of the minimum length). Our forms only

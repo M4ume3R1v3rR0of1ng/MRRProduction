@@ -480,6 +480,59 @@ const CSS = `
 
 .sw-landing .cap { margin-top:16px; font-size:13px; color:var(--muted); font-family:"IBM Plex Mono",monospace; letter-spacing:.04em; }
 
+/* ---- job pipeline demo: a second "in the wild" mock, this one interactive
+   instead of just animated. Chips are the five stages every job moves
+   through (see BuildJobsView); clicking Advance steps the sample job forward
+   one stage so a visitor can feel the thread instead of reading about it.
+   Nothing here writes anywhere — it's local React state, reset on reload. ---- */
+.sw-landing .pipe { padding:26px 24px 28px; }
+.sw-landing .pipe-job { display:flex; align-items:baseline; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
+.sw-landing .pipe-job .name { font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:16.5px; color:var(--ink); }
+.sw-landing .pipe-job .meta { font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted); letter-spacing:.04em; }
+.sw-landing .pipe-steps { display:flex; align-items:flex-start; }
+.sw-landing .pipe-step { display:flex; flex-direction:column; align-items:center; gap:8px; flex:1 1 0; position:relative; background:none; border:none; padding:0; cursor:pointer; font-family:inherit; }
+.sw-landing .pipe-step::before {
+  content:""; position:absolute; top:13px; left:calc(-50% + 13px); width:calc(100% - 26px); height:2px;
+  background:var(--line-2); z-index:0; transition:background .3s ease;
+}
+.sw-landing .pipe-step:first-child::before { display:none; }
+.sw-landing .pipe-step.done::before { background:var(--good); }
+.sw-landing .pipe-dot {
+  width:26px; height:26px; border-radius:50%; border:2px solid var(--line-2); background:var(--surface);
+  display:grid; place-items:center; font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:700;
+  color:var(--muted); transition:background .3s ease, border-color .3s ease, color .3s ease; z-index:1;
+}
+.sw-landing .pipe-step:hover .pipe-dot { border-color:var(--accent); }
+.sw-landing .pipe-step.done .pipe-dot { background:var(--good); border-color:var(--good); color:#fff; }
+.sw-landing .pipe-step.now .pipe-dot { background:var(--accent); border-color:var(--accent); color:#23282D; box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+.sw-landing .pipe-step .lbl { font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); transition:color .3s ease; }
+.sw-landing .pipe-step.done .lbl, .sw-landing .pipe-step.now .lbl { color:var(--ink); }
+.sw-landing .pipe-note { margin-top:22px; font-size:14.5px; color:var(--ink-soft); line-height:1.6; min-height:44px; }
+.sw-landing .pipe-note b { color:var(--ink); }
+.sw-landing .pipe-actions { margin-top:20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.sw-landing .pipe-report {
+  margin-top:18px; border-top:1px dashed var(--line-2); padding-top:16px;
+  display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; align-items:baseline;
+  opacity:0; transform:translateY(6px); transition:opacity .4s ease, transform .4s ease;
+}
+.sw-landing .pipe-report.in { opacity:1; transform:none; }
+.sw-landing .pipe-report .k { font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); }
+.sw-landing .pipe-report .v { font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:20px; color:var(--good); }
+@media (max-width:620px){ .sw-landing .pipe-step .lbl { display:none; } }
+@media (prefers-reduced-motion: reduce){
+  .sw-landing .pipe-dot, .sw-landing .pipe-step .lbl, .sw-landing .pipe-step::before, .sw-landing .pipe-report { transition:none; }
+}
+
+/* ---- FAQ presales nudge: a plain email line under the accordion, not a chat
+   widget — ChatWidget (src/components/ChatWidget.jsx) only mounts for a
+   logged-in user, so a cold visitor has no other route to ask a question. ---- */
+.sw-landing .faq-help {
+  margin-top:28px; padding:18px 24px; border:1px solid var(--line-2); border-radius:5px;
+  background:var(--surface-2); display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  font-size:14.5px; color:var(--ink-soft);
+}
+.sw-landing .faq-help a { font-weight:600; }
+
 /* ---- pricing: a spec sheet, not a pricing table. Two rates, stated plainly,
    with the numbers in the same tabular mono the inventory grid uses. ---- */
 .sw-landing .rates { display:grid; grid-template-columns:1.15fr 1fr; gap:0; border:1px solid var(--line-2); background:var(--line); }
@@ -642,6 +695,63 @@ const ThemeIcon = ({ id }) => (
     </g>
   </svg>
 );
+
+// The five stages every job on Steadwerk actually moves through (see
+// BuildJobsView / PullInventoryView) — draft to closed-out, one thread, same
+// as the copy in the Jobs feature cell above promises. A visitor clicking
+// through this is meant to feel that thread rather than take the copy's word
+// for it. Names are illustrative only; nothing here reads or writes any data.
+const PIPE_STAGES = [
+  { key: "draft", label: "Draft", note: <>Job scoped: <b>Ridge Replacement</b>, 2100 Maple Ave. Materials list drafted. Nothing pulled yet.</> },
+  { key: "approved", label: "Approved", note: <>Manager signs off, and the materials list locks. This is what Pull Materials reads from.</> },
+  { key: "active", label: "Active", note: <>38 sq Weathered Wood Shingle and 6 rl Ice &amp; Water Shield pulled from Bay A. Crew's on site.</> },
+  { key: "completed", label: "Completed", note: <>Work's done. Cost comes from the batches actually pulled, never a price typed in twice.</> },
+  { key: "closed", label: "Closed", note: <>Report's archived to the job. Nothing left to chase down next week.</> },
+];
+
+function JobPipelineDemo() {
+  const [idx, setIdx] = useState(0);
+  const atEnd = idx === PIPE_STAGES.length - 1;
+
+  return (
+    <div className="mock pipe reveal">
+      <div className="pipe-job">
+        <span className="name">Job #4471 · Ridge Replacement</span>
+        <span className="meta">FORT WAYNE, IN · CREW: J. ALVAREZ</span>
+      </div>
+      <div className="pipe-steps" role="list" aria-label="Job pipeline stage. Click any stage to jump to it">
+        {PIPE_STAGES.map((s, i) => (
+          <button
+            key={s.key}
+            type="button"
+            role="listitem"
+            className={`pipe-step${i < idx ? " done" : ""}${i === idx ? " now" : ""}`}
+            aria-current={i === idx ? "step" : undefined}
+            onClick={() => setIdx(i)}
+          >
+            <span className="pipe-dot" aria-hidden="true">{i < idx ? "✓" : i + 1}</span>
+            <span className="lbl">{s.label}</span>
+          </button>
+        ))}
+      </div>
+      <p className="pipe-note">{PIPE_STAGES[idx].note}</p>
+      <div className="pipe-actions">
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => setIdx((i) => (i === PIPE_STAGES.length - 1 ? 0 : i + 1))}
+        >
+          {atEnd ? "Start over" : "Advance job →"}
+        </button>
+        <span className="cap" style={{ marginTop: 0 }}>// try it: click a stage, or advance one at a time</span>
+      </div>
+      <div className={`pipe-report${atEnd ? " in" : ""}`} aria-hidden={!atEnd}>
+        <span className="k">Close-out report</span>
+        <span className="v tnum">$2,140.50</span>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPrivacy, onShowTraining }) {
   const [theme, setTheme] = useState(readStoredTheme); // null = follow OS preference
@@ -996,6 +1106,13 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
             </div>
           </div>
           <p className="cap reveal">// pulled to jobs in real time · costs derive from the batch actually consumed</p>
+
+          <div className="band-head reveal" style={{ marginTop: 56 }}>
+            <span className="eyebrow">In the wild · Jobs</span>
+            <h2>Click a job through its own pipeline.</h2>
+            <p>Draft to closed-out, one thread. Try it. These are the same five stages every job on Steadwerk moves through.</p>
+          </div>
+          <JobPipelineDemo />
         </div>
       </section>
 
@@ -1124,6 +1241,11 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
                 Then you already have the data, and bringing it in is the first afternoon's work. The difference isn't the counting. It's that the count updates itself when a crew pulls material, and the job's cost comes from the batches actually used instead of a price somebody typed in twice.
               </div>
             </details>
+          </div>
+          <div className="faq-help reveal">
+            <span>Question that's not here? Email</span>
+            <a href="mailto:help@steadwerk.com">help@steadwerk.com</a>
+            <span>and a real person answers, not a bot.</span>
           </div>
         </div>
       </section>

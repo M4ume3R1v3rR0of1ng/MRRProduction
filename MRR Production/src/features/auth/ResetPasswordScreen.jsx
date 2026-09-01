@@ -1,4 +1,4 @@
-// src/views/ResetPasswordScreen.jsx
+// src/features/auth/ResetPasswordScreen.jsx
 //
 // Shown when someone opens a password-reset link from their email.
 //
@@ -13,12 +13,12 @@
 // new password, write it with supabase.auth.updateUser(), then sign out and send
 // them back to the login form to sign in fresh with it.
 import { useState } from "react";
-import { supabase } from "../utils/supabase";
-import { C } from "../utils/helpers";
-import { validatePassword, PASSWORD_HINT } from "../utils/passwordPolicy";
-import { translations } from "../utils/translations";
-import { Fld } from "../components/UIPrimitives";
-import { SteadwerkLockup, BRAND } from "../components/SteadwerkMark";
+import { supabase } from "@/utils/supabase";
+import { C } from "@/utils/helpers";
+import { validatePassword, PASSWORD_HINT } from "./passwordPolicy";
+import { translations } from "@/utils/translations";
+import { Fld } from "@/components/UIPrimitives";
+import { SteadwerkLockup, BRAND } from "@/components/SteadwerkMark";
 
 export default function ResetPasswordScreen({ onDone, lang = "en" }) {
   const t = translations[lang] || translations.en;

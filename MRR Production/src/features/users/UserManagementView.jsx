@@ -2,9 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase, getAccessToken } from "@/utils/supabase";
 import { C, uid } from "@/utils/helpers";
-// passwordPolicy.js lives in features/auth/ (its primary domain) — resolve
-// this to @/features/auth/passwordPolicy when that feature moves.
-import { validatePassword, PASSWORD_HINT } from "@/utils/passwordPolicy";
+import { validatePassword, PASSWORD_HINT } from "@/features/auth/passwordPolicy";
 import {
   PERM_DEFS,
   PERM_GROUPS,

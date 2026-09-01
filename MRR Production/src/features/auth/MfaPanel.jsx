@@ -1,4 +1,4 @@
-// src/components/MfaPanel.jsx
+// src/features/auth/MfaPanel.jsx
 //
 // Two-factor authentication for the signed-in account, using Supabase Auth's
 // built-in TOTP factors. Lives in ProfileView, which every role can reach — this
@@ -9,10 +9,10 @@
 // aal2 from accounts that HAVE a verified factor, so turning this on is opt-in per
 // user and can never lock out someone who never enrolled.
 import { useState, useEffect } from "react";
-import { supabase } from "../utils/supabase";
-import { C } from "../utils/helpers";
-import { Btn, Inp, Fld } from "../components/UIPrimitives";
-import { translations } from "../utils/translations";
+import { supabase } from "@/utils/supabase";
+import { C } from "@/utils/helpers";
+import { Btn, Inp, Fld } from "@/components/UIPrimitives";
+import { translations } from "@/utils/translations";
 
 export default function MfaPanel({ user, lang = "en" }) {
   const t = translations[lang] || translations.en;

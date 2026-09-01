@@ -79,9 +79,6 @@ begin
   if p_service_date is null then
     raise exception 'A service date is required.' using errcode = '22004';
   end if;
-  if p_performed_by is null or btrim(p_performed_by) = '' then
-    raise exception 'Who performed the service is required.' using errcode = '22004';
-  end if;
 
   -- Lock both rows for the rest of this transaction so a second "Complete
   -- Service" click (this one or another manager's) can't race this one.

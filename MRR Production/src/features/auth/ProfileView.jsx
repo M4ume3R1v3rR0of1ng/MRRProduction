@@ -1,11 +1,11 @@
-// src/views/ProfileView.jsx
+// src/features/auth/ProfileView.jsx
 import { useState, useEffect } from "react";
-import { supabase } from "../utils/supabase";
-import { C, displayName } from "../utils/helpers";
-import { Fld, Inp, Btn } from "../components/UIPrimitives";
-import { sendEmail } from "../utils/email";
-import { translations } from "../utils/translations";
-import MfaPanel from "../components/MfaPanel";
+import { supabase } from "@/utils/supabase";
+import { C, displayName } from "@/utils/helpers";
+import { Fld, Inp, Btn } from "@/components/UIPrimitives";
+import { sendEmail } from "@/utils/email";
+import { translations } from "@/utils/translations";
+import MfaPanel from "./MfaPanel";
 
 export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
   const t = translations[lang] || translations.en;

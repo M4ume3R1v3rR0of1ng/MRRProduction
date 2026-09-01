@@ -12,6 +12,16 @@ import { translations } from "../utils/translations";
 import { BRAND, TrussMark } from "../components/SteadwerkMark";
 import { useNotify } from "../context/NotificationContext";
 import { logAction } from "../utils/logger";
+import { BASE_SEATS } from "../features/billing/seatPacks";
+
+// Same duplication note as the pricing block atop LandingPage.jsx and the pricing
+// constants in supabase/30_platform_revenue.sql: these dollar figures must match
+// the real Stripe Prices this endpoint charges (STRIPE_BASE_PRICE_ID /
+// STRIPE_ANNUAL_PRICE_ID). Nothing reconciles the three copies automatically —
+// change what Stripe charges, change all three, or the modal quotes a number
+// checkout doesn't honor.
+const BASE_PRICE_MONTHLY = 99;
+const BASE_PRICE_ANNUAL = 990;
 
 const STATUS_STYLE = {
   active:    { bg: "var(--c-pasture-wash)", fg: BRAND.pasture, label: "Active" },
@@ -57,6 +67,13 @@ export default function OwnerConsole({ user, lang = "en" }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
+  // Start-billing modal: the comped company being converted to a real Stripe
+  // subscription, plus the two fields Checkout needs that admin_create_company
+  // never collected (there was no card yet to attach an email or cadence to).
+  const [billingTarget, setBillingTarget] = useState(null);
+  const [billingEmail, setBillingEmail] = useState("");
+  const [billingInterval, setBillingInterval] = useState("monthly");
+  const [startingBilling, setStartingBilling] = useState(false);
   // Read-only cross-company drill-in: the company being inspected + its fetched data.
   const [viewCompany, setViewCompany] = useState(null);
   const [viewData, setViewData] = useState(null);
@@ -194,6 +211,37 @@ export default function OwnerConsole({ user, lang = "en" }) {
       showToast(`${t.ocDeleteFailed} ${err.message}`, "error");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Opens a real Stripe Checkout Session for a comped company via
+  // start-company-billing.js, then hands the platform admin off to it in a new tab
+  // to enter a card. The company itself only flips to billed once stripe-webhook.js
+  // sees that session complete — this call just starts that process, same as
+  // clicking "Start your company" on the public signup does for a new one.
+  const startBilling = async () => {
+    const email = billingEmail.trim().toLowerCase();
+    if (!billingTarget || !email || startingBilling) return;
+    setStartingBilling(true);
+    try {
+      const accessToken = await getAccessToken();
+      const res = await fetch("/.netlify/functions/start-company-billing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken, companyId: billingTarget.id, billingEmail: email, billingInterval }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) throw new Error(data.error || `HTTP ${res.status}`);
+
+      window.open(data.url, "_blank", "noopener");
+      showToast(t.ocCheckoutOpened.replace("{name}", billingTarget.name), "success");
+      setBillingTarget(null);
+      setBillingEmail("");
+      setBillingInterval("monthly");
+    } catch (err) {
+      showToast(`${t.ocStartBillingFailed} ${err.message}`, "error");
+    } finally {
+      setStartingBilling(false);
     }
   };
 
@@ -408,6 +456,19 @@ export default function OwnerConsole({ user, lang = "en" }) {
                             {t.ocEnter}
                           </button>
                         )}
+                        {/* Only offered where BillingView would otherwise show "comped":
+                            not already billed, not mid-trial (Stripe already owns that
+                            clock), not suspended, and never on Steadwerk's own tenant —
+                            the platform operator has no reason to bill itself. slug is
+                            what supabase/32 keys is_platform_company off of; that flag
+                            itself isn't in admin_list_companies()'s column list, so the
+                            slug is the cheapest correct check without widening it. */}
+                        {rev && !rev.is_billed && co.subscription_status !== "trialing" && co.slug !== "steadwerk" && !suspended && (
+                          <button onClick={() => { setBillingTarget(co); setBillingEmail(""); setBillingInterval("monthly"); }} disabled={busyId === co.id}
+                            style={{ padding: "6px 12px", background: BRAND.pasture, color: "var(--c-on-accent)", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                            {t.ocStartBilling}
+                          </button>
+                        )}
                         {suspended ? (
                           <>
                             <button onClick={() => setStatus(co, "active")} disabled={busyId === co.id}
@@ -484,6 +545,84 @@ export default function OwnerConsole({ user, lang = "en" }) {
           The person must already have a Steadwerk login. Granting doesn't add them to any company — it's platform-wide oversight only.
         </div>
       </div>
+
+      {/* ── Start-billing confirmation ──
+          Collects the two things Checkout needs that a comped company never had a
+          reason to have on file: who to bill, and which cadence. Everything else
+          (price ids, trial-free subscription_data) is decided server-side in
+          start-company-billing.js, same as create-checkout.js decides them for a
+          brand-new signup. */}
+      {billingTarget && (
+        <div
+          onClick={() => !startingBilling && setBillingTarget(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(23,27,31,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, zIndex: 1000 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: C.w, borderRadius: 14, padding: 28, maxWidth: 440, width: "100%", boxShadow: "0 24px 60px rgba(0,0,0,0.4)" }}
+          >
+            <div style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 900, color: BRAND.pasture, marginBottom: 8 }}>
+              {t.ocStartBillingTitle.replace("{name}", billingTarget.name)}
+            </div>
+            <p style={{ fontSize: 13, color: C.navy, lineHeight: 1.6, margin: "0 0 16px" }}>
+              {t.ocStartBillingDesc.replace(
+                "{price}",
+                billingInterval === "annual" ? t.ocAnnualRate.replace("{price}", `$${BASE_PRICE_ANNUAL}`) : t.ocMonthlyRate.replace("{price}", `$${BASE_PRICE_MONTHLY}`),
+              ).replace("{seats}", BASE_SEATS)}
+            </p>
+            <label style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              {t.ocBillingEmail}
+            </label>
+            <input
+              autoFocus
+              type="email"
+              value={billingEmail}
+              onChange={(e) => setBillingEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && startBilling()}
+              placeholder={t.ocBillingEmailPlaceholder}
+              disabled={startingBilling}
+              style={{ width: "100%", padding: "10px 12px", border: `1.5px solid ${C.bd}`, borderRadius: 8, fontSize: 14, boxSizing: "border-box", marginTop: 6, marginBottom: 16 }}
+            />
+            <label style={{ fontSize: 11, fontWeight: 800, color: C.sub, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              {t.ocBillingCadence}
+            </label>
+            <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+              {["monthly", "annual"].map((iv) => (
+                <button
+                  key={iv}
+                  type="button"
+                  onClick={() => setBillingInterval(iv)}
+                  disabled={startingBilling}
+                  style={{
+                    flex: 1, padding: "9px 12px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: startingBilling ? "not-allowed" : "pointer",
+                    border: `1.5px solid ${billingInterval === iv ? BRAND.pasture : C.bd}`,
+                    background: billingInterval === iv ? "var(--c-pasture-wash)" : "transparent",
+                    color: billingInterval === iv ? BRAND.pasture : C.navy,
+                  }}
+                >
+                  {iv === "monthly" ? t.ocMonthly : t.ocAnnual}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
+              <button
+                onClick={() => setBillingTarget(null)}
+                disabled={startingBilling}
+                style={{ padding: "9px 16px", background: "transparent", color: C.sub, border: `1.5px solid ${C.bd}`, borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: startingBilling ? "not-allowed" : "pointer" }}
+              >
+                {t.ocCancel}
+              </button>
+              <button
+                onClick={startBilling}
+                disabled={startingBilling || !billingEmail.trim()}
+                style={{ padding: "9px 18px", background: billingEmail.trim() ? BRAND.pasture : C.bd, color: C.onAccent, border: "none", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: startingBilling || !billingEmail.trim() ? "not-allowed" : "pointer" }}
+              >
+                {startingBilling ? t.ocOpeningCheckout : t.ocOpenCheckout}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Hard-delete confirmation ──
           Irreversible, so it demands the exact company name typed back before the
