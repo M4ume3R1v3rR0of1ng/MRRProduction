@@ -1,11 +1,11 @@
-// src/components/WeatherCard.jsx
+// src/features/dashboard/WeatherCard.jsx
 // Warehouse weather + 5-day outlook for the dashboard. Data comes from the
 // /.netlify/functions/weather proxy (Open-Meteo), so no API key touches the browser.
 import { useState, useEffect } from "react";
-import { translations } from "../utils/translations";
-import { C } from "../utils/helpers";
-import { getAccessToken } from "../utils/supabase";
-import { Spinner } from "./UIPrimitives";
+import { translations } from "@/utils/translations";
+import { C } from "@/utils/helpers";
+import { getAccessToken } from "@/utils/supabase";
+import { Spinner } from "@/components/UIPrimitives";
 
 // WMO weather code -> { icon, label }. Emoji match the app's existing icon style.
 function describeWeather(code) {

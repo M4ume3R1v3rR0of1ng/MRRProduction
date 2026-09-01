@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
-import ScheduleCard from "../components/ScheduleCard.jsx";
+import ScheduleCard from "@/features/dashboard/ScheduleCard.jsx";
 import { dayKeys, dayKeyOf, buildSchedule, monthGrid, isFinishedJob } from "./schedule";
 import { todayLocal, parseDay, formatDay } from "./helpers";
 

@@ -1,9 +1,9 @@
-// src/components/TeamChatBox.jsx
+// src/features/dashboard/TeamChatBox.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { translations } from "../utils/translations";
-import { supabase } from '../utils/supabase';
-import { C, ft, compressImg } from '../utils/helpers';
-import { Modal, LoadingState } from './UIPrimitives';
+import { translations } from "@/utils/translations";
+import { supabase } from '@/utils/supabase';
+import { C, ft, compressImg } from '@/utils/helpers';
+import { Modal, LoadingState } from '@/components/UIPrimitives';
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 

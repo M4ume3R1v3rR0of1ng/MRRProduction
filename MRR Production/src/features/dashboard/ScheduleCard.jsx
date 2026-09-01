@@ -1,4 +1,4 @@
-// src/components/ScheduleCard.jsx
+// src/features/dashboard/ScheduleCard.jsx
 //
 // The week ahead, on one strip: jobs, the trailers going out with them, and shop
 // time. Answers "what is coming up" without opening three views.
@@ -10,8 +10,8 @@
 // already committed, or a truck due in the shop on a day it is scheduled to run.
 // So this shows all three sources against the same seven days and flags the
 // collisions. Editing still belongs to the full calendars.
-import { C, parseDay, todayLocal } from "../utils/helpers";
-import { buildSchedule } from "../utils/schedule";
+import { C, parseDay, todayLocal } from "@/utils/helpers";
+import { buildSchedule } from "@/utils/schedule";
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 

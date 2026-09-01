@@ -1,12 +1,12 @@
-// src/views/DashboardView.jsx
+// src/features/dashboard/DashboardView.jsx
 import { useState, useEffect, useId } from "react";
-import { C, displayName } from "../utils/helpers";
-import { Bdg, Btn, Modal } from "../components/UIPrimitives"; 
-import TeamChatBox from "../components/TeamChatBox";
-import WeatherCard from "../components/WeatherCard";
-import ScheduleCard from "../components/ScheduleCard";
-import { supabase } from "../utils/supabase"; 
-import { translations } from "../utils/translations";
+import { C, displayName } from "@/utils/helpers";
+import { Bdg, Btn, Modal } from "@/components/UIPrimitives";
+import TeamChatBox from "./TeamChatBox";
+import WeatherCard from "./WeatherCard";
+import ScheduleCard from "./ScheduleCard";
+import { supabase } from "@/utils/supabase";
+import { translations } from "@/utils/translations";
 
 // Live wall-clock for the dashboard header. Ticks each second; tabular-nums keeps the
 // digits from shifting width, and the locale follows the viewer's language.

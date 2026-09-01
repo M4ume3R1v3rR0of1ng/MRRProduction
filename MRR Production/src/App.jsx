@@ -45,7 +45,7 @@ const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
 // the import() in a branch that folds away at build time is what actually keeps
 // the seat-purchase and Stripe-portal code out of the binary.
 const BillingView = IS_IOS_APP ? null : lazy(() => import("./features/billing/BillingView"));
-const DashboardView = lazy(() => import("./views/DashboardView"));
+const DashboardView = lazy(() => import("./features/dashboard/DashboardView"));
 const ScheduleView = lazy(() => import("./views/ScheduleView"));
 const ProfileView = lazy(() => import("./features/auth/ProfileView"));
 const InventoryView = lazy(() => import("./views/InventoryView.jsx"));
