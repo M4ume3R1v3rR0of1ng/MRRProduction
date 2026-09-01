@@ -1,4 +1,4 @@
-// src/utils/salesTax.js
+// src/features/settings/salesTax.js
 //
 // US state sales-tax starting points for the Company Details tax line.
 //

@@ -1,26 +1,28 @@
-// src/views/SettingsView.jsx
+// src/features/settings/SettingsView.jsx
 import React, { useState } from "react";
-import { supabase, getAccessToken } from "../utils/supabase";
-import { C, compressImg } from "../utils/helpers";
+import { supabase, getAccessToken } from "@/utils/supabase";
+import { C, compressImg } from "@/utils/helpers";
 import {
   PERM_DEFS,
   PERM_GROUPS,
   ROLE_COLS,
   DEFAULT_ROLE_PERMS,
-} from "../database/permissions";
-import { Btn, Bdg, Fld, Inp, Sel, Toggle } from "../components/UIPrimitives";
-import { logAction } from "../utils/logger";
-import { translations } from "../utils/translations";
-import { useNotify } from "../context/NotificationContext";
+} from "@/database/permissions";
+import { Btn, Bdg, Fld, Inp, Sel, Toggle } from "@/components/UIPrimitives";
+import { logAction } from "@/utils/logger";
+import { translations } from "@/utils/translations";
+import { useNotify } from "@/context/NotificationContext";
 // ── 🆕 IMPORT ADDED ──────────────────────────────────────────────────────────
-import { fetchAccuLynxJob, fetchAccuLynxDocumentFolders } from "../utils/accuLynxSync";
-import { US_STATES, stateByCode } from "../utils/salesTax";
+// accuLynxSync.js lives in features/jobs/ (its primary domain) — settings only
+// reads its config/test-connection helpers, so this stays a cross-feature @/ import.
+import { fetchAccuLynxJob, fetchAccuLynxDocumentFolders } from "@/utils/accuLynxSync";
+import { US_STATES, stateByCode } from "./salesTax";
 import {
   AUTOMATION_GROUPS,
   automationsForGroup,
   mergePrefs,
   serializePrefs,
-} from "../utils/automations";
+} from "@/utils/automations";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const T = {

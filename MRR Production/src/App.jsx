@@ -55,7 +55,7 @@ const FleetManagementView = lazy(() => import("./views/FleetManagementView"));
 const MaintenanceRequestsView = lazy(() => import("./views/MaintenanceRequestsView"));
 const ReportsView = lazy(() => import("./views/ReportsView"));
 const UserManagementView = lazy(() => import("./views/UserManagementView"));
-const SettingsView = lazy(() => import("./views/SettingsView"));
+const SettingsView = lazy(() => import("./features/settings/SettingsView"));
 const AuditLogView = lazy(() => import("./views/AuditLogView"));
 
 // The assistant is a floating widget, useful but never the reason someone opened
