@@ -1,4 +1,4 @@
-// src/views/fleet/CompleteServiceModal.jsx
+// src/features/maintenance/CompleteServiceModal.jsx
 //
 // "Complete Service" — closes out a scheduled maintenance ticket in one step:
 // what was done, what it cost, the odometer reading, and (optionally) who's
@@ -12,9 +12,9 @@
 // owns the actual supabase.rpc() call, the audit log entry, and the requester
 // notification — same division as MaintenanceRequestModal and InspectionModal.
 import { useState } from "react";
-import { C, todayLocal } from "../../utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, TA } from "../../components/UIPrimitives";
-import { useNotify } from "../../context/NotificationContext";
+import { C, todayLocal } from "@/utils/helpers";
+import { Btn, Fld, Inp, Modal, Sel, TA } from "@/components/UIPrimitives";
+import { useNotify } from "@/context/NotificationContext";
 
 const SERVICE_TYPES = [
   "Oil Change",

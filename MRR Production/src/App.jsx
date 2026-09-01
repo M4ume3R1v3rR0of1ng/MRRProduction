@@ -52,7 +52,7 @@ const InventoryView = lazy(() => import("./views/InventoryView.jsx"));
 const BuildJobsView = lazy(() => import("./views/BuildJobsView"));
 const PullInventoryView = lazy(() => import("./views/PullInventoryView"));
 const FleetManagementView = lazy(() => import("./features/fleet/FleetManagementView"));
-const MaintenanceRequestsView = lazy(() => import("./views/MaintenanceRequestsView"));
+const MaintenanceRequestsView = lazy(() => import("./features/maintenance/MaintenanceRequestsView"));
 const ReportsView = lazy(() => import("./views/ReportsView"));
 const UserManagementView = lazy(() => import("./features/users/UserManagementView"));
 const SettingsView = lazy(() => import("./features/settings/SettingsView"));
