@@ -1,4 +1,4 @@
-// src/views/BillingView.jsx
+// src/features/billing/BillingView.jsx
 //
 // A company's own Billing/accounting tab. Shows the plan, seats used vs. capacity,
 // and two actions: buy another 5-seat pack, and open Stripe's hosted portal to manage
@@ -8,18 +8,18 @@
 // Seat capacity is authoritative from the DB (set by the Stripe webhook); this view
 // never invents it.
 import { useEffect, useState } from "react";
-import { supabase, getAccessToken } from "../utils/supabase";
-import { C } from "../utils/helpers";
-import { BRAND, TrussMark } from "../components/SteadwerkMark";
-import { useNotify } from "../context/NotificationContext";
+import { supabase, getAccessToken } from "@/utils/supabase";
+import { C } from "@/utils/helpers";
+import { BRAND, TrussMark } from "@/components/SteadwerkMark";
+import { useNotify } from "@/context/NotificationContext";
 
 const BASE_PRICE = 99;
 const BASE_SEATS = 10;
 const PACK_PRICE = 10;
 const PACK_SEATS = 5;
 
-import { translations } from "../utils/translations";
-import { maxRemovablePacks, validatePackChange } from "../utils/seatPacks";
+import { translations } from "@/utils/translations";
+import { maxRemovablePacks, validatePackChange } from "./seatPacks";
 
 export default function BillingView({ user, lang = "en" }) {
   const t = translations[lang] || translations.en;

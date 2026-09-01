@@ -1,4 +1,4 @@
-// src/utils/seatPacks.js
+// src/features/billing/seatPacks.js
 //
 // Seat capacity arithmetic, in one tested place because it is now computed from three
 // inputs in two processes (the Stripe webhook, server-side, and the Billing tab in the
