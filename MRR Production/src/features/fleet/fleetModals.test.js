@@ -9,9 +9,13 @@ import { renderToString } from "react-dom/server";
 import MaintenanceRequestModal from "./MaintenanceRequestModal.jsx";
 import AddVehicleModal, { buildVehicle } from "./AddVehicleModal.jsx";
 import InspectionModal, { vehicleLabel } from "./InspectionModal.jsx";
-import CompleteServiceModal, { guessServiceType } from "./CompleteServiceModal.jsx";
-import { oilSt } from "../../utils/helpers";
-import { NotificationProvider } from "../../context/NotificationContext";
+// CompleteServiceModal is a maintenance-domain component (its only consumer is
+// MaintenanceRequestsView, not this one) that historically got tested alongside
+// these three. Left as a cross-feature import at its current location for now;
+// splits out into features/maintenance/ in that feature's move.
+import CompleteServiceModal, { guessServiceType } from "@/views/fleet/CompleteServiceModal.jsx";
+import { oilSt } from "@/utils/helpers";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 const vehs = [
   { id: "v1", name: "Truck 3", plate: "ABC-1234", type: "truck", yr: 2019, make: "Ford", model: "F-250" },

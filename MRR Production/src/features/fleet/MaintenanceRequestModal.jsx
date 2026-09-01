@@ -12,9 +12,9 @@
 //     called from anywhere. Approval happens in the Maintenance view, not here.
 //   - an unused `uid` prop. The id below is generated inline and always was.
 import { useState } from "react";
-import { C } from "../../utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, TA } from "../../components/UIPrimitives";
-import { useNotify } from "../../context/NotificationContext";
+import { C } from "@/utils/helpers";
+import { Btn, Fld, Inp, Modal, Sel, TA } from "@/components/UIPrimitives";
+import { useNotify } from "@/context/NotificationContext";
 
 export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClose, preVid }) {
   const [form, setForm] = useState({

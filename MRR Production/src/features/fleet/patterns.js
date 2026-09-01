@@ -1,7 +1,7 @@
-// src/utils/patterns.js
+// src/features/fleet/patterns.js
 // Pure, in-memory pattern analysis over already-loaded fleet/maintenance data —
 // same style as oilSt/detSt/predDays in helpers.js. No backend, no training.
-import { parseDay, formatDay } from "./helpers";
+import { parseDay, formatDay } from "@/utils/helpers";
 
 // Learns each vehicle's real-world interval (days + miles) per service type
 // from its own service log (vehicle.sl) and projects the next due date/mileage.

@@ -1,11 +1,11 @@
-// src/components/TrailerCalendar.jsx
+// src/features/fleet/TrailerCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
-import { translations } from "../utils/translations";
-import { C } from "../utils/helpers";
-import { Btn } from "./UIPrimitives";
-import { supabase } from "../utils/supabase";
-import { useNotify } from "../context/NotificationContext";
-import { logAction } from "../utils/logger";
+import { translations } from "@/utils/translations";
+import { C } from "@/utils/helpers";
+import { Btn } from "@/components/UIPrimitives";
+import { supabase } from "@/utils/supabase";
+import { useNotify } from "@/context/NotificationContext";
+import { logAction } from "@/utils/logger";
 
 // ── Local date string helper (avoids UTC offset bug from toISOString()) ──
 const toLocalDateKey = (date) => {

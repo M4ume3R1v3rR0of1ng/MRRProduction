@@ -4,7 +4,7 @@ import { supabase, updateRowStrict } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { useStickySort } from "../hooks/useStickySort";
-import { detectChronicIssues, detectFleetTrends } from "../utils/patterns";
+import { detectChronicIssues, detectFleetTrends } from "@/features/fleet/patterns";
 import {
   Btn,
   Bdg,

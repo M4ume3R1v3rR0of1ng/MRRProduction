@@ -1,6 +1,6 @@
-// src/views/FleetManagementView.jsx
+// src/features/fleet/FleetManagementView.jsx
 import { useState, useEffect } from "react";
-import { supabase, updateRowStrict } from "../utils/supabase";
+import { supabase, updateRowStrict } from "@/utils/supabase";
 import {
   Btn,
   Bdg,
@@ -10,21 +10,21 @@ import {
   Modal,
   TA,
   PhotoUpload,
-} from "../components/UIPrimitives";
-import { C, uid, todayLocal } from "../utils/helpers";
-import { translations } from "../utils/translations";
-import { useStickySort } from "../hooks/useStickySort";
-import { learnServiceIntervals } from "../utils/patterns";
-import { logAction } from "../utils/logger";
-import { useNotify } from "../context/NotificationContext";
-import TrailerCalendar from "../components/TrailerCalendar";
-import SearchBar, { matchesQuery } from "../components/SearchBar";
-import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
-import { notifyMaintFiled } from "../utils/maintenanceNotifications";
-import { vehicleStatusKind, isGrounded, isUndispatchable, groundingPatch } from "../utils/fleetStatus";
-import MaintenanceRequestModal from "./fleet/MaintenanceRequestModal";
-import AddVehicleModal from "./fleet/AddVehicleModal";
-import InspectionModal from "./fleet/InspectionModal";
+} from "@/components/UIPrimitives";
+import { C, uid, todayLocal } from "@/utils/helpers";
+import { translations } from "@/utils/translations";
+import { useStickySort } from "@/hooks/useStickySort";
+import { learnServiceIntervals } from "./patterns";
+import { logAction } from "@/utils/logger";
+import { useNotify } from "@/context/NotificationContext";
+import TrailerCalendar from "./TrailerCalendar";
+import SearchBar, { matchesQuery } from "@/components/SearchBar";
+import { uploadPhotoToBucket } from "@/utils/storageBucketUpload";
+import { notifyMaintFiled } from "@/utils/maintenanceNotifications";
+import { vehicleStatusKind, isGrounded, isUndispatchable, groundingPatch } from "./fleetStatus";
+import MaintenanceRequestModal from "./MaintenanceRequestModal";
+import AddVehicleModal from "./AddVehicleModal";
+import InspectionModal from "./InspectionModal";
 
 
 // ── MAIN VIEW COMPONENT (The Only Default Export) ──
@@ -61,7 +61,7 @@ export default function FleetManagementView({
   const { showToast } = useNotify();
   const t = translations[lang] || translations.en;
 
-  // How each status kind from utils/fleetStatus renders. Red is reserved for a truck
+  // How each status kind from features/fleet/fleetStatus renders. Red is reserved for a truck
   // that is genuinely off the road, i.e. one a person grounded. An overdue oil change is
   // a maintenance warning on a truck you can still drive, so it gets the deep-amber warn
   // token rather than sharing the destructive colour and the "Out of Service" wording.
@@ -697,7 +697,7 @@ export default function FleetManagementView({
               (r) => r.vid === v.id && r.status === "scheduled",
             );
             const isBlocked = !!blockingReq;
-            // Precedence lives in utils/fleetStatus so it can be tested without the
+            // Precedence lives in features/fleet/fleetStatus so it can be tested without the
             // theme or translations. Note "Out of Service" now means only a deliberate
             // grounding; an overdue oil change gets its own red label, because sharing
             // one made people hunt for a switch that turns off a mileage calculation.

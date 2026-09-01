@@ -24,7 +24,7 @@ import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
 
 import InventoryView from "../views/InventoryView.jsx";
-import FleetManagementView from "../views/FleetManagementView.jsx";
+import FleetManagementView from "@/features/fleet/FleetManagementView.jsx";
 import BuildJobsView from "../views/BuildJobsView.jsx";
 import ScheduleView from "../views/ScheduleView.jsx";
 import { tot, oilSt, detSt, predDays, fd, fm } from "../utils/helpers";

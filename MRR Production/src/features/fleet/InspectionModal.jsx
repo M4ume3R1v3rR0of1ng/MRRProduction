@@ -6,10 +6,10 @@
 // Extracted from FleetManagementView along with its three useState hooks and the
 // insert handler. Nothing outside this dialog touched that state.
 import { useState } from "react";
-import { supabase } from "../../utils/supabase";
-import { Btn, Fld, Modal, PhotoUpload, Sel, TA } from "../../components/UIPrimitives";
-import { logAction } from "../../utils/logger";
-import { useNotify } from "../../context/NotificationContext";
+import { supabase } from "@/utils/supabase";
+import { Btn, Fld, Modal, PhotoUpload, Sel, TA } from "@/components/UIPrimitives";
+import { logAction } from "@/utils/logger";
+import { useNotify } from "@/context/NotificationContext";
 
 const BLANK = { vehicleId: "", notes: "", photos: [] };
 
