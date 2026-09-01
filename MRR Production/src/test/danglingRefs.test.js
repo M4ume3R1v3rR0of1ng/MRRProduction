@@ -1,4 +1,4 @@
-// src/views/danglingRefs.test.js
+// src/test/danglingRefs.test.js
 //
 // Catches a setter that is called but never declared, imported, or received.
 //

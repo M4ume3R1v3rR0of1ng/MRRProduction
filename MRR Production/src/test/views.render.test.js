@@ -1,4 +1,4 @@
-// src/views/views.render.test.js
+// src/test/views.render.test.js
 //
 // Render safety net for the three large views, added ahead of splitting them
 // apart. It is not a feature test suite. Its whole job is to fail loudly if a
@@ -23,10 +23,10 @@ import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
 
-import InventoryView from "./InventoryView.jsx";
-import FleetManagementView from "./FleetManagementView.jsx";
-import BuildJobsView from "./BuildJobsView.jsx";
-import ScheduleView from "./ScheduleView.jsx";
+import InventoryView from "../views/InventoryView.jsx";
+import FleetManagementView from "../views/FleetManagementView.jsx";
+import BuildJobsView from "../views/BuildJobsView.jsx";
+import ScheduleView from "../views/ScheduleView.jsx";
 import { tot, oilSt, detSt, predDays, fd, fm } from "../utils/helpers";
 import { NotificationProvider } from "../context/NotificationContext";
 
