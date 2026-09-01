@@ -1,4 +1,4 @@
-// src/utils/trainingMedia.js
+// src/features/training/trainingMedia.js
 //
 // Company-uploaded training clips and photos.
 //

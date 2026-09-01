@@ -36,7 +36,7 @@ const LoginScreen = lazy(() => import("./views/LoginScreen"));
 const TermsPage = lazy(() => import("./views/TermsPage"));
 const PrivacyPage = lazy(() => import("./views/PrivacyPage"));
 const TrainingPage = lazy(() => import("./views/TrainingPage"));
-const TrainingView = lazy(() => import("./views/TrainingView"));
+const TrainingView = lazy(() => import("./features/training/TrainingView"));
 const ResetPasswordScreen = lazy(() => import("./views/ResetPasswordScreen"));
 const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
 // The conditional is load-bearing, not belt-and-braces. Gating only the render

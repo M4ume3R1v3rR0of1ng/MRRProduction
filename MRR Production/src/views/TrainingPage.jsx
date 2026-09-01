@@ -14,7 +14,7 @@
 // ADDING A VIDEO
 //
 // Edit src/data/trainingVideos.js. The list is shared with the in-app view
-// (src/views/TrainingView.jsx) so a clip added once shows up in both places.
+// (src/features/training/TrainingView.jsx) so a clip added once shows up in both places.
 // Everything on this page is generated from it.
 import { useEffect, useRef, useState } from "react";
 import { TRAINING_VIDEOS } from "../data/trainingVideos";
