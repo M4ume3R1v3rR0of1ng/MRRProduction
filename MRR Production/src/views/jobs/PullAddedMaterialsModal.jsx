@@ -24,7 +24,7 @@ import { displayNameOf } from "../../utils/people";
 import { Btn, Modal, Inp } from "../../components/UIPrimitives";
 import { logAction } from "../../utils/logger";
 import { useNotify } from "../../context/NotificationContext";
-import { sendLowStockAlerts } from "../../utils/lowStockAlerts";
+import { sendLowStockAlerts } from "@/features/inventory/lowStockAlerts";
 
 export default function PullAddedMaterialsModal({ job, inv, users, activeUser, t, onSaved, onClose }) {
   // Only a line nothing has been pulled for yet belongs here — a line already

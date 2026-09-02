@@ -1,4 +1,4 @@
-// src/views/inventory/InventoryCountTab.jsx
+// src/features/inventory/InventoryCountTab.jsx
 //
 // The monthly physical count, and the variance it exposes.
 //
@@ -11,14 +11,14 @@
 // A count is therefore a two-sided document: what the books EXPECT, computed live
 // from receipts and job usage, next to what a person COUNTED. The gap is the bleed.
 import { useState, useEffect, useMemo } from "react";
-import { supabase, updateRowStrict } from "../../utils/supabase";
-import { C, fm } from "../../utils/helpers";
-import { resolvePersonName } from "../../utils/people";
-import { downloadCSV } from "../../utils/csvExport";
-import { Btn, Inp, Sel, SkeletonTable } from "../../components/UIPrimitives";
-import { logAction } from "../../utils/logger";
-import { useNotify } from "../../context/NotificationContext";
-import { translations } from "../../utils/translations";
+import { supabase, updateRowStrict } from "@/utils/supabase";
+import { C, fm } from "@/utils/helpers";
+import { resolvePersonName } from "@/utils/people";
+import { downloadCSV } from "@/utils/csvExport";
+import { Btn, Inp, Sel, SkeletonTable } from "@/components/UIPrimitives";
+import { logAction } from "@/utils/logger";
+import { useNotify } from "@/context/NotificationContext";
+import { translations } from "@/utils/translations";
 import {
   buildCountLines,
   summarizeCount,
@@ -27,7 +27,7 @@ import {
   recentPeriods,
   periodLabel,
   shiftPeriod,
-} from "../../utils/inventoryCounts";
+} from "./inventoryCounts";
 
 export default function InventoryCountTab({ inv = [], jobs = [], users = [], user, perms, lang = "en" }) {
   const t = translations[lang] || translations.en;

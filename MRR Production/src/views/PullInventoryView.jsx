@@ -13,7 +13,7 @@ import { syncJobReportToAccuLynx, syncStatusOf, reportUploadedAtOf } from "../ut
 import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { supabase, updateRowStrict, isTransportError } from "../utils/supabase";
-import { sendLowStockAlerts } from "../utils/lowStockAlerts";
+import { sendLowStockAlerts } from "@/features/inventory/lowStockAlerts";
 import { useNotify } from "../context/NotificationContext";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import { sendEmail, escapeHtml as esc } from "../utils/email";
@@ -425,7 +425,7 @@ export default function PullInventory({
             // The day the material physically left, which is not the day the job
             // closes. Monthly reconciliation files usage by this; without it a job
             // pulled in January and completed in February moves a month's worth of
-            // consumption into the wrong period. See utils/inventoryCounts.
+            // consumption into the wrong period. See features/inventory/inventoryCounts.
             pulledAt,
             priceAtPull: ppu,
             pullCost: res.cost,

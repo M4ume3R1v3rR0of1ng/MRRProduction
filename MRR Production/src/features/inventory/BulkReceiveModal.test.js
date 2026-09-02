@@ -1,4 +1,4 @@
-// src/views/inventory/BulkReceiveModal.test.js
+// src/features/inventory/BulkReceiveModal.test.js
 //
 // These are the rules that decide what a job is billed for material received in
 // bulk. They lived inside a 150-line handler in InventoryView, behind
@@ -11,7 +11,7 @@ import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
 import BulkReceiveModal, { hasQuantity, manifestTotal, resolveBulkPrices } from "./BulkReceiveModal.jsx";
-import { NotificationProvider } from "../../context/NotificationContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 const inv = [
   { id: "i1", name: "Shingle", unit: "bd", cat: "Roofing", batches: [{ rem: 10, price: 32.5, rcvd: "2026-05-01" }, { rem: 5, price: 34, rcvd: "2026-06-01" }] },

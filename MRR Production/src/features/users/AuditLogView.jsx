@@ -68,7 +68,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
           ref: b.ref || "",
           vendor: b.vendor || "",
           jobId: b.jobId || null,
-          // Shared with the monthly reconciliation (utils/inventoryCounts) so both
+          // Shared with the monthly reconciliation (features/inventory/inventoryCounts) so both
           // read the batch list the same way. It also fixes the adjustment test,
           // which used to compare `ref` for exact equality and therefore missed
           // every correction that had a reason typed into it.

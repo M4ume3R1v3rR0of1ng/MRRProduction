@@ -48,7 +48,7 @@ const BillingView = IS_IOS_APP ? null : lazy(() => import("./features/billing/Bi
 const DashboardView = lazy(() => import("./features/dashboard/DashboardView"));
 const ScheduleView = lazy(() => import("./views/ScheduleView"));
 const ProfileView = lazy(() => import("./features/auth/ProfileView"));
-const InventoryView = lazy(() => import("./views/InventoryView.jsx"));
+const InventoryView = lazy(() => import("./features/inventory/InventoryView.jsx"));
 const BuildJobsView = lazy(() => import("./views/BuildJobsView"));
 const PullInventoryView = lazy(() => import("./views/PullInventoryView"));
 const FleetManagementView = lazy(() => import("./features/fleet/FleetManagementView"));

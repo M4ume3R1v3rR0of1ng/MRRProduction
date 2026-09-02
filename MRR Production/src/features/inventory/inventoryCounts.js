@@ -1,4 +1,4 @@
-// src/utils/inventoryCounts.js
+// src/features/inventory/inventoryCounts.js
 //
 // Monthly stock reconciliation: what the books SAY should be on the shelf versus
 // what someone physically counted, and the gap between them.
@@ -13,7 +13,7 @@
 // is fetched, nothing is written. That keeps the arithmetic testable, which matters
 // because these numbers accuse people of losing material.
 
-import { formatDay, parseDay, tot, newestPrice, batchKind } from "./helpers";
+import { formatDay, parseDay, tot, newestPrice, batchKind } from "@/utils/helpers";
 
 // A period is a calendar month, "YYYY-MM".
 //

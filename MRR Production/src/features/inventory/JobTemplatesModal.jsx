@@ -1,4 +1,4 @@
-// src/views/inventory/JobTemplatesModal.jsx
+// src/features/inventory/JobTemplatesModal.jsx
 //
 // Job material templates: the named material packages that show up in the Build
 // Jobs wizard at step 2 for one-click job lists.
@@ -12,10 +12,12 @@
 // way to say "I'm done". Templates persist through utils/jobTemplates, so the
 // parent never sees them and has nothing to keep in sync.
 import { useEffect, useState } from "react";
-import { C, uid, tot } from "../../utils/helpers";
-import { fetchJobTemplates, saveJobTemplates, resolveDefaultTemplates } from "../../utils/jobTemplates";
-import { Btn, Fld, Inp, Modal } from "../../components/UIPrimitives";
-import { useNotify } from "../../context/NotificationContext";
+import { C, uid, tot } from "@/utils/helpers";
+// jobTemplates.js is a jobs-domain data model (BuildJobsView is its other,
+// primary consumer) — resolves to @/features/jobs/jobTemplates when jobs moves.
+import { fetchJobTemplates, saveJobTemplates, resolveDefaultTemplates } from "@/utils/jobTemplates";
+import { Btn, Fld, Inp, Modal } from "@/components/UIPrimitives";
+import { useNotify } from "@/context/NotificationContext";
 
 // Replace in place if the id is already known, otherwise append. Pulled out as a
 // pure function because it is the one piece of real logic in this file: getting

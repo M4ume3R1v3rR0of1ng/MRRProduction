@@ -1,4 +1,4 @@
-// src/views/inventory/inventoryModals.test.js
+// src/features/inventory/inventoryModals.test.js
 //
 // The five dialogs pulled out of InventoryView in this pass. None of the logic
 // below was reachable from a test before: it lived inside handlers that only ran
@@ -9,8 +9,8 @@
 import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
-import { NotificationProvider } from "../../context/NotificationContext";
-import { tot, newestPrice, fd } from "../../utils/helpers";
+import { NotificationProvider } from "@/context/NotificationContext";
+import { tot, newestPrice, fd } from "@/utils/helpers";
 
 import ItemDetailModal, { batchesOldestFirst } from "./ItemDetailModal.jsx";
 import ItemFormModal, { isPriceChange, applyPriceToBatches, CATEGORIES, UNITS } from "./ItemFormModal.jsx";

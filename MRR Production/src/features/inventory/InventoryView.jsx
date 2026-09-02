@@ -1,21 +1,21 @@
-// src/views/InventoryView.jsx
+// src/features/inventory/InventoryView.jsx
 import { useState, useMemo, useEffect } from "react";
-import { supabase, updateRowStrict } from "../utils/supabase";
-import { C, fm, tot, newestPrice } from "../utils/helpers";
-import { Btn, Inp, Sel } from "../components/UIPrimitives";
-import { logAction } from "../utils/logger";
-import { useNotify } from "../context/NotificationContext";
-import { translations } from "../utils/translations";
-import { useStickySort } from "../hooks/useStickySort";
-import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
-import JobTemplatesModal from "./inventory/JobTemplatesModal";
-import BulkReceiveModal from "./inventory/BulkReceiveModal";
-import ItemDetailModal from "./inventory/ItemDetailModal";
-import ItemFormModal from "./inventory/ItemFormModal";
-import ReceiveBatchModal from "./inventory/ReceiveBatchModal";
-import AdjustStockModal from "./inventory/AdjustStockModal";
-import BatchCorrectionModal from "./inventory/BatchCorrectionModal";
-import InventoryCountTab from "./inventory/InventoryCountTab";
+import { supabase, updateRowStrict } from "@/utils/supabase";
+import { C, fm, tot, newestPrice } from "@/utils/helpers";
+import { Btn, Inp, Sel } from "@/components/UIPrimitives";
+import { logAction } from "@/utils/logger";
+import { useNotify } from "@/context/NotificationContext";
+import { translations } from "@/utils/translations";
+import { useStickySort } from "@/hooks/useStickySort";
+import { uploadPhotoToBucket } from "@/utils/storageBucketUpload";
+import JobTemplatesModal from "./JobTemplatesModal";
+import BulkReceiveModal from "./BulkReceiveModal";
+import ItemDetailModal from "./ItemDetailModal";
+import ItemFormModal from "./ItemFormModal";
+import ReceiveBatchModal from "./ReceiveBatchModal";
+import AdjustStockModal from "./AdjustStockModal";
+import BatchCorrectionModal from "./BatchCorrectionModal";
+import InventoryCountTab from "./InventoryCountTab";
 
 
 export default function InventoryView({

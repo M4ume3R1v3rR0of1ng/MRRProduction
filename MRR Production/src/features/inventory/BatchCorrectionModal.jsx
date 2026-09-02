@@ -1,4 +1,4 @@
-// src/views/inventory/BatchCorrectionModal.jsx
+// src/features/inventory/BatchCorrectionModal.jsx
 //
 // Correct a single batch's price, PO and vendor after the fact.
 //
@@ -12,12 +12,12 @@
 // and which cannot; it is exported pure because it is the most consequential
 // logic in the inventory module and was unreachable from a test before this split.
 import { useState } from "react";
-import { updateRowStrict } from "../../utils/supabase";
-import { C, fd, fm, recostLine } from "../../utils/helpers";
-import { resolveBatchPerson } from "../../utils/people";
-import { Btn, Fld, Inp, Modal } from "../../components/UIPrimitives";
-import { logAction } from "../../utils/logger";
-import { useNotify } from "../../context/NotificationContext";
+import { updateRowStrict } from "@/utils/supabase";
+import { C, fd, fm, recostLine } from "@/utils/helpers";
+import { resolveBatchPerson } from "@/utils/people";
+import { Btn, Fld, Inp, Modal } from "@/components/UIPrimitives";
+import { logAction } from "@/utils/logger";
+import { useNotify } from "@/context/NotificationContext";
 
 export const lineFor = (job, itemId) => (job.items || job.materials || []).find((i) => i && i.iid === itemId);
 

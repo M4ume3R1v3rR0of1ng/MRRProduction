@@ -23,7 +23,7 @@ import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
 
-import InventoryView from "../views/InventoryView.jsx";
+import InventoryView from "@/features/inventory/InventoryView.jsx";
 import FleetManagementView from "@/features/fleet/FleetManagementView.jsx";
 import BuildJobsView from "../views/BuildJobsView.jsx";
 import ScheduleView from "../views/ScheduleView.jsx";
