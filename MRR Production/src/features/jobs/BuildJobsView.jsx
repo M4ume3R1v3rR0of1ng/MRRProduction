@@ -357,7 +357,7 @@ export default function BuildJobs({
       syncNote: "",
       materials: wItems.map((i) => mkJI(i.iid, i.iname, i.icat, i.unit, i.qty)),
       acculynx_job_id: wPO.acculynxJobId || null,
-      // null, not 0, when left blank. See utils/jobCosting: 0 would report the job
+      // null, not 0, when left blank. See features/reports/jobCosting: 0 would report the job
       // as a total loss instead of excluding it from margin.
       contract_value:
         perms.jobs_revenue && wPO.contractValue !== "" && wPO.contractValue != null

@@ -43,7 +43,7 @@ describe("formFromJob", () => {
   it("shows an unpriced job as blank, never as 0", () => {
     // A 0 in this box saves as a real zero, and a job "sold for nothing" reads as
     // a total loss in the margin report. Blank is what keeps it out of the
-    // calculation entirely. See utils/jobCosting.
+    // calculation entirely. See features/reports/jobCosting.
     expect(formFromJob(modernJob).contractValue).toBe("");
     expect(formFromJob({ contract_value: null }).contractValue).toBe("");
   });

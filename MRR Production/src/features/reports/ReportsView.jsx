@@ -1,15 +1,15 @@
-// src/views/ReportsView.jsx
+// src/features/reports/ReportsView.jsx
 import { useState, useEffect } from "react";
-import { supabase, updateRowStrict } from "../utils/supabase";
-import { C, fd, fm, tot, newestPrice, todayLocal } from "../utils/helpers";
-import { translations } from "../utils/translations";
-import { Btn, Sel, Bdg, Inp, Modal, SkeletonTable } from "../components/UIPrimitives"; // Added Modal wrapper primitives
-import { useNotify } from "../context/NotificationContext";
+import { supabase, updateRowStrict } from "@/utils/supabase";
+import { C, fd, fm, tot, newestPrice, todayLocal } from "@/utils/helpers";
+import { translations } from "@/utils/translations";
+import { Btn, Sel, Bdg, Inp, Modal, SkeletonTable } from "@/components/UIPrimitives"; // Added Modal wrapper primitives
+import { useNotify } from "@/context/NotificationContext";
 // One CSV writer for the app. The local copy this replaced wrapped every field
 // in quotes and escaped none of them, so an item like 9" Roller Covers shifted
 // every column after it. See utils/csvExport.
-import { downloadCSV } from "../utils/csvExport";
-import { ACTION_TYPES, logAction } from "../utils/logger";
+import { downloadCSV } from "@/utils/csvExport";
+import { ACTION_TYPES, logAction } from "@/utils/logger";
 import {
   actualMaterialCost,
   materialsVariancePct,
@@ -18,14 +18,14 @@ import {
   grossMarginPct,
   materialCostRatioPct,
   summarizeJobs,
-} from "../utils/jobCosting";
+} from "./jobCosting";
 
 // ── 📊 TREND COMPONENT 1: JOB PROFITABILITY ──
 //
 // Revenue comes from jobs.contract_value, which a person enters. It used to be
 // `estimatedMaterialCost * 3.2`, which made the margin column a constant: any job
 // spending its estimate reported 68.75%, and the trophy threshold was 65%. See
-// utils/jobCosting for the full account.
+// ./jobCosting for the full account.
 //
 // A job with no contract value shows "not set" and is excluded from every
 // revenue-derived figure. Its material cost is still shown, because that comes

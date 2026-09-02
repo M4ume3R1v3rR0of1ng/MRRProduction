@@ -31,7 +31,7 @@ export const formFromJob = (job = {}) => ({
   assignedto: job.assignedto || job.assignedTo || "",
   // Blank, not 0, when unset. "" round-trips to null on save, which is what keeps
   // an unfilled job out of the margin calculation instead of reading as a total
-  // loss. See utils/jobCosting.
+  // loss. See features/reports/jobCosting.
   contractValue: job.contract_value == null ? "" : String(job.contract_value),
 });
 
