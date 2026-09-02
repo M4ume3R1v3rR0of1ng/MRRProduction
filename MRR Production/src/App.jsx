@@ -46,7 +46,7 @@ const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
 // the seat-purchase and Stripe-portal code out of the binary.
 const BillingView = IS_IOS_APP ? null : lazy(() => import("./features/billing/BillingView"));
 const DashboardView = lazy(() => import("./features/dashboard/DashboardView"));
-const ScheduleView = lazy(() => import("./views/ScheduleView"));
+const ScheduleView = lazy(() => import("./features/schedule/ScheduleView"));
 const ProfileView = lazy(() => import("./features/auth/ProfileView"));
 const InventoryView = lazy(() => import("./features/inventory/InventoryView.jsx"));
 const BuildJobsView = lazy(() => import("./features/jobs/BuildJobsView"));
