@@ -16,8 +16,8 @@
 // cannot open Build Jobs, so for them the card explains where the paperwork went
 // and offers nothing to press. A button that navigates somewhere they are not
 // permitted is worse than no button.
-import { C } from "@/utils/helpers";
-import { TrussMark } from "@/components/SteadwerkMark";
+import { C } from "@/shared/utils/helpers";
+import { TrussMark } from "@/shared/components/SteadwerkMark";
 
 export default function JobHandoff({
   job,

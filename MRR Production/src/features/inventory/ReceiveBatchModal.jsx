@@ -6,13 +6,13 @@
 // Extracted from InventoryView, where it shared the `form` state bag with add,
 // edit and adjust.
 import { useState } from "react";
-import { updateRowStrict } from "@/utils/supabase";
+import { updateRowStrict } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "./lowStockAlerts";
-import { C, uid, tot, newestPrice } from "@/utils/helpers";
-import { displayNameOf } from "@/utils/people";
-import { Btn, Fld, Inp, Modal } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
+import { C, uid, tot, newestPrice } from "@/shared/utils/helpers";
+import { displayNameOf } from "@/shared/utils/people";
+import { Btn, Fld, Inp, Modal } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 // Which required fields are blank. Returned as a list so the toast can name them
 // all at once, rather than the user fixing one and being told about the next.

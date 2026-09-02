@@ -1,5 +1,5 @@
 // src/features/jobs/accuLynxSync.js
-import { getAccessToken, updateRowStrict } from '@/utils/supabase';
+import { getAccessToken, updateRowStrict } from '@/shared/utils/supabase';
 import { buildJobReportModel } from './pdfGenerator';
 
 // ── Reading sync state off a job ─────────────────────────────────────────────

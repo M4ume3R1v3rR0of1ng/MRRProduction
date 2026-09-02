@@ -9,8 +9,8 @@ import { renderToString } from "react-dom/server";
 import MaintenanceRequestModal from "./MaintenanceRequestModal.jsx";
 import AddVehicleModal, { buildVehicle } from "./AddVehicleModal.jsx";
 import InspectionModal, { vehicleLabel } from "./InspectionModal.jsx";
-import { oilSt } from "@/utils/helpers";
-import { NotificationProvider } from "@/context/NotificationContext";
+import { oilSt } from "@/shared/utils/helpers";
+import { NotificationProvider } from "@/shared/context/NotificationContext";
 
 const vehs = [
   { id: "v1", name: "Truck 3", plate: "ABC-1234", type: "truck", yr: 2019, make: "Ford", model: "F-250" },

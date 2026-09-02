@@ -9,10 +9,10 @@
 // none of them offers is a single timeline you can page backwards through, so
 // that is what this is: look across all three, and look at what already happened.
 import { useMemo, useState } from "react";
-import { C, parseDay, formatDay, todayLocal, fm } from "@/utils/helpers";
-import { buildSchedule, monthGrid, monthNames, weekdayShort } from "@/utils/schedule";
-import { Btn, Bdg, Modal } from "@/components/UIPrimitives";
-import { translations } from "@/utils/translations";
+import { C, parseDay, formatDay, todayLocal, fm } from "@/shared/utils/helpers";
+import { buildSchedule, monthGrid, monthNames, weekdayShort } from "@/shared/utils/schedule";
+import { Btn, Bdg, Modal } from "@/shared/components/UIPrimitives";
+import { translations } from "@/shared/utils/translations";
 
 export default function ScheduleView({
   jobs = [],

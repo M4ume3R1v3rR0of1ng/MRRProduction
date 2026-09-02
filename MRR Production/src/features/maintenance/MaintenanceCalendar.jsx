@@ -1,11 +1,11 @@
 // src/features/maintenance/MaintenanceCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
-import { translations } from "@/utils/translations";
-import { C } from "@/utils/helpers";
-import { Bdg, Btn } from "@/components/UIPrimitives";
-import { supabase } from "@/utils/supabase";
-import { useNotify } from "@/context/NotificationContext";
-import { logAction } from "@/utils/logger";
+import { translations } from "@/shared/utils/translations";
+import { C } from "@/shared/utils/helpers";
+import { Bdg, Btn } from "@/shared/components/UIPrimitives";
+import { supabase } from "@/shared/utils/supabase";
+import { useNotify } from "@/shared/context/NotificationContext";
+import { logAction } from "@/shared/utils/logger";
 
 const toLocalDateKey = (date) => {
   const y = date.getFullYear();

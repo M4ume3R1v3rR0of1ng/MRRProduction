@@ -1,10 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import { NotificationProvider } from "./context/NotificationContext";
-import ErrorBoundary from "./components/ErrorBoundary"; // Imported boundary class
+import { NotificationProvider } from "./shared/context/NotificationContext";
+import ErrorBoundary from "./shared/components/ErrorBoundary"; // Imported boundary class
 import { registerSW } from "virtual:pwa-register";
-import { applyTheme, readTheme } from "./utils/theme";
+import { applyTheme, readTheme } from "./shared/utils/theme";
 import "./tokens.css";
 
 // Stamp the theme before the first render so no view ever paints in the wrong

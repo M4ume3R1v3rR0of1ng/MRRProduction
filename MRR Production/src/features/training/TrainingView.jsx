@@ -16,14 +16,14 @@
 // src/data/trainingVideos.js, which is the only thing that would actually hurt to
 // have in two places. Add a clip there and it appears in both.
 import { useRef, useState } from "react";
-import { C } from "@/utils/helpers";
-import { translations } from "@/utils/translations";
-import { TRAINING_VIDEOS } from "@/data/trainingVideos";
-import { supabase } from "@/utils/supabase";
-import { useNotify } from "@/context/NotificationContext";
-import { logAction } from "@/utils/logger";
-import { Btn, Fld, Inp, TA } from "@/components/UIPrimitives";
-import { uploadFileToBucket, removeFromBucket } from "@/utils/storageBucketUpload";
+import { C } from "@/shared/utils/helpers";
+import { translations } from "@/shared/utils/translations";
+import { TRAINING_VIDEOS } from "@/shared/data/trainingVideos";
+import { supabase } from "@/shared/utils/supabase";
+import { useNotify } from "@/shared/context/NotificationContext";
+import { logAction } from "@/shared/utils/logger";
+import { Btn, Fld, Inp, TA } from "@/shared/components/UIPrimitives";
+import { uploadFileToBucket, removeFromBucket } from "@/shared/utils/storageBucketUpload";
 import {
   orderedMedia,
   validateMediaForm,

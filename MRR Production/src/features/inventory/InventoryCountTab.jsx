@@ -11,14 +11,14 @@
 // A count is therefore a two-sided document: what the books EXPECT, computed live
 // from receipts and job usage, next to what a person COUNTED. The gap is the bleed.
 import { useState, useEffect, useMemo } from "react";
-import { supabase, updateRowStrict } from "@/utils/supabase";
-import { C, fm } from "@/utils/helpers";
-import { resolvePersonName } from "@/utils/people";
-import { downloadCSV } from "@/utils/csvExport";
-import { Btn, Inp, Sel, SkeletonTable } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
-import { translations } from "@/utils/translations";
+import { supabase, updateRowStrict } from "@/shared/utils/supabase";
+import { C, fm } from "@/shared/utils/helpers";
+import { resolvePersonName } from "@/shared/utils/people";
+import { downloadCSV } from "@/shared/utils/csvExport";
+import { Btn, Inp, Sel, SkeletonTable } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
+import { translations } from "@/shared/utils/translations";
 import {
   buildCountLines,
   summarizeCount,

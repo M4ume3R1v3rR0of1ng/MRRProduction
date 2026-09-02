@@ -12,7 +12,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const getAccessToken = vi.fn(async () => "tok");
 const updateRowStrict = vi.fn(async () => ({ error: null }));
-vi.mock("@/utils/supabase", () => ({
+vi.mock("@/shared/utils/supabase", () => ({
   supabase: {},
   getAccessToken: (...a) => getAccessToken(...a),
   updateRowStrict: (...a) => updateRowStrict(...a),

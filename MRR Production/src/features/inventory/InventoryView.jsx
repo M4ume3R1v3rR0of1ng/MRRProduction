@@ -1,13 +1,13 @@
 // src/features/inventory/InventoryView.jsx
 import { useState, useMemo, useEffect } from "react";
-import { supabase, updateRowStrict } from "@/utils/supabase";
-import { C, fm, tot, newestPrice } from "@/utils/helpers";
-import { Btn, Inp, Sel } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
-import { translations } from "@/utils/translations";
-import { useStickySort } from "@/hooks/useStickySort";
-import { uploadPhotoToBucket } from "@/utils/storageBucketUpload";
+import { supabase, updateRowStrict } from "@/shared/utils/supabase";
+import { C, fm, tot, newestPrice } from "@/shared/utils/helpers";
+import { Btn, Inp, Sel } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
+import { translations } from "@/shared/utils/translations";
+import { useStickySort } from "@/shared/hooks/useStickySort";
+import { uploadPhotoToBucket } from "@/shared/utils/storageBucketUpload";
 import JobTemplatesModal from "./JobTemplatesModal";
 import BulkReceiveModal from "./BulkReceiveModal";
 import ItemDetailModal from "./ItemDetailModal";

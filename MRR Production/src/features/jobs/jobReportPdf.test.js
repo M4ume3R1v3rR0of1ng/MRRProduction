@@ -3,7 +3,7 @@
 // shared arithmetic) and the fact that the PDF path produces real, uploadable bytes.
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("@/utils/supabase", () => ({ supabase: {}, updateRowStrict: vi.fn(), getAccessToken: vi.fn() }));
+vi.mock("@/shared/utils/supabase", () => ({ supabase: {}, updateRowStrict: vi.fn(), getAccessToken: vi.fn() }));
 
 const { buildJobReportModel } = await import("./pdfGenerator");
 const { buildJobReportPdf, pdfFileNameFor } = await import("./jobReportPdf");

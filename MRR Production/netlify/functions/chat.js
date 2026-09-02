@@ -3,7 +3,7 @@
 // API key never reaches the browser. Every tool call is gated by the calling
 // user's *actual* effective permissions, re-derived here from their verified
 // session token (never trusted from the client), mirroring the same
-// role/override logic as src/database/permissions.js's getEffectivePerms.
+// role/override logic as src/shared/database/permissions.js's getEffectivePerms.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { adminClient, resolveCaller } from "./_shared/tenant.js";
@@ -108,7 +108,7 @@ const TOOLS = [
   },
 ];
 
-// Mirrors src/utils/patterns.js — duplicated rather than imported because this
+// Mirrors src/features/fleet/patterns.js — duplicated rather than imported because this
 // function runs as CommonJS in Node while the frontend module is ESM.
 function learnServiceIntervals(vehicle) {
   if (!vehicle?.sl || vehicle.sl.length < 2) return [];
@@ -199,7 +199,7 @@ function detectFleetTrends(reqs, { recentDays = 30, baselineDays = 90, minRecent
 
 // --- Maintenance recommendation engine ---------------------------------------
 //
-// Mirrors oilSt / detSt / predDays in src/utils/helpers.js, duplicated for the
+// Mirrors oilSt / detSt / predDays in src/shared/utils/helpers.js, duplicated for the
 // same reason as the pattern helpers above: this file runs standalone in the
 // function bundle and can't import the frontend's ESM modules.
 //
@@ -366,7 +366,7 @@ export function buildMaintenanceRecommendations(vehicles, reqs, { horizonDays = 
   };
 }
 
-// Mirrors src/database/permissions.js getEffectivePerms() — keep in sync.
+// Mirrors src/shared/database/permissions.js getEffectivePerms() — keep in sync.
 // Permission config is per-company now: two companies can define 'manager' quite
 // differently, so both lookups are scoped by companyId.
 async function getEffectivePerms(admin, userId, companyId, role) {

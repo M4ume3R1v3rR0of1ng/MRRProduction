@@ -1,15 +1,15 @@
 // src/features/reports/ReportsView.jsx
 import { useState, useEffect } from "react";
-import { supabase, updateRowStrict } from "@/utils/supabase";
-import { C, fd, fm, tot, newestPrice, todayLocal } from "@/utils/helpers";
-import { translations } from "@/utils/translations";
-import { Btn, Sel, Bdg, Inp, Modal, SkeletonTable } from "@/components/UIPrimitives"; // Added Modal wrapper primitives
-import { useNotify } from "@/context/NotificationContext";
+import { supabase, updateRowStrict } from "@/shared/utils/supabase";
+import { C, fd, fm, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
+import { translations } from "@/shared/utils/translations";
+import { Btn, Sel, Bdg, Inp, Modal, SkeletonTable } from "@/shared/components/UIPrimitives"; // Added Modal wrapper primitives
+import { useNotify } from "@/shared/context/NotificationContext";
 // One CSV writer for the app. The local copy this replaced wrapped every field
 // in quotes and escaped none of them, so an item like 9" Roller Covers shifted
 // every column after it. See utils/csvExport.
-import { downloadCSV } from "@/utils/csvExport";
-import { ACTION_TYPES, logAction } from "@/utils/logger";
+import { downloadCSV } from "@/shared/utils/csvExport";
+import { ACTION_TYPES, logAction } from "@/shared/utils/logger";
 import {
   actualMaterialCost,
   materialsVariancePct,

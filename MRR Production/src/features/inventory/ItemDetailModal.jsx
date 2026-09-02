@@ -7,9 +7,9 @@
 // shared `form` object before switching modals, so each one had to know the
 // exact field shape the destination dialog expected. They now just say which
 // dialog to open, and the dialog seeds itself.
-import { C, fd, fm, tot, newestPrice } from "@/utils/helpers";
-import { resolveBatchPerson } from "@/utils/people";
-import { Btn, Modal, PhotoUpload } from "@/components/UIPrimitives";
+import { C, fd, fm, tot, newestPrice } from "@/shared/utils/helpers";
+import { resolveBatchPerson } from "@/shared/utils/people";
+import { Btn, Modal, PhotoUpload } from "@/shared/components/UIPrimitives";
 
 // Oldest first: the batch FIFO will draw from next is the first one with stock
 // left on it, which is what the ACTIVE marker points at.

@@ -6,12 +6,12 @@
 // is_platform_admin() server-side. Hiding this view in the UI is convenience;
 // the real gate is in the database, so a non-owner poking the same RPCs gets nothing.
 import { useEffect, useState } from "react";
-import { supabase, getAccessToken } from "@/utils/supabase";
-import { C, tot } from "@/utils/helpers";
-import { translations } from "@/utils/translations";
-import { BRAND, TrussMark } from "@/components/SteadwerkMark";
-import { useNotify } from "@/context/NotificationContext";
-import { logAction } from "@/utils/logger";
+import { supabase, getAccessToken } from "@/shared/utils/supabase";
+import { C, tot } from "@/shared/utils/helpers";
+import { translations } from "@/shared/utils/translations";
+import { BRAND, TrussMark } from "@/shared/components/SteadwerkMark";
+import { useNotify } from "@/shared/context/NotificationContext";
+import { logAction } from "@/shared/utils/logger";
 import { BASE_SEATS } from "@/features/billing/seatPacks";
 
 // Same duplication note as the pricing block atop LandingPage.jsx and the pricing

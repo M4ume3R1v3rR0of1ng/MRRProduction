@@ -13,7 +13,7 @@
 // is fetched, nothing is written. That keeps the arithmetic testable, which matters
 // because these numbers accuse people of losing material.
 
-import { formatDay, parseDay, tot, newestPrice, batchKind } from "@/utils/helpers";
+import { formatDay, parseDay, tot, newestPrice, batchKind } from "@/shared/utils/helpers";
 
 // A period is a calendar month, "YYYY-MM".
 //

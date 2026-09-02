@@ -8,17 +8,17 @@
 // Seat capacity is authoritative from the DB (set by the Stripe webhook); this view
 // never invents it.
 import { useEffect, useState } from "react";
-import { supabase, getAccessToken } from "@/utils/supabase";
-import { C } from "@/utils/helpers";
-import { BRAND, TrussMark } from "@/components/SteadwerkMark";
-import { useNotify } from "@/context/NotificationContext";
+import { supabase, getAccessToken } from "@/shared/utils/supabase";
+import { C } from "@/shared/utils/helpers";
+import { BRAND, TrussMark } from "@/shared/components/SteadwerkMark";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 const BASE_PRICE = 99;
 const BASE_SEATS = 10;
 const PACK_PRICE = 10;
 const PACK_SEATS = 5;
 
-import { translations } from "@/utils/translations";
+import { translations } from "@/shared/utils/translations";
 import { maxRemovablePacks, validatePackChange } from "./seatPacks";
 
 export default function BillingView({ user, lang = "en" }) {

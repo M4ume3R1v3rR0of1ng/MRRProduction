@@ -8,7 +8,7 @@ import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
 import CompleteServiceModal, { guessServiceType } from "./CompleteServiceModal.jsx";
-import { NotificationProvider } from "@/context/NotificationContext";
+import { NotificationProvider } from "@/shared/context/NotificationContext";
 
 const vehs = [
   { id: "v1", name: "Truck 3", plate: "ABC-1234", type: "truck", yr: 2019, make: "Ford", model: "F-250" },

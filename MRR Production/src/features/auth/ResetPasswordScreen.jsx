@@ -13,12 +13,12 @@
 // new password, write it with supabase.auth.updateUser(), then sign out and send
 // them back to the login form to sign in fresh with it.
 import { useState } from "react";
-import { supabase } from "@/utils/supabase";
-import { C } from "@/utils/helpers";
+import { supabase } from "@/shared/utils/supabase";
+import { C } from "@/shared/utils/helpers";
 import { validatePassword, PASSWORD_HINT } from "./passwordPolicy";
-import { translations } from "@/utils/translations";
-import { Fld } from "@/components/UIPrimitives";
-import { SteadwerkLockup, BRAND } from "@/components/SteadwerkMark";
+import { translations } from "@/shared/utils/translations";
+import { Fld } from "@/shared/components/UIPrimitives";
+import { SteadwerkLockup, BRAND } from "@/shared/components/SteadwerkMark";
 
 export default function ResetPasswordScreen({ onDone, lang = "en" }) {
   const t = translations[lang] || translations.en;

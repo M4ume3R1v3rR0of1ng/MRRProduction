@@ -1,12 +1,12 @@
 // src/features/users/AuditLogView.jsx
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "@/utils/supabase";
-import { C, batchKind } from "@/utils/helpers";
-import { Bdg, Sel, Inp, Btn, SkeletonTable } from "@/components/UIPrimitives";
+import { supabase } from "@/shared/utils/supabase";
+import { C, batchKind } from "@/shared/utils/helpers";
+import { Bdg, Sel, Inp, Btn, SkeletonTable } from "@/shared/components/UIPrimitives";
 
-import { translations } from "@/utils/translations";
-import { ACTION_TYPES } from "@/utils/logger";
-import { makePersonResolver, personLabel } from "@/utils/people";
+import { translations } from "@/shared/utils/translations";
+import { ACTION_TYPES } from "@/shared/utils/logger";
+import { makePersonResolver, personLabel } from "@/shared/utils/people";
 
 export default function AuditLogView({ perms, inv = [], users = [], companyId, lang = "en" }) {
   const t = translations[lang] || translations.en;

@@ -10,8 +10,8 @@
 // already committed, or a truck due in the shop on a day it is scheduled to run.
 // So this shows all three sources against the same seven days and flags the
 // collisions. Editing still belongs to the full calendars.
-import { C, parseDay, todayLocal } from "@/utils/helpers";
-import { buildSchedule } from "@/utils/schedule";
+import { C, parseDay, todayLocal } from "@/shared/utils/helpers";
+import { buildSchedule } from "@/shared/utils/schedule";
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 

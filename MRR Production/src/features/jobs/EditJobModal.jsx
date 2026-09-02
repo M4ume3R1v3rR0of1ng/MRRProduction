@@ -13,11 +13,11 @@
 // updates its own list, which keeps the "who owns the jobs array" question with
 // the component that actually owns it.
 import { useState } from "react";
-import { supabase, updateRowStrict } from "@/utils/supabase";
-import { C, mkJI, mergePullTracking } from "@/utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, TA } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
+import { supabase, updateRowStrict } from "@/shared/utils/supabase";
+import { C, mkJI, mergePullTracking } from "@/shared/utils/helpers";
+import { Btn, Fld, Inp, Modal, Sel, TA } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 // Job rows carry their materials under either `items` or `materials`, and their
 // supervisor under either `assignedto` or `assignedTo`, depending on vintage.

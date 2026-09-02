@@ -27,8 +27,8 @@ import InventoryView from "@/features/inventory/InventoryView.jsx";
 import FleetManagementView from "@/features/fleet/FleetManagementView.jsx";
 import BuildJobsView from "@/features/jobs/BuildJobsView.jsx";
 import ScheduleView from "@/features/schedule/ScheduleView.jsx";
-import { tot, oilSt, detSt, predDays, fd, fm } from "../utils/helpers";
-import { NotificationProvider } from "../context/NotificationContext";
+import { tot, oilSt, detSt, predDays, fd, fm } from "@/shared/utils/helpers";
+import { NotificationProvider } from "@/shared/context/NotificationContext";
 
 const noop = () => {};
 const user = { id: "u1", name: "Sam Schwartz", role: "admin", email: "sam@example.com", companyId: "c1" };

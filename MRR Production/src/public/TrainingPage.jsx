@@ -17,7 +17,7 @@
 // (src/features/training/TrainingView.jsx) so a clip added once shows up in both places.
 // Everything on this page is generated from it.
 import { useEffect, useRef, useState } from "react";
-import { TRAINING_VIDEOS } from "@/data/trainingVideos";
+import { TRAINING_VIDEOS } from "@/shared/data/trainingVideos";
 
 const Badge = ({ size = 30 }) => (
   <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">

@@ -12,12 +12,12 @@
 // way to say "I'm done". Templates persist through features/jobs/jobTemplates, so the
 // parent never sees them and has nothing to keep in sync.
 import { useEffect, useState } from "react";
-import { C, uid, tot } from "@/utils/helpers";
+import { C, uid, tot } from "@/shared/utils/helpers";
 // jobTemplates.js is a jobs-domain data model; JobTemplatesModal itself stays
 // in inventory since Inventory is its only real UI entry point.
 import { fetchJobTemplates, saveJobTemplates, resolveDefaultTemplates } from "@/features/jobs/jobTemplates";
-import { Btn, Fld, Inp, Modal } from "@/components/UIPrimitives";
-import { useNotify } from "@/context/NotificationContext";
+import { Btn, Fld, Inp, Modal } from "@/shared/components/UIPrimitives";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 // Replace in place if the id is already known, otherwise append. Pulled out as a
 // pure function because it is the one piece of real logic in this file: getting

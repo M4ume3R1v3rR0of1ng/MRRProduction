@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 
 // email.js imports the Vite-only supabase client at module load; stub it.
-vi.mock("@/utils/email", () => ({
+vi.mock("@/shared/utils/email", () => ({
   sendEmail: vi.fn(),
   escapeHtml: (v) =>
     v == null ? "" : String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"),

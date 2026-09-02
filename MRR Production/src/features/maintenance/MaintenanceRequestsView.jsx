@@ -1,9 +1,9 @@
 // src/features/maintenance/MaintenanceRequestsView.jsx
 import { useState, useEffect } from "react";
-import { supabase, updateRowStrict } from "@/utils/supabase";
-import { C } from "@/utils/helpers";
-import { translations } from "@/utils/translations";
-import { useStickySort } from "@/hooks/useStickySort";
+import { supabase, updateRowStrict } from "@/shared/utils/supabase";
+import { C } from "@/shared/utils/helpers";
+import { translations } from "@/shared/utils/translations";
+import { useStickySort } from "@/shared/hooks/useStickySort";
 import { detectChronicIssues, detectFleetTrends } from "@/features/fleet/patterns";
 import {
   Btn,
@@ -14,12 +14,12 @@ import {
   TA,
   Modal,
   PhotoUpload,
-} from "@/components/UIPrimitives";
-import { notifyMaintFiled, notifyMaintStatus } from "@/utils/maintenanceNotifications";
-import { useNotify } from "@/context/NotificationContext";
-import { logAction } from "@/utils/logger";
+} from "@/shared/components/UIPrimitives";
+import { notifyMaintFiled, notifyMaintStatus } from "@/shared/utils/maintenanceNotifications";
+import { useNotify } from "@/shared/context/NotificationContext";
+import { logAction } from "@/shared/utils/logger";
 import MaintenanceCalendar from "./MaintenanceCalendar";
-import SearchBar, { matchesQuery } from "@/components/SearchBar";
+import SearchBar, { matchesQuery } from "@/shared/components/SearchBar";
 import CompleteServiceModal from "./CompleteServiceModal";
 
 // The values of the <option> list in this view's sort dropdown, in the same

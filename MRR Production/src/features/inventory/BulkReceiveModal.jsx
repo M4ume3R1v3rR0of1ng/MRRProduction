@@ -12,13 +12,13 @@
 // what a job is later billed, they have three branches that are easy to get
 // subtly wrong, and none of them were reachable from a test before this split.
 import { useMemo, useState } from "react";
-import { supabase, updateRowStrict } from "@/utils/supabase";
+import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "./lowStockAlerts";
-import { C, uid, fm, tot, newestPrice, todayLocal } from "@/utils/helpers";
-import { displayNameOf } from "@/utils/people";
-import { Btn, Fld, Inp, Modal } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
+import { C, uid, fm, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
+import { displayNameOf } from "@/shared/utils/people";
+import { Btn, Fld, Inp, Modal } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 // A row counts as received when it carries a non-zero, numeric quantity.
 // Negatives are deliberately allowed: they are corrections against an earlier

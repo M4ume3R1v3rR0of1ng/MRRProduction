@@ -1,19 +1,19 @@
 // src/features/jobs/BuildJobsView.jsx
 import { useState, useMemo, useEffect, useRef, Fragment } from "react";
-import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal, groupJobsByDay, jobStatusMeta } from "@/utils/helpers";
+import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal, groupJobsByDay, jobStatusMeta } from "@/shared/utils/helpers";
 import JobHandoff from "./JobHandoff";
-import SearchBar from "@/components/SearchBar";
-import { translations } from "@/utils/translations";
-import { useStickySort } from "@/hooks/useStickySort";
-import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "@/components/UIPrimitives";
-import { sendEmail, escapeHtml as esc } from "@/utils/email";
+import SearchBar from "@/shared/components/SearchBar";
+import { translations } from "@/shared/utils/translations";
+import { useStickySort } from "@/shared/hooks/useStickySort";
+import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "@/shared/components/UIPrimitives";
+import { sendEmail, escapeHtml as esc } from "@/shared/utils/email";
 import { shouldNotifyJobMove, notifyJobMove } from "./jobNotifications";
-import { supabase, getAccessToken, updateRowStrict } from "@/utils/supabase";
-import { useNotify } from "@/context/NotificationContext";
+import { supabase, getAccessToken, updateRowStrict } from "@/shared/utils/supabase";
+import { useNotify } from "@/shared/context/NotificationContext";
 import CrewCalendar from "./CrewCalendar";
 import { generatePDF } from "./pdfGenerator";
 import { syncJobReportToAccuLynx, syncStatusOf, reportUploadedAtOf } from "./accuLynxSync";
-import { logAction } from "@/utils/logger";
+import { logAction } from "@/shared/utils/logger";
 
 import { fetchJobTemplates, resolveDefaultTemplates } from "./jobTemplates";
 import EditJobModal from "./EditJobModal";

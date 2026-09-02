@@ -12,12 +12,12 @@
 // and which cannot; it is exported pure because it is the most consequential
 // logic in the inventory module and was unreachable from a test before this split.
 import { useState } from "react";
-import { updateRowStrict } from "@/utils/supabase";
-import { C, fd, fm, recostLine } from "@/utils/helpers";
-import { resolveBatchPerson } from "@/utils/people";
-import { Btn, Fld, Inp, Modal } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
+import { updateRowStrict } from "@/shared/utils/supabase";
+import { C, fd, fm, recostLine } from "@/shared/utils/helpers";
+import { resolveBatchPerson } from "@/shared/utils/people";
+import { Btn, Fld, Inp, Modal } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 export const lineFor = (job, itemId) => (job.items || job.materials || []).find((i) => i && i.iid === itemId);
 

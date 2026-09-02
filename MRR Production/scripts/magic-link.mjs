@@ -30,7 +30,7 @@
 //      with theirs. A private window keeps the two apart and lets you close the
 //      impersonated one cleanly.
 //
-//   2. EVERY ACTION IS ATTRIBUTED TO THEM. logAction() in src/utils/logger.js
+//   2. EVERY ACTION IS ATTRIBUTED TO THEM. logAction() in src/shared/utils/logger.js
 //      stamps audit_logs with the acting user's id and email, and it cannot tell
 //      the difference. Anything you click lands in the record under their name,
 //      including in the audit trail you would later rely on to reconstruct what

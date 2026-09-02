@@ -1,6 +1,6 @@
 // src/features/fleet/FleetManagementView.jsx
 import { useState, useEffect } from "react";
-import { supabase, updateRowStrict } from "@/utils/supabase";
+import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import {
   Btn,
   Bdg,
@@ -10,17 +10,17 @@ import {
   Modal,
   TA,
   PhotoUpload,
-} from "@/components/UIPrimitives";
-import { C, uid, todayLocal } from "@/utils/helpers";
-import { translations } from "@/utils/translations";
-import { useStickySort } from "@/hooks/useStickySort";
+} from "@/shared/components/UIPrimitives";
+import { C, uid, todayLocal } from "@/shared/utils/helpers";
+import { translations } from "@/shared/utils/translations";
+import { useStickySort } from "@/shared/hooks/useStickySort";
 import { learnServiceIntervals } from "./patterns";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
 import TrailerCalendar from "./TrailerCalendar";
-import SearchBar, { matchesQuery } from "@/components/SearchBar";
-import { uploadPhotoToBucket } from "@/utils/storageBucketUpload";
-import { notifyMaintFiled } from "@/utils/maintenanceNotifications";
+import SearchBar, { matchesQuery } from "@/shared/components/SearchBar";
+import { uploadPhotoToBucket } from "@/shared/utils/storageBucketUpload";
+import { notifyMaintFiled } from "@/shared/utils/maintenanceNotifications";
 import { vehicleStatusKind, isGrounded, isUndispatchable, groundingPatch } from "./fleetStatus";
 import MaintenanceRequestModal from "./MaintenanceRequestModal";
 import AddVehicleModal from "./AddVehicleModal";

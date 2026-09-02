@@ -135,7 +135,7 @@ export const handler = async (event) => {
     // On removal, refuse to cut capacity below the seats actually in use. The database
     // is the authority on both numbers; a client-side check alone would let a crafted
     // request strand real users above the ceiling. Mirrors validatePackChange in
-    // src/utils/seatPacks.js.
+    // src/features/billing/seatPacks.js.
     if (delta < 0) {
       const { data: co } = await admin
         .from("companies")

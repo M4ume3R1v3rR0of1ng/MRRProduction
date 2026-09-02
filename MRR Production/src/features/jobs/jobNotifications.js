@@ -8,8 +8,8 @@
 // The pieces are split so the decision and the template are pure and unit-tested; the
 // only impure part is the actual send, which is injectable.
 
-import { sendEmail, escapeHtml } from "@/utils/email";
-import { defaultPrefs } from "@/utils/automations";
+import { sendEmail, escapeHtml } from "@/shared/utils/email";
+import { defaultPrefs } from "@/shared/utils/automations";
 
 // The status a job just ENTERED → how it's described to the supervisor. Keys match the
 // four transitions the enforcement trigger already gates (see supabase/12).

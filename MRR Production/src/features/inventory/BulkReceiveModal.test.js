@@ -11,7 +11,7 @@ import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
 import BulkReceiveModal, { hasQuantity, manifestTotal, resolveBulkPrices } from "./BulkReceiveModal.jsx";
-import { NotificationProvider } from "@/context/NotificationContext";
+import { NotificationProvider } from "@/shared/context/NotificationContext";
 
 const inv = [
   { id: "i1", name: "Shingle", unit: "bd", cat: "Roofing", batches: [{ rem: 10, price: 32.5, rcvd: "2026-05-01" }, { rem: 5, price: 34, rcvd: "2026-06-01" }] },

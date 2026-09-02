@@ -12,9 +12,9 @@
 // owns the actual supabase.rpc() call, the audit log entry, and the requester
 // notification — same division as MaintenanceRequestModal and InspectionModal.
 import { useState } from "react";
-import { C, todayLocal } from "@/utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, TA } from "@/components/UIPrimitives";
-import { useNotify } from "@/context/NotificationContext";
+import { C, todayLocal } from "@/shared/utils/helpers";
+import { Btn, Fld, Inp, Modal, Sel, TA } from "@/shared/components/UIPrimitives";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 const SERVICE_TYPES = [
   "Oil Change",

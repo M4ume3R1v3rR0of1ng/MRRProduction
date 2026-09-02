@@ -16,13 +16,13 @@
 //      before anyone logs in, so any list on it would publish the customer roster to
 //      the world. Your email already determines your company via memberships.
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/utils/supabase";
-import { IS_IOS_APP } from "@/utils/platform";
-import { C } from "@/utils/helpers";
-import { Fld } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { translations } from "@/utils/translations";
-import { SteadwerkLockup, BRAND } from "@/components/SteadwerkMark";
+import { supabase } from "@/shared/utils/supabase";
+import { IS_IOS_APP } from "@/core/platform";
+import { C } from "@/shared/utils/helpers";
+import { Fld } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { translations } from "@/shared/utils/translations";
+import { SteadwerkLockup, BRAND } from "@/shared/components/SteadwerkMark";
 
 // Display-only prices for the plan toggle. These must match the amounts on the
 // Stripe Prices that create-checkout bills (STRIPE_BASE_PRICE_ID / STRIPE_ANNUAL_PRICE_ID);

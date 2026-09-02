@@ -9,8 +9,8 @@
 import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
-import { NotificationProvider } from "@/context/NotificationContext";
-import { tot, newestPrice, fd } from "@/utils/helpers";
+import { NotificationProvider } from "@/shared/context/NotificationContext";
+import { tot, newestPrice, fd } from "@/shared/utils/helpers";
 
 import ItemDetailModal, { batchesOldestFirst } from "./ItemDetailModal.jsx";
 import ItemFormModal, { isPriceChange, applyPriceToBatches, CATEGORIES, UNITS } from "./ItemFormModal.jsx";

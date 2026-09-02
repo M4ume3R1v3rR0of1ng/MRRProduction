@@ -1,25 +1,25 @@
 // src/features/jobs/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
 import { useState, useEffect, useRef, Fragment } from "react";
-import { C, fd, fm, doFifo, uid, tot, mkJI, mergePullTracking, todayLocal, applyReturnBatch, groupJobsByDay, jobStatusMeta } from "@/utils/helpers";
-import { displayNameOf } from "@/utils/people";
-import { translations } from "@/utils/translations";
-import { useStickySort } from "@/hooks/useStickySort";
+import { C, fd, fm, doFifo, uid, tot, mkJI, mergePullTracking, todayLocal, applyReturnBatch, groupJobsByDay, jobStatusMeta } from "@/shared/utils/helpers";
+import { displayNameOf } from "@/shared/utils/people";
+import { translations } from "@/shared/utils/translations";
+import { useStickySort } from "@/shared/hooks/useStickySort";
 import { generatePDF } from "./pdfGenerator";
 // syncStatusOf / reportUploadedAtOf are read only to answer "is this report already
 // filed", which stops a retry after a failed commit from filing a second copy.
 // The badge and sync modal that used to need the rest went with the Completed tab.
 import { syncJobReportToAccuLynx, syncStatusOf, reportUploadedAtOf } from "./accuLynxSync";
-import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { supabase, updateRowStrict, isTransportError } from "@/utils/supabase";
+import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { supabase, updateRowStrict, isTransportError } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "@/features/inventory/lowStockAlerts";
-import { useNotify } from "@/context/NotificationContext";
-import { uploadPhotoToBucket } from "@/utils/storageBucketUpload";
-import { sendEmail, escapeHtml as esc } from "@/utils/email";
+import { useNotify } from "@/shared/context/NotificationContext";
+import { uploadPhotoToBucket } from "@/shared/utils/storageBucketUpload";
+import { sendEmail, escapeHtml as esc } from "@/shared/utils/email";
 import { notifyJobMove } from "./jobNotifications";
 import JobHandoff from "./JobHandoff";
-import SearchBar, { matchesQuery } from "@/components/SearchBar";
+import SearchBar, { matchesQuery } from "@/shared/components/SearchBar";
 
 // The values of the <option> list in this view's sort dropdown, in the same
 // order. useStickySort checks a remembered choice against this before trusting

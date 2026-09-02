@@ -1,10 +1,10 @@
 // src/features/auth/ProfileView.jsx
 import { useState, useEffect } from "react";
-import { supabase } from "@/utils/supabase";
-import { C, displayName } from "@/utils/helpers";
-import { Fld, Inp, Btn } from "@/components/UIPrimitives";
-import { sendEmail } from "@/utils/email";
-import { translations } from "@/utils/translations";
+import { supabase } from "@/shared/utils/supabase";
+import { C, displayName } from "@/shared/utils/helpers";
+import { Fld, Inp, Btn } from "@/shared/components/UIPrimitives";
+import { sendEmail } from "@/shared/utils/email";
+import { translations } from "@/shared/utils/translations";
 import MfaPanel from "./MfaPanel";
 
 export default function ProfileView({ user, onUpdateUser, lang = "en" }) {

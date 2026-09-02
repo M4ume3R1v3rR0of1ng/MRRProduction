@@ -1,14 +1,14 @@
 // src/features/users/UserManagementView.jsx
 import { useState, useEffect } from "react";
-import { supabase, getAccessToken } from "@/utils/supabase";
-import { C, uid } from "@/utils/helpers";
+import { supabase, getAccessToken } from "@/shared/utils/supabase";
+import { C, uid } from "@/shared/utils/helpers";
 import { validatePassword, PASSWORD_HINT } from "@/features/auth/passwordPolicy";
 import {
   PERM_DEFS,
   PERM_GROUPS,
   ROLE_COLS,
   ROLES,
-} from "@/database/permissions";
+} from "@/shared/database/permissions";
 import {
   Btn,
   Bdg,
@@ -18,10 +18,10 @@ import {
   Fld,
   Sel,
   Inp,
-} from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { translations } from "@/utils/translations";
-import { useNotify } from "@/context/NotificationContext";
+} from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { translations } from "@/shared/utils/translations";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 export default function Users({
   lang = "en",

@@ -2,7 +2,7 @@
 // Job material templates: named material packages applied in the Build Jobs
 // wizard. Custom templates are stored in the `settings` table under the
 // "job_templates" key and managed from Inventory → 🧰 Templates.
-import { supabase } from "@/utils/supabase";
+import { supabase } from "@/shared/utils/supabase";
 
 // Built-in starter packages, used only until custom templates are saved.
 // Each material matches a live inventory item by keywords (every keyword

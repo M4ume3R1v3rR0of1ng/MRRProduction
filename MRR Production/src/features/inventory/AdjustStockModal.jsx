@@ -7,13 +7,13 @@
 // part and is exported pure: it decides which batches lose units and therefore
 // what a later pull is costed at, and it was previously unreachable from a test.
 import { useState } from "react";
-import { updateRowStrict } from "@/utils/supabase";
+import { updateRowStrict } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "./lowStockAlerts";
-import { C, uid, tot, newestPrice, todayLocal } from "@/utils/helpers";
-import { displayNameOf } from "@/utils/people";
-import { Btn, Fld, Inp, Modal, TA } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
+import { C, uid, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
+import { displayNameOf } from "@/shared/utils/people";
+import { Btn, Fld, Inp, Modal, TA } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 // Rewrite a batch list so its remaining total equals `newQty`.
 //

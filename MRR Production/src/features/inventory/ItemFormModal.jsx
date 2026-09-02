@@ -8,12 +8,12 @@
 // any of them required remembering to seed `form` first, and why a stale field
 // from a previous dialog could ride along into a save.
 import { useState } from "react";
-import { supabase, updateRowStrict } from "@/utils/supabase";
-import { C, uid, fm, newestPrice, todayLocal } from "@/utils/helpers";
-import { displayNameOf } from "@/utils/people";
-import { Btn, Fld, Inp, Modal, Sel } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
+import { supabase, updateRowStrict } from "@/shared/utils/supabase";
+import { C, uid, fm, newestPrice, todayLocal } from "@/shared/utils/helpers";
+import { displayNameOf } from "@/shared/utils/people";
+import { Btn, Fld, Inp, Modal, Sel } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 export const CATEGORIES = [
   "Roofing Materials", "Fasteners", "Sealants", "Ventilation",

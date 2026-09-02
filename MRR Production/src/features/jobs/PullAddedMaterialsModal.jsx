@@ -18,12 +18,12 @@
 // 0 — this is for a line nothing has gone out for yet, not a general
 // materials editor (same boundary CorrectReturnModal draws on `returned`).
 import { useState } from "react";
-import { supabase } from "@/utils/supabase";
-import { C, tot, doFifo, todayLocal } from "@/utils/helpers";
-import { displayNameOf } from "@/utils/people";
-import { Btn, Modal, Inp } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
+import { supabase } from "@/shared/utils/supabase";
+import { C, tot, doFifo, todayLocal } from "@/shared/utils/helpers";
+import { displayNameOf } from "@/shared/utils/people";
+import { Btn, Modal, Inp } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
 import { sendLowStockAlerts } from "@/features/inventory/lowStockAlerts";
 
 export default function PullAddedMaterialsModal({ job, inv, users, activeUser, t, onSaved, onClose }) {

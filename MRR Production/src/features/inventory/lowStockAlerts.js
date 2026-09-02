@@ -1,5 +1,5 @@
 // src/features/inventory/lowStockAlerts.js
-import { getAccessToken } from "@/utils/supabase";
+import { getAccessToken } from "@/shared/utils/supabase";
 
 // Email opted-in managers when an item's stock crosses its alert threshold
 // downward (was above, now at/below). Crossing-only on purpose: an item that

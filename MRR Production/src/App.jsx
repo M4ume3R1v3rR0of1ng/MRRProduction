@@ -1,21 +1,21 @@
 // src/App.jsx
 import { lazy, Suspense, useState, useEffect } from "react";
-import { supabase } from "./utils/supabase";
-import { useAppData } from "./hooks/useAppData";
-import OmniSearch from "./components/OmniSearch";
-import SyncIndicator from "./components/SyncIndicator";
-import { RoleBdg, SkeletonCards, LoadingState } from "./components/UIPrimitives";
-import IdleTimeoutWrapper from "./components/IdleTimeoutWrapper";
+import { supabase } from "./shared/utils/supabase";
+import { useAppData } from "./core/useAppData";
+import OmniSearch from "./shared/components/OmniSearch";
+import SyncIndicator from "./shared/components/SyncIndicator";
+import { RoleBdg, SkeletonCards, LoadingState } from "./shared/components/UIPrimitives";
+import IdleTimeoutWrapper from "./shared/components/IdleTimeoutWrapper";
 
 // Centralized Stateless Calculation & Helper Utilities
-import { C, tot, oilSt, predDays, detSt, fd, fm } from "./utils/helpers";
-import { translations } from "./utils/translations";
-import { IS_IOS_APP } from "./utils/platform";
+import { C, tot, oilSt, predDays, detSt, fd, fm } from "./shared/utils/helpers";
+import { translations } from "./shared/utils/translations";
+import { IS_IOS_APP } from "./core/platform";
 
-import CompanySwitcher from "./components/CompanySwitcher";
-import VisitingBanner from "./components/VisitingBanner";
-import { SteadwerkMark, TrussMark, BRAND } from "./components/SteadwerkMark";
-import Sidebar from "./layouts/Sidebar";
+import CompanySwitcher from "./shared/components/CompanySwitcher";
+import VisitingBanner from "./shared/components/VisitingBanner";
+import { SteadwerkMark, TrussMark, BRAND } from "./shared/components/SteadwerkMark";
+import Sidebar from "./shared/layouts/Sidebar";
 
 // ── Code splitting ──────────────────────────────────────────────────────────
 //
@@ -60,7 +60,7 @@ const AuditLogView = lazy(() => import("./features/users/AuditLogView"));
 
 // The assistant is a floating widget, useful but never the reason someone opened
 // the app, so it loads after the view they actually asked for.
-const ChatWidget = lazy(() => import("./components/ChatWidget"));
+const ChatWidget = lazy(() => import("./shared/components/ChatWidget"));
 
 // Mascot Branding Asset
 

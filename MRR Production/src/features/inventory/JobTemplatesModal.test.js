@@ -12,7 +12,7 @@ import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
 import JobTemplatesModal, { upsertTemplate, selectableMaterials } from "./JobTemplatesModal.jsx";
-import { NotificationProvider } from "@/context/NotificationContext";
+import { NotificationProvider } from "@/shared/context/NotificationContext";
 
 const inv = [
   { id: "i1", name: "Weathered Wood Shingle", unit: "bd", batches: [{ rem: 100 }] },

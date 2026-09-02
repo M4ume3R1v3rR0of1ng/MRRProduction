@@ -9,11 +9,11 @@
 // The parent no longer receives a setter. It is told what was created through
 // onCreated, and decides for itself how to fold that into its list.
 import { useState } from "react";
-import { supabase } from "@/utils/supabase";
-import { uid, todayLocal } from "@/utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { useNotify } from "@/context/NotificationContext";
+import { supabase } from "@/shared/utils/supabase";
+import { uid, todayLocal } from "@/shared/utils/helpers";
+import { Btn, Fld, Inp, Modal, Sel } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { useNotify } from "@/shared/context/NotificationContext";
 
 const BLANK = { name: "", type: "truck", yr: "", make: "", model: "", plate: "", mi: "", oii: "5000", dii: "90" };
 

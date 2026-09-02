@@ -1,17 +1,17 @@
 // src/features/settings/SettingsView.jsx
 import React, { useState } from "react";
-import { supabase, getAccessToken } from "@/utils/supabase";
-import { C, compressImg } from "@/utils/helpers";
+import { supabase, getAccessToken } from "@/shared/utils/supabase";
+import { C, compressImg } from "@/shared/utils/helpers";
 import {
   PERM_DEFS,
   PERM_GROUPS,
   ROLE_COLS,
   DEFAULT_ROLE_PERMS,
-} from "@/database/permissions";
-import { Btn, Bdg, Fld, Inp, Sel, Toggle } from "@/components/UIPrimitives";
-import { logAction } from "@/utils/logger";
-import { translations } from "@/utils/translations";
-import { useNotify } from "@/context/NotificationContext";
+} from "@/shared/database/permissions";
+import { Btn, Bdg, Fld, Inp, Sel, Toggle } from "@/shared/components/UIPrimitives";
+import { logAction } from "@/shared/utils/logger";
+import { translations } from "@/shared/utils/translations";
+import { useNotify } from "@/shared/context/NotificationContext";
 // ── 🆕 IMPORT ADDED ──────────────────────────────────────────────────────────
 // accuLynxSync.js lives in features/jobs/ (its primary domain) — settings only
 // reads its config/test-connection helpers, so this stays a cross-feature @/ import.
@@ -22,7 +22,7 @@ import {
   automationsForGroup,
   mergePrefs,
   serializePrefs,
-} from "@/utils/automations";
+} from "@/shared/utils/automations";
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const T = {

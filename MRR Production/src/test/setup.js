@@ -2,14 +2,14 @@
 //
 // WHY THIS EXISTS
 //
-// src/utils/supabase.js THROWS at module load when VITE_SUPABASE_URL or
+// src/shared/utils/supabase.js THROWS at module load when VITE_SUPABASE_URL or
 // VITE_SUPABASE_ANON_KEY are missing. That is correct and deliberate for the
 // real app: a misconfigured deploy should fail immediately and loudly rather
 // than serve a portal whose every query silently returns nothing.
 //
 // But it also means any test that transitively imports it explodes on import,
 // before a single assertion runs. Nine suites do, mostly by way of
-// utils/helpers.js or a view component:
+// shared/utils/helpers.js or a view component:
 //
 //   dates, palette, schedule, views.render, fleetModals,
 //   inventoryModals, BulkReceiveModal, JobTemplatesModal, EditJobModal

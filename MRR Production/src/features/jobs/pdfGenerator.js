@@ -1,6 +1,6 @@
 // src/features/jobs/pdfGenerator.js
 
-import { fd, fm, newestPrice } from '@/utils/helpers';
+import { fd, fm, newestPrice } from '@/shared/utils/helpers';
 
 // Job/item fields below (name, PO, address, notes, item names) are free text set by
 // warehouse/coordinator/manager users, then rendered via document.write() into a
