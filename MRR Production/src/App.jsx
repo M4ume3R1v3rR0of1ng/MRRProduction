@@ -30,15 +30,15 @@ import Sidebar from "./layouts/Sidebar";
 // with poor signal, and this page is the top of the funnel.
 //
 // Every view below has exactly one default export, which React.lazy requires.
-import LandingPage from "./views/LandingPage";
+import LandingPage from "./public/LandingPage";
 
 const LoginScreen = lazy(() => import("./features/auth/LoginScreen"));
-const TermsPage = lazy(() => import("./views/TermsPage"));
-const PrivacyPage = lazy(() => import("./views/PrivacyPage"));
-const TrainingPage = lazy(() => import("./views/TrainingPage"));
+const TermsPage = lazy(() => import("./public/TermsPage"));
+const PrivacyPage = lazy(() => import("./public/PrivacyPage"));
+const TrainingPage = lazy(() => import("./public/TrainingPage"));
 const TrainingView = lazy(() => import("./features/training/TrainingView"));
 const ResetPasswordScreen = lazy(() => import("./features/auth/ResetPasswordScreen"));
-const OwnerConsole = lazy(() => import("./views/OwnerConsole"));
+const OwnerConsole = lazy(() => import("./platform/OwnerConsole"));
 // The conditional is load-bearing, not belt-and-braces. Gating only the render
 // site leaves this lazy() declaration referencing the chunk, so Rollup still
 // emits BillingView into the App Store bundle: unreachable, but shipped. Putting

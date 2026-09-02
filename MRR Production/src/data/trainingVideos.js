@@ -2,7 +2,7 @@
 //
 // The training library, in one place, because it is rendered twice:
 //
-//   src/views/TrainingPage.jsx — public, off the landing page's Help button.
+//   src/public/TrainingPage.jsx — public, off the landing page's Help button.
 //                                Scoped .sw-training styling, own page chrome.
 //   src/features/training/TrainingView.jsx — inside the portal, off the sidebar. Uses the
 //                                app's tokens and sits in the normal app shell.

@@ -1,4 +1,4 @@
-// src/views/TrainingPage.jsx
+// src/public/TrainingPage.jsx
 //
 // Public training / help page, reachable from the Help button in the landing-page
 // nav. Styles are scoped under .sw-training so nothing leaks into the app's
@@ -17,7 +17,7 @@
 // (src/features/training/TrainingView.jsx) so a clip added once shows up in both places.
 // Everything on this page is generated from it.
 import { useEffect, useRef, useState } from "react";
-import { TRAINING_VIDEOS } from "../data/trainingVideos";
+import { TRAINING_VIDEOS } from "@/data/trainingVideos";
 
 const Badge = ({ size = 30 }) => (
   <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">

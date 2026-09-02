@@ -1,4 +1,4 @@
-// src/views/TermsPage.jsx
+// src/public/TermsPage.jsx
 //
 // Public Terms & Conditions page, reachable from the login disclaimer and the
 // landing-page footer. Styles are scoped under .sw-terms so nothing leaks into

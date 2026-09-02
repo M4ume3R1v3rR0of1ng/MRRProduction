@@ -1,4 +1,4 @@
-// src/views/LandingPage.jsx
+// src/public/LandingPage.jsx
 //
 // The public front door — the first thing a logged-out visitor sees. Marketing
 // page for Steadwerk built on the "Raising" brand system, with buttons that hand
@@ -569,7 +569,7 @@ const CSS = `
 .sw-landing .faq .ans { padding:0 40px 24px 0; color:var(--ink-soft); font-size:15.5px; line-height:1.7; }
 .sw-landing .faq .ans b { color:var(--ink); font-weight:600; }
 
-/* The demo video player moved to src/views/TrainingPage.jsx along with the
+/* The demo video player moved to src/public/TrainingPage.jsx along with the
    section it lived in. Its .vid / .vid-poster / .vid-play rules went with it,
    scoped under .sw-training there. Nothing on this page renders a video now. */
 
@@ -1132,7 +1132,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
       </section>
 
       {/* The demo video used to sit here as a #demo band. It moved to
-          src/views/TrainingPage.jsx so there is one player to maintain rather
+          src/public/TrainingPage.jsx so there is one player to maintain rather
           than two pointed at the same file, and so cold traffic does not carry a
           video element it mostly scrolls past. Every "Watch the demo" control on
           this page now opens that page via onShowTraining. */}

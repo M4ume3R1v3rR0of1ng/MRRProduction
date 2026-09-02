@@ -1,4 +1,4 @@
-// src/views/PrivacyPage.jsx
+// src/public/PrivacyPage.jsx
 //
 // Public Privacy Policy, reachable from the login disclaimer, the landing-page
 // footer, and the Terms page. Styles are scoped under .sw-privacy so nothing

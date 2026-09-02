@@ -1,4 +1,4 @@
-// src/views/OwnerConsole.jsx
+// src/platform/OwnerConsole.jsx
 //
 // The platform owner's console — the "local company dashboard" from the original
 // thread. Visible ONLY to a platform admin (you), and every action it takes goes
@@ -6,13 +6,13 @@
 // is_platform_admin() server-side. Hiding this view in the UI is convenience;
 // the real gate is in the database, so a non-owner poking the same RPCs gets nothing.
 import { useEffect, useState } from "react";
-import { supabase, getAccessToken } from "../utils/supabase";
-import { C, tot } from "../utils/helpers";
-import { translations } from "../utils/translations";
-import { BRAND, TrussMark } from "../components/SteadwerkMark";
-import { useNotify } from "../context/NotificationContext";
-import { logAction } from "../utils/logger";
-import { BASE_SEATS } from "../features/billing/seatPacks";
+import { supabase, getAccessToken } from "@/utils/supabase";
+import { C, tot } from "@/utils/helpers";
+import { translations } from "@/utils/translations";
+import { BRAND, TrussMark } from "@/components/SteadwerkMark";
+import { useNotify } from "@/context/NotificationContext";
+import { logAction } from "@/utils/logger";
+import { BASE_SEATS } from "@/features/billing/seatPacks";
 
 // Same duplication note as the pricing block atop LandingPage.jsx and the pricing
 // constants in supabase/30_platform_revenue.sql: these dollar figures must match
