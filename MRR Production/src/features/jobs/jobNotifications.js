@@ -1,4 +1,4 @@
-// src/utils/jobNotifications.js
+// src/features/jobs/jobNotifications.js
 //
 // Automatic email to a job's ASSIGNED SUPERVISOR when the job moves through a status
 // the company has opted into. Company config lives in settings(key='job_notifications')
@@ -8,8 +8,8 @@
 // The pieces are split so the decision and the template are pure and unit-tested; the
 // only impure part is the actual send, which is injectable.
 
-import { sendEmail, escapeHtml } from "./email";
-import { defaultPrefs } from "./automations";
+import { sendEmail, escapeHtml } from "@/utils/email";
+import { defaultPrefs } from "@/utils/automations";
 
 // The status a job just ENTERED → how it's described to the supervisor. Keys match the
 // four transitions the enforcement trigger already gates (see supabase/12).

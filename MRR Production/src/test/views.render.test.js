@@ -25,7 +25,7 @@ import { renderToString } from "react-dom/server";
 
 import InventoryView from "@/features/inventory/InventoryView.jsx";
 import FleetManagementView from "@/features/fleet/FleetManagementView.jsx";
-import BuildJobsView from "../views/BuildJobsView.jsx";
+import BuildJobsView from "@/features/jobs/BuildJobsView.jsx";
 import ScheduleView from "../views/ScheduleView.jsx";
 import { tot, oilSt, detSt, predDays, fd, fm } from "../utils/helpers";
 import { NotificationProvider } from "../context/NotificationContext";

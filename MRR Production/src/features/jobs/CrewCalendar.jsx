@@ -1,10 +1,10 @@
-// src/components/CrewCalendar.jsx
+// src/features/jobs/CrewCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
-import { translations } from "../utils/translations";
-import { C, fd } from "../utils/helpers";
-import { Bdg, Btn } from "./UIPrimitives";
-import { supabase } from "../utils/supabase";
-import { useNotify } from "../context/NotificationContext";
+import { translations } from "@/utils/translations";
+import { C, fd } from "@/utils/helpers";
+import { Bdg, Btn } from "@/components/UIPrimitives";
+import { supabase } from "@/utils/supabase";
+import { useNotify } from "@/context/NotificationContext";
 
 // ── Local date string helper (avoids UTC offset bug from toISOString()) ──
 const toLocalDateKey = (date) => {

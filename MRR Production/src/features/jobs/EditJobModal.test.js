@@ -1,4 +1,4 @@
-// src/views/jobs/EditJobModal.test.js
+// src/features/jobs/EditJobModal.test.js
 //
 // Previously unreachable: this dialog rendered behind `modal === "edit"` in
 // BuildJobsView, and its form was seeded by a separate startEditJob() call on
@@ -12,7 +12,7 @@ import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
 import EditJobModal, { formFromJob, itemsFromJob, addableInventory } from "./EditJobModal.jsx";
-import { NotificationProvider } from "../../context/NotificationContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 
 const inv = [
   { id: "i1", name: "Shingle", cat: "Roofing", unit: "bd" },

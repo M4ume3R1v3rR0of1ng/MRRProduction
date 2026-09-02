@@ -5,7 +5,7 @@
 // distinction whose collapse made the modal lie. See supabase/28.
 import { describe, it, expect, vi } from "vitest";
 
-vi.mock("./supabase", () => ({ supabase: {}, updateRowStrict: vi.fn(), getAccessToken: vi.fn() }));
+vi.mock("@/utils/supabase", () => ({ supabase: {}, updateRowStrict: vi.fn(), getAccessToken: vi.fn() }));
 
 const { syncStatusOf, syncNoteOf, syncedAtOf, reportUploadedAtOf } = await import("./accuLynxSync");
 

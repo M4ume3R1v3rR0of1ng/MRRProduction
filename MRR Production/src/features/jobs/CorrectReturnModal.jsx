@@ -1,4 +1,4 @@
-// src/views/jobs/CorrectReturnModal.jsx
+// src/features/jobs/CorrectReturnModal.jsx
 //
 // Fixes a wrong RETURNED quantity on a job that is already completed.
 //
@@ -18,12 +18,12 @@
 // Reached from inside Edit Job (EditJobModal), alongside Pull Added
 // Materials, rather than as its own top-level button on the job detail view.
 import { useState } from "react";
-import { supabase } from "../../utils/supabase";
-import { C } from "../../utils/helpers";
-import { displayNameOf } from "../../utils/people";
-import { Btn, Modal } from "../../components/UIPrimitives";
-import { logAction } from "../../utils/logger";
-import { useNotify } from "../../context/NotificationContext";
+import { supabase } from "@/utils/supabase";
+import { C } from "@/utils/helpers";
+import { displayNameOf } from "@/utils/people";
+import { Btn, Modal } from "@/components/UIPrimitives";
+import { logAction } from "@/utils/logger";
+import { useNotify } from "@/context/NotificationContext";
 
 export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClose }) {
   // Only items something was actually pulled for are correctable — nothing

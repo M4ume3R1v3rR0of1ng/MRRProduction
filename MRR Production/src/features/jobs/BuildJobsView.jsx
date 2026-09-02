@@ -1,24 +1,24 @@
-// src/views/BuildJobsView.jsx
+// src/features/jobs/BuildJobsView.jsx
 import { useState, useMemo, useEffect, useRef, Fragment } from "react";
-import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal, groupJobsByDay, jobStatusMeta } from "../utils/helpers";
-import JobHandoff from "../components/JobHandoff";
-import SearchBar from "../components/SearchBar";
-import { translations } from "../utils/translations";
-import { useStickySort } from "../hooks/useStickySort";
-import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "../components/UIPrimitives";
-import { sendEmail, escapeHtml as esc } from "../utils/email";
-import { shouldNotifyJobMove, notifyJobMove } from "../utils/jobNotifications";
-import { supabase, getAccessToken, updateRowStrict } from "../utils/supabase";
-import { useNotify } from "../context/NotificationContext";
-import CrewCalendar from "../components/CrewCalendar";
-import { generatePDF } from "../utils/pdfGenerator";
-import { syncJobReportToAccuLynx, syncStatusOf, reportUploadedAtOf } from "../utils/accuLynxSync";
-import { logAction } from "../utils/logger";
+import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal, groupJobsByDay, jobStatusMeta } from "@/utils/helpers";
+import JobHandoff from "./JobHandoff";
+import SearchBar from "@/components/SearchBar";
+import { translations } from "@/utils/translations";
+import { useStickySort } from "@/hooks/useStickySort";
+import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "@/components/UIPrimitives";
+import { sendEmail, escapeHtml as esc } from "@/utils/email";
+import { shouldNotifyJobMove, notifyJobMove } from "./jobNotifications";
+import { supabase, getAccessToken, updateRowStrict } from "@/utils/supabase";
+import { useNotify } from "@/context/NotificationContext";
+import CrewCalendar from "./CrewCalendar";
+import { generatePDF } from "./pdfGenerator";
+import { syncJobReportToAccuLynx, syncStatusOf, reportUploadedAtOf } from "./accuLynxSync";
+import { logAction } from "@/utils/logger";
 
-import { fetchJobTemplates, resolveDefaultTemplates } from "../utils/jobTemplates";
-import EditJobModal from "./jobs/EditJobModal";
-import CorrectReturnModal from "./jobs/CorrectReturnModal";
-import PullAddedMaterialsModal from "./jobs/PullAddedMaterialsModal";
+import { fetchJobTemplates, resolveDefaultTemplates } from "./jobTemplates";
+import EditJobModal from "./EditJobModal";
+import CorrectReturnModal from "./CorrectReturnModal";
+import PullAddedMaterialsModal from "./PullAddedMaterialsModal";
 
 // The values of the <option> list in this view's sort dropdown, in the same
 // order. useStickySort checks a remembered choice against this before trusting
@@ -88,7 +88,7 @@ export default function BuildJobs({
   const [approving, setApproving] = useState(false);
   // Close now uploads before it archives, so it is slow enough to double-press.
   const [closing, setClosing] = useState(false);
-  // The pipeline hand-off card: { job, kind }. See components/JobHandoff.
+  // The pipeline hand-off card: { job, kind }. See ./JobHandoff.
   const [handoff, setHandoff] = useState(null);
   // The handed-over card, so the effect above can scroll to it.
   const highlightRef = useRef(null);
@@ -251,7 +251,7 @@ export default function BuildJobs({
   // tubes). There is no shared SKU and the units do not correspond, so that is a
   // mapping table someone has to own and keep current.
   //
-  // utils/jobTemplates.js already solves "stop retyping the material list" by
+  // ./jobTemplates.js already solves "stop retyping the material list" by
   // keyword-matching named packages onto live inventory. Prefer improving that
   // unless per-roof quantities are worth the mapping burden.
 

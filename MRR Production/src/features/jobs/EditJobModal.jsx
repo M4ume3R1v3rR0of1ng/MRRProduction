@@ -1,4 +1,4 @@
-// src/views/jobs/EditJobModal.jsx
+// src/features/jobs/EditJobModal.jsx
 //
 // Edit an existing job: its PO, name, address, schedule, supervisor, notes, and
 // its materials checklist.
@@ -13,11 +13,11 @@
 // updates its own list, which keeps the "who owns the jobs array" question with
 // the component that actually owns it.
 import { useState } from "react";
-import { supabase, updateRowStrict } from "../../utils/supabase";
-import { C, mkJI, mergePullTracking } from "../../utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, TA } from "../../components/UIPrimitives";
-import { logAction } from "../../utils/logger";
-import { useNotify } from "../../context/NotificationContext";
+import { supabase, updateRowStrict } from "@/utils/supabase";
+import { C, mkJI, mergePullTracking } from "@/utils/helpers";
+import { Btn, Fld, Inp, Modal, Sel, TA } from "@/components/UIPrimitives";
+import { logAction } from "@/utils/logger";
+import { useNotify } from "@/context/NotificationContext";
 
 // Job rows carry their materials under either `items` or `materials`, and their
 // supervisor under either `assignedto` or `assignedTo`, depending on vintage.

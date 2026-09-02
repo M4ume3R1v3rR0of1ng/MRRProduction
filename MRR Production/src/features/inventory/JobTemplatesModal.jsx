@@ -9,13 +9,13 @@
 // this modal.
 //
 // The contract is deliberately narrow: the catalog to pick materials from, and a
-// way to say "I'm done". Templates persist through utils/jobTemplates, so the
+// way to say "I'm done". Templates persist through features/jobs/jobTemplates, so the
 // parent never sees them and has nothing to keep in sync.
 import { useEffect, useState } from "react";
 import { C, uid, tot } from "@/utils/helpers";
-// jobTemplates.js is a jobs-domain data model (BuildJobsView is its other,
-// primary consumer) — resolves to @/features/jobs/jobTemplates when jobs moves.
-import { fetchJobTemplates, saveJobTemplates, resolveDefaultTemplates } from "@/utils/jobTemplates";
+// jobTemplates.js is a jobs-domain data model; JobTemplatesModal itself stays
+// in inventory since Inventory is its only real UI entry point.
+import { fetchJobTemplates, saveJobTemplates, resolveDefaultTemplates } from "@/features/jobs/jobTemplates";
 import { Btn, Fld, Inp, Modal } from "@/components/UIPrimitives";
 import { useNotify } from "@/context/NotificationContext";
 

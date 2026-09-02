@@ -1,4 +1,4 @@
-// src/utils/jobReportPdf.js
+// src/features/jobs/jobReportPdf.js
 //
 // The job completion report as a real PDF file, for uploading to AccuLynx.
 //
@@ -9,6 +9,7 @@
 // so the arithmetic is shared: only the drawing differs.
 
 import { buildJobReportModel } from './pdfGenerator';
+
 
 const NAVY = [14, 45, 107];
 const AMBER = [245, 168, 0];

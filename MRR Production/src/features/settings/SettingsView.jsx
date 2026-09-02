@@ -15,7 +15,7 @@ import { useNotify } from "@/context/NotificationContext";
 // ── 🆕 IMPORT ADDED ──────────────────────────────────────────────────────────
 // accuLynxSync.js lives in features/jobs/ (its primary domain) — settings only
 // reads its config/test-connection helpers, so this stays a cross-feature @/ import.
-import { fetchAccuLynxJob, fetchAccuLynxDocumentFolders } from "@/utils/accuLynxSync";
+import { fetchAccuLynxJob, fetchAccuLynxDocumentFolders } from "@/features/jobs/accuLynxSync";
 import { US_STATES, stateByCode } from "./salesTax";
 import {
   AUTOMATION_GROUPS,

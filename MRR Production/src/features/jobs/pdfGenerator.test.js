@@ -4,7 +4,7 @@
 // $225, and Reports and the PDF disagreed about the same job.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("./supabase", () => ({ supabase: {}, updateRowStrict: vi.fn(), getAccessToken: vi.fn() }));
+vi.mock("@/utils/supabase", () => ({ supabase: {}, updateRowStrict: vi.fn(), getAccessToken: vi.fn() }));
 
 const { generatePDF } = await import("./pdfGenerator");
 

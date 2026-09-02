@@ -1,4 +1,4 @@
-// src/components/JobHandoff.jsx
+// src/features/jobs/JobHandoff.jsx
 //
 // The card shown after a job moves down the pipeline: built, pulled, completed,
 // closed. One component for all four so the hand-off reads the same every time.
@@ -16,8 +16,8 @@
 // cannot open Build Jobs, so for them the card explains where the paperwork went
 // and offers nothing to press. A button that navigates somewhere they are not
 // permitted is worse than no button.
-import { C } from "../utils/helpers";
-import { TrussMark } from "../components/SteadwerkMark";
+import { C } from "@/utils/helpers";
+import { TrussMark } from "@/components/SteadwerkMark";
 
 export default function JobHandoff({
   job,
