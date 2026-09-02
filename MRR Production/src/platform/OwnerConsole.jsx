@@ -223,6 +223,13 @@ export default function OwnerConsole({ user, lang = "en" }) {
     const email = billingEmail.trim().toLowerCase();
     if (!billingTarget || !email || startingBilling) return;
     setStartingBilling(true);
+    // Open the tab NOW, synchronously, still inside the click's call stack — before
+    // either await below yields control. A browser only allows window.open to bypass
+    // its popup blocker when it happens in direct, synchronous response to a user
+    // gesture; call it after an await (as this used to) and Safari/Chrome silently
+    // drop it, no error, nothing to catch. We fill this blank tab in once the real
+    // Stripe URL comes back, rather than opening a second one.
+    const checkoutTab = window.open("", "_blank", "noopener");
     try {
       const accessToken = await getAccessToken();
       const res = await fetch("/.netlify/functions/start-company-billing", {
@@ -233,12 +240,16 @@ export default function OwnerConsole({ user, lang = "en" }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.url) throw new Error(data.error || `HTTP ${res.status}`);
 
-      window.open(data.url, "_blank", "noopener");
+      if (checkoutTab) checkoutTab.location.href = data.url;
+      // Pre-open was itself blocked (rare, but possible under stricter settings) —
+      // fall back to the direct call so at least this attempt still has a shot.
+      else window.open(data.url, "_blank", "noopener");
       showToast(t.ocCheckoutOpened.replace("{name}", billingTarget.name), "success");
       setBillingTarget(null);
       setBillingEmail("");
       setBillingInterval("monthly");
     } catch (err) {
+      checkoutTab?.close();
       showToast(`${t.ocStartBillingFailed} ${err.message}`, "error");
     } finally {
       setStartingBilling(false);
