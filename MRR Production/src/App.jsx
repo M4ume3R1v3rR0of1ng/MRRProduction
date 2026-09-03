@@ -1,6 +1,13 @@
 // src/App.jsx
 import { lazy, Suspense, useState, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+  useSearchParams,
+} from "react-router-dom";
 import { supabase } from "./shared/utils/supabase";
 import { useAppData } from "./core/useAppData";
 import OmniSearch from "./shared/components/OmniSearch";
@@ -101,8 +108,12 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [inventorySearchQuery, setInventorySearchQuery] = useState("");
-  // Deep-link from OmniSearch: which record the destination view should open
-  const [searchOpenTarget, setSearchOpenTarget] = useState(null); // { view, id }
+  // Deep-link from OmniSearch (which record the destination view should open)
+  // and the "just moved down the pipeline" highlight both live in the query
+  // string — ?open=<id> / ?highlight=<id>&hlabel=<text> — rather than local
+  // state, so a link to /buildjobs?open=4471 is bookmarkable and shareable and
+  // survives a refresh instead of evaporating the moment the tab reloads.
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Password-recovery interception. When someone opens the reset link from their
   // email, Supabase redirects back here with a recovery token in the URL hash and
@@ -219,26 +230,54 @@ export default function App() {
   const navigateTo = (nextView) => navigate("/" + nextView);
 
   const openSearchResult = (targetView, itemId) => {
-    setSearchOpenTarget({ view: targetView, id: itemId });
-    navigateTo(targetView);
+    navigate(`/${targetView}?open=${encodeURIComponent(itemId)}`);
   };
-  const searchTargetFor = (v) => (searchOpenTarget?.view === v ? searchOpenTarget.id : null);
-  const clearSearchTarget = () => setSearchOpenTarget(null);
+  // Gated on pathname (not just "is there an ?open= param") so a stray query
+  // string left over from a previous view never gets picked up by whichever
+  // route happens to render next.
+  const searchTargetFor = (v) =>
+    location.pathname === "/" + v ? searchParams.get("open") : null;
+  const clearSearchTarget = () => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("open");
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   // A job that just moved down the pipeline, handed to whichever screen now owns
   // it: { view, id, label }. The label is what the destination card's badge says,
   // so "Just built" and "Just completed" can use one mechanism.
   //
-  // Deliberately NOT the search target above: that one opens the job's detail
-  // modal, and this is meant to leave the card sitting there glowing until the
-  // person actually goes and touches it.
-  const [jobHighlight, setJobHighlight] = useState(null);
+  // Deliberately a separate query param from the search target above: that one
+  // opens the job's detail modal, and this is meant to leave the card sitting
+  // there glowing until the person actually goes and touches it.
   const showJobIn = (targetView, jobId, label) => {
-    setJobHighlight({ view: targetView, id: jobId, label });
-    navigateTo(targetView);
+    const params = new URLSearchParams();
+    params.set("highlight", jobId);
+    if (label) params.set("hlabel", label);
+    navigate(`/${targetView}?${params.toString()}`);
   };
-  const highlightFor = (v) => (jobHighlight?.view === v ? jobHighlight : null);
-  const clearJobHighlight = () => setJobHighlight(null);
+  const highlightFor = (v) => {
+    if (location.pathname !== "/" + v) return null;
+    const id = searchParams.get("highlight");
+    if (!id) return null;
+    return { view: v, id, label: searchParams.get("hlabel") || "" };
+  };
+  const clearJobHighlight = () => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("highlight");
+        next.delete("hlabel");
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   // Clearing curUser alone left the underlying Supabase session (and its token
   // in localStorage) valid and reusable — logout/idle-timeout must actually
