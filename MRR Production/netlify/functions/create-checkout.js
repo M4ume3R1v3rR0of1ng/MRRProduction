@@ -27,6 +27,7 @@
 
 import Stripe from "stripe";
 import { adminClient, corsHeaders } from "./_shared/tenant.js";
+import { withSentry } from "./_shared/sentry.js";
 
 function slugify(s) {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
@@ -42,7 +43,7 @@ async function uniqueSlug(admin, base) {
   return `${root}-${Date.now().toString(36)}`;
 }
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
@@ -198,8 +199,13 @@ export const handler = async (event) => {
       // number and the TRIAL_DAYS constant in LandingPage.jsx together — a page
       // promising a trial the checkout doesn't grant is worse than no trial.
       subscription_data: { trial_period_days: 14, metadata: { company_id: company.id, billing_interval: billingInterval } },
-      success_url: `${appUrl}/?checkout=success`,
-      cancel_url: `${appUrl}/?checkout=cancel`,
+      // Straight to /login, not "/" — the account isn't signed in yet (it was
+      // made server-side above), and now that the app has real per-view URLs,
+      // "/" renders the marketing landing page for a logged-out visitor rather
+      // than the login form LoginScreen needs to be mounted on to read
+      // ?checkout= and show the notice.
+      success_url: `${appUrl}/login?checkout=success`,
+      cancel_url: `${appUrl}/login?checkout=cancel`,
     });
 
     return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
@@ -207,3 +213,5 @@ export const handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
+
+export const handler = withSentry("create-checkout", rawHandler);

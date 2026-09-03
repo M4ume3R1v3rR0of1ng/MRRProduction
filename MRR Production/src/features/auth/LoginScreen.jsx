@@ -16,6 +16,7 @@
 //      before anyone logs in, so any list on it would publish the customer roster to
 //      the world. Your email already determines your company via memberships.
 import { useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/shared/utils/supabase";
 import { IS_IOS_APP } from "@/core/platform";
 import { C } from "@/shared/utils/helpers";
@@ -75,6 +76,7 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
   // { user, factorId, remember }. The session exists but sits at aal1.
   const [mfaStep, setMfaStep] = useState(null);
   const [mfaCode, setMfaCode] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     const savedEmail = localStorage.getItem("mrr_remember_email") || "";
@@ -84,14 +86,15 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
     }
     // Returning from Stripe Checkout. They're not signed in yet (the account was made
     // server-side during signup), so land them on the login form with a nudge.
-    const params = new URLSearchParams(window.location.search);
-    const checkout = params.get("checkout");
+    // Cleared via the router's own setSearchParams (rather than a raw
+    // history.replaceState) so React Router's location state doesn't go stale.
+    const checkout = searchParams.get("checkout");
     if (checkout === "success") {
       setNotice("Payment received — your company is live. Sign in to enter your portal.");
-      window.history.replaceState({}, "", window.location.pathname);
+      setSearchParams({}, { replace: true });
     } else if (checkout === "cancel") {
       setErr("Checkout was cancelled. Your company isn't active yet — you can try again anytime.");
-      window.history.replaceState({}, "", window.location.pathname);
+      setSearchParams({}, { replace: true });
     }
   }, []);
 

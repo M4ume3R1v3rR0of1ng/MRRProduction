@@ -1,0 +1,8 @@
+# Required now that the app has real per-view URLs (react-router-dom's
+# BrowserRouter): a direct hit or a refresh on a deep path like /fleet or
+# /terms has no matching static file, so without this Netlify would 404
+# instead of serving the SPA shell and letting the router take over client-side.
+#
+# Netlify functions at /.netlify/functions/* resolve before falling through to
+# this catch-all and need no explicit exclusion here.
+/*  /index.html  200

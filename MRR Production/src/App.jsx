@@ -1,5 +1,6 @@
 // src/App.jsx
 import { lazy, Suspense, useState, useEffect } from "react";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "./shared/utils/supabase";
 import { useAppData } from "./core/useAppData";
 import OmniSearch from "./shared/components/OmniSearch";
@@ -88,7 +89,8 @@ const jSC = {
 };
 
 export default function App() {
-  const [view, setView] = useState("dashboard");
+  const navigate = useNavigate();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -107,16 +109,14 @@ export default function App() {
     () => typeof window !== "undefined" && (window.location.hash || "").includes("type=recovery"),
   );
 
-  // What a logged-out visitor sees. "landing" is the public marketing front door;
-  // "login" is the sign-in / signup form. Fresh visitors start on the landing;
-  // logging out or finishing a password reset drops returning users straight to
-  // the login form instead of back through marketing. loginMode picks which tab
-  // the LoginScreen opens on ("login" vs. the self-serve "start a company" flow).
+  // Which tab the LoginScreen opens on ("login" vs. the self-serve "start a
+  // company" flow) — not part of the URL, just which pane is pre-selected when
+  // /login renders.
   //
-  // The iOS app opens on the login form and can never reach "landing": that page
-  // publishes the subscription rates, and an App Store build that shows a price
-  // is an App Store build that owes Apple In-App Purchase. See utils/platform.js.
-  const [authView, setAuthView] = useState(IS_IOS_APP ? "login" : "landing");
+  // The iOS app opens on the login form and can never reach "/" (the marketing
+  // landing page): that page publishes the subscription rates, and an App Store
+  // build that shows a price is an App Store build that owes Apple In-App
+  // Purchase. See utils/platform.js.
   const [loginMode, setLoginMode] = useState("login");
   // Where "← Back" on the Terms page should return to, since it's reachable from
   // both the landing footer and the login disclaimer.
@@ -135,14 +135,14 @@ export default function App() {
   // Someone holding a live session must never land on the marketing page. A stored
   // session can come back without a company selected — most often someone who
   // belongs to more than one and has not picked yet. useAppData then can't build
-  // curUser, and authView's "landing" default would strand them on the hero with
+  // curUser, and the "/" landing default would strand them on the hero with
   // no way to finish signing in. LoginScreen picks the session up and shows the
   // company picker, so send them there.
   useEffect(() => {
     if (app.loading || app.curUser) return;
     let cancelled = false;
     supabase.auth.getSession().then(({ data: { session } = {} }) => {
-      if (!cancelled && session?.user) setAuthView("login");
+      if (!cancelled && session?.user) navigate("/login");
     });
     return () => { cancelled = true; };
   }, [app.loading, app.curUser]);
@@ -163,29 +163,10 @@ export default function App() {
   // console once, when the flag first resolves, and only from the default view so
   // this can never yank someone off a screen they navigated to themselves.
   useEffect(() => {
-    if (isPlatformCompany && view === "dashboard") setView("owner");
-  }, [isPlatformCompany, view]);
-
-  // ── 🧭 BROWSER NATIVE HISTORY POPSTATE INTERCEPTOR ──
-  // Two separate navigation spaces share one history stack: the public flow
-  // (landing / login / terms, keyed by `authView`) and the signed-in portal
-  // (keyed by `view`). Which one a popped entry belongs to depends on whether
-  // anyone is signed in, so branch on that rather than on the entry alone.
-  useEffect(() => {
-    const handlePopState = (event) => {
-      const state = event.state || {};
-      if (!app.curUser) {
-        // The very first entry of a visit has no state object at all, and that
-        // entry is always the landing page. On iOS there is no landing page, so
-        // the floor is the login form: popping back must never surface pricing.
-        setAuthView(state.authView || (IS_IOS_APP ? "login" : "landing"));
-        return;
-      }
-      setView(state.view || "dashboard");
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [app.curUser]);
+    if (isPlatformCompany && location.pathname === "/dashboard") {
+      navigate("/owner", { replace: true });
+    }
+  }, [isPlatformCompany, location.pathname]);
 
   // ── 🎨 PER-COMPANY BRAND ACCENT ──
   // Each company's accent color (companies.branding.accent) drives the --brand-accent
@@ -210,22 +191,11 @@ export default function App() {
     root.style.setProperty("--brand-accent-ink", ink);
   }, [app.company?.branding?.accent]);
 
-  // Public navigation has to push a real history entry, the same way navigateTo
-  // does for the portal. Landing → Sign in / Start your company / Terms were
-  // plain setState calls, so the browser had nothing to pop and Back looked
-  // broken — it either did nothing or dumped you off the site entirely.
-  const goAuthView = (next) => {
-    setAuthView(next);
-    window.history.pushState({ authView: next }, "", "");
-  };
-
-  // Back out of a public screen. Prefer real history so the browser's own Back
-  // button and the in-app one stay on the same stack; fall back to a plain state
-  // change when this screen was reached without a push (a logout drops straight
-  // to "login", and popping there would leave the site).
+  // "← Back" out of Terms/Privacy. Both are reachable from either the landing
+  // footer or the login disclaimer, and termsReturn already tracks which one —
+  // so this can navigate straight there rather than guessing from history state.
   const backFromAuthView = (fallback) => {
-    if (window.history.state?.authView) window.history.back();
-    else setAuthView(fallback);
+    navigate(fallback === "landing" ? "/" : "/login");
   };
 
   useEffect(() => {
@@ -235,10 +205,7 @@ export default function App() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const navigateTo = (nextView) => {
-    setView(nextView);
-    window.history.pushState({ view: nextView }, "", "");
-  };
+  const navigateTo = (nextView) => navigate("/" + nextView);
 
   const openSearchResult = (targetView, itemId) => {
     setSearchOpenTarget({ view: targetView, id: itemId });
@@ -274,7 +241,7 @@ export default function App() {
       app.setCurUser(null);
       // A returning user who just signed out wants the login form, not the
       // marketing page they've already seen a hundred times.
-      setAuthView("login");
+      navigate("/login");
     }
   };
 
@@ -314,12 +281,13 @@ export default function App() {
       <ResetPasswordScreen
         lang={lang}
         onDone={() => {
-          // Password changed and session signed out inside the screen. Clear the
-          // recovery token from the URL and drop back to a clean login.
-          window.history.replaceState({}, "", window.location.pathname);
+          // Password changed and session signed out inside the screen. Navigating
+          // to /login (rather than a raw replaceState) both drops back to a clean
+          // login and clears the recovery hash — the new URL carries none — while
+          // keeping the router's own location in sync with the address bar.
           app.setCurUser(null);
-          setAuthView("login");
           setRecovery(false);
+          navigate("/login", { replace: true });
         }}
       />
       </Suspense>
@@ -370,75 +338,80 @@ export default function App() {
 
   // ── 🔒 AUTH CHECK RENDER LAYER ──
   if (!app.curUser) {
-    // Public Terms & Conditions page — reachable from the landing footer and the
-    // login disclaimer; "← Back" returns to whichever opened it.
-    if (authView === "terms") {
-      return (
-        <Suspense fallback={<ChunkFallback full />}>
-          <TermsPage onBack={() => backFromAuthView(termsReturn)} />
-        </Suspense>
-      );
-    }
-    // Public Privacy Policy. Shares termsReturn with the Terms page above: both
-    // are reachable from the same two places and both go back where they came
-    // from, so a second piece of state would only be a second thing to keep in
-    // step. Apple requires a reachable privacy URL for App Store review, and
-    // this route is it.
-    if (authView === "privacy") {
-      return (
-        <Suspense fallback={<ChunkFallback full />}>
-          <PrivacyPage onBack={() => backFromAuthView(termsReturn)} />
-        </Suspense>
-      );
-    }
-    // Public help & training page — the product tour and future walkthroughs.
-    // Lazy like Terms: it carries its own stylesheet and a video element, and
-    // cold traffic landing on the marketing page should not pay for either.
-    if (authView === "training") {
-      return (
-        <Suspense fallback={<ChunkFallback full />}>
-          <TrainingPage onBack={() => backFromAuthView("landing")} />
-        </Suspense>
-      );
-    }
-    // Public front door. The marketing landing page hands off to the login/signup
-    // form via its Sign in / Start your company buttons.
-    // The !IS_IOS_APP guard is what actually keeps LandingPage out of the App
-    // Store bundle: it is the only reference to the component, so with the flag
-    // folded to false at build time the whole marketing page and every rate on it
-    // is dropped rather than merely made unreachable.
-    if (!IS_IOS_APP && authView === "landing") {
-      return (
-        <LandingPage
-          onSignIn={() => { setLoginMode("login"); goAuthView("login"); }}
-          onStart={() => { setLoginMode("signup"); goAuthView("login"); }}
-          onShowTerms={() => { setTermsReturn("landing"); goAuthView("terms"); }}
-          onShowPrivacy={() => { setTermsReturn("landing"); goAuthView("privacy"); }}
-          onShowTraining={() => goAuthView("training")}
-        />
-      );
-    }
     return (
       <Suspense fallback={<ChunkFallback full />}>
-      <LoginScreen
-        onLogin={(u) => {
-          app.setCurUser(u);
-          navigateTo("dashboard");
-        }}
-        initialMode={loginMode}
-        onBack={() => backFromAuthView("landing")}
-        onShowTerms={() => { setTermsReturn("login"); goAuthView("terms"); }}
-        onShowPrivacy={() => { setTermsReturn("login"); goAuthView("privacy"); }}
-        activeLogo={app.activeLogo}
-        lang={lang}
-        setLang={setLang}
-      />
+        <Routes>
+          {/* Public Terms & Conditions page — reachable from the landing footer
+              and the login disclaimer; "← Back" returns to whichever opened it. */}
+          <Route path="/terms" element={<TermsPage onBack={() => backFromAuthView(termsReturn)} />} />
+          {/* Public Privacy Policy. Shares termsReturn with the Terms page above:
+              both are reachable from the same two places and both go back where
+              they came from, so a second piece of state would only be a second
+              thing to keep in step. Apple requires a reachable privacy URL for
+              App Store review, and this route is it. */}
+          <Route path="/privacy" element={<PrivacyPage onBack={() => backFromAuthView(termsReturn)} />} />
+          {/* Public help & training page — the product tour and future
+              walkthroughs. Lazy like Terms: it carries its own stylesheet and a
+              video element, and cold traffic landing on the marketing page
+              should not pay for either. */}
+          <Route path="/training" element={<TrainingPage onBack={() => backFromAuthView("landing")} />} />
+          {/* Public front door. The marketing landing page hands off to the
+              login/signup form via its Sign in / Start your company buttons.
+              The !IS_IOS_APP guard is what actually keeps LandingPage out of the
+              App Store bundle: it is the only reference to the component, so with
+              the flag folded to false at build time the whole marketing page and
+              every rate on it is dropped rather than merely made unreachable. On
+              iOS there is no landing page at all, so "/" goes straight to login. */}
+          <Route
+            path="/"
+            element={
+              IS_IOS_APP ? (
+                <Navigate to="/login" replace />
+              ) : (
+                <LandingPage
+                  onSignIn={() => { setLoginMode("login"); navigate("/login"); }}
+                  onStart={() => { setLoginMode("signup"); navigate("/login"); }}
+                  onShowTerms={() => { setTermsReturn("landing"); navigate("/terms"); }}
+                  onShowPrivacy={() => { setTermsReturn("landing"); navigate("/privacy"); }}
+                  onShowTraining={() => navigate("/training")}
+                />
+              )
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <LoginScreen
+                onLogin={(u) => {
+                  app.setCurUser(u);
+                  navigateTo("dashboard");
+                }}
+                initialMode={loginMode}
+                onBack={() => backFromAuthView("landing")}
+                onShowTerms={() => { setTermsReturn("login"); navigate("/terms"); }}
+                onShowPrivacy={() => { setTermsReturn("login"); navigate("/privacy"); }}
+                activeLogo={app.activeLogo}
+                lang={lang}
+                setLang={setLang}
+              />
+            }
+          />
+          {/* Any portal path hit while logged out (a stale bookmark, a shared
+              link, a session that just expired) — and anything else unmatched —
+              lands on the login form rather than 404ing. */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
       </Suspense>
     );
   }
 
+  // Derived from the URL rather than tracked separately — Sidebar's active-item
+  // highlight (and BuildJobsView's now-unused `view` prop below) both key off
+  // this string exactly as they did when it was its own piece of state.
+  const view = location.pathname.slice(1) || "dashboard";
+
 return (
-<IdleTimeoutWrapper 
+<IdleTimeoutWrapper
       lang={lang}
       isAuthenticated={!!app.curUser} 
       onLogout={handleLogout}
@@ -601,10 +574,15 @@ return (
             {/* One boundary for the whole switch: only one view is ever mounted,
                 so a single fallback covers every route change. */}
             <Suspense fallback={<ChunkFallback />}>
-            {view === "dashboard" && (
+            <Routes>
+            {/* "/" and a lingering "/login" both just mean "put me somewhere
+                inside the portal" once signed in. */}
+            <Route path="/" element={<Navigate to={isPlatformCompany ? "/owner" : "/dashboard"} replace />} />
+            <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={
               <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} setReqs={app.setReqs} company={app.company} activeLogo={app.activeLogo} />
-            )}
-            {view === "schedule" && (
+            } />
+            <Route path="/schedule" element={
               <ScheduleView
                 jobs={app.jobs}
                 reqs={app.reqs}
@@ -615,51 +593,73 @@ return (
                 onNav={navigateTo}
                 lang={lang}
               />
-            )}
-            {view === "buildjobs" && (app.userPerms.jobs_build || app.userPerms.jobs_close) && (
-              <BuildJobsView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} openItemId={searchTargetFor("buildjobs")} onOpenItemHandled={clearSearchTarget} activeLogo={app.activeLogo} highlight={highlightFor("buildjobs")} onHighlightCleared={clearJobHighlight} onShowJobIn={showJobIn}/>
-            )}
-            {view === "pull" && (
+            } />
+            <Route path="/buildjobs" element={
+              (app.userPerms.jobs_build || app.userPerms.jobs_close) ? (
+                <BuildJobsView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} openItemId={searchTargetFor("buildjobs")} onOpenItemHandled={clearSearchTarget} activeLogo={app.activeLogo} highlight={highlightFor("buildjobs")} onHighlightCleared={clearJobHighlight} onShowJobIn={showJobIn}/>
+              ) : <Navigate to="/dashboard" replace />
+            } />
+            <Route path="/pull" element={
               <PullInventoryView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} activeLogo={app.activeLogo} acculynxConfig={app.acculynxConfig} jSC={jSC} lang={lang} setLang={setLang} openItemId={searchTargetFor("pull")} onOpenItemHandled={clearSearchTarget} highlight={highlightFor("pull")} onHighlightCleared={clearJobHighlight} onShowJobIn={showJobIn} />
-            )}
-            {view === "inventory" && app.userPerms.inv_view && (
-              <InventoryView inv={app.inv} setInv={app.setInv} jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} />
-            )}
-            {view === "fleet" && app.userPerms.fleet_view && (
-              <FleetManagementView vehs={app.vehs} setVehs={app.setVehs} reqs={app.reqs} setReqs={app.setReqs} jobs={app.jobs} setJobs={app.setJobs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} jSC={jSC} users={app.users} user={app.curUser} perms={app.userPerms} maintenanceNotifications={app.maintenanceNotifications} maintManagers={app.maintManagers} oilSt={oilSt} detSt={detSt} predDays={predDays} fd={fd} fm={fm} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} openItemId={searchTargetFor("fleet")} onOpenItemHandled={clearSearchTarget} />
-            )}
-            {view === "requests" && (app.userPerms.maint_submit || app.userPerms.maint_manage) && (
-              <MaintenanceRequestsView reqs={app.reqs} setReqs={app.setReqs} vehs={app.vehs} setVehs={app.setVehs} users={app.users} user={app.curUser} perms={app.userPerms} maintenanceNotifications={app.maintenanceNotifications} maintManagers={app.maintManagers} lang={lang} setLang={setLang} openItemId={searchTargetFor("requests")} onOpenItemHandled={clearSearchTarget} />
-            )}
-            {view === "reports" && app.userPerms.reports_view && (
-              <ReportsView jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inv={app.inv} vehs={app.vehs} reqs={app.reqs} lang={lang} setLang={setLang} />
-            )}
-            {view === "users" && app.userPerms.users_manage && (
-              <UserManagementView users={app.users} setUsers={app.setUsers} currentUser={app.curUser} rolePerms={app.rolePerms} userOverrides={app.userOverrides} setUserOverrides={app.setUserOverrides} onUpdateUser={(updated) => { app.setCurUser(updated); app.setUsers((p) => p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u))); }} lang={lang} setLang={setLang} openItemId={searchTargetFor("users")} onOpenItemHandled={clearSearchTarget} />
-            )}
-            {view === "settings" && app.userPerms.settings_manage && (
-              <SettingsView warehouses={app.warehouses} company={app.company} setCompany={app.setCompany} jobNotifications={app.jobNotifications} setJobNotifications={app.setJobNotifications} maintenanceNotifications={app.maintenanceNotifications} setMaintenanceNotifications={app.setMaintenanceNotifications} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} lang={lang} />
-            )}
-            {view === "logs" && app.userPerms.users_manage && (
-              <AuditLogView perms={app.userPerms} inv={app.inv} users={app.users} companyId={app.curUser?.companyId} lang={lang} />
-            )}
-            {view === "owner" && app.curUser.isPlatformAdmin && (
-              <OwnerConsole user={app.curUser} lang={lang} />
-            )}
+            } />
+            <Route path="/inventory" element={
+              app.userPerms.inv_view ? (
+                <InventoryView inv={app.inv} setInv={app.setInv} jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} />
+              ) : <Navigate to="/dashboard" replace />
+            } />
+            <Route path="/fleet" element={
+              app.userPerms.fleet_view ? (
+                <FleetManagementView vehs={app.vehs} setVehs={app.setVehs} reqs={app.reqs} setReqs={app.setReqs} jobs={app.jobs} setJobs={app.setJobs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} jSC={jSC} users={app.users} user={app.curUser} perms={app.userPerms} maintenanceNotifications={app.maintenanceNotifications} maintManagers={app.maintManagers} oilSt={oilSt} detSt={detSt} predDays={predDays} fd={fd} fm={fm} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} openItemId={searchTargetFor("fleet")} onOpenItemHandled={clearSearchTarget} />
+              ) : <Navigate to="/dashboard" replace />
+            } />
+            <Route path="/requests" element={
+              (app.userPerms.maint_submit || app.userPerms.maint_manage) ? (
+                <MaintenanceRequestsView reqs={app.reqs} setReqs={app.setReqs} vehs={app.vehs} setVehs={app.setVehs} users={app.users} user={app.curUser} perms={app.userPerms} maintenanceNotifications={app.maintenanceNotifications} maintManagers={app.maintManagers} lang={lang} setLang={setLang} openItemId={searchTargetFor("requests")} onOpenItemHandled={clearSearchTarget} />
+              ) : <Navigate to="/dashboard" replace />
+            } />
+            <Route path="/reports" element={
+              app.userPerms.reports_view ? (
+                <ReportsView jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inv={app.inv} vehs={app.vehs} reqs={app.reqs} lang={lang} setLang={setLang} />
+              ) : <Navigate to="/dashboard" replace />
+            } />
+            <Route path="/users" element={
+              app.userPerms.users_manage ? (
+                <UserManagementView users={app.users} setUsers={app.setUsers} currentUser={app.curUser} rolePerms={app.rolePerms} userOverrides={app.userOverrides} setUserOverrides={app.setUserOverrides} onUpdateUser={(updated) => { app.setCurUser(updated); app.setUsers((p) => p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u))); }} lang={lang} setLang={setLang} openItemId={searchTargetFor("users")} onOpenItemHandled={clearSearchTarget} />
+              ) : <Navigate to="/dashboard" replace />
+            } />
+            <Route path="/settings" element={
+              app.userPerms.settings_manage ? (
+                <SettingsView warehouses={app.warehouses} company={app.company} setCompany={app.setCompany} jobNotifications={app.jobNotifications} setJobNotifications={app.setJobNotifications} maintenanceNotifications={app.maintenanceNotifications} setMaintenanceNotifications={app.setMaintenanceNotifications} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} lang={lang} />
+              ) : <Navigate to="/dashboard" replace />
+            } />
+            <Route path="/logs" element={
+              app.userPerms.users_manage ? (
+                <AuditLogView perms={app.userPerms} inv={app.inv} users={app.users} companyId={app.curUser?.companyId} lang={lang} />
+              ) : <Navigate to="/dashboard" replace />
+            } />
+            <Route path="/owner" element={
+              app.curUser.isPlatformAdmin ? <OwnerConsole user={app.curUser} lang={lang} /> : <Navigate to="/dashboard" replace />
+            } />
             {/* Sold outside the app on iOS. BillingView buys seat packs and opens
                 the Stripe portal, both of which are purchases Apple would require
-                to run through In-App Purchase. The flag is first in the chain so
-                the component drops out of the App Store bundle entirely. */}
-            {!IS_IOS_APP && view === "billing" && (app.curUser.role === "admin" || app.curUser.isPlatformAdmin) && (
-              <BillingView user={app.curUser} lang={lang} />
+                to run through In-App Purchase. The flag guards the route
+                registration itself, on top of the lazy import above being
+                conditional, so the component drops out of the App Store bundle
+                entirely. */}
+            {!IS_IOS_APP && (
+              <Route path="/billing" element={
+                (app.curUser.role === "admin" || app.curUser.isPlatformAdmin) ? (
+                  <BillingView user={app.curUser} lang={lang} />
+                ) : <Navigate to="/dashboard" replace />
+              } />
             )}
             {/* No permission gate. Training is how someone learns the parts of
                 the app they already have access to; gating it would hide the
                 explanation from exactly the people who need it most. */}
-            {view === "training" && (
+            <Route path="/training" element={
               <TrainingView lang={lang} user={app.curUser} company={app.company} trainingMedia={app.trainingMedia} setTrainingMedia={app.setTrainingMedia} />
-            )}
-            {view === "profile" && (
+            } />
+            <Route path="/profile" element={
               <ProfileView
                 user={app.curUser}
                 lang={lang}
@@ -668,7 +668,11 @@ return (
                   app.setUsers((p) => p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)));
                 }}
               />
-            )}
+            } />
+            <Route path="/terms" element={<TermsPage onBack={() => backFromAuthView(termsReturn)} />} />
+            <Route path="/privacy" element={<PrivacyPage onBack={() => backFromAuthView(termsReturn)} />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
             </Suspense>
           </div>
 
