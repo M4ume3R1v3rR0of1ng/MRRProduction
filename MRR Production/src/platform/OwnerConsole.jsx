@@ -229,7 +229,16 @@ export default function OwnerConsole({ user, lang = "en" }) {
     // gesture; call it after an await (as this used to) and Safari/Chrome silently
     // drop it, no error, nothing to catch. We fill this blank tab in once the real
     // Stripe URL comes back, rather than opening a second one.
-    const checkoutTab = window.open("", "_blank", "noopener");
+    //
+    // Deliberately NOT passing "noopener" here: per spec, window.open() with
+    // noopener returns null — there is then no handle left to navigate once the
+    // URL is known, which is exactly what was happening (the blank tab stayed
+    // blank forever, and the code fell through to a second, now-async window.open
+    // that the popup blocker ate). We still don't want the Stripe tab holding a
+    // `window.opener` back into this one, so that's stripped by hand right below
+    // instead of via the noopener flag.
+    const checkoutTab = window.open("", "_blank");
+    if (checkoutTab) checkoutTab.opener = null;
     try {
       const accessToken = await getAccessToken();
       const res = await fetch("/.netlify/functions/start-company-billing", {
