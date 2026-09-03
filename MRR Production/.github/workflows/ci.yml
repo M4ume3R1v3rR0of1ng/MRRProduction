@@ -1,0 +1,33 @@
+name: CI
+
+# Runs on every PR and on pushes to main, so a broken test or build shows up as a
+# check on the PR itself rather than only surfacing later in Netlify's deploy log.
+# Netlify's own PR deploy preview builds the site too, but never runs `npm test` —
+# this is what actually gates on the Vitest suite.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # vite@7 and vitest@4 both require Node ^20.19 / >=22.12 — see their
+          # package.json "engines". 22 is current Node LTS and satisfies both.
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      # No secrets needed: SENTRY_AUTH_TOKEN is gated-off in vite.config.js when
+      # absent (plain build, no source-map upload attempt), and the Supabase/
+      # Stripe/etc VITE_ vars are only read at runtime in the browser, not during
+      # the build itself. Confirmed locally by building with no .env present.
+      - run: npm run build
