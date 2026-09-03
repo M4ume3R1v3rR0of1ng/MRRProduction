@@ -2,12 +2,13 @@
 // Generic authenticated email relay. Environment variable RESEND_API_KEY must be set.
 
 import { adminClient, resolveCaller, corsHeaders, platformFromAddress, companyMemberEmails } from "./_shared/tenant.js";
+import { withSentry } from "./_shared/sentry.js";
 
 // notifications@<verified platform domain>, company name as the display name. See
 // platformFromAddress in _shared/tenant.js for how the domain is resolved.
 const MAIL_FROM = platformFromAddress("notifications");
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
@@ -83,3 +84,5 @@ export const handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }
 };
+
+export const handler = withSentry("send-email", rawHandler);

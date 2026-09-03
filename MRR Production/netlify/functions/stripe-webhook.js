@@ -21,6 +21,7 @@
 
 import Stripe from "stripe";
 import { adminClient } from "./_shared/tenant.js";
+import { withSentry } from "./_shared/sentry.js";
 
 // Seats included in the BASE plan only.
 //
@@ -238,7 +239,7 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
   }
 }
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method not allowed" };
   }
@@ -380,3 +381,5 @@ export const handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };
+
+export const handler = withSentry("stripe-webhook", rawHandler);

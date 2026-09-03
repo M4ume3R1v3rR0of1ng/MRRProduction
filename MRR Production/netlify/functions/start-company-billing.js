@@ -37,8 +37,9 @@
 
 import Stripe from "stripe";
 import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
+import { withSentry } from "./_shared/sentry.js";
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
@@ -154,3 +155,5 @@ export const handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
+
+export const handler = withSentry("start-company-billing", rawHandler);

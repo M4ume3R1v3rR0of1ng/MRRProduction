@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 
 export default defineConfig({
   // '@' -> src/, so a moved file's imports don't need recalculating relative
@@ -65,6 +66,32 @@ export default defineConfig({
         type: 'module',
       },
     }),
+    // Uploads source maps so Sentry can show real (unminified) stack traces on
+    // client-side issues instead of pointing at bundled/mangled code — see
+    // src/shared/utils/sentry.js for the client SDK setup this feeds.
+    //
+    // Gated on SENTRY_AUTH_TOKEN existing so a machine without it (any local dev
+    // box that hasn't set one) gets a plain build with no upload attempt, rather
+    // than a plugin instance that immediately errors for missing auth. Only
+    // Netlify's build environment needs this var set — see .env.example.
+    //
+    // Must come after the other plugins in this array (Sentry's own guidance):
+    // it needs to see the fully bundled output, which is only final once
+    // vite-plugin-pwa and the rest have already run.
+    process.env.SENTRY_AUTH_TOKEN &&
+      sentryVitePlugin({
+        org: 'steadwerk',
+        project: 'steadwerk-web',
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        sourcemaps: {
+          // The plugin uploads maps straight from dist/ before Netlify publishes
+          // it, then this deletes the local copies — so the maps that de-anonymize
+          // every stack trace back to real source never end up served publicly at
+          // <chunk>.js.map. `sourcemap: 'hidden'` below already keeps the shipped
+          // JS from linking to them; this is the belt to that suspenders.
+          filesToDeleteAfterUpload: ['./dist/**/*.map'],
+        },
+      }),
   ],
   // jsPDF is reached only through a dynamic import(), so Vite's scanner does not
   // see it at server start. The first report upload then triggers dep discovery
@@ -75,6 +102,21 @@ export default defineConfig({
     include: ['jspdf', 'jspdf-autotable'],
   },
   build: {
+    // Only generate maps at all when the Sentry plugin above is actually going
+    // to run and upload+delete them — see filesToDeleteAfterUpload there. Tying
+    // generation to the same SENTRY_AUTH_TOKEN check means a build with no token
+    // (any local machine that hasn't set one) never writes a .map file into
+    // dist/ in the first place, so there's nothing that could accidentally ship
+    // to Netlify's publish output if that cleanup step were ever skipped or
+    // failed partway through.
+    //
+    // 'hidden' (used only when a token IS present): maps are generated so
+    // Sentry has something to upload, but the shipped JS carries no
+    // `//# sourceMappingURL` comment pointing at them — a visitor's devtools
+    // "Sources" tab still shows minified code, not your original source. Two
+    // independent layers, not one: this keeps the JS from linking to the maps,
+    // filesToDeleteAfterUpload keeps the maps from existing in dist/ at all.
+    sourcemap: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
     rollupOptions: {
       output: {
         // Corral the PDF engine into predictably-named chunks so the service worker
@@ -102,7 +144,11 @@ export default defineConfig({
           // iceberg-js is here because it arrives as a dependency of
           // @supabase/storage-js, not on its own.
           if (/node_modules[\\/](@supabase[\\/]|iceberg-js)/.test(id)) return 'supabase-vendor';
-          if (/node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'react-vendor';
+          // react-router-dom (and its react-router dependency) is imported at the
+          // very top of App.jsx/main.jsx, same as React itself — grouped with
+          // react-vendor for the same reason: it changes on its own release
+          // schedule, not on every app deploy.
+          if (/node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) return 'react-vendor';
         },
       },
     },

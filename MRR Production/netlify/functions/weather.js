@@ -6,6 +6,7 @@
 // app's Content-Security-Policy, which only allows connect-src to 'self' + Supabase.
 
 import { adminClient, resolveCaller } from "./_shared/tenant.js";
+import { withSentry } from "./_shared/sentry.js";
 
 // Fallback: the Saint Joe Road warehouse, Fort Wayne IN. Each company sets its own
 // coordinates in companies.integrations.weather — otherwise a roofing crew in another
@@ -33,7 +34,7 @@ function getCorsHeaders(requestOrigin) {
   };
 }
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   const requestOrigin = event.headers?.origin || event.headers?.Origin || "";
   const corsHeaders = getCorsHeaders(requestOrigin);
 
@@ -87,3 +88,5 @@ export const handler = async (event) => {
     return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
   }
 };
+
+export const handler = withSentry("weather", rawHandler);

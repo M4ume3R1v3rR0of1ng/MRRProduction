@@ -42,12 +42,13 @@
 
 import Stripe from "stripe";
 import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
+import { withSentry } from "./_shared/sentry.js";
 
 const PACK_SEATS = 5;
 
 const json = (statusCode, headers, payload) => ({ statusCode, headers, body: JSON.stringify(payload) });
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
@@ -188,3 +189,5 @@ export const handler = async (event) => {
     return json(500, headers, { error: err.message });
   }
 };
+
+export const handler = withSentry("add-seats", rawHandler);

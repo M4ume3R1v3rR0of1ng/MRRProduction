@@ -2,6 +2,7 @@
 import React from 'react';
 import { C } from '../utils/helpers';
 import { translations } from '../utils/translations';
+import { captureException } from '../utils/sentry';
 
 // This boundary is mounted in main.jsx, ABOVE <App/>, which is where the app's
 // `lang` state lives — so it can never be handed the language as a prop. That is
@@ -40,6 +41,11 @@ export default class ErrorBoundary extends React.Component {
     console.error("Error Detail:", error);
     console.error("Component Stack Trace:", errorInfo.componentStack);
     console.groupEnd();
+
+    // No-op if VITE_SENTRY_DSN was never set (see src/shared/utils/sentry.js) —
+    // this is the only place a render-time crash is reported, since a crash here
+    // means the tree below this boundary already unmounted.
+    captureException(error, { contexts: { react: { componentStack: errorInfo.componentStack } } });
   }
 
   render() {

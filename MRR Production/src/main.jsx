@@ -1,10 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import { NotificationProvider } from "./shared/context/NotificationContext";
 import ErrorBoundary from "./shared/components/ErrorBoundary"; // Imported boundary class
 import { registerSW } from "virtual:pwa-register";
 import { applyTheme, readTheme } from "./shared/utils/theme";
+import { initSentry } from "./shared/utils/sentry";
 import "./tokens.css";
 
 // Stamp the theme before the first render so no view ever paints in the wrong
@@ -12,6 +14,13 @@ import "./tokens.css";
 // script-src 'self' with no unsafe-inline, so that would be blocked. tokens.css
 // carries a small pre-hydration guard for the gap before this module runs.
 applyTheme(readTheme());
+
+// No-ops without VITE_SENTRY_DSN set — see src/shared/utils/sentry.js. Runs
+// before render so a crash during the very first paint is still caught by the
+// SDK's global window.onerror/unhandledrejection hooks, not just by
+// ErrorBoundary below (which only catches errors React itself throws during
+// render/lifecycle).
+initSentry();
 
 // Pick up a new deploy without anyone pressing refresh.
 //
@@ -45,8 +54,10 @@ registerSW({
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <ErrorBoundary>
-    <NotificationProvider>
-      <App />
-    </NotificationProvider>
+    <BrowserRouter>
+      <NotificationProvider>
+        <App />
+      </NotificationProvider>
+    </BrowserRouter>
   </ErrorBoundary>,
 );
