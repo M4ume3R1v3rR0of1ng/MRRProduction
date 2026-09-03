@@ -17,6 +17,7 @@
 // invoiced, closed, cancelled, dead). Paginate with ?page=<recordStartIndex>.
 
 import { adminClient } from "./_shared/tenant.js";
+import { withSentry } from "./_shared/sentry.js";
 
 const ACCULYNX_BASE = 'https://api.acculynx.com/api/v2';
 
@@ -128,7 +129,7 @@ function mapToSupabaseRow(job, customer, companyId) {
   };
 }
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   try {
     const params = event.queryStringParameters || {};
 
@@ -262,3 +263,5 @@ export const handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };
+
+export const handler = withSentry("acculynx-import", rawHandler);

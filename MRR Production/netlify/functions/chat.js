@@ -7,6 +7,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { adminClient, resolveCaller } from "./_shared/tenant.js";
+import { withSentry } from "./_shared/sentry.js";
 
 const ALLOWED_ORIGINS = [
   "https://steadwerk.com",
@@ -538,7 +539,7 @@ async function executeTool(admin, perms, companyId, name, input) {
   }
 }
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   const requestOrigin = event.headers?.origin || event.headers?.Origin || "";
   const corsHeaders = getCorsHeaders(requestOrigin);
 
@@ -626,3 +627,5 @@ Keep answers short and directly useful — this is an internal ops tool, not a c
     return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
   }
 };
+
+export const handler = withSentry("chat", rawHandler);

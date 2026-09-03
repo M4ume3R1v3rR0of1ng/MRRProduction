@@ -15,8 +15,9 @@
 // Env: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (both via adminClient).
 
 import { adminClient } from "./_shared/tenant.js";
+import { withSentry } from "./_shared/sentry.js";
 
-export const handler = async () => {
+const rawHandler = async () => {
   const admin = adminClient();
 
   // Returns the number of rows it deleted. Worth logging: a count that suddenly
@@ -32,6 +33,8 @@ export const handler = async () => {
   console.log(`daily-archive: removed ${deleted ?? 0} audit log rows older than 30 days.`);
   return { statusCode: 200, body: JSON.stringify({ ok: true, deleted: deleted ?? 0 }) };
 };
+
+export const handler = withSentry("daily-archive", rawHandler);
 
 // Netlify reads this to register the cron. Nightly at midnight UTC.
 export const config = {

@@ -12,6 +12,7 @@
 import { Resend } from "resend";
 import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders, appOrigin, platformFromAddress } from "./_shared/tenant.js";
 import { validatePassword } from "./_shared/password.js";
+import { withSentry } from "./_shared/sentry.js";
 
 const VALID_ROLES = ["admin", "warehouse", "coordinator", "manager", "field", "employee", "bookkeeper"];
 
@@ -93,7 +94,7 @@ async function sendInviteEmail({ admin, targetEmail, name, isNewAccount, company
   }
 }
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
@@ -243,3 +244,5 @@ export const handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
 };
+
+export const handler = withSentry("create-user", rawHandler);

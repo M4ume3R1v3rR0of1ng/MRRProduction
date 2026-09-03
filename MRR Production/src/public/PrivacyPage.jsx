@@ -20,15 +20,24 @@
 //   Buckets       vehicle-photos, inventory-photos, job-attachments,
 //                 vehicle-attachments, inventory-attachments, training-media
 //   Processors    Supabase, Netlify, Stripe, Resend, Anthropic, AccuLynx,
-//                 Open-Meteo (netlify/functions/*)
+//                 Open-Meteo, Sentry (netlify/functions/*, src/shared/utils/sentry.js)
 //   Local storage mrr_remember_email, sw_lang, the theme preference, and the
 //                 Supabase session
 //   Retention     audit logs are deleted after 30 days by
 //                 archive_old_audit_logs() in supabase/03_functions.sql
 //
-// A grep for analytics, advertising and session-replay SDKs (GA, gtag, Segment,
-// Mixpanel, Amplitude, Hotjar, Meta, PostHog, Sentry, Datadog) returns nothing,
-// which is why section 05 can make that claim plainly.
+// Sentry (error monitoring) was added deliberately and is disclosed in the
+// processors table below and in "What we collect". It is distinct from the
+// analytics/advertising SDKs the "What we do not collect" section disclaims
+// (GA, gtag, Segment, Mixpanel, Amplitude, Hotjar, Meta, PostHog, Datadog) —
+// none of those are loaded, and Sentry does not do advertising or cross-site
+// tracking. It DOES run performance tracing and session replay on the client
+// (src/shared/utils/sentry.js) — replay records DOM structure with every text
+// node masked and every image/video blocked (replayIntegration()'s own
+// defaults, left untouched — see the comment there), so it captures layout
+// and interaction, not the job costs/customer/pricing data on screen. If that
+// masking is ever loosened, or replay/tracing is added server-side, this page
+// (and the mobile section) needs a real rewrite, not a find-and-replace.
 //
 // IF YOU CHANGE WHAT THE APP COLLECTS, CHANGE THIS PAGE. It is also the source
 // for Apple's App Privacy questionnaire, and an answer there that contradicts
@@ -207,6 +216,16 @@ const SECTIONS = [
             <b>Billing.</b> Your plan, seat count, and subscription status. Card details go straight to Stripe and
             never reach our servers or our database.
           </li>
+          <li>
+            <b>Crash diagnostics, performance data, and masked session replay.</b> When the app or one of our
+            servers hits a bug, the error message, a stack trace, and basic technical details (browser or app
+            version, operating system) go to Sentry, our error-monitoring service, so we can find and fix it. The
+            web app also sends Sentry performance timing (how long pages and requests take) and, for a sample of
+            sessions, a session replay: a recording of layout and interaction with every piece of on-screen text
+            masked and every image and video blocked before it ever leaves your browser. A replay shows what you
+            clicked and how the app responded — not the job costs, customer names, or pricing that were on screen.
+            See "Companies we rely on" below.
+          </li>
         </ul>
       </>
     ),
@@ -225,8 +244,10 @@ const SECTIONS = [
           </li>
           <li>
             <b>We run no analytics or advertising.</b> There is no Google Analytics, no Meta pixel, no Segment,
-            Mixpanel, Amplitude, Hotjar, or session replay. No third party receives a record of your visit,
-            because no such third party is loaded.
+            Mixpanel, Amplitude, or Hotjar. No third party builds a marketing or advertising profile of you from
+            your visit, because no such third party is loaded. (Error monitoring is different and is disclosed
+            separately — see "Companies we rely on." It exists to catch bugs and slow performance, not to profile
+            you, and its session replay masks all on-screen text and blocks all images before anything is sent.)
           </li>
           <li>
             <b>We do not use advertising cookies.</b> The app stores only what it needs to work: your session, your
@@ -305,6 +326,7 @@ const SECTIONS = [
               <tr><td><b>Anthropic</b></td><td>The in-app assistant</td><td>What you type to it, and the company records it looks up to answer</td></tr>
               <tr><td><b>AccuLynx</b></td><td>Job sync, only if your company connects it</td><td>Job and material details your company chooses to send</td></tr>
               <tr><td><b>Open-Meteo</b></td><td>Weather</td><td>Only the coordinates your company configured. No personal data.</td></tr>
+              <tr><td><b>Sentry</b></td><td>Error monitoring and performance tracing, so we can catch and fix bugs</td><td>Error messages, stack traces, basic technical details (browser/app version, OS), page/request timing, and — for a sample of sessions — a masked session replay: every piece of on-screen text and every image/video is blocked before it leaves your browser, so the recording shows layout and clicks, not your data.</td></tr>
             </tbody>
           </table>
         </div>

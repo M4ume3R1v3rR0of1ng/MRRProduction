@@ -38,6 +38,7 @@
 
 import Stripe from "stripe";
 import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
+import { withSentry } from "./_shared/sentry.js";
 
 // The five tenant-scoped buckets. Uploads write to <company_id>/<file> (supabase/05).
 const BUCKETS = [
@@ -48,7 +49,7 @@ const BUCKETS = [
   "inventory-attachments",
 ];
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers, body: "" };
@@ -198,3 +199,5 @@ export const handler = async (event) => {
     return { statusCode: 500, headers, body: JSON.stringify({ ok: false, error: err.message, warnings }) };
   }
 };
+
+export const handler = withSentry("delete-company", rawHandler);

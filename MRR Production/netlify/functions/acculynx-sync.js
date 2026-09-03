@@ -2,6 +2,7 @@
 
 import { adminClient, resolveCaller } from "./_shared/tenant.js";
 import { buildExpenseNotes } from "./_shared/expenseNotes.js";
+import { withSentry } from "./_shared/sentry.js";
 
 const ALLOWED_ORIGINS = [
   "https://steadwerk.com",
@@ -23,7 +24,7 @@ function getCorsHeaders(requestOrigin) {
   };
 }
 
-export const handler = async (event) => {
+const rawHandler = async (event) => {
   const requestOrigin = event.headers?.origin || event.headers?.Origin || "";
   const corsHeaders = getCorsHeaders(requestOrigin);
 
@@ -457,3 +458,5 @@ export const handler = async (event) => {
     };
   }
 };
+
+export const handler = withSentry("acculynx-sync", rawHandler);
