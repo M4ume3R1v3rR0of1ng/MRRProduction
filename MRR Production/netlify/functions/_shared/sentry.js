@@ -20,6 +20,12 @@
 // no headers (Authorization bearer tokens, cookies), no automatic PII
 // collection. See the disclosures in src/public/PrivacyPage.jsx before
 // changing that — Sentry becoming a new sub-processor is documented there.
+//
+// Generic infra, not itself money/permission logic, so it's exempt from this
+// project's strict checkJs pass (@ts-nocheck below) — but withSentry's signature
+// is still typed, because it wraps every handler in the money/permission layer
+// and an untyped wrapper would make every one of those handlers untyped too.
+// @ts-nocheck
 
 import * as Sentry from "@sentry/node";
 
@@ -39,9 +45,17 @@ function ensureInit() {
   });
 }
 
+/** @typedef {import("./types.js").NetlifyEvent} NetlifyEvent */
+/** @typedef {import("./types.js").NetlifyResponse} NetlifyResponse */
+
 // Wrap a function's exported handler: withSentry("send-alert", handler).
 // `name` tags every event so a failure in the Sentry UI reads as
 // "send-alert", not "handler".
+/**
+ * @param {string} name
+ * @param {(event: NetlifyEvent, context: unknown) => Promise<NetlifyResponse>} handler
+ * @returns {(event: NetlifyEvent, context: unknown) => Promise<NetlifyResponse>}
+ */
 export function withSentry(name, handler) {
   return async (event, context) => {
     ensureInit();

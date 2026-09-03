@@ -1,6 +1,22 @@
 // src/shared/database/permissions.js
+// @ts-check
+
+/**
+ * @typedef {Object} PermDef
+ * @property {string} label - Short name shown next to the checkbox in Settings.
+ * @property {string} desc  - Longer explanation of what the permission unlocks.
+ * @property {string} g     - The PERM_GROUPS heading (with emoji) this belongs to.
+ */
 
 // 1. Core Permission Rules & UI Descriptions
+//
+// `@satisfies` (rather than `@type {Record<string, PermDef>}`) is deliberate: it
+// checks every entry against PermDef WITHOUT widening the object's own key type to
+// `string`, so PermKey below stays the exact literal union of permission ids
+// instead of collapsing to "any string". That's what lets PERM_GROUPS and
+// DEFAULT_ROLE_PERMS below be checked against the real set of keys — a typo'd or
+// removed permission id fails to compile instead of silently granting nothing.
+/** @satisfies {Record<string, PermDef>} */
 export const PERM_DEFS = {
   inv_view: { label: "View Inventory", desc: "Browse items & stock levels", g: "📦 Inventory" },
   inv_edit: {
@@ -110,7 +126,13 @@ export const PERM_DEFS = {
   },
 };
 
+/** Every valid permission id — the exact keys of PERM_DEFS, not `string`. */
+/** @typedef {keyof typeof PERM_DEFS} PermKey */
+
+/** @typedef {[group: string, keys: PermKey[]]} PermGroup */
+
 // 2. Navigation & Settings Groupings Map
+/** @type {PermGroup[]} */
 export const PERM_GROUPS = [
   [
     "📦 Inventory",
@@ -154,9 +176,22 @@ export const PERM_GROUPS = [
   ["⚙️ Admin", ["users_manage", "settings_manage"]],
 ];
 
-export const ALL_PERM_KEYS = Object.keys(PERM_DEFS);
+export const ALL_PERM_KEYS = /** @type {PermKey[]} */ (Object.keys(PERM_DEFS));
+
+/**
+ * Every role that has an entry in the DEFAULT_ROLE_PERMS matrix — i.e. every role
+ * except "admin", which never consults the matrix (see getEffectivePerms below).
+ * Defined ahead of DEFAULT_ROLE_PERMS's own declaration; that's fine for a type
+ * (unlike the const itself, types aren't evaluated top-to-bottom).
+ * @typedef {keyof typeof DEFAULT_ROLE_PERMS} RoleKey
+ */
+
+/** @typedef {RoleKey | "admin"} Role */
+
+/** @typedef {[role: RoleKey, label: string]} RoleCol */
 
 // 3. User Roster System Display Mapping Array
+/** @type {RoleCol[]} */
 export const ROLE_COLS = [
   ["warehouse", "Warehouse Mgr"],
   ["coordinator", "Coordinator"],
@@ -167,6 +202,13 @@ export const ROLE_COLS = [
 ];
 
 // 4. Baseline Corporate Safety Rules Matrix
+//
+// `@satisfies {Record<string, Record<PermKey, boolean>>}` forces every role below
+// to set EVERY permission explicitly — add a permission to PERM_DEFS without
+// updating every role here and this stops compiling, rather than the role
+// silently defaulting to "no access" (or, worse, `undefined` reading as falsy at
+// one call site and truthy at another).
+/** @satisfies {Record<string, Record<PermKey, boolean>>} */
 export const DEFAULT_ROLE_PERMS = {
   warehouse: {
     inv_view: true,
@@ -344,7 +386,14 @@ export const DEFAULT_ROLE_PERMS = {
   },
 };
 
+/**
+ * @typedef {Object} RoleDef
+ * @property {string} label
+ * @property {string} color
+ */
+
 // 5. Global Roles Map Interface
+/** @satisfies {Record<Role, RoleDef>} */
 export const ROLES = {
   admin: { label: "Admin", color: "red" },
   warehouse: { label: "Warehouse Mgr", color: "purple" },
@@ -355,11 +404,30 @@ export const ROLES = {
   bookkeeper: { label: "Book Keeper", color: "teal" },
 };
 
+/**
+ * The minimal shape getEffectivePerms actually reads. Deliberately loose (not
+ * "the" User type) so any full user record — app state, a Supabase row, a test
+ * fixture — satisfies it structurally as long as it has these two fields.
+ * @typedef {Object} PermUser
+ * @property {string} id
+ * @property {Role} role
+ */
+
+/** @typedef {Partial<Record<PermKey, boolean>>} PermMap */
+
 // 6. Real-time Security Access Resolver Function
+/**
+ * @param {PermUser | null | undefined} user
+ * @param {Record<RoleKey, PermMap>} rolePerms
+ * @param {Record<string, PermMap>} [userOverrides]
+ * @returns {PermMap}
+ */
 export function getEffectivePerms(user, rolePerms, userOverrides = {}) {
   if (!user) return {};
   // Admins always bypass standard security gates and auto-resolve to true
-  if (user.role === "admin") return Object.fromEntries(ALL_PERM_KEYS.map((k) => [k, true]));
+  if (user.role === "admin") {
+    return /** @type {PermMap} */ (Object.fromEntries(ALL_PERM_KEYS.map((k) => [k, true])));
+  }
 
   const base = { ...(rolePerms[user.role] || {}) };
   const ov = userOverrides[user.id] || {};

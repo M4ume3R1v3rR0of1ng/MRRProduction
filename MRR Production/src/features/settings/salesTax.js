@@ -1,4 +1,5 @@
 // src/features/settings/salesTax.js
+// @ts-check
 //
 // US state sales-tax starting points for the Company Details tax line.
 //
@@ -7,6 +8,15 @@
 // year. So this is a sensible default the admin can still override by hand — picking
 // a state fills the rate in, it does not lock it. The five NOMAD states with no state
 // sales tax (AK, DE, MT, NH, OR) are 0 here; AK/MT still allow local taxes.
+
+/**
+ * @typedef {Object} StateTaxInfo
+ * @property {string} code - Two-letter USPS state code.
+ * @property {string} name
+ * @property {number} taxPct - State base sales-tax rate as a percent (e.g. 6.25 for 6.25%).
+ */
+
+/** @type {StateTaxInfo[]} */
 export const US_STATES = [
   { code: "AL", name: "Alabama", taxPct: 4.0 },
   { code: "AK", name: "Alaska", taxPct: 0 },
@@ -61,6 +71,10 @@ export const US_STATES = [
   { code: "WY", name: "Wyoming", taxPct: 4.0 },
 ];
 
+/**
+ * @param {string} code
+ * @returns {StateTaxInfo | null}
+ */
 export function stateByCode(code) {
   return US_STATES.find((s) => s.code === code) || null;
 }

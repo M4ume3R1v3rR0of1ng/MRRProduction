@@ -18,15 +18,42 @@
 // not quietly reopen a company you deliberately cut off.
 //
 // Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET.
+// @ts-check
 
 import Stripe from "stripe";
-import { adminClient } from "./_shared/tenant.js";
+import { adminClient, errorMessage } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
+
+/** @typedef {import("./_shared/types.js").NetlifyEvent} NetlifyEvent */
+/** @typedef {import("./_shared/types.js").NetlifyResponse} NetlifyResponse */
+/** @typedef {import("@supabase/supabase-js").SupabaseClient<any, any, any, any, any>} SupabaseClient */
+
+/** Our companies.subscription_status column. "suspended" is never assigned here — see applyStatus. */
+/** @typedef {"incomplete" | "trialing" | "active" | "past_due" | "canceled" | "suspended"} CompanySubscriptionStatus */
+
+// Stripe expandable fields (customer, subscription, invoice's parent...) are typed
+// as `string | <Object> | null` whether or not this file ever asked to expand them
+// — and it never does, so at runtime they are always the bare id. Centralizing the
+// narrowing here means every call site gets the right, plain-string id instead of
+// silently handing an object where a string was expected (e.g. into a Postgres
+// `.eq("stripe_customer_id", ...)` filter, which would just never match).
+/**
+ * @param {string | { id: string } | null | undefined} value
+ * @returns {string | null}
+ */
+function stripeId(value) {
+  if (!value) return null;
+  return typeof value === "string" ? value : value.id;
+}
 
 // Seats included in the BASE plan only.
 //
 // Returns null if we can't read items, which means "leave capacity alone" rather
 // than "this company has no seats".
+/**
+ * @param {Stripe.Subscription} sub
+ * @returns {number | null}
+ */
 function baseSeatsFromSubscription(sub) {
   const items = sub?.items?.data;
   if (!Array.isArray(items)) return null;
@@ -56,6 +83,10 @@ function baseSeatsFromSubscription(sub) {
 //
 // Returns null when items are unreadable, so the caller can leave the stored value alone
 // rather than zeroing a paying customer's seats on a malformed event.
+/**
+ * @param {Stripe.Subscription} sub
+ * @returns {number | null}
+ */
 function recurringPacksFromSubscription(sub) {
   const items = sub?.items?.data;
   if (!Array.isArray(items)) return null;
@@ -82,6 +113,10 @@ function recurringPacksFromSubscription(sub) {
 //
 // Returns null when unreadable, so the caller leaves the stored value alone rather
 // than flipping a paying annual customer to monthly on a malformed event.
+/**
+ * @param {Stripe.Subscription} sub
+ * @returns {"monthly" | "annual" | null}
+ */
 function billingIntervalFromSubscription(sub) {
   const items = sub?.items?.data;
   if (!Array.isArray(items) || items.length === 0) return null;
@@ -102,10 +137,15 @@ function billingIntervalFromSubscription(sub) {
 
 // Packs only count while the company is actually paying for the base plan. A lapsed
 // subscription drops the ceiling back to the base allowance.
+/** @type {CompanySubscriptionStatus[]} */
 const SUBSCRIBED_STATUSES = ["trialing", "active", "past_due"];
 const PACK_SEATS = 5;
 
 // Stripe subscription.status  →  our companies.subscription_status
+/**
+ * @param {Stripe.Subscription.Status} stripeStatus
+ * @returns {CompanySubscriptionStatus | null}
+ */
 function mapStripeStatus(stripeStatus) {
   switch (stripeStatus) {
     case "trialing":
@@ -151,13 +191,40 @@ function mapStripeStatus(stripeStatus) {
 // Exported only so it can be tested. It is the one thing standing between a
 // failed write and a payment that bought nothing, which makes it worth covering
 // even at three lines.
+// `result` is deliberately `any`, not a generic inferred from the query chain: this
+// project has no generated Supabase Database type (no `supabase gen types`), so
+// `admin.from(...).select(...)` already returns untyped rows at every call site —
+// a generic here would just chase that untyped-ness around instead of describing
+// it. What IS real and checked is the { data, error } shape every supabase-js
+// response has, which is what the throw-on-error contract below depends on.
+/**
+ * @param {string} what
+ * @param {{ data: any, error: { message: string } | null }} result
+ * @returns {any}
+ */
 export function must(what, result) {
   if (result.error) throw new Error(`${what}: ${result.error.message}`);
   return result.data;
 }
 
+/**
+ * @typedef {Object} ApplyStatusInput
+ * @property {string | null} [companyId]
+ * @property {string | null} [stripeCustomerId] - Bare Stripe customer id (see stripeId()).
+ * @property {string | null} [stripeSubscriptionId] - Bare Stripe subscription id (see stripeId()).
+ * @property {number | null} [baseSeats]
+ * @property {number | null} [recurringPacks]
+ * @property {"monthly" | "annual" | null} [billingInterval]
+ */
+
 // Apply a status (and optionally a seat capacity) to the company behind a Stripe
 // subscription/customer, unless the company is manually suspended (owner's lever wins).
+/**
+ * @param {SupabaseClient} admin
+ * @param {ApplyStatusInput} input
+ * @param {CompanySubscriptionStatus | null} status
+ * @returns {Promise<void>}
+ */
 async function applyStatus(
   admin,
   { companyId, stripeCustomerId, stripeSubscriptionId, baseSeats, recurringPacks, billingInterval },
@@ -224,6 +291,14 @@ async function applyStatus(
     return;
   }
 
+  /**
+   * @type {{
+   *   subscription_status: CompanySubscriptionStatus,
+   *   recurring_seat_packs?: number,
+   *   billing_interval?: "monthly" | "annual",
+   *   seat_capacity?: number,
+   * }}
+   */
   const patch = { subscription_status: status };
 
   // Mirror the billed pack quantity whenever we could read it, even if capacity itself
@@ -275,6 +350,10 @@ async function applyStatus(
   }
 }
 
+/**
+ * @param {NetlifyEvent} event
+ * @returns {Promise<NetlifyResponse>}
+ */
 const rawHandler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method not allowed" };
@@ -289,17 +368,21 @@ const rawHandler = async (event) => {
 
   const stripe = new Stripe(secretKey);
   const sig = event.headers["stripe-signature"] || event.headers["Stripe-Signature"];
+  if (!sig) {
+    return { statusCode: 400, body: "Missing stripe-signature header" };
+  }
   const rawBody = event.isBase64Encoded
-    ? Buffer.from(event.body, "base64").toString("utf8")
-    : event.body;
+    ? Buffer.from(event.body || "", "base64").toString("utf8")
+    : event.body || "";
 
+  /** @type {Stripe.Event} */
   let stripeEvent;
   try {
     stripeEvent = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
     // Bad signature = not really Stripe. Refuse.
-    console.error("stripe-webhook: signature verification failed:", err.message);
-    return { statusCode: 400, body: `Webhook signature verification failed: ${err.message}` };
+    console.error("stripe-webhook: signature verification failed:", errorMessage(err));
+    return { statusCode: 400, body: `Webhook signature verification failed: ${errorMessage(err)}` };
   }
 
   const admin = adminClient();
@@ -372,8 +455,8 @@ const rawHandler = async (event) => {
           admin,
           {
             companyId: s.client_reference_id,
-            stripeCustomerId: s.customer,
-            stripeSubscriptionId: s.subscription,
+            stripeCustomerId: stripeId(s.customer),
+            stripeSubscriptionId: stripeId(s.subscription),
           },
           "active",
         );
@@ -387,7 +470,7 @@ const rawHandler = async (event) => {
           admin,
           {
             companyId: sub.metadata?.company_id || null,
-            stripeCustomerId: sub.customer,
+            stripeCustomerId: stripeId(sub.customer),
             stripeSubscriptionId: sub.id,
             baseSeats: baseSeatsFromSubscription(sub),
             recurringPacks: recurringPacksFromSubscription(sub),
@@ -404,7 +487,7 @@ const rawHandler = async (event) => {
           admin,
           {
             companyId: sub.metadata?.company_id || null,
-            stripeCustomerId: sub.customer,
+            stripeCustomerId: stripeId(sub.customer),
             stripeSubscriptionId: sub.id,
           },
           "canceled",
@@ -416,11 +499,18 @@ const rawHandler = async (event) => {
         const inv = stripeEvent.data.object;
         // A failed charge → past_due (grace period). Stripe keeps retrying; if it
         // ultimately gives up it fires subscription.updated/deleted, handled above.
+        //
+        // inv.subscription doesn't exist on this API version's Invoice — the
+        // subscription id moved under parent.subscription_details. Reading the old
+        // top-level field type-checked as `undefined` here too, which meant this
+        // branch was silently falling back to customer-id-only resolution in
+        // applyStatus. Not a wrong result (the customer id alone still finds the
+        // company) but a needless gap versus the more direct subscription lookup.
         await applyStatus(
           admin,
           {
-            stripeCustomerId: inv.customer,
-            stripeSubscriptionId: inv.subscription,
+            stripeCustomerId: stripeId(inv.customer),
+            stripeSubscriptionId: stripeId(inv.parent?.subscription_details?.subscription),
           },
           "past_due",
         );
@@ -436,8 +526,8 @@ const rawHandler = async (event) => {
     return { statusCode: 200, body: JSON.stringify({ received: true }) };
   } catch (err) {
     // 500 tells Stripe to retry later — right for a transient DB hiccup.
-    console.error("stripe-webhook: handler error:", err.message);
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+    console.error("stripe-webhook: handler error:", errorMessage(err));
+    return { statusCode: 500, body: JSON.stringify({ error: errorMessage(err) }) };
   }
 };
 

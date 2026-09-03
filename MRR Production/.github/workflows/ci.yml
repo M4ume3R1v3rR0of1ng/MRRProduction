@@ -29,6 +29,10 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
 
+      # Scoped checkJs over the money/permission layer only (see
+      # tsconfig.money-permissions.json) — not the whole app.
+      - run: npm run typecheck:money
+
       - run: npm test
 
       # No secrets needed: SENTRY_AUTH_TOKEN is gated-off in vite.config.js when

@@ -39,19 +39,39 @@
 // Env: STRIPE_SECRET_KEY, STRIPE_SEAT_PACK_PRICE_ID (recurring, monthly),
 // STRIPE_SEAT_PACK_ANNUAL_PRICE_ID (recurring, yearly), STRIPE_BASE_PRICE_ID,
 // STRIPE_ANNUAL_PRICE_ID.
+// @ts-check
 
 import Stripe from "stripe";
-import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
+import {
+  adminClient,
+  resolveCaller,
+  isCompanyAdmin,
+  corsHeaders,
+  errorMessage,
+} from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
+
+/** @typedef {import("./_shared/types.js").NetlifyEvent} NetlifyEvent */
+/** @typedef {import("./_shared/types.js").NetlifyResponse} NetlifyResponse */
 
 const PACK_SEATS = 5;
 
+/**
+ * @param {number} statusCode
+ * @param {Record<string, string>} headers
+ * @param {Record<string, unknown>} payload
+ * @returns {NetlifyResponse}
+ */
 const json = (statusCode, headers, payload) => ({
   statusCode,
   headers,
   body: JSON.stringify(payload),
 });
 
+/**
+ * @param {NetlifyEvent} event
+ * @returns {Promise<NetlifyResponse>}
+ */
 const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
@@ -195,7 +215,7 @@ const rawHandler = async (event) => {
       seatsDelta: PACK_SEATS * delta,
     });
   } catch (err) {
-    return json(500, headers, { error: err.message });
+    return json(500, headers, { error: errorMessage(err) });
   }
 };
 

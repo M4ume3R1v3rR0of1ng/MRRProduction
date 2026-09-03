@@ -9,8 +9,36 @@
 // company's data — and nothing in the database will stop it.
 //
 // So: resolve the caller ONCE, get their company, and scope every query by it.
+// @ts-check
 
 import { createClient } from "@supabase/supabase-js";
+
+/** @typedef {import("@supabase/supabase-js").SupabaseClient<any, any, any, any, any>} SupabaseClient */
+
+/**
+ * What resolveCaller hands back on success — everything downstream needs to know
+ * who is asking and what company they're scoped to.
+ * @typedef {Object} Caller
+ * @property {string} userId
+ * @property {string | undefined} email
+ * @property {string} companyId
+ * @property {string} companyName
+ * @property {string} companySlug
+ * @property {string | undefined} role - The membership role, or "admin" while visiting (see below). Undefined only if a non-admin somehow has no membership row, which resolveCaller otherwise refuses.
+ * @property {boolean} isPlatformAdmin
+ * @property {boolean} isVisiting - True when a platform admin is looking at a company they don't belong to.
+ * @property {Record<string, unknown>} integrations - company_secrets.integrations. Never echo this to the browser.
+ */
+
+/**
+ * @typedef {Object} CallerError
+ * @property {number} status - HTTP status to return verbatim.
+ * @property {string} message
+ */
+
+/**
+ * @typedef {{ caller: Caller, error?: undefined } | { caller?: undefined, error: CallerError }} ResolveCallerResult
+ */
 
 // A company in one of these states may use the app. 'past_due' is deliberately
 // included: Stripe retries a failed card for ~2 weeks, and locking a roofing crew
@@ -45,10 +73,20 @@ const ALLOWED_ORIGINS = [
 // attacker-controlled, so interpolating it straight into a sign-in or
 // set-your-password link would let someone mint a credible phishing link that
 // arrives from our own verified sending domain.
+/**
+ * @param {string | undefined} requestOrigin
+ * @returns {string}
+ */
 export function appOrigin(requestOrigin) {
-  return ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : ALLOWED_ORIGINS[0];
+  return requestOrigin && /** @type {string[]} */ (ALLOWED_ORIGINS).includes(requestOrigin)
+    ? requestOrigin
+    : ALLOWED_ORIGINS[0];
 }
 
+/**
+ * @param {string | undefined} requestOrigin
+ * @returns {Record<string, string>}
+ */
 export function corsHeaders(requestOrigin) {
   const origin = appOrigin(requestOrigin);
   return {
@@ -70,6 +108,10 @@ export function corsHeaders(requestOrigin) {
 //
 // Defaults to steadwerk.com, NOT the old maumeeriverroofing.com — a missing env var
 // must not silently send every tenant's mail as Maumee River.
+/**
+ * @param {string} localPart
+ * @returns {string}
+ */
 export function platformFromAddress(localPart) {
   const legacy = process.env.PLATFORM_MAIL_FROM;
   const domain =
@@ -79,8 +121,22 @@ export function platformFromAddress(localPart) {
   return `${localPart}@${domain}`;
 }
 
+/** @returns {SupabaseClient} */
 export function adminClient() {
-  return createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Was previously handed straight to createClient(url, key) even when undefined —
+  // supabase-js does not validate its arguments, so a misconfigured deploy built a
+  // client that would fail confusingly on its first query instead of failing here,
+  // loudly, with the actual missing variable named. strictNullChecks is what
+  // surfaced this: createClient's parameters are typed as `string`, not
+  // `string | undefined`.
+  if (!url || !key) {
+    throw new Error(
+      "adminClient: missing VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY environment variable(s).",
+    );
+  }
+  return createClient(url, key);
 }
 
 // Verify the caller and work out which company they are acting in.
@@ -90,6 +146,11 @@ export function adminClient() {
 // This re-implements in JS the same check active_company_id() makes in SQL. It has
 // to: the service-role key means the database will not make it for us. If you
 // change the rules in one place, change them in the other.
+/**
+ * @param {SupabaseClient} admin
+ * @param {string | undefined} accessToken
+ * @returns {Promise<ResolveCallerResult>}
+ */
 export async function resolveCaller(admin, accessToken) {
   if (!accessToken) {
     return { error: { status: 401, message: "Not authenticated" } };
@@ -189,6 +250,10 @@ export async function resolveCaller(admin, accessToken) {
 }
 
 // Company admin, or you. Use for anything that manages users or settings.
+/**
+ * @param {Caller} caller
+ * @returns {boolean}
+ */
 export function isCompanyAdmin(caller) {
   return caller.role === "admin" || caller.isPlatformAdmin;
 }
@@ -197,6 +262,11 @@ export function isCompanyAdmin(caller) {
 // email relays (send-email / send-alert): an authenticated user may only send to
 // people in their own company, never to arbitrary external addresses — otherwise the
 // relay is a phishing/spam machine sending from our verified domain.
+/**
+ * @param {SupabaseClient} admin
+ * @param {string} companyId
+ * @returns {Promise<Set<string>>}
+ */
 export async function companyMemberEmails(admin, companyId) {
   const { data: mems } = await admin
     .from("memberships")
@@ -207,6 +277,20 @@ export async function companyMemberEmails(admin, companyId) {
   if (ids.length === 0) return new Set();
   const { data: profs } = await admin.from("profiles").select("email").in("id", ids);
   return new Set((profs || []).map((p) => (p.email || "").trim().toLowerCase()).filter(Boolean));
+}
+
+// Every handler in this directory ends its try/catch with
+// `body: JSON.stringify({ error: err.message })`. That assumes the thrown value is
+// an Error, which is usually true (Stripe and supabase-js both throw real Errors)
+// but not guaranteed — `throw "some string"` or a rejected non-Error value would
+// previously have produced `error: undefined` in the response and told the caller
+// nothing. Centralized so every catch block gets the safe version for free.
+/**
+ * @param {unknown} err
+ * @returns {string}
+ */
+export function errorMessage(err) {
+  return err instanceof Error ? err.message : String(err);
 }
 
 export { USABLE_SUBSCRIPTION_STATES };

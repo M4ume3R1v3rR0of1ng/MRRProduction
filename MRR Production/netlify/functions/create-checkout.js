@@ -24,11 +24,20 @@
 //
 // Env: STRIPE_SECRET_KEY, STRIPE_BASE_PRICE_ID, and either URL (Netlify sets it) or
 // PUBLIC_APP_URL for the success/cancel redirects.
+// @ts-check
 
 import Stripe from "stripe";
-import { adminClient, corsHeaders } from "./_shared/tenant.js";
+import { adminClient, corsHeaders, errorMessage } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 
+/** @typedef {import("./_shared/types.js").NetlifyEvent} NetlifyEvent */
+/** @typedef {import("./_shared/types.js").NetlifyResponse} NetlifyResponse */
+/** @typedef {import("@supabase/supabase-js").SupabaseClient<any, any, any, any, any>} SupabaseClient */
+
+/**
+ * @param {string} s
+ * @returns {string}
+ */
 function slugify(s) {
   return s
     .toLowerCase()
@@ -38,6 +47,11 @@ function slugify(s) {
     .slice(0, 40);
 }
 
+/**
+ * @param {SupabaseClient} admin
+ * @param {string} base
+ * @returns {Promise<string>}
+ */
 async function uniqueSlug(admin, base) {
   const root = slugify(base) || "company";
   for (let i = 0; i < 20; i++) {
@@ -48,6 +62,10 @@ async function uniqueSlug(admin, base) {
   return `${root}-${Date.now().toString(36)}`;
 }
 
+/**
+ * @param {NetlifyEvent} event
+ * @returns {Promise<NetlifyResponse>}
+ */
 const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
@@ -262,7 +280,7 @@ const rawHandler = async (event) => {
 
     return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
   } catch (err) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: errorMessage(err) }) };
   }
 };
 

@@ -5,11 +5,25 @@
 // and maintains that whole page; we just mint a short-lived session link to it.
 //
 // Admin-only, own company only. Env: STRIPE_SECRET_KEY, and URL / PUBLIC_APP_URL.
+// @ts-check
 
 import Stripe from "stripe";
-import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
+import {
+  adminClient,
+  resolveCaller,
+  isCompanyAdmin,
+  corsHeaders,
+  errorMessage,
+} from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 
+/** @typedef {import("./_shared/types.js").NetlifyEvent} NetlifyEvent */
+/** @typedef {import("./_shared/types.js").NetlifyResponse} NetlifyResponse */
+
+/**
+ * @param {NetlifyEvent} event
+ * @returns {Promise<NetlifyResponse>}
+ */
 const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
@@ -72,7 +86,7 @@ const rawHandler = async (event) => {
 
     return { statusCode: 200, headers, body: JSON.stringify({ url: session.url }) };
   } catch (err) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: errorMessage(err) }) };
   }
 };
 

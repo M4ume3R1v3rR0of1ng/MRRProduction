@@ -22,11 +22,21 @@
 // CHANGE a company's billing, use the hosted portal link from billing-portal.js.
 //
 // Env: STRIPE_SECRET_KEY.
+// @ts-check
 
 import Stripe from "stripe";
-import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders, errorMessage } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 
+/** @typedef {import("./_shared/types.js").NetlifyEvent} NetlifyEvent */
+/** @typedef {import("./_shared/types.js").NetlifyResponse} NetlifyResponse */
+
+/**
+ * @param {number} statusCode
+ * @param {Record<string, string>} headers
+ * @param {Record<string, unknown>} payload
+ * @returns {NetlifyResponse}
+ */
 const json = (statusCode, headers, payload) => ({
   statusCode,
   headers,
@@ -35,10 +45,31 @@ const json = (statusCode, headers, payload) => ({
 
 // Stripe money is in the currency's minor unit. Everything downstream wants
 // dollars, so convert once here rather than in the React component.
+/**
+ * @param {number | null | undefined} amount
+ * @returns {number | null}
+ */
 const toMajor = (amount) => (typeof amount === "number" ? amount / 100 : null);
 
+/**
+ * @param {number | null | undefined} s
+ * @returns {string | null}
+ */
 const unixToIso = (s) => (typeof s === "number" ? new Date(s * 1000).toISOString() : null);
 
+// A default_payment_method field is `string | Stripe.PaymentMethod | null` no
+// matter what's in the `expand` array — Stripe's SDK types don't read the string
+// literal, so the object shape has to be checked at runtime regardless.
+/**
+ * @param {string | Stripe.PaymentMethod | null | undefined} pm
+ * @returns {Stripe.PaymentMethod.Card | null}
+ */
+const cardFromPaymentMethod = (pm) => (pm && typeof pm === "object" ? (pm.card ?? null) : null);
+
+/**
+ * @param {NetlifyEvent} event
+ * @returns {Promise<NetlifyResponse>}
+ */
 const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
@@ -84,8 +115,9 @@ const rawHandler = async (event) => {
 
     const stripe = new Stripe(secretKey);
 
-    // Expand the default payment method so the card can be shown without a second
-    // round trip, and the price product so line items can be named.
+    // Expand the default payment method (on both the subscription and, as a
+    // fallback, the customer) so the card can be shown without a second round
+    // trip, and the price product so line items can be named.
     const [subs, invoiceList, customer] = await Promise.all([
       stripe.subscriptions.list({
         customer: customerId,
@@ -94,20 +126,34 @@ const rawHandler = async (event) => {
         expand: ["data.default_payment_method"],
       }),
       stripe.invoices.list({ customer: customerId, limit: 12 }),
-      stripe.customers.retrieve(customerId),
+      stripe.customers.retrieve(customerId, {
+        expand: ["invoice_settings.default_payment_method"],
+      }),
     ]);
 
     const sub = subs.data?.[0] || null;
+    // `expand` doesn't change these fields' static type — Stripe's types can't see
+    // the string literal in the array — so a payment method that's still just an
+    // id (expand not honored, e.g. a deleted method) has to be handled at runtime.
     const card =
-      sub?.default_payment_method?.card ||
-      customer?.invoice_settings?.default_payment_method?.card ||
-      null;
+      cardFromPaymentMethod(sub?.default_payment_method) ||
+      (!customer.deleted
+        ? cardFromPaymentMethod(customer.invoice_settings?.default_payment_method)
+        : null);
+
+    // current_period_end lives on each subscription ITEM, not on the subscription
+    // itself, as of this Stripe API version — every item on one subscription
+    // shares a billing cycle (see add-seats.js), so the first item's date answers
+    // for the whole subscription. Reading `sub.current_period_end` directly (the
+    // pre-2025 shape) type-checks as `undefined` on Stripe's current types, which
+    // is exactly what it was doing at runtime too.
+    const currentPeriodEnd = sub?.items?.data?.[0]?.current_period_end;
 
     const subscription = sub
       ? {
           id: sub.id,
           status: sub.status,
-          currentPeriodEnd: unixToIso(sub.current_period_end),
+          currentPeriodEnd: unixToIso(currentPeriodEnd),
           cancelAtPeriodEnd: !!sub.cancel_at_period_end,
           trialEnd: unixToIso(sub.trial_end),
           // What Stripe will actually charge on the next invoice, derived from the
@@ -150,7 +196,7 @@ const rawHandler = async (event) => {
       invoices,
     });
   } catch (err) {
-    return json(500, headers, { error: err.message });
+    return json(500, headers, { error: errorMessage(err) });
   }
 };
 

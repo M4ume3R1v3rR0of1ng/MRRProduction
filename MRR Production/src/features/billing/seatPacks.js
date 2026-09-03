@@ -18,6 +18,10 @@
 //                  the subscription takes these away; that is what recurring means.
 //
 // Capacity is the sum, and only while the company is actually paying.
+// @ts-check
+
+/** Our companies.subscription_status column — the Stripe status mapped in stripe-webhook.js. */
+/** @typedef {"incomplete" | "trialing" | "active" | "past_due" | "canceled" | "suspended"} SubscriptionStatus */
 
 export const BASE_SEATS = 10;
 export const PACK_SEATS = 5;
@@ -25,10 +29,15 @@ export const PACK_SEATS = 5;
 // Packs only count while the base plan is being paid for. A lapsed subscription drops
 // the ceiling to the base allowance rather than to zero, so a past_due company can still
 // get in and fix their card.
+/** @type {SubscriptionStatus[]} */
 export const SUBSCRIBED_STATUSES = ["trialing", "active", "past_due"];
 
+/**
+ * @param {SubscriptionStatus | null | undefined} status
+ * @returns {boolean}
+ */
 export function isSubscribed(status) {
-  return SUBSCRIBED_STATUSES.includes(status);
+  return !!status && /** @type {string[]} */ (SUBSCRIBED_STATUSES).includes(status);
 }
 
 /**
@@ -37,6 +46,12 @@ export function isSubscribed(status) {
  * Returns null for a comped company (unlimited). `null` in, `null` out is deliberate:
  * a comped company has no Stripe subscription, so no webhook ever computes a number for
  * them, and writing one would cap an account that is supposed to be uncapped.
+ * @param {Object} [opts]
+ * @param {number | null} [opts.baseSeats] - Explicit `null` means comped/unlimited.
+ * @param {number} [opts.grandfatheredPacks]
+ * @param {number} [opts.recurringPacks]
+ * @param {SubscriptionStatus} [opts.status]
+ * @returns {number | null}
  */
 export function seatCapacity({
   baseSeats = BASE_SEATS,
@@ -57,6 +72,11 @@ export function seatCapacity({
  *     removable; they were bought outright and cost nothing to keep);
  *   - you cannot cut capacity below the seats actually in use, because that would leave
  *     real people holding logins the ceiling says should not exist.
+ * @param {Object} [opts]
+ * @param {number} [opts.recurringPacks]
+ * @param {number | null} [opts.capacity] - `null` (unlimited/comped) removes the second limit.
+ * @param {number} [opts.used] - Active seats currently in use.
+ * @returns {number}
  */
 export function maxRemovablePacks({ recurringPacks = 0, capacity, used = 0 } = {}) {
   const owned = Math.max(0, recurringPacks || 0);
@@ -66,7 +86,14 @@ export function maxRemovablePacks({ recurringPacks = 0, capacity, used = 0 } = {
   return Math.min(owned, Math.floor(spare / PACK_SEATS));
 }
 
-/** Whether the Remove button should be live, and why not when it is not. */
+/**
+ * Whether the Remove button should be live, and why not when it is not.
+ * @param {Object} [opts]
+ * @param {number} [opts.recurringPacks]
+ * @param {number | null} [opts.capacity]
+ * @param {number} [opts.used]
+ * @returns {"no-recurring-packs" | "seats-in-use" | null}
+ */
 export function removalBlockedReason({ recurringPacks = 0, capacity, used = 0 } = {}) {
   if (Math.max(0, recurringPacks || 0) === 0) return "no-recurring-packs";
   if (maxRemovablePacks({ recurringPacks, capacity, used }) === 0) return "seats-in-use";
@@ -74,11 +101,24 @@ export function removalBlockedReason({ recurringPacks = 0, capacity, used = 0 } 
 }
 
 /**
+ * @typedef {Object} PackChangeResult
+ * @property {boolean} ok
+ * @property {number} [nextRecurring] - Present when ok is true.
+ * @property {string | null} error - Present (non-null) when ok is false.
+ */
+
+/**
  * Validates a requested change in packs against what is actually allowed.
  * `delta` is signed: +1 buys a pack, -1 drops one.
+ * @param {Object} [opts]
+ * @param {number} [opts.delta]
+ * @param {number} [opts.recurringPacks]
+ * @param {number | null} [opts.capacity]
+ * @param {number} [opts.used]
+ * @returns {PackChangeResult}
  */
 export function validatePackChange({ delta, recurringPacks = 0, capacity, used = 0 } = {}) {
-  if (!Number.isInteger(delta) || delta === 0) {
+  if (typeof delta !== "number" || !Number.isInteger(delta) || delta === 0) {
     return { ok: false, error: "Choose how many packs to add or remove." };
   }
   if (delta > 0)
@@ -105,9 +145,22 @@ export function validatePackChange({ delta, recurringPacks = 0, capacity, used =
 }
 
 /**
+ * @typedef {Object} PackBreakdown
+ * @property {number} grandfathered
+ * @property {number} recurring
+ * @property {number} total
+ * @property {number} extraSeats
+ * @property {number} billedPacks
+ */
+
+/**
  * Splits a total pack count into its two sources for display, given what the database
  * records. Used by the Billing tab so the copy can say which packs bill monthly and
  * which are already paid for.
+ * @param {Object} [opts]
+ * @param {number} [opts.grandfatheredPacks]
+ * @param {number} [opts.recurringPacks]
+ * @returns {PackBreakdown}
  */
 export function describePacks({ grandfatheredPacks = 0, recurringPacks = 0 } = {}) {
   const grand = Math.max(0, grandfatheredPacks || 0);

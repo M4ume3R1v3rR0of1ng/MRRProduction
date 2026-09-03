@@ -1,4 +1,5 @@
 // src/features/reports/jobCosting.js
+// @ts-check
 //
 // What a job cost, and what it earned.
 //
@@ -27,21 +28,49 @@
 // looks like a catastrophic loss, and it must never be guessed at, because that is
 // exactly how the 3.2 got here.
 
+/**
+ * A material line pulled onto (or planned for) a job. Quantities and prices come
+ * back from the database as numbers but sometimes travel through form state or CSV
+ * import as strings, hence `num()` below and the loose typing here.
+ * @typedef {Object} JobLine
+ * @property {number | string} [pulled]
+ * @property {number | string} [returned]
+ * @property {number | string} [planned]
+ * @property {number | string} [priceAtPull] - Unit cost FIFO resolved at the moment this was pulled.
+ */
+
+/**
+ * @typedef {Object} Job
+ * @property {JobLine[]} [items]
+ * @property {JobLine[]} [materials] - Legacy field name some callers still use instead of `items`.
+ * @property {number | string} [contract_value]
+ */
+
+/**
+ * @param {unknown} v
+ * @returns {number}
+ */
 const num = (v) => {
-  const n = parseFloat(v);
+  const n = parseFloat(String(v));
   return Number.isFinite(n) ? n : 0;
 };
 
+/**
+ * @param {Job | null | undefined} job
+ * @returns {JobLine[]}
+ */
 const lines = (job) => (job?.items || job?.materials || []).filter(Boolean);
 
 // What the crew actually consumed: pulled minus what came back.
 // Priced at priceAtPull, which FIFO already resolved from the batches the material
 // genuinely came from. See doFifo — this is not an average of the catalog price.
+/** @param {Job | null | undefined} job @returns {number} */
 export const actualMaterialCost = (job) =>
   lines(job).reduce((sum, i) => sum + (num(i.pulled) - num(i.returned)) * num(i.priceAtPull), 0);
 
 // What the plan expected to spend, at the same prices, so the comparison below
 // isolates quantity variance rather than mixing in price movement.
+/** @param {Job | null | undefined} job @returns {number} */
 export const plannedMaterialCost = (job) =>
   lines(job).reduce((sum, i) => sum + num(i.planned) * num(i.priceAtPull), 0);
 
@@ -53,6 +82,7 @@ export const plannedMaterialCost = (job) =>
 //
 // Null when there was no plan to compare against: a job with no planned cost has
 // no baseline, and 0 would read as "exactly on plan".
+/** @param {Job | null | undefined} job @returns {number | null} */
 export const materialsVariancePct = (job) => {
   const planned = plannedMaterialCost(job);
   if (planned <= 0) return null;
@@ -61,11 +91,13 @@ export const materialsVariancePct = (job) => {
 
 // The entered contract value, or null. Zero is treated as unset on purpose: it is
 // far more likely to be an empty field saved as 0 than a genuinely free roof.
+/** @param {Job | null | undefined} job @returns {number | null} */
 export const contractValue = (job) => {
-  const v = parseFloat(job?.contract_value);
+  const v = parseFloat(String(job?.contract_value));
   return Number.isFinite(v) && v > 0 ? v : null;
 };
 
+/** @param {Job | null | undefined} job @returns {boolean} */
 export const hasRevenue = (job) => contractValue(job) !== null;
 
 // Gross profit on materials only.
@@ -74,12 +106,14 @@ export const hasRevenue = (job) => contractValue(job) !== null;
 // this system, so this is revenue minus material cost and nothing else. Whatever
 // renders it has to say so, or it overstates every job by the largest cost line
 // in roofing.
+/** @param {Job | null | undefined} job @returns {number | null} */
 export const grossProfit = (job) => {
   const revenue = contractValue(job);
   if (revenue === null) return null;
   return revenue - actualMaterialCost(job);
 };
 
+/** @param {Job | null | undefined} job @returns {number | null} */
 export const grossMarginPct = (job) => {
   const revenue = contractValue(job);
   if (revenue === null) return null;
@@ -89,22 +123,43 @@ export const grossMarginPct = (job) => {
 // Material cost as a share of the contract. The number a roofer actually watches:
 // materials are a fairly predictable slice of a job, so a figure well outside the
 // usual band means the estimate or the pull was wrong.
+/** @param {Job | null | undefined} job @returns {number | null} */
 export const materialCostRatioPct = (job) => {
   const revenue = contractValue(job);
   if (revenue === null) return null;
   return (actualMaterialCost(job) / revenue) * 100;
 };
 
+/**
+ * @typedef {Object} JobsSummary
+ * @property {number} jobCount
+ * @property {number} pricedCount
+ * @property {number} unpricedCount
+ * @property {number} revenue
+ * @property {number} materialCost
+ * @property {number} materialCostOfPriced
+ * @property {number | null} grossProfit
+ * @property {number | null} grossMarginPct
+ */
+
 // Totals across many jobs.
 //
 // Jobs without a contract value are counted and reported separately rather than
 // folded in at zero. A portfolio margin computed over jobs whose revenue is
 // unknown is not a conservative estimate, it is a wrong one.
+/**
+ * @param {(Job | null | undefined)[]} [jobs]
+ * @returns {JobsSummary}
+ */
 export const summarizeJobs = (jobs = []) => {
-  const all = (jobs || []).filter(Boolean);
+  const all = (jobs || []).filter(/** @returns {job is Job} */ (job) => Boolean(job));
   const withRevenue = all.filter(hasRevenue);
 
-  const revenue = withRevenue.reduce((s, j) => s + contractValue(j), 0);
+  // `?? 0` never actually fires: withRevenue is filtered by hasRevenue, so
+  // contractValue(j) is non-null for every j here. It's here only so the type of
+  // revenue is `number`, not `number | null`, without re-deriving that guarantee
+  // as a type predicate.
+  const revenue = withRevenue.reduce((s, j) => s + (contractValue(j) ?? 0), 0);
   const costOfThose = withRevenue.reduce((s, j) => s + actualMaterialCost(j), 0);
 
   return {

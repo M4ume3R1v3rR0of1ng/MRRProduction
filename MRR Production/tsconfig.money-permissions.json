@@ -1,0 +1,41 @@
+// Scoped type-checking for the money/permission layer only.
+//
+// This is deliberately NOT the whole app (see jsconfig.json for that — path
+// aliases only, no checkJs). Turning checkJs on project-wide would light up
+// hundreds of pre-existing errors in unrelated JSX views overnight. Instead
+// this project lists, by hand, exactly the files where a wrong type either
+// moves money (Stripe checkout/webhook/seat billing, job costing, sales tax)
+// or moves an access decision (permissions.js, the tenant/auth boundary in
+// netlify/functions/_shared/tenant.js). Add a file to "include" below when it
+// joins that category; annotate it with JSDoc as you do.
+//
+// Run with: npm run typecheck:money
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/shared/database/permissions.js",
+    "src/features/billing/seatPacks.js",
+    "src/features/settings/salesTax.js",
+    "src/features/reports/jobCosting.js",
+    "netlify/functions/_shared/types.js",
+    "netlify/functions/_shared/tenant.js",
+    "netlify/functions/create-checkout.js",
+    "netlify/functions/add-seats.js",
+    "netlify/functions/admin-billing.js",
+    "netlify/functions/billing-portal.js",
+    "netlify/functions/start-company-billing.js",
+    "netlify/functions/stripe-webhook.js"
+  ]
+}
