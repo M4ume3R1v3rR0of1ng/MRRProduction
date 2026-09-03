@@ -60,11 +60,29 @@ export default function WeatherCard({ lang = "en" }) {
   }, []);
 
   const header = (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: "var(--space-2)" }}>
-      <h3 style={{ margin: 0, fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 6,
+        flexWrap: "wrap",
+        gap: "var(--space-2)",
+      }}
+    >
+      <h3
+        style={{
+          margin: 0,
+          fontSize: "var(--text-xs)",
+          fontWeight: "var(--weight-extrabold)",
+          color: C.navy,
+        }}
+      >
         {t.wcTitle}
       </h3>
-      <span style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>
+      <span
+        style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-semibold)" }}
+      >
         Saint Joe Road · Fort Wayne, IN
       </span>
     </div>
@@ -74,7 +92,17 @@ export default function WeatherCard({ lang = "en" }) {
     return (
       <div style={cardStyle}>
         {header}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--space-2)", padding: "6px 0", color: C.sub, fontSize: "var(--text-xs)" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "var(--space-2)",
+            padding: "6px 0",
+            color: C.sub,
+            fontSize: "var(--text-xs)",
+          }}
+        >
           <Spinner size={13} /> {t.wcLoading}
         </div>
       </div>
@@ -102,7 +130,11 @@ export default function WeatherCard({ lang = "en" }) {
     todayRain >= 50
       ? { text: `Rain likely (${todayRain}%) — plan roof work around it.`, color: C.blue, bg: C.sB }
       : todayWind >= 25
-        ? { text: `High winds (${Math.round(todayWind)} mph) — caution on roofs.`, color: C.am, bg: C.aB }
+        ? {
+            text: `High winds (${Math.round(todayWind)} mph) — caution on roofs.`,
+            color: C.am,
+            bg: C.aB,
+          }
         : null;
 
   return (
@@ -110,19 +142,47 @@ export default function WeatherCard({ lang = "en" }) {
       {header}
 
       {/* Current conditions — single compact row */}
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 8 }}>
+      <div
+        style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 8 }}
+      >
         <span style={{ fontSize: 22, lineHeight: 1 }}>{cur.icon}</span>
-        <span style={{ fontSize: "var(--text-xl)", fontWeight: "var(--weight-black)", color: C.navy, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+        <span
+          style={{
+            fontSize: "var(--text-xl)",
+            fontWeight: "var(--weight-black)",
+            color: C.navy,
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
           {Math.round(current.temperature_2m)}°
         </span>
-        <span style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>{cur.label}</span>
+        <span
+          style={{
+            fontSize: "var(--text-2xs)",
+            color: C.sub,
+            fontWeight: "var(--weight-semibold)",
+          }}
+        >
+          {cur.label}
+        </span>
         <span style={{ marginLeft: "auto", fontSize: "var(--text-2xs)", color: C.sub }}>
           💨 {Math.round(current.wind_speed_10m)} · 💧 {todayRain}%
         </span>
       </div>
 
       {advisory && (
-        <div style={{ background: advisory.bg, color: advisory.color, borderRadius: "var(--radius-sm)", padding: "4px 8px", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", marginBottom: 8 }}>
+        <div
+          style={{
+            background: advisory.bg,
+            color: advisory.color,
+            borderRadius: "var(--radius-sm)",
+            padding: "4px 8px",
+            fontSize: "var(--text-2xs)",
+            fontWeight: "var(--weight-bold)",
+            marginBottom: 8,
+          }}
+        >
           ⚠️ {advisory.text}
         </div>
       )}
@@ -134,13 +194,31 @@ export default function WeatherCard({ lang = "en" }) {
           const date = new Date(iso + "T00:00:00");
           const isToday = i === 0;
           return (
-            <div key={iso} style={{ flex: 1, minWidth: 44, textAlign: "center", padding: "3px 2px", borderRadius: "var(--radius-sm)", background: isToday ? C.lg : "transparent" }}>
-              <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.sub }}>
+            <div
+              key={iso}
+              style={{
+                flex: 1,
+                minWidth: 44,
+                textAlign: "center",
+                padding: "3px 2px",
+                borderRadius: "var(--radius-sm)",
+                background: isToday ? C.lg : "transparent",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "var(--text-2xs)",
+                  fontWeight: "var(--weight-bold)",
+                  color: C.sub,
+                }}
+              >
                 {isToday ? "Today" : DAY[date.getDay()]}
               </div>
               <div style={{ fontSize: 15, lineHeight: 1.2 }}>{d.icon}</div>
               <div style={{ fontSize: "var(--text-2xs)", fontVariantNumeric: "tabular-nums" }}>
-                <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{Math.round(daily.temperature_2m_max[i])}°</span>
+                <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                  {Math.round(daily.temperature_2m_max[i])}°
+                </span>
                 <span style={{ color: C.sub }}>/{Math.round(daily.temperature_2m_min[i])}°</span>
               </div>
             </div>

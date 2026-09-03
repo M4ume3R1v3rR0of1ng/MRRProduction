@@ -15,7 +15,7 @@
 // recording shows layout and interaction, not the data in it. Do NOT pass
 // maskAllText: false / unmask() on individual elements without re-checking
 // the privacy policy first.
-import * as Sentry from '@sentry/react';
+import * as Sentry from "@sentry/react";
 
 let initialized = false;
 

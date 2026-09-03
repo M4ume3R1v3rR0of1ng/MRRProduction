@@ -76,7 +76,9 @@ describe("selectableMaterials", () => {
 
 describe("JobTemplatesModal render", () => {
   const render = (props) =>
-    renderToString(h(NotificationProvider, null, h(JobTemplatesModal, { inv, onClose: () => {}, ...props })));
+    renderToString(
+      h(NotificationProvider, null, h(JobTemplatesModal, { inv, onClose: () => {}, ...props })),
+    );
 
   it("mounts and shows the dialog title", () => {
     expect(render()).toContain("Job Material Templates");

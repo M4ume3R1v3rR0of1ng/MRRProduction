@@ -16,9 +16,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
 
   // Low Stock Routing Alert States
   const [alertPhone, setAlertPhone] = useState(user?.phone_number || "");
-  const [alertEmail, setAlertEmail] = useState(
-    user?.receive_email_alerts || false,
-  );
+  const [alertEmail, setAlertEmail] = useState(user?.receive_email_alerts || false);
   const [savingAlerts, setSavingAlerts] = useState(false);
   const [alertMsg, setAlertMsg] = useState({ text: "", isError: false });
 
@@ -42,8 +40,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setProfileMsg({ text: "", isError: false });
-    if (!name.trim())
-      return setProfileMsg({ text: "Name cannot be empty.", isError: true });
+    if (!name.trim()) return setProfileMsg({ text: "Name cannot be empty.", isError: true });
 
     setSubmittingProfile(true);
     const { error: authError } = await supabase.auth.updateUser({
@@ -112,10 +109,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
           html: `<p>${confirmMessage}</p>`,
         });
       } catch (err) {
-        console.error(
-          "Failed to dispatch email confirmation receipt payload:",
-          err,
-        );
+        console.error("Failed to dispatch email confirmation receipt payload:", err);
       }
     }
 
@@ -215,12 +209,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
 
         <form onSubmit={handleProfileUpdate}>
           <Fld label={t.profFullName}>
-            <Inp
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
+            <Inp type="text" value={name} onChange={(e) => setName(e.target.value)} required />
           </Fld>
           <Fld label={t.profEmail}>
             <Inp
@@ -295,14 +284,18 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
         >
           <span style={{ fontSize: "var(--text-2xl)" }}>🔔</span>
           <h3
-            style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: "var(--weight-black)", color: C.navy }}
+            style={{
+              margin: 0,
+              fontSize: "var(--text-xl)",
+              fontWeight: "var(--weight-black)",
+              color: C.navy,
+            }}
           >
             {t.profAlertPrefs}
           </h3>
         </div>
         <p style={{ margin: "0 0 20px 0", color: C.sub, fontSize: "var(--text-base)" }}>
-          Choose how you want to be notified when items hit low-stock
-          thresholds.
+          Choose how you want to be notified when items hit low-stock thresholds.
         </p>
 
         {/* The number is kept even though nothing texts it: OmniSearch matches

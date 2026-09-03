@@ -21,9 +21,33 @@ const {
   bleedTrend,
 } = await import("./inventoryCounts");
 
-const receipt = (rcvd, qty, price, rem = qty) => ({ id: `b_${rcvd}_${qty}`, rcvd, qty, price, rem, ref: "PO-1", by: "u1" });
-const adjustment = (rcvd, qty, price) => ({ id: `b_adj_${rcvd}`, rcvd, qty, price, rem: qty, ref: "Manual Adjustment — found a pallet", by: "u1" });
-const shortRow = (rcvd, qty, price) => ({ id: `neg_${rcvd}`, rcvd, qty: -qty, price, rem: -qty, short: true, by: "u2" });
+const receipt = (rcvd, qty, price, rem = qty) => ({
+  id: `b_${rcvd}_${qty}`,
+  rcvd,
+  qty,
+  price,
+  rem,
+  ref: "PO-1",
+  by: "u1",
+});
+const adjustment = (rcvd, qty, price) => ({
+  id: `b_adj_${rcvd}`,
+  rcvd,
+  qty,
+  price,
+  rem: qty,
+  ref: "Manual Adjustment — found a pallet",
+  by: "u1",
+});
+const shortRow = (rcvd, qty, price) => ({
+  id: `neg_${rcvd}`,
+  rcvd,
+  qty: -qty,
+  price,
+  rem: -qty,
+  short: true,
+  by: "u2",
+});
 
 const item = (id, name, batches, unit = "ea") => ({ id, name, unit, cat: "Vents", batches });
 
@@ -62,19 +86,27 @@ describe("shiftPeriod — month arithmetic across a year boundary", () => {
 describe("usageByItem — what actually left the yard", () => {
   it("counts a pull in the month it was pulled, not the month the job closed", () => {
     // Pulled Jan 20, job closed Feb 3. The material left in January.
-    const jobs = [{
-      id: "j1", status: "completed", completed: "2026-02-03T15:00:00",
-      items: [{ iid: "i1", pulled: 10, returned: 0, pulledAt: "2026-01-20" }],
-    }];
+    const jobs = [
+      {
+        id: "j1",
+        status: "completed",
+        completed: "2026-02-03T15:00:00",
+        items: [{ iid: "i1", pulled: 10, returned: 0, pulledAt: "2026-01-20" }],
+      },
+    ];
     expect(usageByItem(jobs, "2026-01").get("i1")).toEqual({ pulled: 10, returned: 0 });
     expect(usageByItem(jobs, "2026-02").has("i1")).toBe(false);
   });
 
   it("credits a return in the month it came back", () => {
-    const jobs = [{
-      id: "j1", status: "completed", completed: "2026-02-03T15:00:00",
-      items: [{ iid: "i1", pulled: 10, returned: 4, pulledAt: "2026-01-20" }],
-    }];
+    const jobs = [
+      {
+        id: "j1",
+        status: "completed",
+        completed: "2026-02-03T15:00:00",
+        items: [{ iid: "i1", pulled: 10, returned: 4, pulledAt: "2026-01-20" }],
+      },
+    ];
     // 10 out in January, 4 back in February. Netting both to one month would
     // understate January usage by 4 and hide the January bleed.
     expect(usageByItem(jobs, "2026-01").get("i1")).toEqual({ pulled: 10, returned: 0 });
@@ -82,15 +114,22 @@ describe("usageByItem — what actually left the yard", () => {
   });
 
   it("falls back to job dates for rows written before pulledAt existed", () => {
-    const jobs = [{
-      id: "j1", status: "completed", approved: "2026-01-15", completed: "2026-01-28T12:00:00",
-      items: [{ iid: "i1", pulled: 6, returned: 0 }],
-    }];
+    const jobs = [
+      {
+        id: "j1",
+        status: "completed",
+        approved: "2026-01-15",
+        completed: "2026-01-28T12:00:00",
+        items: [{ iid: "i1", pulled: 6, returned: 0 }],
+      },
+    ];
     expect(usageByItem(jobs, "2026-01").get("i1")).toEqual({ pulled: 6, returned: 0 });
   });
 
   it("ignores drafts, which have pulled nothing", () => {
-    const jobs = [{ id: "j1", status: "draft", approved: "2026-01-15", items: [{ iid: "i1", pulled: 99 }] }];
+    const jobs = [
+      { id: "j1", status: "draft", approved: "2026-01-15", items: [{ iid: "i1", pulled: 99 }] },
+    ];
     expect(usageByItem(jobs, "2026-01").has("i1")).toBe(false);
   });
 
@@ -117,13 +156,29 @@ describe("movementByItem — reading the batch list by kind", () => {
   it("counts an adjustment that carries a typed reason", () => {
     // The prefix-vs-equality bug: "Manual Adjustment — damaged in yard" used to fall
     // through and be booked as a supplier receipt, inflating received.
-    const it1 = item("i1", "Vent", [{ id: "b_x", rcvd: "2026-01-09", qty: 4, price: 10, rem: 4, ref: "Manual Adjustment — damaged in yard" }]);
+    const it1 = item("i1", "Vent", [
+      {
+        id: "b_x",
+        rcvd: "2026-01-09",
+        qty: 4,
+        price: 10,
+        rem: 4,
+        ref: "Manual Adjustment — damaged in yard",
+      },
+    ]);
     expect(movementByItem(it1, "2026-01")).toEqual({ received: 0, adjusted: 4, shortfall: 0 });
   });
 });
 
 describe("buildCountLines — expected on hand", () => {
-  const jobs = [{ id: "j1", status: "completed", items: [{ iid: "i1", pulled: 12, returned: 2, pulledAt: "2026-01-15", unit: "ea" }], completed: "2026-01-20T12:00:00" }];
+  const jobs = [
+    {
+      id: "j1",
+      status: "completed",
+      items: [{ iid: "i1", pulled: 12, returned: 2, pulledAt: "2026-01-15", unit: "ea" }],
+      completed: "2026-01-20T12:00:00",
+    },
+  ];
 
   it("derives opening by rolling the book back through the period when there is no prior count", () => {
     // Book now: 20 received minus 12 pulled plus 2 returned = 10 on hand.
@@ -175,7 +230,12 @@ describe("buildCountLines — expected on hand", () => {
 
   it("surfaces a negative book balance as its own signal", () => {
     // The -1 Atlas vent case: more was issued than existed.
-    const inv = [item("i1", "Vent", [{ ...receipt("2026-01-05", 11, 10), rem: 0 }, shortRow("2026-01-15", 1, 10)])];
+    const inv = [
+      item("i1", "Vent", [
+        { ...receipt("2026-01-05", 11, 10), rem: 0 },
+        shortRow("2026-01-15", 1, 10),
+      ]),
+    ];
     const [line] = buildCountLines(inv, [], "2026-01");
     expect(line.onHand).toBe(-1);
     expect(line.shortfall).toBe(1);
@@ -183,15 +243,45 @@ describe("buildCountLines — expected on hand", () => {
 
   it("sorts by name so the sheet matches a walk down the rack", () => {
     const inv = [item("i2", "Zinc Strip", []), item("i1", "Atlas Vent", [])];
-    expect(buildCountLines(inv, [], "2026-01").map((l) => l.name)).toEqual(["Atlas Vent", "Zinc Strip"]);
+    expect(buildCountLines(inv, [], "2026-01").map((l) => l.name)).toEqual([
+      "Atlas Vent",
+      "Zinc Strip",
+    ]);
   });
 });
 
 describe("summarizeCount — the bleed rate", () => {
   const lines = [
-    { iid: "i1", opening: 10, received: 90, adjusted: 0, expected: 50, counted: 47, variance: -3, price: 10 },
-    { iid: "i2", opening: 0, received: 100, adjusted: 0, expected: 40, counted: 41, variance: 1, price: 5 },
-    { iid: "i3", opening: 20, received: 0, adjusted: 0, expected: 20, counted: null, variance: null, price: 8 },
+    {
+      iid: "i1",
+      opening: 10,
+      received: 90,
+      adjusted: 0,
+      expected: 50,
+      counted: 47,
+      variance: -3,
+      price: 10,
+    },
+    {
+      iid: "i2",
+      opening: 0,
+      received: 100,
+      adjusted: 0,
+      expected: 40,
+      counted: 41,
+      variance: 1,
+      price: 5,
+    },
+    {
+      iid: "i3",
+      opening: 20,
+      received: 0,
+      adjusted: 0,
+      expected: 20,
+      counted: null,
+      variance: null,
+      price: 8,
+    },
   ];
 
   it("measures variance against throughput, not the closing balance", () => {
@@ -227,33 +317,85 @@ describe("summarizeCount — the bleed rate", () => {
 
 describe("flaggedLines — what is worth chasing", () => {
   it("ignores rounding on a high-throughput bulk item", () => {
-    const lines = [{ iid: "i1", name: "Nails", opening: 0, received: 1000, adjusted: 0, counted: 998, variance: -2, price: 1 }];
+    const lines = [
+      {
+        iid: "i1",
+        name: "Nails",
+        opening: 0,
+        received: 1000,
+        adjusted: 0,
+        counted: 998,
+        variance: -2,
+        price: 1,
+      },
+    ];
     expect(flaggedLines(lines)).toHaveLength(0); // 0.2% of throughput
   });
 
   it("flags a small item with a large proportional loss", () => {
-    const lines = [{ iid: "i1", name: "Vent", opening: 10, received: 0, adjusted: 0, counted: 6, variance: -4, price: 40 }];
+    const lines = [
+      {
+        iid: "i1",
+        name: "Vent",
+        opening: 10,
+        received: 0,
+        adjusted: 0,
+        counted: 6,
+        variance: -4,
+        price: 40,
+      },
+    ];
     expect(flaggedLines(lines)).toHaveLength(1);
   });
 
   it("ranks by dollars at risk, not by unit count", () => {
     const lines = [
-      { iid: "cheap", name: "Cap", opening: 100, received: 0, adjusted: 0, counted: 80, variance: -20, price: 1 },
-      { iid: "dear", name: "Coil", opening: 20, received: 0, adjusted: 0, counted: 17, variance: -3, price: 200 },
+      {
+        iid: "cheap",
+        name: "Cap",
+        opening: 100,
+        received: 0,
+        adjusted: 0,
+        counted: 80,
+        variance: -20,
+        price: 1,
+      },
+      {
+        iid: "dear",
+        name: "Coil",
+        opening: 20,
+        received: 0,
+        adjusted: 0,
+        counted: 17,
+        variance: -3,
+        price: 200,
+      },
     ];
     expect(flaggedLines(lines).map((l) => l.iid)).toEqual(["dear", "cheap"]);
   });
 
   it("says nothing about a line nobody counted", () => {
-    expect(flaggedLines([{ iid: "i1", opening: 10, received: 0, adjusted: 0, counted: null, variance: null }])).toHaveLength(0);
+    expect(
+      flaggedLines([
+        { iid: "i1", opening: 10, received: 0, adjusted: 0, counted: null, variance: null },
+      ]),
+    ).toHaveLength(0);
   });
 });
 
 describe("bleedTrend — one item over several months", () => {
   it("returns closed periods oldest first", () => {
     const counts = [
-      { period: "2026-02", status: "closed", lines: [{ iid: "i1", counted: 5, variance: -2, price: 10 }] },
-      { period: "2026-01", status: "closed", lines: [{ iid: "i1", counted: 9, variance: -1, price: 10 }] },
+      {
+        period: "2026-02",
+        status: "closed",
+        lines: [{ iid: "i1", counted: 5, variance: -2, price: 10 }],
+      },
+      {
+        period: "2026-01",
+        status: "closed",
+        lines: [{ iid: "i1", counted: 9, variance: -1, price: 10 }],
+      },
     ];
     expect(bleedTrend(counts, "i1")).toEqual([
       { period: "2026-01", variance: -1, value: -10 },
@@ -262,7 +404,13 @@ describe("bleedTrend — one item over several months", () => {
   });
 
   it("skips a period still open, whose numbers can still move", () => {
-    const counts = [{ period: "2026-03", status: "open", lines: [{ iid: "i1", counted: 1, variance: -9, price: 10 }] }];
+    const counts = [
+      {
+        period: "2026-03",
+        status: "open",
+        lines: [{ iid: "i1", counted: 1, variance: -9, price: 10 }],
+      },
+    ];
     expect(bleedTrend(counts, "i1")).toEqual([]);
   });
 });

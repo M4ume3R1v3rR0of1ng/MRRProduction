@@ -54,7 +54,14 @@ export const recentPeriods = (endPeriod, n) =>
 // the job dates that do exist. The fallback is approximate by nature; it is still
 // far better than dropping the line, which would silently understate usage.
 export const pullDateOf = (job, line) =>
-  line?.pulledAt || job?.pulledAt || job?.approved || job?.completed || job?.completedAt || job?.created || job?.createdAt || null;
+  line?.pulledAt ||
+  job?.pulledAt ||
+  job?.approved ||
+  job?.completed ||
+  job?.completedAt ||
+  job?.created ||
+  job?.createdAt ||
+  null;
 
 export const returnDateOf = (job, line) =>
   job?.completed || job?.completedAt || pullDateOf(job, line);
@@ -80,7 +87,8 @@ export function usageByItem(jobs, period) {
       const pulled = parseFloat(line.pulled) || 0;
       const returned = parseFloat(line.returned) || 0;
       if (pulled && periodOf(pullDateOf(job, line)) === period) add(line.iid, "pulled", pulled);
-      if (returned && periodOf(returnDateOf(job, line)) === period) add(line.iid, "returned", returned);
+      if (returned && periodOf(returnDateOf(job, line)) === period)
+        add(line.iid, "returned", returned);
     }
   }
   return out;
@@ -145,7 +153,10 @@ export function buildCountLines(inv, jobs, period, { previousLines = [], entries
 
       const entry = entries?.[item.id];
       const counted =
-        entry && entry.counted !== "" && entry.counted != null && !Number.isNaN(parseFloat(entry.counted))
+        entry &&
+        entry.counted !== "" &&
+        entry.counted != null &&
+        !Number.isNaN(parseFloat(entry.counted))
           ? parseFloat(entry.counted)
           : null;
 
@@ -187,11 +198,17 @@ export function buildCountLines(inv, jobs, period, { previousLines = [], entries
 // rather than pretending the rest balanced.
 export function summarizeCount(lines) {
   const counted = (lines || []).filter((l) => l && l.counted != null);
-  const throughput = counted.reduce((s, l) => s + Math.max(0, l.opening + l.received + l.adjusted), 0);
+  const throughput = counted.reduce(
+    (s, l) => s + Math.max(0, l.opening + l.received + l.adjusted),
+    0,
+  );
   const variance = counted.reduce((s, l) => s + (l.variance || 0), 0);
   const shrinkUnits = counted.reduce((s, l) => s + Math.min(0, l.variance || 0), 0);
   const value = counted.reduce((s, l) => s + (l.variance || 0) * (l.price || 0), 0);
-  const shrinkValue = counted.reduce((s, l) => s + Math.min(0, l.variance || 0) * (l.price || 0), 0);
+  const shrinkValue = counted.reduce(
+    (s, l) => s + Math.min(0, l.variance || 0) * (l.price || 0),
+    0,
+  );
 
   return {
     total: (lines || []).length,
@@ -218,7 +235,9 @@ export function flaggedLines(lines, { tolerancePct = 2, minUnits = 1 } = {}) {
     .filter((l) => {
       if (!l || l.variance == null || l.variance === 0) return false;
       const base = Math.max(1, l.opening + l.received + l.adjusted);
-      return Math.abs(l.variance) >= minUnits && (Math.abs(l.variance) / base) * 100 >= tolerancePct;
+      return (
+        Math.abs(l.variance) >= minUnits && (Math.abs(l.variance) / base) * 100 >= tolerancePct
+      );
     })
     .sort((a, b) => Math.abs(b.variance * (b.price || 1)) - Math.abs(a.variance * (a.price || 1)));
 }
@@ -231,7 +250,11 @@ export function bleedTrend(closedCounts, iid) {
     .map((c) => {
       const line = (c.lines || []).find((l) => l && l.iid === iid && l.counted != null);
       return line
-        ? { period: c.period, variance: line.variance, value: round((line.variance || 0) * (line.price || 0)) }
+        ? {
+            period: c.period,
+            variance: line.variance,
+            value: round((line.variance || 0) * (line.price || 0)),
+          }
         : null;
     })
     .filter(Boolean)

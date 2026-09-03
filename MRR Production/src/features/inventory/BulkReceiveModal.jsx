@@ -60,7 +60,9 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
   const selectable = useMemo(
     () =>
       inv.filter(
-        (i) => (i?.name || "").toLowerCase().includes(srch.toLowerCase()) && !rows.find((b) => b.iid === i.id),
+        (i) =>
+          (i?.name || "").toLowerCase().includes(srch.toLowerCase()) &&
+          !rows.find((b) => b.iid === i.id),
       ),
     [inv, srch, rows],
   );
@@ -71,12 +73,23 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
   const addRow = (item) =>
     setRows((p) => [
       ...p,
-      { iid: item.id, iname: item.name, unit: item.unit, qty: "", price: newestPrice(item) ? String(newestPrice(item)) : "" },
+      {
+        iid: item.id,
+        iname: item.name,
+        unit: item.unit,
+        qty: "",
+        price: newestPrice(item) ? String(newestPrice(item)) : "",
+      },
     ]);
   const removeRow = (iid) => setRows((p) => p.filter((b) => b.iid !== iid));
-  const updateRow = (iid, field, val) => setRows((p) => p.map((b) => (b.iid === iid ? { ...b, [field]: val } : b)));
+  const updateRow = (iid, field, val) =>
+    setRows((p) => p.map((b) => (b.iid === iid ? { ...b, [field]: val } : b)));
 
-  const close = () => { setRows([]); setSrch(""); onClose?.(); };
+  const close = () => {
+    setRows([]);
+    setSrch("");
+    onClose?.();
+  };
 
   const commit = async () => {
     if (!meta.date) {
@@ -88,7 +101,10 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
     // can name them in a warning instead of silently swallowing the delivery.
     const skipped = rows.filter((b) => !hasQuantity(b));
     if (valid.length === 0) {
-      showToast("Nothing was received — every row is missing a quantity. Enter a quantity for each item.", "warning");
+      showToast(
+        "Nothing was received — every row is missing a quantity. Enter a quantity for each item.",
+        "warning",
+      );
       return;
     }
 
@@ -111,7 +127,10 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
       const { data: freshRows, error: freshErr } = await supabase
         .from("inventory")
         .select("id,batches")
-        .in("id", valid.map((b) => b.iid));
+        .in(
+          "id",
+          valid.map((b) => b.iid),
+        );
       if (freshErr) throw freshErr;
       const freshById = new Map((freshRows || []).map((r) => [r.id, r.batches || []]));
 
@@ -145,7 +164,9 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
       const firstError = results.map((r) => r?.error).find(Boolean);
       if (firstError) throw firstError;
 
-      setInv?.((p) => p.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i)));
+      setInv?.((p) =>
+        p.map((i) => (changedBatches.has(i.id) ? { ...i, batches: changedBatches.get(i.id) } : i)),
+      );
 
       // Bulk rows can carry negative correction quantities, so a threshold
       // crossing is possible here too.
@@ -153,7 +174,13 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
         [...changedBatches]
           .map(([iid, batches]) => {
             const item = inv.find((i) => i.id === iid);
-            return item ? { item, prevTotal: tot({ batches: freshById.get(iid) }), newTotal: tot({ batches }) } : null;
+            return item
+              ? {
+                  item,
+                  prevTotal: tot({ batches: freshById.get(iid) }),
+                  newTotal: tot({ batches }),
+                }
+              : null;
           })
           .filter(Boolean),
         users,
@@ -173,12 +200,20 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
           // WHICH items, not just how many. Without this a delivery logs as
           // "2 items" and the only way to learn what was in it is to reconstruct
           // it from the batches (see the Atlas box vent hunt on 2026-07-16).
-          items: priced.map((b) => ({ item_id: b.iid, name: b.iname, qty: parseFloat(b.qty), unit_cost: b.rate })),
+          items: priced.map((b) => ({
+            item_id: b.iid,
+            name: b.iname,
+            qty: parseFloat(b.qty),
+            unit_cost: b.rate,
+          })),
           ...(skipped.length > 0 ? { skipped_no_quantity: skipped.map((b) => b.iname) } : {}),
         },
       );
 
-      showToast(`Bulk delivery received — ${valid.length} item${valid.length > 1 ? "s" : ""} added.`, "success");
+      showToast(
+        `Bulk delivery received — ${valid.length} item${valid.length > 1 ? "s" : ""} added.`,
+        "success",
+      );
       // Surface anything left out so a forgotten quantity cannot quietly disappear.
       if (skipped.length) {
         showToast(
@@ -202,32 +237,126 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
 
   return (
     <Modal title="📦 Receive Bulk Order Manifest" onClose={close} wide>
-      <div style={{ background: C.gL, border: `1.5px solid ${C.gold}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.navy }}>
-        ⭐ <strong>Inbound Accounting:</strong> FIFO indices update automatically. Each item maps a standalone discrete batch vector tracking vendor origins.
+      <div
+        style={{
+          background: C.gL,
+          border: `1.5px solid ${C.gold}`,
+          borderRadius: "var(--radius-md)",
+          padding: "10px 14px",
+          marginBottom: 14,
+          fontSize: "var(--text-sm)",
+          color: C.navy,
+        }}
+      >
+        ⭐ <strong>Inbound Accounting:</strong> FIFO indices update automatically. Each item maps a
+        standalone discrete batch vector tracking vendor origins.
       </div>
 
-      <div className="sw-grid-3" style={{ gap: "var(--space-4)", padding: 14, background: C.lg, borderRadius: "var(--radius-lg)", marginBottom: 16 }}>
-        <Fld label="Date Received *"><Inp type="date" value={meta.date} onChange={(e) => setMeta({ ...meta, date: e.target.value })} /></Fld>
-        <Fld label="PO / Order #"><Inp value={meta.po} onChange={(e) => setMeta({ ...meta, po: e.target.value })} placeholder="e.g. PO-2025-100" /></Fld>
-        <Fld label="Vendor / Supplier"><Inp value={meta.vendor} onChange={(e) => setMeta({ ...meta, vendor: e.target.value })} placeholder="e.g. ABC Supply" /></Fld>
+      <div
+        className="sw-grid-3"
+        style={{
+          gap: "var(--space-4)",
+          padding: 14,
+          background: C.lg,
+          borderRadius: "var(--radius-lg)",
+          marginBottom: 16,
+        }}
+      >
+        <Fld label="Date Received *">
+          <Inp
+            type="date"
+            value={meta.date}
+            onChange={(e) => setMeta({ ...meta, date: e.target.value })}
+          />
+        </Fld>
+        <Fld label="PO / Order #">
+          <Inp
+            value={meta.po}
+            onChange={(e) => setMeta({ ...meta, po: e.target.value })}
+            placeholder="e.g. PO-2025-100"
+          />
+        </Fld>
+        <Fld label="Vendor / Supplier">
+          <Inp
+            value={meta.vendor}
+            onChange={(e) => setMeta({ ...meta, vendor: e.target.value })}
+            placeholder="e.g. ABC Supply"
+          />
+        </Fld>
       </div>
 
       <div className="sw-split" style={{ gap: "var(--space-6)", marginBottom: 16 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>Select Items to Receive</div>
-          <Inp value={srch} onChange={(e) => setSrch(e.target.value)} placeholder="🔍 Search inventory..." style={{ marginBottom: 8 }} />
-          <div style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
+          <div
+            style={{
+              fontSize: "var(--text-xs)",
+              fontWeight: "var(--weight-bold)",
+              color: C.navy,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+              marginBottom: 6,
+            }}
+          >
+            Select Items to Receive
+          </div>
+          <Inp
+            value={srch}
+            onChange={(e) => setSrch(e.target.value)}
+            placeholder="🔍 Search inventory..."
+            style={{ marginBottom: 8 }}
+          />
+          <div
+            style={{
+              maxHeight: 320,
+              overflowY: "auto",
+              display: "flex",
+              flexDirection: "column",
+              gap: 5,
+            }}
+          >
             {selectable.map((item) => (
-              <div key={item.id} style={{ background: C.w, border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div
+                key={item.id}
+                style={{
+                  background: C.w,
+                  border: `1.5px solid ${C.bd}`,
+                  borderRadius: "var(--radius-md)",
+                  padding: "9px 12px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
                 <div>
-                  <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.name}</div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{item.cat} · {tot(item)} {item.unit} available</div>
+                  <div
+                    style={{
+                      fontWeight: "var(--weight-bold)",
+                      color: C.navy,
+                      fontSize: "var(--text-sm)",
+                    }}
+                  >
+                    {item.name}
+                  </div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                    {item.cat} · {tot(item)} {item.unit} available
+                  </div>
                 </div>
-                <Btn v="primary" sz="sm" onClick={() => addRow(item)}>+ Add</Btn>
+                <Btn v="primary" sz="sm" onClick={() => addRow(item)}>
+                  + Add
+                </Btn>
               </div>
             ))}
             {selectable.length === 0 && (
-              <div style={{ padding: 20, textAlign: "center", color: C.sub, fontSize: "var(--text-sm)", background: C.lg, borderRadius: "var(--radius-md)" }}>
+              <div
+                style={{
+                  padding: 20,
+                  textAlign: "center",
+                  color: C.sub,
+                  fontSize: "var(--text-sm)",
+                  background: C.lg,
+                  borderRadius: "var(--radius-md)",
+                }}
+              >
                 {rows.length > 0 ? "All items matched ✓" : "No matching inventory items found"}
               </div>
             )}
@@ -235,47 +364,207 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
         </div>
 
         <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-            <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.5px" }}>Manifest Queue {rows.length > 0 && `(${rows.length})`}</div>
-            {rows.length > 0 && <button onClick={() => setRows([])} style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>Clear All</button>}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 6,
+            }}
+          >
+            <div
+              style={{
+                fontSize: "var(--text-xs)",
+                fontWeight: "var(--weight-bold)",
+                color: C.navy,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px",
+              }}
+            >
+              Manifest Queue {rows.length > 0 && `(${rows.length})`}
+            </div>
+            {rows.length > 0 && (
+              <button
+                onClick={() => setRows([])}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: C.rd,
+                  fontSize: "var(--text-xs)",
+                  fontWeight: "var(--weight-bold)",
+                }}
+              >
+                Clear All
+              </button>
+            )}
           </div>
 
           {rows.length === 0 ? (
-            <div style={{ height: 200, background: C.lg, borderRadius: "var(--radius-md)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: C.sub, gap: "var(--space-3)" }}>
+            <div
+              style={{
+                height: 200,
+                background: C.lg,
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                color: C.sub,
+                gap: "var(--space-3)",
+              }}
+            >
               <span style={{ fontSize: 32 }}>📋</span>
-              <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>Manifest queue is empty</span>
+              <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>
+                Manifest queue is empty
+              </span>
             </div>
           ) : (
             <>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxHeight: 280, overflowY: "auto", marginBottom: 10 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--space-2)",
+                  maxHeight: 280,
+                  overflowY: "auto",
+                  marginBottom: 10,
+                }}
+              >
                 {rows.map((b) => {
                   const sub = (parseFloat(b.qty) || 0) * (parseFloat(b.price) || 0);
                   return (
-                    <div key={b.iid} style={{ background: C.w, border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 7 }}>
-                        <span style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{b.iname}</span>
-                        <button onClick={() => removeRow(b.iid)} style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-xl)", lineHeight: 1 }}>×</button>
+                    <div
+                      key={b.iid}
+                      style={{
+                        background: C.w,
+                        border: `1.5px solid ${C.bd}`,
+                        borderRadius: "var(--radius-md)",
+                        padding: "10px 12px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 7,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight: "var(--weight-bold)",
+                            color: C.navy,
+                            fontSize: "var(--text-sm)",
+                          }}
+                        >
+                          {b.iname}
+                        </span>
+                        <button
+                          onClick={() => removeRow(b.iid)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: C.rd,
+                            fontSize: "var(--text-xl)",
+                            lineHeight: 1,
+                          }}
+                        >
+                          ×
+                        </button>
                       </div>
 
                       <div className="sw-grid-2-auto">
                         <div>
-                          <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Qty ({b.unit})</div>
-                          <Inp type="number" value={b.qty} onChange={(e) => updateRow(b.iid, "qty", e.target.value)} placeholder="0" style={{ padding: "5px 8px" }} />
+                          <div
+                            style={{
+                              fontSize: 9,
+                              color: C.sub,
+                              fontWeight: "var(--weight-bold)",
+                              textTransform: "uppercase",
+                              marginBottom: 3,
+                            }}
+                          >
+                            Qty ({b.unit})
+                          </div>
+                          <Inp
+                            type="number"
+                            value={b.qty}
+                            onChange={(e) => updateRow(b.iid, "qty", e.target.value)}
+                            placeholder="0"
+                            style={{ padding: "5px 8px" }}
+                          />
                         </div>
                         <div>
-                          <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Unit Price</div>
+                          <div
+                            style={{
+                              fontSize: 9,
+                              color: C.sub,
+                              fontWeight: "var(--weight-bold)",
+                              textTransform: "uppercase",
+                              marginBottom: 3,
+                            }}
+                          >
+                            Unit Price
+                          </div>
                           <div style={{ position: "relative" }}>
-                            <span style={{ position: "absolute", left: 7, top: "50%", transform: "translateY(-50%)", color: C.sub, fontSize: "var(--text-xs)" }}>$</span>
+                            <span
+                              style={{
+                                position: "absolute",
+                                left: 7,
+                                top: "50%",
+                                transform: "translateY(-50%)",
+                                color: C.sub,
+                                fontSize: "var(--text-xs)",
+                              }}
+                            >
+                              $
+                            </span>
                             {perms.inv_pricing_edit ? (
-                              <Inp type="number" step="0.01" value={b.price} onChange={(e) => updateRow(b.iid, "price", e.target.value)} placeholder="0.00" style={{ padding: "5px 8px", paddingLeft: 16 }} />
+                              <Inp
+                                type="number"
+                                step="0.01"
+                                value={b.price}
+                                onChange={(e) => updateRow(b.iid, "price", e.target.value)}
+                                placeholder="0.00"
+                                style={{ padding: "5px 8px", paddingLeft: 16 }}
+                              />
                             ) : (
-                              <Inp value={b.price} readOnly style={{ padding: "5px 8px", paddingLeft: 16, color: C.sub, background: C.lg }} />
+                              <Inp
+                                value={b.price}
+                                readOnly
+                                style={{
+                                  padding: "5px 8px",
+                                  paddingLeft: 16,
+                                  color: C.sub,
+                                  background: C.lg,
+                                }}
+                              />
                             )}
                           </div>
                         </div>
                         <div style={{ paddingBottom: 2, textAlign: "right" }}>
-                          <div style={{ fontSize: 9, color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 3 }}>Subtotal</div>
-                          <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: sub > 0 ? C.gr : C.sub }}>{fm(sub)}</div>
+                          <div
+                            style={{
+                              fontSize: 9,
+                              color: C.sub,
+                              fontWeight: "var(--weight-bold)",
+                              textTransform: "uppercase",
+                              marginBottom: 3,
+                            }}
+                          >
+                            Subtotal
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "var(--text-base)",
+                              fontWeight: "var(--weight-extrabold)",
+                              color: sub > 0 ? C.gr : C.sub,
+                            }}
+                          >
+                            {fm(sub)}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -283,12 +572,46 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                 })}
               </div>
 
-              <div style={{ background: C.shell, borderRadius: "var(--radius-md)", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div
+                style={{
+                  background: C.shell,
+                  borderRadius: "var(--radius-md)",
+                  padding: "12px 16px",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
                 <div>
-                  <div style={{ color: "rgba(255,255,255,0.55)", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>Manifest Valuation</div>
-                  <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "var(--text-xs)", marginTop: 2 }}>{validCount} valid item positions</div>
+                  <div
+                    style={{
+                      color: "rgba(255,255,255,0.55)",
+                      fontSize: "var(--text-2xs)",
+                      fontWeight: "var(--weight-bold)",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Manifest Valuation
+                  </div>
+                  <div
+                    style={{
+                      color: "rgba(255,255,255,0.7)",
+                      fontSize: "var(--text-xs)",
+                      marginTop: 2,
+                    }}
+                  >
+                    {validCount} valid item positions
+                  </div>
                 </div>
-                <div style={{ fontWeight: "var(--weight-black)", fontSize: "var(--text-3xl)", color: C.gold }}>{fm(total)}</div>
+                <div
+                  style={{
+                    fontWeight: "var(--weight-black)",
+                    fontSize: "var(--text-3xl)",
+                    color: C.gold,
+                  }}
+                >
+                  {fm(total)}
+                </div>
               </div>
             </>
           )}
@@ -296,8 +619,21 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
       </div>
 
       <div style={{ display: "flex", gap: "var(--space-4)" }}>
-        <Btn v="ghost" onClick={close} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
-        <Btn v="gold" sz="lg" onClick={commit} style={{ flex: 2, justifyContent: "center" }} disabled={saving}>
+        <Btn
+          v="ghost"
+          onClick={close}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={saving}
+        >
+          Cancel
+        </Btn>
+        <Btn
+          v="gold"
+          sz="lg"
+          onClick={commit}
+          style={{ flex: 2, justifyContent: "center" }}
+          disabled={saving}
+        >
           {saving ? "⏳ Logging Operation..." : `✅ Commit Manifest (${validCount} Items)`}
         </Btn>
       </div>

@@ -4,7 +4,11 @@
 // $225, and Reports and the PDF disagreed about the same job.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/shared/utils/supabase", () => ({ supabase: {}, updateRowStrict: vi.fn(), getAccessToken: vi.fn() }));
+vi.mock("@/shared/utils/supabase", () => ({
+  supabase: {},
+  updateRowStrict: vi.fn(),
+  getAccessToken: vi.fn(),
+}));
 
 const { generatePDF } = await import("./pdfGenerator");
 
@@ -14,7 +18,13 @@ beforeEach(() => {
   html = "";
   globalThis.window = {
     open: () => ({
-      document: { write: (h) => { html += h; }, close: () => {}, getElementById: () => null },
+      document: {
+        write: (h) => {
+          html += h;
+        },
+        close: () => {},
+        getElementById: () => null,
+      },
       focus: () => {},
       print: () => {},
     }),
@@ -22,18 +32,26 @@ beforeEach(() => {
 });
 
 // Older batch drained, newest batch priced $15 → newestPrice() is $15.
-const inv = [{
-  id: "i1",
-  name: "Architectural Shingles",
-  batches: [
-    { id: "a", rcvd: "2026-07-01", qty: 10, price: 10, rem: 0 },
-    { id: "b", rcvd: "2026-07-10", qty: 10, price: 15, rem: 5 },
-  ],
-}];
+const inv = [
+  {
+    id: "i1",
+    name: "Architectural Shingles",
+    batches: [
+      { id: "a", rcvd: "2026-07-01", qty: 10, price: 10, rem: 0 },
+      { id: "b", rcvd: "2026-07-10", qty: 10, price: 15, rem: 5 },
+    ],
+  },
+];
 
 const jobWith = (line) => ({
-  id: "j1", title: "Test Job", name: "Test Job", po: "PO-1", addr: "1 Main St",
-  notes: "", assignedto: "u1", status: "completed",
+  id: "j1",
+  title: "Test Job",
+  name: "Test Job",
+  po: "PO-1",
+  addr: "1 Main St",
+  notes: "",
+  assignedto: "u1",
+  status: "completed",
   items: [{ iid: "i1", iname: "Architectural Shingles", icat: "Roofing", unit: "bundle", ...line }],
 });
 const users = [{ id: "u1", full_name: "Crew", name: "Crew" }];
@@ -41,20 +59,35 @@ const users = [{ id: "u1", full_name: "Crew", name: "Crew" }];
 describe("generatePDF — material pricing", () => {
   it("prices from the pull-time FIFO snapshot, not today's price", () => {
     // 15 pulled, FIFO cost $175 → $11.67/ea. Today's price is $15 (would give $225).
-    generatePDF(jobWith({ planned: 15, pulled: 15, returned: 0, priceAtPull: 175 / 15, pullCost: 175 }), users, null, inv);
+    generatePDF(
+      jobWith({ planned: 15, pulled: 15, returned: 0, priceAtPull: 175 / 15, pullCost: 175 }),
+      users,
+      null,
+      inv,
+    );
     expect(html).toMatch(/175\.00/);
     expect(html).not.toMatch(/225\.00/);
     expect(html).toMatch(/11\.67/);
   });
 
   it("bills only what was used, so a returned item costs nothing", () => {
-    generatePDF(jobWith({ planned: 15, pulled: 15, returned: 15, priceAtPull: 11.67, pullCost: 175 }), users, null, inv);
+    generatePDF(
+      jobWith({ planned: 15, pulled: 15, returned: 15, priceAtPull: 11.67, pullCost: 175 }),
+      users,
+      null,
+      inv,
+    );
     expect(html).not.toMatch(/175\.00/);
   });
 
   it("subtracts returns from the pulled quantity", () => {
     // 15 pulled, 5 back → 10 used × $11.67 = $116.70.
-    generatePDF(jobWith({ planned: 15, pulled: 15, returned: 5, priceAtPull: 11.67, pullCost: 175 }), users, null, inv);
+    generatePDF(
+      jobWith({ planned: 15, pulled: 15, returned: 5, priceAtPull: 11.67, pullCost: 175 }),
+      users,
+      null,
+      inv,
+    );
     expect(html).toMatch(/116\.70/);
   });
 
@@ -67,7 +100,7 @@ describe("generatePDF — material pricing", () => {
 
   it("escapes job text so a crafted name can't inject markup", () => {
     const job = jobWith({ planned: 1, pulled: 1, returned: 0, priceAtPull: 10, pullCost: 10 });
-    job.title = '<script>alert(1)</script>';
+    job.title = "<script>alert(1)</script>";
     generatePDF(job, users, null, inv);
     expect(html).not.toMatch(/<script>alert/);
     expect(html).toMatch(/&lt;script&gt;/);
@@ -84,7 +117,10 @@ describe("generatePDF — per-tenant header, tax and product footer", () => {
   });
 
   it("prefers branding.displayName over the canonical company name", () => {
-    generatePDF(job, users, null, inv, { name: "Legal LLC Name", branding: { displayName: "Cedar & Slate" } });
+    generatePDF(job, users, null, inv, {
+      name: "Legal LLC Name",
+      branding: { displayName: "Cedar & Slate" },
+    });
     expect(html).toMatch(/CEDAR &amp; SLATE/); // and it's HTML-escaped
     expect(html).not.toMatch(/LEGAL LLC NAME/);
   });
@@ -104,7 +140,10 @@ describe("generatePDF — per-tenant header, tax and product footer", () => {
   });
 
   it("uses the tenant's own tax rate and label", () => {
-    generatePDF(job, users, null, inv, { name: "Sunrise", branding: { taxRate: 0.0725, taxLabel: "Lucas County Tax" } });
+    generatePDF(job, users, null, inv, {
+      name: "Sunrise",
+      branding: { taxRate: 0.0725, taxLabel: "Lucas County Tax" },
+    });
     expect(html).toMatch(/Lucas County Tax \(7\.25%\)/);
     expect(html).toMatch(/\$7\.25/); // 7.25% of $100
   });

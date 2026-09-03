@@ -27,7 +27,12 @@ describe("registry shape", () => {
   });
 
   it("keeps the stored job shape the database already has", () => {
-    expect(automationsForGroup("jobs").map((a) => a.key)).toEqual(["approved", "active", "completed", "closed"]);
+    expect(automationsForGroup("jobs").map((a) => a.key)).toEqual([
+      "approved",
+      "active",
+      "completed",
+      "closed",
+    ]);
   });
 
   it("ships every maintenance automation off, since none of them sent mail before", () => {
@@ -37,7 +42,12 @@ describe("registry shape", () => {
 
 describe("defaultPrefs", () => {
   it("preserves the one job default that was already firing", () => {
-    expect(defaultPrefs("jobs")).toEqual({ approved: true, active: false, completed: false, closed: false });
+    expect(defaultPrefs("jobs")).toEqual({
+      approved: true,
+      active: false,
+      completed: false,
+      closed: false,
+    });
   });
 
   it("returns an empty object for an unknown group", () => {
@@ -47,7 +57,12 @@ describe("defaultPrefs", () => {
 
 describe("mergePrefs", () => {
   it("layers a stored blob over the registry defaults", () => {
-    expect(mergePrefs("jobs", { closed: true })).toEqual({ approved: true, active: false, completed: false, closed: true });
+    expect(mergePrefs("jobs", { closed: true })).toEqual({
+      approved: true,
+      active: false,
+      completed: false,
+      closed: true,
+    });
   });
 
   it("falls back to defaults when nothing is stored yet", () => {

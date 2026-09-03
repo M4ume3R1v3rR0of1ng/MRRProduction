@@ -19,7 +19,7 @@
 import { adminClient } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 
-const ACCULYNX_BASE = 'https://api.acculynx.com/api/v2';
+const ACCULYNX_BASE = "https://api.acculynx.com/api/v2";
 
 const supabase = adminClient();
 
@@ -27,7 +27,7 @@ async function acculynxFetch(path, apiKey) {
   const res = await fetch(`${ACCULYNX_BASE}${path}`, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
   if (!res.ok) {
@@ -45,7 +45,10 @@ async function acculynxFetch(path, apiKey) {
 // AccuLynx Jobs dashboard (e.g. currentMilestoneList:Completed).
 async function fetchJobsPage(apiKey, pageStartIndex = 0, pageSize = 25, milestones = "") {
   const milestoneParam = milestones ? `&milestones=${encodeURIComponent(milestones)}` : "";
-  return acculynxFetch(`/jobs?pageSize=${pageSize}&recordStartIndex=${pageStartIndex}${milestoneParam}`, apiKey);
+  return acculynxFetch(
+    `/jobs?pageSize=${pageSize}&recordStartIndex=${pageStartIndex}${milestoneParam}`,
+    apiKey,
+  );
 }
 
 // Customer/contact record tied to the job. Returns firstName/lastName, but its
@@ -137,12 +140,13 @@ const rawHandler = async (event) => {
     // Header only — never accept the secret via query string, which leaks into
     // access logs, proxies, and browser history.
     const providedSecret =
-      event.headers?.['x-import-secret'] ||
-      event.headers?.['X-Import-Secret'] ||
-      null;
+      event.headers?.["x-import-secret"] || event.headers?.["X-Import-Secret"] || null;
 
-    if (!process.env.ACCULYNX_IMPORT_SECRET || providedSecret !== process.env.ACCULYNX_IMPORT_SECRET) {
-      return { statusCode: 401, body: JSON.stringify({ error: 'Unauthorized' }) };
+    if (
+      !process.env.ACCULYNX_IMPORT_SECRET ||
+      providedSecret !== process.env.ACCULYNX_IMPORT_SECRET
+    ) {
+      return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
     }
 
     // ── Which company are we importing into? ──
@@ -153,20 +157,25 @@ const rawHandler = async (event) => {
     if (!slug) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'Missing ?company=<slug> — the import target must be named explicitly.' }),
+        body: JSON.stringify({
+          error: "Missing ?company=<slug> — the import target must be named explicitly.",
+        }),
       };
     }
 
     const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .select('id, name, subscription_status')
-      .eq('slug', slug)
+      .from("companies")
+      .select("id, name, subscription_status")
+      .eq("slug", slug)
       .maybeSingle();
 
     if (companyError || !company) {
-      return { statusCode: 404, body: JSON.stringify({ error: `No company with slug "${slug}".` }) };
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: `No company with slug "${slug}".` }),
+      };
     }
-    if (!['trialing', 'active', 'past_due'].includes(company.subscription_status)) {
+    if (!["trialing", "active", "past_due"].includes(company.subscription_status)) {
       return {
         statusCode: 402,
         body: JSON.stringify({ error: `Company "${slug}" does not have an active subscription.` }),
@@ -177,9 +186,9 @@ const rawHandler = async (event) => {
     // This service-role client can. ACCULYNX_API_KEY stays as a fallback only so
     // Maumee River keeps working before its key is saved into the DB.
     const { data: secrets } = await supabase
-      .from('company_secrets')
-      .select('integrations')
-      .eq('company_id', company.id)
+      .from("company_secrets")
+      .select("integrations")
+      .eq("company_id", company.id)
       .maybeSingle();
     const apiKey = secrets?.integrations?.acculynxApiKey || process.env.ACCULYNX_API_KEY;
     if (!apiKey) {
@@ -189,10 +198,10 @@ const rawHandler = async (event) => {
       };
     }
 
-    const pageStartIndex = parseInt(params.page || '0', 10);
+    const pageStartIndex = parseInt(params.page || "0", 10);
     const pageSize = 25;
     // Defaults to "completed" — pass ?milestones=all (or any other stage) to override.
-    const milestones = params.milestones === 'all' ? '' : (params.milestones || 'completed');
+    const milestones = params.milestones === "all" ? "" : params.milestones || "completed";
 
     // 1. Get a page of jobs
     const jobsPage = await fetchJobsPage(apiKey, pageStartIndex, pageSize, milestones);
@@ -218,7 +227,7 @@ const rawHandler = async (event) => {
             fetchContactEmail(apiKey, contactId).catch(() => null),
             fetchContactPhone(apiKey, contactId).catch(() => null),
           ]);
-          const name = [contact?.firstName, contact?.lastName].filter(Boolean).join(' ');
+          const name = [contact?.firstName, contact?.lastName].filter(Boolean).join(" ");
           customer = { name: name || null, email, phone };
         } catch (err) {
           // A missing contact must not lose the job — import it without them.
@@ -244,9 +253,7 @@ const rawHandler = async (event) => {
     // It is also safer: keyed this way the import can only ever update rows the
     // import created, never a job a crew built by hand against the same AccuLynx job.
     if (rows.length > 0) {
-      const { error } = await supabase
-        .from('jobs')
-        .upsert(rows, { onConflict: 'company_id,id' });
+      const { error } = await supabase.from("jobs").upsert(rows, { onConflict: "company_id,id" });
       if (error) throw error;
     }
 
@@ -259,7 +266,7 @@ const rawHandler = async (event) => {
       }),
     };
   } catch (err) {
-    console.error('AccuLynx import failed:', err);
+    console.error("AccuLynx import failed:", err);
     return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
   }
 };

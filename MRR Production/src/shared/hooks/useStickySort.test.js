@@ -4,7 +4,15 @@ import { resolveSort } from "./useStickySort";
 // The hook itself is plumbing around localStorage. This covers the part that
 // decides anything: whether a remembered sort is still safe to use.
 describe("resolveSort", () => {
-  const INVENTORY = ["name_az", "name_za", "cat_az", "stock_low", "stock_high", "price_low", "price_high"];
+  const INVENTORY = [
+    "name_az",
+    "name_za",
+    "cat_az",
+    "stock_low",
+    "stock_high",
+    "price_low",
+    "price_high",
+  ];
 
   it("uses a remembered sort that is still offered", () => {
     expect(resolveSort("stock_low", INVENTORY, "name_az")).toBe("stock_low");

@@ -1,19 +1,19 @@
 // src/features/jobs/pdfGenerator.js
 
-import { fd, fm, newestPrice } from '@/shared/utils/helpers';
+import { fd, fm, newestPrice } from "@/shared/utils/helpers";
 
 // Job/item fields below (name, PO, address, notes, item names) are free text set by
 // warehouse/coordinator/manager users, then rendered via document.write() into a
 // same-origin popup — without escaping, a crafted name/note is stored XSS with full
 // access to window.opener (the live authenticated app) for whoever generates the PDF.
 function escapeHtml(value) {
-  if (value === null || value === undefined) return '';
+  if (value === null || value === undefined) return "";
   return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // The numbers behind the job report, computed once and shared by both renderers:
@@ -21,7 +21,7 @@ function escapeHtml(value) {
 // uploaded to AccuLynx. Two renderers reading two copies of this arithmetic is how
 // the report on screen and the report in the CRM quietly start disagreeing.
 export function buildJobReportModel(job, users, inv = [], company = null) {
-  const sup = users.find(u => u.id === (job.assignedto || job.assignedTo));
+  const sup = users.find((u) => u.id === (job.assignedto || job.assignedTo));
 
   // The report header is the TENANT's name — pulled from their company row, never
   // hardcoded, so tenant #2's report doesn't print tenant #1's name. The footer credit
@@ -40,11 +40,11 @@ export function buildJobReportModel(job, users, inv = [], company = null) {
   // a new batch lands at a different price, and disagreeing with the Reports view
   // (which uses priceAtPull). newestPrice stays the fallback for rows with no
   // snapshot: legacy/imported items, or items never pulled.
-  (job.items || job.materials || []).forEach(item => {
+  (job.items || job.materials || []).forEach((item) => {
     if (!item) return;
     const pulled = parseFloat(item.pulled) || 0;
     const returned = parseFloat(item.returned) || 0;
-    const invItem = inv.find(x => x && x.id === item.iid);
+    const invItem = inv.find((x) => x && x.id === item.iid);
     const livePrice = invItem ? newestPrice(invItem) : 0;
     const snapshot = parseFloat(item.priceAtPull);
     const unitPrice = pulled > 0 && Number.isFinite(snapshot) ? snapshot : livePrice;
@@ -53,7 +53,7 @@ export function buildJobReportModel(job, users, inv = [], company = null) {
     if (!cats[item.icat]) cats[item.icat] = [];
     cats[item.icat].push({ ...item, pulled, returned, unitPrice, used, total });
   });
-  
+
   // Per-company tax, set in Settings. Defaults to 0.07 so Maumee's existing reports are
   // byte-for-byte unchanged, but the rate is no longer a code constant and the label no
   // longer claims "Indiana" for a company that isn't there. A tenant sets their own.
@@ -63,7 +63,9 @@ export function buildJobReportModel(job, users, inv = [], company = null) {
   // any trailing zeros, so 7% prints "7" and 7.25% prints "7.25".
   const taxPct = String(parseFloat((SALES_TAX_RATE * 100).toFixed(2)));
   const taxLabel = company?.branding?.taxLabel || "Sales Tax";
-  const grandTotal = Object.values(cats).flat().reduce((s, i) => s + i.total, 0);
+  const grandTotal = Object.values(cats)
+    .flat()
+    .reduce((s, i) => s + i.total, 0);
   const salesTax = grandTotal * SALES_TAX_RATE;
   const totalWithTax = grandTotal + salesTax;
 
@@ -72,7 +74,7 @@ export function buildJobReportModel(job, users, inv = [], company = null) {
     jobName: job.title || job.name,
     po: job.po,
     addr: job.addr,
-    supervisor: sup ? sup.name : 'N/A',
+    supervisor: sup ? sup.name : "N/A",
     completedAt: new Date(job.completedAt || job.completed || Date.now()),
     notes: job.notes,
     categories: Object.entries(cats).map(([name, items]) => ({
@@ -91,14 +93,17 @@ export function buildJobReportModel(job, users, inv = [], company = null) {
 export function generatePDF(job, users, activeLogo, inv = [], company = null) {
   const m = buildJobReportModel(job, users, inv, company);
   const { companyName, taxLabel, taxPct, grandTotal, salesTax, totalWithTax } = m;
-  const fp = n => '$' + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const fp = (n) => "$" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-  const catRows = m.categories.map(({ name: cat, items, subtotal: catTotal }) => {
-    return `
+  const catRows = m.categories
+    .map(({ name: cat, items, subtotal: catTotal }) => {
+      return `
       <tr style="background:#EEF2FA">
         <td colspan="7" style="padding:8px 14px;font-weight:900;color:#0E2D6B">${escapeHtml(cat)}</td>
       </tr>
-      ${items.map(i => `
+      ${items
+        .map(
+          (i) => `
         <tr>
           <td style="padding:7px 14px">${escapeHtml(i.iname)}</td>
           <td style="padding:7px 14px;text-align:center">${parseFloat(i.planned) || 0}</td>
@@ -108,18 +113,21 @@ export function generatePDF(job, users, activeLogo, inv = [], company = null) {
           <td style="padding:7px 14px;text-align:right">$${i.unitPrice.toFixed(2)}</td>
           <td style="padding:7px 14px;text-align:right;font-weight:700;color:#16A34A">$${i.total.toFixed(2)}</td>
         </tr>
-      `).join('')}
+      `,
+        )
+        .join("")}
       <tr style="background:#F1F5F9">
         <td colspan="6" style="padding:7px 14px;font-weight:700;text-align:right;font-style:italic">Category Subtotal:</td>
         <td style="padding:7px 14px;text-align:right;font-weight:900;color:#1B52B8">${fp(catTotal)}</td>
       </tr>
     `;
-  }).join('');
-  
-  const logoHtml = activeLogo 
-    ? `<img src="${activeLogo}" style="height:56px;object-fit:contain;display:block;margin-bottom:4px"/>` 
+    })
+    .join("");
+
+  const logoHtml = activeLogo
+    ? `<img src="${activeLogo}" style="height:56px;object-fit:contain;display:block;margin-bottom:4px"/>`
     : `<div style="width:50px;height:50px;background:#F5A800;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:4px">🏠</div>`;
-  
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -149,8 +157,8 @@ export function generatePDF(job, users, activeLogo, inv = [], company = null) {
         <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">PO Number</td><td style="border:none">${escapeHtml(m.po)}</td></tr>
         <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Address</td><td style="border:none">${escapeHtml(m.addr)}</td></tr>
         <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Site Supervisor</td><td style="border:none">${escapeHtml(m.supervisor)}</td></tr>
-        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Date Completed</td><td style="border:none">${m.completedAt.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</td></tr>
-        ${m.notes ? `<tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Notes</td><td style="border:none">${escapeHtml(m.notes)}</td></tr>` : ''}
+        <tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Date Completed</td><td style="border:none">${m.completedAt.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</td></tr>
+        ${m.notes ? `<tr><td style="padding:5px 24px 5px 0;font-weight:700;color:#64748B;border:none;font-size:12px;text-transform:uppercase">Notes</td><td style="border:none">${escapeHtml(m.notes)}</td></tr>` : ""}
       </table>
       <h3 style="margin:28px 0 4px;color:#0E2D6B;font-size:14px;text-transform:uppercase;letter-spacing:.5px">Materials Used - Pulled minus Returned</h3>
       <table>
@@ -187,14 +195,14 @@ export function generatePDF(job, users, activeLogo, inv = [], company = null) {
     </body>
     </html>
   `;
-  
-  const win = window.open('', '_blank', 'width=1000,height=750');
+
+  const win = window.open("", "_blank", "width=1000,height=750");
   if (!win) return false; // popup blocked — let the caller warn the user
 
   win.document.write(html);
   win.document.close();
   // The popup inherits this app's CSP (script-src 'self', no 'unsafe-inline'),
   // which blocks inline onclick handlers — bind the print action from here instead.
-  win.document.getElementById('mrr-print-btn')?.addEventListener('click', () => win.print());
+  win.document.getElementById("mrr-print-btn")?.addEventListener("click", () => win.print());
   return true;
-};
+}

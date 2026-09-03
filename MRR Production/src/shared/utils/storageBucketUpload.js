@@ -2,7 +2,7 @@
 import { supabase } from "./supabase";
 
 /**
- * Converts a Base64 Image String into a raw binary Blob/File object 
+ * Converts a Base64 Image String into a raw binary Blob/File object
  * so it can be uploaded cleanly via standard multi-part boundary streams.
  */
 function base64ToBlob(base64Data, contentType = "image/jpeg") {
@@ -42,24 +42,25 @@ export async function uploadPhotoToBucket(bucketName, companyId, fileId, base64S
     const filePath = `${companyId}/${fileId}_${Date.now()}.jpg`;
 
     // 1. Dispatch binary file payload straight out to your object storage bucket tier
-    const { data, error } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, imageBlob, {
-        cacheControl: "3600",
-        upsert: true,
-        contentType: "image/jpeg"
-      });
+    const { data, error } = await supabase.storage.from(bucketName).upload(filePath, imageBlob, {
+      cacheControl: "3600",
+      upsert: true,
+      contentType: "image/jpeg",
+    });
 
     if (error) throw error;
 
     // 2. Fetch the newly compiled public edge routing CDN resource link URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(filePath);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucketName).getPublicUrl(filePath);
 
     return publicUrl; // Mapped as a lightweight short string (e.g., https://xyz.supabase.co/...)
   } catch (err) {
-    console.error(`[Storage Engine Exception] Failed to commit asset to bucket ${bucketName}:`, err);
+    console.error(
+      `[Storage Engine Exception] Failed to commit asset to bucket ${bucketName}:`,
+      err,
+    );
     throw err;
   }
 }
@@ -80,7 +81,8 @@ export async function uploadPhotoToBucket(bucketName, companyId, fileId, base64S
  */
 export async function uploadFileToBucket(bucketName, filePath, file) {
   if (!file) throw new Error("uploadFileToBucket: no file given.");
-  if (!filePath) throw new Error("uploadFileToBucket: filePath is required (tenant-scoped storage).");
+  if (!filePath)
+    throw new Error("uploadFileToBucket: filePath is required (tenant-scoped storage).");
 
   const { error } = await supabase.storage.from(bucketName).upload(filePath, file, {
     cacheControl: "3600",
@@ -89,7 +91,9 @@ export async function uploadFileToBucket(bucketName, filePath, file) {
   });
   if (error) throw error;
 
-  const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(bucketName).getPublicUrl(filePath);
   return { url: publicUrl, path: filePath };
 }
 

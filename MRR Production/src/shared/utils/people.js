@@ -36,8 +36,7 @@ const LEGACY_EMAIL_BY_ID = new Map(
   SEED_U.filter((u) => u?.id && u?.email).map((u) => [u.id, u.email.toLowerCase()]),
 );
 
-const nameFrom = (u) =>
-  (u && (u.full_name || u.name || u.email)) || null;
+const nameFrom = (u) => (u && (u.full_name || u.name || u.email)) || null;
 
 /**
  * The name to STAMP onto a row being written now.
@@ -76,16 +75,22 @@ export function makePersonResolver(users = []) {
   );
 
   return (id, stampedName) => {
-    const stamped = typeof stampedName === "string" && stampedName.trim() ? stampedName.trim() : null;
+    const stamped =
+      typeof stampedName === "string" && stampedName.trim() ? stampedName.trim() : null;
 
-    if (!id) return stamped ? { kind: "stamped", name: stamped, id: null } : { kind: "absent", name: null, id: null };
+    if (!id)
+      return stamped
+        ? { kind: "stamped", name: stamped, id: null }
+        : { kind: "absent", name: null, id: null };
     if (id === "system") return { kind: "system", name: null, id };
 
     const direct = byId.get(id);
     if (direct) {
       const name = nameFrom(direct);
       if (name) return { kind: "member", name, id };
-      return stamped ? { kind: "stamped", name: stamped, id } : { kind: "nameless", name: null, id };
+      return stamped
+        ? { kind: "stamped", name: stamped, id }
+        : { kind: "nameless", name: null, id };
     }
 
     const email = LEGACY_EMAIL_BY_ID.get(id);

@@ -66,7 +66,13 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
   };
 
   return (
-    <Modal title="📋 File Vehicle Condition & Inspection Report" onClose={() => { if (!submitting) onClose?.(); }} wide>
+    <Modal
+      title="📋 File Vehicle Condition & Inspection Report"
+      onClose={() => {
+        if (!submitting) onClose?.();
+      }}
+      wide
+    >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         <Fld label="Select Fleet Vehicle *">
           <Sel
@@ -76,7 +82,9 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
           >
             <option value="">-- Choose Fleet Vehicle --</option>
             {vehs.map((v) => (
-              <option key={v.id} value={v.id}>{v.name} — {v.yr} {v.make} ({v.plate})</option>
+              <option key={v.id} value={v.id}>
+                {v.name} — {v.yr} {v.make} ({v.plate})
+              </option>
             ))}
           </Sel>
         </Fld>
@@ -94,19 +102,56 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             <PhotoUpload
               current={null}
-              onUpload={(base64) => setForm((prev) => ({ ...prev, photos: [...prev.photos, base64] }))}
+              onUpload={(base64) =>
+                setForm((prev) => ({ ...prev, photos: [...prev.photos, base64] }))
+              }
               maxDim={800}
               quality={0.8}
             />
             {form.photos.length > 0 && (
-              <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: 8 }}>
+              <div
+                style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: 8 }}
+              >
                 {form.photos.map((img, idx) => (
-                  <div key={idx} style={{ position: "relative", width: 70, height: 70, borderRadius: "var(--radius-sm)", overflow: "hidden" }}>
-                    <img src={img} alt="preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <div
+                    key={idx}
+                    style={{
+                      position: "relative",
+                      width: 70,
+                      height: 70,
+                      borderRadius: "var(--radius-sm)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <img
+                      src={img}
+                      alt="preview"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
                     <button
-                      onClick={() => setForm((prev) => ({ ...prev, photos: prev.photos.filter((_, i) => i !== idx) }))}
-                      style={{ position: "absolute", top: 2, right: 2, background: "rgba(15,23,42,0.8)", color: "#fff", border: "none", borderRadius: "50%", width: 18, height: 18, cursor: "pointer", fontSize: 10, lineHeight: 1 }}
-                    >✕</button>
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          photos: prev.photos.filter((_, i) => i !== idx),
+                        }))
+                      }
+                      style={{
+                        position: "absolute",
+                        top: 2,
+                        right: 2,
+                        background: "rgba(15,23,42,0.8)",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: 18,
+                        height: 18,
+                        cursor: "pointer",
+                        fontSize: 10,
+                        lineHeight: 1,
+                      }}
+                    >
+                      ✕
+                    </button>
                   </div>
                 ))}
               </div>
@@ -115,8 +160,20 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
         </Fld>
 
         <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 12 }}>
-          <Btn v="ghost" style={{ flex: 1, justifyContent: "center" }} onClick={onClose} disabled={submitting}>Cancel</Btn>
-          <Btn v="gold" style={{ flex: 1, justifyContent: "center" }} onClick={submit} disabled={submitting}>
+          <Btn
+            v="ghost"
+            style={{ flex: 1, justifyContent: "center" }}
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Cancel
+          </Btn>
+          <Btn
+            v="gold"
+            style={{ flex: 1, justifyContent: "center" }}
+            onClick={submit}
+            disabled={submitting}
+          >
             {submitting ? "⏳ Saving Log Entry..." : "💾 Commit Inspection Log"}
           </Btn>
         </div>

@@ -17,7 +17,6 @@ import AdjustStockModal from "./AdjustStockModal";
 import BatchCorrectionModal from "./BatchCorrectionModal";
 import InventoryCountTab from "./InventoryCountTab";
 
-
 export default function InventoryView({
   inv = [],
   setInv,
@@ -70,9 +69,8 @@ export default function InventoryView({
   useEffect(() => {
     setSrch(inventorySearchQuery);
   }, [inventorySearchQuery]);
-  
-  const { showToast } = useNotify();
 
+  const { showToast } = useNotify();
 
   // Fix 8: Memoize categories array computation so it only evaluates if inv updates
   const cats = useMemo(() => {
@@ -134,7 +132,9 @@ export default function InventoryView({
 
   const setPhoto = async (id, data) => {
     try {
-      const photo_url = data ? await uploadPhotoToBucket("inventory-photos", user.companyId, id, data) : null;
+      const photo_url = data
+        ? await uploadPhotoToBucket("inventory-photos", user.companyId, id, data)
+        : null;
       const { error } = await updateRowStrict("inventory", id, { photo_url });
       if (error) throw error;
       setInv((p) => p.map((i) => (i.id === id ? { ...i, photo_url } : i)));
@@ -157,7 +157,6 @@ export default function InventoryView({
     return data?.batches || [];
   };
 
-
   // Every dialog reports what changed rather than being handed a setter. This is
   // the single place that folds a result into both the catalog list and the item
   // currently open behind the dialog, so the two cannot drift apart.
@@ -170,27 +169,57 @@ export default function InventoryView({
   const deleteItem = async () => {
     if (!sel || !window.confirm(t.invDeleteConfirm.replace("{name}", sel.name))) return;
     const { error } = await supabase.from("inventory").delete().eq("id", sel.id);
-    if (error) { showToast(`${t.invDbError} ${error.message}`, "error"); return; }
+    if (error) {
+      showToast(`${t.invDbError} ${error.message}`, "error");
+      return;
+    }
     setInv((p) => p.filter((i) => i.id !== sel.id));
-    await logAction(user?.id ?? null, user?.email ?? null, "INV_MUTATION", `Permanently purged catalog blueprint item: "${sel.name}"`, { item_id: sel.id });
+    await logAction(
+      user?.id ?? null,
+      user?.email ?? null,
+      "INV_MUTATION",
+      `Permanently purged catalog blueprint item: "${sel.name}"`,
+      { item_id: sel.id },
+    );
     setModal(null);
   };
 
   return (
-    
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: "var(--space-4)" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+          flexWrap: "wrap",
+          gap: "var(--space-4)",
+        }}
+      >
         <div>
           {/* ── 🟢 FIXED: TRANSLATED CORE MAIN HEADER TERMINALS ── */}
-          <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "var(--text-2xl)",
+              fontWeight: "var(--weight-black)",
+              color: C.navy,
+            }}
+          >
             📦 {t.inventory || "Inventory"}
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-            {inv.length} {t.invCatalogPositions} ·{" "}
-            {t.invRealtimeStock}
+            {inv.length} {t.invCatalogPositions} · {t.invRealtimeStock}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", visibility: tab === "catalog" ? "visible" : "hidden" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "var(--space-3)",
+            flexWrap: "wrap",
+            visibility: tab === "catalog" ? "visible" : "hidden",
+          }}
+        >
           {perms.inv_bulk_receive && (
             <Btn v="gold" onClick={() => setModal("bulk")}>
               {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
@@ -204,8 +233,7 @@ export default function InventoryView({
           )}
           {perms.inv_edit && (
             <Btn v="primary" onClick={() => setModal("add")}>
-              {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
-              + {t.invAddItem}
+              {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}+ {t.invAddItem}
             </Btn>
           )}
         </div>
@@ -217,7 +245,14 @@ export default function InventoryView({
           every permission to true (see getEffectivePerms), so it always appears
           for them. Hiding the tab is presentation only — canEdit inside the tab
           still gates the writes. */}
-      <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: 16, borderBottom: `2px solid ${C.bd}` }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "var(--space-2)",
+          marginBottom: 16,
+          borderBottom: `2px solid ${C.bd}`,
+        }}
+      >
         {[
           ["catalog", `📦 ${t.invTabCatalog}`, t.invTabCatalogHint],
           ...(perms.inv_count ? [["count", `🧮 ${t.invTabCount}`, t.invTabCountHint]] : []),
@@ -227,8 +262,12 @@ export default function InventoryView({
             onClick={() => setTab(k)}
             title={hint}
             style={{
-              background: "none", border: "none", cursor: "pointer", padding: "8px 14px",
-              fontSize: "var(--text-sm)", fontWeight: "var(--weight-extrabold)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "8px 14px",
+              fontSize: "var(--text-sm)",
+              fontWeight: "var(--weight-extrabold)",
               color: tab === k ? C.navy : C.sub,
               borderBottom: tab === k ? `3px solid ${C.gold}` : "3px solid transparent",
               marginBottom: -2,
@@ -244,171 +283,324 @@ export default function InventoryView({
           on screen, because `tab` is component state and losing the button does
           not change it. */}
       {tab === "count" && perms.inv_count ? (
-        <InventoryCountTab inv={inv} jobs={jobs} users={users} user={user} perms={perms} lang={lang} />
-      ) : (
-      <>
-      <div style={{ display: "flex", gap: "var(--space-4)", marginBottom: 14, flexWrap: "wrap" }}>
-        <Inp
-          /* ── 🟢 FIXED: TRANSLATED SEARCH INPUT PLACEHOLDER ── */
-          placeholder={t.searchInventory || "🔍 Search items..."}
-          value={srch} 
-          onChange={(e) => {
-            setSrch(e.target.value);
-            if (typeof setInventorySearchQuery === "function") {
-              setInventorySearchQuery(e.target.value);
-            }
-          }} 
-          style={{ flex: 1, minWidth: 160, maxWidth: 300 }} 
+        <InventoryCountTab
+          inv={inv}
+          jobs={jobs}
+          users={users}
+          user={user}
+          perms={perms}
+          lang={lang}
         />
-    <Sel value={cat} onChange={(e) => setCat(e.target.value)} style={{ width: "auto" }}>
-      {cats.map((c) => (<option key={c} value={c}>{c}</option>))}
-    </Sel>
-    <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.invSortAria} style={{ width: "auto" }}>
-      {sortOptions.map((o) => (
-        <option key={o.value} value={o.value}>{o.label}</option>
-      ))}
-    </Sel>
-  </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: "var(--space-5)" }}>
-        {filtered.map((item) => {
-          const stock = tot(item);
-          const photo = item.photo_url;
-          
-          // Traffic light: RED = order now (out, or at/below the reorder point),
-          // YELLOW = getting close, GREEN = healthy. `critical` drives the 🚨 flag.
-          const getStockStatusMeta = (currentStock, alertThreshold) => {
-            const th = alertThreshold || 0;
-            // Below zero is NOT the same as empty, and collapsing the two into
-            // "Out of Stock" was hiding the more serious of the two. Empty means
-            // order more. Negative means the books are provably wrong: more was
-            // issued than ever existed, so nothing on this card can be trusted
-            // until someone counts the shelf.
-            if (currentStock < 0) return { dot: "🛑", label: t.invStockNegative, color: STOCK_RED, critical: true, negative: true };
-            if (currentStock === 0) return { dot: "🔴", label: t.invStockOut, color: STOCK_RED, critical: true };
-            if (currentStock <= th) return { dot: "🔴", label: t.invStockReorder, color: STOCK_RED, critical: true };
-            if (currentStock <= th * 1.5) return { dot: "🟡", label: t.invStockLow, color: STOCK_YELLOW, critical: false };
-            return { dot: "🟢", label: t.invStockIn, color: STOCK_GREEN, critical: false };
-          };
-
-          const stockStatus = getStockStatusMeta(stock, item.alrt);
-
-          return (
-            
-            <div
-              key={item.id}
-              className="mrr-card-click"
-              onClick={() => { setSel(item); setModal("detail"); }}
-              style={{
-                background: C.w,
-                borderRadius: "var(--radius-xl)",
-                overflow: "hidden",
-                boxShadow: "var(--shadow-sm)",
-                border: item.special ? `2px solid ${C.gold}` : `2px solid ${stockStatus.color}`, // Dynamic border accent tracking stock state
-                cursor: "pointer",
-                position: "relative",
+      ) : (
+        <>
+          <div
+            style={{ display: "flex", gap: "var(--space-4)", marginBottom: 14, flexWrap: "wrap" }}
+          >
+            <Inp
+              /* ── 🟢 FIXED: TRANSLATED SEARCH INPUT PLACEHOLDER ── */
+              placeholder={t.searchInventory || "🔍 Search items..."}
+              value={srch}
+              onChange={(e) => {
+                setSrch(e.target.value);
+                if (typeof setInventorySearchQuery === "function") {
+                  setInventorySearchQuery(e.target.value);
+                }
               }}
+              style={{ flex: 1, minWidth: 160, maxWidth: 300 }}
+            />
+            <Sel value={cat} onChange={(e) => setCat(e.target.value)} style={{ width: "auto" }}>
+              {cats.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Sel>
+            <Sel
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              aria-label={t.invSortAria}
+              style={{ width: "auto" }}
             >
-              {(perms.inv_edit || item.special) && (
-                <button
-                  onClick={(e) => toggleSpecial(item, e)}
-                  disabled={!perms.inv_edit}
-                  title={item.special ? "Remove from Special" : "Mark as Special"}
+              {sortOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Sel>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))",
+              gap: "var(--space-5)",
+            }}
+          >
+            {filtered.map((item) => {
+              const stock = tot(item);
+              const photo = item.photo_url;
+
+              // Traffic light: RED = order now (out, or at/below the reorder point),
+              // YELLOW = getting close, GREEN = healthy. `critical` drives the 🚨 flag.
+              const getStockStatusMeta = (currentStock, alertThreshold) => {
+                const th = alertThreshold || 0;
+                // Below zero is NOT the same as empty, and collapsing the two into
+                // "Out of Stock" was hiding the more serious of the two. Empty means
+                // order more. Negative means the books are provably wrong: more was
+                // issued than ever existed, so nothing on this card can be trusted
+                // until someone counts the shelf.
+                if (currentStock < 0)
+                  return {
+                    dot: "🛑",
+                    label: t.invStockNegative,
+                    color: STOCK_RED,
+                    critical: true,
+                    negative: true,
+                  };
+                if (currentStock === 0)
+                  return { dot: "🔴", label: t.invStockOut, color: STOCK_RED, critical: true };
+                if (currentStock <= th)
+                  return { dot: "🔴", label: t.invStockReorder, color: STOCK_RED, critical: true };
+                if (currentStock <= th * 1.5)
+                  return { dot: "🟡", label: t.invStockLow, color: STOCK_YELLOW, critical: false };
+                return { dot: "🟢", label: t.invStockIn, color: STOCK_GREEN, critical: false };
+              };
+
+              const stockStatus = getStockStatusMeta(stock, item.alrt);
+
+              return (
+                <div
+                  key={item.id}
+                  className="mrr-card-click"
+                  onClick={() => {
+                    setSel(item);
+                    setModal("detail");
+                  }}
                   style={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    zIndex: 2,
-                    width: 26,
-                    height: 26,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: "rgba(0,0,0,0.45)",
-                    border: "none",
-                    borderRadius: "50%",
-                    fontSize: 14,
-                    lineHeight: 1,
-                    padding: 0,
-                    color: C.w,
-                    cursor: perms.inv_edit ? "pointer" : "default",
+                    background: C.w,
+                    borderRadius: "var(--radius-xl)",
+                    overflow: "hidden",
+                    boxShadow: "var(--shadow-sm)",
+                    border: item.special ? `2px solid ${C.gold}` : `2px solid ${stockStatus.color}`, // Dynamic border accent tracking stock state
+                    cursor: "pointer",
+                    position: "relative",
                   }}
                 >
-                  {item.special ? "⭐" : "☆"}
-                </button>
-              )}
-              {photo ? (
-                <div style={{ height: 110, overflow: "hidden", background: C.lg, position: "relative" }}>
-                  <img src={photo} alt={item.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <div style={{ position: "absolute", top: 8, left: 8, background: "rgba(0,0,0,0.65)", color: C.w, borderRadius: 20, fontSize: "var(--text-2xs)", padding: "2px 8px", fontWeight: "var(--weight-bold)" }}>
-                    {stockStatus.dot} {stockStatus.label}
-                  </div>
-                </div>
-              ) : (
-                <div style={{ height: 6, background: stockStatus.color }} />
-              )}
-              
-              <div style={{ padding: 14 }}>
-                <div style={{ display: "flex", justifyGroup: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    {!photo && (
-                      <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-extrabold)", color: stockStatus.color, textTransform: "uppercase", marginBottom: 2 }}>
+                  {(perms.inv_edit || item.special) && (
+                    <button
+                      onClick={(e) => toggleSpecial(item, e)}
+                      disabled={!perms.inv_edit}
+                      title={item.special ? "Remove from Special" : "Mark as Special"}
+                      style={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        zIndex: 2,
+                        width: 26,
+                        height: 26,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        background: "rgba(0,0,0,0.45)",
+                        border: "none",
+                        borderRadius: "50%",
+                        fontSize: 14,
+                        lineHeight: 1,
+                        padding: 0,
+                        color: C.w,
+                        cursor: perms.inv_edit ? "pointer" : "default",
+                      }}
+                    >
+                      {item.special ? "⭐" : "☆"}
+                    </button>
+                  )}
+                  {photo ? (
+                    <div
+                      style={{
+                        height: 110,
+                        overflow: "hidden",
+                        background: C.lg,
+                        position: "relative",
+                      }}
+                    >
+                      <img
+                        src={photo}
+                        alt={item.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      />
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: 8,
+                          left: 8,
+                          background: "rgba(0,0,0,0.65)",
+                          color: C.w,
+                          borderRadius: 20,
+                          fontSize: "var(--text-2xs)",
+                          padding: "2px 8px",
+                          fontWeight: "var(--weight-bold)",
+                        }}
+                      >
                         {stockStatus.dot} {stockStatus.label}
                       </div>
-                    )}
-                    <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-base)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</div>
-                    <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{item.cat}</div>
-                  </div>
-                  {stockStatus.critical && <span style={{ fontSize: 15, marginLeft: 4 }}>🚨</span>}
-                </div>
-                
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color: stockStatus.color }}>{stock}</div>
-                    <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{item.unit} available</div>
-                    {/* Says what to DO about it. A red number alone gets read as
+                    </div>
+                  ) : (
+                    <div style={{ height: 6, background: stockStatus.color }} />
+                  )}
+
+                  <div style={{ padding: 14 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyGroup: "space-between",
+                        alignItems: "flex-start",
+                        marginBottom: 8,
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {!photo && (
+                          <div
+                            style={{
+                              fontSize: "var(--text-2xs)",
+                              fontWeight: "var(--weight-extrabold)",
+                              color: stockStatus.color,
+                              textTransform: "uppercase",
+                              marginBottom: 2,
+                            }}
+                          >
+                            {stockStatus.dot} {stockStatus.label}
+                          </div>
+                        )}
+                        <div
+                          style={{
+                            fontWeight: "var(--weight-extrabold)",
+                            color: C.navy,
+                            fontSize: "var(--text-base)",
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {item.name}
+                        </div>
+                        <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{item.cat}</div>
+                      </div>
+                      {stockStatus.critical && (
+                        <span style={{ fontSize: 15, marginLeft: 4 }}>🚨</span>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: "var(--text-3xl)",
+                            fontWeight: "var(--weight-black)",
+                            color: stockStatus.color,
+                          }}
+                        >
+                          {stock}
+                        </div>
+                        <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>
+                          {item.unit} available
+                        </div>
+                        {/* Says what to DO about it. A red number alone gets read as
                         "we are out", and the person restocks instead of recounting
                         — which leaves the negative in place and the next job
                         costed against stock that was never there. */}
-                    {stockStatus.negative && (
-                      <div style={{ fontSize: "var(--text-2xs)", color: STOCK_RED, fontWeight: "var(--weight-bold)", marginTop: 2, maxWidth: 150, lineHeight: 1.3 }}>
-                        {t.invNegativeHint}
+                        {stockStatus.negative && (
+                          <div
+                            style={{
+                              fontSize: "var(--text-2xs)",
+                              color: STOCK_RED,
+                              fontWeight: "var(--weight-bold)",
+                              marginTop: 2,
+                              maxWidth: 150,
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            {t.invNegativeHint}
+                          </div>
+                        )}
+                      </div>
+                      {perms.inv_pricing_view ? (
+                        <div style={{ textAlign: "right" }}>
+                          <div
+                            style={{
+                              fontSize: "var(--text-base)",
+                              fontWeight: "var(--weight-extrabold)",
+                              color: C.blue,
+                            }}
+                          >
+                            {fm(newestPrice(item))}
+                          </div>
+                          <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                            per {item.unit?.replace(/s$/, "") || "unit"}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>
+                          {t.invPricingRestricted}
+                        </div>
+                      )}
+                    </div>
+
+                    {!photo && (
+                      <div style={{ marginTop: 8, height: 4, background: C.lg, borderRadius: 2 }}>
+                        <div
+                          style={{
+                            height: "100%",
+                            background: stockStatus.color,
+                            borderRadius: 2,
+                            width: `${Math.min(100, (stock / (item.alrt * 3 || 1)) * 100)}%`,
+                          }}
+                        />
                       </div>
                     )}
-                  </div>
-                  {perms.inv_pricing_view ? (
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.blue }}>{fm(newestPrice(item))}</div>
-                      <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>per {item.unit?.replace(/s$/, "") || "unit"}</div>
+
+                    <div
+                      style={{
+                        fontSize: "var(--text-2xs)",
+                        color: C.sub,
+                        marginTop: 6,
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <span>
+                        Min Alert: {item.alrt} {item.unit}
+                      </span>
+                      <span>
+                        {(item.batches || []).length} batch
+                        {(item.batches || []).length !== 1 ? "es" : ""}
+                      </span>
                     </div>
-                  ) : (
-                    <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{t.invPricingRestricted}</div>
-                  )}
-                </div>
-                
-                {!photo && (
-                  <div style={{ marginTop: 8, height: 4, background: C.lg, borderRadius: 2 }}>
-                    <div style={{ height: "100%", background: stockStatus.color, borderRadius: 2, width: `${Math.min(100, (stock / (item.alrt * 3 || 1)) * 100)}%` }} />
                   </div>
-                )}
-                
-                <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 6, display: "flex", justifyContent: "space-between" }}>
-                  <span>Min Alert: {item.alrt} {item.unit}</span>
-                  <span>{(item.batches || []).length} batch{(item.batches || []).length !== 1 ? "es" : ""}</span>
                 </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      </>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* ── 🧰 JOB MATERIAL TEMPLATES MANAGER ── */}
       {modal === "tpl" && <JobTemplatesModal inv={inv} onClose={() => setModal(null)} />}
 
       {modal === "bulk" && perms.inv_bulk_receive && (
-        <BulkReceiveModal inv={inv} setInv={setInv} users={users} user={user} perms={perms} onClose={() => setModal(null)} />
+        <BulkReceiveModal
+          inv={inv}
+          setInv={setInv}
+          users={users}
+          user={user}
+          perms={perms}
+          onClose={() => setModal(null)}
+        />
       )}
 
       {modal === "detail" && sel && (
@@ -421,7 +613,10 @@ export default function InventoryView({
           onReceive={() => setModal("rcv")}
           onAdjust={() => setModal("adjust")}
           onDelete={deleteItem}
-          onCorrectBatch={(b) => { setBatchSel(b); setModal("batch"); }}
+          onCorrectBatch={(b) => {
+            setBatchSel(b);
+            setModal("batch");
+          }}
           onClose={() => setModal(null)}
         />
       )}
@@ -471,11 +666,15 @@ export default function InventoryView({
           perms={perms}
           fetchLiveBatches={fetchLiveBatches}
           onCorrected={patchBatches}
-          onJobRecosted={(jobId, next) => setJobs?.((p) => p.map((x) => (x.id === jobId ? { ...x, ...next } : x)))}
-          onClose={() => { setBatchSel(null); setModal("detail"); }}
+          onJobRecosted={(jobId, next) =>
+            setJobs?.((p) => p.map((x) => (x.id === jobId ? { ...x, ...next } : x)))
+          }
+          onClose={() => {
+            setBatchSel(null);
+            setModal("detail");
+          }}
         />
       )}
-
     </div>
   );
 }

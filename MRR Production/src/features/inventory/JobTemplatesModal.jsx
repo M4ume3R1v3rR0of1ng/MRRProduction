@@ -15,7 +15,11 @@ import { useEffect, useState } from "react";
 import { C, uid, tot } from "@/shared/utils/helpers";
 // jobTemplates.js is a jobs-domain data model; JobTemplatesModal itself stays
 // in inventory since Inventory is its only real UI entry point.
-import { fetchJobTemplates, saveJobTemplates, resolveDefaultTemplates } from "@/features/jobs/jobTemplates";
+import {
+  fetchJobTemplates,
+  saveJobTemplates,
+  resolveDefaultTemplates,
+} from "@/features/jobs/jobTemplates";
 import { Btn, Fld, Inp, Modal } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -61,7 +65,9 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
         if (live) setLoading(false);
       }
     })();
-    return () => { live = false; };
+    return () => {
+      live = false;
+    };
     // Intentionally mount-only: re-fetching because the catalog array changed
     // identity would throw away unsaved edits mid-session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,7 +104,12 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
   };
 
   const deleteTpl = async (tpl) => {
-    if (!window.confirm(`Delete the "${tpl.name}" template? Jobs already built with it are not affected.`)) return;
+    if (
+      !window.confirm(
+        `Delete the "${tpl.name}" template? Jobs already built with it are not affected.`,
+      )
+    )
+      return;
     if (await persist(tpls.filter((t) => t.id !== tpl.id))) {
       showToast(`Template "${tpl.name}" deleted.`, "success");
     }
@@ -106,7 +117,12 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
 
   // A save in flight must not be abandoned by closing the dialog. The guard lives
   // here rather than in the caller, so no caller can forget it.
-  const requestClose = () => { if (!saving) { setEditing(null); onClose?.(); } };
+  const requestClose = () => {
+    if (!saving) {
+      setEditing(null);
+      onClose?.();
+    }
+  };
 
   return (
     <Modal title="🧰 Job Material Templates" onClose={requestClose} wide>
@@ -116,25 +132,58 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
         <>
           <div style={{ display: "grid", gridTemplateColumns: "90px 1fr", gap: "var(--space-3)" }}>
             <Fld label="Icon">
-              <Inp value={editing.icon || ""} onChange={(e) => setEditing({ ...editing, icon: e.target.value })} placeholder="🏠" disabled={saving} />
+              <Inp
+                value={editing.icon || ""}
+                onChange={(e) => setEditing({ ...editing, icon: e.target.value })}
+                placeholder="🏠"
+                disabled={saving}
+              />
             </Fld>
             <Fld label="Template Name *">
-              <Inp value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="e.g. Economy Roof" disabled={saving} />
+              <Inp
+                value={editing.name}
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                placeholder="e.g. Economy Roof"
+                disabled={saving}
+              />
             </Fld>
           </div>
           <div className="sw-grid-2" style={{ gap: "var(--space-5)" }}>
             <div>
-              <h4 style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)" }}>📦 Materials ({editing.items.length})</h4>
+              <h4 style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)" }}>
+                📦 Materials ({editing.items.length})
+              </h4>
               {editing.items.length === 0 ? (
-                <p style={{ color: C.sub, fontSize: "var(--text-sm)" }}>Add materials from the catalog on the right.</p>
+                <p style={{ color: C.sub, fontSize: "var(--text-sm)" }}>
+                  Add materials from the catalog on the right.
+                </p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", maxHeight: 260, overflowY: "auto" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--space-2)",
+                    maxHeight: 260,
+                    overflowY: "auto",
+                  }}
+                >
                   {editing.items.map((t, idx) => {
                     const inCatalog = t.iid && inv.find((i) => i && i.id === t.iid);
                     return (
-                      <div key={t.iid || `x_${idx}`} style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}>
-                        <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-xs)", marginBottom: 4 }}>
-                          {t.iname} {!inCatalog && <span style={{ color: C.am }}>⚠ not in catalog</span>}
+                      <div
+                        key={t.iid || `x_${idx}`}
+                        style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}
+                      >
+                        <div
+                          style={{
+                            fontWeight: "var(--weight-bold)",
+                            color: C.navy,
+                            fontSize: "var(--text-xs)",
+                            marginBottom: 4,
+                          }}
+                        >
+                          {t.iname}{" "}
+                          {!inCatalog && <span style={{ color: C.am }}>⚠ not in catalog</span>}
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                           <Inp
@@ -143,15 +192,33 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                             min="1"
                             onChange={(e) => {
                               const qty = Math.max(1, parseInt(e.target.value) || 1);
-                              setEditing((p) => ({ ...p, items: p.items.map((x, i2) => (i2 === idx ? { ...x, qty } : x)) }));
+                              setEditing((p) => ({
+                                ...p,
+                                items: p.items.map((x, i2) => (i2 === idx ? { ...x, qty } : x)),
+                              }));
                             }}
                             style={{ width: 55, padding: "3px 6px" }}
                             disabled={saving}
                           />
-                          <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>default qty</span>
+                          <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                            default qty
+                          </span>
                           <button
-                            onClick={() => setEditing((p) => ({ ...p, items: p.items.filter((_, i2) => i2 !== idx) }))}
-                            style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-lg)", lineHeight: 1 }}
+                            onClick={() =>
+                              setEditing((p) => ({
+                                ...p,
+                                items: p.items.filter((_, i2) => i2 !== idx),
+                              }))
+                            }
+                            style={{
+                              marginLeft: "auto",
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: C.rd,
+                              fontSize: "var(--text-lg)",
+                              lineHeight: 1,
+                            }}
                             disabled={saving}
                           >
                             ×
@@ -164,20 +231,60 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
               )}
             </div>
             <div>
-              <Inp value={srch} onChange={(e) => setSrch(e.target.value)} placeholder="🔍 Search catalog..." style={{ marginBottom: 8 }} disabled={saving} />
-              <div style={{ maxHeight: 260, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
+              <Inp
+                value={srch}
+                onChange={(e) => setSrch(e.target.value)}
+                placeholder="🔍 Search catalog..."
+                style={{ marginBottom: 8 }}
+                disabled={saving}
+              />
+              <div
+                style={{
+                  maxHeight: 260,
+                  overflowY: "auto",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 5,
+                }}
+              >
                 {selectableMaterials(inv, editing.items, srch)
                   .slice(0, 40)
                   .map((item) => (
-                    <div key={item.id} style={{ background: C.w, borderRadius: "var(--radius-md)", padding: "8px 10px", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "var(--shadow-xs)" }}>
+                    <div
+                      key={item.id}
+                      style={{
+                        background: C.w,
+                        borderRadius: "var(--radius-md)",
+                        padding: "8px 10px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        boxShadow: "var(--shadow-xs)",
+                      }}
+                    >
                       <div>
-                        <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-xs)" }}>{item.name}</div>
-                        <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{tot(item)} {item.unit} available</div>
+                        <div
+                          style={{
+                            fontWeight: "var(--weight-bold)",
+                            color: C.navy,
+                            fontSize: "var(--text-xs)",
+                          }}
+                        >
+                          {item.name}
+                        </div>
+                        <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                          {tot(item)} {item.unit} available
+                        </div>
                       </div>
                       <Btn
                         v="primary"
                         sz="sm"
-                        onClick={() => setEditing((p) => ({ ...p, items: [...p.items, { iid: item.id, iname: item.name, qty: 1 }] }))}
+                        onClick={() =>
+                          setEditing((p) => ({
+                            ...p,
+                            items: [...p.items, { iid: item.id, iname: item.name, qty: 1 }],
+                          }))
+                        }
                         disabled={saving}
                       >
                         + Add
@@ -188,8 +295,20 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
             </div>
           </div>
           <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-            <Btn v="ghost" onClick={() => setEditing(null)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>← Back</Btn>
-            <Btn v="primary" onClick={saveEdit} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>
+            <Btn
+              v="ghost"
+              onClick={() => setEditing(null)}
+              style={{ flex: 1, justifyContent: "center" }}
+              disabled={saving}
+            >
+              ← Back
+            </Btn>
+            <Btn
+              v="primary"
+              onClick={saveEdit}
+              style={{ flex: 1, justifyContent: "center" }}
+              disabled={saving}
+            >
               {saving ? "⏳ Saving..." : "💾 Save Template"}
             </Btn>
           </div>
@@ -197,32 +316,93 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
       ) : (
         <>
           <p style={{ margin: "0 0 12px", fontSize: "var(--text-sm)", color: C.sub }}>
-            These material packages appear in the Build Jobs wizard (Step 2) for one-click job lists.
+            These material packages appear in the Build Jobs wizard (Step 2) for one-click job
+            lists.
           </p>
           {tpls.length === 0 && (
-            <p style={{ color: C.sub, fontSize: "var(--text-sm)", textAlign: "center", padding: "16px 0" }}>No templates yet — create your first one below.</p>
+            <p
+              style={{
+                color: C.sub,
+                fontSize: "var(--text-sm)",
+                textAlign: "center",
+                padding: "16px 0",
+              }}
+            >
+              No templates yet — create your first one below.
+            </p>
           )}
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", maxHeight: 320, overflowY: "auto" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--space-3)",
+              maxHeight: 320,
+              overflowY: "auto",
+            }}
+          >
             {tpls.map((tpl) => (
-              <div key={tpl.id} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                  <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-sm)" }}>{tpl.icon} {tpl.name}</div>
+              <div
+                key={tpl.id}
+                style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 6,
+                    marginBottom: 4,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: "var(--weight-extrabold)",
+                      color: C.navy,
+                      fontSize: "var(--text-sm)",
+                    }}
+                  >
+                    {tpl.icon} {tpl.name}
+                  </div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <Btn v="outline" sz="sm" onClick={() => { setSrch(""); setEditing({ ...tpl, items: [...(tpl.items || [])] }); }} disabled={saving}>✏️ Edit</Btn>
-                    <Btn v="danger" sz="sm" onClick={() => deleteTpl(tpl)} disabled={saving}>🗑️</Btn>
+                    <Btn
+                      v="outline"
+                      sz="sm"
+                      onClick={() => {
+                        setSrch("");
+                        setEditing({ ...tpl, items: [...(tpl.items || [])] });
+                      }}
+                      disabled={saving}
+                    >
+                      ✏️ Edit
+                    </Btn>
+                    <Btn v="danger" sz="sm" onClick={() => deleteTpl(tpl)} disabled={saving}>
+                      🗑️
+                    </Btn>
                   </div>
                 </div>
                 <div style={{ fontSize: "var(--text-2xs)", color: C.sub, lineHeight: 1.7 }}>
-                  {(tpl.items || []).map((t) => t.iname + (t.qty > 1 ? ` ×${t.qty}` : "")).join(" · ") || "No materials"}
+                  {(tpl.items || [])
+                    .map((t) => t.iname + (t.qty > 1 ? ` ×${t.qty}` : ""))
+                    .join(" · ") || "No materials"}
                 </div>
               </div>
             ))}
           </div>
           <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-            <Btn v="ghost" onClick={requestClose} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Close</Btn>
+            <Btn
+              v="ghost"
+              onClick={requestClose}
+              style={{ flex: 1, justifyContent: "center" }}
+              disabled={saving}
+            >
+              Close
+            </Btn>
             <Btn
               v="primary"
-              onClick={() => { setSrch(""); setEditing({ id: "tpl_" + uid(), name: "", icon: "🧰", items: [] }); }}
+              onClick={() => {
+                setSrch("");
+                setEditing({ id: "tpl_" + uid(), name: "", icon: "🧰", items: [] });
+              }}
               style={{ flex: 1, justifyContent: "center" }}
               disabled={saving}
             >

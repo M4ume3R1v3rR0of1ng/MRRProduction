@@ -52,9 +52,20 @@ import fs from "fs";
 // live in the file, while the service-role key is passed in the environment so it
 // never lands on disk.
 const env = Object.fromEntries(
-  fs.readFileSync(".env", "utf8").split(/\r?\n/)
+  fs
+    .readFileSync(".env", "utf8")
+    .split(/\r?\n/)
     .filter((l) => l.includes("=") && !l.trim().startsWith("#"))
-    .map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^["']|["']$/g, "")]; }),
+    .map((l) => {
+      const i = l.indexOf("=");
+      return [
+        l.slice(0, i).trim(),
+        l
+          .slice(i + 1)
+          .trim()
+          .replace(/^["']|["']$/g, ""),
+      ];
+    }),
 );
 
 const URL = env.VITE_SUPABASE_URL;
@@ -65,9 +76,18 @@ const email = (process.argv[2] || "").trim().toLowerCase();
 // useful. Mirrors ALLOWED_ORIGINS in netlify/functions/_shared/tenant.js.
 const redirectTo = (process.argv[3] || "https://steadwerk.com").trim();
 
-if (!URL)     { console.error("Missing VITE_SUPABASE_URL in .env"); process.exit(2); }
-if (!SERVICE) { console.error("Missing SUPABASE_SERVICE_ROLE_KEY in the environment"); process.exit(2); }
-if (!email)   { console.error("Usage: node scripts/magic-link.mjs <email> [redirectTo]"); process.exit(2); }
+if (!URL) {
+  console.error("Missing VITE_SUPABASE_URL in .env");
+  process.exit(2);
+}
+if (!SERVICE) {
+  console.error("Missing SUPABASE_SERVICE_ROLE_KEY in the environment");
+  process.exit(2);
+}
+if (!email) {
+  console.error("Usage: node scripts/magic-link.mjs <email> [redirectTo]");
+  process.exit(2);
+}
 
 const admin = createClient(URL, SERVICE, { auth: { persistSession: false } });
 
@@ -108,7 +128,9 @@ if (error) {
 
 const link = data?.properties?.action_link;
 if (!link) {
-  console.error("Supabase returned no action_link. Check that magic links are enabled in Auth settings.");
+  console.error(
+    "Supabase returned no action_link. Check that magic links are enabled in Auth settings.",
+  );
   process.exit(1);
 }
 

@@ -16,18 +16,18 @@
 export const BRAND = {
   // Literal, not a token: this is consumed inside a CSS gradient string on the
   // login and reset screens, whose dark hero is constant in both themes.
-  barnwood: "#23282D",       // primary dark — structure
+  barnwood: "#23282D", // primary dark — structure
   // The theme-aware version, for the mark and wordmark when they sit on the app
   // ground. Using the literal there made the badge #23282D on a #191D21 ground
   // in dark mode, which is very nearly invisible.
   ink: "var(--c-barnwood)",
-  amber: "var(--c-amber)",          // primary accent — lantern glow, wheat at cutting
-  amberDeep: "var(--c-warn)",      // the amber, darkened for text on light backgrounds
-  leather: "var(--c-leather)",        // harness leather — secondary
-  pasture: "var(--c-pasture)",        // pasture green — success, "active"
-  homespun: "#EDE6DA",       // the light ground
-  plowshare: "var(--c-sub)",      // muted grey — secondary text
-  rust: "var(--c-rust)",           // destructive. NOT red — the brand has no red in it.
+  amber: "var(--c-amber)", // primary accent — lantern glow, wheat at cutting
+  amberDeep: "var(--c-warn)", // the amber, darkened for text on light backgrounds
+  leather: "var(--c-leather)", // harness leather — secondary
+  pasture: "var(--c-pasture)", // pasture green — success, "active"
+  homespun: "#EDE6DA", // the light ground
+  plowshare: "var(--c-sub)", // muted grey — secondary text
+  rust: "var(--c-rust)", // destructive. NOT red — the brand has no red in it.
 };
 
 export const TAGLINE = "EVERY JOB. EVERY TRUCK.";
@@ -56,7 +56,16 @@ export function SteadwerkMark({ size = 64, filled = false }) {
 
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" role="img" aria-label="Steadwerk">
-      <rect x="4" y="4" width="56" height="56" rx="10" fill={fill} stroke={stroke} strokeWidth="3" />
+      <rect
+        x="4"
+        y="4"
+        width="56"
+        height="56"
+        rx="10"
+        fill={fill}
+        stroke={stroke}
+        strokeWidth="3"
+      />
       <path
         d="M14 20 L22 44 L32 24 L42 44 L50 20"
         fill="none"

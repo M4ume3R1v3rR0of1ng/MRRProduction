@@ -22,7 +22,9 @@ describe("must", () => {
   });
 
   it("throws when the call failed", () => {
-    expect(() => must("apply company status", { data: null, error: { message: "boom" } })).toThrow();
+    expect(() =>
+      must("apply company status", { data: null, error: { message: "boom" } }),
+    ).toThrow();
   });
 
   it("names the operation in the message, so a log line says which call broke", () => {
@@ -33,7 +35,7 @@ describe("must", () => {
 
   it("keeps the database's own message, which is what identifies the cause", () => {
     // The real one that hid: a select naming a column that migration 27 never created.
-    const pgError = { message: 'column companies.recurring_seat_packs does not exist' };
+    const pgError = { message: "column companies.recurring_seat_packs does not exist" };
     expect(() => must("read company for status apply", { data: null, error: pgError })).toThrow(
       /recurring_seat_packs does not exist/,
     );

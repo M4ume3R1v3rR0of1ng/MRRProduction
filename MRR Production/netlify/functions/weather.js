@@ -42,14 +42,22 @@ const rawHandler = async (event) => {
     return { statusCode: 204, headers: corsHeaders, body: "" };
   }
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: "Method not allowed" }) };
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Method not allowed" }),
+    };
   }
 
   let body;
   try {
     body = JSON.parse(event.body || "{}");
   } catch {
-    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid JSON body" }) };
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Invalid JSON body" }),
+    };
   }
 
   const { accessToken } = body;
@@ -58,7 +66,11 @@ const rawHandler = async (event) => {
     const admin = adminClient();
     const { caller, error: callerError } = await resolveCaller(admin, accessToken);
     if (callerError) {
-      return { statusCode: callerError.status, headers: corsHeaders, body: JSON.stringify({ error: callerError.message }) };
+      return {
+        statusCode: callerError.status,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: callerError.message }),
+      };
     }
 
     const weather = caller.integrations?.weather || {};
@@ -75,7 +87,11 @@ const rawHandler = async (event) => {
 
     const resp = await fetch(url);
     if (!resp.ok) {
-      return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ error: `Weather provider error ${resp.status}` }) };
+      return {
+        statusCode: 502,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: `Weather provider error ${resp.status}` }),
+      };
     }
     const data = await resp.json();
 

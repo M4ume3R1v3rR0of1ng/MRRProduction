@@ -37,7 +37,8 @@ export const monthGrid = (year, month) => {
   const gridStart = new Date(year, month, 1 - first.getDay());
   const last = new Date(year, month + 1, 0);
   // Days from the grid start through the end of the week containing the last day.
-  const span = last.getDate() + first.getDay() + (6 - new Date(year, month, last.getDate()).getDay());
+  const span =
+    last.getDate() + first.getDay() + (6 - new Date(year, month, last.getDate()).getDay());
   return dayKeys(formatDay(gridStart), span);
 };
 
@@ -64,7 +65,9 @@ export const buildSchedule = ({
 } = {}) => {
   const keys = providedKeys || dayKeys(from, days);
   const window = new Set(keys);
-  const buckets = new Map(keys.map((k) => [k, { key: k, jobs: [], maint: [], trailerIds: new Set() }]));
+  const buckets = new Map(
+    keys.map((k) => [k, { key: k, jobs: [], maint: [], trailerIds: new Set() }]),
+  );
 
   for (const j of jobs) {
     if (!includeFinished && isFinishedJob(j)) continue;
@@ -90,7 +93,8 @@ export const buildSchedule = ({
     if (!key || !window.has(key)) continue;
     buckets.get(key).maint.push({
       id: r.id,
-      vehicle: vehs.find((v) => String(v.id) === String(r.vehicle_id))?.name || r.vname || "Vehicle",
+      vehicle:
+        vehs.find((v) => String(v.id) === String(r.vehicle_id))?.name || r.vname || "Vehicle",
       vehicleId: r.vehicle_id,
       issue: r.type || r.issue || "Service",
       urgency: r.urgency,
@@ -113,8 +117,18 @@ export const buildSchedule = ({
 };
 
 export const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 export const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

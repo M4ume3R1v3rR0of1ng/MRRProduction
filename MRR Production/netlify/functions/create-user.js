@@ -10,11 +10,26 @@
 //     account-takeover hole.
 
 import { Resend } from "resend";
-import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders, appOrigin, platformFromAddress } from "./_shared/tenant.js";
+import {
+  adminClient,
+  resolveCaller,
+  isCompanyAdmin,
+  corsHeaders,
+  appOrigin,
+  platformFromAddress,
+} from "./_shared/tenant.js";
 import { validatePassword } from "./_shared/password.js";
 import { withSentry } from "./_shared/sentry.js";
 
-const VALID_ROLES = ["admin", "warehouse", "coordinator", "manager", "field", "employee", "bookkeeper"];
+const VALID_ROLES = [
+  "admin",
+  "warehouse",
+  "coordinator",
+  "manager",
+  "field",
+  "employee",
+  "bookkeeper",
+];
 
 const MAIL_FROM = platformFromAddress("notifications");
 
@@ -47,7 +62,8 @@ const esc = (s) =>
 // caller reports the failure so the admin knows to reach out directly.
 async function sendInviteEmail({ admin, targetEmail, name, isNewAccount, companyName, origin }) {
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return { invited: false, inviteError: "Email is not configured (RESEND_API_KEY is unset)." };
+  if (!apiKey)
+    return { invited: false, inviteError: "Email is not configured (RESEND_API_KEY is unset)." };
 
   try {
     let actionLink = null;
@@ -83,7 +99,9 @@ async function sendInviteEmail({ admin, targetEmail, name, isNewAccount, company
     const { error: sendError } = await resend.emails.send({
       from: `${companyName} <${MAIL_FROM}>`,
       to: targetEmail,
-      subject: isNewAccount ? `Your ${companyName} account is ready` : `You've been added to ${companyName}`,
+      subject: isNewAccount
+        ? `Your ${companyName} account is ready`
+        : `You've been added to ${companyName}`,
       html,
     });
     if (sendError) return { invited: false, inviteError: sendError.message };
@@ -113,7 +131,11 @@ const rawHandler = async (event) => {
   // password by hand) is the thing being fixed, so it has to be opted OUT of, not in.
   const { accessToken, name, email, role, password, sendInvite = true } = body;
   if (!name || !email || !role) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing name, email, or role" }) };
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: "Missing name, email, or role" }),
+    };
   }
   // Never trust an arbitrary role string, even from an admin — pin it to the known set.
   if (!VALID_ROLES.includes(role)) {
@@ -124,7 +146,11 @@ const rawHandler = async (event) => {
 
   const { caller, error: callerError } = await resolveCaller(admin, accessToken);
   if (callerError) {
-    return { statusCode: callerError.status, headers, body: JSON.stringify({ error: callerError.message }) };
+    return {
+      statusCode: callerError.status,
+      headers,
+      body: JSON.stringify({ error: callerError.message }),
+    };
   }
   if (!isCompanyAdmin(caller)) {
     return { statusCode: 403, headers, body: JSON.stringify({ error: "Admin access required" }) };
@@ -150,21 +176,33 @@ const rawHandler = async (event) => {
     let alreadyMember = false;
     if (userId) {
       const { data: mem } = await admin
-        .from("memberships").select("user_id")
-        .eq("user_id", userId).eq("company_id", caller.companyId).maybeSingle();
+        .from("memberships")
+        .select("user_id")
+        .eq("user_id", userId)
+        .eq("company_id", caller.companyId)
+        .maybeSingle();
       alreadyMember = !!mem;
     }
     if (!alreadyMember && !caller.isPlatformAdmin) {
-      const { data: co } = await admin.from("companies").select("seat_capacity").eq("id", caller.companyId).single();
+      const { data: co } = await admin
+        .from("companies")
+        .select("seat_capacity")
+        .eq("id", caller.companyId)
+        .single();
       if (co?.seat_capacity != null) {
         const { count } = await admin
-          .from("memberships").select("*", { count: "exact", head: true })
-          .eq("company_id", caller.companyId).eq("active", true);
+          .from("memberships")
+          .select("*", { count: "exact", head: true })
+          .eq("company_id", caller.companyId)
+          .eq("active", true);
         if ((count ?? 0) >= co.seat_capacity) {
           return {
             statusCode: 402,
             headers,
-            body: JSON.stringify({ error: "Your company is at its seat limit. Add a 5-seat pack in Billing to invite more users." }),
+            body: JSON.stringify({
+              error:
+                "Your company is at its seat limit. Add a 5-seat pack in Billing to invite more users.",
+            }),
           };
         }
       }
@@ -202,7 +240,9 @@ const rawHandler = async (event) => {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: `User created but company access failed: ${memberError.message}` }),
+        body: JSON.stringify({
+          error: `User created but company access failed: ${memberError.message}`,
+        }),
       };
     }
 
@@ -238,7 +278,13 @@ const rawHandler = async (event) => {
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ ok: true, id: userId, addedExisting: Boolean(existing), invited, inviteError }),
+      body: JSON.stringify({
+        ok: true,
+        id: userId,
+        addedExisting: Boolean(existing),
+        invited,
+        inviteError,
+      }),
     };
   } catch (err) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };

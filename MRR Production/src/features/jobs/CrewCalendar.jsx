@@ -33,7 +33,14 @@ const resolveStatusColor = (statusConfig) => {
   return colorMap[c] ?? c;
 };
 
-export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobClick, setJobs, lang = "en" }) {
+export default function CrewCalendar({
+  jobs = [],
+  users = [],
+  jSC = {},
+  onJobClick,
+  setJobs,
+  lang = "en",
+}) {
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
   const [draggingId, setDraggingId] = useState(null);
@@ -120,14 +127,20 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
       console.error("Failed to reschedule job:", err);
       showToast?.(`Failed to reschedule job: ${err.message}`, "error");
       // Revert the optimistic update since the write didn't actually persist.
-      setJobs((p) => p.map((j) => (j.id === jobId ? { ...job, scheduledDate: prevScheduledDate, assignedto: prevAssignedTo } : j)));
+      setJobs((p) =>
+        p.map((j) =>
+          j.id === jobId
+            ? { ...job, scheduledDate: prevScheduledDate, assignedto: prevAssignedTo }
+            : j,
+        ),
+      );
     }
   };
 
   // Consistent role filter matching the parent (field + Site Supervisor)
   const fieldPersonnelList = useMemo(() => {
     return users.filter(
-      (u) => (u.role === "field" || u.role === "Site Supervisor") && u.active !== false
+      (u) => (u.role === "field" || u.role === "Site Supervisor") && u.active !== false,
     );
   }, [users]);
 
@@ -147,7 +160,8 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
   const weekEnd = weekDays[6];
   const weekLabel = `${weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
 
-  const isCurrentWeek = toLocalDateKey(weekStart) <= todayString && todayString <= toLocalDateKey(weekEnd);
+  const isCurrentWeek =
+    toLocalDateKey(weekStart) <= todayString && todayString <= toLocalDateKey(weekEnd);
 
   const JobCard = ({ job }) => {
     const statusConfig = jSC[job.status] || { c: "gray", icon: "📋", l: job.status };
@@ -178,10 +192,28 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
         }}
         title={`${jobLabel}\nPO: ${job.po}\nAddress: ${job.addr || "N/A"}\nStatus: ${statusConfig.l || job.status}`}
       >
-        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div
+          style={{
+            fontSize: "var(--text-xs)",
+            fontWeight: "var(--weight-extrabold)",
+            color: C.navy,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
           {jobLabel}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: 4,
+            fontSize: "var(--text-2xs)",
+            color: C.sub,
+          }}
+        >
           <span>📄 {job.po}</span>
           <span>{statusConfig.icon}</span>
         </div>
@@ -190,33 +222,86 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)", marginTop: 16 }}>
-
+    <div
+      style={{
+        background: C.w,
+        padding: 20,
+        borderRadius: "var(--radius-xl)",
+        boxShadow: "var(--shadow-sm)",
+        marginTop: 16,
+      }}
+    >
       {/* ── HEADER ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 20,
+          flexWrap: "wrap",
+          gap: "var(--space-5)",
+        }}
+      >
         <div>
-          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📅 Weekly Production Crew & Shift Calendar</h2>
-          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>{t.ccSubtitle}</p>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "var(--text-lg)",
+              fontWeight: "var(--weight-extrabold)",
+              color: C.navy,
+            }}
+          >
+            📅 Weekly Production Crew & Shift Calendar
+          </h2>
+          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
+            {t.ccSubtitle}
+          </p>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>{t.calPrev}</Btn>
-          <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", color: C.navy, minWidth: 200, textAlign: "center" }}>
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>
+            {t.calPrev}
+          </Btn>
+          <div
+            style={{
+              fontSize: "var(--text-base)",
+              fontWeight: "var(--weight-bold)",
+              color: C.navy,
+              minWidth: 200,
+              textAlign: "center",
+            }}
+          >
             {weekLabel}
           </div>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>{t.calNext}</Btn>
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>
+            {t.calNext}
+          </Btn>
           {!isCurrentWeek && (
-            <Btn v="primary" sz="sm" onClick={handleGoToToday}>{t.calToday}</Btn>
+            <Btn v="primary" sz="sm" onClick={handleGoToToday}>
+              {t.calToday}
+            </Btn>
           )}
         </div>
       </div>
 
       {/* ── GRID ── */}
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}>
+        <table
+          style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}
+        >
           <thead>
             <tr style={{ background: C.lg }}>
-              <th style={{ width: 150, padding: "12px 10px", textAlign: "left", color: C.sub, fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", borderBottom: `2px solid ${C.bd}` }}>
+              <th
+                style={{
+                  width: 150,
+                  padding: "12px 10px",
+                  textAlign: "left",
+                  color: C.sub,
+                  fontSize: "var(--text-xs)",
+                  fontWeight: "var(--weight-bold)",
+                  borderBottom: `2px solid ${C.bd}`,
+                }}
+              >
                 👷 Assigned Crew Lead
               </th>
               {weekDays.map((day) => {
@@ -225,9 +310,11 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
                   <th
                     key={toLocalDateKey(day)}
                     style={{
-                      padding: "10px", textAlign: "center",
+                      padding: "10px",
+                      textAlign: "center",
                       color: isToday ? C.blue : C.navy,
-                      fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-sm)",
+                      fontWeight: "var(--weight-extrabold)",
+                      fontSize: "var(--text-sm)",
                       borderBottom: isToday ? `3px solid ${C.blue}` : `2px solid ${C.bd}`,
                       background: isToday ? "rgba(27, 82, 184, 0.03)" : "transparent",
                     }}
@@ -243,9 +330,30 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
           <tbody>
             {fieldPersonnelList.map((crewLead) => (
               <tr key={crewLead.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                <td style={{ padding: "14px 10px", verticalAlign: "middle", borderRight: `1px solid ${C.lg}` }}>
-                  <div style={{ fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: C.navy }}>{crewLead.name}</div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textTransform: "capitalize", marginTop: 2 }}>
+                <td
+                  style={{
+                    padding: "14px 10px",
+                    verticalAlign: "middle",
+                    borderRight: `1px solid ${C.lg}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: "var(--weight-bold)",
+                      fontSize: "var(--text-base)",
+                      color: C.navy,
+                    }}
+                  >
+                    {crewLead.name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "var(--text-2xs)",
+                      color: C.sub,
+                      textTransform: "capitalize",
+                      marginTop: 2,
+                    }}
+                  >
                     🛡️ {crewLead.role}
                   </div>
                 </td>
@@ -261,22 +369,47 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
                   return (
                     <td
                       key={dayKey}
-                      onDragOver={(e) => { e.preventDefault(); setDragOverKey(cellKey); }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragOverKey(cellKey);
+                      }}
                       onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
-                      onDrop={(e) => { e.preventDefault(); handleDropOnCell(dayKey, crewLead.id); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleDropOnCell(dayKey, crewLead.id);
+                      }}
                       style={{
-                        padding: "6px", verticalAlign: "top",
-                        background: isDragOver ? "rgba(27, 82, 184, 0.12)" : isToday ? "rgba(27, 82, 184, 0.01)" : "transparent",
+                        padding: "6px",
+                        verticalAlign: "top",
+                        background: isDragOver
+                          ? "rgba(27, 82, 184, 0.12)"
+                          : isToday
+                            ? "rgba(27, 82, 184, 0.01)"
+                            : "transparent",
                         outline: isDragOver ? `2px dashed ${C.blue}` : "none",
                         outlineOffset: -2,
                         borderRight: `1px solid ${C.lg}`,
                         height: 90,
                       }}
                     >
-                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                        {dayJobs.map((job) => <JobCard key={job.id} job={job} />)}
+                      <div
+                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
+                      >
+                        {dayJobs.map((job) => (
+                          <JobCard key={job.id} job={job} />
+                        ))}
                         {isDoubleBooked && (
-                          <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.rd, background: C.rB, padding: "2px 6px", borderRadius: "var(--radius-xs)", textAlign: "center" }}>
+                          <div
+                            style={{
+                              fontSize: "var(--text-2xs)",
+                              fontWeight: "var(--weight-bold)",
+                              color: C.rd,
+                              background: C.rB,
+                              padding: "2px 6px",
+                              borderRadius: "var(--radius-xs)",
+                              textAlign: "center",
+                            }}
+                          >
                             ⚠️ {dayJobs.length} jobs — double-booked
                           </div>
                         )}
@@ -289,10 +422,28 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
 
             {/* ── Unassigned jobs row (always rendered as a drop target for unassigning) ── */}
             {(unassignedThisWeek.length > 0 || typeof setJobs === "function") && (
-              <tr style={{ borderBottom: `1px solid ${C.lg}`, background: "rgba(251,191,36,0.04)" }}>
-                <td style={{ padding: "14px 10px", verticalAlign: "middle", borderRight: `1px solid ${C.lg}` }}>
-                  <div style={{ fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: C.am }}>⚠️ Unassigned</div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>{t.ccNoSupervisor}</div>
+              <tr
+                style={{ borderBottom: `1px solid ${C.lg}`, background: "rgba(251,191,36,0.04)" }}
+              >
+                <td
+                  style={{
+                    padding: "14px 10px",
+                    verticalAlign: "middle",
+                    borderRight: `1px solid ${C.lg}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: "var(--weight-bold)",
+                      fontSize: "var(--text-base)",
+                      color: C.am,
+                    }}
+                  >
+                    ⚠️ Unassigned
+                  </div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>
+                    {t.ccNoSupervisor}
+                  </div>
                 </td>
                 {weekDays.map((day) => {
                   const dayKey = toLocalDateKey(day);
@@ -303,20 +454,35 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
                   return (
                     <td
                       key={dayKey}
-                      onDragOver={(e) => { e.preventDefault(); setDragOverKey(cellKey); }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragOverKey(cellKey);
+                      }}
                       onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
-                      onDrop={(e) => { e.preventDefault(); handleDropOnCell(dayKey, ""); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleDropOnCell(dayKey, "");
+                      }}
                       style={{
-                        padding: "6px", verticalAlign: "top",
-                        background: isDragOver ? "rgba(27, 82, 184, 0.12)" : isToday ? "rgba(27, 82, 184, 0.01)" : "transparent",
+                        padding: "6px",
+                        verticalAlign: "top",
+                        background: isDragOver
+                          ? "rgba(27, 82, 184, 0.12)"
+                          : isToday
+                            ? "rgba(27, 82, 184, 0.01)"
+                            : "transparent",
                         outline: isDragOver ? `2px dashed ${C.blue}` : "none",
                         outlineOffset: -2,
                         borderRight: `1px solid ${C.lg}`,
                         height: 90,
                       }}
                     >
-                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                        {dayJobs.map((job) => <JobCard key={job.id} job={job} />)}
+                      <div
+                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
+                      >
+                        {dayJobs.map((job) => (
+                          <JobCard key={job.id} job={job} />
+                        ))}
                       </div>
                     </td>
                   );
@@ -326,7 +492,16 @@ export default function CrewCalendar({ jobs = [], users = [], jSC = {}, onJobCli
 
             {fieldPersonnelList.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ padding: 32, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", fontStyle: "italic" }}>
+                <td
+                  colSpan={8}
+                  style={{
+                    padding: 32,
+                    textAlign: "center",
+                    color: C.sub,
+                    fontSize: "var(--text-base)",
+                    fontStyle: "italic",
+                  }}
+                >
                   {t.ccNoCrews}
                 </td>
               </tr>

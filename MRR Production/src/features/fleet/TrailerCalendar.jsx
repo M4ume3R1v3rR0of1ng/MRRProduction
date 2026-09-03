@@ -19,11 +19,30 @@ const resolveStatusColor = (statusConfig) => {
   const c = statusConfig?.c || "";
   if (!c) return "var(--c-sub)";
   if (c.startsWith("#") || c.startsWith("rgb")) return c;
-  const colorMap = { blue: C.blue, amber: C.gold, gold: C.gold, green: C.gr, red: C.rd, teal: C.tl, gray: "var(--c-sub)" };
+  const colorMap = {
+    blue: C.blue,
+    amber: C.gold,
+    gold: C.gold,
+    green: C.gr,
+    red: C.rd,
+    teal: C.tl,
+    gray: "var(--c-sub)",
+  };
   return colorMap[c] ?? c;
 };
 
-export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = [], setJobTrailers, setJobs, jSC = {}, user, perms, onJobClick, lang = "en" }) {
+export default function TrailerCalendar({
+  vehs = [],
+  jobs = [],
+  jobTrailers = [],
+  setJobTrailers,
+  setJobs,
+  jSC = {},
+  user,
+  perms,
+  onJobClick,
+  lang = "en",
+}) {
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
   const canEdit = !!perms?.fleet_edit;
@@ -106,7 +125,9 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
     if (!trailerChanged && !dateChanged) return;
 
     if (trailerChanged) {
-      setJobTrailers((p) => p.map((jt) => (jt.id === bookingId ? { ...jt, trailer_id: trailerId } : jt)));
+      setJobTrailers((p) =>
+        p.map((jt) => (jt.id === bookingId ? { ...jt, trailer_id: trailerId } : jt)),
+      );
     }
     if (dateChanged && typeof setJobs === "function") {
       setJobs((p) => p.map((j) => (j.id === job.id ? { ...j, scheduledDate: dateKey } : j)));
@@ -114,11 +135,17 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
 
     try {
       if (trailerChanged) {
-        const { error } = await supabase.from("job_trailers").update({ trailer_id: trailerId }).eq("id", bookingId);
+        const { error } = await supabase
+          .from("job_trailers")
+          .update({ trailer_id: trailerId })
+          .eq("id", bookingId);
         if (error) throw error;
       }
       if (dateChanged) {
-        const { error } = await supabase.from("jobs").update({ scheduledDate: dateKey }).eq("id", job.id);
+        const { error } = await supabase
+          .from("jobs")
+          .update({ scheduledDate: dateKey })
+          .eq("id", job.id);
         if (error) throw error;
       }
       const trailerName = vehs.find((v) => v.id === trailerId)?.name || trailerId;
@@ -133,8 +160,14 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
     } catch (err) {
       console.error("Failed to move trailer booking:", err);
       showToast?.(`Failed to move trailer booking: ${err.message}`, "error");
-      if (trailerChanged) setJobTrailers((p) => p.map((jt) => (jt.id === bookingId ? { ...jt, trailer_id: prevTrailerId } : jt)));
-      if (dateChanged && typeof setJobs === "function") setJobs((p) => p.map((j) => (j.id === job.id ? { ...j, scheduledDate: prevScheduledDate } : j)));
+      if (trailerChanged)
+        setJobTrailers((p) =>
+          p.map((jt) => (jt.id === bookingId ? { ...jt, trailer_id: prevTrailerId } : jt)),
+        );
+      if (dateChanged && typeof setJobs === "function")
+        setJobs((p) =>
+          p.map((j) => (j.id === job.id ? { ...j, scheduledDate: prevScheduledDate } : j)),
+        );
     }
   };
 
@@ -165,7 +198,8 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
   const weekStart = weekDays[0];
   const weekEnd = weekDays[6];
   const weekLabel = `${weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
-  const isCurrentWeek = toLocalDateKey(weekStart) <= todayString && todayString <= toLocalDateKey(weekEnd);
+  const isCurrentWeek =
+    toLocalDateKey(weekStart) <= todayString && todayString <= toLocalDateKey(weekEnd);
 
   const BookingCard = ({ booking }) => {
     const job = booking.job;
@@ -176,8 +210,14 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
     return (
       <div
         draggable={canEdit}
-        onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; setDraggingId(booking.id); }}
-        onDragEnd={() => { setDraggingId(null); setDragOverKey(null); }}
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          setDraggingId(booking.id);
+        }}
+        onDragEnd={() => {
+          setDraggingId(null);
+          setDragOverKey(null);
+        }}
         onClick={() => onJobClick?.(job)}
         style={{
           position: "relative",
@@ -193,17 +233,50 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
       >
         {canEdit && (
           <button
-            onClick={(e) => { e.stopPropagation(); handleRemoveBooking(booking); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRemoveBooking(booking);
+            }}
             title={t.tcRemoveBooking}
-            style={{ position: "absolute", top: 2, right: 2, background: "none", border: "none", cursor: "pointer", fontSize: 12, color: C.sub, lineHeight: 1, padding: 2 }}
+            style={{
+              position: "absolute",
+              top: 2,
+              right: 2,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 12,
+              color: C.sub,
+              lineHeight: 1,
+              padding: 2,
+            }}
           >
             ✕
           </button>
         )}
-        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", paddingRight: 14 }}>
+        <div
+          style={{
+            fontSize: "var(--text-xs)",
+            fontWeight: "var(--weight-extrabold)",
+            color: C.navy,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            paddingRight: 14,
+          }}
+        >
           {jobLabel}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: 4,
+            fontSize: "var(--text-2xs)",
+            color: C.sub,
+          }}
+        >
           <span>📄 {job.po}</span>
           <span>{statusConfig.icon}</span>
         </div>
@@ -212,31 +285,86 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)", marginTop: 16 }}>
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
+    <div
+      style={{
+        background: C.w,
+        padding: 20,
+        borderRadius: "var(--radius-xl)",
+        boxShadow: "var(--shadow-sm)",
+        marginTop: 16,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 20,
+          flexWrap: "wrap",
+          gap: "var(--space-5)",
+        }}
+      >
         <div>
-          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📅 Weekly Trailer Booking Calendar</h2>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "var(--text-lg)",
+              fontWeight: "var(--weight-extrabold)",
+              color: C.navy,
+            }}
+          >
+            📅 Weekly Trailer Booking Calendar
+          </h2>
           <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
-            {canEdit ? "Drag a booking to a different trailer or day to reassign it." : "Read-only — you don't have permission to reassign trailer bookings."}
+            {canEdit
+              ? "Drag a booking to a different trailer or day to reassign it."
+              : "Read-only — you don't have permission to reassign trailer bookings."}
           </p>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>{t.calPrev}</Btn>
-          <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", color: C.navy, minWidth: 200, textAlign: "center" }}>
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>
+            {t.calPrev}
+          </Btn>
+          <div
+            style={{
+              fontSize: "var(--text-base)",
+              fontWeight: "var(--weight-bold)",
+              color: C.navy,
+              minWidth: 200,
+              textAlign: "center",
+            }}
+          >
             {weekLabel}
           </div>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>{t.calNext}</Btn>
-          {!isCurrentWeek && <Btn v="primary" sz="sm" onClick={handleGoToToday}>{t.calToday}</Btn>}
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>
+            {t.calNext}
+          </Btn>
+          {!isCurrentWeek && (
+            <Btn v="primary" sz="sm" onClick={handleGoToToday}>
+              {t.calToday}
+            </Btn>
+          )}
         </div>
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}>
+        <table
+          style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}
+        >
           <thead>
             <tr style={{ background: C.lg }}>
-              <th style={{ width: 170, padding: "12px 10px", textAlign: "left", color: C.sub, fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", borderBottom: `2px solid ${C.bd}` }}>
+              <th
+                style={{
+                  width: 170,
+                  padding: "12px 10px",
+                  textAlign: "left",
+                  color: C.sub,
+                  fontSize: "var(--text-xs)",
+                  fontWeight: "var(--weight-bold)",
+                  borderBottom: `2px solid ${C.bd}`,
+                }}
+              >
                 🚚 Trailer
               </th>
               {weekDays.map((day) => {
@@ -245,9 +373,11 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
                   <th
                     key={toLocalDateKey(day)}
                     style={{
-                      padding: "10px", textAlign: "center",
+                      padding: "10px",
+                      textAlign: "center",
                       color: isToday ? C.blue : C.navy,
-                      fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-sm)",
+                      fontWeight: "var(--weight-extrabold)",
+                      fontSize: "var(--text-sm)",
                       borderBottom: isToday ? `3px solid ${C.blue}` : `2px solid ${C.bd}`,
                       background: isToday ? "rgba(27, 82, 184, 0.03)" : "transparent",
                     }}
@@ -263,9 +393,25 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
           <tbody>
             {trailerRows.map((trailer) => (
               <tr key={trailer.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                <td style={{ padding: "14px 10px", verticalAlign: "middle", borderRight: `1px solid ${C.lg}` }}>
-                  <div style={{ fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: C.navy }}>{trailer.name}</div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>#{trailer.plate || "—"}</div>
+                <td
+                  style={{
+                    padding: "14px 10px",
+                    verticalAlign: "middle",
+                    borderRight: `1px solid ${C.lg}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: "var(--weight-bold)",
+                      fontSize: "var(--text-base)",
+                      color: C.navy,
+                    }}
+                  >
+                    {trailer.name}
+                  </div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>
+                    #{trailer.plate || "—"}
+                  </div>
                 </td>
 
                 {weekDays.map((day) => {
@@ -279,22 +425,51 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
                   return (
                     <td
                       key={dayKey}
-                      onDragOver={(e) => { if (canEdit) { e.preventDefault(); setDragOverKey(cellKey); } }}
+                      onDragOver={(e) => {
+                        if (canEdit) {
+                          e.preventDefault();
+                          setDragOverKey(cellKey);
+                        }
+                      }}
                       onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
-                      onDrop={(e) => { if (canEdit) { e.preventDefault(); handleDropOnCell(dayKey, trailer.id); } }}
+                      onDrop={(e) => {
+                        if (canEdit) {
+                          e.preventDefault();
+                          handleDropOnCell(dayKey, trailer.id);
+                        }
+                      }}
                       style={{
-                        padding: "6px", verticalAlign: "top",
-                        background: isDragOver ? "rgba(27, 82, 184, 0.12)" : isToday ? "rgba(27, 82, 184, 0.01)" : "transparent",
+                        padding: "6px",
+                        verticalAlign: "top",
+                        background: isDragOver
+                          ? "rgba(27, 82, 184, 0.12)"
+                          : isToday
+                            ? "rgba(27, 82, 184, 0.01)"
+                            : "transparent",
                         outline: isDragOver ? `2px dashed ${C.blue}` : "none",
                         outlineOffset: -2,
                         borderRight: `1px solid ${C.lg}`,
                         height: 90,
                       }}
                     >
-                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                        {dayBookings.map((b) => <BookingCard key={b.id} booking={b} />)}
+                      <div
+                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
+                      >
+                        {dayBookings.map((b) => (
+                          <BookingCard key={b.id} booking={b} />
+                        ))}
                         {isDoubleBooked && (
-                          <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.rd, background: C.rB, padding: "2px 6px", borderRadius: "var(--radius-xs)", textAlign: "center" }}>
+                          <div
+                            style={{
+                              fontSize: "var(--text-2xs)",
+                              fontWeight: "var(--weight-bold)",
+                              color: C.rd,
+                              background: C.rB,
+                              padding: "2px 6px",
+                              borderRadius: "var(--radius-xs)",
+                              textAlign: "center",
+                            }}
+                          >
                             ⚠️ {dayBookings.length} jobs — double-booked
                           </div>
                         )}
@@ -307,7 +482,16 @@ export default function TrailerCalendar({ vehs = [], jobs = [], jobTrailers = []
 
             {trailerRows.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ padding: 32, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", fontStyle: "italic" }}>
+                <td
+                  colSpan={8}
+                  style={{
+                    padding: 32,
+                    textAlign: "center",
+                    color: C.sub,
+                    fontSize: "var(--text-base)",
+                    fontStyle: "italic",
+                  }}
+                >
                   {t.tcNoTrailers}
                 </td>
               </tr>

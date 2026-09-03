@@ -131,9 +131,9 @@ describe("profit, once revenue is real", () => {
 
 describe("summarizeJobs", () => {
   const jobs = [
-    job({ id: "a", contract_value: 10000 }),                       // cost 200
-    job({ id: "b", contract_value: 5000 }),                        // cost 200
-    job({ id: "c" }),                                              // cost 200, unpriced
+    job({ id: "a", contract_value: 10000 }), // cost 200
+    job({ id: "b", contract_value: 5000 }), // cost 200
+    job({ id: "c" }), // cost 200, unpriced
   ];
 
   it("counts how many jobs still have no contract value", () => {

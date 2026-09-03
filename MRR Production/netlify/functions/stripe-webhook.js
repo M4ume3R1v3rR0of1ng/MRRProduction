@@ -33,7 +33,10 @@ function baseSeatsFromSubscription(sub) {
   // The base plan bills as EITHER the monthly or the annual Price (same product,
   // two cadences). Both grant the same 10 included seats, so match either id —
   // otherwise an annual subscriber would fall through to the fallback below.
-  const basePriceIds = [process.env.STRIPE_BASE_PRICE_ID, process.env.STRIPE_ANNUAL_PRICE_ID].filter(Boolean);
+  const basePriceIds = [
+    process.env.STRIPE_BASE_PRICE_ID,
+    process.env.STRIPE_ANNUAL_PRICE_ID,
+  ].filter(Boolean);
   let seats = 0;
   for (const it of items) {
     if (basePriceIds.includes(it.price?.id)) seats += 10 * (it.quantity || 1);
@@ -82,12 +85,18 @@ function recurringPacksFromSubscription(sub) {
 function billingIntervalFromSubscription(sub) {
   const items = sub?.items?.data;
   if (!Array.isArray(items) || items.length === 0) return null;
-  const basePriceIds = [process.env.STRIPE_BASE_PRICE_ID, process.env.STRIPE_ANNUAL_PRICE_ID].filter(Boolean);
+  const basePriceIds = [
+    process.env.STRIPE_BASE_PRICE_ID,
+    process.env.STRIPE_ANNUAL_PRICE_ID,
+  ].filter(Boolean);
   const base = items.find((it) => basePriceIds.includes(it.price?.id)) || items[0];
   switch (base?.price?.recurring?.interval) {
-    case "year":  return "annual";
-    case "month": return "monthly";
-    default:      return null;
+    case "year":
+      return "annual";
+    case "month":
+      return "monthly";
+    default:
+      return null;
   }
 }
 
@@ -99,14 +108,22 @@ const PACK_SEATS = 5;
 // Stripe subscription.status  →  our companies.subscription_status
 function mapStripeStatus(stripeStatus) {
   switch (stripeStatus) {
-    case "trialing":            return "trialing";
-    case "active":              return "active";
-    case "past_due":            return "past_due";
-    case "unpaid":              return "past_due";
-    case "canceled":            return "canceled";
-    case "incomplete":          return "incomplete";
-    case "incomplete_expired":  return "canceled";
-    default:                    return null; // unknown → leave the company untouched
+    case "trialing":
+      return "trialing";
+    case "active":
+      return "active";
+    case "past_due":
+      return "past_due";
+    case "unpaid":
+      return "past_due";
+    case "canceled":
+      return "canceled";
+    case "incomplete":
+      return "incomplete";
+    case "incomplete_expired":
+      return "canceled";
+    default:
+      return null; // unknown → leave the company untouched
   }
 }
 
@@ -141,7 +158,11 @@ export function must(what, result) {
 
 // Apply a status (and optionally a seat capacity) to the company behind a Stripe
 // subscription/customer, unless the company is manually suspended (owner's lever wins).
-async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscriptionId, baseSeats, recurringPacks, billingInterval }, status) {
+async function applyStatus(
+  admin,
+  { companyId, stripeCustomerId, stripeSubscriptionId, baseSeats, recurringPacks, billingInterval },
+  status,
+) {
   if (!status) return;
 
   // Resolve the company: explicit id first, else by the stored Stripe ids.
@@ -153,19 +174,30 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
   if (!id && stripeSubscriptionId) {
     const data = must(
       "look up company by stripe_subscription_id",
-      await admin.from("company_secrets").select("company_id").eq("stripe_subscription_id", stripeSubscriptionId).maybeSingle(),
+      await admin
+        .from("company_secrets")
+        .select("company_id")
+        .eq("stripe_subscription_id", stripeSubscriptionId)
+        .maybeSingle(),
     );
     id = data?.company_id || null;
   }
   if (!id && stripeCustomerId) {
     const data = must(
       "look up company by stripe_customer_id",
-      await admin.from("company_secrets").select("company_id").eq("stripe_customer_id", stripeCustomerId).maybeSingle(),
+      await admin
+        .from("company_secrets")
+        .select("company_id")
+        .eq("stripe_customer_id", stripeCustomerId)
+        .maybeSingle(),
     );
     id = data?.company_id || null;
   }
   if (!id) {
-    console.warn("stripe-webhook: could not map event to a company", { stripeCustomerId, stripeSubscriptionId });
+    console.warn("stripe-webhook: could not map event to a company", {
+      stripeCustomerId,
+      stripeSubscriptionId,
+    });
     return;
   }
 
@@ -182,7 +214,9 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
       .maybeSingle(),
   );
   if (!co) {
-    console.warn(`stripe-webhook: company ${id} referenced by Stripe no longer exists; ignoring '${status}'.`);
+    console.warn(
+      `stripe-webhook: company ${id} referenced by Stripe no longer exists; ignoring '${status}'.`,
+    );
     return;
   }
   if (co.subscription_status === "suspended") {
@@ -197,7 +231,8 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
   // `co.` rather than `co?.` from here down: the guard above already returned on
   // a missing row, so optional chaining would only suggest a null that cannot
   // reach this point.
-  const billedPacks = typeof recurringPacks === "number" ? recurringPacks : co.recurring_seat_packs || 0;
+  const billedPacks =
+    typeof recurringPacks === "number" ? recurringPacks : co.recurring_seat_packs || 0;
   if (typeof recurringPacks === "number") patch.recurring_seat_packs = recurringPacks;
 
   // Same mirror discipline as the pack count: write it only when we actually read a
@@ -232,7 +267,8 @@ async function applyStatus(admin, { companyId, stripeCustomerId, stripeSubscript
     // id that never got written means the next webhook cannot find them.
     must(
       "store stripe_subscription_id",
-      await admin.from("company_secrets")
+      await admin
+        .from("company_secrets")
         .update({ stripe_subscription_id: stripeSubscriptionId })
         .eq("company_id", id),
     );
@@ -253,7 +289,9 @@ const rawHandler = async (event) => {
 
   const stripe = new Stripe(secretKey);
   const sig = event.headers["stripe-signature"] || event.headers["Stripe-Signature"];
-  const rawBody = event.isBase64Encoded ? Buffer.from(event.body, "base64").toString("utf8") : event.body;
+  const rawBody = event.isBase64Encoded
+    ? Buffer.from(event.body, "base64").toString("utf8")
+    : event.body;
 
   let stripeEvent;
   try {
@@ -305,7 +343,10 @@ const rawHandler = async (event) => {
               .maybeSingle(),
           );
 
-          if (typeof co?.seat_capacity === "number" && SUBSCRIBED_STATUSES.includes(co.subscription_status)) {
+          if (
+            typeof co?.seat_capacity === "number" &&
+            SUBSCRIBED_STATUSES.includes(co.subscription_status)
+          ) {
             // Include the recurring packs. The pre-27 version of this line was
             // `10 + 5 * newTotal`, which would now wipe out every pack the company is
             // currently paying for the moment a late one-time session settled.
@@ -317,7 +358,9 @@ const rawHandler = async (event) => {
               "raise seat capacity after seat pack purchase",
               await admin
                 .from("companies")
-                .update({ seat_capacity: 10 + PACK_SEATS * (newTotal + (co.recurring_seat_packs || 0)) })
+                .update({
+                  seat_capacity: 10 + PACK_SEATS * (newTotal + (co.recurring_seat_packs || 0)),
+                })
                 .eq("id", companyId),
             );
           }
@@ -325,35 +368,47 @@ const rawHandler = async (event) => {
         }
 
         // client_reference_id is the company we provisioned in create-checkout.
-        await applyStatus(admin, {
-          companyId: s.client_reference_id,
-          stripeCustomerId: s.customer,
-          stripeSubscriptionId: s.subscription,
-        }, "active");
+        await applyStatus(
+          admin,
+          {
+            companyId: s.client_reference_id,
+            stripeCustomerId: s.customer,
+            stripeSubscriptionId: s.subscription,
+          },
+          "active",
+        );
         break;
       }
 
       case "customer.subscription.created":
       case "customer.subscription.updated": {
         const sub = stripeEvent.data.object;
-        await applyStatus(admin, {
-          companyId: sub.metadata?.company_id || null,
-          stripeCustomerId: sub.customer,
-          stripeSubscriptionId: sub.id,
-          baseSeats: baseSeatsFromSubscription(sub),
-          recurringPacks: recurringPacksFromSubscription(sub),
-          billingInterval: billingIntervalFromSubscription(sub),
-        }, mapStripeStatus(sub.status));
+        await applyStatus(
+          admin,
+          {
+            companyId: sub.metadata?.company_id || null,
+            stripeCustomerId: sub.customer,
+            stripeSubscriptionId: sub.id,
+            baseSeats: baseSeatsFromSubscription(sub),
+            recurringPacks: recurringPacksFromSubscription(sub),
+            billingInterval: billingIntervalFromSubscription(sub),
+          },
+          mapStripeStatus(sub.status),
+        );
         break;
       }
 
       case "customer.subscription.deleted": {
         const sub = stripeEvent.data.object;
-        await applyStatus(admin, {
-          companyId: sub.metadata?.company_id || null,
-          stripeCustomerId: sub.customer,
-          stripeSubscriptionId: sub.id,
-        }, "canceled");
+        await applyStatus(
+          admin,
+          {
+            companyId: sub.metadata?.company_id || null,
+            stripeCustomerId: sub.customer,
+            stripeSubscriptionId: sub.id,
+          },
+          "canceled",
+        );
         break;
       }
 
@@ -361,10 +416,14 @@ const rawHandler = async (event) => {
         const inv = stripeEvent.data.object;
         // A failed charge → past_due (grace period). Stripe keeps retrying; if it
         // ultimately gives up it fires subscription.updated/deleted, handled above.
-        await applyStatus(admin, {
-          stripeCustomerId: inv.customer,
-          stripeSubscriptionId: inv.subscription,
-        }, "past_due");
+        await applyStatus(
+          admin,
+          {
+            stripeCustomerId: inv.customer,
+            stripeSubscriptionId: inv.subscription,
+          },
+          "past_due",
+        );
         break;
       }
 

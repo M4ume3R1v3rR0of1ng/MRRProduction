@@ -3,22 +3,8 @@ import { useState, useEffect } from "react";
 import { supabase, getAccessToken } from "@/shared/utils/supabase";
 import { C, uid } from "@/shared/utils/helpers";
 import { validatePassword, PASSWORD_HINT } from "@/features/auth/passwordPolicy";
-import {
-  PERM_DEFS,
-  PERM_GROUPS,
-  ROLE_COLS,
-  ROLES,
-} from "@/shared/database/permissions";
-import {
-  Btn,
-  Bdg,
-  RoleBdg,
-  Toggle,
-  Modal,
-  Fld,
-  Sel,
-  Inp,
-} from "@/shared/components/UIPrimitives";
+import { PERM_DEFS, PERM_GROUPS, ROLE_COLS, ROLES } from "@/shared/database/permissions";
+import { Btn, Bdg, RoleBdg, Toggle, Modal, Fld, Sel, Inp } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -61,7 +47,7 @@ export default function Users({
       name: form.name.trim(),
       full_name: form.name.trim(),
       email: form.email.trim(),
-      role: form.role
+      role: form.role,
     };
 
     try {
@@ -96,13 +82,16 @@ export default function Users({
         });
         if (roleError) throw roleError;
 
-        setUsers((p) =>
-          p.map((u) => (u.id === editing ? { ...u, ...profilePayload } : u)),
-        );
+        setUsers((p) => p.map((u) => (u.id === editing ? { ...u, ...profilePayload } : u)));
         // If an admin edited their OWN row, refresh the live session so the new name
         // and email show immediately (Personal Profile, sidebar) without a re-login.
         if (editing === currentUser?.id && typeof onUpdateUser === "function") {
-          onUpdateUser({ ...currentUser, name: profilePayload.name, full_name: profilePayload.name, email: profilePayload.email });
+          onUpdateUser({
+            ...currentUser,
+            name: profilePayload.name,
+            full_name: profilePayload.name,
+            email: profilePayload.email,
+          });
         }
         showToast(t.umUpdatesSaved, "success");
       } else {
@@ -123,7 +112,12 @@ export default function Users({
         const response = await fetch("/.netlify/functions/create-user", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ accessToken, password: form.password, sendInvite, ...profilePayload }),
+          body: JSON.stringify({
+            accessToken,
+            password: form.password,
+            sendInvite,
+            ...profilePayload,
+          }),
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
@@ -148,10 +142,7 @@ export default function Users({
       setEditing(null);
     } catch (err) {
       console.error("Failed to save profile metrics:", err);
-      showToast(
-        `${t.umProfileAborted} ${err.message}`,
-        "error",
-      );
+      showToast(`${t.umProfileAborted} ${err.message}`, "error");
     }
   };
 
@@ -183,10 +174,7 @@ export default function Users({
       );
     } catch (err) {
       console.error("Failed to update explicit clearance criteria:", err);
-      showToast(
-        `${t.umClearanceSyncFail} ${err.message}`,
-        "error",
-      );
+      showToast(`${t.umClearanceSyncFail} ${err.message}`, "error");
     }
   };
 
@@ -206,10 +194,7 @@ export default function Users({
       showToast(t.umOverridesWiped, "success");
     } catch (err) {
       console.error("Failed to delete user overrides context:", err);
-      showToast(
-        `${t.umClearanceModFail} ${err.message}`,
-        "error",
-      );
+      showToast(`${t.umClearanceModFail} ${err.message}`, "error");
     }
   };
 
@@ -258,7 +243,7 @@ export default function Users({
     setForm({
       name: targetUser.full_name || targetUser.name || "",
       email: targetUser.email || "",
-      role: targetUser.role || "field"
+      role: targetUser.role || "field",
     });
     setEditing(targetUser.id);
     setPwForm({});
@@ -279,10 +264,11 @@ export default function Users({
       return;
     }
 
-    const matchedUser = users.find(u => u.id === targetUserId);
+    const matchedUser = users.find((u) => u.id === targetUserId);
     if (!matchedUser) return;
 
-    if (!window.confirm(t.umRemoveConfirm.replace("{name}", matchedUser.name || t.umThisUser))) return;
+    if (!window.confirm(t.umRemoveConfirm.replace("{name}", matchedUser.name || t.umThisUser)))
+      return;
 
     try {
       const accessToken = await getAccessToken();
@@ -300,7 +286,7 @@ export default function Users({
         currentUser?.id ?? null,
         currentUser?.email ?? null,
         "USER_MANAGEMENT",
-        `Permanently removed user account: ${matchedUser.email}`
+        `Permanently removed user account: ${matchedUser.email}`,
       );
 
       showToast(t.umUserRemoved, "success");
@@ -326,39 +312,127 @@ export default function Users({
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>👥 User Management</h1>
-        <Btn v="primary" onClick={() => { setForm({ role: "field" }); setEditing(null); setModal("user"); }}>+ Add User</Btn>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
+        <h1
+          style={{
+            margin: 0,
+            fontSize: "var(--text-2xl)",
+            fontWeight: "var(--weight-black)",
+            color: C.navy,
+          }}
+        >
+          👥 User Management
+        </h1>
+        <Btn
+          v="primary"
+          onClick={() => {
+            setForm({ role: "field" });
+            setEditing(null);
+            setModal("user");
+          }}
+        >
+          + Add User
+        </Btn>
       </div>
-      
-      <div style={{ background: C.gL, border: `1px solid ${C.gold}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.navy, lineHeight: 1.7 }}>
-        {t.umRolePermsBlurb.split("{link}")[0]}<strong>{t.umRolePermsLink}</strong>{t.umRolePermsBlurb.split("{link}")[1]}
+
+      <div
+        style={{
+          background: C.gL,
+          border: `1px solid ${C.gold}`,
+          borderRadius: "var(--radius-md)",
+          padding: "10px 14px",
+          marginBottom: 14,
+          fontSize: "var(--text-sm)",
+          color: C.navy,
+          lineHeight: 1.7,
+        }}
+      >
+        {t.umRolePermsBlurb.split("{link}")[0]}
+        <strong>{t.umRolePermsLink}</strong>
+        {t.umRolePermsBlurb.split("{link}")[1]}
       </div>
-      
-      <div style={{ background: C.w, borderRadius: "var(--radius-xl)", overflow: "hidden", boxShadow: "var(--shadow-sm)" }}>
+
+      <div
+        style={{
+          background: C.w,
+          borderRadius: "var(--radius-xl)",
+          overflow: "hidden",
+          boxShadow: "var(--shadow-sm)",
+        }}
+      >
         <div className="sw-table-scroll">
-          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}>
+          <table
+            className="mrr-table"
+            style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}
+          >
             <thead>
               <tr style={{ background: C.lg }}>
                 {["Name", "Email", "Role", "Status", ""].map((h) => (
-                  <th key={h} style={{ padding: "12px 14px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase" }}>{h}</th>
+                  <th
+                    key={h}
+                    style={{
+                      padding: "12px 14px",
+                      textAlign: "left",
+                      color: C.sub,
+                      fontWeight: "var(--weight-bold)",
+                      fontSize: "var(--text-xs)",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} style={{ borderBottom: `1px solid ${C.lg}`, ...(u.active ? {} : { background: "var(--c-subtle)" }) }}>
-                  <td style={{ padding: "14px 14px", fontWeight: "var(--weight-bold)", color: C.navy }}>{u.full_name || u.name || "—"}</td>
+                <tr
+                  key={u.id}
+                  style={{
+                    borderBottom: `1px solid ${C.lg}`,
+                    ...(u.active ? {} : { background: "var(--c-subtle)" }),
+                  }}
+                >
+                  <td
+                    style={{
+                      padding: "14px 14px",
+                      fontWeight: "var(--weight-bold)",
+                      color: C.navy,
+                    }}
+                  >
+                    {u.full_name || u.name || "—"}
+                  </td>
                   <td style={{ padding: "14px 14px", color: C.sub }}>{u.email || "—"}</td>
                   <td style={{ padding: "14px 14px" }}>
                     <RoleBdg role={u.role} lang={lang} />
                   </td>
                   <td style={{ padding: "14px 14px" }}>
-                    <Bdg color={u.active ? "green" : "gray"}>{u.active ? "Active" : "Inactive"}</Bdg>
+                    <Bdg color={u.active ? "green" : "gray"}>
+                      {u.active ? "Active" : "Inactive"}
+                    </Bdg>
                   </td>
                   <td style={{ padding: "14px 14px", textAlign: "right" }}>
-                    <div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "flex-end", alignItems: "center" }}>
-                      <Btn v="ghost" sz="sm" onClick={() => handleOpenPermissionOverrides(u)} title={t.umPermOverridesTitle}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "var(--space-2)",
+                        justifyContent: "flex-end",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Btn
+                        v="ghost"
+                        sz="sm"
+                        onClick={() => handleOpenPermissionOverrides(u)}
+                        title={t.umPermOverridesTitle}
+                      >
                         🔒 Override
                       </Btn>
                       <Btn v="ghost" sz="sm" onClick={() => handleEditUser(u)}>
@@ -382,11 +456,34 @@ export default function Users({
       </div>
 
       {modal === "user" && (
-        <Modal title={editing ? t.umModalEditUser : t.umModalAddUser} onClose={() => { setModal(null); setEditing(null); setForm({}); setPwForm({}); }}>
-          <Fld label={t.umFullName}><Inp value={form.name || ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Fld>
-          <Fld label={t.umEmail}><Inp type="email" value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t.umEmailPlaceholder} /></Fld>
+        <Modal
+          title={editing ? t.umModalEditUser : t.umModalAddUser}
+          onClose={() => {
+            setModal(null);
+            setEditing(null);
+            setForm({});
+            setPwForm({});
+          }}
+        >
+          <Fld label={t.umFullName}>
+            <Inp
+              value={form.name || ""}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
+          </Fld>
+          <Fld label={t.umEmail}>
+            <Inp
+              type="email"
+              value={form.email || ""}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder={t.umEmailPlaceholder}
+            />
+          </Fld>
           <Fld label={t.umRole}>
-            <Sel value={form.role || "field"} onChange={(e) => setForm({ ...form, role: e.target.value })}>
+            <Sel
+              value={form.role || "field"}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}
+            >
               <option value="admin">{t.roleLongAdmin}</option>
               <option value="manager">{t.roleLongManager}</option>
               <option value="coordinator">{t.roleLongCoordinator}</option>
@@ -402,74 +499,202 @@ export default function Users({
                 label={t.umTempPassword}
                 hint={`${PASSWORD_HINT}. ${sendInvite ? t.umPwFallbackHint : t.umPwShareHint}`}
               >
-                <Inp type="password" value={form.password || ""} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={t.umPasswordPlaceholder} />
+                <Inp
+                  type="password"
+                  value={form.password || ""}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  placeholder={t.umPasswordPlaceholder}
+                />
               </Fld>
               <Fld label={t.umConfirmPassword}>
-                <Inp type="password" value={form.confirmPassword || ""} onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })} />
+                <Inp
+                  type="password"
+                  value={form.confirmPassword || ""}
+                  onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                />
               </Fld>
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: 4 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-4)",
+                  marginTop: 4,
+                }}
+              >
                 <Toggle on={sendInvite} onChange={() => setSendInvite((v) => !v)} />
                 <div>
-                  <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>
+                  <div
+                    style={{
+                      fontWeight: "var(--weight-bold)",
+                      color: C.navy,
+                      fontSize: "var(--text-sm)",
+                    }}
+                  >
                     {t.umEmailInvite}
                   </div>
                   <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 1 }}>
-                    {sendInvite
-                      ? t.umInviteOn
-                      : t.umInviteOff}
+                    {sendInvite ? t.umInviteOn : t.umInviteOff}
                   </div>
                 </div>
               </div>
             </>
           )}
           <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-            <Btn v="ghost" onClick={() => { setModal(null); setEditing(null); setForm({}); setPwForm({}); }} style={{ flex: 1, justifyContent: "center" }}>{t.cancel}</Btn>
-            <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }}>{editing ? t.umSaveChanges : t.umAddUser}</Btn>
+            <Btn
+              v="ghost"
+              onClick={() => {
+                setModal(null);
+                setEditing(null);
+                setForm({});
+                setPwForm({});
+              }}
+              style={{ flex: 1, justifyContent: "center" }}
+            >
+              {t.cancel}
+            </Btn>
+            <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }}>
+              {editing ? t.umSaveChanges : t.umAddUser}
+            </Btn>
           </div>
 
           {editing && (
             <div style={{ marginTop: 22, paddingTop: 18, borderTop: `1px solid ${C.lg}` }}>
-              <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)", marginBottom: 8 }}>
+              <div
+                style={{
+                  fontWeight: "var(--weight-bold)",
+                  color: C.navy,
+                  fontSize: "var(--text-sm)",
+                  marginBottom: 8,
+                }}
+              >
                 🔑 Reset Password
               </div>
               <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 10 }}>
-                Forgot their password? Set a new temporary one here. Share it with them directly and they will be prompted to change it on next login.
+                Forgot their password? Set a new temporary one here. Share it with them directly and
+                they will be prompted to change it on next login.
               </div>
               <Fld label={t.umNewTempPassword} hint={PASSWORD_HINT}>
-                <Inp type="password" value={pwForm.password || ""} onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })} placeholder={t.umPasswordPlaceholder} />
+                <Inp
+                  type="password"
+                  value={pwForm.password || ""}
+                  onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })}
+                  placeholder={t.umPasswordPlaceholder}
+                />
               </Fld>
               <Fld label={t.umConfirmNewPassword}>
-                <Inp type="password" value={pwForm.confirmPassword || ""} onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })} />
+                <Inp
+                  type="password"
+                  value={pwForm.confirmPassword || ""}
+                  onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
+                />
               </Fld>
-              <Btn v="outline" onClick={submitResetPassword} style={{ width: "100%", justifyContent: "center" }}>{t.umSetNewPassword}</Btn>
+              <Btn
+                v="outline"
+                onClick={submitResetPassword}
+                style={{ width: "100%", justifyContent: "center" }}
+              >
+                {t.umSetNewPassword}
+              </Btn>
             </div>
           )}
         </Modal>
       )}
 
       {modal === "perms" && permUser && (
-        <Modal title={`Custom Permissions — ${permUser.name}`} onClose={() => { setModal(null); setPermUser(null); }} extraWide>
-          <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.am, fontWeight: "var(--weight-semibold)" }}>
-            ⚠️ Overrides apply <em>on top of</em> the <strong>{ROLES[permUser.role]?.label || permUser.role}</strong> role permissions and only affect <strong>{permUser.name}</strong>.
+        <Modal
+          title={`Custom Permissions — ${permUser.name}`}
+          onClose={() => {
+            setModal(null);
+            setPermUser(null);
+          }}
+          extraWide
+        >
+          <div
+            style={{
+              background: C.aB,
+              border: `1.5px solid ${C.am}`,
+              borderRadius: "var(--radius-md)",
+              padding: "10px 14px",
+              marginBottom: 14,
+              fontSize: "var(--text-sm)",
+              color: C.am,
+              fontWeight: "var(--weight-semibold)",
+            }}
+          >
+            ⚠️ Overrides apply <em>on top of</em> the{" "}
+            <strong>{ROLES[permUser.role]?.label || permUser.role}</strong> role permissions and
+            only affect <strong>{permUser.name}</strong>.
           </div>
           {userOverrides[permUser.id] && Object.keys(userOverrides[permUser.id]).length > 0 && (
             <div style={{ marginBottom: 10, display: "flex", justifyContent: "flex-end" }}>
-              <Btn v="danger" sz="sm" onClick={() => clearOverrides(permUser.id)}>{t.umClearOverrides}</Btn>
+              <Btn v="danger" sz="sm" onClick={() => clearOverrides(permUser.id)}>
+                {t.umClearOverrides}
+              </Btn>
             </div>
           )}
           <div style={{ overflowX: "auto", maxHeight: "380px" }}>
-            <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+            <table
+              className="mrr-table"
+              style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
+            >
               <thead>
                 <tr style={{ background: C.lg }}>
-                  <th style={{ padding: "10px 14px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", minWidth: 220 }}>{t.umColPermission}</th>
-                  <th style={{ padding: "10px 14px", textAlign: "center", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", width: 110 }}>{t.umColRoleDefault}</th>
-                  <th style={{ padding: "10px 14px", textAlign: "center", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-xs)", textTransform: "uppercase", width: 110 }}>{t.umColThisUser}</th>
+                  <th
+                    style={{
+                      padding: "10px 14px",
+                      textAlign: "left",
+                      color: C.sub,
+                      fontWeight: "var(--weight-bold)",
+                      fontSize: "var(--text-xs)",
+                      textTransform: "uppercase",
+                      minWidth: 220,
+                    }}
+                  >
+                    {t.umColPermission}
+                  </th>
+                  <th
+                    style={{
+                      padding: "10px 14px",
+                      textAlign: "center",
+                      color: C.sub,
+                      fontWeight: "var(--weight-bold)",
+                      fontSize: "var(--text-xs)",
+                      textTransform: "uppercase",
+                      width: 110,
+                    }}
+                  >
+                    {t.umColRoleDefault}
+                  </th>
+                  <th
+                    style={{
+                      padding: "10px 14px",
+                      textAlign: "center",
+                      color: C.sub,
+                      fontWeight: "var(--weight-bold)",
+                      fontSize: "var(--text-xs)",
+                      textTransform: "uppercase",
+                      width: 110,
+                    }}
+                  >
+                    {t.umColThisUser}
+                  </th>
                 </tr>
               </thead>
               {PERM_GROUPS.map(([groupName, keys]) => (
                 <tbody key={groupName}>
                   <tr>
-                    <td colSpan={3} style={{ padding: "8px 14px", fontWeight: "var(--weight-black)", color: C.shellInk, background: C.shell, fontSize: "var(--text-sm)" }}>{groupName}</td>
+                    <td
+                      colSpan={3}
+                      style={{
+                        padding: "8px 14px",
+                        fontWeight: "var(--weight-black)",
+                        color: C.shellInk,
+                        background: C.shell,
+                        fontSize: "var(--text-sm)",
+                      }}
+                    >
+                      {groupName}
+                    </td>
                   </tr>
                   {keys.map((key) => {
                     const baseVal = (rolePerms[permUser.role] || {})[key] || false;
@@ -477,20 +702,50 @@ export default function Users({
                     const effective = ovVal !== undefined ? ovVal : baseVal;
                     const hasOverride = ovVal !== undefined;
                     return (
-                      <tr key={key} style={{ borderTop: `1px solid ${C.lg}`, background: hasOverride ? "rgba(217,119,6,0.07)" : "transparent" }}>
+                      <tr
+                        key={key}
+                        style={{
+                          borderTop: `1px solid ${C.lg}`,
+                          background: hasOverride ? "rgba(217,119,6,0.07)" : "transparent",
+                        }}
+                      >
                         <td style={{ padding: "10px 14px" }}>
-                          <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>
+                          <div
+                            style={{
+                              fontWeight: "var(--weight-bold)",
+                              color: C.navy,
+                              fontSize: "var(--text-sm)",
+                            }}
+                          >
                             {PERM_DEFS[key]?.label || key}
-                            {hasOverride && <span style={{ marginLeft: 6, fontSize: "var(--text-2xs)", color: C.am, fontWeight: "var(--weight-bold)" }}>{t.umOverridden}</span>}
+                            {hasOverride && (
+                              <span
+                                style={{
+                                  marginLeft: 6,
+                                  fontSize: "var(--text-2xs)",
+                                  color: C.am,
+                                  fontWeight: "var(--weight-bold)",
+                                }}
+                              >
+                                {t.umOverridden}
+                              </span>
+                            )}
                           </div>
-                          <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>{PERM_DEFS[key]?.desc || ""}</div>
-                        </td>
-                        <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                          <div style={{ display: "flex", justifyContent: "center" }}><Toggle on={baseVal} disabled={true} /></div>
+                          <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>
+                            {PERM_DEFS[key]?.desc || ""}
+                          </div>
                         </td>
                         <td style={{ padding: "10px 14px", textAlign: "center" }}>
                           <div style={{ display: "flex", justifyContent: "center" }}>
-                            <Toggle on={effective} onChange={() => toggleOverride(permUser.id, key, baseVal)} />
+                            <Toggle on={baseVal} disabled={true} />
+                          </div>
+                        </td>
+                        <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                          <div style={{ display: "flex", justifyContent: "center" }}>
+                            <Toggle
+                              on={effective}
+                              onChange={() => toggleOverride(permUser.id, key, baseVal)}
+                            />
                           </div>
                         </td>
                       </tr>

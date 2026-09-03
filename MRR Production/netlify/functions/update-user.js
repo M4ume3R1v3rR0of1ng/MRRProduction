@@ -42,7 +42,11 @@ const rawHandler = async (event) => {
 
   const { caller, error: callerError } = await resolveCaller(admin, accessToken);
   if (callerError) {
-    return { statusCode: callerError.status, headers, body: JSON.stringify({ error: callerError.message }) };
+    return {
+      statusCode: callerError.status,
+      headers,
+      body: JSON.stringify({ error: callerError.message }),
+    };
   }
   if (!isCompanyAdmin(caller)) {
     return { statusCode: 403, headers, body: JSON.stringify({ error: "Admin access required" }) };
@@ -57,7 +61,11 @@ const rawHandler = async (event) => {
     .eq("company_id", caller.companyId)
     .maybeSingle();
   if (!membership) {
-    return { statusCode: 404, headers, body: JSON.stringify({ error: "That user is not a member of your company." }) };
+    return {
+      statusCode: 404,
+      headers,
+      body: JSON.stringify({ error: "That user is not a member of your company." }),
+    };
   }
 
   const cleanName = (name || "").trim();
@@ -73,7 +81,11 @@ const rawHandler = async (event) => {
     const authPatch = {};
     if (cleanEmail) {
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanEmail)) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: "Enter a valid email address." }) };
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: "Enter a valid email address." }),
+        };
       }
       const { data: authData } = await admin.auth.admin.getUserById(targetUserId);
       const currentEmail = authData?.user?.email?.toLowerCase();
@@ -95,7 +107,10 @@ const rawHandler = async (event) => {
 
     // Mirror to profiles so the app's displayed name/email match the auth identity.
     const patch = {};
-    if (cleanName) { patch.name = cleanName; patch.full_name = cleanName; }
+    if (cleanName) {
+      patch.name = cleanName;
+      patch.full_name = cleanName;
+    }
     if (cleanEmail) patch.email = cleanEmail;
     if (Object.keys(patch).length > 0) {
       const { error: profErr } = await admin.from("profiles").update(patch).eq("id", targetUserId);

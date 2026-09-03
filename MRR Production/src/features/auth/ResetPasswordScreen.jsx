@@ -52,7 +52,10 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
     // to be used from a clean login — no half-authenticated session left behind.
     const { error } = await supabase.auth.updateUser({ password: pass });
     if (error) {
-      setErr(error.message || "Could not update your password. The link may have expired — request a new one.");
+      setErr(
+        error.message ||
+          "Could not update your password. The link may have expired — request a new one.",
+      );
       setSubmitting(false);
       return;
     }
@@ -108,7 +111,17 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
 
         {done ? (
           <>
-            <div style={{ background: "var(--c-pasture-wash)", color: BRAND.pasture, padding: "10px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", marginBottom: 20, fontWeight: "var(--weight-semibold)" }}>
+            <div
+              style={{
+                background: "var(--c-pasture-wash)",
+                color: BRAND.pasture,
+                padding: "10px 14px",
+                borderRadius: "var(--radius-md)",
+                fontSize: "var(--text-base)",
+                marginBottom: 20,
+                fontWeight: "var(--weight-semibold)",
+              }}
+            >
               {t.rpChanged}
             </div>
             <button
@@ -133,7 +146,16 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
         ) : (
           <>
             {err && (
-              <div style={{ background: C.rB, color: C.rd, padding: "10px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", marginBottom: 16 }}>
+              <div
+                style={{
+                  background: C.rB,
+                  color: C.rd,
+                  padding: "10px 14px",
+                  borderRadius: "var(--radius-md)",
+                  fontSize: "var(--text-base)",
+                  marginBottom: 16,
+                }}
+              >
                 {err}
               </div>
             )}

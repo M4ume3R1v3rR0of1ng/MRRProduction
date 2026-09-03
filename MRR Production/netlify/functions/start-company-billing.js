@@ -64,14 +64,22 @@ const rawHandler = async (event) => {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing companyId" }) };
   }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: "Enter a valid billing email address." }) };
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: "Enter a valid billing email address." }),
+    };
   }
 
   const basePriceId = process.env.STRIPE_BASE_PRICE_ID;
   const annualPriceId = process.env.STRIPE_ANNUAL_PRICE_ID;
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey || !basePriceId || (interval === "annual" && !annualPriceId)) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: "Billing is not configured on the server." }) };
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: "Billing is not configured on the server." }),
+    };
   }
   const priceId = interval === "annual" ? annualPriceId : basePriceId;
 
@@ -80,10 +88,18 @@ const rawHandler = async (event) => {
   // ── 1. Auth: platform owner only ──────────────────────────────────────────
   const { caller, error: callerError } = await resolveCaller(admin, accessToken);
   if (callerError) {
-    return { statusCode: callerError.status, headers, body: JSON.stringify({ error: callerError.message }) };
+    return {
+      statusCode: callerError.status,
+      headers,
+      body: JSON.stringify({ error: callerError.message }),
+    };
   }
   if (!caller.isPlatformAdmin) {
-    return { statusCode: 403, headers, body: JSON.stringify({ error: "Platform admin access required" }) };
+    return {
+      statusCode: 403,
+      headers,
+      body: JSON.stringify({ error: "Platform admin access required" }),
+    };
   }
 
   // ── 2. Load the target + enforce the guardrails ───────────────────────────
@@ -128,10 +144,12 @@ const rawHandler = async (event) => {
         metadata: { company_id: company.id },
       });
       customerId = customer.id;
-      await admin.from("company_secrets").upsert(
-        { company_id: company.id, stripe_customer_id: customerId },
-        { onConflict: "company_id" },
-      );
+      await admin
+        .from("company_secrets")
+        .upsert(
+          { company_id: company.id, stripe_customer_id: customerId },
+          { onConflict: "company_id" },
+        );
     }
 
     const appUrl = process.env.PUBLIC_APP_URL || process.env.URL || "https://steadwerk.com";

@@ -138,5 +138,7 @@ export function mergePrefs(groupId, stored) {
 // Form state → what gets written back. Coerces to real booleans and drops anything the
 // registry doesn't define.
 export function serializePrefs(groupId, form) {
-  return Object.fromEntries(automationsForGroup(groupId).map((a) => [a.key, !!(form && form[a.key])]));
+  return Object.fromEntries(
+    automationsForGroup(groupId).map((a) => [a.key, !!(form && form[a.key])]),
+  );
 }

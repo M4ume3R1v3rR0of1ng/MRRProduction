@@ -5,12 +5,28 @@
 // one is worse than none. Two rules the tests below enforce: never invent a name,
 // and never show one company's staff to another.
 import { describe, it, expect } from "vitest";
-import { makePersonResolver, personLabel, resolvePersonName, resolveBatchPerson, displayNameOf } from "./people";
+import {
+  makePersonResolver,
+  personLabel,
+  resolvePersonName,
+  resolveBatchPerson,
+  displayNameOf,
+} from "./people";
 import { SEED_U } from "../data/seeds";
 
 // A real profile row: the name lives in full_name, and `name` is usually absent.
-const sam = { id: "3f9d2a10-0000-4000-8000-000000000001", full_name: "Sam Schwartz", email: "sam@maumeeriverroofing.com", active: true };
-const ian = { id: "3f9d2a10-0000-4000-8000-000000000002", full_name: "Ian Doyle", email: "ian@maumeeriverroofing.com", active: true };
+const sam = {
+  id: "3f9d2a10-0000-4000-8000-000000000001",
+  full_name: "Sam Schwartz",
+  email: "sam@maumeeriverroofing.com",
+  active: true,
+};
+const ian = {
+  id: "3f9d2a10-0000-4000-8000-000000000002",
+  full_name: "Ian Doyle",
+  email: "ian@maumeeriverroofing.com",
+  active: true,
+};
 const roster = [sam, ian];
 
 describe("the wrong-field bug", () => {
@@ -25,7 +41,9 @@ describe("the wrong-field bug", () => {
   });
 
   it("falls back to the email rather than to nothing", () => {
-    expect(resolvePersonName([{ id: "x", email: "nobody@example.com" }], "x")).toBe("nobody@example.com");
+    expect(resolvePersonName([{ id: "x", email: "nobody@example.com" }], "x")).toBe(
+      "nobody@example.com",
+    );
   });
 
   it("says the name is missing rather than calling a real member unknown", () => {
@@ -60,7 +78,9 @@ describe("the multi-tenant rule", () => {
     // THE important test. SEED_U is Maumee River's staff. Another tenant with a
     // 'u1' row must not be told it was "Sam" — the old roster is a lookup table,
     // never a source of names in its own right.
-    const otherCompany = [{ id: "aaaa-bbbb", full_name: "Dana Cole", email: "dana@othercompany.com" }];
+    const otherCompany = [
+      { id: "aaaa-bbbb", full_name: "Dana Cole", email: "dana@othercompany.com" },
+    ];
     const label = resolvePersonName(otherCompany, "u1");
     expect(label).not.toContain("Sam");
     expect(label).toBe("Unrecognized (u1)");
@@ -119,7 +139,9 @@ describe("the name stamped on the row", () => {
   });
 
   it("still reports system rows as automatic even with a stamp present", () => {
-    expect(resolveBatchPerson(roster, { by: "system", byName: "Whoever" })).toBe("System (automatic)");
+    expect(resolveBatchPerson(roster, { by: "system", byName: "Whoever" })).toBe(
+      "System (automatic)",
+    );
   });
 
   it("handles a batch with no person recorded at all", () => {
@@ -130,7 +152,9 @@ describe("the name stamped on the row", () => {
 
 describe("displayNameOf — what gets stamped at write time", () => {
   it("reads curUser, which useAppData builds with full_name under `name`", () => {
-    expect(displayNameOf({ id: "x", name: "Sam Schwartz", email: "sam@x.com" })).toBe("Sam Schwartz");
+    expect(displayNameOf({ id: "x", name: "Sam Schwartz", email: "sam@x.com" })).toBe(
+      "Sam Schwartz",
+    );
   });
 
   it("reads a raw profiles row, which uses full_name", () => {
@@ -156,7 +180,9 @@ describe("personLabel", () => {
   });
 
   it("takes translated copy when a view has it", () => {
-    expect(personLabel({ kind: "system" }, { personSystem: "Sistema (automático)" })).toBe("Sistema (automático)");
+    expect(personLabel({ kind: "system" }, { personSystem: "Sistema (automático)" })).toBe(
+      "Sistema (automático)",
+    );
   });
 
   it("works with no translations at all, for the dialogs that take no lang prop", () => {

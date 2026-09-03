@@ -26,7 +26,15 @@ export default function SearchBar({
   const t = translations[lang] || translations.en;
 
   return (
-    <div style={{ display: "flex", gap: "var(--space-4)", marginBottom: 10, flexWrap: "wrap", alignItems: "center" }}>
+    <div
+      style={{
+        display: "flex",
+        gap: "var(--space-4)",
+        marginBottom: 10,
+        flexWrap: "wrap",
+        alignItems: "center",
+      }}
+    >
       <Inp
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -38,8 +46,16 @@ export default function SearchBar({
       {children}
       {value && (
         <>
-          <Btn v="ghost" sz="sm" onClick={() => onChange("")}>✕ {t.searchClear}</Btn>
-          <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>
+          <Btn v="ghost" sz="sm" onClick={() => onChange("")}>
+            ✕ {t.searchClear}
+          </Btn>
+          <span
+            style={{
+              fontSize: "var(--text-sm)",
+              color: C.sub,
+              fontWeight: "var(--weight-semibold)",
+            }}
+          >
             {resultCount === 1 ? t.searchOneResult : t.searchNResults.replace("{n}", resultCount)}
           </span>
         </>
@@ -57,5 +73,9 @@ export default function SearchBar({
 export function matchesQuery(query, fields) {
   const q = (query || "").toLowerCase().trim();
   if (!q) return true;
-  return fields.some((f) => String(f ?? "").toLowerCase().includes(q));
+  return fields.some((f) =>
+    String(f ?? "")
+      .toLowerCase()
+      .includes(q),
+  );
 }

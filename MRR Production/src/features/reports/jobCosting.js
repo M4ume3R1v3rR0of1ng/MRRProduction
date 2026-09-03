@@ -38,10 +38,7 @@ const lines = (job) => (job?.items || job?.materials || []).filter(Boolean);
 // Priced at priceAtPull, which FIFO already resolved from the batches the material
 // genuinely came from. See doFifo — this is not an average of the catalog price.
 export const actualMaterialCost = (job) =>
-  lines(job).reduce(
-    (sum, i) => sum + (num(i.pulled) - num(i.returned)) * num(i.priceAtPull),
-    0,
-  );
+  lines(job).reduce((sum, i) => sum + (num(i.pulled) - num(i.returned)) * num(i.priceAtPull), 0);
 
 // What the plan expected to spend, at the same prices, so the comparison below
 // isolates quantity variance rather than mixing in price movement.

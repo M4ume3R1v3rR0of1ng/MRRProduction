@@ -29,7 +29,14 @@ import {
   shiftPeriod,
 } from "./inventoryCounts";
 
-export default function InventoryCountTab({ inv = [], jobs = [], users = [], user, perms, lang = "en" }) {
+export default function InventoryCountTab({
+  inv = [],
+  jobs = [],
+  users = [],
+  user,
+  perms,
+  lang = "en",
+}) {
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
 
@@ -77,7 +84,9 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
       }
     }
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [retryTick]);
 
   const countRow = useMemo(() => counts.find((c) => c.period === period) || null, [counts, period]);
@@ -137,7 +146,12 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
   const entryArray = () =>
     Object.values(entries)
       .filter((e) => e && e.iid != null && e.counted !== "" && e.counted != null)
-      .map((e) => ({ iid: e.iid, counted: parseFloat(e.counted), at: e.at || null, by: e.by || null }))
+      .map((e) => ({
+        iid: e.iid,
+        counted: parseFloat(e.counted),
+        at: e.at || null,
+        by: e.by || null,
+      }))
       .filter((e) => !Number.isNaN(e.counted));
 
   const saveProgress = async () => {
@@ -146,7 +160,9 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
     try {
       const payload = entryArray();
       if (countRow) {
-        const { error } = await updateRowStrict("inventory_counts", countRow.id, { entries: payload });
+        const { error } = await updateRowStrict("inventory_counts", countRow.id, {
+          entries: payload,
+        });
         if (error) throw error;
         setCounts((p) => p.map((c) => (c.id === countRow.id ? { ...c, entries: payload } : c)));
       } else {
@@ -179,14 +195,20 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
     // closing at all. But the number left uncounted has to be said out loud,
     // because those lines carry into next month's opening from the BOOK, not
     // from a count.
-    const msg = uncounted > 0
-      ? t.cntCloseConfirmPartial.replace("{n}", uncounted).replace("{period}", periodLabel(period))
-      : t.cntCloseConfirm.replace("{period}", periodLabel(period));
+    const msg =
+      uncounted > 0
+        ? t.cntCloseConfirmPartial
+            .replace("{n}", uncounted)
+            .replace("{period}", periodLabel(period))
+        : t.cntCloseConfirm.replace("{period}", periodLabel(period));
     if (!window.confirm(msg)) return;
 
     setSaving(true);
     try {
-      const frozen = buildCountLines(inv, jobs, period, { previousLines: prevRow?.lines || [], entries });
+      const frozen = buildCountLines(inv, jobs, period, {
+        previousLines: prevRow?.lines || [],
+        entries,
+      });
       const stamp = {
         status: "closed",
         entries: entryArray(),
@@ -240,16 +262,41 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
   };
 
   const exportCsv = () => {
-    const headers = ["Item", "Category", "Unit", "Opening", "Opening source", "Received", "Adjusted", "Pulled", "Returned", "Net used", "Expected", "Counted", "Variance", ...(canSeeMoney ? ["Unit price", "Variance value"] : [])];
+    const headers = [
+      "Item",
+      "Category",
+      "Unit",
+      "Opening",
+      "Opening source",
+      "Received",
+      "Adjusted",
+      "Pulled",
+      "Returned",
+      "Net used",
+      "Expected",
+      "Counted",
+      "Variance",
+      ...(canSeeMoney ? ["Unit price", "Variance value"] : []),
+    ];
     // Raw values: downloadCSV quotes and escapes only what needs it. Counted and
     // variance stay blank when null, because an uncounted line is not a zero.
     const rows = lines.map((l) => [
-      l.name, l.cat, l.unit,
-      l.opening, l.openingSource, l.received, l.adjusted, l.pulled, l.returned, l.used,
+      l.name,
+      l.cat,
+      l.unit,
+      l.opening,
+      l.openingSource,
+      l.received,
+      l.adjusted,
+      l.pulled,
+      l.returned,
+      l.used,
       l.expected,
       l.counted ?? "",
       l.variance ?? "",
-      ...(canSeeMoney ? [l.price, l.variance == null ? "" : (l.variance * l.price).toFixed(2)] : []),
+      ...(canSeeMoney
+        ? [l.price, l.variance == null ? "" : (l.variance * l.price).toFixed(2)]
+        : []),
     ]);
     downloadCSV(`inventory-count-${period}.csv`, headers, rows);
   };
@@ -262,44 +309,116 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
   }, [counts]);
 
   const tile = (value, label, tone) => (
-    <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 14, borderLeft: `5px solid ${tone}`, boxShadow: "var(--shadow-sm)", flex: 1, minWidth: 150 }}>
-      <div style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: tone }}>{value}</div>
+    <div
+      style={{
+        background: C.w,
+        borderRadius: "var(--radius-xl)",
+        padding: 14,
+        borderLeft: `5px solid ${tone}`,
+        boxShadow: "var(--shadow-sm)",
+        flex: 1,
+        minWidth: 150,
+      }}
+    >
+      <div style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: tone }}>
+        {value}
+      </div>
       <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>{label}</div>
     </div>
   );
 
-  if (loading) return <SkeletonTable rows={8} cols={["30%", "14%", "14%", "14%", "14%", "14%"]} label={t.cntLoading} />;
+  if (loading)
+    return (
+      <SkeletonTable
+        rows={8}
+        cols={["30%", "14%", "14%", "14%", "14%", "14%"]}
+        label={t.cntLoading}
+      />
+    );
 
   if (loadError) {
     return (
-      <div style={{ background: "var(--c-rust-wash)", border: "1.5px solid var(--c-rust)", borderRadius: "var(--radius-lg)", padding: 24, textAlign: "center", color: "var(--c-rust)" }}>
-        <div style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>{t.cntLoadFailTitle}</div>
-        <div style={{ fontSize: "var(--text-sm)", marginBottom: 14 }}>{t.cntLoadFailBody} ({loadError})</div>
-        <Btn v="primary" sz="sm" onClick={() => setRetryTick((n) => n + 1)}>🔄 {t.cntRetry}</Btn>
+      <div
+        style={{
+          background: "var(--c-rust-wash)",
+          border: "1.5px solid var(--c-rust)",
+          borderRadius: "var(--radius-lg)",
+          padding: 24,
+          textAlign: "center",
+          color: "var(--c-rust)",
+        }}
+      >
+        <div style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
+          {t.cntLoadFailTitle}
+        </div>
+        <div style={{ fontSize: "var(--text-sm)", marginBottom: 14 }}>
+          {t.cntLoadFailBody} ({loadError})
+        </div>
+        <Btn v="primary" sz="sm" onClick={() => setRetryTick((n) => n + 1)}>
+          🔄 {t.cntRetry}
+        </Btn>
       </div>
     );
   }
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "var(--space-4)", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          flexWrap: "wrap",
+          gap: "var(--space-4)",
+          marginBottom: 16,
+        }}
+      >
         <div>
-          <h2 style={{ margin: 0, fontSize: "var(--text-xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "var(--text-xl)",
+              fontWeight: "var(--weight-black)",
+              color: C.navy,
+            }}
+          >
             🧮 {t.cntTitle}
           </h2>
-          <p style={{ margin: "4px 0 0", color: C.sub, fontSize: "var(--text-sm)", maxWidth: 620, lineHeight: 1.45 }}>
+          <p
+            style={{
+              margin: "4px 0 0",
+              color: C.sub,
+              fontSize: "var(--text-sm)",
+              maxWidth: 620,
+              lineHeight: 1.45,
+            }}
+          >
             {t.cntSubtitle}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}>
-          <Sel value={period} onChange={(e) => changePeriod(e.target.value)} aria-label={t.cntPeriodAria} style={{ width: "auto" }}>
+        <div
+          style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}
+        >
+          <Sel
+            value={period}
+            onChange={(e) => changePeriod(e.target.value)}
+            aria-label={t.cntPeriodAria}
+            style={{ width: "auto" }}
+          >
             {periodOptions.map((p) => {
               const row = counts.find((c) => c.period === p);
               const mark = row ? (row.status === "closed" ? " ✓" : " …") : "";
-              return <option key={p} value={p}>{periodLabel(p)}{mark}</option>;
+              return (
+                <option key={p} value={p}>
+                  {periodLabel(p)}
+                  {mark}
+                </option>
+              );
             })}
           </Sel>
-          <Btn v="ghost" sz="sm" onClick={exportCsv}>⬇ {t.cntExport}</Btn>
+          <Btn v="ghost" sz="sm" onClick={exportCsv}>
+            ⬇ {t.cntExport}
+          </Btn>
         </div>
       </div>
 
@@ -315,21 +434,53 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
           t.cntTileBleed,
           summary.bleedPct < 0 ? C.rd : C.gr,
         )}
-        {canSeeMoney && tile(fm(summary.shrinkValue), t.cntTileValue, summary.shrinkValue < 0 ? C.rd : C.gr)}
+        {canSeeMoney &&
+          tile(fm(summary.shrinkValue), t.cntTileValue, summary.shrinkValue < 0 ? C.rd : C.gr)}
       </div>
 
       {/* The bleed rate is a ratio of two numbers people will be asked to defend,
           so say what they are rather than making it a black box. */}
-      <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 16, fontSize: "var(--text-xs)", color: C.sub, lineHeight: 1.6 }}>
+      <div
+        style={{
+          background: C.lg,
+          borderRadius: "var(--radius-md)",
+          padding: "10px 14px",
+          marginBottom: 16,
+          fontSize: "var(--text-xs)",
+          color: C.sub,
+          lineHeight: 1.6,
+        }}
+      >
         {t.cntFormula}
       </div>
 
       {isClosed ? (
-        <div style={{ background: C.sB, border: `1.5px solid ${C.sl}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 16, fontSize: "var(--text-sm)", color: C.navy }}>
-          🔒 <strong>{t.cntClosedBanner.replace("{period}", periodLabel(period))}</strong> {t.cntClosedBannerBody}
+        <div
+          style={{
+            background: C.sB,
+            border: `1.5px solid ${C.sl}`,
+            borderRadius: "var(--radius-md)",
+            padding: "10px 14px",
+            marginBottom: 16,
+            fontSize: "var(--text-sm)",
+            color: C.navy,
+          }}
+        >
+          🔒 <strong>{t.cntClosedBanner.replace("{period}", periodLabel(period))}</strong>{" "}
+          {t.cntClosedBannerBody}
         </div>
       ) : (
-        <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 16, fontSize: "var(--text-sm)", color: C.navy }}>
+        <div
+          style={{
+            background: C.aB,
+            border: `1.5px solid ${C.am}`,
+            borderRadius: "var(--radius-md)",
+            padding: "10px 14px",
+            marginBottom: 16,
+            fontSize: "var(--text-sm)",
+            color: C.navy,
+          }}
+        >
           📋 {t.cntOpenBanner}
           {prevRow?.status === "closed"
             ? ` ${t.cntOpeningFromCount.replace("{period}", periodLabel(prevRow.period))}`
@@ -338,16 +489,42 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
       )}
 
       {flagged.length > 0 && (
-        <div style={{ background: C.rB, border: `1.5px solid ${C.rd}`, borderRadius: "var(--radius-lg)", padding: 14, marginBottom: 16 }}>
-          <div style={{ fontWeight: "var(--weight-extrabold)", color: C.rd, marginBottom: 8, fontSize: "var(--text-base)" }}>
+        <div
+          style={{
+            background: C.rB,
+            border: `1.5px solid ${C.rd}`,
+            borderRadius: "var(--radius-lg)",
+            padding: 14,
+            marginBottom: 16,
+          }}
+        >
+          <div
+            style={{
+              fontWeight: "var(--weight-extrabold)",
+              color: C.rd,
+              marginBottom: 8,
+              fontSize: "var(--text-base)",
+            }}
+          >
             ⚠️ {t.cntFlaggedTitle.replace("{n}", flagged.length)}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {flagged.slice(0, 8).map((l) => (
-              <div key={l.iid} style={{ display: "flex", justifyContent: "space-between", gap: 12, fontSize: "var(--text-sm)" }}>
+              <div
+                key={l.iid}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  fontSize: "var(--text-sm)",
+                }}
+              >
                 <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{l.name}</span>
-                <span style={{ color: C.rd, fontWeight: "var(--weight-bold)", whiteSpace: "nowrap" }}>
-                  {l.variance > 0 ? "+" : ""}{l.variance} {l.unit}
+                <span
+                  style={{ color: C.rd, fontWeight: "var(--weight-bold)", whiteSpace: "nowrap" }}
+                >
+                  {l.variance > 0 ? "+" : ""}
+                  {l.variance} {l.unit}
                   {canSeeMoney ? ` · ${fm(l.variance * l.price)}` : ""}
                 </span>
               </div>
@@ -356,16 +533,48 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "var(--space-4)", marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-        <Inp placeholder={t.cntSearch} value={search} onChange={(e) => setSearch(e.target.value)} style={{ flex: 1, minWidth: 200, maxWidth: 320 }} />
-        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "var(--text-sm)", color: C.navy, fontWeight: "var(--weight-semibold)", cursor: "pointer" }}>
-          <input type="checkbox" checked={onlyVariance} onChange={(e) => setOnlyVariance(e.target.checked)} />
+      <div
+        style={{
+          display: "flex",
+          gap: "var(--space-4)",
+          marginBottom: 14,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <Inp
+          placeholder={t.cntSearch}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ flex: 1, minWidth: 200, maxWidth: 320 }}
+        />
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: "var(--text-sm)",
+            color: C.navy,
+            fontWeight: "var(--weight-semibold)",
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={onlyVariance}
+            onChange={(e) => setOnlyVariance(e.target.checked)}
+          />
           {t.cntOnlyVariance}
         </label>
         <div style={{ flex: 1 }} />
         {canEdit && !isClosed && (
           <>
-            <Btn v={dirty ? "primary" : "ghost"} sz="sm" onClick={saveProgress} disabled={saving || !dirty}>
+            <Btn
+              v={dirty ? "primary" : "ghost"}
+              sz="sm"
+              onClick={saveProgress}
+              disabled={saving || !dirty}
+            >
               {saving ? t.cntSaving : dirty ? t.cntSaveProgress : t.cntAllSaved}
             </Btn>
             <Btn v="gold" sz="sm" onClick={closePeriod} disabled={saving}>
@@ -375,12 +584,44 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
         )}
       </div>
 
-      <div style={{ overflowX: "auto", maxHeight: 640, overflowY: "auto", border: `1px solid ${C.lg}`, borderRadius: 8 }}>
-        <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+      <div
+        style={{
+          overflowX: "auto",
+          maxHeight: 640,
+          overflowY: "auto",
+          border: `1px solid ${C.lg}`,
+          borderRadius: 8,
+        }}
+      >
+        <table
+          className="mrr-table"
+          style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
+        >
           <thead style={{ position: "sticky", top: 0, zIndex: 1, background: C.lg }}>
             <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
-              {[t.cntColItem, t.cntColOpening, t.cntColReceived, t.cntColUsed, t.cntColExpected, t.cntColCounted, t.cntColVariance, ...(canSeeMoney ? [t.cntColValue] : [])].map((h) => (
-                <th key={h} style={{ padding: "10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)", fontSize: "var(--text-2xs)", textTransform: "uppercase", background: C.lg, whiteSpace: "nowrap" }}>
+              {[
+                t.cntColItem,
+                t.cntColOpening,
+                t.cntColReceived,
+                t.cntColUsed,
+                t.cntColExpected,
+                t.cntColCounted,
+                t.cntColVariance,
+                ...(canSeeMoney ? [t.cntColValue] : []),
+              ].map((h) => (
+                <th
+                  key={h}
+                  style={{
+                    padding: "10px",
+                    textAlign: "left",
+                    color: C.sub,
+                    fontWeight: "var(--weight-bold)",
+                    fontSize: "var(--text-2xs)",
+                    textTransform: "uppercase",
+                    background: C.lg,
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {h}
                 </th>
               ))}
@@ -391,7 +632,13 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
               const v = l.variance;
               const off = v != null && v !== 0;
               return (
-                <tr key={l.iid} style={{ borderBottom: `1px solid ${C.lg}`, background: off ? (v < 0 ? C.rB : C.aB) : "transparent" }}>
+                <tr
+                  key={l.iid}
+                  style={{
+                    borderBottom: `1px solid ${C.lg}`,
+                    background: off ? (v < 0 ? C.rB : C.aB) : "transparent",
+                  }}
+                >
                   <td style={{ padding: "8px 10px" }}>
                     <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{l.name}</div>
                     <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
@@ -399,17 +646,24 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
                       {/* An item whose book balance is already negative is not a
                           counting problem, it is a prior over-pull. Flag it here
                           so the counter knows before they start hunting. */}
-                      {l.onHand < 0 && <span style={{ color: C.rd, fontWeight: "var(--weight-bold)" }}> · {t.cntNegativeBook.replace("{n}", l.onHand)}</span>}
+                      {l.onHand < 0 && (
+                        <span style={{ color: C.rd, fontWeight: "var(--weight-bold)" }}>
+                          {" "}
+                          · {t.cntNegativeBook.replace("{n}", l.onHand)}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
                     {l.opening}
                     <span style={{ color: C.sub, fontSize: "var(--text-2xs)" }}>
-                      {" "}{l.openingSource === "counted" ? t.cntOpeningCounted : t.cntOpeningDerived}
+                      {" "}
+                      {l.openingSource === "counted" ? t.cntOpeningCounted : t.cntOpeningDerived}
                     </span>
                   </td>
                   <td style={{ padding: "8px 10px", color: C.gr, whiteSpace: "nowrap" }}>
-                    +{l.received}{l.adjusted ? ` (${l.adjusted > 0 ? "+" : ""}${l.adjusted} adj)` : ""}
+                    +{l.received}
+                    {l.adjusted ? ` (${l.adjusted > 0 ? "+" : ""}${l.adjusted} adj)` : ""}
                   </td>
                   {/* Net of returns, so it can be negative in a month where more
                       came back than went out. Rendering a bare "−" prefix would
@@ -417,7 +671,14 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
                   <td style={{ padding: "8px 10px", color: C.am, whiteSpace: "nowrap" }}>
                     {l.used < 0 ? `+${Math.abs(l.used)}` : `−${l.used}`}
                   </td>
-                  <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy, whiteSpace: "nowrap" }}>
+                  <td
+                    style={{
+                      padding: "8px 10px",
+                      fontWeight: "var(--weight-bold)",
+                      color: C.navy,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {l.expected} {l.unit}
                   </td>
                   <td style={{ padding: "8px 10px" }}>
@@ -431,14 +692,29 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
                         aria-label={`${t.cntColCounted} ${l.name}`}
                       />
                     ) : (
-                      <span style={{ fontWeight: "var(--weight-bold)" }}>{l.counted == null ? "—" : l.counted}</span>
+                      <span style={{ fontWeight: "var(--weight-bold)" }}>
+                        {l.counted == null ? "—" : l.counted}
+                      </span>
                     )}
                   </td>
-                  <td style={{ padding: "8px 10px", fontWeight: "var(--weight-black)", whiteSpace: "nowrap", color: v == null ? C.sub : v < 0 ? C.rd : v > 0 ? C.am : C.gr }}>
+                  <td
+                    style={{
+                      padding: "8px 10px",
+                      fontWeight: "var(--weight-black)",
+                      whiteSpace: "nowrap",
+                      color: v == null ? C.sub : v < 0 ? C.rd : v > 0 ? C.am : C.gr,
+                    }}
+                  >
                     {v == null ? "—" : `${v > 0 ? "+" : ""}${v}`}
                   </td>
                   {canSeeMoney && (
-                    <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: v == null ? C.sub : v < 0 ? C.rd : C.navy }}>
+                    <td
+                      style={{
+                        padding: "8px 10px",
+                        whiteSpace: "nowrap",
+                        color: v == null ? C.sub : v < 0 ? C.rd : C.navy,
+                      }}
+                    >
                       {v == null ? "—" : fm(v * l.price)}
                     </td>
                   )}
@@ -447,7 +723,10 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
             })}
             {visibleLines.length === 0 && (
               <tr>
-                <td colSpan={canSeeMoney ? 8 : 7} style={{ padding: 28, textAlign: "center", color: C.sub, fontStyle: "italic" }}>
+                <td
+                  colSpan={canSeeMoney ? 8 : 7}
+                  style={{ padding: 28, textAlign: "center", color: C.sub, fontStyle: "italic" }}
+                >
                   {t.cntNoRows}
                 </td>
               </tr>
@@ -457,7 +736,14 @@ export default function InventoryCountTab({ inv = [], jobs = [], users = [], use
       </div>
 
       {dirty && (
-        <div style={{ marginTop: 10, fontSize: "var(--text-xs)", color: C.am, fontWeight: "var(--weight-bold)" }}>
+        <div
+          style={{
+            marginTop: 10,
+            fontSize: "var(--text-xs)",
+            color: C.am,
+            fontWeight: "var(--weight-bold)",
+          }}
+        >
           {t.cntUnsaved}
         </div>
       )}

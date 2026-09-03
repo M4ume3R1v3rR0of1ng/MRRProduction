@@ -29,9 +29,7 @@ export const escapeCsvCell = (value) => {
 // produced the bug above, and this would then escape their quotes as literal
 // characters, making it visibly worse rather than silently wrong.
 export const toCsv = (headers, rows) =>
-  [headers, ...rows]
-    .map((row) => (row || []).map(escapeCsvCell).join(","))
-    .join("\r\n"); // CRLF per RFC 4180; Excel is the destination for most of these
+  [headers, ...rows].map((row) => (row || []).map(escapeCsvCell).join(",")).join("\r\n"); // CRLF per RFC 4180; Excel is the destination for most of these
 
 // The leading BOM is for Excel specifically. Without it Excel decodes UTF-8 as
 // the local ANSI codepage, so a Spanish item name or an accented supplier comes

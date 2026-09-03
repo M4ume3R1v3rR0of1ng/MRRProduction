@@ -24,6 +24,11 @@ jobs:
 
       - run: npm ci
 
+      # Fail fast on lint errors / unformatted code before spending time on the
+      # (slower) test and build steps.
+      - run: npm run lint
+      - run: npm run format:check
+
       - run: npm test
 
       # No secrets needed: SENTRY_AUTH_TOKEN is gated-off in vite.config.js when

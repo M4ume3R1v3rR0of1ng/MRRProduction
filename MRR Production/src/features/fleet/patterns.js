@@ -24,7 +24,11 @@ export function learnServiceIntervals(vehicle) {
     for (let i = 1; i < sorted.length; i++) {
       const days = (new Date(sorted[i].dt) - new Date(sorted[i - 1].dt)) / 86400000;
       if (days > 0) dayGaps.push(days);
-      if (typeof sorted[i].mi === "number" && typeof sorted[i - 1].mi === "number" && sorted[i].mi > sorted[i - 1].mi) {
+      if (
+        typeof sorted[i].mi === "number" &&
+        typeof sorted[i - 1].mi === "number" &&
+        sorted[i].mi > sorted[i - 1].mi
+      ) {
         mileGaps.push(sorted[i].mi - sorted[i - 1].mi);
       }
     }
@@ -62,7 +66,10 @@ export function detectChronicIssues(reqs, { windowDays = 60, minCount = 3 } = {}
 
   for (const r of reqs || []) {
     if (!r.at || new Date(r.at).getTime() < cutoff) continue;
-    const types = (r.type || "").split(",").map((t) => t.trim()).filter(Boolean);
+    const types = (r.type || "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
     for (const t of types) {
       const key = `${r.vid}::${t}`;
       (groups[key] ||= { vid: r.vid, vname: r.vname, issueType: t, dates: [] }).dates.push(r.at);
@@ -91,7 +98,10 @@ export function detectFleetTrends(
   for (const r of reqs || []) {
     if (!r.at) continue;
     const t = new Date(r.at).getTime();
-    const types = (r.type || "").split(",").map((x) => x.trim()).filter(Boolean);
+    const types = (r.type || "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
     if (t >= recentCutoff) {
       for (const type of types) recentCounts[type] = (recentCounts[type] || 0) + 1;
     } else if (t >= baselineCutoff) {

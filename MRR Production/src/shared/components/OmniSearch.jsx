@@ -62,23 +62,81 @@ export default function OmniSearch({
 
     // Pages, mirroring the Sidebar's visibility rules
     const pages = [
-      { id: "dashboard", icon: "🏠", label: t.dashboard, keywords: "home overview team chat", show: true },
-      { id: "buildjobs", icon: "🏗️", label: t.buildjobs, keywords: "create job wizard acculynx close po", show: !!(perms.jobs_build || perms.jobs_close) },
-      { id: "pull", icon: "📋", label: t.pull, keywords: "jobs pull materials return complete", show: true },
-      { id: "inventory", icon: "📦", label: t.inventory, keywords: "stock materials receive batches sku", show: !!perms.inv_view },
-      { id: "fleet", icon: "🚛", label: t.fleet, keywords: "trucks trailers vehicles mileage plates", show: !!perms.fleet_view },
-      { id: "requests", icon: "🔧", label: t.requests, keywords: "requests tickets repair service oil", show: !!(perms.maint_submit || perms.maint_manage) },
-      { id: "reports", icon: "📊", label: t.reports, keywords: "analytics costs charts export", show: !!perms.reports_view },
-      { id: "users", icon: "👥", label: t.users, keywords: "staff team accounts profiles roles", show: !!perms.users_manage },
-      { id: "logs", icon: "📜", label: t.logs, keywords: "history activity audit trail", show: !!perms.users_manage },
-      { id: "settings", icon: "⚙️", label: t.settings, keywords: "acculynx permissions api logo config", show: !!perms.settings_manage },
+      {
+        id: "dashboard",
+        icon: "🏠",
+        label: t.dashboard,
+        keywords: "home overview team chat",
+        show: true,
+      },
+      {
+        id: "buildjobs",
+        icon: "🏗️",
+        label: t.buildjobs,
+        keywords: "create job wizard acculynx close po",
+        show: !!(perms.jobs_build || perms.jobs_close),
+      },
+      {
+        id: "pull",
+        icon: "📋",
+        label: t.pull,
+        keywords: "jobs pull materials return complete",
+        show: true,
+      },
+      {
+        id: "inventory",
+        icon: "📦",
+        label: t.inventory,
+        keywords: "stock materials receive batches sku",
+        show: !!perms.inv_view,
+      },
+      {
+        id: "fleet",
+        icon: "🚛",
+        label: t.fleet,
+        keywords: "trucks trailers vehicles mileage plates",
+        show: !!perms.fleet_view,
+      },
+      {
+        id: "requests",
+        icon: "🔧",
+        label: t.requests,
+        keywords: "requests tickets repair service oil",
+        show: !!(perms.maint_submit || perms.maint_manage),
+      },
+      {
+        id: "reports",
+        icon: "📊",
+        label: t.reports,
+        keywords: "analytics costs charts export",
+        show: !!perms.reports_view,
+      },
+      {
+        id: "users",
+        icon: "👥",
+        label: t.users,
+        keywords: "staff team accounts profiles roles",
+        show: !!perms.users_manage,
+      },
+      {
+        id: "logs",
+        icon: "📜",
+        label: t.logs,
+        keywords: "history activity audit trail",
+        show: !!perms.users_manage,
+      },
+      {
+        id: "settings",
+        icon: "⚙️",
+        label: t.settings,
+        keywords: "acculynx permissions api logo config",
+        show: !!perms.settings_manage,
+      },
     ];
 
     return {
       // 🧭 0. Direct page navigation
-      pages: pages
-        .filter((p) => p.show && match(txt, p.label, p.keywords))
-        .slice(0, 4),
+      pages: pages.filter((p) => p.show && match(txt, p.label, p.keywords)).slice(0, 4),
 
       // 🏗️ 1. Jobs — rows may carry legacy (name/items) or current
       // (title/materials) column names, so check both. Material lines are
@@ -133,16 +191,13 @@ export default function OmniSearch({
       // 📦 5. Inventory — only for inventory viewers
       inventory: !perms.inv_view
         ? []
-        : inv
-            .filter((i) => match(txt, i.name, i.cat, i.sku, i.unit))
-            .slice(0, 4),
+        : inv.filter((i) => match(txt, i.name, i.cat, i.sku, i.unit)).slice(0, 4),
     };
     // `t` belongs here: the page labels above are read from it, so switching
     // language has to rebuild this list or the nav results stay in the old one.
   }, [txt, jobs, users, vehs, reqs, inv, perms, t]);
 
-  const hasResults =
-    results && Object.values(results).some((arr) => arr.length > 0);
+  const hasResults = results && Object.values(results).some((arr) => arr.length > 0);
 
   // ── 🗂️ CATEGORY RENDER CONFIG ──
   const sections = results
@@ -187,7 +242,8 @@ export default function OmniSearch({
           header: t.osSecTickets,
           items: results.requests,
           title: (r) => `${r.type || t.osRequest}${r.vname ? ` — ${r.vname}` : ""}`,
-          sub: (r) => `${t.osStatus}: ${(r.status || "?").toUpperCase()} · ${t.osUrgency}: ${r.urgency || t.osNormal}`,
+          sub: (r) =>
+            `${t.osStatus}: ${(r.status || "?").toUpperCase()} · ${t.osUrgency}: ${r.urgency || t.osNormal}`,
           onClick: (r) => handleSelection("requests", r.id),
         },
         {
@@ -280,28 +336,18 @@ export default function OmniSearch({
                           color: "var(--c-barnwood)",
                           transition: "background 0.15s",
                         }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = "var(--c-subtle)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = "transparent")
-                        }
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--c-subtle)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
-                        <div style={{ fontWeight: "var(--weight-semibold)" }}>
-                          {s.title(item)}
-                        </div>
-                        <div style={{ fontSize: "11px", color: "var(--c-sub)" }}>
-                          {s.sub(item)}
-                        </div>
+                        <div style={{ fontWeight: "var(--weight-semibold)" }}>{s.title(item)}</div>
+                        <div style={{ fontSize: "11px", color: "var(--c-sub)" }}>{s.sub(item)}</div>
                       </div>
                     ))}
                   </div>
                 ),
             )
           ) : (
-            <div
-              style={{ padding: "20px", textAlign: "center", color: "var(--c-sub)" }}
-            >
+            <div style={{ padding: "20px", textAlign: "center", color: "var(--c-sub)" }}>
               {t.osNoResults} "<strong>{query}</strong>"
             </div>
           )}

@@ -20,7 +20,14 @@ const urgencyMeta = (urgency) => {
   return { color: C.blue, label: "Standard" };
 };
 
-export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReqs, onRequestClick, lang = "en" }) {
+export default function MaintenanceCalendar({
+  reqs = [],
+  vehs = [],
+  user,
+  setReqs,
+  onRequestClick,
+  lang = "en",
+}) {
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -44,7 +51,10 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
     return days;
   }, [currentWeekStart]);
 
-  const activeReqs = useMemo(() => reqs.filter((r) => r.status === "pending" || r.status === "scheduled"), [reqs]);
+  const activeReqs = useMemo(
+    () => reqs.filter((r) => r.status === "pending" || r.status === "scheduled"),
+    [reqs],
+  );
 
   const reqsByDateAndVehicle = useMemo(() => {
     const index = {};
@@ -86,10 +96,12 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
   const todayString = toLocalDateKey(new Date());
   const weekStart = weekDays[0];
   const weekEnd = weekDays[6];
-  const weekLabel = weekStart && weekEnd
-    ? `${weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
-    : "";
-  const isCurrentWeek = toLocalDateKey(weekStart) <= todayString && todayString <= toLocalDateKey(weekEnd);
+  const weekLabel =
+    weekStart && weekEnd
+      ? `${weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+      : "";
+  const isCurrentWeek =
+    toLocalDateKey(weekStart) <= todayString && todayString <= toLocalDateKey(weekEnd);
 
   const handleDropOnDate = async (dateKey) => {
     const reqId = draggingId;
@@ -124,7 +136,11 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
     } catch (err) {
       console.error("Failed to reschedule maintenance request:", err);
       showToast?.(`Failed to reschedule request: ${err.message}`, "error");
-      setReqs((p) => p.map((r) => (r.id === reqId ? { ...req, scheduled_date: prevScheduledDate, status: prevStatus } : r)));
+      setReqs((p) =>
+        p.map((r) =>
+          r.id === reqId ? { ...req, scheduled_date: prevScheduledDate, status: prevStatus } : r,
+        ),
+      );
     }
   };
 
@@ -151,7 +167,11 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
     } catch (err) {
       console.error("Failed to unschedule maintenance request:", err);
       showToast?.(`Failed to unschedule request: ${err.message}`, "error");
-      setReqs((p) => p.map((r) => (r.id === reqId ? { ...req, scheduled_date: prevScheduledDate, status: prevStatus } : r)));
+      setReqs((p) =>
+        p.map((r) =>
+          r.id === reqId ? { ...req, scheduled_date: prevScheduledDate, status: prevStatus } : r,
+        ),
+      );
     }
   };
 
@@ -160,8 +180,14 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
     return (
       <div
         draggable={typeof setReqs === "function"}
-        onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; setDraggingId(req.id); }}
-        onDragEnd={() => { setDraggingId(null); setDragOverKey(null); }}
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = "move";
+          setDraggingId(req.id);
+        }}
+        onDragEnd={() => {
+          setDraggingId(null);
+          setDragOverKey(null);
+        }}
         onClick={() => onRequestClick?.(req)}
         style={{
           background: C.w,
@@ -174,50 +200,142 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
         }}
         title={`${req.vname}\nType: ${req.type}\nUrgency: ${req.urgency}\n${req.notes || ""}`}
       >
-        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: C.navy, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div
+          style={{
+            fontSize: "var(--text-xs)",
+            fontWeight: "var(--weight-extrabold)",
+            color: C.navy,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
           {req.vname}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{req.type}</span>
-          <span style={{ color: meta.color, fontWeight: "var(--weight-bold)", flexShrink: 0, marginLeft: 4 }}>{meta.label}</span>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: 4,
+            fontSize: "var(--text-2xs)",
+            color: C.sub,
+          }}
+        >
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {req.type}
+          </span>
+          <span
+            style={{
+              color: meta.color,
+              fontWeight: "var(--weight-bold)",
+              flexShrink: 0,
+              marginLeft: 4,
+            }}
+          >
+            {meta.label}
+          </span>
         </div>
       </div>
     );
   };
 
   return (
-    <div style={{ background: C.w, padding: 20, borderRadius: "var(--radius-xl)", boxShadow: "var(--shadow-sm)", marginTop: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
+    <div
+      style={{
+        background: C.w,
+        padding: 20,
+        borderRadius: "var(--radius-xl)",
+        boxShadow: "var(--shadow-sm)",
+        marginTop: 16,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 20,
+          flexWrap: "wrap",
+          gap: "var(--space-5)",
+        }}
+      >
         <div>
-          <h2 style={{ margin: 0, fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📅 Weekly Maintenance Schedule</h2>
-          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>{t.mcSubtitle}</p>
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "var(--text-lg)",
+              fontWeight: "var(--weight-extrabold)",
+              color: C.navy,
+            }}
+          >
+            📅 Weekly Maintenance Schedule
+          </h2>
+          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
+            {t.mcSubtitle}
+          </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>{t.calPrev}</Btn>
-          <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", color: C.navy, minWidth: 200, textAlign: "center" }}>{weekLabel}</div>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>{t.calNext}</Btn>
-          {!isCurrentWeek && <Btn v="primary" sz="sm" onClick={handleGoToToday}>{t.calToday}</Btn>}
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>
+            {t.calPrev}
+          </Btn>
+          <div
+            style={{
+              fontSize: "var(--text-base)",
+              fontWeight: "var(--weight-bold)",
+              color: C.navy,
+              minWidth: 200,
+              textAlign: "center",
+            }}
+          >
+            {weekLabel}
+          </div>
+          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>
+            {t.calNext}
+          </Btn>
+          {!isCurrentWeek && (
+            <Btn v="primary" sz="sm" onClick={handleGoToToday}>
+              {t.calToday}
+            </Btn>
+          )}
         </div>
       </div>
 
       {/* ── Awaiting Scheduling tray (also a drop target, to unschedule) ── */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragOverKey("__unscheduled__"); }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOverKey("__unscheduled__");
+        }}
         onDragLeave={() => setDragOverKey((k) => (k === "__unscheduled__" ? null : k))}
-        onDrop={(e) => { e.preventDefault(); handleDropOnUnscheduled(); }}
+        onDrop={(e) => {
+          e.preventDefault();
+          handleDropOnUnscheduled();
+        }}
         style={{
           border: `2px dashed ${dragOverKey === "__unscheduled__" ? C.blue : C.bd}`,
-          background: dragOverKey === "__unscheduled__" ? "rgba(27, 82, 184, 0.06)" : "var(--c-subtle)",
+          background:
+            dragOverKey === "__unscheduled__" ? "rgba(27, 82, 184, 0.06)" : "var(--c-subtle)",
           borderRadius: "var(--radius-lg)",
           padding: 12,
           marginBottom: 20,
         }}
       >
-        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: C.sub, textTransform: "uppercase", marginBottom: 8 }}>
+        <div
+          style={{
+            fontSize: "var(--text-xs)",
+            fontWeight: "var(--weight-extrabold)",
+            color: C.sub,
+            textTransform: "uppercase",
+            marginBottom: 8,
+          }}
+        >
           📥 Awaiting Scheduling {unscheduledReqs.length > 0 && `(${unscheduledReqs.length})`}
         </div>
         {unscheduledReqs.length === 0 ? (
-          <div style={{ fontSize: "var(--text-sm)", color: C.sub, fontStyle: "italic" }}>{t.mcUnschedule}</div>
+          <div style={{ fontSize: "var(--text-sm)", color: C.sub, fontStyle: "italic" }}>
+            {t.mcUnschedule}
+          </div>
         ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
             {unscheduledReqs.map((r) => (
@@ -230,10 +348,22 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}>
+        <table
+          style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}
+        >
           <thead>
             <tr style={{ background: C.lg }}>
-              <th style={{ width: 170, padding: "12px 10px", textAlign: "left", color: C.sub, fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", borderBottom: `2px solid ${C.bd}` }}>
+              <th
+                style={{
+                  width: 170,
+                  padding: "12px 10px",
+                  textAlign: "left",
+                  color: C.sub,
+                  fontSize: "var(--text-xs)",
+                  fontWeight: "var(--weight-bold)",
+                  borderBottom: `2px solid ${C.bd}`,
+                }}
+              >
                 🚛 Vehicle
               </th>
               {weekDays.map((day) => {
@@ -242,9 +372,11 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
                   <th
                     key={toLocalDateKey(day)}
                     style={{
-                      padding: "10px", textAlign: "center",
+                      padding: "10px",
+                      textAlign: "center",
                       color: isToday ? C.blue : C.navy,
-                      fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-sm)",
+                      fontWeight: "var(--weight-extrabold)",
+                      fontSize: "var(--text-sm)",
                       borderBottom: isToday ? `3px solid ${C.blue}` : `2px solid ${C.bd}`,
                       background: isToday ? "rgba(27, 82, 184, 0.03)" : "transparent",
                     }}
@@ -260,9 +392,25 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
           <tbody>
             {vehicleRows.map((v) => (
               <tr key={v.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                <td style={{ padding: "14px 10px", verticalAlign: "middle", borderRight: `1px solid ${C.lg}` }}>
-                  <div style={{ fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: C.navy }}>{v.name}</div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>#{v.plate || v.plates || "—"}</div>
+                <td
+                  style={{
+                    padding: "14px 10px",
+                    verticalAlign: "middle",
+                    borderRight: `1px solid ${C.lg}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: "var(--weight-bold)",
+                      fontSize: "var(--text-base)",
+                      color: C.navy,
+                    }}
+                  >
+                    {v.name}
+                  </div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>
+                    #{v.plate || v.plates || "—"}
+                  </div>
                 </td>
 
                 {weekDays.map((day) => {
@@ -276,22 +424,47 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
                   return (
                     <td
                       key={dayKey}
-                      onDragOver={(e) => { e.preventDefault(); setDragOverKey(cellKey); }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragOverKey(cellKey);
+                      }}
                       onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
-                      onDrop={(e) => { e.preventDefault(); handleDropOnDate(dayKey); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        handleDropOnDate(dayKey);
+                      }}
                       style={{
-                        padding: "6px", verticalAlign: "top",
-                        background: isDragOver ? "rgba(27, 82, 184, 0.12)" : isToday ? "rgba(27, 82, 184, 0.01)" : "transparent",
+                        padding: "6px",
+                        verticalAlign: "top",
+                        background: isDragOver
+                          ? "rgba(27, 82, 184, 0.12)"
+                          : isToday
+                            ? "rgba(27, 82, 184, 0.01)"
+                            : "transparent",
                         outline: isDragOver ? `2px dashed ${C.blue}` : "none",
                         outlineOffset: -2,
                         borderRight: `1px solid ${C.lg}`,
                         height: 90,
                       }}
                     >
-                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-                        {dayReqs.map((r) => <RequestCard key={r.id} req={r} />)}
+                      <div
+                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
+                      >
+                        {dayReqs.map((r) => (
+                          <RequestCard key={r.id} req={r} />
+                        ))}
                         {isDoubleBooked && (
-                          <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.rd, background: C.rB, padding: "2px 6px", borderRadius: "var(--radius-xs)", textAlign: "center" }}>
+                          <div
+                            style={{
+                              fontSize: "var(--text-2xs)",
+                              fontWeight: "var(--weight-bold)",
+                              color: C.rd,
+                              background: C.rB,
+                              padding: "2px 6px",
+                              borderRadius: "var(--radius-xs)",
+                              textAlign: "center",
+                            }}
+                          >
                             ⚠️ {dayReqs.length} requests
                           </div>
                         )}
@@ -304,7 +477,16 @@ export default function MaintenanceCalendar({ reqs = [], vehs = [], user, setReq
 
             {vehicleRows.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ padding: 32, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", fontStyle: "italic" }}>
+                <td
+                  colSpan={8}
+                  style={{
+                    padding: 32,
+                    textAlign: "center",
+                    color: C.sub,
+                    fontSize: "var(--text-base)",
+                    fontStyle: "italic",
+                  }}
+                >
                   {t.mcNoRequests}
                 </td>
               </tr>

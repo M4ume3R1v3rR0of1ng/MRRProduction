@@ -23,7 +23,11 @@ import { useNotify } from "@/shared/context/NotificationContext";
 // Going DOWN drains oldest-first, matching how a pull consumes. Draining newest
 // first would leave the oldest, cheapest units on the shelf forever and quietly
 // inflate the cost of every later job.
-export const applyStockCorrection = (liveBatches, newQty, { byUserId, byName = null, reasonSuffix = "", fallbackPrice = 0 } = {}) => {
+export const applyStockCorrection = (
+  liveBatches,
+  newQty,
+  { byUserId, byName = null, reasonSuffix = "", fallbackPrice = 0 } = {},
+) => {
   const batches = [...(liveBatches || [])];
   const current = tot({ batches });
   const delta = newQty - current;
@@ -56,12 +60,21 @@ export const applyStockCorrection = (liveBatches, newQty, { byUserId, byName = n
     });
 };
 
-export default function AdjustStockModal({ item, user, users, fetchLiveBatches, onAdjusted, onClose }) {
+export default function AdjustStockModal({
+  item,
+  user,
+  users,
+  fetchLiveBatches,
+  onAdjusted,
+  onClose,
+}) {
   const [form, setForm] = useState({ newQty: "", reason: "" });
   const [saving, setSaving] = useState(false);
   const { showToast } = useNotify();
 
-  const close = () => { if (!saving) onClose?.(); };
+  const close = () => {
+    if (!saving) onClose?.();
+  };
 
   const save = async () => {
     if (form.newQty === undefined || form.newQty === "") {
@@ -119,18 +132,54 @@ export default function AdjustStockModal({ item, user, users, fetchLiveBatches, 
 
   return (
     <Modal title={`Adjust Stock: ${item.name}`} onClose={close}>
-      <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "8px 12px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.sub }}>
-        Current on-hand: <strong style={{ color: C.navy }}>{tot(item)} {item.unit}</strong>
+      <div
+        style={{
+          background: C.lg,
+          borderRadius: "var(--radius-md)",
+          padding: "8px 12px",
+          marginBottom: 14,
+          fontSize: "var(--text-sm)",
+          color: C.sub,
+        }}
+      >
+        Current on-hand:{" "}
+        <strong style={{ color: C.navy }}>
+          {tot(item)} {item.unit}
+        </strong>
       </div>
       <Fld label={`Corrected Quantity (${item.unit})`}>
-        <Inp type="number" min="0" value={form.newQty} onChange={(e) => setForm({ ...form, newQty: e.target.value })} disabled={saving} />
+        <Inp
+          type="number"
+          min="0"
+          value={form.newQty}
+          onChange={(e) => setForm({ ...form, newQty: e.target.value })}
+          disabled={saving}
+        />
       </Fld>
       <Fld label="Reason for Correction" hint="e.g. physical count, damaged goods, miscount">
-        <TA value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} disabled={saving} />
+        <TA
+          value={form.reason}
+          onChange={(e) => setForm({ ...form, reason: e.target.value })}
+          disabled={saving}
+        />
       </Fld>
       <div style={{ display: "flex", gap: "var(--space-4)" }}>
-        <Btn v="ghost" onClick={close} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
-        <Btn v="gold" onClick={save} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>{saving ? "Saving..." : "Save Correction"}</Btn>
+        <Btn
+          v="ghost"
+          onClick={close}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={saving}
+        >
+          Cancel
+        </Btn>
+        <Btn
+          v="gold"
+          onClick={save}
+          disabled={saving}
+          style={{ flex: 1, justifyContent: "center" }}
+        >
+          {saving ? "Saving..." : "Save Correction"}
+        </Btn>
       </div>
     </Modal>
   );

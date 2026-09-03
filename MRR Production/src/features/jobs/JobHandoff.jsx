@@ -33,29 +33,77 @@ export default function JobHandoff({
   return (
     <div
       className="mrr-backdrop"
-      style={{ position: "fixed", inset: 0, background: "var(--c-backdrop)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--space-5)" }}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "var(--c-backdrop)",
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "var(--space-5)",
+      }}
     >
       <div
         className="mrr-modal"
         role="dialog"
         aria-modal="true"
-        style={{ background: C.w, borderRadius: "var(--radius-2xl)", width: "100%", maxWidth: 420, boxShadow: "var(--shadow-lg)", overflow: "hidden", textAlign: "center" }}
+        style={{
+          background: C.w,
+          borderRadius: "var(--radius-2xl)",
+          width: "100%",
+          maxWidth: 420,
+          boxShadow: "var(--shadow-lg)",
+          overflow: "hidden",
+          textAlign: "center",
+        }}
       >
-        <div style={{ background: "var(--brand-accent, var(--c-amber))", padding: "var(--space-7)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            background: "var(--brand-accent, var(--c-amber))",
+            padding: "var(--space-7)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           <TrussMark size={34} color="var(--brand-accent-ink, var(--c-shell))" />
-          <div style={{ fontFamily: "var(--font-display)", fontSize: "var(--text-xl)", fontWeight: "var(--weight-black)", color: "var(--brand-accent-ink, var(--c-shell))" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: "var(--text-xl)",
+              fontWeight: "var(--weight-black)",
+              color: "var(--brand-accent-ink, var(--c-shell))",
+            }}
+          >
             {title}
           </div>
         </div>
 
         <div style={{ padding: "var(--space-8)" }}>
-          <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-lg)", marginBottom: 2 }}>
+          <div
+            style={{
+              fontWeight: "var(--weight-extrabold)",
+              color: C.navy,
+              fontSize: "var(--text-lg)",
+              marginBottom: 2,
+            }}
+          >
             {job.title || job.name}
           </div>
           <div style={{ color: C.sub, fontSize: "var(--text-base)", marginBottom: 4 }}>
-            PO {job.po || "—"}{job.addr ? ` · ${job.addr}` : ""}
+            PO {job.po || "—"}
+            {job.addr ? ` · ${job.addr}` : ""}
           </div>
-          <div style={{ color: C.sub, fontSize: "var(--text-base)", lineHeight: 1.6, marginBottom: "var(--space-7)" }}>
+          <div
+            style={{
+              color: C.sub,
+              fontSize: "var(--text-base)",
+              lineHeight: 1.6,
+              marginBottom: "var(--space-7)",
+            }}
+          >
             {message}
           </div>
 
@@ -65,7 +113,16 @@ export default function JobHandoff({
                 className="mrr-btn"
                 autoFocus
                 onClick={onGo}
-                style={{ padding: "12px", background: C.teal, color: "var(--c-on-accent)", border: "none", borderRadius: "var(--radius-lg)", fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-md)", cursor: "pointer" }}
+                style={{
+                  padding: "12px",
+                  background: C.teal,
+                  color: "var(--c-on-accent)",
+                  border: "none",
+                  borderRadius: "var(--radius-lg)",
+                  fontWeight: "var(--weight-extrabold)",
+                  fontSize: "var(--text-md)",
+                  cursor: "pointer",
+                }}
               >
                 {actionLabel}
               </button>
@@ -73,7 +130,16 @@ export default function JobHandoff({
             <button
               className="mrr-btn"
               onClick={onClose}
-              style={{ padding: "10px", background: onGo ? "transparent" : C.subtle, color: onGo ? C.sub : C.barnwood, border: "none", borderRadius: "var(--radius-lg)", fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", cursor: "pointer" }}
+              style={{
+                padding: "10px",
+                background: onGo ? "transparent" : C.subtle,
+                color: onGo ? C.sub : C.barnwood,
+                border: "none",
+                borderRadius: "var(--radius-lg)",
+                fontWeight: "var(--weight-bold)",
+                fontSize: "var(--text-base)",
+                cursor: "pointer",
+              }}
             >
               {closeLabel}
             </button>

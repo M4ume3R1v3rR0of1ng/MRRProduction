@@ -89,20 +89,28 @@ export default function Sidebar({
       : []),
   ];
 
- const navItems = [
-    { id: "dashboard", icon: "🏠", label: t.dashboard || "Dashboard", badge: chatUnread, badgeColor: C.rd },
+  const navItems = [
+    {
+      id: "dashboard",
+      icon: "🏠",
+      label: t.dashboard || "Dashboard",
+      badge: chatUnread,
+      badgeColor: C.rd,
+    },
     // No permission gate: it only surfaces jobs and maintenance the viewer can
     // already see elsewhere, and knowing what is on the calendar is the point of
     // being on a crew.
     { id: "schedule", icon: "🗓️", label: t.schedule || "Schedule" },
     ...(perms.jobs_build || perms.jobs_close
-      ? [{
-          id: "buildjobs",
-          icon: "🏗️",
-          label: t.buildjobs || "Build Jobs",
-          badge: perms.jobs_close ? jobsAwaitingClose : 0,
-          badgeColor: C.tl,
-        }]
+      ? [
+          {
+            id: "buildjobs",
+            icon: "🏗️",
+            label: t.buildjobs || "Build Jobs",
+            badge: perms.jobs_close ? jobsAwaitingClose : 0,
+            badgeColor: C.tl,
+          },
+        ]
       : []),
     {
       id: "pull",
@@ -126,15 +134,9 @@ export default function Sidebar({
           },
         ]
       : []),
-    ...(perms.reports_view
-      ? [{ id: "reports", icon: "📊", label: t.reports || "Reports" }]
-      : []),
-    ...(perms.users_manage
-      ? [{ id: "users", icon: "👥", label: t.users || "Users" }]
-      : []),
-    ...(perms.users_manage
-      ? [{ id: "logs", icon: "📜", label: t.logs || "Audit Logs" }]
-      : []),
+    ...(perms.reports_view ? [{ id: "reports", icon: "📊", label: t.reports || "Reports" }] : []),
+    ...(perms.users_manage ? [{ id: "users", icon: "👥", label: t.users || "Users" }] : []),
+    ...(perms.users_manage ? [{ id: "logs", icon: "📜", label: t.logs || "Audit Logs" }] : []),
     ...(perms.settings_manage
       ? [{ id: "settings", icon: "⚙️", label: t.settings || "Settings" }]
       : []),
@@ -145,9 +147,7 @@ export default function Sidebar({
       : []),
     // Platform owner only — not a company permission. Visible to you across every
     // tenant; the underlying RPCs re-check is_platform_admin() server-side regardless.
-    ...(isPlatformAdmin
-      ? [{ id: "owner", icon: "🏛️", label: t.ownerConsole }]
-      : []),
+    ...(isPlatformAdmin ? [{ id: "owner", icon: "🏛️", label: t.ownerConsole }] : []),
     // Last, and deliberately ungated: everyone can be stuck, including the roles
     // with the fewest permissions. Sits below the work items because it is a
     // place you go when something else isn't working, not part of the daily loop.
@@ -179,7 +179,7 @@ export default function Sidebar({
         "LOGOUT",
         "User terminated active workspace session and logged out securely via sidebar gateway.",
         {},
-        "auth"
+        "auth",
       );
     } catch (err) {
       console.error("Secure logout trace interrupted:", err);
@@ -231,7 +231,11 @@ export default function Sidebar({
           }}
         >
           {activeLogo ? (
-            <img src={activeLogo} alt={t.sbCompanyLogo} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            <img
+              src={activeLogo}
+              alt={t.sbCompanyLogo}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+            />
           ) : (
             <TrussMark size={30} />
           )}
@@ -252,7 +256,14 @@ export default function Sidebar({
             >
               {companyName || "STEADWERK"}
             </div>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: 9, color: "rgba(237,230,218,0.55)", letterSpacing: "1.5px" }}>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: 9,
+                color: "rgba(237,230,218,0.55)",
+                letterSpacing: "1.5px",
+              }}
+            >
               {companyName ? "STEADWERK" : TAGLINE}
             </div>
           </div>
@@ -282,17 +293,43 @@ export default function Sidebar({
           >
             <span style={{ fontSize: 17 }}>{item.icon}</span>
             {!collapsed && (
-              <span style={{ fontSize: "var(--text-base)", fontWeight: cur === item.id ? 700 : 500, flex: 1, textAlign: "left" }}>
+              <span
+                style={{
+                  fontSize: "var(--text-base)",
+                  fontWeight: cur === item.id ? 700 : 500,
+                  flex: 1,
+                  textAlign: "left",
+                }}
+              >
                 {item.label}
               </span>
             )}
             {(item.badge || 0) > 0 && !collapsed && (
-              <span style={{ background: item.badgeColor || C.rd, color: C.onAccent, borderRadius: 20, fontSize: "var(--text-2xs)", padding: "1px 6px", fontWeight: "var(--weight-extrabold)" }}>
+              <span
+                style={{
+                  background: item.badgeColor || C.rd,
+                  color: C.onAccent,
+                  borderRadius: 20,
+                  fontSize: "var(--text-2xs)",
+                  padding: "1px 6px",
+                  fontWeight: "var(--weight-extrabold)",
+                }}
+              >
                 {item.badge}
               </span>
             )}
             {(item.badge || 0) > 0 && collapsed && (
-              <span style={{ position: "absolute", top: 6, right: 8, width: 8, height: 8, background: item.badgeColor || C.rd, borderRadius: "50%" }} />
+              <span
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  right: 8,
+                  width: 8,
+                  height: 8,
+                  background: item.badgeColor || C.rd,
+                  borderRadius: "50%",
+                }}
+              />
             )}
           </button>
         ))}
@@ -318,14 +355,22 @@ export default function Sidebar({
           One button cycling auto → light → dark, rather than three buttons like
           the language drum: theme is a fiddle-once setting and does not deserve
           the same footprint as the thing the crew actually switches. */}
-      <div style={{
-        padding: "4px 10px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: collapsed ? "center" : "space-between",
-      }}>
+      <div
+        style={{
+          padding: "4px 10px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: collapsed ? "center" : "space-between",
+        }}
+      >
         {!collapsed && (
-          <span style={{ fontSize: "var(--text-2xs)", color: "rgba(255,255,255,0.4)", fontWeight: "var(--weight-extrabold)" }}>
+          <span
+            style={{
+              fontSize: "var(--text-2xs)",
+              color: "rgba(255,255,255,0.4)",
+              fontWeight: "var(--weight-extrabold)",
+            }}
+          >
             🎨 {t.theme || "Theme"}:
           </span>
         )}
@@ -354,18 +399,38 @@ export default function Sidebar({
       </div>
 
       {/* ── 🟢 NEW: TRANSLATION CONTROL SWITCH DRUM ── */}
-      <div style={{
-        padding: "4px 10px 10px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: collapsed ? "center" : "space-between",
-        borderTop: "1px solid rgba(255,255,255,0.05)"
-      }}>
-        {!collapsed && <span style={{ fontSize: "var(--text-2xs)", color: "rgba(255,255,255,0.4)", fontWeight: "var(--weight-extrabold)" }}>🌐 {t.language}:</span>}
-        <div style={{ display: "flex", background: "rgba(0,0,0,0.2)", borderRadius: 15, padding: 2, border: "1px solid rgba(255,255,255,0.1)" }}>
+      <div
+        style={{
+          padding: "4px 10px 10px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: collapsed ? "center" : "space-between",
+          borderTop: "1px solid rgba(255,255,255,0.05)",
+        }}
+      >
+        {!collapsed && (
+          <span
+            style={{
+              fontSize: "var(--text-2xs)",
+              color: "rgba(255,255,255,0.4)",
+              fontWeight: "var(--weight-extrabold)",
+            }}
+          >
+            🌐 {t.language}:
+          </span>
+        )}
+        <div
+          style={{
+            display: "flex",
+            background: "rgba(0,0,0,0.2)",
+            borderRadius: 15,
+            padding: 2,
+            border: "1px solid rgba(255,255,255,0.1)",
+          }}
+        >
           {[
             { id: "en", label: "EN" },
-            { id: "es", label: "ES" }
+            { id: "es", label: "ES" },
           ].map((langObj) => {
             const active = lang === langObj.id;
             return (
@@ -381,7 +446,7 @@ export default function Sidebar({
                   fontSize: "var(--text-2xs)",
                   fontWeight: "var(--weight-black)",
                   cursor: "pointer",
-                  transition: "all 0.15s"
+                  transition: "all 0.15s",
                 }}
               >
                 {langObj.label}
@@ -409,15 +474,46 @@ export default function Sidebar({
           }}
           title={t.sbManageProfile}
         >
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: rColor(user.role), display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", fontSize: "var(--text-base)", fontWeight: "var(--weight-black)", color: C.onAccent, flexShrink: 0 }}>
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: "50%",
+              background: rColor(user.role),
+              display: "flex",
+              alignItems: "center",
+              justifyGroup: "center",
+              justifyContent: "center",
+              fontSize: "var(--text-base)",
+              fontWeight: "var(--weight-black)",
+              color: C.onAccent,
+              flexShrink: 0,
+            }}
+          >
             {user.name ? user.name[0] : user.full_name ? user.full_name[0] : "U"}
           </div>
           {!collapsed && (
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.shellInk, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <div
+                style={{
+                  fontSize: "var(--text-xs)",
+                  fontWeight: "var(--weight-bold)",
+                  color: C.shellInk,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {user.name || user.full_name || "Active User"}
               </div>
-              <div style={{ fontSize: 9, color: rColor(user.role), textTransform: "capitalize", fontWeight: "var(--weight-semibold)" }}>
+              <div
+                style={{
+                  fontSize: 9,
+                  color: rColor(user.role),
+                  textTransform: "capitalize",
+                  fontWeight: "var(--weight-semibold)",
+                }}
+              >
                 {ROLES[user.role]?.label || user.role || "Employee"}
               </div>
             </div>
@@ -425,7 +521,14 @@ export default function Sidebar({
         </div>
 
         {!collapsed && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", padding: "0 4px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--space-1)",
+              padding: "0 4px",
+            }}
+          >
             <button
               onClick={handleSignOut}
               className="mrr-signout"

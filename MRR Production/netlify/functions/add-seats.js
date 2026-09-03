@@ -46,7 +46,11 @@ import { withSentry } from "./_shared/sentry.js";
 
 const PACK_SEATS = 5;
 
-const json = (statusCode, headers, payload) => ({ statusCode, headers, body: JSON.stringify(payload) });
+const json = (statusCode, headers, payload) => ({
+  statusCode,
+  headers,
+  body: JSON.stringify(payload),
+});
 
 const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
@@ -71,7 +75,8 @@ const rawHandler = async (event) => {
   if (delta === 0) return json(400, headers, { error: "Nothing to change." });
 
   const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) return json(500, headers, { error: "Billing is not configured (missing STRIPE_SECRET_KEY)." });
+  if (!secretKey)
+    return json(500, headers, { error: "Billing is not configured (missing STRIPE_SECRET_KEY)." });
 
   const admin = adminClient();
   const { caller, error: callerError } = await resolveCaller(admin, body.accessToken);
@@ -88,7 +93,8 @@ const rawHandler = async (event) => {
     const subscriptionId = secrets?.stripe_subscription_id;
     if (!subscriptionId) {
       return json(400, headers, {
-        error: "This company has no active subscription. Start a subscription before changing seats.",
+        error:
+          "This company has no active subscription. Start a subscription before changing seats.",
       });
     }
 
@@ -100,7 +106,10 @@ const rawHandler = async (event) => {
 
     const monthlyPack = process.env.STRIPE_SEAT_PACK_PRICE_ID;
     const annualPack = process.env.STRIPE_SEAT_PACK_ANNUAL_PRICE_ID;
-    const basePriceIds = [process.env.STRIPE_BASE_PRICE_ID, process.env.STRIPE_ANNUAL_PRICE_ID].filter(Boolean);
+    const basePriceIds = [
+      process.env.STRIPE_BASE_PRICE_ID,
+      process.env.STRIPE_ANNUAL_PRICE_ID,
+    ].filter(Boolean);
     const packPriceIds = [monthlyPack, annualPack].filter(Boolean);
     if (packPriceIds.length === 0) {
       return json(500, headers, { error: "Billing is not configured (missing crew pack price)." });

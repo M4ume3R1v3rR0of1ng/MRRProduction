@@ -13,14 +13,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // success on zero rows (row deleted elsewhere, bad/seed id, or filtered by
 // RLS), which lets the UI toast "saved" while nothing was written.
 export async function updateRowStrict(table, id, fields) {
-  const { data, error } = await supabase
-    .from(table)
-    .update(fields)
-    .eq("id", id)
-    .select("id");
+  const { data, error } = await supabase.from(table).update(fields).eq("id", id).select("id");
   if (error) return { error };
   if (!data || data.length === 0) {
-    return { error: new Error("This record no longer exists in the database — it may have been deleted by someone else. Refresh the page and try again.") };
+    return {
+      error: new Error(
+        "This record no longer exists in the database — it may have been deleted by someone else. Refresh the page and try again.",
+      ),
+    };
   }
   return { error: null };
 }

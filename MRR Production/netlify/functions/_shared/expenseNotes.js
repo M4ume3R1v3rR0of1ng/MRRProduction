@@ -17,8 +17,9 @@ const tailFor = (n) => `\n+${n} more, see the job report PDF`;
 export function buildExpenseNotes(paymentDescription, lineItems, max = MAX_EXPENSE_NOTES) {
   const header = String(paymentDescription || "Material cost").trim();
   const lines = Array.isArray(lineItems)
-    ? lineItems.map((li) =>
-        `${li.name} ${li.quantity} ${li.unit} @ $${Number(li.unitPrice || 0).toFixed(2)} = $${Number(li.totalCost || 0).toFixed(2)}`
+    ? lineItems.map(
+        (li) =>
+          `${li.name} ${li.quantity} ${li.unit} @ $${Number(li.unitPrice || 0).toFixed(2)} = $${Number(li.totalCost || 0).toFixed(2)}`,
       )
     : [];
 

@@ -12,9 +12,16 @@ vi.mock("./supabase", () => ({
   getAccessToken: vi.fn(),
 }));
 
-const { doFifo, newestPrice, recostLine, applyReturnBatch, returnBatchId, batchKind } = await import("./helpers");
+const { doFifo, newestPrice, recostLine, applyReturnBatch, returnBatchId, batchKind } =
+  await import("./helpers");
 
-const batch = (rcvd, qty, price, rem = qty) => ({ id: `b_${rcvd}_${price}`, rcvd, qty, price, rem });
+const batch = (rcvd, qty, price, rem = qty) => ({
+  id: `b_${rcvd}_${price}`,
+  rcvd,
+  qty,
+  price,
+  rem,
+});
 
 describe("doFifo — consumption order and cost", () => {
   it("drains the oldest batch first and blends the cost across batches", () => {
@@ -35,7 +42,10 @@ describe("doFifo — consumption order and cost", () => {
   });
 
   it("skips depleted batches rather than counting them", () => {
-    const res = doFifo({ batches: [{ ...batch("2026-07-01", 10, 10), rem: 0 }, batch("2026-07-10", 10, 15)] }, 5);
+    const res = doFifo(
+      { batches: [{ ...batch("2026-07-01", 10, 10), rem: 0 }, batch("2026-07-10", 10, 15)] },
+      5,
+    );
     expect(res.cost).toBe(75); // all from the $15 batch
   });
 
@@ -50,7 +60,15 @@ describe("doFifo — consumption order and cost", () => {
 
   it("leaves a negative batch to be offset by later stock, not re-consumed", () => {
     // A shortfall row has rem < 0; a later pull must not treat it as available stock.
-    const res = doFifo({ batches: [{ id: "neg", rcvd: "2026-07-01", qty: -10, price: 15, rem: -10, short: true }, batch("2026-07-10", 20, 15)] }, 5);
+    const res = doFifo(
+      {
+        batches: [
+          { id: "neg", rcvd: "2026-07-01", qty: -10, price: 15, rem: -10, short: true },
+          batch("2026-07-10", 20, 15),
+        ],
+      },
+      5,
+    );
     expect(res.batches.find((b) => b.id === "neg").rem).toBe(-10); // untouched
     expect(res.batches.find((b) => b.qty === 20).rem).toBe(15);
     expect(res.cost).toBe(75);
@@ -82,7 +100,9 @@ describe("batchKind — telling five kinds of row apart", () => {
     // AdjustStockModal writes `Manual Adjustment${reasonSuffix}`. So every
     // correction anyone bothered to EXPLAIN fell through and was relabelled a
     // supplier receipt, then flagged red for having no vendor.
-    expect(batchKind({ id: "b_x", qty: 4, ref: "Manual Adjustment — damaged in yard" })).toBe("adjustment");
+    expect(batchKind({ id: "b_x", qty: 4, ref: "Manual Adjustment — damaged in yard" })).toBe(
+      "adjustment",
+    );
     expect(batchKind({ id: "b_x", qty: 4, ref: "Manual Adjustment" })).toBe("adjustment");
   });
 
@@ -173,7 +193,10 @@ describe("doFifo — the consumed breakdown", () => {
   });
 
   it("skips batches it didn't touch", () => {
-    const res = doFifo({ batches: [{ ...batch("2026-07-01", 10, 10), rem: 0 }, batch("2026-07-10", 10, 15)] }, 5);
+    const res = doFifo(
+      { batches: [{ ...batch("2026-07-01", 10, 10), rem: 0 }, batch("2026-07-10", 10, 15)] },
+      5,
+    );
     expect(res.consumed).toHaveLength(1);
     expect(res.consumed[0].bid).toBe("b_2026-07-10_15"); // the depleted batch isn't listed
   });
@@ -187,7 +210,10 @@ describe("recostLine — repricing a job after a batch price correction", () => 
   // The real case: Atlas Rolled Ridge Vent was received unpriced, so 7 jobs recorded
   // it at $0. Correcting the batch to $84.20 has to reach back into those jobs.
   const ridgeVent = {
-    pulled: 3, returned: 0, priceAtPull: 0, pullCost: 0,
+    pulled: 3,
+    returned: 0,
+    priceAtPull: 0,
+    pullCost: 0,
     consumed: [{ bid: "b_ridge", rcvd: "2026-07-03", qty: 3, price: 0 }],
   };
 
@@ -203,7 +229,10 @@ describe("recostLine — repricing a job after a batch price correction", () => 
     // not touch the $15 units — the naive "whole line at the new price" would bill
     // 15 × $10 = $150 and quietly overwrite a price that was already right.
     const line = {
-      pulled: 15, returned: 0, priceAtPull: 5, pullCost: 75,
+      pulled: 15,
+      returned: 0,
+      priceAtPull: 5,
+      pullCost: 75,
       consumed: [
         { bid: "bad", rcvd: "2026-07-01", qty: 10, price: 0 },
         { bid: "good", rcvd: "2026-07-10", qty: 5, price: 15 },
@@ -217,7 +246,10 @@ describe("recostLine — repricing a job after a batch price correction", () => 
 
   it("leaves a line alone when the corrected batch isn't in its split", () => {
     const line = {
-      pulled: 5, returned: 0, priceAtPull: 15, pullCost: 75,
+      pulled: 5,
+      returned: 0,
+      priceAtPull: 15,
+      pullCost: 75,
       consumed: [{ bid: "other", rcvd: "2026-07-10", qty: 5, price: 15 }],
     };
     const r = recostLine(line, "not_mine", 99);
@@ -236,7 +268,10 @@ describe("recostLine — repricing a job after a batch price correction", () => 
 
   it("keeps the split summing to the new cost", () => {
     const line = {
-      pulled: 12, returned: 0, priceAtPull: 3, pullCost: 36,
+      pulled: 12,
+      returned: 0,
+      priceAtPull: 3,
+      pullCost: 36,
       consumed: [
         { bid: "a", rcvd: "2026-07-01", qty: 4, price: 2 },
         { bid: "b", rcvd: "2026-07-02", qty: 8, price: 3.5 },
@@ -261,7 +296,14 @@ describe("recostLine — repricing a job after a batch price correction", () => 
 // the failure mode is stock the warehouse never received.
 describe("applyReturnBatch — a retried completion must not double-credit stock", () => {
   const live = [batch("2026-07-01", 10, 10, 4)];
-  const ret = { jobId: "acx_21940", iid: "ridge_vent", qty: 2, price: 83, by: "u1", rcvd: "2026-08-05" };
+  const ret = {
+    jobId: "acx_21940",
+    iid: "ridge_vent",
+    qty: 2,
+    price: 83,
+    by: "u1",
+    rcvd: "2026-08-05",
+  };
 
   it("posts the returned material back as a new batch", () => {
     const after = applyReturnBatch(live, ret);
@@ -291,8 +333,13 @@ describe("applyReturnBatch — a retried completion must not double-credit stock
   it("keys the batch per job and per item, so separate returns stay separate", () => {
     // Migration 17: one AccuLynx job legitimately carries several inventory jobs,
     // one per crew. Their returns of the same item must not collide.
-    expect(returnBatchId("acx_21940", "ridge_vent")).not.toBe(returnBatchId("acx_21940_siding", "ridge_vent"));
-    const both = applyReturnBatch(applyReturnBatch(live, ret), { ...ret, jobId: "acx_21940_siding" });
+    expect(returnBatchId("acx_21940", "ridge_vent")).not.toBe(
+      returnBatchId("acx_21940_siding", "ridge_vent"),
+    );
+    const both = applyReturnBatch(applyReturnBatch(live, ret), {
+      ...ret,
+      jobId: "acx_21940_siding",
+    });
     expect(both).toHaveLength(3);
   });
 
@@ -309,7 +356,9 @@ describe("applyReturnBatch — a retried completion must not double-credit stock
 
 describe("newestPrice", () => {
   it("returns the most recently received batch's price", () => {
-    expect(newestPrice({ batches: [batch("2026-07-01", 10, 10), batch("2026-07-10", 1, 84.2)] })).toBe(84.2);
+    expect(
+      newestPrice({ batches: [batch("2026-07-01", 10, 10), batch("2026-07-10", 1, 84.2)] }),
+    ).toBe(84.2);
   });
 
   it("returns 0 when there is no price history", () => {

@@ -30,7 +30,12 @@ import { adminClient, corsHeaders } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 
 function slugify(s) {
-  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
 }
 
 async function uniqueSlug(admin, base) {
@@ -67,23 +72,43 @@ const rawHandler = async (event) => {
   const billingInterval = body.billingInterval === "annual" ? "annual" : "monthly";
 
   if (!companyName || !fullName || !email) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: "Company name, your name, and email are required." }) };
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: "Company name, your name, and email are required." }),
+    };
   }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: "Enter a valid email address." }) };
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: "Enter a valid email address." }),
+    };
   }
 
   const basePriceId = process.env.STRIPE_BASE_PRICE_ID;
   const annualPriceId = process.env.STRIPE_ANNUAL_PRICE_ID;
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!basePriceId || !secretKey) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: "Billing is not configured (missing STRIPE_BASE_PRICE_ID / STRIPE_SECRET_KEY)." }) };
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: "Billing is not configured (missing STRIPE_BASE_PRICE_ID / STRIPE_SECRET_KEY).",
+      }),
+    };
   }
   // Annual is a separate yearly Price on the same product — a discounted 12-month
   // prepay. Fail loudly if it was chosen but never configured, rather than silently
   // billing the monthly cadence the customer didn't pick.
   if (billingInterval === "annual" && !annualPriceId) {
-    return { statusCode: 500, headers, body: JSON.stringify({ error: "Annual billing is not configured (missing STRIPE_ANNUAL_PRICE_ID)." }) };
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: "Annual billing is not configured (missing STRIPE_ANNUAL_PRICE_ID).",
+      }),
+    };
   }
   const priceId = billingInterval === "annual" ? annualPriceId : basePriceId;
 
@@ -101,7 +126,11 @@ const rawHandler = async (event) => {
     // pointed at a company they cannot use. The password was already correctly
     // refused here (that would be outright account takeover); the membership and
     // profile writes below were not.
-    const { data: existing } = await admin.from("profiles").select("id").eq("email", email).maybeSingle();
+    const { data: existing } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
 
     // NOTE ON THE SECOND-COMPANY FLOW: there is currently no in-app entry point for
     // starting another company — CompanySwitcher only moves between memberships you
@@ -126,7 +155,11 @@ const rawHandler = async (event) => {
     const isNewUser = !userId;
     if (!userId) {
       if (!password || password.length < 8) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: "Choose a password of at least 8 characters." }) };
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: "Choose a password of at least 8 characters." }),
+        };
       }
       const { data: created, error: createErr } = await admin.auth.admin.createUser({
         email,
@@ -154,14 +187,20 @@ const rawHandler = async (event) => {
       .select("id")
       .single();
     if (coErr) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: `Could not create company: ${coErr.message}` }) };
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: `Could not create company: ${coErr.message}` }),
+      };
     }
 
     // The signer-up is this company's first admin.
-    await admin.from("memberships").upsert(
-      { user_id: userId, company_id: company.id, role: "admin", active: true },
-      { onConflict: "user_id,company_id" },
-    );
+    await admin
+      .from("memberships")
+      .upsert(
+        { user_id: userId, company_id: company.id, role: "admin", active: true },
+        { onConflict: "user_id,company_id" },
+      );
     // profiles.role is deprecated (memberships.role is the source of truth) and is
     // a GLOBAL column, not per-company. Only seed it for an account we just made;
     // rewriting an existing user's copy from here is a cross-user side effect that
@@ -169,14 +208,24 @@ const rawHandler = async (event) => {
     if (isNewUser) {
       await admin.from("profiles").update({ role: "admin" }).eq("id", userId);
     }
-    await admin.from("profiles").update({ active_company_id: company.id }).eq("id", userId).is("active_company_id", null);
+    await admin
+      .from("profiles")
+      .update({ active_company_id: company.id })
+      .eq("id", userId)
+      .is("active_company_id", null);
 
     // A Stripe customer, remembered on the (secret) row so the webhook can map back.
-    const customer = await stripe.customers.create({ email, name: companyName, metadata: { company_id: company.id } });
-    await admin.from("company_secrets").upsert(
-      { company_id: company.id, stripe_customer_id: customer.id },
-      { onConflict: "company_id" },
-    );
+    const customer = await stripe.customers.create({
+      email,
+      name: companyName,
+      metadata: { company_id: company.id },
+    });
+    await admin
+      .from("company_secrets")
+      .upsert(
+        { company_id: company.id, stripe_customer_id: customer.id },
+        { onConflict: "company_id" },
+      );
 
     const appUrl = process.env.PUBLIC_APP_URL || process.env.URL || "https://steadwerk.com";
 
@@ -198,7 +247,10 @@ const rawHandler = async (event) => {
       // ends, and cancelling before then costs the customer nothing. Change this
       // number and the TRIAL_DAYS constant in LandingPage.jsx together — a page
       // promising a trial the checkout doesn't grant is worse than no trial.
-      subscription_data: { trial_period_days: 14, metadata: { company_id: company.id, billing_interval: billingInterval } },
+      subscription_data: {
+        trial_period_days: 14,
+        metadata: { company_id: company.id, billing_interval: billingInterval },
+      },
       // Straight to /login, not "/" — the account isn't signed in yet (it was
       // made server-side above), and now that the app has real per-view URLs,
       // "/" renders the marketing landing page for a logged-out visitor rather

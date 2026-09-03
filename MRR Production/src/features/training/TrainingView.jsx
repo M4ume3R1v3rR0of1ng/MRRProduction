@@ -171,7 +171,9 @@ export default function TrainingView({
         >
           {t.trainingTitle}
         </h2>
-        <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: "6px 0 0", maxWidth: "70ch" }}>
+        <p
+          style={{ color: C.sub, fontSize: "var(--text-sm)", margin: "6px 0 0", maxWidth: "70ch" }}
+        >
           {t.trainingSubtitle}
         </p>
       </div>
@@ -187,22 +189,51 @@ export default function TrainingView({
             border: `1px solid ${C.bd}`,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-4)", flexWrap: "wrap" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "var(--space-4)",
+              flexWrap: "wrap",
+            }}
+          >
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-md)" }}>
+              <div
+                style={{
+                  fontWeight: "var(--weight-extrabold)",
+                  color: C.navy,
+                  fontSize: "var(--text-md)",
+                }}
+              >
                 🎬 {t.trAdminTitle}
               </div>
-              <div style={{ color: C.sub, fontSize: "var(--text-sm)", marginTop: 4, maxWidth: "70ch" }}>
+              <div
+                style={{ color: C.sub, fontSize: "var(--text-sm)", marginTop: 4, maxWidth: "70ch" }}
+              >
                 {t.trAdminBlurb}
               </div>
             </div>
-            <Btn v={addOpen ? "ghost" : "primary"} sz="sm" onClick={() => { setAddOpen(!addOpen); resetForm(); }}>
+            <Btn
+              v={addOpen ? "ghost" : "primary"}
+              sz="sm"
+              onClick={() => {
+                setAddOpen(!addOpen);
+                resetForm();
+              }}
+            >
               {addOpen ? t.trCancel : `➕ ${t.trAddMedia}`}
             </Btn>
           </div>
 
           {addOpen && (
-            <div style={{ marginTop: "var(--space-5)", borderTop: `1px solid ${C.bd}`, paddingTop: "var(--space-5)" }}>
+            <div
+              style={{
+                marginTop: "var(--space-5)",
+                borderTop: `1px solid ${C.bd}`,
+                paddingTop: "var(--space-5)",
+              }}
+            >
               <Fld label={t.trTitle}>
                 <Inp
                   value={form.title}
@@ -261,7 +292,14 @@ export default function TrainingView({
             }}
           >
             <div style={{ padding: "var(--space-5) var(--space-5) var(--space-4)" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-4)" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  gap: "var(--space-4)",
+                }}
+              >
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
@@ -275,7 +313,10 @@ export default function TrainingView({
                   >
                     {/* Uploads carry no eyebrow. Falling back to who added it is more
                         use than an empty strip of whitespace above the title. */}
-                    {clip.eyebrow || (clip.created_by_name ? `${t.trAddedBy} ${clip.created_by_name}` : t.trYourLibrary)}
+                    {clip.eyebrow ||
+                      (clip.created_by_name
+                        ? `${t.trAddedBy} ${clip.created_by_name}`
+                        : t.trYourLibrary)}
                   </div>
                   <div
                     style={{
@@ -295,7 +336,14 @@ export default function TrainingView({
                   </Btn>
                 )}
               </div>
-              <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: "6px 0 0", maxWidth: "72ch" }}>
+              <p
+                style={{
+                  color: C.sub,
+                  fontSize: "var(--text-sm)",
+                  margin: "6px 0 0",
+                  maxWidth: "72ch",
+                }}
+              >
                 {clip.blurb}
               </p>
             </div>
@@ -330,21 +378,37 @@ export default function TrainingView({
                   src={clip.url || clip.src}
                   alt={clip.title}
                   loading="lazy"
-                  style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "contain", background: "#000" }}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    aspectRatio: "16 / 9",
+                    objectFit: "contain",
+                    background: "#000",
+                  }}
                 />
               ) : (
                 <video
-                  ref={(el) => { refs.current[clip.id] = el; }}
+                  ref={(el) => {
+                    refs.current[clip.id] = el;
+                  }}
                   controls
                   preload="metadata"
                   playsInline
                   poster={clip.poster || undefined}
                   onPlay={() => setStarted((p) => ({ ...p, [clip.id]: true }))}
-                  style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "contain", background: "#000" }}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    aspectRatio: "16 / 9",
+                    objectFit: "contain",
+                    background: "#000",
+                  }}
                 >
                   <source src={clip.src || clip.url} />
                   {t.trainingNoVideo}{" "}
-                  <a href={clip.src || clip.url} style={{ color: C.am }}>{t.trainingDownload}</a>
+                  <a href={clip.src || clip.url} style={{ color: C.am }}>
+                    {t.trainingDownload}
+                  </a>
                 </video>
               )}
 
@@ -392,7 +456,14 @@ export default function TrainingView({
                   >
                     ▶
                   </span>
-                  <span style={{ fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-md)", padding: "0 20px", textAlign: "center" }}>
+                  <span
+                    style={{
+                      fontWeight: "var(--weight-extrabold)",
+                      fontSize: "var(--text-md)",
+                      padding: "0 20px",
+                      textAlign: "center",
+                    }}
+                  >
                     {clip.title}
                   </span>
                 </button>

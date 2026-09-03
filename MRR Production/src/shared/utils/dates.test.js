@@ -118,14 +118,28 @@ describe("fd", () => {
   it("leaves real timestamps alone", () => {
     // A timestamp names an instant, so it must still localise normally.
     const iso = "2026-05-01T12:00:00Z";
-    expect(fd(iso)).toBe(new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }));
+    expect(fd(iso)).toBe(
+      new Date(iso).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+    );
   });
 });
 
 describe("ft", () => {
   it("leaves timestamps unshifted", () => {
     const iso = "2026-05-01T15:30:00Z";
-    expect(ft(iso)).toBe(new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true }));
+    expect(ft(iso)).toBe(
+      new Date(iso).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }),
+    );
   });
 });
 

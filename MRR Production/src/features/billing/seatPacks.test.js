@@ -28,7 +28,9 @@ describe("seatCapacity", () => {
   });
 
   it("drops to the base allowance when the subscription lapses", () => {
-    expect(seatCapacity({ grandfatheredPacks: 2, recurringPacks: 3, status: "canceled" })).toBe(BASE_SEATS);
+    expect(seatCapacity({ grandfatheredPacks: 2, recurringPacks: 3, status: "canceled" })).toBe(
+      BASE_SEATS,
+    );
   });
 
   it("keeps a comped company unlimited rather than capping them", () => {
@@ -42,7 +44,9 @@ describe("seatCapacity", () => {
   });
 
   it("ignores negative junk", () => {
-    expect(seatCapacity({ grandfatheredPacks: -5, recurringPacks: 1, status: "active" })).toBe(BASE_SEATS + PACK_SEATS);
+    expect(seatCapacity({ grandfatheredPacks: -5, recurringPacks: 1, status: "active" })).toBe(
+      BASE_SEATS + PACK_SEATS,
+    );
   });
 });
 
@@ -72,16 +76,26 @@ describe("maxRemovablePacks", () => {
 
 describe("removalBlockedReason", () => {
   it("distinguishes nothing-to-remove from seats-in-use", () => {
-    expect(removalBlockedReason({ recurringPacks: 0, capacity: 10, used: 0 })).toBe("no-recurring-packs");
-    expect(removalBlockedReason({ recurringPacks: 2, capacity: 20, used: 20 })).toBe("seats-in-use");
+    expect(removalBlockedReason({ recurringPacks: 0, capacity: 10, used: 0 })).toBe(
+      "no-recurring-packs",
+    );
+    expect(removalBlockedReason({ recurringPacks: 2, capacity: 20, used: 20 })).toBe(
+      "seats-in-use",
+    );
     expect(removalBlockedReason({ recurringPacks: 2, capacity: 20, used: 5 })).toBeNull();
   });
 });
 
 describe("validatePackChange", () => {
   it("always allows buying", () => {
-    expect(validatePackChange({ delta: 1, recurringPacks: 0 })).toMatchObject({ ok: true, nextRecurring: 1 });
-    expect(validatePackChange({ delta: 3, recurringPacks: 2 })).toMatchObject({ ok: true, nextRecurring: 5 });
+    expect(validatePackChange({ delta: 1, recurringPacks: 0 })).toMatchObject({
+      ok: true,
+      nextRecurring: 1,
+    });
+    expect(validatePackChange({ delta: 3, recurringPacks: 2 })).toMatchObject({
+      ok: true,
+      nextRecurring: 5,
+    });
   });
 
   it("rejects a no-op", () => {
@@ -108,7 +122,9 @@ describe("validatePackChange", () => {
   });
 
   it("allows a removal that stays within the spare seats", () => {
-    expect(validatePackChange({ delta: -1, recurringPacks: 3, capacity: 25, used: 18 })).toMatchObject({
+    expect(
+      validatePackChange({ delta: -1, recurringPacks: 3, capacity: 25, used: 18 }),
+    ).toMatchObject({
       ok: true,
       nextRecurring: 2,
     });

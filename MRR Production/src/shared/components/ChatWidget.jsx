@@ -44,7 +44,13 @@ export default function ChatWidget({ user, lang = "en" }) {
   const attachPhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    compressImg(file, 800, 0.75, (base64) => setPendingPhoto(base64), (msg) => setError(msg));
+    compressImg(
+      file,
+      800,
+      0.75,
+      (base64) => setPendingPhoto(base64),
+      (msg) => setError(msg),
+    );
     e.target.value = "";
   };
 
@@ -136,7 +142,14 @@ export default function ChatWidget({ user, lang = "en" }) {
   // Both insets are 0px off a notched device, so this is the same corner
   // placement it always had.
   return (
-    <div style={{ position: "fixed", bottom: "calc(var(--space-8) + var(--safe-bottom))", right: "calc(var(--space-8) + var(--safe-right))", zIndex: 2000 }}>
+    <div
+      style={{
+        position: "fixed",
+        bottom: "calc(var(--space-8) + var(--safe-bottom))",
+        right: "calc(var(--space-8) + var(--safe-right))",
+        zIndex: 2000,
+      }}
+    >
       {open && (
         <div
           style={{
@@ -162,10 +175,19 @@ export default function ChatWidget({ user, lang = "en" }) {
               alignItems: "center",
             }}
           >
-            <div style={{ fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-md)" }}>🤖 Steadwerk Assistant</div>
+            <div style={{ fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-md)" }}>
+              🤖 Steadwerk Assistant
+            </div>
             <button
               onClick={() => setOpen(false)}
-              style={{ background: "none", border: "none", color: C.shellInk, cursor: "pointer", fontSize: "var(--text-xl)", lineHeight: 1 }}
+              style={{
+                background: "none",
+                border: "none",
+                color: C.shellInk,
+                cursor: "pointer",
+                fontSize: "var(--text-xl)",
+                lineHeight: 1,
+              }}
             >
               ×
             </button>
@@ -184,7 +206,14 @@ export default function ChatWidget({ user, lang = "en" }) {
             }}
           >
             {messages.length === 0 && (
-              <p style={{ color: C.sub, fontSize: "var(--text-sm)", textAlign: "center", margin: "var(--space-8) 0" }}>
+              <p
+                style={{
+                  color: C.sub,
+                  fontSize: "var(--text-sm)",
+                  textAlign: "center",
+                  margin: "var(--space-8) 0",
+                }}
+              >
                 {t.cwIntro}
               </p>
             )}
@@ -192,7 +221,10 @@ export default function ChatWidget({ user, lang = "en" }) {
               const mine = m.role === "user";
               const isEditing = editingIndex === i;
               return (
-                <div key={i} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "85%" }}>
+                <div
+                  key={i}
+                  style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "85%" }}
+                >
                   {!isEditing && (
                     <div
                       style={{
@@ -213,7 +245,14 @@ export default function ChatWidget({ user, lang = "en" }) {
                           src={m.image}
                           alt={t.chAttachment}
                           onClick={() => setLightboxPhoto(m.image)}
-                          style={{ display: "block", maxWidth: "100%", maxHeight: 160, borderRadius: "var(--radius-md)", marginBottom: m.text ? "var(--space-2)" : 0, cursor: "pointer" }}
+                          style={{
+                            display: "block",
+                            maxWidth: "100%",
+                            maxHeight: 160,
+                            borderRadius: "var(--radius-md)",
+                            marginBottom: m.text ? "var(--space-2)" : 0,
+                            cursor: "pointer",
+                          }}
                         />
                       )}
                       {m.text}
@@ -221,28 +260,105 @@ export default function ChatWidget({ user, lang = "en" }) {
                   )}
 
                   {isEditing && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                    <div
+                      style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
+                    >
                       {pendingPhoto && (
-                        <img src={pendingPhoto} alt={t.chAttachment} style={{ maxWidth: 120, borderRadius: "var(--radius-md)" }} />
+                        <img
+                          src={pendingPhoto}
+                          alt={t.chAttachment}
+                          style={{ maxWidth: 120, borderRadius: "var(--radius-md)" }}
+                        />
                       )}
                       <input
                         autoFocus
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        style={{ padding: "7px 10px", border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", boxSizing: "border-box" }}
+                        style={{
+                          padding: "7px 10px",
+                          border: `1.5px solid ${C.bd}`,
+                          borderRadius: "var(--radius-md)",
+                          fontSize: "var(--text-base)",
+                          boxSizing: "border-box",
+                        }}
                       />
-                      <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
-                        <button onClick={cancelEdit} style={{ background: "none", border: "none", color: C.sub, cursor: "pointer", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>{t.chCancel}</button>
-                        <button onClick={saveEdit} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)" }}>{t.chSaveResend}</button>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "var(--space-3)",
+                          justifyContent: "flex-end",
+                        }}
+                      >
+                        <button
+                          onClick={cancelEdit}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: C.sub,
+                            cursor: "pointer",
+                            fontSize: "var(--text-xs)",
+                            fontWeight: "var(--weight-bold)",
+                          }}
+                        >
+                          {t.chCancel}
+                        </button>
+                        <button
+                          onClick={saveEdit}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: C.blue,
+                            cursor: "pointer",
+                            fontSize: "var(--text-xs)",
+                            fontWeight: "var(--weight-bold)",
+                          }}
+                        >
+                          {t.chSaveResend}
+                        </button>
                       </div>
                     </div>
                   )}
 
                   {mine && !isEditing && (
-                    <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 2, justifyContent: "flex-end" }}>
-                      <button onClick={() => startEdit(i)} disabled={sending} style={{ background: "none", border: "none", color: C.blue, cursor: "pointer", fontSize: 10, fontWeight: "var(--weight-bold)", padding: 0 }}>{t.chEdit}</button>
-                      <button onClick={() => deleteMessage(i)} disabled={sending} style={{ background: "none", border: "none", color: C.rd, cursor: "pointer", fontSize: 10, fontWeight: "var(--weight-bold)", padding: 0 }}>{t.chDelete}</button>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "var(--space-3)",
+                        marginTop: 2,
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <button
+                        onClick={() => startEdit(i)}
+                        disabled={sending}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: C.blue,
+                          cursor: "pointer",
+                          fontSize: 10,
+                          fontWeight: "var(--weight-bold)",
+                          padding: 0,
+                        }}
+                      >
+                        {t.chEdit}
+                      </button>
+                      <button
+                        onClick={() => deleteMessage(i)}
+                        disabled={sending}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: C.rd,
+                          cursor: "pointer",
+                          fontSize: 10,
+                          fontWeight: "var(--weight-bold)",
+                          padding: 0,
+                        }}
+                      >
+                        {t.chDelete}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -252,30 +368,88 @@ export default function ChatWidget({ user, lang = "en" }) {
           </div>
 
           {error && (
-            <div style={{ color: C.rd, background: C.rB, padding: "var(--space-2) var(--space-5)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-semibold)" }}>
+            <div
+              style={{
+                color: C.rd,
+                background: C.rB,
+                padding: "var(--space-2) var(--space-5)",
+                fontSize: "var(--text-xs)",
+                fontWeight: "var(--weight-semibold)",
+              }}
+            >
               ⚠️ {error}
             </div>
           )}
 
           {pendingPhoto && editingIndex === null && (
-            <div style={{ position: "relative", width: 52, height: 52, margin: "var(--space-2) 0 0 var(--space-4)" }}>
-              <img src={pendingPhoto} alt={t.chPendingAttachment} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "var(--radius-md)", border: `1.5px solid ${C.bd}` }} />
+            <div
+              style={{
+                position: "relative",
+                width: 52,
+                height: 52,
+                margin: "var(--space-2) 0 0 var(--space-4)",
+              }}
+            >
+              <img
+                src={pendingPhoto}
+                alt={t.chPendingAttachment}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: "var(--radius-md)",
+                  border: `1.5px solid ${C.bd}`,
+                }}
+              />
               <button
                 onClick={() => setPendingPhoto(null)}
-                style={{ position: "absolute", top: -6, right: -6, background: C.rd, color: C.onAccent, border: "none", borderRadius: "50%", width: 16, height: 16, fontSize: 10, cursor: "pointer", lineHeight: 1 }}
+                style={{
+                  position: "absolute",
+                  top: -6,
+                  right: -6,
+                  background: C.rd,
+                  color: C.onAccent,
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 16,
+                  height: 16,
+                  fontSize: 10,
+                  cursor: "pointer",
+                  lineHeight: 1,
+                }}
               >
                 ✕
               </button>
             </div>
           )}
 
-          <div style={{ display: "flex", gap: "var(--space-2)", padding: "var(--space-4)", borderTop: `1px solid ${C.lg}` }}>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={attachPhoto} style={{ display: "none" }} />
+          <div
+            style={{
+              display: "flex",
+              gap: "var(--space-2)",
+              padding: "var(--space-4)",
+              borderTop: `1px solid ${C.lg}`,
+            }}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={attachPhoto}
+              style={{ display: "none" }}
+            />
             <button
               onClick={() => fileInputRef.current.click()}
               disabled={sending || editingIndex !== null}
               title={t.chAttachPhoto}
-              style={{ background: C.lg, border: "none", borderRadius: "var(--radius-md)", padding: "9px var(--space-4)", fontSize: "var(--text-md)", cursor: "pointer" }}
+              style={{
+                background: C.lg,
+                border: "none",
+                borderRadius: "var(--radius-md)",
+                padding: "9px var(--space-4)",
+                fontSize: "var(--text-md)",
+                cursor: "pointer",
+              }}
             >
               📷
             </button>
@@ -285,7 +459,14 @@ export default function ChatWidget({ user, lang = "en" }) {
               onKeyDown={handleKeyDown}
               placeholder={t.cwAskQuestion}
               disabled={sending || editingIndex !== null}
-              style={{ flex: 1, padding: "9px 11px", border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", boxSizing: "border-box" }}
+              style={{
+                flex: 1,
+                padding: "9px 11px",
+                border: `1.5px solid ${C.bd}`,
+                borderRadius: "var(--radius-md)",
+                fontSize: "var(--text-base)",
+                boxSizing: "border-box",
+              }}
             />
             <button
               onClick={send}
@@ -331,7 +512,11 @@ export default function ChatWidget({ user, lang = "en" }) {
 
       {lightboxPhoto && (
         <Modal title={t.chAttachmentLabel} onClose={() => setLightboxPhoto(null)}>
-          <img src={lightboxPhoto} alt={t.chFullSize} style={{ width: "100%", borderRadius: "var(--radius-md)" }} />
+          <img
+            src={lightboxPhoto}
+            alt={t.chFullSize}
+            style={{ width: "100%", borderRadius: "var(--radius-md)" }}
+          />
         </Modal>
       )}
     </div>

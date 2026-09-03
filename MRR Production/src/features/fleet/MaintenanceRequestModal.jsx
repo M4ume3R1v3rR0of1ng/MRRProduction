@@ -19,17 +19,20 @@ import { useNotify } from "@/shared/context/NotificationContext";
 export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClose, preVid }) {
   const [form, setForm] = useState({
     vid: preVid || "",
-    type: [], 
+    type: [],
     urgency: "normal",
     notes: "",
     mileage: "",
   });
   const selV = vehs.find((v) => v.id === form.vid);
   const { showToast } = useNotify();
-  
+
   const submit = () => {
     if (!form.vid || !Array.isArray(form.type) || form.type.length === 0 || !form.notes.trim()) {
-      showToast("Please select a vehicle, at least one service type, and describe the issue.", "info");
+      showToast(
+        "Please select a vehicle, at least one service type, and describe the issue.",
+        "info",
+      );
       return;
     }
     const v = vehs.find((x) => x.id === form.vid);
@@ -38,7 +41,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
       vid: form.vid,
       vname: `${v.name} (${v.plate})`,
       vtype: v.type,
-      type: form.type.join(", "), 
+      type: form.type.join(", "),
       urgency: form.urgency,
       notes: form.notes,
       mileage: form.mileage,
@@ -52,7 +55,6 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
     });
     onClose();
   };
-
 
   return (
     <Modal title="🔧 Submit Maintenance Request" onClose={onClose}>
@@ -73,8 +75,8 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
       <Fld label="Vehicle *">
         <Sel
           value={form.vid}
-          onChange={(e) =>
-            setForm({ ...form, vid: e.target.value, type: [] }) // 🟢 FIXED: Flushes checkbox state on toggle
+          onChange={
+            (e) => setForm({ ...form, vid: e.target.value, type: [] }) // 🟢 FIXED: Flushes checkbox state on toggle
           }
         >
           <option value="">— Select a vehicle —</option>
@@ -89,13 +91,16 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
         <>
           {/* ── 🟢 FIXED: MULTI-SELECT CHECKBOX GRID INTERACTION LAYER ── */}
           <Fld label="Service Types (Select all that apply) *">
-            <div className="sw-grid-2" style={{ 
-              gap: "10px", 
-              background: "var(--c-subtle)", 
-              padding: 12, 
-              borderRadius: "var(--radius-md)",
-              border: `1px solid ${C.bd || "var(--c-line)"}` 
-            }}>
+            <div
+              className="sw-grid-2"
+              style={{
+                gap: "10px",
+                background: "var(--c-subtle)",
+                padding: 12,
+                borderRadius: "var(--radius-md)",
+                border: `1px solid ${C.bd || "var(--c-line)"}`,
+              }}
+            >
               {(selV.type === "truck"
                 ? [
                     "Oil Change",
@@ -120,15 +125,26 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
               ).map((t) => {
                 const isChecked = Array.isArray(form.type) && form.type.includes(t);
                 return (
-                  <label key={t} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)", color: C.navy, cursor: "pointer" }}>
+                  <label
+                    key={t}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "var(--space-3)",
+                      fontSize: "var(--text-base)",
+                      fontWeight: "var(--weight-semibold)",
+                      color: C.navy,
+                      cursor: "pointer",
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={isChecked}
                       style={{ accentColor: C.pu, transform: "scale(1.1)", cursor: "pointer" }}
                       onChange={() => {
                         const currentTypes = Array.isArray(form.type) ? form.type : [];
-                        const nextTypes = isChecked 
-                          ? currentTypes.filter(item => item !== t) 
+                        const nextTypes = isChecked
+                          ? currentTypes.filter((item) => item !== t)
                           : [...currentTypes, t];
                         setForm({ ...form, type: nextTypes });
                       }}
@@ -139,7 +155,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
               })}
             </div>
           </Fld>
-          
+
           <Fld label="Urgency">
             <Sel
               value={form.urgency}
@@ -147,9 +163,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
             >
               <option value="normal">Normal — Schedule when possible</option>
               <option value="soon">Soon — Within the next few days</option>
-              <option value="urgent">
-                Urgent — Safety concern / vehicle down
-              </option>
+              <option value="urgent">Urgent — Safety concern / vehicle down</option>
             </Sel>
           </Fld>
           {selV.type === "truck" && (
@@ -161,10 +175,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
               />
             </Fld>
           )}
-          <Fld
-            label="Description / Notes *"
-            hint="Be specific — what you hear, feel, or see."
-          >
+          <Fld label="Description / Notes *" hint="Be specific — what you hear, feel, or see.">
             <TA
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -174,18 +185,10 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
         </>
       )}
       <div style={{ display: "flex", gap: "var(--space-4)" }}>
-        <Btn
-          v="ghost"
-          onClick={onClose}
-          style={{ flex: 1, justifyContent: "center" }}
-        >
+        <Btn v="ghost" onClick={onClose} style={{ flex: 1, justifyContent: "center" }}>
           Cancel
         </Btn>
-        <Btn
-          v="purple"
-          onClick={submit}
-          style={{ flex: 1, justifyContent: "center" }}
-        >
+        <Btn v="purple" onClick={submit} style={{ flex: 1, justifyContent: "center" }}>
           Submit Request 🔔
         </Btn>
       </div>

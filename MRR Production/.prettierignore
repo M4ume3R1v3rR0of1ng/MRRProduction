@@ -1,0 +1,10 @@
+dist
+dev-dist
+node_modules
+ios
+public
+package-lock.json
+
+# Claude Code's own skill/tooling files — not part of this app, not ours to
+# reformat (and .claude/settings.local.json is gitignored/per-machine anyway).
+.claude

@@ -44,7 +44,11 @@ const rawHandler = async (event) => {
 
   const { caller, error: callerError } = await resolveCaller(admin, accessToken);
   if (callerError) {
-    return { statusCode: callerError.status, headers, body: JSON.stringify({ error: callerError.message }) };
+    return {
+      statusCode: callerError.status,
+      headers,
+      body: JSON.stringify({ error: callerError.message }),
+    };
   }
   if (!isCompanyAdmin(caller)) {
     return { statusCode: 403, headers, body: JSON.stringify({ error: "Admin access required" }) };
@@ -59,7 +63,11 @@ const rawHandler = async (event) => {
     const companies = memberships || [];
 
     if (!companies.some((m) => m.company_id === caller.companyId)) {
-      return { statusCode: 404, headers, body: JSON.stringify({ error: "That user is not a member of your company." }) };
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: "That user is not a member of your company." }),
+      };
     }
 
     // The takeover guard described above. A platform admin (you) is exempt — you
@@ -76,7 +84,9 @@ const rawHandler = async (event) => {
       };
     }
 
-    const { error: updateError } = await admin.auth.admin.updateUserById(targetUserId, { password });
+    const { error: updateError } = await admin.auth.admin.updateUserById(targetUserId, {
+      password,
+    });
     if (updateError) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: updateError.message }) };
     }

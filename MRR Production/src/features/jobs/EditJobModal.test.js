@@ -20,14 +20,22 @@ const inv = [
 ];
 
 const modernJob = {
-  id: "j1", po: "PO-77", title: "Maumee Re-roof", addr: "1 Main St", notes: "back lot",
-  scheduledDate: "2026-08-01", assignedto: "u1",
+  id: "j1",
+  po: "PO-77",
+  title: "Maumee Re-roof",
+  addr: "1 Main St",
+  notes: "back lot",
+  scheduledDate: "2026-08-01",
+  assignedto: "u1",
   items: [{ iid: "i1", iname: "Shingle", unit: "bd", planned: 10, pulled: 4 }],
 };
 
 // Same job as an older record would have stored it.
 const legacyJob = {
-  id: "j1", po: "PO-77", name: "Maumee Re-roof", addr: "1 Main St",
+  id: "j1",
+  po: "PO-77",
+  name: "Maumee Re-roof",
+  addr: "1 Main St",
   assignedTo: "u1",
   materials: [{ iid: "i1", iname: "Shingle", unit: "bd", planned: 10, pulled: 4 }],
 };
@@ -35,8 +43,13 @@ const legacyJob = {
 describe("formFromJob", () => {
   it("reads a modern record", () => {
     expect(formFromJob(modernJob)).toEqual({
-      po: "PO-77", name: "Maumee Re-roof", addr: "1 Main St", notes: "back lot",
-      scheduledDate: "2026-08-01", assignedto: "u1", contractValue: "",
+      po: "PO-77",
+      name: "Maumee Re-roof",
+      addr: "1 Main St",
+      notes: "back lot",
+      scheduledDate: "2026-08-01",
+      assignedto: "u1",
+      contractValue: "",
     });
   });
 
@@ -107,10 +120,19 @@ describe("addableInventory", () => {
 describe("EditJobModal render", () => {
   const render = (props) =>
     renderToString(
-      h(NotificationProvider, null, h(EditJobModal, {
-        job: modernJob, inv, fieldUsers: [{ id: "u1", name: "Sam Schwartz" }],
-        activeUser: { id: "u1", email: "sam@example.com" }, onSaved: () => {}, onClose: () => {}, ...props,
-      })),
+      h(
+        NotificationProvider,
+        null,
+        h(EditJobModal, {
+          job: modernJob,
+          inv,
+          fieldUsers: [{ id: "u1", name: "Sam Schwartz" }],
+          activeUser: { id: "u1", email: "sam@example.com" },
+          onSaved: () => {},
+          onClose: () => {},
+          ...props,
+        }),
+      ),
     );
 
   it("titles itself with the job PO and pre-fills the form from the job", () => {

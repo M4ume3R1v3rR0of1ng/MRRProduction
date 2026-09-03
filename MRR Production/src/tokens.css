@@ -8,28 +8,28 @@
    Space Grotesk for display (Swiss grotesque, engineer's personality), Inter for UI,
    IBM Plex Mono for data. All three are on Google Fonts, which netlify.toml's CSP
    already allows via style-src/font-src — no header change needed. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap");
 
 :root {
   /* ── Typeface ── */
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   /* Wordmark, headlines, stat numbers. */
-  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
   /* PO numbers, mileage, prices, timestamps — used sparingly, it makes data feel exact. */
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 
   /* ── Brand — Direction 02, "The Raising" ──
      Barn raising: forty people, one day, zero confusion. Weathered barnwood and
      harvest amber. Note there is NO RED in this brand: destructive actions use
      --brand-rust (a muted sienna) so they still read as danger without breaking it. */
-  --brand-barnwood:  #23282D;
-  --brand-amber:     #C97B2D;
-  --brand-amber-deep:#A8641F;
-  --brand-leather:   #8A5A2B;
-  --brand-pasture:   #4A7A5C;
-  --brand-homespun:  #EDE6DA;
-  --brand-plowshare: #6E7780;
-  --brand-rust:      #A34E28;
+  --brand-barnwood: #23282d;
+  --brand-amber: #c97b2d;
+  --brand-amber-deep: #a8641f;
+  --brand-leather: #8a5a2b;
+  --brand-pasture: #4a7a5c;
+  --brand-homespun: #ede6da;
+  --brand-plowshare: #6e7780;
+  --brand-rust: #a34e28;
 
   /* ── Runtime palette (light) ──
      Every value in the C object in utils/helpers.js resolves to one of these.
@@ -38,64 +38,64 @@
      themeable at all. The dark set lives in the [data-theme="dark"] block below;
      any variable added here MUST get a dark counterpart there or it will render
      a light color on a dark ground. */
-  --c-barnwood:     #23282D;
-  --c-amber:        #C97B2D;
-  --c-leather:      #8A5A2B;
-  --c-ground:       #EDE6DA;
-  --c-surface:      #FFFFFF;
-  --c-subtle:       #F4F0E7;
-  --c-line:         #DCD3C4;
-  --c-sub:          #6E7780;
-  --c-pasture:      #4A7A5C;
-  --c-rust:         #A34E28;
-  --c-warn:         #A8641F;
-  --c-plum:         #5C5470;
-  --c-teal:         #3E6B6B;
-  --c-slate:        #4A6178;
+  --c-barnwood: #23282d;
+  --c-amber: #c97b2d;
+  --c-leather: #8a5a2b;
+  --c-ground: #ede6da;
+  --c-surface: #ffffff;
+  --c-subtle: #f4f0e7;
+  --c-line: #dcd3c4;
+  --c-sub: #6e7780;
+  --c-pasture: #4a7a5c;
+  --c-rust: #a34e28;
+  --c-warn: #a8641f;
+  --c-plum: #5c5470;
+  --c-teal: #3e6b6b;
+  --c-slate: #4a6178;
 
   /* Tint washes for badges and wells. */
-  --c-amber-wash:   #FAF3E9;
-  --c-leather-wash: #F2E9DF;
-  --c-pasture-wash: #E2EDE6;
-  --c-rust-wash:    #F7E4DA;
-  --c-warn-wash:    #F7EBDA;
-  --c-plum-wash:    #E9E6EE;
-  --c-teal-wash:    #DDE9E9;
-  --c-slate-wash:   #E4EAF0;
+  --c-amber-wash: #faf3e9;
+  --c-leather-wash: #f2e9df;
+  --c-pasture-wash: #e2ede6;
+  --c-rust-wash: #f7e4da;
+  --c-warn-wash: #f7ebda;
+  --c-plum-wash: #e9e6ee;
+  --c-teal-wash: #dde9e9;
+  --c-slate-wash: #e4eaf0;
 
   /* Surfaces and strokes that are not in C but are used by the CSS below.
      Named rather than inlined so the dark block can move them together. */
-  --c-ink:          #0F172A;  /* strongest text, used sparingly */
-  --c-row-hover:    #F8FAFC;
-  --c-scroll-thumb: #C3CEDD;
-  --c-scroll-hover: #A4B3C8;
-  --c-input-hover:  #AFBCCF;
-  --c-focus:        #2563EB;
-  --c-backdrop:     rgba(14, 45, 107, 0.55);
-  --c-disabled:     #CBD5E0;
-  --c-disabled-ink: #A0AEC0;
+  --c-ink: #0f172a; /* strongest text, used sparingly */
+  --c-row-hover: #f8fafc;
+  --c-scroll-thumb: #c3cedd;
+  --c-scroll-hover: #a4b3c8;
+  --c-input-hover: #afbccf;
+  --c-focus: #2563eb;
+  --c-backdrop: rgba(14, 45, 107, 0.55);
+  --c-disabled: #cbd5e0;
+  --c-disabled-ink: #a0aec0;
 
   /* ── Shell chrome ──
      The sidebar and mobile header are dark in BOTH themes: they are the frame,
      not the page. This has to be its own token because --c-barnwood is overloaded
      as heading text (178 of its 186 call sites), and text has to invert for dark
      while the sidebar must not. Keep the two apart. */
-  --c-shell:        #23282D;
-  --c-shell-ink:    #EDE6DA;
+  --c-shell: #23282d;
+  --c-shell-ink: #ede6da;
 
   /* Ink that sits ON a saturated fill (rust badge, pasture pill, role avatar).
      Not the same as --c-surface, which several call sites were borrowing for it:
      surface is white in light and near-black in dark, so text on a colored chip
      went dark-on-dark the moment the theme flipped. The saturated tokens
      lighten in dark mode, so this inverts with them. */
-  --c-on-accent:    #FFFFFF;
+  --c-on-accent: #ffffff;
 
   /* Paper white that must NOT invert, because a camera is reading it rather than
      a person. The MFA QR code is black modules on a transparent ground: on a dark
      surface that is black-on-black and will not scan, and inverting the code
      breaks scanners that assume a light quiet zone. The dark block repeats this
      token at the SAME value on purpose — see the note there. */
-  --c-scan-paper:   #FFFFFF;
+  --c-scan-paper: #ffffff;
 
   /* ── Typography scale ── */
   --text-2xs: 10px;
@@ -151,57 +151,57 @@
    An explicit attribute rather than a bare media query, so the in-app toggle can
    override the OS both ways; the controller resolves "system" itself. */
 :root[data-theme="dark"] {
-  --c-barnwood:     #ECE6DA;  /* inverts: this is the ink token, not the chrome */
-  --c-amber:        #DB9550;
-  --c-leather:      #C68F5C;
-  --c-ground:       #191D21;
-  --c-surface:      #23282D;
-  --c-subtle:       #2B3137;
-  --c-line:         #3A4046;
-  --c-sub:          #9BA3AB;
-  --c-pasture:      #7AAE8C;
-  --c-rust:         #D2724A;
-  --c-warn:         #D89A52;
-  --c-plum:         #9A8FB0;
-  --c-teal:         #6FA3A3;
-  --c-slate:        #8199B0;
+  --c-barnwood: #ece6da; /* inverts: this is the ink token, not the chrome */
+  --c-amber: #db9550;
+  --c-leather: #c68f5c;
+  --c-ground: #191d21;
+  --c-surface: #23282d;
+  --c-subtle: #2b3137;
+  --c-line: #3a4046;
+  --c-sub: #9ba3ab;
+  --c-pasture: #7aae8c;
+  --c-rust: #d2724a;
+  --c-warn: #d89a52;
+  --c-plum: #9a8fb0;
+  --c-teal: #6fa3a3;
+  --c-slate: #8199b0;
 
-  --c-amber-wash:   #2E2519;
-  --c-leather-wash: #2B231B;
-  --c-pasture-wash: #1E2A23;
-  --c-rust-wash:    #2E1F18;
-  --c-warn-wash:    #2D2419;
-  --c-plum-wash:    #262330;
-  --c-teal-wash:    #1D2727;
-  --c-slate-wash:   #1F2733;
+  --c-amber-wash: #2e2519;
+  --c-leather-wash: #2b231b;
+  --c-pasture-wash: #1e2a23;
+  --c-rust-wash: #2e1f18;
+  --c-warn-wash: #2d2419;
+  --c-plum-wash: #262330;
+  --c-teal-wash: #1d2727;
+  --c-slate-wash: #1f2733;
 
-  --c-ink:          #F4F1EA;
-  --c-row-hover:    #2A3037;
-  --c-scroll-thumb: #3E464F;
-  --c-scroll-hover: #515A64;
-  --c-input-hover:  #4A535C;
-  --c-focus:        #7FA9F5;
-  --c-backdrop:     rgba(0, 0, 0, 0.66);
-  --c-disabled:     #3A4148;
-  --c-disabled-ink: #6B747D;
+  --c-ink: #f4f1ea;
+  --c-row-hover: #2a3037;
+  --c-scroll-thumb: #3e464f;
+  --c-scroll-hover: #515a64;
+  --c-input-hover: #4a535c;
+  --c-focus: #7fa9f5;
+  --c-backdrop: rgba(0, 0, 0, 0.66);
+  --c-disabled: #3a4148;
+  --c-disabled-ink: #6b747d;
 
-  --c-shell:        #16191D;
-  --c-shell-ink:    #EDE6DA;
-  --c-on-accent:    #1B1F24;
+  --c-shell: #16191d;
+  --c-shell-ink: #ede6da;
+  --c-on-accent: #1b1f24;
 
   /* Identical to the light value, and that is the point: this backs a QR code,
      which a phone camera has to read. Flipping it dark would make the code
      unscannable. Restated here rather than omitted so the parity check passes
      and the next person sees the decision instead of an apparent gap. */
-  --c-scan-paper:   #FFFFFF;
+  --c-scan-paper: #ffffff;
 
   /* The light shadows are tinted slate at 5-14% alpha, which is invisible on a
      dark ground. Dark elevation has to come from near-black at much higher
      alpha to read at all. */
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.34);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.36), 0 2px 8px rgba(0, 0, 0, 0.30);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.36), 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.38), 0 8px 24px rgba(0, 0, 0, 0.36);
-  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.44), 0 16px 48px rgba(0, 0, 0, 0.50);
+  --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.44), 0 16px 48px rgba(0, 0, 0, 0.5);
   --shadow-ring: 0 0 0 3px rgba(127, 169, 245, 0.26);
 
   color-scheme: dark;
@@ -256,7 +256,7 @@ html {
     color-scheme: dark;
   }
   :root:not([data-theme]) body {
-    background: #191D21;
+    background: #191d21;
   }
 }
 
@@ -281,7 +281,9 @@ textarea {
   font-family: inherit;
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   letter-spacing: -0.02em;
 }
 
@@ -331,7 +333,9 @@ button:disabled {
 /* ── Input primitives: focus ring + hover affordance ──
    (!important is required to override the primitives' inline border colors) */
 .mrr-input {
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .mrr-input:hover {
@@ -346,13 +350,23 @@ button:disabled {
 
 /* ── Modal: blurred backdrop fade + panel pop-in ── */
 @keyframes mrr-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes mrr-pop-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.97); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .mrr-backdrop {
@@ -376,8 +390,14 @@ button:disabled {
 
 /* ── Toast entrance (NotificationContext references this by name) ── */
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(16px); }
-  to { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ── Sidebar navigation ── */
@@ -412,13 +432,17 @@ button:disabled {
 /* ── Cards ── */
 .mrr-card {
   box-shadow: var(--shadow-xs);
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 /* .mrr-card-click = clickable card; .mrr-card-hover = same lift for cards whose actions live inside */
 .mrr-card-click,
 .mrr-card-hover {
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 .mrr-card-click {
@@ -440,8 +464,17 @@ button:disabled {
    error. prefers-reduced-motion gets the ring without the animation — the signal
    is the glow, the movement is only decoration. */
 @keyframes mrr-hail {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 168, 0, 0.55), var(--shadow-sm); }
-  50%      { box-shadow: 0 0 0 9px rgba(245, 168, 0, 0), var(--shadow-md); }
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(245, 168, 0, 0.55),
+      var(--shadow-sm);
+  }
+  50% {
+    box-shadow:
+      0 0 0 9px rgba(245, 168, 0, 0),
+      var(--shadow-md);
+  }
 }
 
 .mrr-card-hail {
@@ -451,7 +484,9 @@ button:disabled {
 @media (prefers-reduced-motion: reduce) {
   .mrr-card-hail {
     animation: none;
-    box-shadow: 0 0 0 3px rgba(245, 168, 0, 0.55), var(--shadow-sm);
+    box-shadow:
+      0 0 0 3px rgba(245, 168, 0, 0.55),
+      var(--shadow-sm);
   }
 }
 
@@ -491,26 +526,38 @@ button:disabled {
   align-items: start;
 }
 
-.sw-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.sw-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.sw-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.sw-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.sw-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.sw-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 
 /* minmax(0, 1fr) rather than a bare 1fr on purpose: a grid item's default
    min-width is auto, so one long unbroken string (a part number, an address)
    inflates its column and pushes the row wider than the viewport. */
 @media (max-width: 1024px) {
-  .sw-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sw-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
   .sw-grid-3,
-  .sw-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sw-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 520px) {
   .sw-grid-2,
   .sw-grid-3,
-  .sw-grid-4 { grid-template-columns: minmax(0, 1fr); }
+  .sw-grid-4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Two fields plus a trailing action (an add-row control). The action keeps its
@@ -523,7 +570,9 @@ button:disabled {
 }
 
 @media (max-width: 520px) {
-  .sw-grid-2-auto { grid-template-columns: minmax(0, 1fr); }
+  .sw-grid-2-auto {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Two-column split where one side is the main content and the other is a rail.
@@ -536,7 +585,9 @@ button:disabled {
 }
 
 @media (max-width: 900px) {
-  .sw-split { grid-template-columns: minmax(0, 1fr); }
+  .sw-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Wraps a wide data table. Without this a table with eight columns forces the
@@ -565,7 +616,9 @@ button:disabled {
 }
 
 @media (max-width: 900px) {
-  .sw-video-half { max-width: 100%; }
+  .sw-video-half {
+    max-width: 100%;
+  }
 }
 
 /* A row of actions or filters that should wrap instead of overflowing. */
@@ -578,18 +631,28 @@ button:disabled {
 /* Below the phone breakpoint, make a button row go full-width and stack, so the
    targets are thumb-sized instead of three 60px buttons squeezed side by side. */
 @media (max-width: 520px) {
-  .sw-wrap-stack { flex-direction: column; align-items: stretch; }
-  .sw-wrap-stack > * { width: 100%; justify-content: center; }
+  .sw-wrap-stack {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sw-wrap-stack > * {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* Hide below / above the phone breakpoint. For the cases where the mobile answer
    is genuinely "show something else", not "show the same thing smaller". */
 @media (max-width: 520px) {
-  .sw-hide-phone { display: none !important; }
+  .sw-hide-phone {
+    display: none !important;
+  }
 }
 
 @media (min-width: 521px) {
-  .sw-only-phone { display: none !important; }
+  .sw-only-phone {
+    display: none !important;
+  }
 }
 
 /* ── Modern thin scrollbars ── */
@@ -629,7 +692,7 @@ button:disabled {
 }
 
 .mrr-skeleton::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
@@ -643,7 +706,9 @@ button:disabled {
 }
 
 @keyframes mrr-sheen {
-  to { transform: translateX(100%); }
+  to {
+    transform: translateX(100%);
+  }
 }
 
 /* ── Shared loading spinner animation (see LoadingState in UIPrimitives.jsx) ── */

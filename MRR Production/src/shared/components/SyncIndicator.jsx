@@ -33,7 +33,16 @@ export default function SyncIndicator({ lang = "en" }) {
 
   if (isOnline) {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-2)", fontSize: "12px", fontWeight: "var(--weight-bold)", color: C.gr }}>
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "var(--space-2)",
+          fontSize: "12px",
+          fontWeight: "var(--weight-bold)",
+          color: C.gr,
+        }}
+      >
         <span>🟢</span> {t.chromeConnected}
       </span>
     );

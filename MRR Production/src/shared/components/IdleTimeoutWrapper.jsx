@@ -1,19 +1,26 @@
 // src/shared/components/IdleTimeoutWrapper.jsx
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from "react";
 
 import { translations } from "../utils/translations";
 // ── 🟢 FIXED: ACCEPT THE TIMEOUT PROP WITH A 5-MINUTE DEFAULT FALLBACK ──
-export default function IdleTimeoutWrapper({ children, onLogout, isAuthenticated, timeout, lang = "en" }) {
+export default function IdleTimeoutWrapper({
+  children,
+  onLogout,
+  isAuthenticated,
+  timeout,
+  lang = "en",
+}) {
   const t = translations[lang] || translations.en;
-  
+
   // Use the passed timeout value (e.g., from App.jsx) or default to 5 minutes if not provided[cite: 4]
-  const TIMEOUT_IN_MS = timeout || (5 * 60 * 1000); 
+  const TIMEOUT_IN_MS = timeout || 5 * 60 * 1000;
   const timerRef = useRef(null);
 
   const resetTimer = () => {
     if (timerRef.current) clearTimeout(timerRef.current); //[cite: 4]
 
-    if (isAuthenticated) { //[cite: 4]
+    if (isAuthenticated) {
+      //[cite: 4]
       timerRef.current = setTimeout(() => {
         handleTimeout();
       }, TIMEOUT_IN_MS); //[cite: 4]
@@ -29,16 +36,17 @@ export default function IdleTimeoutWrapper({ children, onLogout, isAuthenticated
   };
 
   useEffect(() => {
-    const activityEvents = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart']; //[cite: 4]
+    const activityEvents = ["mousemove", "mousedown", "keypress", "scroll", "touchstart"]; //[cite: 4]
 
-    if (isAuthenticated) { //[cite: 4]
+    if (isAuthenticated) {
+      //[cite: 4]
       resetTimer();
-      activityEvents.forEach(event => window.addEventListener(event, resetTimer)); //[cite: 4]
+      activityEvents.forEach((event) => window.addEventListener(event, resetTimer)); //[cite: 4]
     }
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current); //[cite: 4]
-      activityEvents.forEach(event => window.removeEventListener(event, resetTimer)); //[cite: 4]
+      activityEvents.forEach((event) => window.removeEventListener(event, resetTimer)); //[cite: 4]
     };
   }, [isAuthenticated, TIMEOUT_IN_MS]); // 🟢 Added TIMEOUT_IN_MS to safely track prop changes!
 

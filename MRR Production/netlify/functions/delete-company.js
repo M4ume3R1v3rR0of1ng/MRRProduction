@@ -74,10 +74,18 @@ const rawHandler = async (event) => {
   // ── 1. Auth: platform owner only ──────────────────────────────────────────
   const { caller, error: callerError } = await resolveCaller(admin, accessToken);
   if (callerError) {
-    return { statusCode: callerError.status, headers, body: JSON.stringify({ error: callerError.message }) };
+    return {
+      statusCode: callerError.status,
+      headers,
+      body: JSON.stringify({ error: callerError.message }),
+    };
   }
   if (!caller.isPlatformAdmin) {
-    return { statusCode: 403, headers, body: JSON.stringify({ error: "Platform admin access required" }) };
+    return {
+      statusCode: 403,
+      headers,
+      body: JSON.stringify({ error: "Platform admin access required" }),
+    };
   }
 
   // ── 2. Load the target + enforce the guardrails ───────────────────────────
@@ -91,13 +99,25 @@ const rawHandler = async (event) => {
   }
 
   if (company.id === caller.companyId) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: "You can't delete the company you're signed into." }) };
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: "You can't delete the company you're signed into." }),
+    };
   }
   if (company.subscription_status !== "suspended") {
-    return { statusCode: 409, headers, body: JSON.stringify({ error: "Suspend the company first, then delete it." }) };
+    return {
+      statusCode: 409,
+      headers,
+      body: JSON.stringify({ error: "Suspend the company first, then delete it." }),
+    };
   }
   if ((confirmName || "").trim() !== company.name) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: "The typed name doesn't match the company name." }) };
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: "The typed name doesn't match the company name." }),
+    };
   }
 
   const warnings = [];
@@ -128,14 +148,16 @@ const rawHandler = async (event) => {
         } catch (e) {
           // Already canceled/expired subs throw resource_missing — that's the desired
           // end state, so only surface anything else.
-          if (e?.code !== "resource_missing") warnings.push(`Stripe subscription not cancelled: ${e.message}`);
+          if (e?.code !== "resource_missing")
+            warnings.push(`Stripe subscription not cancelled: ${e.message}`);
         }
       }
       if (secrets.stripe_customer_id) {
         try {
           await stripe.customers.del(secrets.stripe_customer_id);
         } catch (e) {
-          if (e?.code !== "resource_missing") warnings.push(`Stripe customer not removed: ${e.message}`);
+          if (e?.code !== "resource_missing")
+            warnings.push(`Stripe customer not removed: ${e.message}`);
         }
       }
     }
@@ -143,7 +165,9 @@ const rawHandler = async (event) => {
     // ── 4. Purge storage (best-effort). Files are flat at <company_id>/<file>. ──
     for (const bucket of BUCKETS) {
       try {
-        const { data: files, error: listErr } = await admin.storage.from(bucket).list(companyId, { limit: 1000 });
+        const { data: files, error: listErr } = await admin.storage
+          .from(bucket)
+          .list(companyId, { limit: 1000 });
         if (listErr) throw listErr;
         if (files && files.length) {
           await admin.storage.from(bucket).remove(files.map((f) => `${companyId}/${f.name}`));
@@ -161,7 +185,8 @@ const rawHandler = async (event) => {
       .from("profiles")
       .update({ active_company_id: null })
       .eq("active_company_id", companyId);
-    if (repointErr) throw new Error(`Could not release active-company pointers: ${repointErr.message}`);
+    if (repointErr)
+      throw new Error(`Could not release active-company pointers: ${repointErr.message}`);
 
     // ── 6. The delete. One statement removes the company and cascades every
     //       tenant row (memberships, jobs, inventory, secrets, audit_logs, …). ──
@@ -196,7 +221,11 @@ const rawHandler = async (event) => {
       body: JSON.stringify({ ok: true, deleted: company.name, accountsDeleted, warnings }),
     };
   } catch (err) {
-    return { statusCode: 500, headers, body: JSON.stringify({ ok: false, error: err.message, warnings }) };
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ ok: false, error: err.message, warnings }),
+    };
   }
 };
 

@@ -38,7 +38,7 @@ describe("C palette", () => {
   });
 
   it("gives every light variable a dark counterpart", () => {
-    const names = (body) => new Set((body.match(/--c-[a-z-]+(?=:)/g) || []));
+    const names = (body) => new Set(body.match(/--c-[a-z-]+(?=:)/g) || []);
     const light = names(ruleBody(":root {"));
     const dark = names(ruleBody(':root[data-theme="dark"]'));
     expect([...light].filter((n) => !dark.has(n))).toEqual([]);
@@ -107,12 +107,21 @@ const BARNWOOD_BG = /(?:background|backgroundColor)\s*:[^,;}\n]*var\(--c-barnwoo
 // black scrim over a photo.
 const ON_DARK = /shell|on-accent|rgba\(0, ?0, ?0|rgba\(15, ?23, ?42/;
 
-const scan = (test, skip) => {
+// `skipWindow` looks back that many lines (inclusive of the current one) for
+// `skip`, not just the current line. Prettier is free to put a style object's
+// `background` and `color` entries on separate lines, and this audit's "dark
+// context" check must survive that instead of depending on both landing on
+// one physical line.
+const scan = (test, skip, skipWindow = 0) => {
   const hits = [];
   for (const file of appFiles) {
     const rel = relative(SRC, file).replace(/\\/g, "/");
-    readFileSync(file, "utf8").split("\n").forEach((line, i) => {
-      if (skip && skip.test(line)) return;
+    const lines = readFileSync(file, "utf8").split("\n");
+    lines.forEach((line, i) => {
+      if (skip) {
+        const from = Math.max(0, i - skipWindow);
+        if (lines.slice(from, i + 1).some((l) => skip.test(l))) return;
+      }
       if (test(line)) hits.push(`${rel}:${i + 1}  ${line.trim().slice(0, 80)}`);
     });
   }
@@ -127,7 +136,11 @@ describe("view color audit", () => {
   });
 
   it("has no literal light ink outside a provably dark context", () => {
-    const hits = scan((l) => [...l.matchAll(INK)].some((m) => isLight(m[1])), ON_DARK);
+    const hits = scan(
+      (l) => [...l.matchAll(INK)].some((m) => isLight(m[1])),
+      ON_DARK,
+      6, // covers a style object's other props between its background and color lines
+    );
     expect(hits).toEqual([]);
   });
 

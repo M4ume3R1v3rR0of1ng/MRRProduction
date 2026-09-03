@@ -53,23 +53,28 @@ export const translations = {
 
     // Monthly Count
     cntTitle: "Monthly Inventory Count",
-    cntSubtitle: "What the books expect on the shelf, next to what someone actually counted. The gap is material that left without a record.",
+    cntSubtitle:
+      "What the books expect on the shelf, next to what someone actually counted. The gap is material that left without a record.",
     cntPeriodAria: "Select count period",
     cntExport: "Export CSV",
     cntLoading: "Loading counts",
     cntLoadFailTitle: "Could not load the count history",
-    cntLoadFailBody: "This is not an empty history, it just could not be fetched. Do not close a period until this clears.",
+    cntLoadFailBody:
+      "This is not an empty history, it just could not be fetched. Do not close a period until this clears.",
     cntRetry: "Retry",
     cntTileCounted: "Items counted",
     cntTileVariance: "Net variance (units)",
     cntTileBleed: "Bleed rate",
     cntTileValue: "Value of losses",
-    cntFormula: "Expected = opening + received + adjustments − used on jobs. Variance = counted − expected. Bleed rate is net variance as a share of everything that passed through the yard this period, so a fast-moving item is not judged against the little left at month end. Only counted lines are included.",
+    cntFormula:
+      "Expected = opening + received + adjustments − used on jobs. Variance = counted − expected. Bleed rate is net variance as a share of everything that passed through the yard this period, so a fast-moving item is not judged against the little left at month end. Only counted lines are included.",
     cntOpenBanner: "This period is open. Numbers update as stock is received and pulled.",
     cntOpeningFromCount: "Opening balances come from the {period} count.",
-    cntOpeningFromBook: "No previous count exists, so opening balances are rolled back from the current book. The first closed period is what makes later ones exact.",
+    cntOpeningFromBook:
+      "No previous count exists, so opening balances are rolled back from the current book. The first closed period is what makes later ones exact.",
     cntClosedBanner: "{period} is closed.",
-    cntClosedBannerBody: "These numbers are frozen because next month's opening balance is read from them.",
+    cntClosedBannerBody:
+      "These numbers are frozen because next month's opening balance is read from them.",
     cntClosedOn: "Closed",
     cntFlaggedTitle: "{n} items worth chasing",
     cntSearch: "🔍 Search items...",
@@ -82,8 +87,10 @@ export const translations = {
     cntClosePeriod: "Close period",
     cntClosed: "Period closed. These numbers are now frozen.",
     cntCloseFail: "Could not close the period:",
-    cntCloseConfirm: "Close the {period} count? The numbers freeze permanently and next month's opening balances will be read from them.",
-    cntCloseConfirmPartial: "{n} items have not been counted. Close {period} anyway? Uncounted items carry into next month from the book rather than from a real count, so their bleed will not be measured.",
+    cntCloseConfirm:
+      "Close the {period} count? The numbers freeze permanently and next month's opening balances will be read from them.",
+    cntCloseConfirmPartial:
+      "{n} items have not been counted. Close {period} anyway? Uncounted items carry into next month from the book rather than from a real count, so their bleed will not be measured.",
     cntDiscardConfirm: "You have unsaved counts on this sheet. Switch period and lose them?",
     cntColItem: "Item",
     cntColOpening: "Opening",
@@ -125,16 +132,22 @@ export const translations = {
     blSeatLimit: "You're at your seat limit. Add a pack to invite more users.",
     blPaymentInvoices: "Payment & invoices",
     blManagePayment: "Manage payment & invoices →",
-    blPortalBlurb: "Update your card, download invoices, and see billing history on Stripe's secure portal.",
-    blNoBillingAccount: "This company isn't billed through Stripe, so there's no card on file and no invoices to manage. Nothing is owed.",
-    blAddSeatsConfirm: "Add 5 seats for ${pack} a month? This is added to your subscription, so your bill goes up by ${pack} every month until you remove it. The first charge is prorated for the rest of this billing period.",
+    blPortalBlurb:
+      "Update your card, download invoices, and see billing history on Stripe's secure portal.",
+    blNoBillingAccount:
+      "This company isn't billed through Stripe, so there's no card on file and no invoices to manage. Nothing is owed.",
+    blAddSeatsConfirm:
+      "Add 5 seats for ${pack} a month? This is added to your subscription, so your bill goes up by ${pack} every month until you remove it. The first charge is prorated for the rest of this billing period.",
     blAddSeatsFail: "Could not add seats:",
-    blRemoveSeatsConfirm: "Remove {seats} seats and stop the ${pack} a month for them? You get a prorated credit for the rest of this billing period.",
+    blRemoveSeatsConfirm:
+      "Remove {seats} seats and stop the ${pack} a month for them? You get a prorated credit for the rest of this billing period.",
     blRemoveSeatsFail: "Could not remove seats:",
     blSeatsAdded: "Seats added. Your new capacity appears in a moment, once Stripe confirms.",
     blSeatsRemoved: "Seats removed. Your new capacity appears in a moment, once Stripe confirms.",
-    blRemoveBlocked: "There is nothing to remove, or all your seats are in use. Deactivate a user first.",
-    blProrationNote: "Crew packs bill monthly and are prorated when you add or remove them. Packs bought before the pricing change stay free and cannot be removed.",
+    blRemoveBlocked:
+      "There is nothing to remove, or all your seats are in use. Deactivate a user first.",
+    blProrationNote:
+      "Crew packs bill monthly and are prorated when you add or remove them. Packs bought before the pricing change stay free and cannot be removed.",
     blOpenBillingFail: "Could not open billing:",
 
     // Audit Logs
@@ -180,11 +193,13 @@ export const translations = {
     alTagPrice: "price entry",
     alLegendTitle: "This table is not only deliveries. It holds five kinds of row:",
     alLegendReceiptName: "receipt",
-    alLegendReceipt: "material arriving from a supplier. The only kind that owes a PO and a vendor.",
+    alLegendReceipt:
+      "material arriving from a supplier. The only kind that owes a PO and a vendor.",
     alLegendReturn: "unused material coming back off a finished job.",
     alLegendAdjust: "someone corrected the count by hand, usually after a physical count.",
     alLegendPrice: "a price recorded with no quantity attached.",
-    alLegendShort: "more was pulled than the yard had. The quantity is negative because it is stock that was issued but never existed. The job it went to is in the last column.",
+    alLegendShort:
+      "more was pulled than the yard had. The quantity is negative because it is stock that was issued but never existed. The job it went to is in the last column.",
 
     // Roles. Two sets on purpose: the short one is the badge shown next to a
     // name, the long one is the picker in the Add/Edit User dialog.
@@ -205,8 +220,9 @@ export const translations = {
 
     // User Management
     umPermOverridesTitle: "Configure individual user permission overrides",
-    umRolePermsBlurb: "Role permissions are set in {link}. You can also give individual users custom permission overrides here using the 🔒 button.",
-        umRolePermsLink: "Settings → Role Permissions",
+    umRolePermsBlurb:
+      "Role permissions are set in {link}. You can also give individual users custom permission overrides here using the 🔒 button.",
+    umRolePermsLink: "Settings → Role Permissions",
     umEdit: "Edit",
     umFullName: "Full Name *",
     umEmail: "Email Address",
@@ -218,7 +234,8 @@ export const translations = {
     umNewTempPassword: "New Temporary Password",
     umConfirmNewPassword: "Confirm New Password",
     umEmailInvite: "Email them an invite",
-    umInviteOn: "They get a link to set their own password. You do not need to share the temporary one.",
+    umInviteOn:
+      "They get a link to set their own password. You do not need to share the temporary one.",
     umInviteOff: "No email is sent. You will need to give them the temporary password yourself.",
     umPwFallbackHint: "A fallback in case the invite email does not arrive.",
     umPwShareHint: "Share it with the new user directly.",
@@ -245,7 +262,8 @@ export const translations = {
     umTempPwSet: "Temporary password set. Share it with the user directly.",
     umPwResetFail: "Password reset failed.",
     umCannotRemoveSelf: "Security Violation: You cannot remove your own account!",
-    umRemoveConfirm: "Permanently remove {name}? This deletes their account entirely and cannot be undone.",
+    umRemoveConfirm:
+      "Permanently remove {name}? This deletes their account entirely and cannot be undone.",
     umThisUser: "this user",
 
     // Shared components (weather, calendars, chat, error states)
@@ -266,7 +284,8 @@ export const translations = {
     csSwitchCompany: "Switch company",
     ebTitle: "System Interface Interrupted",
     ebExceptionMessage: "Exception Message",
-    idleExpired: "Your session has expired due to {minutes} minutes of inactivity. Please log in again.",
+    idleExpired:
+      "Your session has expired due to {minutes} minutes of inactivity. Please log in again.",
     chNoMessages: "No messages yet. Say hello 👋",
     chLoadingMessages: "Loading messages...",
     chCancel: "Cancel",
@@ -287,7 +306,6 @@ export const translations = {
     cwAskQuestion: "Ask a question...",
     cwAssistant: "Steadwerk Assistant",
 
-
     // Login and password reset (pre-auth screens)
     lgForgotPassword: "Forgot password?",
     lgChooseCompany: "Choose a company to continue",
@@ -302,11 +320,13 @@ export const translations = {
     lgStartingCheckout: "Starting checkout…",
     lgContinuePayment: "Continue to payment →",
     mfaTitle: "Two-Factor Authentication",
-    mfaIntro: "Add a 6-digit code from your phone on top of your password. Even if someone learns your password, they cannot sign in without your phone.",
+    mfaIntro:
+      "Add a 6-digit code from your phone on top of your password. Even if someone learns your password, they cannot sign in without your phone.",
     mfaLoading: "Checking your security settings...",
     mfaSetUp: "Set up two-factor authentication",
     mfaStarting: "Starting...",
-    mfaStep1: "Open an authenticator app (Google Authenticator, Authy, or 1Password) and scan this code.",
+    mfaStep1:
+      "Open an authenticator app (Google Authenticator, Authy, or 1Password) and scan this code.",
     mfaStep2: "Enter the 6-digit code it shows to finish.",
     mfaQrAlt: "QR code for your authenticator app",
     mfaSecretLabel: "Or enter this key by hand",
@@ -315,14 +335,18 @@ export const translations = {
     mfaTurnOn: "Turn on",
     mfaVerify: "Verify",
     mfaVerifying: "Verifying...",
-    mfaEnabled: "Two-factor authentication is on. You will be asked for a code next time you sign in.",
+    mfaEnabled:
+      "Two-factor authentication is on. You will be asked for a code next time you sign in.",
     mfaAuthenticator: "Authenticator app",
     mfaAddedOn: "Added",
     mfaRemove: "Remove",
-    mfaRemoveConfirm: "Remove two-factor authentication? Your password alone will open this account again.",
+    mfaRemoveConfirm:
+      "Remove two-factor authentication? Your password alone will open this account again.",
     mfaRemoved: "Two-factor authentication removed.",
-    mfaLostDevice: "Lost your phone? Ask a platform administrator to clear your factor, then set it up again.",
-    mfaOwnerNudge: "Your account can read every company on the platform. Turning this on is strongly recommended.",
+    mfaLostDevice:
+      "Lost your phone? Ask a platform administrator to clear your factor, then set it up again.",
+    mfaOwnerNudge:
+      "Your account can read every company on the platform. Turning this on is strongly recommended.",
     mfaChallengePrompt: "Enter the 6-digit code from your authenticator app.",
     lgTerms: "Steadwerk Terms and Conditions",
     lgPrivacy: "Privacy Policy",
@@ -356,13 +380,15 @@ export const translations = {
     ocDelete: "Delete",
     ocSuspend: "Suspend",
     ocPlatformAdmins: "Platform administrators",
-    ocPlatformAdminsDesc: "People who can see this console and manage every company. Grant sparingly.",
+    ocPlatformAdminsDesc:
+      "People who can see this console and manage every company. Grant sparingly.",
     ocRevoke: "Revoke",
     ocGrantAdmin: "Grant admin",
     ocPromotePlaceholder: "email of an existing user to promote",
     ocDeleteWarning: "This permanently removes the company and",
     ocDeleteWarningBold: "everything",
-    ocDeleteWarningRest: "in it. All jobs, inventory, vehicles, files, and team memberships. Any Stripe subscription is cancelled and members left with no other company have their logins deleted. This cannot be undone.",
+    ocDeleteWarningRest:
+      "in it. All jobs, inventory, vehicles, files, and team memberships. Any Stripe subscription is cancelled and members left with no other company have their logins deleted. This cannot be undone.",
     ocTypeToConfirm: "Type",
     ocToConfirm: "to confirm",
     ocCancel: "Cancel",
@@ -371,13 +397,15 @@ export const translations = {
     ocNoInventory: "No inventory.",
     ocNoMembers: "No members.",
     ocEnter: "Enter",
-    ocEnterConfirm: "Enter {name} and work as its admin? You will be acting on their live data. A record of this is written to your audit log.",
+    ocEnterConfirm:
+      "Enter {name} and work as its admin? You will be acting on their live data. A record of this is written to your audit log.",
     ocNotBilled: "No Stripe subscription. This company is comped or was activated by hand.",
     ocNoInvoices: "No invoices yet.",
     ocCancelsAtPeriodEnd: "Cancels at period end",
     ocStartBilling: "Start billing",
     ocStartBillingTitle: "Start billing for {name}?",
-    ocStartBillingDesc: "Opens a real Stripe Checkout in a new tab for the Base plan: {price} for up to {seats} people, no trial. Nothing changes here until the card is entered and the subscription clears. This only starts that process.",
+    ocStartBillingDesc:
+      "Opens a real Stripe Checkout in a new tab for the Base plan: {price} for up to {seats} people, no trial. Nothing changes here until the card is entered and the subscription clears. This only starts that process.",
     ocMonthlyRate: "{price}/month",
     ocAnnualRate: "{price}/year",
     ocBillingEmail: "Billing email",
@@ -387,7 +415,8 @@ export const translations = {
     ocAnnual: "Annual",
     ocOpenCheckout: "Open Stripe checkout",
     ocOpeningCheckout: "Opening…",
-    ocCheckoutOpened: "Checkout opened in a new tab. {name} is marked billed once the subscription clears.",
+    ocCheckoutOpened:
+      "Checkout opened in a new tab. {name} is marked billed once the subscription clears.",
     ocStartBillingFailed: "Could not start billing:",
     visitingBanner: "You are inside {name} as platform owner. Changes affect their live data.",
     visitingUnknownCompany: "another company",
@@ -397,7 +426,8 @@ export const translations = {
     ocLoadCompanyFail: "Could not load {name}:",
     ocLoadCompaniesFail: "Failed to load companies:",
     ocNowPlatformAdmin: "{email} is now a platform admin.",
-    ocRevokeOwnConfirm: "Remove your OWN platform-admin access? You'll lose this console until another admin restores it.",
+    ocRevokeOwnConfirm:
+      "Remove your OWN platform-admin access? You'll lose this console until another admin restores it.",
     ocNoLongerAdmin: "{email} is no longer a platform admin.",
     ocVerbSuspend: "Suspend",
     ocVerbReactivate: "Reactivate",
@@ -434,13 +464,15 @@ export const translations = {
     stAutoSyncDesc: "File the report automatically when a job is marked complete",
     stDocFolder: "Document folder",
     stDocFolderNone: "Job Paperwork (default)",
-    stDocFolderHint: "Reports go to the Job Paperwork folder unless you pick another. Save your API token first, then load the list.",
+    stDocFolderHint:
+      "Reports go to the Job Paperwork folder unless you pick another. Save your API token first, then load the list.",
     stLoadFolders: "Load folders",
     stLoadFoldersFail: "Could not load AccuLynx folders:",
     stTestLookup: "Test job lookup",
     stPoPlaceholder: "Enter PO number",
     stCompanyDetails: "Company Details",
-    stCompanyDetailsDesc: "Your company name and tax line appear on every PDF report, the top bar, and the sidebar.",
+    stCompanyDetailsDesc:
+      "Your company name and tax line appear on every PDF report, the top bar, and the sidebar.",
     stCompanyName: "Company Name",
     stCompanyNameHint: "Shown as the header on job reports and across the app.",
     stCompanyNamePlaceholder: "e.g. Your Company Name",
@@ -482,7 +514,7 @@ export const translations = {
     stWarehouseAdded: "Warehouse added.",
     stWarehouseAddFail: "Failed to add warehouse:",
     stPermUpdateFail: "Permission update failed:",
-    stResetRoleConfirm: "Reset all permissions for \"{role}\" to defaults?",
+    stResetRoleConfirm: 'Reset all permissions for "{role}" to defaults?',
     stRoleReset: "{role} permissions reset.",
     stResetFail: "Reset failed:",
     stAxKeySaveFail: "Failed to save AccuLynx key:",
@@ -493,7 +525,8 @@ export const translations = {
     stCompressFail: "Image compression failed.",
     stLogoSaved: "Logo saved.",
     stLogoUploadFail: "Logo upload failed:",
-    stRemoveLogoConfirm: "Remove the company logo? Reports, the sidebar, and the login screen will fall back to the default mark.",
+    stRemoveLogoConfirm:
+      "Remove the company logo? Reports, the sidebar, and the login screen will fall back to the default mark.",
     stLogoRemoved: "Logo removed.",
     stLogoRemoveFail: "Could not remove logo:",
     umUserRemoved: "User removed.",
@@ -536,24 +569,32 @@ export const translations = {
     materialThisMonth: "Material Cost This Month",
 
     // Inventory Panel
-        searchInventory: "Search stock materials...",
-    availableStock: "Available Stock", unit: "Unit", status: "Status",
+    searchInventory: "Search stock materials...",
+    availableStock: "Available Stock",
+    unit: "Unit",
+    status: "Status",
     // Fleet & Maintenance
     fleetTitle: "Base Fleet Management",
-    trucks: "trucks", trailers: "trailers",
-    mileage: "Mileage", lastOil: "Last Oil Change", detailStatus: "Detail Status",
+    trucks: "trucks",
+    trailers: "trailers",
+    mileage: "Mileage",
+    lastOil: "Last Oil Change",
+    detailStatus: "Detail Status",
     requestMaintBtn: "🔧 Request Maintenance",
-    pending: "Pending", scheduled: "Scheduled", completed: "Completed",
-    reportedNotes: "Reported Notes & Detailed Description", urgency: "Urgency Level",
+    pending: "Pending",
+    scheduled: "Scheduled",
+    completed: "Completed",
+    reportedNotes: "Reported Notes & Detailed Description",
+    urgency: "Urgency Level",
 
     // Login Screen
     loginSubtitle: "Warehouse & Fleet Management System",
-                email: "Email",
+    email: "Email",
     password: "Password",
-            rememberMe: "Remember Me",
+    rememberMe: "Remember Me",
     processingQuery: "Processing Secure Query...",
     signIn: "Sign In →",
-                errNetworkAuth: "An unexpected network error interrupted authentication.",
+    errNetworkAuth: "An unexpected network error interrupted authentication.",
     errProfileAccess: "Failed to verify user profile access.",
     errAccountDeactivated: "This account has been deactivated by an administrator.",
     errProfileResolution: "Profile resolution failed.",
@@ -627,13 +668,15 @@ export const translations = {
     maintSelectIssueErr: "Please select at least one issue or classification checkbox.",
     maintDescribeErr: "Please describe the issue or service requested.",
     maintSubmitFail: "Failed to submit request:",
-    maintSubmitUnconfirmed: "The ticket could not be confirmed after saving — please refresh and check before scheduling it.",
+    maintSubmitUnconfirmed:
+      "The ticket could not be confirmed after saving — please refresh and check before scheduling it.",
     maintFiledOk: "Maintenance request filed successfully!",
     maintUpdateErr: "Error updating request:",
     maintStatusUpdated: "Ticket status updated successfully!",
     maintDeleteFail: "Failed to delete request:",
     maintDeletedOk: "Maintenance request deleted successfully.",
-    maintDeleteConfirm: "Are you absolutely sure you want to permanently delete this maintenance request? This action cannot be undone.",
+    maintDeleteConfirm:
+      "Are you absolutely sure you want to permanently delete this maintenance request? This action cannot be undone.",
 
     // Shared / table headers
     close: "Close",
@@ -668,14 +711,15 @@ export const translations = {
     pullShowAllJobs: "Show all open jobs",
     pullSortAria: "Sort jobs",
     pullSearchPlaceholder: "🔍 Search by PO #, job name, or address...",
-    pullNoneMatchSearch: "Nothing matches \"{query}\".",
+    pullNoneMatchSearch: 'Nothing matches "{query}".',
     pullClearSearch: "Clear search",
     pullSortNewest: "Date Created — Newest",
     pullSortOldest: "Date Created — Oldest",
     pullSortNameAZ: "Job Name — A to Z",
     pullSortNameZA: "Job Name — Z to A",
     pullSortPO: "PO Number",
-    pullAllCaughtUp: "🏁 All caught up — no open jobs right now. Completed jobs live in Build Jobs.",
+    pullAllCaughtUp:
+      "🏁 All caught up — no open jobs right now. Completed jobs live in Build Jobs.",
     pullNew: "NEW",
     pullNoPoHash: "No PO #",
     pullSyncFailed: "⚠️ Sync Failed",
@@ -688,11 +732,13 @@ export const translations = {
     pullPlanned: "planned",
     pullMore: "more",
     pullTotal: "Total",
-    pullAdjustInfo: "Adjust quantities if needed. Confirm to deduct from warehouse inventory (FIFO).",
+    pullAdjustInfo:
+      "Adjust quantities if needed. Confirm to deduct from warehouse inventory (FIFO).",
     pullInProgress: "⏳ Allocation Sync In Progress...",
     pullConfirm: "✅ Confirm Pull from Warehouse",
     pullReturnUnused: "Return Unused",
-    pullReturnInfo: "Enter quantities being returned. PDF report + AccuLynx sync will trigger on completion.",
+    pullReturnInfo:
+      "Enter quantities being returned. PDF report + AccuLynx sync will trigger on completion.",
     pullEstCost: "Estimated Cost",
     pullCompiling: "⏳ Compiling Core Assets...",
     pullCompleteJob: "🏁 Complete Job & Generate PDF",
@@ -722,14 +768,16 @@ export const translations = {
     pullTrailer: "🚚 Trailer",
     pullApproved: "Approved",
     pullNoneNeeded: "None needed",
-    pullConfigureAccuLynx: "Configure AccuLynx in Settings → AccuLynx to enable automatic document upload and cost entry.",
+    pullConfigureAccuLynx:
+      "Configure AccuLynx in Settings → AccuLynx to enable automatic document upload and cost entry.",
     pullSyncUpload: "☁️ Sync Upload",
     pullAccuLynxUploadTitle: "AccuLynx Upload",
     pullUploadNow: "☁️ Upload Now",
     pullRetryUpload: "🔄 Retry Upload",
-    pullUploadFailed: "⚠️ Upload Failed",
+    pullUploadFailedBadge: "⚠️ Upload Failed",
     pullUploadNotConfig: "📋 Upload Not Configured",
-    pullRemoveConfirm: "already has {qty} {unit} pulled from the warehouse. Removing it here will NOT return that stock — it only removes it from this job's checklist. Continue?",
+    pullRemoveConfirm:
+      "already has {qty} {unit} pulled from the warehouse. Removing it here will NOT return that stock — it only removes it from this job's checklist. Continue?",
     pullJobSaved: "Job details saved.",
     pullSaveError: "Database Error: Could not save job.",
     pullSupervisor: "Supervisor",
@@ -737,13 +785,16 @@ export const translations = {
     pullTrailerRemovedMsg: "notified that trailer was removed.",
     pullFailRemoveTrailer: "Failed to remove trailer:",
     pullFailAssignTrailer: "Failed to assign trailer:",
-    pullShortStock: "Pulled past available stock: {items}. The warehouse balance is now negative. Recount and reorder.",
+    pullShortStock:
+      "Pulled past available stock: {items}. The warehouse balance is now negative. Recount and reorder.",
     // Shown before the pull commits, not after. Deliberately blunt: the point is
     // that the count on the shelf and the count in the app have already disagreed.
     pullShortTitle: "Not enough stock on hand",
     pullShortHeading: "This pull takes stock below zero",
-    pullShortBody: "The warehouse does not have enough of these items. You can still pull, but the balance will go negative and someone has to find out why.",
-    pullShortFootnote: "Check the physical shelf first. If the material is really there, the count is wrong and Adjust Stock will fix it. If it is not there, pulling anyway records the shortfall against this job so it can be traced later.",
+    pullShortBody:
+      "The warehouse does not have enough of these items. You can still pull, but the balance will go negative and someone has to find out why.",
+    pullShortFootnote:
+      "Check the physical shelf first. If the material is really there, the count is wrong and Adjust Stock will fix it. If it is not there, pulling anyway records the shortfall against this job so it can be traced later.",
     pullShortCancel: "Go back and fix quantities",
     pullShortProceed: "Pull anyway and record the shortfall",
     pullPulledOk: "Materials successfully pulled from warehouse staging.",
@@ -752,24 +803,32 @@ export const translations = {
     // drops it out of the work queue immediately, so a message about generating a
     // report reads as failure when the report is popup-blocked and the card has
     // already disappeared.
-    pullJobCompleted: "Job completed and stock returned. It moved to the Completed filter, where you can reopen the PDF.",
-    pullPopupBlocked1: "Popup blocked, so the report did not open. It was still filed to AccuLynx. Allow popups for this site if you want the printable copy, or ask the office to reopen it from Build Jobs.",
+    pullJobCompleted:
+      "Job completed and stock returned. It moved to the Completed filter, where you can reopen the PDF.",
+    pullPopupBlocked1:
+      "Popup blocked, so the report did not open. It was still filed to AccuLynx. Allow popups for this site if you want the printable copy, or ask the office to reopen it from Build Jobs.",
     pullPdfBlockedTitle: "The report did not open",
-    pullPdfBlockedAsk: "Your browser blocked the popup, so no report was produced for this job. Nothing has been completed yet.",
-    pullPdfBlockedDetail: "Allow popups for this site and press Complete again to get the report. Or finish without it — the job will still close out and the materials will still be returned.",
+    pullPdfBlockedAsk:
+      "Your browser blocked the popup, so no report was produced for this job. Nothing has been completed yet.",
+    pullPdfBlockedDetail:
+      "Allow popups for this site and press Complete again to get the report. Or finish without it — the job will still close out and the materials will still be returned.",
     pullSyncFailedTitle: "Report could not be filed",
-    pullSyncFailedAsk: "AccuLynx did not accept the report, so nothing has been filed for this job. Nothing has been completed yet.",
+    pullSyncFailedAsk:
+      "AccuLynx did not accept the report, so nothing has been filed for this job. Nothing has been completed yet.",
     pullCompleteAnyway: "Complete anyway",
     pullDontComplete: "Leave it open",
     pullJustBuilt: "Just built",
     pullJustPulled: "Just pulled",
     pullJustCompleted: "Just completed",
     pullHandoffPulledTitle: "Materials pulled",
-    pullHandoffPulledMsg: "Stock has left the warehouse and the job is now Active. It stays here until the crew finishes and returns what's left over.",
+    pullHandoffPulledMsg:
+      "Stock has left the warehouse and the job is now Active. It stays here until the crew finishes and returns what's left over.",
     pullHandoffSeeActive: "📋 See the active job",
     pullHandoffCompletedTitle: "Job completed",
-    pullHandoffCompletedMsg: "Leftovers are back in stock and the report is filed. The job has moved to Build Jobs, waiting to be closed out.",
-    pullHandoffCompletedMsgField: "Leftovers are back in stock and the report is filed. The office has it from here — nothing else for you to do on this one.",
+    pullHandoffCompletedMsg:
+      "Leftovers are back in stock and the report is filed. The job has moved to Build Jobs, waiting to be closed out.",
+    pullHandoffCompletedMsgField:
+      "Leftovers are back in stock and the report is filed. The office has it from here — nothing else for you to do on this one.",
     pullHandoffSeeInBuild: "🏗️ See it in Build Jobs",
     pullRemoveTitle: "Remove this material?",
     pullRemoveYes: "Remove it",
@@ -779,10 +838,12 @@ export const translations = {
     pullReportFiledTitle: "📄 Report filed in AccuLynx",
     pullReportFiledAt: "Uploaded",
     pullReportNotFiled: "📄 Report not filed yet",
-    pullReportNotFiledDesc: "AccuLynx is connected. Press Upload Now to file the report. The PDF button only opens it for printing.",
+    pullReportNotFiledDesc:
+      "AccuLynx is connected. Press Upload Now to file the report. The PDF button only opens it for printing.",
     pullPopupBlocked2: "Popup blocked. Allow popups for this site to open the PDF report.",
     pullReturnError: "Database Error: Could not process return & completion.",
-    pullReturnOffline: "No connection, so the job could not be completed. Get a signal and press Complete Job again. It is safe to retry.",
+    pullReturnOffline:
+      "No connection, so the job could not be completed. Get a signal and press Complete Job again. It is safe to retry.",
     pullBefore: "Before",
     pullAfter: "After",
     pullPhotoSynced: "photo synchronized to cloud storage!",
@@ -810,8 +871,10 @@ export const translations = {
     rptSetContractValue: "Click to set the contract value",
     rptContractValueInvalid: "Enter a positive amount, or clear the box to mark it not set.",
     rptContractValueFail: "Could not save the contract value:",
-    rptMaterialsOnlyNote: "Gross profit here is contract value minus material cost only. Labor, subcontractors, disposal and overhead are not tracked in this app, so the real profit on every job is lower than the figure shown.",
-    rptUnpricedNote: "{n} of {total} completed jobs have no contract value yet, so they are left out of the revenue, profit and margin totals below. Their material cost is still included in the per-job rows. Add a value from Build Jobs, Edit Job.",
+    rptMaterialsOnlyNote:
+      "Gross profit here is contract value minus material cost only. Labor, subcontractors, disposal and overhead are not tracked in this app, so the real profit on every job is lower than the figure shown.",
+    rptUnpricedNote:
+      "{n} of {total} completed jobs have no contract value yet, so they are left out of the revenue, profit and margin totals below. Their material cost is still included in the per-job rows. Add a value from Build Jobs, Edit Job.",
     rptTotalsAcross: "Totals across {n} priced jobs",
     rptColGrossProfit: "Projected Gross Profit",
     rptColGrossMargin: "Gross Profit Margin",
@@ -834,9 +897,11 @@ export const translations = {
     rptInflationary: "Inflationary 📈",
     rptDeflationary: "Deflationary 📉",
     rptExpenseBurn: "📊 Expense Burn Footprint",
-    rptExpenseBurnDesc: "Relative cost breakdown bar chart scaled against a standard $2,500 lifecycle tier.",
+    rptExpenseBurnDesc:
+      "Relative cost breakdown bar chart scaled against a standard $2,500 lifecycle tier.",
     rptComplianceMonitor: "🚨 Fleet Maintenance Compliance Monitor",
-    rptComplianceDesc: "Vehicles requiring mechanical interval adjustments or detailing maintenance sweeps.",
+    rptComplianceDesc:
+      "Vehicles requiring mechanical interval adjustments or detailing maintenance sweeps.",
     rptOdo: "Odo:",
     rptOilOverdue: "🔧 Oil Overdue",
     rptDetailing: "🧹 Detailing",
@@ -856,7 +921,8 @@ export const translations = {
     rptResolvedRepairs: "resolved repairs",
     rptSumTotalFleet: "Sum Total Fleet Portfolio Capital Maintenance Expenditures",
     rptInspLogsTitle: "📋 Historical Vehicle Inspection Logs",
-    rptInspLogsDesc: "Condition log packages and provider diagnostic sheets uploaded by department managers.",
+    rptInspLogsDesc:
+      "Condition log packages and provider diagnostic sheets uploaded by department managers.",
     rptStreamingMetrics: "Streaming condition metrics ledger...",
     rptNoInspections: "No inspection files or reports submitted this period.",
     rptNoNotes: "No supplementary text or provider notes attached.",
@@ -878,7 +944,8 @@ export const translations = {
     rptColUserEmail: "User Email",
     rptColActionCode: "Action Code",
     rptColAuditNarrative: "Audit Narrative Description",
-    rptInspLoadFail: "Couldn't load inspection history — the list below may be incomplete. Refresh to retry.",
+    rptInspLoadFail:
+      "Couldn't load inspection history — the list below may be incomplete. Refresh to retry.",
     rptDeleteInspConfirm: "Delete inspection record for {name}?",
     rptInspDeleted: "Inspection record deleted.",
     rptInspDeleteErr: "Database Error: Could not delete inspection.",
@@ -914,7 +981,7 @@ export const translations = {
     bjPurged: "Job track purged successfully.",
     bjClosed: "Project closed and archived from pipeline.",
     bjPopupBlocked: "Popup blocked. Allow popups for this site to open the PDF report.",
-    bjTemplateAllPresent: "Everything in \"{name}\" is already on the job list.",
+    bjTemplateAllPresent: 'Everything in "{name}" is already on the job list.',
     bjDraftSaved: "Job draft saved successfully.",
     bjJobApprovedNotified: "Job approved and supervisor notified.",
     bjSubtitle: "Plan inventory, assign site supervisors, manage the pipeline",
@@ -933,22 +1000,27 @@ export const translations = {
     bjAdd: "+ Add",
     bjPoPlaceholder: "PO-2025-XXX",
     bjContractValue: "Contract Value",
-    bjContractValueHint: "What the customer is paying. Optional — leave blank if you do not know it yet. A blank keeps the job out of margin reporting; a guess quietly corrupts it.",
+    bjContractValueHint:
+      "What the customer is paying. Optional — leave blank if you do not know it yet. A blank keeps the job out of margin reporting; a guess quietly corrupts it.",
     bjCompleteSteps: "Please complete all steps and select project materials first.",
-    bjAxDisabled: "AccuLynx integration is disabled or proxy endpoint URL is unconfigured in Settings.",
+    bjAxDisabled:
+      "AccuLynx integration is disabled or proxy endpoint URL is unconfigured in Settings.",
     bjCloseTitle: "Close this job?",
-    bjCloseConfirm: "The report is filed to AccuLynx first. If that upload fails, the job stays open so you can retry.",
+    bjCloseConfirm:
+      "The report is filed to AccuLynx first. If that upload fails, the job stays open so you can retry.",
     bjCloseAndFile: "File report and close",
     bjClosing: "Filing report...",
     bjCloseSynced: "Report filed to AccuLynx.",
     bjCloseSyncFail: "Job NOT closed. The report could not be filed to AccuLynx:",
     bjCloseSyncFailTitle: "Report could not be filed",
-    bjCloseSyncFailAsk: "AccuLynx did not accept the report, so nothing has been filed for this job. Closing now takes it off this list, and nothing will remind you again.",
+    bjCloseSyncFailAsk:
+      "AccuLynx did not accept the report, so nothing has been filed for this job. Closing now takes it off this list, and nothing will remind you again.",
     bjCloseAnyway: "Close without the report",
     bjDontClose: "Keep it open",
     bjCorrectReturn: "🔄 Correct Return",
     bjCorrectReturnTitle: "Correct Returned Materials",
-    bjCorrectReturnInfo: "Fix a quantity that was returned wrong when this job was completed. This only changes what came back to the warehouse — not what was originally pulled — and cannot reduce a quantity below what has already been pulled back out for another job.",
+    bjCorrectReturnInfo:
+      "Fix a quantity that was returned wrong when this job was completed. This only changes what came back to the warehouse — not what was originally pulled — and cannot reduce a quantity below what has already been pulled back out for another job.",
     bjCorrectReturnSaving: "Saving correction...",
     bjCorrectReturnSaved: "Return corrected.",
     bjCorrectReturnFail: "Could not correct the return:",
@@ -957,27 +1029,32 @@ export const translations = {
     colCorrectedReturned: "Corrected Total",
     bjPullAdded: "🚛 Pull Added Materials",
     bjPullAddedTitle: "Pull Added Materials",
-    bjPullAddedInfo: "Pull stock for lines added to this job after its initial pull — nothing was deducted or costed for them yet. This deducts from the warehouse now (FIFO), same as a normal pull. A line already pulled belongs in Correct Return instead.",
+    bjPullAddedInfo:
+      "Pull stock for lines added to this job after its initial pull — nothing was deducted or costed for them yet. This deducts from the warehouse now (FIFO), same as a normal pull. A line already pulled belongs in Correct Return instead.",
     bjPullAddedSaving: "Pulling...",
     bjPullAddedSaved: "Materials pulled.",
     bjPullAddedFail: "Could not pull the added materials:",
     bjPullAddedNoChange: "Nothing was entered to pull.",
     bjPullAddedShortTitle: "Pulling past available stock",
-    bjPullAddedShortAsk: "This would take the warehouse balance below zero for: {items}. Pull anyway?",
+    bjPullAddedShortAsk:
+      "This would take the warehouse balance below zero for: {items}. Pull anyway?",
     bjPullAddedShortConfirm: "Pull anyway",
     bjCreatedTitle: "Job built",
     bjCreatedAssigned: "It is now in Pull Inventory, waiting for {name} to pull materials.",
-    bjCreatedUnassigned: "It is now in Pull Inventory. Nobody is assigned yet, so assign a supervisor when you can.",
+    bjCreatedUnassigned:
+      "It is now in Pull Inventory. Nobody is assigned yet, so assign a supervisor when you can.",
     bjCreatedTheCrew: "the crew",
     bjSeeInPull: "See it in Pull Inventory",
     bjBuildAnother: "Stay here",
     bjClosedTitle: "Job closed",
-    bjClosedMsg: "The report is filed and the job is archived. You'll find it under Closed if you ever need it again.",
+    bjClosedMsg:
+      "The report is filed and the job is archived. You'll find it under Closed if you ever need it again.",
     bjSeeInClosed: "See it under Closed",
     bjJustClosed: "Just closed",
     bjDeleteTitle: "Delete this job?",
     bjDeleteConfirm: "The job record and everything on it goes for good. This cannot be undone.",
-    bjDeleteDraftConfirm: "This draft goes for good. Nothing has been pulled against it, so nothing else is affected.",
+    bjDeleteDraftConfirm:
+      "This draft goes for good. Nothing has been pulled against it, so nothing else is affected.",
     bjDeleteYes: "Delete it",
     bjReopened: "Job successfully returned to active completed view.",
     bjSaveFail: "Database Error: Could not save job.",
@@ -988,7 +1065,7 @@ export const translations = {
     bjTrailerBookFail: "Job saved, but trailer booking failed:",
     bjTrailerRemoveFail: "Failed to remove trailer:",
     bjTrailerAssignFail: "Failed to assign trailer:",
-    bjAxNoResults: "No AccuLynx jobs found for \"{query}\".",
+    bjAxNoResults: 'No AccuLynx jobs found for "{query}".',
     bjAxFoundOne: "Found 1 job in AccuLynx.",
     bjAxFoundMany: "Found {count} jobs in AccuLynx.",
     bjAxFetchFail: "Integration Error: Failed fetching AccuLynx data records.",
@@ -1024,7 +1101,8 @@ export const translations = {
     profAlertPrefs: "Inventory Alert Preferences",
     profAlertEmail: "Connected Alert Email",
     profCellPhone: "Cell Phone Number",
-    profCellPhoneHint: "Stored on your profile so teammates can find you by number. Alerts are sent by email.",
+    profCellPhoneHint:
+      "Stored on your profile so teammates can find you by number. Alerts are sent by email.",
     profPhonePlaceholder: "(xxx) xxx-xxxx",
     profEnableEmail: "Enable Email Notifications",
     profSecurity: "Change your current login security details",
@@ -1037,7 +1115,8 @@ export const translations = {
     chromeSearchPlaceholder: "Search jobs, staff, trucks, tickets, materials, pages...",
     chromeLowStock: "low stock",
     chromeConnected: "Connected",
-    chromeOfflineHint: "This device is not on the network. Nothing you enter will save until it is.",
+    chromeOfflineHint:
+      "This device is not on the network. Nothing you enter will save until it is.",
     chromeOfflineWarning: "Changes will not save",
     chromeOffline: "Offline",
     chromeNewJobOne: "new job",
@@ -1083,7 +1162,8 @@ export const translations = {
     trainingPlay: "Play",
     trainingNoVideo: "Your browser can’t play this video.",
     trAdminTitle: "Your company's training library",
-    trAdminBlurb: "Upload your own clips and photos. Everyone in the company sees them here, under the Steadwerk tour. Only admins can add or remove them.",
+    trAdminBlurb:
+      "Upload your own clips and photos. Everyone in the company sees them here, under the Steadwerk tour. Only admins can add or remove them.",
     trAddMedia: "Add photo or video",
     trCancel: "Cancel",
     trTitle: "Title",
@@ -1099,7 +1179,8 @@ export const translations = {
     trAddedOk: "Added to the training library.",
     trAddFail: "Could not add that:",
     trRemove: "Remove",
-    trRemoveConfirm: "Remove \"{title}\" from the training library? This deletes the file for everyone.",
+    trRemoveConfirm:
+      'Remove "{title}" from the training library? This deletes the file for everyone.',
     trRemovedOk: "Removed from the training library.",
     trRemoveFail: "Could not remove that:",
     trAddedBy: "Added by",
@@ -1113,8 +1194,10 @@ export const translations = {
     flReturnToService: "Return to Service",
     flGroundTitle: "Take this vehicle out of service",
     flGroundReason: "Reason (optional)",
-    flGroundReasonHint: "What is keeping it off the road. Shown on the fleet board and cleared when it comes back.",
-    flGroundNote: "The truck stops showing as available and cannot be picked as a loaner. Nothing else changes, and you can put it back any time.",
+    flGroundReasonHint:
+      "What is keeping it off the road. Shown on the fleet board and cleared when it comes back.",
+    flGroundNote:
+      "The truck stops showing as available and cannot be picked as a loaner. Nothing else changes, and you can put it back any time.",
     flGrounded: "Vehicle taken out of service.",
     flReturned: "Vehicle returned to service.",
     flGroundFail: "Could not change the service status:",
@@ -1199,7 +1282,7 @@ export const translations = {
     svcRepair: "Repair",
     svcDetail: "Detail",
     svcInspection: "Inspection",
-    svcOther: "Other"
+    svcOther: "Other",
   },
   es: {
     // Sidebar & Navigation
@@ -1250,27 +1333,34 @@ export const translations = {
     invStockReorder: "Reordenar Ahora",
     invStockLow: "Quedando Poco",
     invStockIn: "En Existencia",
-    invNegativeHint: "Se retiró más de lo que existía. Cuente el estante y luego use Ajustar Stock.",
+    invNegativeHint:
+      "Se retiró más de lo que existía. Cuente el estante y luego use Ajustar Stock.",
 
     // Conteo Mensual
     cntTitle: "Conteo Mensual de Inventario",
-    cntSubtitle: "Lo que los libros esperan en el estante, junto a lo que alguien realmente contó. La diferencia es material que salió sin registro.",
+    cntSubtitle:
+      "Lo que los libros esperan en el estante, junto a lo que alguien realmente contó. La diferencia es material que salió sin registro.",
     cntPeriodAria: "Seleccionar período de conteo",
     cntExport: "Exportar CSV",
     cntLoading: "Cargando conteos",
     cntLoadFailTitle: "No se pudo cargar el historial de conteos",
-    cntLoadFailBody: "Esto no es un historial vacío, simplemente no se pudo obtener. No cierre un período hasta que esto se resuelva.",
+    cntLoadFailBody:
+      "Esto no es un historial vacío, simplemente no se pudo obtener. No cierre un período hasta que esto se resuelva.",
     cntRetry: "Reintentar",
     cntTileCounted: "Artículos contados",
     cntTileVariance: "Variación neta (unidades)",
     cntTileBleed: "Tasa de pérdida",
     cntTileValue: "Valor de las pérdidas",
-    cntFormula: "Esperado = inicial + recibido + ajustes − usado en trabajos. Variación = contado − esperado. La tasa de pérdida es la variación neta como parte de todo lo que pasó por el almacén en el período, para no juzgar un artículo de alta rotación contra lo poco que queda a fin de mes. Solo se incluyen las líneas contadas.",
-    cntOpenBanner: "Este período está abierto. Los números se actualizan conforme se recibe y se retira stock.",
+    cntFormula:
+      "Esperado = inicial + recibido + ajustes − usado en trabajos. Variación = contado − esperado. La tasa de pérdida es la variación neta como parte de todo lo que pasó por el almacén en el período, para no juzgar un artículo de alta rotación contra lo poco que queda a fin de mes. Solo se incluyen las líneas contadas.",
+    cntOpenBanner:
+      "Este período está abierto. Los números se actualizan conforme se recibe y se retira stock.",
     cntOpeningFromCount: "Los saldos iniciales vienen del conteo de {period}.",
-    cntOpeningFromBook: "No existe un conteo anterior, así que los saldos iniciales se calculan hacia atrás desde el libro actual. El primer período cerrado es lo que hace exactos a los siguientes.",
+    cntOpeningFromBook:
+      "No existe un conteo anterior, así que los saldos iniciales se calculan hacia atrás desde el libro actual. El primer período cerrado es lo que hace exactos a los siguientes.",
     cntClosedBanner: "{period} está cerrado.",
-    cntClosedBannerBody: "Estos números están congelados porque el saldo inicial del mes siguiente se lee de ellos.",
+    cntClosedBannerBody:
+      "Estos números están congelados porque el saldo inicial del mes siguiente se lee de ellos.",
     cntClosedOn: "Cerrado",
     cntFlaggedTitle: "{n} artículos que vale la pena revisar",
     cntSearch: "🔍 Buscar artículos...",
@@ -1283,8 +1373,10 @@ export const translations = {
     cntClosePeriod: "Cerrar período",
     cntClosed: "Período cerrado. Estos números quedan congelados.",
     cntCloseFail: "No se pudo cerrar el período:",
-    cntCloseConfirm: "¿Cerrar el conteo de {period}? Los números se congelan permanentemente y los saldos iniciales del mes siguiente se leerán de ellos.",
-    cntCloseConfirmPartial: "{n} artículos no se han contado. ¿Cerrar {period} de todos modos? Los artículos sin contar pasan al mes siguiente desde el libro y no desde un conteo real, así que su pérdida no se medirá.",
+    cntCloseConfirm:
+      "¿Cerrar el conteo de {period}? Los números se congelan permanentemente y los saldos iniciales del mes siguiente se leerán de ellos.",
+    cntCloseConfirmPartial:
+      "{n} artículos no se han contado. ¿Cerrar {period} de todos modos? Los artículos sin contar pasan al mes siguiente desde el libro y no desde un conteo real, así que su pérdida no se medirá.",
     cntDiscardConfirm: "Tiene conteos sin guardar en esta hoja. ¿Cambiar de período y perderlos?",
     cntColItem: "Artículo",
     cntColOpening: "Inicial",
@@ -1298,7 +1390,8 @@ export const translations = {
     cntOpeningDerived: "(del libro)",
     cntNegativeBook: "el libro dice {n}",
     cntNoRows: "Ningún artículo coincide.",
-    cntUnsaved: "Tiene conteos sin guardar. Presione Guardar progreso antes de salir de esta pantalla.",
+    cntUnsaved:
+      "Tiene conteos sin guardar. Presione Guardar progreso antes de salir de esta pantalla.",
     invReceiveBulk: "Recibir Pedido en Bloque",
     invTemplates: "Plantillas",
     invAddItem: "Agregar Artículo",
@@ -1326,21 +1419,30 @@ export const translations = {
     blSeatLimit: "Alcanzó su límite de usuarios. Agregue un paquete para invitar a más.",
     blPaymentInvoices: "Pagos y facturas",
     blManagePayment: "Administrar pagos y facturas →",
-    blPortalBlurb: "Actualice su tarjeta, descargue facturas y consulte el historial de pagos en el portal seguro de Stripe.",
-    blNoBillingAccount: "Esta empresa no se factura por Stripe, así que no hay tarjeta registrada ni facturas que administrar. No se debe nada.",
-    blAddSeatsConfirm: "¿Agregar 5 usuarios por ${pack} al mes? Esto se agrega a su suscripción, así que su factura sube ${pack} cada mes hasta que lo quite. El primer cargo es prorrateado por lo que resta del período.",
+    blPortalBlurb:
+      "Actualice su tarjeta, descargue facturas y consulte el historial de pagos en el portal seguro de Stripe.",
+    blNoBillingAccount:
+      "Esta empresa no se factura por Stripe, así que no hay tarjeta registrada ni facturas que administrar. No se debe nada.",
+    blAddSeatsConfirm:
+      "¿Agregar 5 usuarios por ${pack} al mes? Esto se agrega a su suscripción, así que su factura sube ${pack} cada mes hasta que lo quite. El primer cargo es prorrateado por lo que resta del período.",
     blAddSeatsFail: "No se pudieron agregar usuarios:",
-    blRemoveSeatsConfirm: "¿Quitar {seats} usuarios y dejar de pagar los ${pack} al mes por ellos? Recibirá un crédito prorrateado por lo que resta del período.",
+    blRemoveSeatsConfirm:
+      "¿Quitar {seats} usuarios y dejar de pagar los ${pack} al mes por ellos? Recibirá un crédito prorrateado por lo que resta del período.",
     blRemoveSeatsFail: "No se pudieron quitar usuarios:",
-    blSeatsAdded: "Usuarios agregados. Su nueva capacidad aparece en un momento, cuando Stripe lo confirme.",
-    blSeatsRemoved: "Usuarios quitados. Su nueva capacidad aparece en un momento, cuando Stripe lo confirme.",
-    blRemoveBlocked: "No hay nada que quitar, o todos sus usuarios están en uso. Desactive un usuario primero.",
-    blProrationNote: "Los paquetes de cuadrilla se cobran mensualmente y se prorratean al agregarlos o quitarlos. Los paquetes comprados antes del cambio de precio siguen sin costo y no se pueden quitar.",
+    blSeatsAdded:
+      "Usuarios agregados. Su nueva capacidad aparece en un momento, cuando Stripe lo confirme.",
+    blSeatsRemoved:
+      "Usuarios quitados. Su nueva capacidad aparece en un momento, cuando Stripe lo confirme.",
+    blRemoveBlocked:
+      "No hay nada que quitar, o todos sus usuarios están en uso. Desactive un usuario primero.",
+    blProrationNote:
+      "Los paquetes de cuadrilla se cobran mensualmente y se prorratean al agregarlos o quitarlos. Los paquetes comprados antes del cambio de precio siguen sin costo y no se pueden quitar.",
     blOpenBillingFail: "No se pudo abrir la facturación:",
 
     // Audit Logs
     alHeading: "🏭 Registros de Auditoría",
-    alSubtitle: "Seguimiento de eventos de cumplimiento en todo el sistema. Vista administrativa únicamente.",
+    alSubtitle:
+      "Seguimiento de eventos de cumplimiento en todo el sistema. Vista administrativa únicamente.",
     alAllActionClasses: "Todas las Clases de Acción",
     alAnyone: "Cualquiera",
     alNoReceipts: "No hay recibos que coincidan.",
@@ -1373,11 +1475,13 @@ export const translations = {
     alTagPrice: "registro de precio",
     alLegendTitle: "Esta tabla no es solo de entregas. Contiene cinco tipos de fila:",
     alLegendReceiptName: "recibo",
-    alLegendReceipt: "material que llega de un proveedor. El único tipo que requiere PO y proveedor.",
+    alLegendReceipt:
+      "material que llega de un proveedor. El único tipo que requiere PO y proveedor.",
     alLegendReturn: "material sin usar que regresa de un trabajo terminado.",
     alLegendAdjust: "alguien corrigió el conteo a mano, normalmente tras un conteo físico.",
     alLegendPrice: "un precio registrado sin cantidad asociada.",
-    alLegendShort: "se retiró más de lo que había en el almacén. La cantidad es negativa porque es stock que se entregó pero nunca existió. El trabajo al que fue está en la última columna.",
+    alLegendShort:
+      "se retiró más de lo que había en el almacén. La cantidad es negativa porque es stock que se entregó pero nunca existió. El trabajo al que fue está en la última columna.",
 
     // Roles
     roleAdmin: "Administrador",
@@ -1397,8 +1501,9 @@ export const translations = {
 
     // User Management
     umPermOverridesTitle: "Configurar permisos individuales del usuario",
-    umRolePermsBlurb: "Los permisos por rol se configuran en {link}. También puede dar excepciones de permisos a usuarios individuales aquí con el botón 🔒.",
-        umRolePermsLink: "Configuración → Permisos por Rol",
+    umRolePermsBlurb:
+      "Los permisos por rol se configuran en {link}. También puede dar excepciones de permisos a usuarios individuales aquí con el botón 🔒.",
+    umRolePermsLink: "Configuración → Permisos por Rol",
     umEdit: "Editar",
     umFullName: "Nombre Completo *",
     umEmail: "Correo Electrónico",
@@ -1410,7 +1515,8 @@ export const translations = {
     umNewTempPassword: "Nueva Contraseña Temporal",
     umConfirmNewPassword: "Confirmar Nueva Contraseña",
     umEmailInvite: "Enviarle una invitación por correo",
-    umInviteOn: "Recibirá un enlace para crear su propia contraseña. No necesita compartir la temporal.",
+    umInviteOn:
+      "Recibirá un enlace para crear su propia contraseña. No necesita compartir la temporal.",
     umInviteOff: "No se envía ningún correo. Usted deberá darle la contraseña temporal.",
     umPwFallbackHint: "Un respaldo por si la invitación no llega.",
     umPwShareHint: "Compártala directamente con el nuevo usuario.",
@@ -1437,7 +1543,8 @@ export const translations = {
     umTempPwSet: "Contraseña temporal establecida. Compártala directamente con el usuario.",
     umPwResetFail: "No se pudo restablecer la contraseña.",
     umCannotRemoveSelf: "¡Violación de Seguridad: No puede eliminar su propia cuenta!",
-    umRemoveConfirm: "¿Eliminar permanentemente a {name}? Esto borra su cuenta por completo y no se puede deshacer.",
+    umRemoveConfirm:
+      "¿Eliminar permanentemente a {name}? Esto borra su cuenta por completo y no se puede deshacer.",
     umThisUser: "este usuario",
 
     // Componentes compartidos
@@ -1451,14 +1558,16 @@ export const translations = {
     ccNoSupervisor: "Sin supervisor asignado",
     ccNoCrews: "No hay cuadrillas de campo registradas para mostrar el calendario.",
     mcSubtitle: "Arrastre una solicitud a un día para programarla o reprogramarla.",
-    mcUnschedule: "Nada pendiente. Arrastre aquí una solicitud programada para quitarla del calendario.",
+    mcUnschedule:
+      "Nada pendiente. Arrastre aquí una solicitud programada para quitarla del calendario.",
     mcNoRequests: "No hay solicitudes de mantenimiento activas para programar esta semana.",
     tcNoTrailers: "Aún no hay remolques registrados en la flota.",
     tcRemoveBooking: "Quitar esta reserva de remolque",
     csSwitchCompany: "Cambiar de empresa",
     ebTitle: "Se Interrumpió la Interfaz del Sistema",
     ebExceptionMessage: "Mensaje de Excepción",
-    idleExpired: "Su sesión expiró por {minutes} minutos de inactividad. Por favor inicie sesión de nuevo.",
+    idleExpired:
+      "Su sesión expiró por {minutes} minutos de inactividad. Por favor inicie sesión de nuevo.",
     chNoMessages: "Aún no hay mensajes. Salude 👋",
     chLoadingMessages: "Cargando mensajes...",
     chCancel: "Cancelar",
@@ -1474,11 +1583,11 @@ export const translations = {
     chAttachmentLabel: "📷 Adjunto",
     chFullSize: "Adjunto en tamaño completo",
     chDeleteConfirm: "¿Eliminar este mensaje?",
-    cwIntro: "Pregúnteme sobre trabajos, inventario, estado de la flota o solicitudes de mantenimiento.",
+    cwIntro:
+      "Pregúnteme sobre trabajos, inventario, estado de la flota o solicitudes de mantenimiento.",
     cwThinking: "Pensando...",
     cwAskQuestion: "Haga una pregunta...",
     cwAssistant: "Asistente de Steadwerk",
-
 
     // Inicio de sesión y restablecimiento de contraseña
     lgForgotPassword: "¿Olvidó su contraseña?",
@@ -1494,11 +1603,13 @@ export const translations = {
     lgStartingCheckout: "Iniciando el pago…",
     lgContinuePayment: "Continuar al pago →",
     mfaTitle: "Autenticación de Dos Factores",
-    mfaIntro: "Agregue un código de 6 dígitos desde su teléfono además de su contraseña. Aunque alguien sepa su contraseña, no puede entrar sin su teléfono.",
+    mfaIntro:
+      "Agregue un código de 6 dígitos desde su teléfono además de su contraseña. Aunque alguien sepa su contraseña, no puede entrar sin su teléfono.",
     mfaLoading: "Revisando su configuración de seguridad...",
     mfaSetUp: "Configurar autenticación de dos factores",
     mfaStarting: "Iniciando...",
-    mfaStep1: "Abra una app de autenticación (Google Authenticator, Authy o 1Password) y escanee este código.",
+    mfaStep1:
+      "Abra una app de autenticación (Google Authenticator, Authy o 1Password) y escanee este código.",
     mfaStep2: "Ingrese el código de 6 dígitos que muestre para terminar.",
     mfaQrAlt: "Código QR para su app de autenticación",
     mfaSecretLabel: "O ingrese esta clave a mano",
@@ -1507,22 +1618,28 @@ export const translations = {
     mfaTurnOn: "Activar",
     mfaVerify: "Verificar",
     mfaVerifying: "Verificando...",
-    mfaEnabled: "La autenticación de dos factores está activa. Le pediremos un código la próxima vez que inicie sesión.",
+    mfaEnabled:
+      "La autenticación de dos factores está activa. Le pediremos un código la próxima vez que inicie sesión.",
     mfaAuthenticator: "App de autenticación",
     mfaAddedOn: "Agregada",
     mfaRemove: "Quitar",
-    mfaRemoveConfirm: "¿Quitar la autenticación de dos factores? Su contraseña sola volverá a abrir esta cuenta.",
+    mfaRemoveConfirm:
+      "¿Quitar la autenticación de dos factores? Su contraseña sola volverá a abrir esta cuenta.",
     mfaRemoved: "Autenticación de dos factores eliminada.",
-    mfaLostDevice: "¿Perdió su teléfono? Pida a un administrador de la plataforma que borre su factor y configúrelo de nuevo.",
-    mfaOwnerNudge: "Su cuenta puede ver todas las empresas de la plataforma. Se recomienda activarlo.",
+    mfaLostDevice:
+      "¿Perdió su teléfono? Pida a un administrador de la plataforma que borre su factor y configúrelo de nuevo.",
+    mfaOwnerNudge:
+      "Su cuenta puede ver todas las empresas de la plataforma. Se recomienda activarlo.",
     mfaChallengePrompt: "Ingrese el código de 6 dígitos de su app de autenticación.",
     lgTerms: "Términos y Condiciones de Steadwerk",
     lgPrivacy: "Política de Privacidad",
-    lgNeedAccess: "¿Necesita acceso a una empresa existente? Pida a su administrador que lo agregue.",
+    lgNeedAccess:
+      "¿Necesita acceso a una empresa existente? Pida a su administrador que lo agregue.",
     lgStartOwn: "Comience su propia empresa →",
     lgEnterEmailFirst: "Primero ingrese su correo arriba, luego toque “¿Olvidó su contraseña?”.",
     lgChoosePassword8: "Elija una contraseña de al menos 8 caracteres.",
-    rpChanged: "Su contraseña ha sido cambiada. Inicie sesión con su nueva contraseña para continuar.",
+    rpChanged:
+      "Su contraseña ha sido cambiada. Inicie sesión con su nueva contraseña para continuar.",
     rpContinueSignIn: "Continuar al inicio de sesión →",
     rpNewPassword: "Nueva contraseña",
     rpNewPlaceholder: "Al menos 8 caracteres",
@@ -1548,13 +1665,15 @@ export const translations = {
     ocDelete: "Eliminar",
     ocSuspend: "Suspender",
     ocPlatformAdmins: "Administradores de la plataforma",
-    ocPlatformAdminsDesc: "Personas que pueden ver esta consola y administrar todas las empresas. Otórguelo con moderación.",
+    ocPlatformAdminsDesc:
+      "Personas que pueden ver esta consola y administrar todas las empresas. Otórguelo con moderación.",
     ocRevoke: "Revocar",
     ocGrantAdmin: "Otorgar admin",
     ocPromotePlaceholder: "correo de un usuario existente para promover",
     ocDeleteWarning: "Esto elimina permanentemente la empresa y",
     ocDeleteWarningBold: "todo",
-    ocDeleteWarningRest: "lo que contiene. Todos los trabajos, inventario, vehículos, archivos y membresías. Cualquier suscripción de Stripe se cancela y los miembros sin otra empresa pierden su cuenta. Esto no se puede deshacer.",
+    ocDeleteWarningRest:
+      "lo que contiene. Todos los trabajos, inventario, vehículos, archivos y membresías. Cualquier suscripción de Stripe se cancela y los miembros sin otra empresa pierden su cuenta. Esto no se puede deshacer.",
     ocTypeToConfirm: "Escriba",
     ocToConfirm: "para confirmar",
     ocCancel: "Cancelar",
@@ -1563,11 +1682,13 @@ export const translations = {
     ocNoInventory: "No hay inventario.",
     ocNoMembers: "No hay miembros.",
     ocEnter: "Entrar",
-    ocEnterConfirm: "¿Entrar a {name} y trabajar como su administrador? Actuará sobre sus datos reales. Se registrará en su historial de auditoría.",
+    ocEnterConfirm:
+      "¿Entrar a {name} y trabajar como su administrador? Actuará sobre sus datos reales. Se registrará en su historial de auditoría.",
     ocNotBilled: "Sin suscripción de Stripe. Esta empresa es cortesía o fue activada a mano.",
     ocStartBilling: "Iniciar facturación",
     ocStartBillingTitle: "¿Iniciar facturación para {name}?",
-    ocStartBillingDesc: "Abre un Stripe Checkout real en una pestaña nueva para el plan base: {price} para hasta {seats} personas, sin prueba. Nada cambia aquí hasta que se ingrese la tarjeta y la suscripción se confirme. Esto solo inicia ese proceso.",
+    ocStartBillingDesc:
+      "Abre un Stripe Checkout real en una pestaña nueva para el plan base: {price} para hasta {seats} personas, sin prueba. Nada cambia aquí hasta que se ingrese la tarjeta y la suscripción se confirme. Esto solo inicia ese proceso.",
     ocMonthlyRate: "{price}/mes",
     ocAnnualRate: "{price}/año",
     ocBillingEmail: "Correo de facturación",
@@ -1577,11 +1698,13 @@ export const translations = {
     ocAnnual: "Anual",
     ocOpenCheckout: "Abrir Stripe checkout",
     ocOpeningCheckout: "Abriendo…",
-    ocCheckoutOpened: "Checkout abierto en una pestaña nueva. {name} se marca facturada cuando la suscripción se confirme.",
+    ocCheckoutOpened:
+      "Checkout abierto en una pestaña nueva. {name} se marca facturada cuando la suscripción se confirme.",
     ocStartBillingFailed: "No se pudo iniciar la facturación:",
     ocNoInvoices: "Aún no hay facturas.",
     ocCancelsAtPeriodEnd: "Se cancela al final del período",
-    visitingBanner: "Está dentro de {name} como dueño de la plataforma. Los cambios afectan sus datos reales.",
+    visitingBanner:
+      "Está dentro de {name} como dueño de la plataforma. Los cambios afectan sus datos reales.",
     visitingUnknownCompany: "otra empresa",
     visitingLeave: "Salir",
     visitingLeaving: "Saliendo...",
@@ -1589,7 +1712,8 @@ export const translations = {
     ocLoadCompanyFail: "No se pudo cargar {name}:",
     ocLoadCompaniesFail: "No se pudieron cargar las empresas:",
     ocNowPlatformAdmin: "{email} ahora es administrador de la plataforma.",
-    ocRevokeOwnConfirm: "¿Quitar su PROPIO acceso de administrador de plataforma? Perderá esta consola hasta que otro administrador se lo restaure.",
+    ocRevokeOwnConfirm:
+      "¿Quitar su PROPIO acceso de administrador de plataforma? Perderá esta consola hasta que otro administrador se lo restaure.",
     ocNoLongerAdmin: "{email} ya no es administrador de la plataforma.",
     ocVerbSuspend: "Suspender",
     ocVerbReactivate: "Reactivar",
@@ -1626,31 +1750,38 @@ export const translations = {
     stAutoSyncDesc: "Archiva el reporte automáticamente cuando un trabajo se marca como completado",
     stDocFolder: "Carpeta de documentos",
     stDocFolderNone: "Job Paperwork (predeterminada)",
-    stDocFolderHint: "Los reportes van a la carpeta Job Paperwork salvo que elija otra. Guarde su token primero, luego cargue la lista.",
+    stDocFolderHint:
+      "Los reportes van a la carpeta Job Paperwork salvo que elija otra. Guarde su token primero, luego cargue la lista.",
     stLoadFolders: "Cargar carpetas",
     stLoadFoldersFail: "No se pudieron cargar las carpetas de AccuLynx:",
     stTestLookup: "Probar búsqueda de trabajo",
     stPoPlaceholder: "Ingrese el número de PO",
     stCompanyDetails: "Datos de la Empresa",
-    stCompanyDetailsDesc: "El nombre de su empresa y la línea de impuestos aparecen en cada reporte PDF, la barra superior y el menú lateral.",
+    stCompanyDetailsDesc:
+      "El nombre de su empresa y la línea de impuestos aparecen en cada reporte PDF, la barra superior y el menú lateral.",
     stCompanyName: "Nombre de la Empresa",
-    stCompanyNameHint: "Se muestra como encabezado en los reportes de trabajo y en toda la aplicación.",
+    stCompanyNameHint:
+      "Se muestra como encabezado en los reportes de trabajo y en toda la aplicación.",
     stCompanyNamePlaceholder: "ej. Nombre de Su Empresa",
     stTagline: "Lema de la Empresa",
-    stTaglineHint: "Línea opcional en el encabezado de su panel. Una ciudad, lema o nombre de equipo.",
+    stTaglineHint:
+      "Línea opcional en el encabezado de su panel. Una ciudad, lema o nombre de equipo.",
     stTaglinePlaceholder: "ej. Cuadrilla de techos de Toledo desde 2004",
     stAccentColor: "Color de Acento de la Marca",
-    stAccentColorHint: "Aplica el tema a sus botones, encabezado del panel y detalles en toda la aplicación.",
+    stAccentColorHint:
+      "Aplica el tema a sus botones, encabezado del panel y detalles en toda la aplicación.",
     stAccentAria: "Color de acento de la marca",
     stState: "Estado",
     stStateHint: "Completa la tasa base de impuesto de este estado. Aún puede ajustarla.",
     stSelectState: "Seleccione un estado…",
     stTaxRate: "Tasa de Impuesto sobre Ventas (%)",
     stTaxLabel: "Etiqueta de Impuesto",
-    stTaxLabelHint: 'Cómo se lee la línea de impuestos, ej. "Impuesto sobre Ventas de Ohio". Predeterminado: "Impuesto sobre Ventas".',
+    stTaxLabelHint:
+      'Cómo se lee la línea de impuestos, ej. "Impuesto sobre Ventas de Ohio". Predeterminado: "Impuesto sobre Ventas".',
     stSalesTax: "Impuesto sobre Ventas",
     stCompanyLogo: "Logotipo de la Empresa",
-    stCompanyLogoDesc: "Su logotipo aparece en el menú lateral, la pantalla de inicio de sesión y todos los reportes PDF.",
+    stCompanyLogoDesc:
+      "Su logotipo aparece en el menú lateral, la pantalla de inicio de sesión y todos los reportes PDF.",
     stCurrentLogo: "Logotipo actual de la empresa",
     stLogoFormats: "PNG, JPG o SVG. Se comprime automáticamente.",
     stWarehouses: "Instalaciones de Almacén",
@@ -1674,7 +1805,8 @@ export const translations = {
     stWarehouseAdded: "Almacén agregado.",
     stWarehouseAddFail: "No se pudo agregar el almacén:",
     stPermUpdateFail: "No se pudo actualizar el permiso:",
-    stResetRoleConfirm: "¿Restablecer todos los permisos de \"{role}\" a los valores predeterminados?",
+    stResetRoleConfirm:
+      '¿Restablecer todos los permisos de "{role}" a los valores predeterminados?',
     stRoleReset: "Permisos de {role} restablecidos.",
     stResetFail: "No se pudo restablecer:",
     stAxKeySaveFail: "No se pudo guardar la clave de AccuLynx:",
@@ -1685,7 +1817,8 @@ export const translations = {
     stCompressFail: "Falló la compresión de la imagen.",
     stLogoSaved: "Logotipo guardado.",
     stLogoUploadFail: "No se pudo subir el logotipo:",
-    stRemoveLogoConfirm: "¿Quitar el logotipo de la empresa? Los reportes, el menú lateral y la pantalla de inicio de sesión volverán al logotipo predeterminado.",
+    stRemoveLogoConfirm:
+      "¿Quitar el logotipo de la empresa? Los reportes, el menú lateral y la pantalla de inicio de sesión volverán al logotipo predeterminado.",
     stLogoRemoved: "Logotipo eliminado.",
     stLogoRemoveFail: "No se pudo quitar el logotipo:",
     umUserRemoved: "Usuario eliminado.",
@@ -1728,20 +1861,20 @@ export const translations = {
     materialThisMonth: "Costo de Material Este Mes",
 
     // ── 🟢 FIXED: ADDED MISSING INVENTORY SPANISH STRINGS ──
-        searchInventory: "🔍 Buscar materiales...",
-    
-    availableStock: "Stock Disponible", 
-    unit: "Unidad", 
+    searchInventory: "🔍 Buscar materiales...",
+
+    availableStock: "Stock Disponible",
+    unit: "Unidad",
     status: "Estado",
     // ── 🟢 FIXED: ADDED MISSING FLEET & MAINTENANCE SPANISH STRINGS ──
     fleetTitle: "Gestión de la Flota Base",
-    trucks: "camiones", 
+    trucks: "camiones",
     trailers: "remolques",
-    mileage: "Kilometraje", 
-    lastOil: "Último Cambio de Aceite", 
+    mileage: "Kilometraje",
+    lastOil: "Último Cambio de Aceite",
     detailStatus: "Estado de Limpieza",
     requestMaintBtn: "🔧 Solicitar Mantenimiento",
-        pending: "Pendiente",
+    pending: "Pendiente",
     scheduled: "Programado",
     completed: "Completado",
     reportedNotes: "Notas Reportadas y Descripción Detallada",
@@ -1749,12 +1882,12 @@ export const translations = {
 
     // Login Screen
     loginSubtitle: "Sistema de Gestión de Almacén y Flota",
-                email: "Correo Electrónico",
+    email: "Correo Electrónico",
     password: "Contraseña",
-            rememberMe: "Recordarme",
+    rememberMe: "Recordarme",
     processingQuery: "Procesando Solicitud Segura...",
     signIn: "Iniciar Sesión →",
-                errNetworkAuth: "Un error de red inesperado interrumpió la autenticación.",
+    errNetworkAuth: "Un error de red inesperado interrumpió la autenticación.",
     errProfileAccess: "No se pudo verificar el acceso al perfil de usuario.",
     errAccountDeactivated: "Esta cuenta ha sido desactivada por un administrador.",
     errProfileResolution: "Error al resolver el perfil.",
@@ -1828,13 +1961,15 @@ export const translations = {
     maintSelectIssueErr: "Por favor seleccione al menos una casilla de problema o clasificación.",
     maintDescribeErr: "Por favor describa el problema o servicio solicitado.",
     maintSubmitFail: "No se pudo enviar la solicitud:",
-    maintSubmitUnconfirmed: "No se pudo confirmar el ticket después de guardarlo — actualice la página y verifíquelo antes de programarlo.",
+    maintSubmitUnconfirmed:
+      "No se pudo confirmar el ticket después de guardarlo — actualice la página y verifíquelo antes de programarlo.",
     maintFiledOk: "¡Solicitud de mantenimiento presentada con éxito!",
     maintUpdateErr: "Error al actualizar la solicitud:",
     maintStatusUpdated: "¡Estado del ticket actualizado con éxito!",
     maintDeleteFail: "No se pudo eliminar la solicitud:",
     maintDeletedOk: "Solicitud de mantenimiento eliminada con éxito.",
-    maintDeleteConfirm: "¿Está absolutamente seguro de que desea eliminar permanentemente esta solicitud de mantenimiento? Esta acción no se puede deshacer.",
+    maintDeleteConfirm:
+      "¿Está absolutamente seguro de que desea eliminar permanentemente esta solicitud de mantenimiento? Esta acción no se puede deshacer.",
 
     // Shared / table headers
     close: "Cerrar",
@@ -1862,19 +1997,21 @@ export const translations = {
     pullFilterAll: "Todos los trabajos abiertos, aprobados y activos",
     pullFilterApproved: "Aprobados. Esperando a que se surtan.",
     pullFilterActive: "Activos. Ya surtidos, esperando devolución y cierre.",
-    pullFilterCompleted: "Terminados. El material volvió al inventario y el PDF se puede reabrir aquí.",
+    pullFilterCompleted:
+      "Terminados. El material volvió al inventario y el PDF se puede reabrir aquí.",
     pullNoneMatchFilter: "Ningún trabajo coincide con ese filtro ahora.",
     pullShowAllJobs: "Mostrar todos los trabajos abiertos",
     pullSortAria: "Ordenar trabajos",
     pullSearchPlaceholder: "🔍 Buscar por # de PO, nombre del trabajo o dirección...",
-    pullNoneMatchSearch: "Nada coincide con \"{query}\".",
+    pullNoneMatchSearch: 'Nada coincide con "{query}".',
     pullClearSearch: "Borrar búsqueda",
     pullSortNewest: "Fecha de Creación — Más Reciente",
     pullSortOldest: "Fecha de Creación — Más Antigua",
     pullSortNameAZ: "Nombre del Trabajo — A a Z",
     pullSortNameZA: "Nombre del Trabajo — Z a A",
     pullSortPO: "Número de PO",
-    pullAllCaughtUp: "🏁 Todo al día — no hay trabajos abiertos ahora. Los trabajos completados están en Programar Trabajos.",
+    pullAllCaughtUp:
+      "🏁 Todo al día — no hay trabajos abiertos ahora. Los trabajos completados están en Programar Trabajos.",
     pullNew: "NUEVO",
     pullNoPoHash: "Sin PO #",
     pullSyncFailed: "⚠️ Falló la Sincronización",
@@ -1887,11 +2024,13 @@ export const translations = {
     pullPlanned: "planeado",
     pullMore: "más",
     pullTotal: "Total",
-    pullAdjustInfo: "Ajuste las cantidades si es necesario. Confirme para descontar del inventario del almacén (FIFO).",
+    pullAdjustInfo:
+      "Ajuste las cantidades si es necesario. Confirme para descontar del inventario del almacén (FIFO).",
     pullInProgress: "⏳ Sincronización en progreso...",
     pullConfirm: "✅ Confirmar Retiro del Almacén",
     pullReturnUnused: "Devolver No Usado",
-    pullReturnInfo: "Ingrese las cantidades que se devuelven. El reporte PDF y la sincronización con AccuLynx se activarán al completar.",
+    pullReturnInfo:
+      "Ingrese las cantidades que se devuelven. El reporte PDF y la sincronización con AccuLynx se activarán al completar.",
     pullEstCost: "Costo Estimado",
     pullCompiling: "⏳ Compilando...",
     pullCompleteJob: "🏁 Completar Trabajo y Generar PDF",
@@ -1921,14 +2060,16 @@ export const translations = {
     pullTrailer: "🚚 Remolque",
     pullApproved: "Aprobado",
     pullNoneNeeded: "Ninguno necesario",
-    pullConfigureAccuLynx: "Configure AccuLynx en Configuración → AccuLynx para habilitar la carga automática de documentos y el registro de costos.",
+    pullConfigureAccuLynx:
+      "Configure AccuLynx en Configuración → AccuLynx para habilitar la carga automática de documentos y el registro de costos.",
     pullSyncUpload: "☁️ Subir a AccuLynx",
     pullAccuLynxUploadTitle: "Carga a AccuLynx",
     pullUploadNow: "☁️ Subir Ahora",
     pullRetryUpload: "🔄 Reintentar Carga",
-    pullUploadFailed: "⚠️ Falló la Carga",
+    pullUploadFailedBadge: "⚠️ Falló la Carga",
     pullUploadNotConfig: "📋 Carga No Configurada",
-    pullRemoveConfirm: "ya tiene {qty} {unit} retirados del almacén. Quitarlo aquí NO devolverá ese stock — solo lo elimina de la lista de este trabajo. ¿Continuar?",
+    pullRemoveConfirm:
+      "ya tiene {qty} {unit} retirados del almacén. Quitarlo aquí NO devolverá ese stock — solo lo elimina de la lista de este trabajo. ¿Continuar?",
     pullJobSaved: "Detalles del trabajo guardados.",
     pullSaveError: "Error de Base de Datos: No se pudo guardar el trabajo.",
     pullSupervisor: "Supervisor",
@@ -1936,33 +2077,44 @@ export const translations = {
     pullTrailerRemovedMsg: "notificado que el remolque fue removido.",
     pullFailRemoveTrailer: "No se pudo remover el remolque:",
     pullFailAssignTrailer: "No se pudo asignar el remolque:",
-    pullShortStock: "Se retiró más del stock disponible: {items}. El balance del almacén ahora es negativo. Vuelva a contar y reordene.",
+    pullShortStock:
+      "Se retiró más del stock disponible: {items}. El balance del almacén ahora es negativo. Vuelva a contar y reordene.",
     pullShortTitle: "No hay suficiente stock disponible",
     pullShortHeading: "Este retiro deja el stock por debajo de cero",
-    pullShortBody: "El almacén no tiene suficiente de estos artículos. Puede retirar de todos modos, pero el balance quedará negativo y alguien tendrá que averiguar por qué.",
-    pullShortFootnote: "Revise el estante primero. Si el material sí está allí, el conteo está mal y Ajustar Stock lo corrige. Si no está, retirar de todos modos registra el faltante contra este trabajo para poder rastrearlo después.",
+    pullShortBody:
+      "El almacén no tiene suficiente de estos artículos. Puede retirar de todos modos, pero el balance quedará negativo y alguien tendrá que averiguar por qué.",
+    pullShortFootnote:
+      "Revise el estante primero. Si el material sí está allí, el conteo está mal y Ajustar Stock lo corrige. Si no está, retirar de todos modos registra el faltante contra este trabajo para poder rastrearlo después.",
     pullShortCancel: "Volver y corregir cantidades",
     pullShortProceed: "Retirar de todos modos y registrar el faltante",
     pullPulledOk: "Materiales retirados con éxito del almacén.",
     pullPullAborted: "Error de Base de Datos: Retiro cancelado.",
-    pullJobCompleted: "Trabajo completado y material devuelto. Pasó al filtro Completados, donde puede volver a abrir el PDF.",
-    pullPopupBlocked1: "Ventana emergente bloqueada, el reporte no se abrió. De todos modos se archivó en AccuLynx. Permita ventanas emergentes si quiere la copia impresa, o pida a la oficina que lo abra desde Crear Trabajos.",
+    pullJobCompleted:
+      "Trabajo completado y material devuelto. Pasó al filtro Completados, donde puede volver a abrir el PDF.",
+    pullPopupBlocked1:
+      "Ventana emergente bloqueada, el reporte no se abrió. De todos modos se archivó en AccuLynx. Permita ventanas emergentes si quiere la copia impresa, o pida a la oficina que lo abra desde Crear Trabajos.",
     pullPdfBlockedTitle: "El reporte no se abrió",
-    pullPdfBlockedAsk: "Su navegador bloqueó la ventana emergente, así que no se generó ningún reporte para este trabajo. Todavía no se ha completado nada.",
-    pullPdfBlockedDetail: "Permita ventanas emergentes para este sitio y presione Completar otra vez para obtener el reporte. O termine sin él: el trabajo se cerrará igual y los materiales se devolverán igual.",
+    pullPdfBlockedAsk:
+      "Su navegador bloqueó la ventana emergente, así que no se generó ningún reporte para este trabajo. Todavía no se ha completado nada.",
+    pullPdfBlockedDetail:
+      "Permita ventanas emergentes para este sitio y presione Completar otra vez para obtener el reporte. O termine sin él: el trabajo se cerrará igual y los materiales se devolverán igual.",
     pullSyncFailedTitle: "No se pudo archivar el reporte",
-    pullSyncFailedAsk: "AccuLynx no aceptó el reporte, así que no se archivó nada para este trabajo. Todavía no se ha completado nada.",
+    pullSyncFailedAsk:
+      "AccuLynx no aceptó el reporte, así que no se archivó nada para este trabajo. Todavía no se ha completado nada.",
     pullCompleteAnyway: "Completar de todos modos",
     pullDontComplete: "Dejarlo abierto",
     pullJustBuilt: "Recién creado",
     pullJustPulled: "Recién retirado",
     pullJustCompleted: "Recién completado",
     pullHandoffPulledTitle: "Materiales retirados",
-    pullHandoffPulledMsg: "El material salió del almacén y el trabajo ya está Activo. Se queda aquí hasta que la cuadrilla termine y devuelva lo que sobre.",
+    pullHandoffPulledMsg:
+      "El material salió del almacén y el trabajo ya está Activo. Se queda aquí hasta que la cuadrilla termine y devuelva lo que sobre.",
     pullHandoffSeeActive: "📋 Ver el trabajo activo",
     pullHandoffCompletedTitle: "Trabajo completado",
-    pullHandoffCompletedMsg: "Lo que sobró volvió al inventario y el reporte está archivado. El trabajo pasó a Crear Trabajos, esperando el cierre.",
-    pullHandoffCompletedMsgField: "Lo que sobró volvió al inventario y el reporte está archivado. La oficina se encarga desde aquí: no le queda nada más por hacer en este trabajo.",
+    pullHandoffCompletedMsg:
+      "Lo que sobró volvió al inventario y el reporte está archivado. El trabajo pasó a Crear Trabajos, esperando el cierre.",
+    pullHandoffCompletedMsgField:
+      "Lo que sobró volvió al inventario y el reporte está archivado. La oficina se encarga desde aquí: no le queda nada más por hacer en este trabajo.",
     pullHandoffSeeInBuild: "🏗️ Verlo en Crear Trabajos",
     pullRemoveTitle: "¿Quitar este material?",
     pullRemoveYes: "Quitarlo",
@@ -1972,10 +2124,13 @@ export const translations = {
     pullReportFiledTitle: "📄 Reporte archivado en AccuLynx",
     pullReportFiledAt: "Subido",
     pullReportNotFiled: "📄 Reporte aún no archivado",
-    pullReportNotFiledDesc: "AccuLynx está conectado. Presione Subir Ahora para archivar el reporte. El botón PDF solo lo abre para imprimir.",
-    pullPopupBlocked2: "Ventana emergente bloqueada. Permita ventanas emergentes para este sitio para abrir el reporte PDF.",
+    pullReportNotFiledDesc:
+      "AccuLynx está conectado. Presione Subir Ahora para archivar el reporte. El botón PDF solo lo abre para imprimir.",
+    pullPopupBlocked2:
+      "Ventana emergente bloqueada. Permita ventanas emergentes para este sitio para abrir el reporte PDF.",
     pullReturnError: "Error de Base de Datos: No se pudo procesar la devolución y finalización.",
-    pullReturnOffline: "Sin conexión, así que el trabajo no se pudo completar. Consiga señal y presione Completar Trabajo otra vez. Es seguro reintentar.",
+    pullReturnOffline:
+      "Sin conexión, así que el trabajo no se pudo completar. Consiga señal y presione Completar Trabajo otra vez. Es seguro reintentar.",
     pullBefore: "Antes",
     pullAfter: "Después",
     pullPhotoSynced: "foto sincronizada al almacenamiento en la nube!",
@@ -2001,10 +2156,13 @@ export const translations = {
     rptColMaterialsVsPlan: "Materiales vs Plan",
     rptNotSet: "sin definir",
     rptSetContractValue: "Haga clic para definir el valor del contrato",
-    rptContractValueInvalid: "Ingrese un monto positivo, o borre el campo para dejarlo sin definir.",
+    rptContractValueInvalid:
+      "Ingrese un monto positivo, o borre el campo para dejarlo sin definir.",
     rptContractValueFail: "No se pudo guardar el valor del contrato:",
-    rptMaterialsOnlyNote: "La ganancia bruta aquí es el valor del contrato menos el costo de materiales únicamente. La mano de obra, los subcontratistas, el desecho y los gastos generales no se registran en esta app, así que la ganancia real de cada trabajo es menor que la cifra mostrada.",
-    rptUnpricedNote: "{n} de {total} trabajos completados aún no tienen valor de contrato, así que quedan fuera de los totales de ingreso, ganancia y margen. Su costo de materiales sí se incluye en las filas por trabajo. Agregue un valor desde Crear Trabajos, Editar Trabajo.",
+    rptMaterialsOnlyNote:
+      "La ganancia bruta aquí es el valor del contrato menos el costo de materiales únicamente. La mano de obra, los subcontratistas, el desecho y los gastos generales no se registran en esta app, así que la ganancia real de cada trabajo es menor que la cifra mostrada.",
+    rptUnpricedNote:
+      "{n} de {total} trabajos completados aún no tienen valor de contrato, así que quedan fuera de los totales de ingreso, ganancia y margen. Su costo de materiales sí se incluye en las filas por trabajo. Agregue un valor desde Crear Trabajos, Editar Trabajo.",
     rptTotalsAcross: "Totales de {n} trabajos con precio",
     rptColGrossProfit: "Ganancia Bruta Proyectada",
     rptColGrossMargin: "Margen de Ganancia Bruta",
@@ -2027,9 +2185,11 @@ export const translations = {
     rptInflationary: "Inflacionario 📈",
     rptDeflationary: "Deflacionario 📉",
     rptExpenseBurn: "📊 Huella de Gasto",
-    rptExpenseBurnDesc: "Gráfico de desglose de costos relativo a un nivel de ciclo de vida estándar de $2,500.",
+    rptExpenseBurnDesc:
+      "Gráfico de desglose de costos relativo a un nivel de ciclo de vida estándar de $2,500.",
     rptComplianceMonitor: "🚨 Monitor de Cumplimiento de Mantenimiento de Flota",
-    rptComplianceDesc: "Vehículos que requieren ajustes de intervalo mecánico o limpieza de detallado.",
+    rptComplianceDesc:
+      "Vehículos que requieren ajustes de intervalo mecánico o limpieza de detallado.",
     rptOdo: "Odóm:",
     rptOilOverdue: "🔧 Aceite Vencido",
     rptDetailing: "🧹 Detallado",
@@ -2049,7 +2209,8 @@ export const translations = {
     rptResolvedRepairs: "reparaciones resueltas",
     rptSumTotalFleet: "Suma Total de Gastos de Mantenimiento de la Flota",
     rptInspLogsTitle: "📋 Registros Históricos de Inspección de Vehículos",
-    rptInspLogsDesc: "Paquetes de registros de condición y hojas de diagnóstico subidos por los gerentes.",
+    rptInspLogsDesc:
+      "Paquetes de registros de condición y hojas de diagnóstico subidos por los gerentes.",
     rptStreamingMetrics: "Cargando registro de métricas de condición...",
     rptNoInspections: "No se enviaron archivos ni reportes de inspección este período.",
     rptNoNotes: "No hay texto adicional ni notas del proveedor adjuntas.",
@@ -2071,7 +2232,8 @@ export const translations = {
     rptColUserEmail: "Correo del Usuario",
     rptColActionCode: "Código de Acción",
     rptColAuditNarrative: "Descripción de la Auditoría",
-    rptInspLoadFail: "No se pudo cargar el historial de inspección — la lista puede estar incompleta. Actualice para reintentar.",
+    rptInspLoadFail:
+      "No se pudo cargar el historial de inspección — la lista puede estar incompleta. Actualice para reintentar.",
     rptDeleteInspConfirm: "¿Eliminar el registro de inspección de {name}?",
     rptInspDeleted: "Registro de inspección eliminado.",
     rptInspDeleteErr: "Error de Base de Datos: No se pudo eliminar la inspección.",
@@ -2096,7 +2258,8 @@ export const translations = {
     bjNotesHint: "Obligatorio. Describa el alcance del trabajo para la cuadrilla.",
     bjNotesPlaceholder: "ej., Remoción total y retechado, 30sq, tejas GAF Timberline HDZ...",
     bjTrailersNeeded: "Remolques Necesarios",
-    bjTrailersHint: "Seleccione los remolques que necesita este trabajo. El supervisor de obra verá esta lista.",
+    bjTrailersHint:
+      "Seleccione los remolques que necesita este trabajo. El supervisor de obra verá esta lista.",
     bjCancel: "Cancelar",
     // Toasts
     bjPoNameRequired: "El PO y el Nombre del Trabajo son obligatorios.",
@@ -2106,11 +2269,13 @@ export const translations = {
     bjApproved: "Proyecto aprobado y asignado correctamente.",
     bjPurged: "Trabajo eliminado correctamente.",
     bjClosed: "Proyecto cerrado y archivado del flujo de trabajo.",
-    bjPopupBlocked: "Ventana emergente bloqueada. Permita las ventanas emergentes de este sitio para abrir el reporte PDF.",
-    bjTemplateAllPresent: "Todo lo de \"{name}\" ya está en la lista del trabajo.",
+    bjPopupBlocked:
+      "Ventana emergente bloqueada. Permita las ventanas emergentes de este sitio para abrir el reporte PDF.",
+    bjTemplateAllPresent: 'Todo lo de "{name}" ya está en la lista del trabajo.',
     bjDraftSaved: "Borrador del trabajo guardado correctamente.",
     bjJobApprovedNotified: "Trabajo aprobado y supervisor notificado.",
-    bjSubtitle: "Planifique inventario, asigne supervisores de obra y administre el flujo de trabajo",
+    bjSubtitle:
+      "Planifique inventario, asigne supervisores de obra y administre el flujo de trabajo",
     bjSortNewest: "↕ Fecha de Creación — Más Reciente",
     bjSortOldest: "↕ Fecha de Creación — Más Antigua",
     bjSortNameAZ: "↕ Nombre del Trabajo — A a Z",
@@ -2126,22 +2291,27 @@ export const translations = {
     bjAdd: "+ Agregar",
     bjPoPlaceholder: "PO-2025-XXX",
     bjContractValue: "Valor del Contrato",
-    bjContractValueHint: "Lo que paga el cliente. Opcional — déjelo en blanco si aún no lo sabe. Un campo en blanco deja el trabajo fuera del reporte de margen; una cifra inventada lo corrompe en silencio.",
+    bjContractValueHint:
+      "Lo que paga el cliente. Opcional — déjelo en blanco si aún no lo sabe. Un campo en blanco deja el trabajo fuera del reporte de margen; una cifra inventada lo corrompe en silencio.",
     bjCompleteSteps: "Complete todos los pasos y seleccione los materiales del proyecto primero.",
-    bjAxDisabled: "La integración con AccuLynx está desactivada o la URL del proxy no está configurada en Ajustes.",
+    bjAxDisabled:
+      "La integración con AccuLynx está desactivada o la URL del proxy no está configurada en Ajustes.",
     bjCloseTitle: "¿Cerrar este trabajo?",
-    bjCloseConfirm: "Primero se archiva el reporte en AccuLynx. Si la carga falla, el trabajo queda abierto para reintentar.",
+    bjCloseConfirm:
+      "Primero se archiva el reporte en AccuLynx. Si la carga falla, el trabajo queda abierto para reintentar.",
     bjCloseAndFile: "Archivar reporte y cerrar",
     bjClosing: "Archivando reporte...",
     bjCloseSynced: "Reporte archivado en AccuLynx.",
     bjCloseSyncFail: "El trabajo NO se cerró. No se pudo archivar el reporte en AccuLynx:",
     bjCloseSyncFailTitle: "No se pudo archivar el reporte",
-    bjCloseSyncFailAsk: "AccuLynx no aceptó el reporte, así que no se archivó nada para este trabajo. Si lo cierra ahora, sale de esta lista y nada volverá a recordárselo.",
+    bjCloseSyncFailAsk:
+      "AccuLynx no aceptó el reporte, así que no se archivó nada para este trabajo. Si lo cierra ahora, sale de esta lista y nada volverá a recordárselo.",
     bjCloseAnyway: "Cerrar sin el reporte",
     bjDontClose: "Dejarlo abierto",
     bjCorrectReturn: "🔄 Corregir Devolución",
     bjCorrectReturnTitle: "Corregir Materiales Devueltos",
-    bjCorrectReturnInfo: "Corrija una cantidad que se devolvió mal al completar este trabajo. Esto solo cambia lo que volvió al almacén — no lo que se retiró originalmente — y no puede reducir una cantidad por debajo de lo que ya se retiró de nuevo para otro trabajo.",
+    bjCorrectReturnInfo:
+      "Corrija una cantidad que se devolvió mal al completar este trabajo. Esto solo cambia lo que volvió al almacén — no lo que se retiró originalmente — y no puede reducir una cantidad por debajo de lo que ya se retiró de nuevo para otro trabajo.",
     bjCorrectReturnSaving: "Guardando corrección...",
     bjCorrectReturnSaved: "Devolución corregida.",
     bjCorrectReturnFail: "No se pudo corregir la devolución:",
@@ -2150,27 +2320,33 @@ export const translations = {
     colCorrectedReturned: "Total Corregido",
     bjPullAdded: "🚛 Retirar Materiales Añadidos",
     bjPullAddedTitle: "Retirar Materiales Añadidos",
-    bjPullAddedInfo: "Retire del almacén los materiales de líneas añadidas a este trabajo después del retiro inicial — todavía no se les descontó ni costeó nada. Esto descuenta del almacén ahora (FIFO), igual que un retiro normal. Una línea ya retirada pertenece a Corregir Devolución, no aquí.",
+    bjPullAddedInfo:
+      "Retire del almacén los materiales de líneas añadidas a este trabajo después del retiro inicial — todavía no se les descontó ni costeó nada. Esto descuenta del almacén ahora (FIFO), igual que un retiro normal. Una línea ya retirada pertenece a Corregir Devolución, no aquí.",
     bjPullAddedSaving: "Retirando...",
     bjPullAddedSaved: "Materiales retirados.",
     bjPullAddedFail: "No se pudieron retirar los materiales añadidos:",
     bjPullAddedNoChange: "No se ingresó nada para retirar.",
     bjPullAddedShortTitle: "Retirando más del stock disponible",
-    bjPullAddedShortAsk: "Esto dejaría el balance del almacén por debajo de cero para: {items}. ¿Retirar de todos modos?",
+    bjPullAddedShortAsk:
+      "Esto dejaría el balance del almacén por debajo de cero para: {items}. ¿Retirar de todos modos?",
     bjPullAddedShortConfirm: "Retirar de todos modos",
     bjCreatedTitle: "Trabajo creado",
     bjCreatedAssigned: "Ya está en Retirar Inventario, esperando que {name} retire los materiales.",
-    bjCreatedUnassigned: "Ya está en Retirar Inventario. Nadie está asignado todavía, así que asigne un supervisor cuando pueda.",
+    bjCreatedUnassigned:
+      "Ya está en Retirar Inventario. Nadie está asignado todavía, así que asigne un supervisor cuando pueda.",
     bjCreatedTheCrew: "la cuadrilla",
     bjSeeInPull: "Verlo en Retirar Inventario",
     bjBuildAnother: "Quedarme aquí",
     bjClosedTitle: "Trabajo cerrado",
-    bjClosedMsg: "El reporte está archivado y el trabajo también. Lo encontrará en Cerrados si alguna vez lo necesita.",
+    bjClosedMsg:
+      "El reporte está archivado y el trabajo también. Lo encontrará en Cerrados si alguna vez lo necesita.",
     bjSeeInClosed: "Verlo en Cerrados",
     bjJustClosed: "Recién cerrado",
     bjDeleteTitle: "¿Eliminar este trabajo?",
-    bjDeleteConfirm: "El registro del trabajo y todo lo que contiene se pierde para siempre. Esta acción no se puede deshacer.",
-    bjDeleteDraftConfirm: "Este borrador se pierde para siempre. No se ha retirado nada contra él, así que nada más se ve afectado.",
+    bjDeleteConfirm:
+      "El registro del trabajo y todo lo que contiene se pierde para siempre. Esta acción no se puede deshacer.",
+    bjDeleteDraftConfirm:
+      "Este borrador se pierde para siempre. No se ha retirado nada contra él, así que nada más se ve afectado.",
     bjDeleteYes: "Eliminarlo",
     bjReopened: "El trabajo volvió correctamente a la vista de completados activos.",
     bjSaveFail: "Error de Base de Datos: No se pudo guardar el trabajo.",
@@ -2181,7 +2357,7 @@ export const translations = {
     bjTrailerBookFail: "Trabajo guardado, pero falló la reserva del remolque:",
     bjTrailerRemoveFail: "No se pudo quitar el remolque:",
     bjTrailerAssignFail: "No se pudo asignar el remolque:",
-    bjAxNoResults: "No se encontraron trabajos de AccuLynx para \"{query}\".",
+    bjAxNoResults: 'No se encontraron trabajos de AccuLynx para "{query}".',
     bjAxFoundOne: "Se encontró 1 trabajo en AccuLynx.",
     bjAxFoundMany: "Se encontraron {count} trabajos en AccuLynx.",
     bjAxFetchFail: "Error de Integración: No se pudieron obtener los datos de AccuLynx.",
@@ -2207,7 +2383,8 @@ export const translations = {
     schDone: "Terminado",
     schUrgent: "Urgente",
     schScheduled: "Programado",
-    schEmpty: "No hay nada programado en {month}. Los trabajos aparecen aquí una vez que tienen fecha programada.",
+    schEmpty:
+      "No hay nada programado en {month}. Los trabajos aparecen aquí una vez que tienen fecha programada.",
 
     // Profile
     profIdentity: "Administre los datos de su cuenta",
@@ -2217,7 +2394,8 @@ export const translations = {
     profAlertPrefs: "Preferencias de Alertas de Inventario",
     profAlertEmail: "Correo de Alertas Conectado",
     profCellPhone: "Número de Celular",
-    profCellPhoneHint: "Se guarda en su perfil para que sus compañeros lo encuentren por número. Las alertas se envían por correo.",
+    profCellPhoneHint:
+      "Se guarda en su perfil para que sus compañeros lo encuentren por número. Las alertas se envían por correo.",
     profPhonePlaceholder: "(xxx) xxx-xxxx",
     profEnableEmail: "Activar Notificaciones por Correo",
     profSecurity: "Cambie los datos de seguridad de su cuenta",
@@ -2230,7 +2408,8 @@ export const translations = {
     chromeSearchPlaceholder: "Buscar trabajos, personal, camiones, tickets, materiales, páginas...",
     chromeLowStock: "con stock bajo",
     chromeConnected: "Conectado",
-    chromeOfflineHint: "Este dispositivo no está en la red. Nada de lo que ingrese se guardará hasta que lo esté.",
+    chromeOfflineHint:
+      "Este dispositivo no está en la red. Nada de lo que ingrese se guardará hasta que lo esté.",
     chromeOfflineWarning: "Los cambios no se guardarán",
     chromeOffline: "Sin conexión",
     chromeNewJobOne: "trabajo nuevo",
@@ -2276,7 +2455,8 @@ export const translations = {
     trainingPlay: "Reproducir",
     trainingNoVideo: "Su navegador no puede reproducir este video.",
     trAdminTitle: "Biblioteca de capacitación de su empresa",
-    trAdminBlurb: "Suba sus propios videos y fotos. Todos en la empresa los ven aquí, debajo del recorrido de Steadwerk. Solo los administradores pueden agregarlos o quitarlos.",
+    trAdminBlurb:
+      "Suba sus propios videos y fotos. Todos en la empresa los ven aquí, debajo del recorrido de Steadwerk. Solo los administradores pueden agregarlos o quitarlos.",
     trAddMedia: "Agregar foto o video",
     trCancel: "Cancelar",
     trTitle: "Título",
@@ -2288,11 +2468,13 @@ export const translations = {
     trFileHintPhoto: "para fotos",
     trUpload: "Subir a la biblioteca",
     trUploading: "Subiendo…",
-    trUploadingNote: "Los videos grandes tardan un minuto. Deje esta pestaña abierta hasta que termine.",
+    trUploadingNote:
+      "Los videos grandes tardan un minuto. Deje esta pestaña abierta hasta que termine.",
     trAddedOk: "Agregado a la biblioteca de capacitación.",
     trAddFail: "No se pudo agregar:",
     trRemove: "Quitar",
-    trRemoveConfirm: "¿Quitar \"{title}\" de la biblioteca de capacitación? Esto elimina el archivo para todos.",
+    trRemoveConfirm:
+      '¿Quitar "{title}" de la biblioteca de capacitación? Esto elimina el archivo para todos.',
     trRemovedOk: "Quitado de la biblioteca de capacitación.",
     trRemoveFail: "No se pudo quitar:",
     trAddedBy: "Agregado por",
@@ -2306,8 +2488,10 @@ export const translations = {
     flReturnToService: "Regresar al Servicio",
     flGroundTitle: "Poner este vehículo fuera de servicio",
     flGroundReason: "Motivo (opcional)",
-    flGroundReasonHint: "Qué lo mantiene fuera de circulación. Se muestra en el tablero de flota y se borra cuando regresa.",
-    flGroundNote: "El camión deja de aparecer como disponible y no se puede elegir como reemplazo. Nada más cambia, y puede regresarlo cuando quiera.",
+    flGroundReasonHint:
+      "Qué lo mantiene fuera de circulación. Se muestra en el tablero de flota y se borra cuando regresa.",
+    flGroundNote:
+      "El camión deja de aparecer como disponible y no se puede elegir como reemplazo. Nada más cambia, y puede regresarlo cuando quiera.",
     flGrounded: "Vehículo puesto fuera de servicio.",
     flReturned: "Vehículo regresado al servicio.",
     flGroundFail: "No se pudo cambiar el estado de servicio:",
@@ -2388,6 +2572,6 @@ export const translations = {
     svcRepair: "Reparación",
     svcDetail: "Limpieza Detallada",
     svcInspection: "Inspección",
-    svcOther: "Otro"
-  }
+    svcOther: "Otro",
+  },
 };

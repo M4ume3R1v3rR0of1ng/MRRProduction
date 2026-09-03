@@ -1,6 +1,17 @@
 // src/features/jobs/BuildJobsView.jsx
 import { useState, useMemo, useEffect, useRef, Fragment } from "react";
-import { C, uid, fd, fm, tot, mkJI, newestPrice, todayLocal, groupJobsByDay, jobStatusMeta } from "@/shared/utils/helpers";
+import {
+  C,
+  uid,
+  fd,
+  fm,
+  tot,
+  mkJI,
+  newestPrice,
+  todayLocal,
+  groupJobsByDay,
+  jobStatusMeta,
+} from "@/shared/utils/helpers";
 import JobHandoff from "./JobHandoff";
 import SearchBar from "@/shared/components/SearchBar";
 import { translations } from "@/shared/utils/translations";
@@ -144,11 +155,20 @@ export default function BuildJobs({
   const shown = useMemo(() => {
     const q = srch.toLowerCase().trim();
     const sorters = {
-      newest: (a, b) => new Date(b.created || b.createdAt || 0) - new Date(a.created || a.createdAt || 0),
-      oldest: (a, b) => new Date(a.created || a.createdAt || 0) - new Date(b.created || b.createdAt || 0),
-      name_az: (a, b) => (a.title || a.name || "").localeCompare(b.title || b.name || "", undefined, { numeric: true }),
-      name_za: (a, b) => (b.title || b.name || "").localeCompare(a.title || a.name || "", undefined, { numeric: true }),
-      po: (a, b) => String(a.po || "").localeCompare(String(b.po || ""), undefined, { numeric: true }),
+      newest: (a, b) =>
+        new Date(b.created || b.createdAt || 0) - new Date(a.created || a.createdAt || 0),
+      oldest: (a, b) =>
+        new Date(a.created || a.createdAt || 0) - new Date(b.created || b.createdAt || 0),
+      name_az: (a, b) =>
+        (a.title || a.name || "").localeCompare(b.title || b.name || "", undefined, {
+          numeric: true,
+        }),
+      name_za: (a, b) =>
+        (b.title || b.name || "").localeCompare(a.title || a.name || "", undefined, {
+          numeric: true,
+        }),
+      po: (a, b) =>
+        String(a.po || "").localeCompare(String(b.po || ""), undefined, { numeric: true }),
       status: (a, b) => (a.status || "").localeCompare(b.status || ""),
     };
     return jobs
@@ -178,7 +198,15 @@ export default function BuildJobs({
 
   const resetWiz = () => {
     setWStep(1);
-    setWPO({ po: "", name: "", addr: "", notes: "", scheduledDate: "", contractValue: "", acculynxJobId: null });
+    setWPO({
+      po: "",
+      name: "",
+      addr: "",
+      notes: "",
+      scheduledDate: "",
+      contractValue: "",
+      acculynxJobId: null,
+    });
     setWItems([]);
     setWAssign("");
     setWTrailers([]);
@@ -189,11 +217,7 @@ export default function BuildJobs({
 
   const searchAX = async () => {
     if (!axQ.trim()) return;
-    if (
-      !acculynxConfig ||
-      !acculynxConfig.enabled ||
-      !acculynxConfig.proxyUrl
-    ) {
+    if (!acculynxConfig || !acculynxConfig.enabled || !acculynxConfig.proxyUrl) {
       showToast(t.bjAxDisabled, "warning");
       return;
     }
@@ -213,24 +237,26 @@ export default function BuildJobs({
       // alone discarded that and left a bare "403" on screen with nothing to act on.
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.ok)
-        throw new Error(
-          data.error || `Server returned HTTP Error Status: ${response.status}`,
-        );
+        throw new Error(data.error || `Server returned HTTP Error Status: ${response.status}`);
       const results = Array.isArray(data.jobs) ? data.jobs : [];
       setAxR(results);
       if (results.length === 0) {
-        const debugHint = data._debug ? ` (API keys: ${data._debug.map(d => d.keys.join(",")).join(" | ")})` : "";
+        const debugHint = data._debug
+          ? ` (API keys: ${data._debug.map((d) => d.keys.join(",")).join(" | ")})`
+          : "";
         showToast(`${t.bjAxNoResults.replace("{query}", axQ.trim())}${debugHint}`, "warning");
         if (data._debug) console.warn("AccuLynx search debug:", data._debug);
       } else {
-        showToast(results.length === 1 ? t.bjAxFoundOne : t.bjAxFoundMany.replace("{count}", results.length), "success");
+        showToast(
+          results.length === 1
+            ? t.bjAxFoundOne
+            : t.bjAxFoundMany.replace("{count}", results.length),
+          "success",
+        );
       }
     } catch (err) {
       console.error("AccuLynx Live Proxy Query Failure:", err);
-      showToast(
-        `${t.bjAxFetchFail} ${err.message}`,
-        "error",
-      );
+      showToast(`${t.bjAxFetchFail} ${err.message}`, "error");
       setAxR([]);
     } finally {
       setAxL(false);
@@ -283,7 +309,9 @@ export default function BuildJobs({
         console.error("Failed to load job templates:", err);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
   const jobTemplates = savedTemplates || resolveDefaultTemplates(inv);
 
@@ -321,7 +349,10 @@ export default function BuildJobs({
     } else if (additions.length === 0) {
       showToast(t.bjTemplateAllPresent.replace("{name}", tpl.name), "info");
     } else {
-      showToast(`"${tpl.name}" template applied — ${additions.length} item${additions.length === 1 ? "" : "s"} added. Adjust quantities in the Job List.`, "success");
+      showToast(
+        `"${tpl.name}" template applied — ${additions.length} item${additions.length === 1 ? "" : "s"} added. Adjust quantities in the Job List.`,
+        "success",
+      );
     }
   };
 
@@ -341,16 +372,16 @@ export default function BuildJobs({
     const job = {
       id: targetJobId,
       po: wPO.po,
-      title: wPO.name,       
+      title: wPO.name,
       addr: wPO.addr,
       notes: wPO.notes,
       scheduledDate: wPO.scheduledDate || todayLocal(),
       status: asDraft ? "draft" : "approved",
-      assignedto: wAssign,   
-      created: now,          
-      approved: asDraft ? "" : now, 
-      completed: "",         
-      newforassigned: !asDraft && !!wAssign, 
+      assignedto: wAssign,
+      created: now,
+      approved: asDraft ? "" : now,
+      completed: "",
+      newforassigned: !asDraft && !!wAssign,
       syncStatus: null,
       syncedAt: "",
       syncPayload: null,
@@ -371,7 +402,11 @@ export default function BuildJobs({
       setJobs((p) => [...p, job]);
 
       if (wTrailers.length > 0) {
-        const trailerRows = wTrailers.map((tid) => ({ id: uid(), job_id: targetJobId, trailer_id: tid }));
+        const trailerRows = wTrailers.map((tid) => ({
+          id: uid(),
+          job_id: targetJobId,
+          trailer_id: tid,
+        }));
         try {
           const { error: jtError } = await supabase.from("job_trailers").insert(trailerRows);
           if (jtError) throw jtError;
@@ -387,14 +422,21 @@ export default function BuildJobs({
         activeUser.email,
         asDraft ? "JOB_BUILD_DRAFT" : "JOB_BUILD_CREATE",
         `${asDraft ? "Drafted" : "Created & Approved"} a new roofing job build contract for: "${wPO.name}" (PO: ${wPO.po})`,
-        { job_id: targetJobId, po_number: wPO.po, material_count: wItems.length, assigned_supervisor_id: wAssign || "unassigned" },
-        "production"
+        {
+          job_id: targetJobId,
+          po_number: wPO.po,
+          material_count: wItems.length,
+          assigned_supervisor_id: wAssign || "unassigned",
+        },
+        "production",
       );
 
       if (!asDraft && wAssign) {
         const assignedUser = users.find((u) => u.id === wAssign);
         if (assignedUser?.email) {
-          const trailerNames = wTrailers.map((tid) => vehs.find((v) => v.id === tid)?.name).filter(Boolean);
+          const trailerNames = wTrailers
+            .map((tid) => vehs.find((v) => v.id === tid)?.name)
+            .filter(Boolean);
           sendEmail({
             to: assignedUser.email,
             subject: `New Job Assigned: ${wPO.name}`,
@@ -449,19 +491,19 @@ export default function BuildJobs({
         "JOB_BUILD_CREATE",
         `Approved and deployed production job draft "${sel.name || sel.title}" (PO: ${sel.po}) to active field pipeline.`,
         { job_id: sel.id, assigned_supervisor_id: apAssign, timestamp: approvedAtTime },
-        "production"
+        "production",
       );
 
       setJobs((p) =>
         p.map((j) =>
           j.id === sel.id
             ? {
-              ...j,
-              status: "approved",
-              approved: approvedAtTime,
-              assignedto: apAssign,
-              newforassigned: true,
-            }
+                ...j,
+                status: "approved",
+                approved: approvedAtTime,
+                assignedto: apAssign,
+                newforassigned: true,
+              }
             : j,
         ),
       );
@@ -495,10 +537,7 @@ export default function BuildJobs({
       setApAssign("");
     } catch (err) {
       console.error("Failed to approve job:", err);
-      showToast(
-        `${t.bjApproveFail} ${err.message}`,
-        "error",
-      );
+      showToast(`${t.bjApproveFail} ${err.message}`, "error");
     } finally {
       setApproving(false);
     }
@@ -506,7 +545,7 @@ export default function BuildJobs({
 
   const deleteJob = async (jobId) => {
     const targetJob = jobs.find((j) => j.id === jobId);
-    const targetLabel = targetJob ? (targetJob.name || targetJob.title) : `ID: ${jobId}`;
+    const targetLabel = targetJob ? targetJob.name || targetJob.title : `ID: ${jobId}`;
 
     try {
       const { error } = await supabase.from("jobs").delete().eq("id", jobId);
@@ -518,7 +557,7 @@ export default function BuildJobs({
         "JOB_BUILD_DELETE",
         `Permanently purged job contract "${targetLabel}" (PO: ${targetJob?.po || "—"}) from system registry.`,
         { deleted_job_id: jobId, archive_backup: targetJob || {} },
-        "production"
+        "production",
       );
 
       setJobs((p) => p.filter((j) => j.id !== jobId));
@@ -527,10 +566,7 @@ export default function BuildJobs({
       showToast(t.bjPurged, "success");
     } catch (err) {
       console.error("Failed to delete job:", err);
-      showToast(
-        `${t.bjDeleteFail} ${err.message}`,
-        "error",
-      );
+      showToast(`${t.bjDeleteFail} ${err.message}`, "error");
     }
   };
 
@@ -567,8 +603,10 @@ export default function BuildJobs({
         });
       }
       showToast(
-        (action === "added" ? t.bjTrailerNotifiedAdded : t.bjTrailerNotifiedRemoved)
-          .replace("{name}", assignedUser?.name || t.bjSupervisorFallback),
+        (action === "added" ? t.bjTrailerNotifiedAdded : t.bjTrailerNotifiedRemoved).replace(
+          "{name}",
+          assignedUser?.name || t.bjSupervisorFallback,
+        ),
         "success",
       );
     };
@@ -578,7 +616,14 @@ export default function BuildJobs({
       try {
         const { error } = await supabase.from("job_trailers").delete().eq("id", existing.id);
         if (error) throw error;
-        await logAction(activeUser.id, activeUser.email, "JOB_BUILD_EDIT", `Removed trailer "${trailerName}" from job "${job?.title || job?.name}"`, { job_id: jobId, trailer_id: trailerId }, "production");
+        await logAction(
+          activeUser.id,
+          activeUser.email,
+          "JOB_BUILD_EDIT",
+          `Removed trailer "${trailerName}" from job "${job?.title || job?.name}"`,
+          { job_id: jobId, trailer_id: trailerId },
+          "production",
+        );
         await notifySupervisorOfTrailerChange("removed");
       } catch (err) {
         console.error("Failed to remove trailer from job:", err);
@@ -591,7 +636,14 @@ export default function BuildJobs({
       try {
         const { error } = await supabase.from("job_trailers").insert([newRow]);
         if (error) throw error;
-        await logAction(activeUser.id, activeUser.email, "JOB_BUILD_EDIT", `Assigned trailer "${trailerName}" to job "${job?.title || job?.name}"`, { job_id: jobId, trailer_id: trailerId }, "production");
+        await logAction(
+          activeUser.id,
+          activeUser.email,
+          "JOB_BUILD_EDIT",
+          `Assigned trailer "${trailerName}" to job "${job?.title || job?.name}"`,
+          { job_id: jobId, trailer_id: trailerId },
+          "production",
+        );
         await notifySupervisorOfTrailerChange("added");
       } catch (err) {
         console.error("Failed to assign trailer to job:", err);
@@ -622,7 +674,13 @@ export default function BuildJobs({
     setClosing(true);
     if (!alreadyFiled && axReady) {
       const r = await syncJobReportToAccuLynx({
-        job, users, config: acculynxConfig, setJobs, activeLogo, inv, company,
+        job,
+        users,
+        config: acculynxConfig,
+        setJobs,
+        activeLogo,
+        inv,
+        company,
       });
       if (!r.ok) {
         // Ask rather than refuse. A job whose money is collected and whose roof is
@@ -658,7 +716,7 @@ export default function BuildJobs({
         "JOB_BUILD_CLOSE",
         `Archived and locked completed job contract file for: "${job.name || job.title}" (PO: ${job.po})`,
         { job_id: job.id, archived_timestamp: closedAt },
-        "production"
+        "production",
       );
 
       const updated = { ...job, status: "closed", closedAt };
@@ -678,7 +736,10 @@ export default function BuildJobs({
   const reopenJob = async (job = sel) => {
     if (!job) return;
     try {
-      const { error } = await updateRowStrict("jobs", job.id, { status: "completed", closedAt: "" });
+      const { error } = await updateRowStrict("jobs", job.id, {
+        status: "completed",
+        closedAt: "",
+      });
       if (error) throw error;
 
       await logAction(
@@ -687,28 +748,20 @@ export default function BuildJobs({
         "JOB_BUILD_REOPEN",
         `Reopened archived job file back to active completion view: "${job.name || job.title}" (PO: ${job.po})`,
         { job_id: job.id },
-        "production"
+        "production",
       );
 
       const updated = { ...job, status: "completed", closedAt: "" };
       setJobs((p) => p.map((j) => (j.id === job.id ? updated : j)));
       setSel((p) => (p && p.id === job.id ? updated : p));
-      showToast(
-        t.bjReopened,
-        "success",
-      );
+      showToast(t.bjReopened, "success");
     } catch (err) {
       console.error("Failed to reopen job:", err);
-      showToast(
-        `${t.bjReopenFail} ${err.message}`,
-        "error",
-      );
+      showToast(`${t.bjReopenFail} ${err.message}`, "error");
     }
   };
 
-  const filtInv = inv.filter((i) =>
-    (i?.name || "").toLowerCase().includes(iSrch.toLowerCase()),
-  );
+  const filtInv = inv.filter((i) => (i?.name || "").toLowerCase().includes(iSrch.toLowerCase()));
 
   // ── ✏️ EDIT JOB HELPERS ────────────────────────────────────────────────────
   // The dialog seeds itself from the job it is handed, so opening it is now just
@@ -730,7 +783,14 @@ export default function BuildJobs({
         }}
       >
         <div>
-          <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "var(--text-2xl)",
+              fontWeight: "var(--weight-black)",
+              color: C.navy,
+            }}
+          >
             🏗️ Build Jobs
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
@@ -739,16 +799,44 @@ export default function BuildJobs({
         </div>
 
         <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
-          <div style={{ display: "flex", background: C.lg, padding: 4, borderRadius: "var(--radius-md)", marginRight: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              background: C.lg,
+              padding: 4,
+              borderRadius: "var(--radius-md)",
+              marginRight: 8,
+            }}
+          >
             <button
               onClick={() => setSubView("list")}
-              style={{ padding: "6px 12px", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", cursor: "pointer", background: subView === "list" ? C.w : "transparent", color: subView === "list" ? C.navy : C.sub, boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+              style={{
+                padding: "6px 12px",
+                border: "none",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "var(--text-sm)",
+                fontWeight: "var(--weight-bold)",
+                cursor: "pointer",
+                background: subView === "list" ? C.w : "transparent",
+                color: subView === "list" ? C.navy : C.sub,
+                boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+              }}
             >
               📋 Pipeline List
             </button>
             <button
               onClick={() => setSubView("calendar")}
-              style={{ padding: "6px 12px", border: "none", borderRadius: "var(--radius-sm)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", cursor: "pointer", background: subView === "calendar" ? C.w : "transparent", color: subView === "calendar" ? C.navy : C.sub, boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
+              style={{
+                padding: "6px 12px",
+                border: "none",
+                borderRadius: "var(--radius-sm)",
+                fontSize: "var(--text-sm)",
+                fontWeight: "var(--weight-bold)",
+                cursor: "pointer",
+                background: subView === "calendar" ? C.w : "transparent",
+                color: subView === "calendar" ? C.navy : C.sub,
+                boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+              }}
             >
               📅 Shift Timeline
             </button>
@@ -792,7 +880,12 @@ export default function BuildJobs({
             resultCount={shown.length}
             lang={lang}
           >
-            <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.bjSortAria} style={{ width: "auto" }}>
+            <Sel
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              aria-label={t.bjSortAria}
+              style={{ width: "auto" }}
+            >
               <option value="oldest">{t.bjSortOldest}</option>
               <option value="newest">{t.bjSortNewest}</option>
               <option value="name_az">{t.bjSortNameAZ}</option>
@@ -802,7 +895,9 @@ export default function BuildJobs({
             </Sel>
           </SearchBar>
 
-          <div style={{ display: "flex", gap: "var(--space-2)", marginBottom: 14, flexWrap: "wrap" }}>
+          <div
+            style={{ display: "flex", gap: "var(--space-2)", marginBottom: 14, flexWrap: "wrap" }}
+          >
             {/* Approved and Active are gone on purpose. Once a job is approved it is
                 the crew's work, and Pull Inventory is where that work is tracked —
                 two screens listing the same live jobs meant two places to look and
@@ -814,12 +909,7 @@ export default function BuildJobs({
               ["completed", "Completed"],
               ["closed", "Closed"],
             ].map(([k, l]) => (
-              <Btn
-                key={k}
-                v={filt === k ? "primary" : "ghost"}
-                sz="sm"
-                onClick={() => setFilt(k)}
-              >
+              <Btn key={k} v={filt === k ? "primary" : "ghost"} sz="sm" onClick={() => setFilt(k)}>
                 {l}
                 {counts[k] > 0 && (
                   <span
@@ -848,7 +938,13 @@ export default function BuildJobs({
               scrolling. Columns are 340px minimum and stretch to fill, so the
               layout is three-up on a desktop, two-up on a tablet, and collapses
               to the old single column on a phone without a media query. */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "var(--space-4)" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+              gap: "var(--space-4)",
+            }}
+          >
             {/* One grid for the whole list, with the day headers spanning every
                 column, rather than a separate grid per day: a day holding a single
                 job would stretch that card the full width of the screen, which is
@@ -856,12 +952,37 @@ export default function BuildJobs({
                 so the header and the cards stay direct children of the grid. */}
             {dayGroups.map(([day, dayJobs]) => (
               <Fragment key={day || "undated"}>
-                <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: "var(--space-3)", marginTop: 4 }}>
-                  <h2 style={{ margin: 0, fontSize: "var(--text-sm)", fontWeight: "var(--weight-extrabold)", color: C.navy, textTransform: "uppercase", letterSpacing: "0.4px", whiteSpace: "nowrap" }}>
+                <div
+                  style={{
+                    gridColumn: "1 / -1",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "var(--space-3)",
+                    marginTop: 4,
+                  }}
+                >
+                  <h2
+                    style={{
+                      margin: 0,
+                      fontSize: "var(--text-sm)",
+                      fontWeight: "var(--weight-extrabold)",
+                      color: C.navy,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.4px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {day ? fd(day) : "No date recorded"}
                   </h2>
                   {day === todayLocal() && <Bdg color="amber">Today</Bdg>}
-                  <span style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-semibold)", whiteSpace: "nowrap" }}>
+                  <span
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      color: C.sub,
+                      fontWeight: "var(--weight-semibold)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
                     {dayJobs.length} job{dayJobs.length === 1 ? "" : "s"}
                   </span>
                   {/* Rule to the right edge, so the header reads as a divider
@@ -870,7 +991,11 @@ export default function BuildJobs({
                 </div>
                 {dayJobs.map((job) => {
                   const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
-                  const currentItems = Array.isArray(job.items) ? job.items : (Array.isArray(job.materials) ? job.materials : []);
+                  const currentItems = Array.isArray(job.items)
+                    ? job.items
+                    : Array.isArray(job.materials)
+                      ? job.materials
+                      : [];
                   const pulledCount = currentItems.filter((i) => i && i.pulled > 0).length;
 
                   // Shared with Pull Inventory (utils/helpers) so the same job reads
@@ -884,7 +1009,8 @@ export default function BuildJobs({
                   // Delete renders for anyone who can approve, so that permission alone
                   // is enough to give the card a footer. Without this check a draft
                   // viewed by a builder would draw an empty bordered strip.
-                  const hasFooter = showProgress || perms.jobs_approve || job.status === "completed";
+                  const hasFooter =
+                    showProgress || perms.jobs_approve || job.status === "completed";
 
                   return (
                     <div
@@ -910,28 +1036,85 @@ export default function BuildJobs({
                         minWidth: 0,
                       }}
                     >
-                      <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 6, flexWrap: "wrap" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--space-1)", fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: statusMeta.color }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: 7,
+                          alignItems: "center",
+                          marginBottom: 6,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "var(--space-1)",
+                            fontSize: "var(--text-xs)",
+                            fontWeight: "var(--weight-extrabold)",
+                            color: statusMeta.color,
+                          }}
+                        >
                           <span>{statusMeta.dot}</span>
                           <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
                         </span>
-                        <span style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}>· {job.po}</span>
+                        <span
+                          style={{
+                            fontSize: "var(--text-sm)",
+                            color: C.sub,
+                            fontWeight: "var(--weight-semibold)",
+                          }}
+                        >
+                          · {job.po}
+                        </span>
                         {isHighlighted && <Bdg color="gold">✨ {highlight.label}</Bdg>}
-                        {(syncStatusOf(job) === "synced" || reportUploadedAtOf(job)) && <Bdg color="green">{t.pullReportFiled}</Bdg>}
-                        {syncStatusOf(job) === "failed" && !reportUploadedAtOf(job) && <Bdg color="red">{t.pullUploadFailed}</Bdg>}
-                        {syncStatusOf(job) === "manual" && <Bdg color="amber">{t.pullConfigureSync}</Bdg>}
+                        {(syncStatusOf(job) === "synced" || reportUploadedAtOf(job)) && (
+                          <Bdg color="green">{t.pullReportFiled}</Bdg>
+                        )}
+                        {syncStatusOf(job) === "failed" && !reportUploadedAtOf(job) && (
+                          <Bdg color="red">{t.pullUploadFailedBadge}</Bdg>
+                        )}
+                        {syncStatusOf(job) === "manual" && (
+                          <Bdg color="amber">{t.pullConfigureSync}</Bdg>
+                        )}
                       </div>
                       {/* Clamped to one line: an address that wraps is worth reading in
                           full, but a job title that wraps just shoves every card in the
                           row taller. The full title is the modal's heading. */}
-                      <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{job.title || job.name}</div>
-                      <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 8 }}>{job.addr}</div>
+                      <div
+                        style={{
+                          fontWeight: "var(--weight-extrabold)",
+                          color: C.navy,
+                          fontSize: 15,
+                          marginBottom: 2,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {job.title || job.name}
+                      </div>
+                      <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 8 }}>
+                        {job.addr}
+                      </div>
                       {/* Row gap as well as column gap — this wraps to two lines in a
                           narrow column, and the old single `gap: space-6` left the
                           wrapped line sitting on top of the one above it. */}
-                      <div style={{ display: "flex", gap: "2px var(--space-4)", fontSize: "var(--text-xs)", color: C.sub, flexWrap: "wrap" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "2px var(--space-4)",
+                          fontSize: "var(--text-xs)",
+                          color: C.sub,
+                          flexWrap: "wrap",
+                        }}
+                      >
                         <span>📦 {Math.max(currentItems.length, 0)} items</span>
-                        {sup ? <span>👤 {sup.name}</span> : <span style={{ color: C.am }}>⚠️ Unassigned</span>}
+                        {sup ? (
+                          <span>👤 {sup.name}</span>
+                        ) : (
+                          <span style={{ color: C.am }}>⚠️ Unassigned</span>
+                        )}
                         {/* No "Created …" line: the day header above every card
                             now says it, on every sort. */}
                       </div>
@@ -955,11 +1138,34 @@ export default function BuildJobs({
                         >
                           {showProgress && (
                             <div style={{ marginRight: "auto", minWidth: 90 }}>
-                              <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginBottom: 3 }}>{pulledCount}/{currentItems.length} pulled</div>
+                              <div
+                                style={{
+                                  fontSize: "var(--text-2xs)",
+                                  color: C.sub,
+                                  marginBottom: 3,
+                                }}
+                              >
+                                {pulledCount}/{currentItems.length} pulled
+                              </div>
                               {/* The fill had no background and was therefore invisible:
                                   every job showed an empty track whatever it had pulled. */}
-                              <div style={{ height: 5, width: 90, background: C.lg, borderRadius: 3, overflow: "hidden" }}>
-                                <div style={{ height: "100%", borderRadius: 3, background: statusMeta.color, width: `${currentItems.length > 0 ? (pulledCount / currentItems.length) * 100 : 0}%` }} />
+                              <div
+                                style={{
+                                  height: 5,
+                                  width: 90,
+                                  background: C.lg,
+                                  borderRadius: 3,
+                                  overflow: "hidden",
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    height: "100%",
+                                    borderRadius: 3,
+                                    background: statusMeta.color,
+                                    width: `${currentItems.length > 0 ? (pulledCount / currentItems.length) * 100 : 0}%`,
+                                  }}
+                                />
                               </div>
                             </div>
                           )}
@@ -1037,8 +1243,20 @@ export default function BuildJobs({
             {shown.length === 0 && (
               /* Spans every column: in a grid the empty state would otherwise sit
                  in a lone 340px box at the far left of the screen. */
-              <div style={{ gridColumn: "1 / -1", background: C.w, borderRadius: "var(--radius-xl)", padding: 30, textAlign: "center", color: C.sub, fontSize: "var(--text-base)", boxShadow: "var(--shadow-sm)" }}>
-                No {filt === "all" ? "" : filt + " "}jobs. {perms.jobs_build && filt === "all" && ' Click "+ New Job" to get started.'}
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  background: C.w,
+                  borderRadius: "var(--radius-xl)",
+                  padding: 30,
+                  textAlign: "center",
+                  color: C.sub,
+                  fontSize: "var(--text-base)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                No {filt === "all" ? "" : filt + " "}jobs.{" "}
+                {perms.jobs_build && filt === "all" && ' Click "+ New Job" to get started.'}
               </div>
             )}
           </div>
@@ -1055,7 +1273,9 @@ export default function BuildJobs({
           }}
           wide
         >
-          <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: 14, flexWrap: "wrap" }}>
+          <div
+            style={{ display: "flex", gap: "var(--space-3)", marginBottom: 14, flexWrap: "wrap" }}
+          >
             {perms.jobs_build && sel.status !== "closed" && (
               <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>
                 ✏️ Edit Job
@@ -1129,49 +1349,148 @@ export default function BuildJobs({
               </Btn>
             )}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: "var(--space-3)", marginBottom: 16 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))",
+              gap: "var(--space-3)",
+              marginBottom: 16,
+            }}
+          >
             {[
-              ["Status", <Bdg color={jSC[sel.status]?.c || "gray"}>{jSC[sel.status]?.l || sel.status}</Bdg>],
+              // Not itself a list item — a value in a [label, value] tuple, rendered
+              // inside the keyed <div> below.
+              [
+                "Status",
+                // eslint-disable-next-line react/jsx-key
+                <Bdg color={jSC[sel.status]?.c || "gray"}>{jSC[sel.status]?.l || sel.status}</Bdg>,
+              ],
               ["PO", sel.po],
-              ["Assigned To", users.find((u) => u.id === sel.assignedto || u.id === sel.assignedTo)?.name || "Unassigned"],
+              [
+                "Assigned To",
+                users.find((u) => u.id === sel.assignedto || u.id === sel.assignedTo)?.name ||
+                  "Unassigned",
+              ],
               ["Created", fd(sel.created || sel.createdAt)],
               ["Approved", fd(sel.approved)],
               ["Completed", fd(sel.completed || sel.completedAt)],
-              ["🚚 Trailers", jobTrailers.filter((jt) => jt.job_id === sel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || "None assigned"],
+              [
+                "🚚 Trailers",
+                jobTrailers
+                  .filter((jt) => jt.job_id === sel.id)
+                  .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
+                  .filter(Boolean)
+                  .join(", ") || "None assigned",
+              ],
             ].map(([k, v]) => (
-              <div key={k} style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}>
-                <div style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase" }}>{k}</div>
-                <div style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy, marginTop: 2 }}>{v}</div>
+              <div
+                key={k}
+                style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}
+              >
+                <div
+                  style={{
+                    fontSize: "var(--text-2xs)",
+                    color: C.sub,
+                    fontWeight: "var(--weight-bold)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {k}
+                </div>
+                <div
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    fontWeight: "var(--weight-bold)",
+                    color: C.navy,
+                    marginTop: 2,
+                  }}
+                >
+                  {v}
+                </div>
               </div>
             ))}
           </div>
           {perms.jobs_build && vehs.some((v) => v.type === "trailer") && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "uppercase", marginBottom: 6 }}>🚚 Assign Trailers</div>
+              <div
+                style={{
+                  fontSize: "var(--text-2xs)",
+                  color: C.sub,
+                  fontWeight: "var(--weight-bold)",
+                  textTransform: "uppercase",
+                  marginBottom: 6,
+                }}
+              >
+                🚚 Assign Trailers
+              </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                {vehs.filter((v) => v.type === "trailer").map((v) => {
-                  const checked = jobTrailers.some((jt) => jt.job_id === sel.id && jt.trailer_id === v.id);
-                  return (
-                    <label key={v.id} style={{ display: "flex", alignItems: "center", gap: 5, background: checked ? C.tB : C.lg, border: `1px solid ${checked ? C.tl : C.bd}`, borderRadius: "var(--radius-pill)", padding: "5px 12px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: checked ? C.tl : C.navy, cursor: "pointer" }}>
-                      <input type="checkbox" checked={checked} onChange={() => toggleJobTrailer(sel.id, v.id)} style={{ margin: 0 }} />
-                      {v.name}
-                    </label>
-                  );
-                })}
+                {vehs
+                  .filter((v) => v.type === "trailer")
+                  .map((v) => {
+                    const checked = jobTrailers.some(
+                      (jt) => jt.job_id === sel.id && jt.trailer_id === v.id,
+                    );
+                    return (
+                      <label
+                        key={v.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                          background: checked ? C.tB : C.lg,
+                          border: `1px solid ${checked ? C.tl : C.bd}`,
+                          borderRadius: "var(--radius-pill)",
+                          padding: "5px 12px",
+                          fontSize: "var(--text-sm)",
+                          fontWeight: "var(--weight-semibold)",
+                          color: checked ? C.tl : C.navy,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleJobTrailer(sel.id, v.id)}
+                          style={{ margin: 0 }}
+                        />
+                        {v.name}
+                      </label>
+                    );
+                  })}
               </div>
             </div>
           )}
           <div className="sw-table-scroll">
-            <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+            <table
+              className="mrr-table"
+              style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
+            >
               <thead>
                 <tr style={{ background: C.lg }}>
-                  {["Item", "Category", "Planned", "Pulled", "Used", ...(perms.inv_pricing_view ? ["Cost"] : [])].map((h) => (
-                    <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
+                  {[
+                    "Item",
+                    "Category",
+                    "Planned",
+                    "Pulled",
+                    "Used",
+                    ...(perms.inv_pricing_view ? ["Cost"] : []),
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: "7px 10px",
+                        textAlign: "left",
+                        color: C.sub,
+                        fontWeight: "var(--weight-bold)",
+                      }}
+                    >
+                      {h}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {((sel.items || sel.materials || [])).map((item) => {
+                {(sel.items || sel.materials || []).map((item) => {
                   if (!item) return null;
                   // Cost reflects what was actually used (pulled minus returned),
                   // not the raw pull cost — fully-returned items must read $0.00.
@@ -1182,17 +1501,45 @@ export default function BuildJobs({
                   const invItem = inv.find((x) => x && x.id === item.iid);
                   const livePrice = invItem ? newestPrice(invItem) : 0;
                   const snapshot = parseFloat(item.priceAtPull);
-                  const unitPrice = (item.pulled || 0) > 0 && Number.isFinite(snapshot) ? snapshot : livePrice;
+                  const unitPrice =
+                    (item.pulled || 0) > 0 && Number.isFinite(snapshot) ? snapshot : livePrice;
                   const usedCost = used * unitPrice;
                   return (
-                    <tr key={item.iid || item.id || Math.random()} style={{ borderTop: `1px solid ${C.lg}` }}>
-                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name || "—"}</td>
-                      <td style={{ padding: "8px 10px", color: C.sub }}>{item.icat || item.cat || "—"}</td>
-                      <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0} {item.unit || ""}</td>
-                      <td style={{ padding: "8px 10px", color: item.pulled > 0 ? C.gr : C.sub }}>{item.pulled || 0}</td>
-                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>{used}</td>
+                    <tr
+                      key={item.iid || item.id || Math.random()}
+                      style={{ borderTop: `1px solid ${C.lg}` }}
+                    >
+                      <td
+                        style={{
+                          padding: "8px 10px",
+                          fontWeight: "var(--weight-bold)",
+                          color: C.navy,
+                        }}
+                      >
+                        {item.iname || item.name || "—"}
+                      </td>
+                      <td style={{ padding: "8px 10px", color: C.sub }}>
+                        {item.icat || item.cat || "—"}
+                      </td>
+                      <td style={{ padding: "8px 10px" }}>
+                        {item.planned || item.qty || 0} {item.unit || ""}
+                      </td>
+                      <td style={{ padding: "8px 10px", color: item.pulled > 0 ? C.gr : C.sub }}>
+                        {item.pulled || 0}
+                      </td>
+                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>
+                        {used}
+                      </td>
                       {perms.inv_pricing_view && (
-                        <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.blue }}>{(item.pulled || 0) > 0 ? fm(usedCost) : "—"}</td>
+                        <td
+                          style={{
+                            padding: "8px 10px",
+                            fontWeight: "var(--weight-bold)",
+                            color: C.blue,
+                          }}
+                        >
+                          {(item.pulled || 0) > 0 ? fm(usedCost) : "—"}
+                        </td>
                       )}
                     </tr>
                   );
@@ -1254,7 +1601,9 @@ export default function BuildJobs({
             setSel(updated);
             setModal("edit");
             if (changedBatches && typeof setInv === "function") {
-              setInv((p) => p.map((i) => (changedBatches[i.id] ? { ...i, batches: changedBatches[i.id] } : i)));
+              setInv((p) =>
+                p.map((i) => (changedBatches[i.id] ? { ...i, batches: changedBatches[i.id] } : i)),
+              );
             }
           }}
           onClose={() => setModal("edit")}
@@ -1263,24 +1612,65 @@ export default function BuildJobs({
 
       {modal === "approve" && sel && (
         <Modal title={`Approve: ${sel.title || sel.name}`} onClose={() => setModal(null)}>
-          <div style={{ background: C.tB, border: `1.5px solid ${C.tl}`, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.tl, fontWeight: "var(--weight-semibold)" }}>
+          <div
+            style={{
+              background: C.tB,
+              border: `1.5px solid ${C.tl}`,
+              borderRadius: "var(--radius-md)",
+              padding: "10px 14px",
+              marginBottom: 14,
+              fontSize: "var(--text-sm)",
+              color: C.tl,
+              fontWeight: "var(--weight-semibold)",
+            }}
+          >
             {t.bjApproveNotice}
           </div>
-          <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14, fontSize: "var(--text-sm)" }}>
-            <strong style={{ color: C.navy }}>{sel.po} — {sel.title || sel.name}</strong>
-            <div style={{ color: C.sub, marginTop: 2 }}>{Math.max((sel.items || sel.materials || []).length, 0)} items planned</div>
+          <div
+            style={{
+              background: C.lg,
+              borderRadius: "var(--radius-md)",
+              padding: "10px 14px",
+              marginBottom: 14,
+              fontSize: "var(--text-sm)",
+            }}
+          >
+            <strong style={{ color: C.navy }}>
+              {sel.po} — {sel.title || sel.name}
+            </strong>
+            <div style={{ color: C.sub, marginTop: 2 }}>
+              {Math.max((sel.items || sel.materials || []).length, 0)} items planned
+            </div>
           </div>
           <Fld label={t.bjAssignSupervisorReq}>
-            <Sel value={apAssign} onChange={(e) => setApAssign(e.target.value)} disabled={approving}>
+            <Sel
+              value={apAssign}
+              onChange={(e) => setApAssign(e.target.value)}
+              disabled={approving}
+            >
               <option value="">{t.bjSelectSupervisorOpt}</option>
               {fieldUsers.map((u) => (
-                <option key={u.id} value={u.id}>{u.name}</option>
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                </option>
               ))}
             </Sel>
           </Fld>
           <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
-            <Btn v="ghost" onClick={() => setModal(null)} style={{ flex: 1, justifyContent: "center" }} disabled={approving}>{t.bjCancel}</Btn>
-            <Btn v="teal" onClick={doApprove} style={{ flex: 1, justifyContent: "center" }} disabled={approving}>
+            <Btn
+              v="ghost"
+              onClick={() => setModal(null)}
+              style={{ flex: 1, justifyContent: "center" }}
+              disabled={approving}
+            >
+              {t.bjCancel}
+            </Btn>
+            <Btn
+              v="teal"
+              onClick={doApprove}
+              style={{ flex: 1, justifyContent: "center" }}
+              disabled={approving}
+            >
               {approving ? "⏳ Approving..." : "✅ Approve & Notify"}
             </Btn>
           </div>
@@ -1299,7 +1689,16 @@ export default function BuildJobs({
           }}
           wide
         >
-          <div style={{ display: "flex", gap: 0, marginBottom: 18, background: C.lg, borderRadius: "var(--radius-md)", overflow: "hidden" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: 0,
+              marginBottom: 18,
+              background: C.lg,
+              borderRadius: "var(--radius-md)",
+              overflow: "hidden",
+            }}
+          >
             {["1. Find Job", "2. Add Inventory", "3. Assign & Save"].map((s, i) => (
               <div
                 key={s}
@@ -1313,7 +1712,8 @@ export default function BuildJobs({
                   color: wStep === i + 1 ? C.w : wStep > i + 1 ? C.gr : C.sub,
                 }}
               >
-                {wStep > i + 1 ? "✓ " : ""}{s}
+                {wStep > i + 1 ? "✓ " : ""}
+                {s}
               </div>
             ))}
           </div>
@@ -1321,32 +1721,82 @@ export default function BuildJobs({
           {wStep === 1 && (
             <div>
               <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: 10 }}>
-                <Inp value={axQ} onChange={(e) => setAxQ(e.target.value)} placeholder={t.bjAxSearchPlaceholder} onKeyDown={(e) => e.key === "Enter" && !axL && searchAX()} style={{ flex: 1 }} disabled={axL} />
-                <Btn v="primary" onClick={searchAX} disabled={axL}>{axL ? "Searching..." : "🔍 Search"}</Btn>
+                <Inp
+                  value={axQ}
+                  onChange={(e) => setAxQ(e.target.value)}
+                  placeholder={t.bjAxSearchPlaceholder}
+                  onKeyDown={(e) => e.key === "Enter" && !axL && searchAX()}
+                  style={{ flex: 1 }}
+                  disabled={axL}
+                />
+                <Btn v="primary" onClick={searchAX} disabled={axL}>
+                  {axL ? "Searching..." : "🔍 Search"}
+                </Btn>
               </div>
               {axR.length > 0 && (
-                <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", overflow: "hidden", marginBottom: 14 }}>
+                <div
+                  style={{
+                    border: `1.5px solid ${C.bd}`,
+                    borderRadius: "var(--radius-md)",
+                    overflow: "hidden",
+                    marginBottom: 14,
+                  }}
+                >
                   {axR.map((j) => (
                     <div
                       key={j.po}
                       onClick={() => {
-                        setWPO({ po: j.po, name: j.name, addr: j.addr, notes: "", scheduledDate: "", acculynxJobId: j.acculynxJobId });
+                        setWPO({
+                          po: j.po,
+                          name: j.name,
+                          addr: j.addr,
+                          notes: "",
+                          scheduledDate: "",
+                          acculynxJobId: j.acculynxJobId,
+                        });
                         setAxR([]);
                       }}
-                      style={{ padding: "10px 14px", cursor: "pointer", borderBottom: `1px solid ${C.lg}`, background: C.w }}
+                      style={{
+                        padding: "10px 14px",
+                        cursor: "pointer",
+                        borderBottom: `1px solid ${C.lg}`,
+                        background: C.w,
+                      }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = C.lg)}
                       onMouseLeave={(e) => (e.currentTarget.style.background = C.w)}
                     >
-                      <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{j.name}</div>
-                      <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{j.po} · {j.addr}</div>
+                      <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                        {j.name}
+                      </div>
+                      <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>
+                        {j.po} · {j.addr}
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
               <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
-                <Fld label={t.bjJobPo}><Inp value={wPO.po} onChange={(e) => setWPO({ ...wPO, po: e.target.value })} placeholder={t.bjPoPlaceholder} /></Fld>
-                <Fld label={t.bjJobName}><Inp value={wPO.name} onChange={(e) => setWPO({ ...wPO, name: e.target.value })} placeholder={t.bjJobNamePlaceholder} /></Fld>
-                <Fld label={t.bjJobAddr}><Inp value={wPO.addr} onChange={(e) => setWPO({ ...wPO, addr: e.target.value })} placeholder={t.bjJobAddrPlaceholder} /></Fld>
+                <Fld label={t.bjJobPo}>
+                  <Inp
+                    value={wPO.po}
+                    onChange={(e) => setWPO({ ...wPO, po: e.target.value })}
+                    placeholder={t.bjPoPlaceholder}
+                  />
+                </Fld>
+                <Fld label={t.bjJobName}>
+                  <Inp
+                    value={wPO.name}
+                    onChange={(e) => setWPO({ ...wPO, name: e.target.value })}
+                    placeholder={t.bjJobNamePlaceholder}
+                  />
+                </Fld>
+                <Fld label={t.bjJobAddr}>
+                  <Inp
+                    value={wPO.addr}
+                    onChange={(e) => setWPO({ ...wPO, addr: e.target.value })}
+                    placeholder={t.bjJobAddrPlaceholder}
+                  />
+                </Fld>
                 {/* Captured at creation, when the number is in front of whoever is
                     building the job. Left optional on purpose: forcing it here would
                     push people to type a placeholder, and a wrong contract value is
@@ -1355,7 +1805,17 @@ export default function BuildJobs({
                 {perms.jobs_revenue && (
                   <Fld label={t.bjContractValue} hint={t.bjContractValueHint}>
                     <div style={{ position: "relative" }}>
-                      <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}>$</span>
+                      <span
+                        style={{
+                          position: "absolute",
+                          left: 10,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          color: C.sub,
+                        }}
+                      >
+                        $
+                      </span>
                       <Inp
                         type="number"
                         step="0.01"
@@ -1369,46 +1829,128 @@ export default function BuildJobs({
                   </Fld>
                 )}
                 <Fld label={t.bjSchedStart}>
-                  <Inp type="date" aria-label={t.bjSchedStart} value={wPO.scheduledDate || ""} onChange={(e) => setWPO({ ...wPO, scheduledDate: e.target.value })} />
+                  <Inp
+                    type="date"
+                    aria-label={t.bjSchedStart}
+                    value={wPO.scheduledDate || ""}
+                    onChange={(e) => setWPO({ ...wPO, scheduledDate: e.target.value })}
+                  />
                 </Fld>
               </div>
-              <Btn v="primary" sz="lg" onClick={() => { if (!wPO.po || !wPO.name) { showToast(t.bjPoNameRequired, "warning"); return; } setWStep(2); }} style={{ width: "100%", justifyContent: "center", marginTop: 10 }}>{t.bjContinue}</Btn>
+              <Btn
+                v="primary"
+                sz="lg"
+                onClick={() => {
+                  if (!wPO.po || !wPO.name) {
+                    showToast(t.bjPoNameRequired, "warning");
+                    return;
+                  }
+                  setWStep(2);
+                }}
+                style={{ width: "100%", justifyContent: "center", marginTop: 10 }}
+              >
+                {t.bjContinue}
+              </Btn>
             </div>
           )}
 
           {wStep === 2 && (
             <div>
-              <div style={{ background: C.gL, border: `1.5px solid ${C.gold}`, borderRadius: "var(--radius-md)", padding: "8px 12px", marginBottom: 12, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy }}>
+              <div
+                style={{
+                  background: C.gL,
+                  border: `1.5px solid ${C.gold}`,
+                  borderRadius: "var(--radius-md)",
+                  padding: "8px 12px",
+                  marginBottom: 12,
+                  fontSize: "var(--text-sm)",
+                  fontWeight: "var(--weight-bold)",
+                  color: C.navy,
+                }}
+              >
                 📋 {wPO.po} — {wPO.name}
               </div>
-              
+
               {/* ── 🆕 OPTION 2: MULTI-COLUMN INTERACTIVE SIDE PANEL LAYOUT ── */}
               <div style={{ display: "flex", gap: "var(--space-7)", flexWrap: "wrap" }}>
-                
                 {/* Column A: Job Material Templates */}
-                <div style={{ flex: 1.2, minWidth: 200, background: C.bg || "var(--c-subtle)", border: `1px solid ${C.bd}`, borderRadius: "var(--radius-lg)", padding: 12, maxHeight: 380, overflowY: "auto" }}>
-                  <h4 style={{ margin: "0 0 8px 0", color: C.navy, fontSize: "var(--text-base)", display: "flex", alignItems: "center", gap: 5 }}>
+                <div
+                  style={{
+                    flex: 1.2,
+                    minWidth: 200,
+                    background: C.bg || "var(--c-subtle)",
+                    border: `1px solid ${C.bd}`,
+                    borderRadius: "var(--radius-lg)",
+                    padding: 12,
+                    maxHeight: 380,
+                    overflowY: "auto",
+                  }}
+                >
+                  <h4
+                    style={{
+                      margin: "0 0 8px 0",
+                      color: C.navy,
+                      fontSize: "var(--text-base)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
                     🧰 Job Templates
                   </h4>
                   <p style={{ margin: "0 0 10px 0", fontSize: "var(--text-xs)", color: C.sub }}>
-                    One-click material packages. Apply one, then fine-tune quantities in the Job List.
+                    One-click material packages. Apply one, then fine-tune quantities in the Job
+                    List.
                   </p>
                   <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                     {jobTemplates.length === 0 && (
-                      <p style={{ fontSize: "var(--text-xs)", color: C.sub, fontStyle: "italic", margin: 0 }}>
+                      <p
+                        style={{
+                          fontSize: "var(--text-xs)",
+                          color: C.sub,
+                          fontStyle: "italic",
+                          margin: 0,
+                        }}
+                      >
                         {t.bjNoTemplates}
                       </p>
                     )}
                     {jobTemplates.map((tpl) => (
-                      <div key={tpl.id || tpl.name} style={{ background: C.w, border: `1px solid ${C.lg}`, borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                          <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: "var(--text-sm)" }}>
+                      <div
+                        key={tpl.id || tpl.name}
+                        style={{
+                          background: C.w,
+                          border: `1px solid ${C.lg}`,
+                          borderRadius: "var(--radius-md)",
+                          padding: "10px 12px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: 6,
+                            marginBottom: 6,
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontWeight: "var(--weight-extrabold)",
+                              color: C.navy,
+                              fontSize: "var(--text-sm)",
+                            }}
+                          >
                             {tpl.icon} {tpl.name}
                           </div>
-                          <Btn v="primary" sz="sm" onClick={() => applyTemplate(tpl)}>+ Apply</Btn>
+                          <Btn v="primary" sz="sm" onClick={() => applyTemplate(tpl)}>
+                            + Apply
+                          </Btn>
                         </div>
                         <div style={{ fontSize: "var(--text-2xs)", color: C.sub, lineHeight: 1.7 }}>
-                          {(tpl.items || []).map((it) => it.iname + (it.qty > 1 ? ` ×${it.qty}` : "")).join(" · ")}
+                          {(tpl.items || [])
+                            .map((it) => it.iname + (it.qty > 1 ? ` ×${it.qty}` : ""))
+                            .join(" · ")}
                         </div>
                       </div>
                     ))}
@@ -1420,19 +1962,60 @@ export default function BuildJobs({
 
                 {/* Column B: Real WMS System Catalog Query Feed */}
                 <div style={{ flex: 2, minWidth: 240 }}>
-                  <Inp value={iSrch} onChange={(e) => setISrch(e.target.value)} placeholder={t.bjSearchInv} style={{ marginBottom: 8 }} />
-                  <div style={{ maxHeight: 330, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
+                  <Inp
+                    value={iSrch}
+                    onChange={(e) => setISrch(e.target.value)}
+                    placeholder={t.bjSearchInv}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <div
+                    style={{
+                      maxHeight: 330,
+                      overflowY: "auto",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 5,
+                    }}
+                  >
                     {(filtInv || []).map((item) => {
                       if (!item) return null;
                       const added = (wItems || []).find((i) => i && i.iid === item.id);
 
                       return (
-                        <div key={item.id} style={{ background: C.w, borderRadius: "var(--radius-md)", padding: "9px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", border: `1.5px solid ${added ? C.blue : "transparent"}`, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                        <div
+                          key={item.id}
+                          style={{
+                            background: C.w,
+                            borderRadius: "var(--radius-md)",
+                            padding: "9px 12px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            border: `1.5px solid ${added ? C.blue : "transparent"}`,
+                            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                          }}
+                        >
                           <div>
-                            <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.name}</div>
-                            <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{tot(item)} {item.unit} available</div>
+                            <div
+                              style={{
+                                fontWeight: "var(--weight-bold)",
+                                color: C.navy,
+                                fontSize: "var(--text-sm)",
+                              }}
+                            >
+                              {item.name}
+                            </div>
+                            <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                              {tot(item)} {item.unit} available
+                            </div>
                           </div>
-                          {added ? <Bdg color="blue">{t.bjAdded}</Bdg> : <Btn v="primary" sz="sm" onClick={() => addWItem(item)}>{t.bjAdd}</Btn>}
+                          {added ? (
+                            <Bdg color="blue">{t.bjAdded}</Bdg>
+                          ) : (
+                            <Btn v="primary" sz="sm" onClick={() => addWItem(item)}>
+                              {t.bjAdd}
+                            </Btn>
+                          )}
                         </div>
                       );
                     })}
@@ -1441,19 +2024,76 @@ export default function BuildJobs({
 
                 {/* Column C: Current Jobs Staged Checklist Draft */}
                 <div style={{ flex: 1.5, minWidth: 190 }}>
-                  <div style={{ background: C.w, borderRadius: "var(--radius-lg)", padding: 12, boxShadow: "var(--shadow-sm)", position: "sticky", top: 0 }}>
-                    <h4 style={{ margin: "0 0 10px", color: C.navy, fontSize: "var(--text-base)" }}>📦 Job List ({wItems.length})</h4>
+                  <div
+                    style={{
+                      background: C.w,
+                      borderRadius: "var(--radius-lg)",
+                      padding: 12,
+                      boxShadow: "var(--shadow-sm)",
+                      position: "sticky",
+                      top: 0,
+                    }}
+                  >
+                    <h4 style={{ margin: "0 0 10px", color: C.navy, fontSize: "var(--text-base)" }}>
+                      📦 Job List ({wItems.length})
+                    </h4>
                     {wItems.length === 0 ? (
-                      <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>{t.bjAddFromList}</p>
+                      <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
+                        {t.bjAddFromList}
+                      </p>
                     ) : (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                      <div
+                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
+                      >
                         {wItems.map((i) => (
-                          <div key={i.iid} style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}>
-                            <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-xs)", marginBottom: 4 }}>{i.iname}</div>
+                          <div
+                            key={i.iid}
+                            style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}
+                          >
+                            <div
+                              style={{
+                                fontWeight: "var(--weight-bold)",
+                                color: C.navy,
+                                fontSize: "var(--text-xs)",
+                                marginBottom: 4,
+                              }}
+                            >
+                              {i.iname}
+                            </div>
                             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                              <Inp type="number" value={i.qty} min="1" max={i.avail} onChange={(e) => setWItems((p) => p.map((x) => x.iid === i.iid ? { ...x, qty: Math.max(1, parseInt(e.target.value) || 1) } : x))} style={{ width: 55, padding: "3px 6px" }} />
-                              <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{i.unit}</span>
-                              <button onClick={() => setWItems((p) => p.filter((x) => x.iid !== i.iid))} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-lg)", lineHeight: 1 }}>×</button>
+                              <Inp
+                                type="number"
+                                value={i.qty}
+                                min="1"
+                                max={i.avail}
+                                onChange={(e) =>
+                                  setWItems((p) =>
+                                    p.map((x) =>
+                                      x.iid === i.iid
+                                        ? { ...x, qty: Math.max(1, parseInt(e.target.value) || 1) }
+                                        : x,
+                                    ),
+                                  )
+                                }
+                                style={{ width: 55, padding: "3px 6px" }}
+                              />
+                              <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                                {i.unit}
+                              </span>
+                              <button
+                                onClick={() => setWItems((p) => p.filter((x) => x.iid !== i.iid))}
+                                style={{
+                                  marginLeft: "auto",
+                                  background: "none",
+                                  border: "none",
+                                  cursor: "pointer",
+                                  color: C.rd,
+                                  fontSize: "var(--text-lg)",
+                                  lineHeight: 1,
+                                }}
+                              >
+                                ×
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -1461,20 +2101,48 @@ export default function BuildJobs({
                     )}
                   </div>
                 </div>
-
               </div>
               <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-                <Btn v="ghost" onClick={() => setWStep(1)} style={{ flex: 1, justifyContent: "center" }}>← Back</Btn>
-                <Btn v="primary" onClick={() => { if (wItems.length === 0) { showToast(t.bjAddOneItem, "warning"); return; } setWStep(3); }} style={{ flex: 1, justifyContent: "center" }}>{t.bjContinue}</Btn>
+                <Btn
+                  v="ghost"
+                  onClick={() => setWStep(1)}
+                  style={{ flex: 1, justifyContent: "center" }}
+                >
+                  ← Back
+                </Btn>
+                <Btn
+                  v="primary"
+                  onClick={() => {
+                    if (wItems.length === 0) {
+                      showToast(t.bjAddOneItem, "warning");
+                      return;
+                    }
+                    setWStep(3);
+                  }}
+                  style={{ flex: 1, justifyContent: "center" }}
+                >
+                  {t.bjContinue}
+                </Btn>
               </div>
             </div>
           )}
 
           {wStep === 3 && (
             <div>
-              <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 14px", marginBottom: 14 }}>
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{wPO.po} — {wPO.name}</div>
-                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>{wItems.length} items planned</div>
+              <div
+                style={{
+                  background: C.lg,
+                  borderRadius: "var(--radius-md)",
+                  padding: "10px 14px",
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                  {wPO.po} — {wPO.name}
+                </div>
+                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>
+                  {wItems.length} items planned
+                </div>
               </div>
               <Fld label={t.bjNotes} hint={t.bjNotesHint}>
                 <TA
@@ -1488,37 +2156,94 @@ export default function BuildJobs({
                 <Sel value={wAssign} onChange={(e) => setWAssign(e.target.value)} disabled={saving}>
                   <option value="">{t.bjAssignLaterOpt}</option>
                   {fieldUsers.map((u) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
                   ))}
                 </Sel>
               </Fld>
-              <div style={{ background: wAssign ? C.tB : C.aB, border: `1px solid ${wAssign ? C.tl : C.am}`, borderRadius: "var(--radius-md)", padding: "8px 12px", marginBottom: 14, fontSize: "var(--text-sm)", color: wAssign ? C.tl : C.am, fontWeight: "var(--weight-semibold)" }}>
-                {wAssign ? `✅ ${users.find((u) => u.id === wAssign)?.name} will be notified when you approve.` : "⚠️ No supervisor assigned — will save as draft."}
+              <div
+                style={{
+                  background: wAssign ? C.tB : C.aB,
+                  border: `1px solid ${wAssign ? C.tl : C.am}`,
+                  borderRadius: "var(--radius-md)",
+                  padding: "8px 12px",
+                  marginBottom: 14,
+                  fontSize: "var(--text-sm)",
+                  color: wAssign ? C.tl : C.am,
+                  fontWeight: "var(--weight-semibold)",
+                }}
+              >
+                {wAssign
+                  ? `✅ ${users.find((u) => u.id === wAssign)?.name} will be notified when you approve.`
+                  : "⚠️ No supervisor assigned — will save as draft."}
               </div>
               {vehs.some((v) => v.type === "trailer") && (
                 <Fld label={t.bjTrailersNeeded} hint={t.bjTrailersHint}>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
-                    {vehs.filter((v) => v.type === "trailer").map((v) => {
-                      const checked = wTrailers.includes(v.id);
-                      return (
-                        <label key={v.id} style={{ display: "flex", alignItems: "center", gap: 5, background: checked ? C.tB : C.lg, border: `1px solid ${checked ? C.tl : C.bd}`, borderRadius: "var(--radius-pill)", padding: "5px 12px", fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", color: checked ? C.tl : C.navy, cursor: "pointer" }}>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => setWTrailers((p) => (p.includes(v.id) ? p.filter((id) => id !== v.id) : [...p, v.id]))}
-                            style={{ margin: 0 }}
-                          />
-                          {v.name}
-                        </label>
-                      );
-                    })}
+                    {vehs
+                      .filter((v) => v.type === "trailer")
+                      .map((v) => {
+                        const checked = wTrailers.includes(v.id);
+                        return (
+                          <label
+                            key={v.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 5,
+                              background: checked ? C.tB : C.lg,
+                              border: `1px solid ${checked ? C.tl : C.bd}`,
+                              borderRadius: "var(--radius-pill)",
+                              padding: "5px 12px",
+                              fontSize: "var(--text-sm)",
+                              fontWeight: "var(--weight-semibold)",
+                              color: checked ? C.tl : C.navy,
+                              cursor: "pointer",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() =>
+                                setWTrailers((p) =>
+                                  p.includes(v.id) ? p.filter((id) => id !== v.id) : [...p, v.id],
+                                )
+                              }
+                              style={{ margin: 0 }}
+                            />
+                            {v.name}
+                          </label>
+                        );
+                      })}
                   </div>
                 </Fld>
               )}
               <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
-                <Btn v="ghost" onClick={() => setWStep(2)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>← Back</Btn>
-                <Btn v="ghost" onClick={() => saveJob(true)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{saving ? "⏳ Caching..." : "💾 Save Draft"}</Btn>
-                <Btn v="teal" onClick={() => saveJob(false)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{saving ? "⏳ Submitting..." : "✅ Approve & Notify"}</Btn>
+                <Btn
+                  v="ghost"
+                  onClick={() => setWStep(2)}
+                  style={{ flex: 1, justifyContent: "center" }}
+                  disabled={saving}
+                >
+                  ← Back
+                </Btn>
+                <Btn
+                  v="ghost"
+                  onClick={() => saveJob(true)}
+                  style={{ flex: 1, justifyContent: "center" }}
+                  disabled={saving}
+                >
+                  {saving ? "⏳ Caching..." : "💾 Save Draft"}
+                </Btn>
+                <Btn
+                  v="teal"
+                  onClick={() => saveJob(false)}
+                  style={{ flex: 1, justifyContent: "center" }}
+                  disabled={saving}
+                >
+                  {saving ? "⏳ Submitting..." : "✅ Approve & Notify"}
+                </Btn>
               </div>
             </div>
           )}
@@ -1536,31 +2261,39 @@ export default function BuildJobs({
           Building sends the job to the crew's queue; closing archives it into the
           Closed list on this screen. Both make it vanish from where you were
           standing, so both say where it went. */}
-      {handoff && (() => {
-        const built = handoff.kind === "built";
-        const supervisor = users.find((u) => u.id === handoff.job.assignedto);
-        return (
-          <JobHandoff
-            job={handoff.job}
-            title={built ? t.bjCreatedTitle : t.bjClosedTitle}
-            message={
-              built
-                ? (handoff.job.assignedto
-                    ? t.bjCreatedAssigned.replace("{name}", supervisor?.full_name || supervisor?.name || t.bjCreatedTheCrew)
-                    : t.bjCreatedUnassigned)
-                : t.bjClosedMsg
-            }
-            actionLabel={built ? `📋 ${t.bjSeeInPull}` : `🔒 ${t.bjSeeInClosed}`}
-            onGo={() => {
-              const j = handoff.job;
-              setHandoff(null);
-              onShowJobIn?.(built ? "pull" : "buildjobs", j.id, built ? t.pullJustBuilt : t.bjJustClosed);
-            }}
-            onClose={() => setHandoff(null)}
-            closeLabel={t.bjBuildAnother}
-          />
-        );
-      })()}
+      {handoff &&
+        (() => {
+          const built = handoff.kind === "built";
+          const supervisor = users.find((u) => u.id === handoff.job.assignedto);
+          return (
+            <JobHandoff
+              job={handoff.job}
+              title={built ? t.bjCreatedTitle : t.bjClosedTitle}
+              message={
+                built
+                  ? handoff.job.assignedto
+                    ? t.bjCreatedAssigned.replace(
+                        "{name}",
+                        supervisor?.full_name || supervisor?.name || t.bjCreatedTheCrew,
+                      )
+                    : t.bjCreatedUnassigned
+                  : t.bjClosedMsg
+              }
+              actionLabel={built ? `📋 ${t.bjSeeInPull}` : `🔒 ${t.bjSeeInClosed}`}
+              onGo={() => {
+                const j = handoff.job;
+                setHandoff(null);
+                onShowJobIn?.(
+                  built ? "pull" : "buildjobs",
+                  j.id,
+                  built ? t.pullJustBuilt : t.bjJustClosed,
+                );
+              }}
+              onClose={() => setHandoff(null)}
+              closeLabel={t.bjBuildAnother}
+            />
+          );
+        })()}
     </div>
   );
 }

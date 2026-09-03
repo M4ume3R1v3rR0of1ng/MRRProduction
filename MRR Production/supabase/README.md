@@ -14,11 +14,11 @@ That is the authoritative answer. The ledger does not trust a log, it probes the
 live schema for the object each migration creates. Re-run the file any time to
 refresh it, and after a restore or on a fresh environment.
 
-| status | meaning |
-|--------|---------|
-| `missing` | Not run. The `note` names the object that was looked for and not found. |
+| status         | meaning                                                                             |
+| -------------- | ----------------------------------------------------------------------------------- |
+| `missing`      | Not run. The `note` names the object that was looked for and not found.             |
 | `undetectable` | Cannot be probed. Confirm by hand with checks A, B and C at the bottom of the file. |
-| `verified` | The object that migration creates is present. |
+| `verified`     | The object that migration creates is present.                                       |
 
 If the result comes back empty, the probes did not run. If it says "Success. No
 rows returned" with no grid at all, you are looking at an older copy of the file
@@ -54,45 +54,45 @@ in SQL, change it there too.
 
 ## The files
 
-| # | File | What it does |
-|---|------|--------------|
-| 00 | `00_introspect.sql` | Read-only. Inspect the current schema. Writes nothing. |
-| 01 | `01_tenancy_core.sql` | The company layer: `companies`, `memberships`, and the helpers every RLS policy calls. |
-| 02 | `02_tenancy_tables.sql` | **Destructive.** Puts every business table behind a company. |
-| 03 | `03_functions.sql` | The functions the app and the nightly cron call. |
-| 04 | `04_security_fixes.sql` | Closes four isolation defects found by `scripts/verify-tenant-isolation.mjs`. |
-| 05 | `05_storage.sql` | Tenant-scopes the photo buckets. |
-| 06 | `06_platform_admin.sql` | The Owner Console data layer. The only cross-company RPCs. |
-| 07 | `07_billing.sql` | Adds the `incomplete` subscription state for self-serve signup. |
-| 08 | `08_usage.sql` | Per-company storage usage for the Owner Console. |
-| 09 | `09_seats.sql` | Seat limits. $99/mo includes 10 users, +$10/mo per extra 5. |
-| 10 | `10_platform_admin_role.sql` | `platform_admin` becomes a managed role. |
-| 11 | `11_fix_admin_list.sql` | Fix: `admin_list_companies()` threw "column reference created_at is ambiguous". |
-| 12 | `12_permission_enforcement.sql` | Server-side permission enforcement. Job permissions were UI-only before this. |
-| 13 | `13_fix_has_perm.sql` | Fix: `has_perm()` threw 42883 on a `text = uuid` comparison. |
-| 14 | `14_atomic_material_moves.sql` | Makes pulling and returning materials atomic. |
-| 15 | `15_jobs_schema_debt.sql` | **Drops columns.** Retires the duplicate names on `jobs`. |
-| 16 | `16_one_time_seat_packs.sql` | Crew packs become a one-time purchase. Superseded by 27. |
-| 17 | `17_multi_crew_jobs.sql` | One AccuLynx job can carry more than one inventory job. |
-| 18 | `18_enable_rls.sql` | Asserts row level security is actually on. Idempotent. |
-| 19 | `19_maintenance_vehicle_swap.sql` | Take a vehicle off the road and lend its driver a spare. |
-| 20 | `20_inventory_counts.sql` | Monthly physical stock counts and book-vs-shelf variance. |
-| 21 | `21_profiles_readable_after_deactivation.sql` | A deactivated employee keeps their name in your records. |
-| 22 | `22_backfill_batch_by_name.sql` | **Optional** data backfill. Freezes resolvable names onto batch rows. |
-| 23 | `23_recover_orphaned_person.sql` | Reattaches one person's orphaned batch history. Destructive steps are commented out and gated. |
-| 24 | `24_job_contract_value.sql` | Gives a job a real contract value. |
-| 25 | `25_vehicle_out_of_service.sql` | Lets a person ground a vehicle. |
-| 26 | `26_training_media.sql` | Admin-uploaded training media, plus the `training-media` bucket. |
-| 27 | `27_recurring_seat_packs.sql` | Crew packs go back to being a recurring charge. Supersedes 16. |
-| 28 | `28_acculynx_sync_state.sql` | Records what actually reached AccuLynx. |
-| 29 | `29_mfa_enforcement.sql` | Requires a second factor from accounts that have one. |
-| 30 | `30_platform_revenue.sql` | Per-company and platform-wide monthly revenue. |
-| 31 | `31_platform_admin_entry.sql` | Lets the platform owner enter a tenant they do not belong to. |
-| 32 | `32_platform_company.sql` | Marks one company as the operator's own tenant. **Needs a manual check.** |
-| 33 | `33_migration_ledger.sql` | Records which of the above are applied, by probing the schema. |
-| 34 | `34_complete_maintenance_service.sql` | "Complete Service" as one atomic step: logs the service to the vehicle, closes the request, and optionally reassigns the driver. |
-| 35 | `35_correct_job_return.sql` | Lets a `jobs_close` holder correct a wrong returned quantity on a completed job, without re-triggering completion. Refuses if the stock being clawed back has already been pulled for another job. |
-| 36 | `36_pull_added_job_materials.sql` | Lets a `jobs_pull` holder FIFO-pull stock for a line added to a job after its initial pull (job already active/completed, not closed), without re-running the whole pull or changing job status. |
+| #   | File                                          | What it does                                                                                                                                                                                       |
+| --- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 00  | `00_introspect.sql`                           | Read-only. Inspect the current schema. Writes nothing.                                                                                                                                             |
+| 01  | `01_tenancy_core.sql`                         | The company layer: `companies`, `memberships`, and the helpers every RLS policy calls.                                                                                                             |
+| 02  | `02_tenancy_tables.sql`                       | **Destructive.** Puts every business table behind a company.                                                                                                                                       |
+| 03  | `03_functions.sql`                            | The functions the app and the nightly cron call.                                                                                                                                                   |
+| 04  | `04_security_fixes.sql`                       | Closes four isolation defects found by `scripts/verify-tenant-isolation.mjs`.                                                                                                                      |
+| 05  | `05_storage.sql`                              | Tenant-scopes the photo buckets.                                                                                                                                                                   |
+| 06  | `06_platform_admin.sql`                       | The Owner Console data layer. The only cross-company RPCs.                                                                                                                                         |
+| 07  | `07_billing.sql`                              | Adds the `incomplete` subscription state for self-serve signup.                                                                                                                                    |
+| 08  | `08_usage.sql`                                | Per-company storage usage for the Owner Console.                                                                                                                                                   |
+| 09  | `09_seats.sql`                                | Seat limits. $99/mo includes 10 users, +$10/mo per extra 5.                                                                                                                                        |
+| 10  | `10_platform_admin_role.sql`                  | `platform_admin` becomes a managed role.                                                                                                                                                           |
+| 11  | `11_fix_admin_list.sql`                       | Fix: `admin_list_companies()` threw "column reference created_at is ambiguous".                                                                                                                    |
+| 12  | `12_permission_enforcement.sql`               | Server-side permission enforcement. Job permissions were UI-only before this.                                                                                                                      |
+| 13  | `13_fix_has_perm.sql`                         | Fix: `has_perm()` threw 42883 on a `text = uuid` comparison.                                                                                                                                       |
+| 14  | `14_atomic_material_moves.sql`                | Makes pulling and returning materials atomic.                                                                                                                                                      |
+| 15  | `15_jobs_schema_debt.sql`                     | **Drops columns.** Retires the duplicate names on `jobs`.                                                                                                                                          |
+| 16  | `16_one_time_seat_packs.sql`                  | Crew packs become a one-time purchase. Superseded by 27.                                                                                                                                           |
+| 17  | `17_multi_crew_jobs.sql`                      | One AccuLynx job can carry more than one inventory job.                                                                                                                                            |
+| 18  | `18_enable_rls.sql`                           | Asserts row level security is actually on. Idempotent.                                                                                                                                             |
+| 19  | `19_maintenance_vehicle_swap.sql`             | Take a vehicle off the road and lend its driver a spare.                                                                                                                                           |
+| 20  | `20_inventory_counts.sql`                     | Monthly physical stock counts and book-vs-shelf variance.                                                                                                                                          |
+| 21  | `21_profiles_readable_after_deactivation.sql` | A deactivated employee keeps their name in your records.                                                                                                                                           |
+| 22  | `22_backfill_batch_by_name.sql`               | **Optional** data backfill. Freezes resolvable names onto batch rows.                                                                                                                              |
+| 23  | `23_recover_orphaned_person.sql`              | Reattaches one person's orphaned batch history. Destructive steps are commented out and gated.                                                                                                     |
+| 24  | `24_job_contract_value.sql`                   | Gives a job a real contract value.                                                                                                                                                                 |
+| 25  | `25_vehicle_out_of_service.sql`               | Lets a person ground a vehicle.                                                                                                                                                                    |
+| 26  | `26_training_media.sql`                       | Admin-uploaded training media, plus the `training-media` bucket.                                                                                                                                   |
+| 27  | `27_recurring_seat_packs.sql`                 | Crew packs go back to being a recurring charge. Supersedes 16.                                                                                                                                     |
+| 28  | `28_acculynx_sync_state.sql`                  | Records what actually reached AccuLynx.                                                                                                                                                            |
+| 29  | `29_mfa_enforcement.sql`                      | Requires a second factor from accounts that have one.                                                                                                                                              |
+| 30  | `30_platform_revenue.sql`                     | Per-company and platform-wide monthly revenue.                                                                                                                                                     |
+| 31  | `31_platform_admin_entry.sql`                 | Lets the platform owner enter a tenant they do not belong to.                                                                                                                                      |
+| 32  | `32_platform_company.sql`                     | Marks one company as the operator's own tenant. **Needs a manual check.**                                                                                                                          |
+| 33  | `33_migration_ledger.sql`                     | Records which of the above are applied, by probing the schema.                                                                                                                                     |
+| 34  | `34_complete_maintenance_service.sql`         | "Complete Service" as one atomic step: logs the service to the vehicle, closes the request, and optionally reassigns the driver.                                                                   |
+| 35  | `35_correct_job_return.sql`                   | Lets a `jobs_close` holder correct a wrong returned quantity on a completed job, without re-triggering completion. Refuses if the stock being clawed back has already been pulled for another job. |
+| 36  | `36_pull_added_job_materials.sql`             | Lets a `jobs_pull` holder FIFO-pull stock for a line added to a job after its initial pull (job already active/completed, not closed), without re-running the whole pull or changing job status.   |
 
 ## Adding a migration
 

@@ -26,22 +26,56 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
   return (
     <div
       className="mrr-card"
-      style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}
+      style={{
+        background: C.w,
+        borderRadius: "var(--radius-xl)",
+        padding: 16,
+        border: `1px solid ${C.bd}`,
+        boxShadow: "var(--shadow-xs)",
+      }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "var(--space-4)", marginBottom: 12, flexWrap: "wrap" }}>
-        <h3 style={{ margin: 0, fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: "var(--space-4)",
+          marginBottom: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: "var(--text-base)",
+            fontWeight: "var(--weight-extrabold)",
+            color: C.navy,
+          }}
+        >
           🗓️ {es ? "La semana que viene" : "The week ahead"}
         </h3>
         <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-4)" }}>
-          <span style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)" }}>
-            {totalJobs} {es ? "trabajos" : totalJobs === 1 ? "job" : "jobs"} · {totalMaint} {es ? "en taller" : "in shop"}
+          <span
+            style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)" }}
+          >
+            {totalJobs} {es ? "trabajos" : totalJobs === 1 ? "job" : "jobs"} · {totalMaint}{" "}
+            {es ? "en taller" : "in shop"}
           </span>
           {/* The way through to the full month view, where the past lives. This
               card only ever shows the next seven days. */}
           <button
             onClick={() => onNav?.("schedule")}
-            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit",
-                     fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: C.blue, whiteSpace: "nowrap" }}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              font: "inherit",
+              fontSize: "var(--text-2xs)",
+              fontWeight: "var(--weight-bold)",
+              color: C.blue,
+              whiteSpace: "nowrap",
+            }}
           >
             {es ? "Ver calendario completo →" : "Full calendar →"}
           </button>
@@ -49,13 +83,29 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
       </div>
 
       {anyConflict && (
-        <div style={{ background: C.aB, border: `1px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "7px 10px", marginBottom: 10, fontSize: "var(--text-2xs)", color: C.am, fontWeight: "var(--weight-bold)" }}>
-          ⚠️ {es ? "Un vehículo está reservado y en el taller el mismo día." : "A vehicle is booked out and in the shop on the same day."}
+        <div
+          style={{
+            background: C.aB,
+            border: `1px solid ${C.am}`,
+            borderRadius: "var(--radius-md)",
+            padding: "7px 10px",
+            marginBottom: 10,
+            fontSize: "var(--text-2xs)",
+            color: C.am,
+            fontWeight: "var(--weight-bold)",
+          }}
+        >
+          ⚠️{" "}
+          {es
+            ? "Un vehículo está reservado y en el taller el mismo día."
+            : "A vehicle is booked out and in the shop on the same day."}
         </div>
       )}
 
       <div className="sw-table-scroll">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(96px, 1fr))", gap: 4 }}>
+        <div
+          style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(96px, 1fr))", gap: 4 }}
+        >
           {week.map((day) => {
             const d = parseDay(day.key);
             const isToday = day.key === today;
@@ -74,11 +124,32 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                   gap: 5,
                 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                  <span style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-extrabold)", color: isToday ? C.am : C.sub, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "var(--text-2xs)",
+                      fontWeight: "var(--weight-extrabold)",
+                      color: isToday ? C.am : C.sub,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.4px",
+                    }}
+                  >
                     {WEEKDAY[d.getDay()]}
                   </span>
-                  <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-black)", color: isToday ? C.navy : C.sub, fontVariantNumeric: "tabular-nums" }}>
+                  <span
+                    style={{
+                      fontSize: "var(--text-sm)",
+                      fontWeight: "var(--weight-black)",
+                      color: isToday ? C.navy : C.sub,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
                     {d.getDate()}
                   </span>
                 </div>
@@ -93,18 +164,35 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                     onClick={() => onNav?.("buildjobs")}
                     title={`${j.title}${j.supervisor ? ` · ${j.supervisor}` : ""}${j.trailers.length ? ` · ${j.trailers.join(", ")}` : ""}`}
                     style={{
-                      background: C.w, border: `1px solid ${C.bd}`, borderLeft: `3px solid ${C.gr}`,
-                      borderRadius: 4, padding: "3px 5px", cursor: "pointer", textAlign: "left",
-                      fontSize: "var(--text-2xs)", color: C.navy, fontWeight: "var(--weight-bold)",
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%",
+                      background: C.w,
+                      border: `1px solid ${C.bd}`,
+                      borderLeft: `3px solid ${C.gr}`,
+                      borderRadius: 4,
+                      padding: "3px 5px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: "var(--text-2xs)",
+                      color: C.navy,
+                      fontWeight: "var(--weight-bold)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      width: "100%",
                     }}
                   >
                     {j.title}
-                    {j.trailers.length > 0 && <span style={{ color: C.sub, fontWeight: "normal" }}> 🚛{j.trailers.length}</span>}
+                    {j.trailers.length > 0 && (
+                      <span style={{ color: C.sub, fontWeight: "normal" }}>
+                        {" "}
+                        🚛{j.trailers.length}
+                      </span>
+                    )}
                   </button>
                 ))}
                 {day.jobs.length > 2 && (
-                  <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>+{day.jobs.length - 2} more</span>
+                  <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                    +{day.jobs.length - 2} more
+                  </span>
                 )}
 
                 {day.maint.slice(0, 2).map((m) => (
@@ -113,21 +201,40 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                     onClick={() => onNav?.("requests")}
                     title={`${m.vehicle} · ${m.issue}`}
                     style={{
-                      background: C.w, border: `1px solid ${C.bd}`, borderLeft: `3px solid ${C.pu}`,
-                      borderRadius: 4, padding: "3px 5px", cursor: "pointer", textAlign: "left",
-                      fontSize: "var(--text-2xs)", color: C.navy, fontWeight: "var(--weight-bold)",
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", width: "100%",
+                      background: C.w,
+                      border: `1px solid ${C.bd}`,
+                      borderLeft: `3px solid ${C.pu}`,
+                      borderRadius: 4,
+                      padding: "3px 5px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      fontSize: "var(--text-2xs)",
+                      color: C.navy,
+                      fontWeight: "var(--weight-bold)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      width: "100%",
                     }}
                   >
                     🔧 {m.vehicle}
                   </button>
                 ))}
                 {day.maint.length > 2 && (
-                  <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>+{day.maint.length - 2} more</span>
+                  <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                    +{day.maint.length - 2} more
+                  </span>
                 )}
 
                 {day.conflicts.length > 0 && (
-                  <span title={`${day.conflicts.join(", ")} booked and in the shop`} style={{ fontSize: "var(--text-2xs)", color: C.am, fontWeight: "var(--weight-bold)" }}>
+                  <span
+                    title={`${day.conflicts.join(", ")} booked and in the shop`}
+                    style={{
+                      fontSize: "var(--text-2xs)",
+                      color: C.am,
+                      fontWeight: "var(--weight-bold)",
+                    }}
+                  >
                     ⚠️ {day.conflicts.length}
                   </span>
                 )}

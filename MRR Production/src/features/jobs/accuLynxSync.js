@@ -1,6 +1,6 @@
 // src/features/jobs/accuLynxSync.js
-import { getAccessToken, updateRowStrict } from '@/shared/utils/supabase';
-import { buildJobReportModel } from './pdfGenerator';
+import { getAccessToken, updateRowStrict } from "@/shared/utils/supabase";
+import { buildJobReportModel } from "./pdfGenerator";
 
 // ── Reading sync state off a job ─────────────────────────────────────────────
 // "syncStatus"/"syncedAt"/"syncNote" are real columns on public.jobs and always
@@ -8,8 +8,8 @@ import { buildJobReportModel } from './pdfGenerator';
 // so there is exactly one shape to read and these accessors exist to keep the
 // empty-string-vs-null handling in one place rather than at every call site.
 export const syncStatusOf = (job) => job?.syncStatus || null;
-export const syncNoteOf = (job) => job?.syncNote || '';
-export const syncedAtOf = (job) => job?.syncedAt || '';
+export const syncNoteOf = (job) => job?.syncNote || "";
+export const syncedAtOf = (job) => job?.syncedAt || "";
 export const reportUploadedAtOf = (job) => job?.report_uploaded_at || null;
 
 // Sync state is a record of what happened, not part of the job's own edit flow.
@@ -19,13 +19,14 @@ export const reportUploadedAtOf = (job) => job?.report_uploaded_at || null;
 // behaviour this whole migration replaced, not a regression.
 async function persistSyncState(jobId, fields) {
   if (!jobId) return;
-  const { error } = await updateRowStrict('jobs', jobId, fields);
-  if (error) console.warn('Could not persist AccuLynx sync state:', error.message);
+  const { error } = await updateRowStrict("jobs", jobId, fields);
+  if (error) console.warn("Could not persist AccuLynx sync state:", error.message);
 }
 
 // Shown instead of the proxy's bare "Not authenticated", which points at the wrong
 // thing entirely: nothing is wrong with AccuLynx or the API key.
-const SESSION_EXPIRED = 'Your sign-in session expired. Reload the page and sign in again, then retry.';
+const SESSION_EXPIRED =
+  "Your sign-in session expired. Reload the page and sign in again, then retry.";
 
 async function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
@@ -57,15 +58,23 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 async function readProxyJson(res, url, { requireOk = false } = {}) {
   const text = await res.text();
   let data = null;
-  try { data = JSON.parse(text); } catch { /* handled below */ }
+  try {
+    data = JSON.parse(text);
+  } catch {
+    /* handled below */
+  }
 
   if (data === null) {
-    let where = 'the configured proxy URL';
-    try { where = new URL(url, window.location.origin).host; } catch { /* keep default */ }
+    let where = "the configured proxy URL";
+    try {
+      where = new URL(url, window.location.origin).host;
+    } catch {
+      /* keep default */
+    }
     throw new Error(
       `HTTP ${res.status} from ${where}, and the reply was not JSON. The request never reached a Netlify function. ` +
-      `Check the Proxy Gateway URL in Settings (it should be /.netlify/functions/acculynx-sync), ` +
-      `and that the app is running under \`netlify dev\` rather than plain Vite.`
+        `Check the Proxy Gateway URL in Settings (it should be /.netlify/functions/acculynx-sync), ` +
+        `and that the app is running under \`netlify dev\` rather than plain Vite.`,
     );
   }
 
@@ -95,7 +104,7 @@ async function fetchRead(url, options, { retries = 2, timeoutMs = 15000 } = {}) 
     }
     await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
   }
-  throw lastErr || new Error('Request failed');
+  throw lastErr || new Error("Request failed");
 }
 
 // The one thing this app sends to AccuLynx: the completion report PDF, filed as a
@@ -113,13 +122,18 @@ async function fetchRead(url, options, { retries = 2, timeoutMs = 15000 } = {}) 
 // filing it in the CRM are different intentions, and merging them meant every
 // reprint of a finished job dropped another copy into Job Paperwork.
 export async function syncJobReportToAccuLynx({
-  job, users = [], config, setJobs,
-  activeLogo = null, inv = [], company = null,
+  job,
+  users = [],
+  config,
+  setJobs,
+  activeLogo = null,
+  inv = [],
+  company = null,
 }) {
   if (!config?.enabled || !config?.proxyUrl) {
-    const note = 'Configure AccuLynx in Settings to enable upload.';
-    applyJobState(setJobs, job?.id, { syncStatus: 'manual', syncNote: note });
-    await persistSyncState(job?.id, { syncStatus: 'manual', syncNote: note });
+    const note = "Configure AccuLynx in Settings to enable upload.";
+    applyJobState(setJobs, job?.id, { syncStatus: "manual", syncNote: note });
+    await persistSyncState(job?.id, { syncStatus: "manual", syncNote: note });
     return { ok: false, skipped: true, error: note };
   }
 
@@ -130,17 +144,17 @@ export async function syncJobReportToAccuLynx({
   // the two actually landed, and the whole point of recording this is to answer
   // that without opening AccuLynx.
   const parts = [
-    report.ok ? 'Report filed.' : report.skipped ? null : `Report failed: ${report.error}`,
+    report.ok ? "Report filed." : report.skipped ? null : `Report failed: ${report.error}`,
     cost.ok ? cost.message : cost.skipped ? null : `Cost failed: ${cost.error}`,
   ].filter(Boolean);
-  const note = parts.join(' ') || 'Nothing to send.';
+  const note = parts.join(" ") || "Nothing to send.";
 
   const anyFailed = (!report.ok && !report.skipped) || (!cost.ok && !cost.skipped);
   const at = report.uploadedAt || new Date().toISOString();
 
   const fields = anyFailed
-    ? { syncStatus: 'failed', syncNote: note }
-    : { syncStatus: 'synced', syncedAt: at, syncNote: note };
+    ? { syncStatus: "failed", syncNote: note }
+    : { syncStatus: "synced", syncedAt: at, syncNote: note };
 
   // Only claim the report is filed when it genuinely is — this column is what stops
   // a later sync from uploading a second copy.
@@ -156,11 +170,11 @@ export async function syncJobReportToAccuLynx({
 }
 
 function applyJobState(setJobs, jobId, fields) {
-  if (typeof setJobs !== 'function' || !jobId) return;
+  if (typeof setJobs !== "function" || !jobId) return;
   setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, ...fields } : j)));
 }
 
-const money = (n) => '$' + Number(n).toFixed(2);
+const money = (n) => "$" + Number(n).toFixed(2);
 
 // ── Post the material cost as an Additional Job Expense ──────────────────────
 //
@@ -176,16 +190,16 @@ async function postJobCostToAccuLynx({ job, users, inv, company, config }) {
   const amount = parseFloat(m.totalWithTax.toFixed(2));
 
   if (!(amount > 0)) {
-    return { ok: false, skipped: true, error: 'No material cost to post.' };
+    return { ok: false, skipped: true, error: "No material cost to post." };
   }
 
   const lineItems = m.categories
     .flatMap((c) => c.items)
     .filter((i) => i.used > 0)
     .map((i) => ({
-      name: i.iname || 'Unknown Material',
-      category: i.icat || 'Materials',
-      unit: i.unit || 'units',
+      name: i.iname || "Unknown Material",
+      category: i.icat || "Materials",
+      unit: i.unit || "units",
       quantity: i.used,
       unitPrice: i.unitPrice,
       totalCost: parseFloat(i.total.toFixed(2)),
@@ -194,7 +208,7 @@ async function postJobCostToAccuLynx({ job, users, inv, company, config }) {
   // Second line spells out the tax so the number is auditable from AccuLynx alone,
   // without opening the PDF to find out why the expense is not the sum of the items.
   const paymentDescription =
-    `Material Cost - ${job?.name || job?.title || 'Job'}\n` +
+    `Material Cost - ${job?.name || job?.title || "Job"}\n` +
     `${money(m.grandTotal)} + ${m.taxLabel} ${m.taxPct}% ${money(m.salesTax)} = ${money(amount)}`;
 
   try {
@@ -204,21 +218,25 @@ async function postJobCostToAccuLynx({ job, users, inv, company, config }) {
     // One attempt only: creating an expense is not idempotent. The server also
     // de-duplicates on amount + PO before posting, which is what makes a retry
     // after an ambiguous timeout safe.
-    const res = await fetchWithTimeout(config.proxyUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey || ''}`,
+    const res = await fetchWithTimeout(
+      config.proxyUrl,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey || ""}`,
+        },
+        body: JSON.stringify({
+          poNumber: job?.po || "NO_PO",
+          acculynxJobId: job?.acculynx_job_id || null,
+          paymentDescription,
+          totalMaterialCost: amount,
+          lineItems,
+          accessToken,
+        }),
       },
-      body: JSON.stringify({
-        poNumber: job?.po || 'NO_PO',
-        acculynxJobId: job?.acculynx_job_id || null,
-        paymentDescription,
-        totalMaterialCost: amount,
-        lineItems,
-        accessToken,
-      }),
-    }, 30000);
+      30000,
+    );
 
     const data = await readProxyJson(res, config.proxyUrl);
 
@@ -232,9 +250,10 @@ async function postJobCostToAccuLynx({ job, users, inv, company, config }) {
     // A timeout means the outcome is UNKNOWN, not that nothing was written.
     return {
       ok: false,
-      error: err.name === 'AbortError'
-        ? `Cost post timed out. ${money(amount)} may or may not have posted — check the job in AccuLynx before retrying.`
-        : err.message,
+      error:
+        err.name === "AbortError"
+          ? `Cost post timed out. ${money(amount)} may or may not have posted — check the job in AccuLynx before retrying.`
+          : err.message,
     };
   }
 }
@@ -247,7 +266,7 @@ export async function fetchAccuLynxDocumentFolders(config) {
   if (!accessToken) throw new Error(SESSION_EXPIRED);
   const res = await fetch(config.proxyUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey || ''}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey || ""}` },
     body: JSON.stringify({ action: "documentFolders", accessToken }),
   });
 
@@ -278,7 +297,10 @@ export async function uploadJobReportToAccuLynx({ job, users, activeLogo, inv, c
 
     const res = await fetch(config.proxyUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.apiKey || ''}` },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey || ""}`,
+      },
       body: JSON.stringify({
         action: "uploadDocument",
         acculynxJobId: job?.acculynx_job_id || null,
@@ -304,7 +326,10 @@ export async function uploadJobReportToAccuLynx({ job, users, activeLogo, inv, c
     return { ok: true, message: data.message, filename, uploadedAt: new Date().toISOString() };
   } catch (err) {
     clearTimeout(timeout);
-    return { ok: false, error: err.name === "AbortError" ? "AccuLynx upload timed out" : err.message };
+    return {
+      ok: false,
+      error: err.name === "AbortError" ? "AccuLynx upload timed out" : err.message,
+    };
   }
 }
 
@@ -323,7 +348,7 @@ export async function fetchAccuLynxJob({ poNumber, acculynxJobId }, config) {
     headers: {
       "Content-Type": "application/json",
       // Maintained Authorization header parity for flexible/hybrid token architecture
-      "Authorization": `Bearer ${config.apiKey || ''}`
+      Authorization: `Bearer ${config.apiKey || ""}`,
     },
     body: JSON.stringify({ action: "getJob", poNumber, acculynxJobId, accessToken }),
   });

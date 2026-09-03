@@ -16,11 +16,27 @@ import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
 export const CATEGORIES = [
-  "Roofing Materials", "Fasteners", "Sealants", "Ventilation",
-  "Decking", "Sheet Metal", "Accessories", "Tools",
+  "Roofing Materials",
+  "Fasteners",
+  "Sealants",
+  "Ventilation",
+  "Decking",
+  "Sheet Metal",
+  "Accessories",
+  "Tools",
 ];
 
-export const UNITS = ["rolls", "boxes", "each", "tubes", "bundles", "packs", "sheets", "gallons", "lbs"];
+export const UNITS = [
+  "rolls",
+  "boxes",
+  "each",
+  "tubes",
+  "bundles",
+  "packs",
+  "sheets",
+  "gallons",
+  "lbs",
+];
 
 // Did the operator actually change the price? Only true when they can edit
 // pricing at all, typed something, it parses, and it differs from what the
@@ -38,16 +54,18 @@ export const isPriceChange = (raw, oldPrice, canEditPricing) => {
 export const applyPriceToBatches = (batches, newPrice, byUserId, byName = null) => {
   const list = [...(batches || [])];
   if (list.length === 0) {
-    return [{
-      id: "b_" + uid(),
-      rcvd: todayLocal(),
-      qty: 0,
-      price: newPrice,
-      by: byUserId || "system",
-      // See utils/people: an id alone cannot survive the person being removed.
-      byName: byName || null,
-      rem: 0,
-    }];
+    return [
+      {
+        id: "b_" + uid(),
+        rcvd: todayLocal(),
+        qty: 0,
+        price: newPrice,
+        by: byUserId || "system",
+        // See utils/people: an id alone cannot survive the person being removed.
+        byName: byName || null,
+        rem: 0,
+      },
+    ];
   }
   let newest = 0;
   list.forEach((b, i) => {
@@ -58,18 +76,34 @@ export const applyPriceToBatches = (batches, newPrice, byUserId, byName = null) 
 };
 
 // `item` null means create. Anything else is an edit of that item.
-export default function ItemFormModal({ item = null, user, perms = {}, fetchLiveBatches, onCreated, onSaved, onClose }) {
+export default function ItemFormModal({
+  item = null,
+  user,
+  perms = {},
+  fetchLiveBatches,
+  onCreated,
+  onSaved,
+  onClose,
+}) {
   const isEdit = !!item;
   const [form, setForm] = useState(() =>
     isEdit
-      ? { name: item.name || "", cat: item.cat || "", unit: item.unit || "rolls", alrt: item.alrt ?? "", price: "" }
+      ? {
+          name: item.name || "",
+          cat: item.cat || "",
+          unit: item.unit || "rolls",
+          alrt: item.alrt ?? "",
+          price: "",
+        }
       : { name: "", cat: "", unit: "rolls", alrt: "10", price: "" },
   );
   const [saving, setSaving] = useState(false);
   const { showToast } = useNotify();
 
   const set = (patch) => setForm((p) => ({ ...p, ...patch }));
-  const close = () => { if (!saving) onClose?.(); };
+  const close = () => {
+    if (!saving) onClose?.();
+  };
 
   const create = async () => {
     if (!form.name || !form.cat || !form.unit) {
@@ -124,7 +158,12 @@ export default function ItemFormModal({ item = null, user, perms = {}, fetchLive
       if (priceChanged) {
         // Live batches, not the in-memory copy: another device may have received
         // stock since this session loaded, and rewriting a stale array erases it.
-        updatedFields.batches = applyPriceToBatches(await fetchLiveBatches(item.id), newPrice, user?.id, displayNameOf(user));
+        updatedFields.batches = applyPriceToBatches(
+          await fetchLiveBatches(item.id),
+          newPrice,
+          user?.id,
+          displayNameOf(user),
+        );
       }
 
       const { error } = await updateRowStrict("inventory", item.id, updatedFields);
@@ -159,36 +198,92 @@ export default function ItemFormModal({ item = null, user, perms = {}, fetchLive
   };
 
   return (
-    <Modal title={isEdit ? `Modify Specifications: ${item.name}` : "Add New Catalog Position"} onClose={close}>
+    <Modal
+      title={isEdit ? `Modify Specifications: ${item.name}` : "Add New Catalog Position"}
+      onClose={close}
+    >
       <Fld label={isEdit ? "Item Name" : "Item Name *"}>
-        <Inp value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Drip Edge - White" disabled={saving} />
+        <Inp
+          value={form.name}
+          onChange={(e) => set({ name: e.target.value })}
+          placeholder="e.g. Drip Edge - White"
+          disabled={saving}
+        />
       </Fld>
       <Fld label={isEdit ? "Category" : "Category *"}>
         <Sel value={form.cat} onChange={(e) => set({ cat: e.target.value })} disabled={saving}>
           <option value="">— Select a category —</option>
-          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
         </Sel>
       </Fld>
       <Fld label={isEdit ? "Unit" : "Unit *"}>
         <Sel value={form.unit} onChange={(e) => set({ unit: e.target.value })} disabled={saving}>
-          {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+          {UNITS.map((u) => (
+            <option key={u} value={u}>
+              {u}
+            </option>
+          ))}
         </Sel>
       </Fld>
       <Fld label={isEdit ? "Low Threshold Alert Level" : "Low Alert Threshold"}>
-        <Inp type="number" value={form.alrt} onChange={(e) => set({ alrt: e.target.value })} disabled={saving} />
+        <Inp
+          type="number"
+          value={form.alrt}
+          onChange={(e) => set({ alrt: e.target.value })}
+          disabled={saving}
+        />
       </Fld>
       {isEdit && perms.inv_pricing_edit && (
         <Fld label="Current Price Per Unit">
           <div style={{ position: "relative" }}>
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}>$</span>
-            <Inp type="number" step="0.01" value={form.price} onChange={(e) => set({ price: e.target.value })} style={{ paddingLeft: 22 }} disabled={saving} />
+            <span
+              style={{
+                position: "absolute",
+                left: 10,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: C.sub,
+              }}
+            >
+              $
+            </span>
+            <Inp
+              type="number"
+              step="0.01"
+              value={form.price}
+              onChange={(e) => set({ price: e.target.value })}
+              style={{ paddingLeft: 22 }}
+              disabled={saving}
+            />
           </div>
         </Fld>
       )}
       <div style={{ display: "flex", gap: "var(--space-4)" }}>
-        <Btn v="ghost" onClick={close} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
-        <Btn v="primary" onClick={isEdit ? update : create} disabled={saving} style={{ flex: 1, justifyContent: "center" }}>
-          {saving ? (isEdit ? "Saving..." : "Creating...") : isEdit ? "Save Changes" : "Add Position"}
+        <Btn
+          v="ghost"
+          onClick={close}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={saving}
+        >
+          Cancel
+        </Btn>
+        <Btn
+          v="primary"
+          onClick={isEdit ? update : create}
+          disabled={saving}
+          style={{ flex: 1, justifyContent: "center" }}
+        >
+          {saving
+            ? isEdit
+              ? "Saving..."
+              : "Creating..."
+            : isEdit
+              ? "Save Changes"
+              : "Add Position"}
         </Btn>
       </div>
     </Modal>

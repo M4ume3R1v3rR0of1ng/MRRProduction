@@ -28,7 +28,11 @@ const MAX_RECIPIENTS_PER_SEND = 10;
 const URGENT_VALUES = new Set(["urgent", "high", "critical", "emergency"]);
 
 export function isUrgent(req) {
-  return URGENT_VALUES.has(String(req?.urgency || "").trim().toLowerCase());
+  return URGENT_VALUES.has(
+    String(req?.urgency || "")
+      .trim()
+      .toLowerCase(),
+  );
 }
 
 export const MAINT_EVENTS = {
@@ -67,7 +71,13 @@ export const MAINT_EVENTS = {
 const STATUS_EVENTS = { scheduled: "scheduled", completed: "completed" };
 
 export function eventForStatus(status) {
-  return STATUS_EVENTS[String(status || "").trim().toLowerCase()] || null;
+  return (
+    STATUS_EVENTS[
+      String(status || "")
+        .trim()
+        .toLowerCase()
+    ] || null
+  );
 }
 
 // Which automation covers a newly filed request. An urgent ticket prefers the `urgent`
@@ -89,7 +99,12 @@ export function shouldNotifyMaint(event, prefs) {
 // dashboard popup already uses, so the email and the popup can never disagree about who
 // is in control. Inactive accounts and accounts with no email are dropped — the relay
 // rejects any recipient who is not an active company member anyway.
-export function resolveMaintManagers(users = [], rolePerms = {}, userOverrides = {}, { excludeUserId } = {}) {
+export function resolveMaintManagers(
+  users = [],
+  rolePerms = {},
+  userOverrides = {},
+  { excludeUserId } = {},
+) {
   // An empty rolePerms means the permission tables have not hydrated yet, not that
   // nobody has the permission. Resolving against {} would quietly return zero
   // recipients and drop the email, so fall back to the baseline matrix instead.
@@ -150,7 +165,13 @@ function formatDate(value) {
 
 // A new request has landed: tell the people who can schedule it. Returns a result rather
 // than throwing, because filing a request must never fail on account of an email.
-export async function notifyMaintFiled({ req, recipients = [], prefs, excludeUserId, send = sendEmail }) {
+export async function notifyMaintFiled({
+  req,
+  recipients = [],
+  prefs,
+  excludeUserId,
+  send = sendEmail,
+}) {
   const event = eventForNewRequest(req, prefs);
   if (!event) return { sent: false, reason: "disabled" };
 
@@ -160,7 +181,11 @@ export async function notifyMaintFiled({ req, recipients = [], prefs, excludeUse
     ...new Set(
       recipients
         .filter((u) => !(excludeUserId && String(u?.id) === String(excludeUserId)))
-        .map((u) => String(u?.email || "").trim().toLowerCase())
+        .map((u) =>
+          String(u?.email || "")
+            .trim()
+            .toLowerCase(),
+        )
         .filter(Boolean),
     ),
   ];
@@ -175,7 +200,9 @@ export async function notifyMaintFiled({ req, recipients = [], prefs, excludeUse
   }
 
   try {
-    await Promise.all(batches.map((batch) => send({ to: batch, subject: mail.subject, html: mail.html })));
+    await Promise.all(
+      batches.map((batch) => send({ to: batch, subject: mail.subject, html: mail.html })),
+    );
     return { sent: true, event, to };
   } catch (err) {
     return { sent: false, reason: "send-failed", error: err?.message };
@@ -186,16 +213,25 @@ export async function notifyMaintFiled({ req, recipients = [], prefs, excludeUse
 // user updating the ticket is the same person who reported it, matching the existing
 // `newforrequester` rule that stops the dashboard popup alerting someone to their own
 // action.
-export async function notifyMaintStatus({ status, req, users = [], prefs, actorId, send = sendEmail }) {
+export async function notifyMaintStatus({
+  status,
+  req,
+  users = [],
+  prefs,
+  actorId,
+  send = sendEmail,
+}) {
   const event = eventForStatus(status);
   if (!event) return { sent: false, reason: "no-event-for-status" };
   if (!shouldNotifyMaint(event, prefs)) return { sent: false, reason: "disabled" };
 
   const requesterId = req?.uid ?? req?.userId;
-  if (actorId && String(requesterId) === String(actorId)) return { sent: false, reason: "self-update" };
+  if (actorId && String(requesterId) === String(actorId))
+    return { sent: false, reason: "self-update" };
 
   const requester = users.find((u) => u && String(u.id) === String(requesterId));
-  if (!requester?.email || requester.active === false) return { sent: false, reason: "no-requester-email" };
+  if (!requester?.email || requester.active === false)
+    return { sent: false, reason: "no-requester-email" };
 
   const mail = buildMaintEmail(event, { ...req, status });
   if (!mail) return { sent: false, reason: "unknown-event" };

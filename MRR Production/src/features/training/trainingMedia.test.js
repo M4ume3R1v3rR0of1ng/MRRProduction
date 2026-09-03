@@ -35,7 +35,11 @@ describe("mediaKind", () => {
 
 describe("validateMediaFile", () => {
   it("accepts a normal clip", () => {
-    expect(validateMediaFile(file("video/mp4", 5_000_000))).toEqual({ ok: true, kind: "video", error: null });
+    expect(validateMediaFile(file("video/mp4", 5_000_000))).toEqual({
+      ok: true,
+      kind: "video",
+      error: null,
+    });
   });
 
   it("rejects an unsupported type with an actionable message", () => {
@@ -75,7 +79,9 @@ describe("validateMediaForm", () => {
   });
 
   it("still checks the file once the title is there", () => {
-    expect(validateMediaForm({ title: "Tarping", file: file("application/zip", 10) }).ok).toBe(false);
+    expect(validateMediaForm({ title: "Tarping", file: file("application/zip", 10) }).ok).toBe(
+      false,
+    );
     expect(validateMediaForm({ title: "Tarping", file: file("video/mp4", 10) }).ok).toBe(true);
   });
 });
@@ -109,19 +115,33 @@ describe("mediaRow", () => {
   });
 
   it("denormalises the uploader name so a deleted account stays attributable", () => {
-    const row = mediaRow({ title: "T", kind: "video", url: "u", user: { id: "u1", full_name: "Dana Reed" } });
+    const row = mediaRow({
+      title: "T",
+      kind: "video",
+      url: "u",
+      user: { id: "u1", full_name: "Dana Reed" },
+    });
     expect(row).toMatchObject({ created_by: "u1", created_by_name: "Dana Reed" });
   });
 
   it("falls back through name and email when full_name is absent", () => {
-    expect(mediaRow({ title: "T", kind: "video", url: "u", user: { id: "u1", name: "Dana" } }).created_by_name).toBe("Dana");
-    expect(mediaRow({ title: "T", kind: "video", url: "u", user: { id: "u1", email: "d@e.com" } }).created_by_name).toBe("d@e.com");
+    expect(
+      mediaRow({ title: "T", kind: "video", url: "u", user: { id: "u1", name: "Dana" } })
+        .created_by_name,
+    ).toBe("Dana");
+    expect(
+      mediaRow({ title: "T", kind: "video", url: "u", user: { id: "u1", email: "d@e.com" } })
+        .created_by_name,
+    ).toBe("d@e.com");
   });
 });
 
 describe("orderedMedia", () => {
   it("keeps the bundled product tour above company uploads", () => {
-    const out = orderedMedia([{ id: "full-tour", title: "Tour" }], [{ id: "x", title: "Ours", sort_order: 0 }]);
+    const out = orderedMedia(
+      [{ id: "full-tour", title: "Tour" }],
+      [{ id: "x", title: "Ours", sort_order: 0 }],
+    );
     expect(out.map((m) => m.title)).toEqual(["Tour", "Ours"]);
     expect(out[0].bundled).toBe(true);
     expect(out[1].bundled).toBe(false);
@@ -132,11 +152,14 @@ describe("orderedMedia", () => {
   });
 
   it("sorts uploads by sort order, then by upload time", () => {
-    const out = orderedMedia([], [
-      { id: "b", sort_order: 1, created_at: "2026-01-01" },
-      { id: "c", sort_order: 0, created_at: "2026-02-01" },
-      { id: "a", sort_order: 0, created_at: "2026-01-01" },
-    ]);
+    const out = orderedMedia(
+      [],
+      [
+        { id: "b", sort_order: 1, created_at: "2026-01-01" },
+        { id: "c", sort_order: 0, created_at: "2026-02-01" },
+        { id: "a", sort_order: 0, created_at: "2026-01-01" },
+      ],
+    );
     expect(out.map((m) => m.id)).toEqual(["a", "c", "b"]);
   });
 

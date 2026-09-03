@@ -40,10 +40,22 @@ export const itemsFromJob = (job = {}) => (job.items || job.materials || []).fil
 // Inventory still offerable: matches the search and is not already on the job.
 export const addableInventory = (inv = [], chosen = [], query = "") =>
   inv.filter(
-    (i) => (i?.name || "").toLowerCase().includes(query.toLowerCase()) && !chosen.find((x) => x.iid === i.id),
+    (i) =>
+      (i?.name || "").toLowerCase().includes(query.toLowerCase()) &&
+      !chosen.find((x) => x.iid === i.id),
   );
 
-export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUser, perms = {}, onSaved, onClose, onCorrectReturn, onPullAdded }) {
+export default function EditJobModal({
+  job,
+  inv = [],
+  fieldUsers = [],
+  activeUser,
+  perms = {},
+  onSaved,
+  onClose,
+  onCorrectReturn,
+  onPullAdded,
+}) {
   const [form, setForm] = useState(() => formFromJob(job));
   const [items, setItems] = useState(() => itemsFromJob(job));
   const [search, setSearch] = useState("");
@@ -67,20 +79,29 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
     ["active", "completed"].includes(job.status) &&
     savedItems.some((i) => i && (i.pulled || 0) === 0);
 
-  const addItem = (item) => setItems((p) => [...p, mkJI(item.id, item.name, item.cat, item.unit, 1)]);
+  const addItem = (item) =>
+    setItems((p) => [...p, mkJI(item.id, item.name, item.cat, item.unit, 1)]);
   const updateQty = (iid, val) =>
-    setItems((p) => p.map((x) => (x.iid === iid ? { ...x, planned: Math.max(0, parseFloat(val) || 0) } : x)));
+    setItems((p) =>
+      p.map((x) => (x.iid === iid ? { ...x, planned: Math.max(0, parseFloat(val) || 0) } : x)),
+    );
 
   const removeItem = (item) => {
     if (item.pulled > 0) {
-      if (!window.confirm(`"${item.iname}" already has ${item.pulled} ${item.unit || ""} pulled from the warehouse. Removing it here will not return that stock. Remove it anyway?`)) {
+      if (
+        !window.confirm(
+          `"${item.iname}" already has ${item.pulled} ${item.unit || ""} pulled from the warehouse. Removing it here will not return that stock. Remove it anyway?`,
+        )
+      ) {
         return;
       }
     }
     setItems((p) => p.filter((x) => x.iid !== item.iid));
   };
 
-  const close = () => { if (!saving) onClose?.(); };
+  const close = () => {
+    if (!saving) onClose?.();
+  };
 
   const save = async () => {
     if (!form.po || !form.name) {
@@ -141,24 +162,48 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
     <Modal title={`Edit Job — ${job.po}`} onClose={close} wide>
       <div className="sw-grid-2" style={{ gap: "var(--space-4)" }}>
         <Fld label="Job PO Number *">
-          <Inp value={form.po} onChange={(e) => setForm({ ...form, po: e.target.value })} disabled={saving} />
+          <Inp
+            value={form.po}
+            onChange={(e) => setForm({ ...form, po: e.target.value })}
+            disabled={saving}
+          />
         </Fld>
         <Fld label="Job Name *">
-          <Inp value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} disabled={saving} />
+          <Inp
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            disabled={saving}
+          />
         </Fld>
       </div>
       <Fld label="Job Address">
-        <Inp value={form.addr} onChange={(e) => setForm({ ...form, addr: e.target.value })} disabled={saving} />
+        <Inp
+          value={form.addr}
+          onChange={(e) => setForm({ ...form, addr: e.target.value })}
+          disabled={saving}
+        />
       </Fld>
       <div className="sw-grid-2" style={{ gap: "var(--space-4)" }}>
         <Fld label="Production Schedule Start Date">
-          <Inp type="date" aria-label="Production Schedule Start Date" value={form.scheduledDate} onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })} disabled={saving} />
+          <Inp
+            type="date"
+            aria-label="Production Schedule Start Date"
+            value={form.scheduledDate}
+            onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
+            disabled={saving}
+          />
         </Fld>
         <Fld label="Assigned Site Supervisor">
-          <Sel value={form.assignedto} onChange={(e) => setForm({ ...form, assignedto: e.target.value })} disabled={saving}>
+          <Sel
+            value={form.assignedto}
+            onChange={(e) => setForm({ ...form, assignedto: e.target.value })}
+            disabled={saving}
+          >
             <option value="">— Unassigned —</option>
             {fieldUsers.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
             ))}
           </Sel>
         </Fld>
@@ -169,7 +214,17 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
           hint="What the customer is paying. Leave blank if not known yet — blank keeps the job out of margin reporting rather than counting it as a loss."
         >
           <div style={{ position: "relative" }}>
-            <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: C.sub }}>$</span>
+            <span
+              style={{
+                position: "absolute",
+                left: 10,
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: C.sub,
+              }}
+            >
+              $
+            </span>
             <Inp
               type="number"
               step="0.01"
@@ -185,11 +240,33 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
       )}
 
       <Fld label="Notes">
-        <TA value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} disabled={saving} />
+        <TA
+          value={form.notes}
+          onChange={(e) => setForm({ ...form, notes: e.target.value })}
+          disabled={saving}
+        />
       </Fld>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-2)", margin: "16px 0 8px" }}>
-        <h4 style={{ margin: 0, color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>Materials Checklist</h4>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "var(--space-2)",
+          margin: "16px 0 8px",
+        }}
+      >
+        <h4
+          style={{
+            margin: 0,
+            color: C.navy,
+            fontSize: "var(--text-sm)",
+            textTransform: "uppercase",
+          }}
+        >
+          Materials Checklist
+        </h4>
         {(canCorrectReturn || canPullAdded) && (
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
             {canPullAdded && (
@@ -206,16 +283,45 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
         )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 10 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "var(--space-2)",
+          marginBottom: 10,
+        }}
+      >
         {items.length === 0 ? (
-          <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>No materials on this job.</p>
+          <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
+            No materials on this job.
+          </p>
         ) : (
           items.map((item) => (
-            <div key={item.iid} style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", background: C.lg, borderRadius: 7, padding: "7px 10px" }}>
+            <div
+              key={item.iid}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-3)",
+                background: C.lg,
+                borderRadius: 7,
+                padding: "7px 10px",
+              }}
+            >
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)" }}>{item.iname}</div>
+                <div
+                  style={{
+                    fontWeight: "var(--weight-bold)",
+                    color: C.navy,
+                    fontSize: "var(--text-sm)",
+                  }}
+                >
+                  {item.iname}
+                </div>
                 {item.pulled > 0 && (
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.am }}>⚠️ {item.pulled} {item.unit} already pulled</div>
+                  <div style={{ fontSize: "var(--text-2xs)", color: C.am }}>
+                    ⚠️ {item.pulled} {item.unit} already pulled
+                  </div>
                 )}
               </div>
               <Inp
@@ -226,11 +332,20 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
                 style={{ width: 70, padding: "4px 8px" }}
                 disabled={saving}
               />
-              <span style={{ fontSize: "var(--text-xs)", color: C.sub, width: 50 }}>{item.unit}</span>
+              <span style={{ fontSize: "var(--text-xs)", color: C.sub, width: 50 }}>
+                {item.unit}
+              </span>
               <button
                 onClick={() => removeItem(item)}
                 disabled={saving}
-                style={{ background: "none", border: "none", cursor: "pointer", color: C.rd, fontSize: "var(--text-lg)", lineHeight: 1 }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: C.rd,
+                  fontSize: "var(--text-lg)",
+                  lineHeight: 1,
+                }}
               >
                 ×
               </button>
@@ -240,17 +355,60 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
       </div>
 
       <Fld label="Add Material">
-        <Inp value={search} onChange={(e) => setSearch(e.target.value)} placeholder="🔍 Search inventory..." disabled={saving} />
+        <Inp
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="🔍 Search inventory..."
+          disabled={saving}
+        />
       </Fld>
       {search.trim() && (
-        <div style={{ border: `1.5px solid ${C.bd}`, borderRadius: "var(--radius-md)", maxHeight: 160, overflowY: "auto", marginBottom: 14 }}>
+        <div
+          style={{
+            border: `1.5px solid ${C.bd}`,
+            borderRadius: "var(--radius-md)",
+            maxHeight: 160,
+            overflowY: "auto",
+            marginBottom: 14,
+          }}
+        >
           {addable.length === 0 ? (
-            <div style={{ padding: 10, fontSize: "var(--text-sm)", color: C.sub, textAlign: "center" }}>No matching inventory items.</div>
+            <div
+              style={{ padding: 10, fontSize: "var(--text-sm)", color: C.sub, textAlign: "center" }}
+            >
+              No matching inventory items.
+            </div>
           ) : (
             addable.map((item) => (
-              <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", borderBottom: `1px solid ${C.lg}` }}>
-                <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.name}</span>
-                <Btn v="primary" sz="sm" onClick={() => { addItem(item); setSearch(""); }}>+ Add</Btn>
+              <div
+                key={item.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "8px 10px",
+                  borderBottom: `1px solid ${C.lg}`,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    fontWeight: "var(--weight-bold)",
+                    color: C.navy,
+                  }}
+                >
+                  {item.name}
+                </span>
+                <Btn
+                  v="primary"
+                  sz="sm"
+                  onClick={() => {
+                    addItem(item);
+                    setSearch("");
+                  }}
+                >
+                  + Add
+                </Btn>
               </div>
             ))
           )}
@@ -258,8 +416,20 @@ export default function EditJobModal({ job, inv = [], fieldUsers = [], activeUse
       )}
 
       <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-        <Btn v="ghost" onClick={close} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
-        <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>
+        <Btn
+          v="ghost"
+          onClick={close}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={saving}
+        >
+          Cancel
+        </Btn>
+        <Btn
+          v="primary"
+          onClick={save}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={saving}
+        >
           {saving ? "⏳ Saving..." : "💾 Save Changes"}
         </Btn>
       </div>

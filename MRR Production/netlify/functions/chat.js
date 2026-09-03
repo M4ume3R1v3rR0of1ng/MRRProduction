@@ -36,8 +36,15 @@ const TOOLS = [
     input_schema: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Free text to match against PO number, job name, or address" },
-        status: { type: "string", enum: ["draft", "approved", "active", "completed", "closed"], description: "Filter to a specific job status" },
+        query: {
+          type: "string",
+          description: "Free text to match against PO number, job name, or address",
+        },
+        status: {
+          type: "string",
+          enum: ["draft", "approved", "active", "completed", "closed"],
+          description: "Filter to a specific job status",
+        },
       },
     },
   },
@@ -49,7 +56,10 @@ const TOOLS = [
       type: "object",
       properties: {
         item_name: { type: "string", description: "Filter to items whose name contains this text" },
-        low_stock_only: { type: "boolean", description: "Only return items at or below their low-stock alert threshold" },
+        low_stock_only: {
+          type: "boolean",
+          description: "Only return items at or below their low-stock alert threshold",
+        },
       },
     },
   },
@@ -60,7 +70,10 @@ const TOOLS = [
     input_schema: {
       type: "object",
       properties: {
-        vehicle_name: { type: "string", description: "Filter to vehicles whose name or plate contains this text" },
+        vehicle_name: {
+          type: "string",
+          description: "Filter to vehicles whose name or plate contains this text",
+        },
       },
     },
   },
@@ -71,7 +84,11 @@ const TOOLS = [
     input_schema: {
       type: "object",
       properties: {
-        status: { type: "string", enum: ["pending", "scheduled", "completed"], description: "Filter to a specific request status" },
+        status: {
+          type: "string",
+          enum: ["pending", "scheduled", "completed"],
+          description: "Filter to a specific request status",
+        },
       },
     },
   },
@@ -84,7 +101,8 @@ const TOOLS = [
       properties: {
         vehicle_name: {
           type: "string",
-          description: "Vehicle name or plate to get a predicted-next-service estimate for. Omit for fleet-wide chronic/trend insights only.",
+          description:
+            "Vehicle name or plate to get a predicted-next-service estimate for. Omit for fleet-wide chronic/trend insights only.",
         },
       },
     },
@@ -98,11 +116,13 @@ const TOOLS = [
       properties: {
         vehicle_name: {
           type: "string",
-          description: "Limit recommendations to vehicles whose name or plate contains this text. Omit for the whole fleet.",
+          description:
+            "Limit recommendations to vehicles whose name or plate contains this text. Omit for the whole fleet.",
         },
         horizon_days: {
           type: "number",
-          description: "How far ahead to include predicted upcoming services, in days. Defaults to 30. Overdue items are always included regardless.",
+          description:
+            "How far ahead to include predicted upcoming services, in days. Defaults to 30. Overdue items are always included regardless.",
         },
       },
     },
@@ -127,7 +147,11 @@ function learnServiceIntervals(vehicle) {
     for (let i = 1; i < sorted.length; i++) {
       const days = (new Date(sorted[i].dt) - new Date(sorted[i - 1].dt)) / 86400000;
       if (days > 0) dayGaps.push(days);
-      if (typeof sorted[i].mi === "number" && typeof sorted[i - 1].mi === "number" && sorted[i].mi > sorted[i - 1].mi) {
+      if (
+        typeof sorted[i].mi === "number" &&
+        typeof sorted[i - 1].mi === "number" &&
+        sorted[i].mi > sorted[i - 1].mi
+      ) {
         mileGaps.push(sorted[i].mi - sorted[i - 1].mi);
       }
     }
@@ -135,14 +159,17 @@ function learnServiceIntervals(vehicle) {
     const avgDays = dayGaps.reduce((a, b) => a + b, 0) / dayGaps.length;
     const avgMiles = mileGaps.length ? mileGaps.reduce((a, b) => a + b, 0) / mileGaps.length : null;
     const last = sorted[sorted.length - 1];
-    const predictedNextDate = new Date(new Date(last.dt).getTime() + avgDays * 86400000).toISOString().split("T")[0];
+    const predictedNextDate = new Date(new Date(last.dt).getTime() + avgDays * 86400000)
+      .toISOString()
+      .split("T")[0];
     results.push({
       type,
       sampleSize: dayGaps.length,
       avgIntervalDays: Math.round(avgDays),
       avgIntervalMiles: avgMiles !== null ? Math.round(avgMiles) : null,
       predictedNextDate,
-      predictedNextMileage: avgMiles !== null && typeof last.mi === "number" ? Math.round(last.mi + avgMiles) : null,
+      predictedNextMileage:
+        avgMiles !== null && typeof last.mi === "number" ? Math.round(last.mi + avgMiles) : null,
     });
   }
   return results.sort((a, b) => new Date(a.predictedNextDate) - new Date(b.predictedNextDate));
@@ -153,7 +180,10 @@ function detectChronicIssues(reqs, { windowDays = 60, minCount = 3 } = {}) {
   const groups = {};
   for (const r of reqs || []) {
     if (!r.at || new Date(r.at).getTime() < cutoff) continue;
-    const types = (r.type || "").split(",").map((t) => t.trim()).filter(Boolean);
+    const types = (r.type || "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
     for (const t of types) {
       const key = `${r.vid}::${t}`;
       (groups[key] ||= { vid: r.vid, vname: r.vname, issueType: t, dates: [] }).dates.push(r.at);
@@ -165,7 +195,10 @@ function detectChronicIssues(reqs, { windowDays = 60, minCount = 3 } = {}) {
     .sort((a, b) => b.count - a.count);
 }
 
-function detectFleetTrends(reqs, { recentDays = 30, baselineDays = 90, minRecentCount = 3, spikeRatio = 1.5 } = {}) {
+function detectFleetTrends(
+  reqs,
+  { recentDays = 30, baselineDays = 90, minRecentCount = 3, spikeRatio = 1.5 } = {},
+) {
   const now = Date.now();
   const recentCutoff = now - recentDays * 86400000;
   const baselineCutoff = recentCutoff - baselineDays * 86400000;
@@ -174,7 +207,10 @@ function detectFleetTrends(reqs, { recentDays = 30, baselineDays = 90, minRecent
   for (const r of reqs || []) {
     if (!r.at) continue;
     const t = new Date(r.at).getTime();
-    const types = (r.type || "").split(",").map((x) => x.trim()).filter(Boolean);
+    const types = (r.type || "")
+      .split(",")
+      .map((x) => x.trim())
+      .filter(Boolean);
     if (t >= recentCutoff) {
       for (const type of types) recentCounts[type] = (recentCounts[type] || 0) + 1;
     } else if (t >= baselineCutoff) {
@@ -192,7 +228,13 @@ function detectFleetTrends(reqs, { recentDays = 30, baselineDays = 90, minRecent
     const isNew = baselineCount === 0;
     const ratio = isNew ? null : recentRate / baselineRate;
     if (isNew || ratio >= spikeRatio) {
-      results.push({ issueType: type, recentCount, baselineCount, ratio: ratio !== null ? Math.round(ratio * 10) / 10 : null, isNew });
+      results.push({
+        issueType: type,
+        recentCount,
+        baselineCount,
+        ratio: ratio !== null ? Math.round(ratio * 10) / 10 : null,
+        isNew,
+      });
     }
   }
   return results.sort((a, b) => b.recentCount - a.recentCount);
@@ -307,27 +349,47 @@ export function buildMaintenanceRecommendations(vehicles, reqs, { horizonDays = 
 
     const oil = oilStatus(v);
     if (oil?.state === "overdue") {
-      add(v, PRIORITY.oilOverdue, "overdue", "Oil change",
+      add(
+        v,
+        PRIORITY.oilOverdue,
+        "overdue",
+        "Oil change",
         `${oil.milesSince} mi since the last change against a ${oil.interval} mi interval, ${Math.abs(oil.milesRemaining)} mi past due.`,
-        oil);
+        oil,
+      );
     } else if (oil?.state === "soon") {
       const eta = daysUntilOilDue(v);
-      add(v, PRIORITY.oilSoon, "due_soon", "Oil change",
+      add(
+        v,
+        PRIORITY.oilSoon,
+        "due_soon",
+        "Oil change",
         `${oil.milesRemaining} mi left of a ${oil.interval} mi interval${eta !== null ? `, roughly ${eta} days at this truck's own mileage rate` : ""}.`,
-        { ...oil, estimatedDaysUntilDue: eta });
+        { ...oil, estimatedDaysUntilDue: eta },
+      );
     }
 
     const detail = detailStatus(v);
     if (detail?.state === "overdue") {
-      add(v, PRIORITY.detailOverdue, "overdue", "Detail",
+      add(
+        v,
+        PRIORITY.detailOverdue,
+        "overdue",
+        "Detail",
         detail.daysSince === null
           ? "No detail has ever been recorded for this vehicle."
           : `${detail.daysSince} days since the last detail against a ${detail.interval} day interval.`,
-        detail);
+        detail,
+      );
     } else if (detail?.state === "soon") {
-      add(v, PRIORITY.detailSoon, "due_soon", "Detail",
+      add(
+        v,
+        PRIORITY.detailSoon,
+        "due_soon",
+        "Detail",
         `${detail.daysSince} days since the last detail, interval is ${detail.interval} days.`,
-        detail);
+        detail,
+      );
     }
 
     // Learned per-vehicle cadence: what this truck's own service history says
@@ -339,25 +401,50 @@ export function buildMaintenanceRecommendations(vehicles, reqs, { horizonDays = 
       const basis = `history shows about every ${s.avgIntervalDays} days across ${s.sampleSize} prior interval${s.sampleSize === 1 ? "" : "s"}`;
       const plural = (n) => `${n} day${Math.abs(n) === 1 ? "" : "s"}`;
       if (inDays < 0) {
-        add(v, PRIORITY.serviceOverdue, "overdue", s.type,
-          `Projected due ${s.predictedNextDate}, ${plural(Math.abs(inDays))} ago (${basis}).`, s);
+        add(
+          v,
+          PRIORITY.serviceOverdue,
+          "overdue",
+          s.type,
+          `Projected due ${s.predictedNextDate}, ${plural(Math.abs(inDays))} ago (${basis}).`,
+          s,
+        );
       } else if (inDays === 0) {
-        add(v, PRIORITY.serviceOverdue, "overdue", s.type,
-          `Projected due today, ${s.predictedNextDate} (${basis}).`, s);
+        add(
+          v,
+          PRIORITY.serviceOverdue,
+          "overdue",
+          s.type,
+          `Projected due today, ${s.predictedNextDate} (${basis}).`,
+          s,
+        );
       } else if (inDays <= horizonDays) {
-        add(v, PRIORITY.serviceSoon, "due_soon", s.type,
-          `Projected due ${s.predictedNextDate}, in ${plural(inDays)} (${basis}).`, s);
+        add(
+          v,
+          PRIORITY.serviceSoon,
+          "due_soon",
+          s.type,
+          `Projected due ${s.predictedNextDate}, in ${plural(inDays)} (${basis}).`,
+          s,
+        );
       }
     }
 
     for (const c of chronic.filter((g) => g.vid === v.id)) {
-      add(v, PRIORITY.chronic, "investigate", c.issueType,
+      add(
+        v,
+        PRIORITY.chronic,
+        "investigate",
+        c.issueType,
         `${c.count} "${c.issueType}" requests in the last 60 days. Repeat repairs point at an underlying fault rather than a one-off${trendingTypes.has(c.issueType) ? ", and this issue type is also trending fleet-wide" : ""}.`,
-        { ...c, trendingFleetWide: trendingTypes.has(c.issueType) });
+        { ...c, trendingFleetWide: trendingTypes.has(c.issueType) },
+      );
     }
   }
 
-  recs.sort((a, b) => b.priority - a.priority || String(a.vehicle).localeCompare(String(b.vehicle)));
+  recs.sort(
+    (a, b) => b.priority - a.priority || String(a.vehicle).localeCompare(String(b.vehicle)),
+  );
 
   return {
     horizon_days: horizonDays,
@@ -372,13 +459,28 @@ export function buildMaintenanceRecommendations(vehicles, reqs, { horizonDays = 
 // differently, so both lookups are scoped by companyId.
 async function getEffectivePerms(admin, userId, companyId, role) {
   if (role === "admin") {
-    return { jobs_view: true, inv_view: true, inv_pricing_view: true, fleet_view: true, maint_submit: true, maint_manage: true };
+    return {
+      jobs_view: true,
+      inv_view: true,
+      inv_pricing_view: true,
+      fleet_view: true,
+      maint_submit: true,
+      maint_manage: true,
+    };
   }
   const [{ data: roleRow }, { data: overrideRow }] = await Promise.all([
-    admin.from("role_permissions").select("permissions")
-      .eq("company_id", companyId).eq("role", role).maybeSingle(),
-    admin.from("user_permission_overrides").select("overrides")
-      .eq("company_id", companyId).eq("user_id", userId).maybeSingle(),
+    admin
+      .from("role_permissions")
+      .select("permissions")
+      .eq("company_id", companyId)
+      .eq("role", role)
+      .maybeSingle(),
+    admin
+      .from("user_permission_overrides")
+      .select("overrides")
+      .eq("company_id", companyId)
+      .eq("user_id", userId)
+      .maybeSingle(),
   ]);
   return { ...(roleRow?.permissions || {}), ...(overrideRow?.overrides || {}) };
 }
@@ -391,8 +493,11 @@ async function executeTool(admin, perms, companyId, name, input) {
   switch (name) {
     case "search_jobs": {
       if (!perms.jobs_view) return { error: "This user does not have permission to view jobs." };
-      let q = admin.from("jobs").select("po, title, name, addr, status, materials, items")
-        .eq("company_id", companyId).limit(30);
+      let q = admin
+        .from("jobs")
+        .select("po, title, name, addr, status, materials, items")
+        .eq("company_id", companyId)
+        .limit(30);
       if (input.status) q = q.eq("status", input.status);
       const { data, error } = await q;
       if (error) return { error: error.message };
@@ -415,9 +520,13 @@ async function executeTool(admin, perms, companyId, name, input) {
       }));
     }
     case "get_inventory_status": {
-      if (!perms.inv_view) return { error: "This user does not have permission to view inventory." };
-      const { data, error } = await admin.from("inventory").select("*")
-        .eq("company_id", companyId).limit(300);
+      if (!perms.inv_view)
+        return { error: "This user does not have permission to view inventory." };
+      const { data, error } = await admin
+        .from("inventory")
+        .select("*")
+        .eq("company_id", companyId)
+        .limit(300);
       if (error) return { error: error.message };
       let items = data || [];
       if (input.item_name) {
@@ -439,15 +548,21 @@ async function executeTool(admin, perms, companyId, name, input) {
       return filtered.slice(0, 25);
     }
     case "get_fleet_status": {
-      if (!perms.fleet_view) return { error: "This user does not have permission to view fleet data." };
-      const { data, error } = await admin.from("vehicles").select("*")
-        .eq("company_id", companyId).limit(200);
+      if (!perms.fleet_view)
+        return { error: "This user does not have permission to view fleet data." };
+      const { data, error } = await admin
+        .from("vehicles")
+        .select("*")
+        .eq("company_id", companyId)
+        .limit(200);
       if (error) return { error: error.message };
       let vehs = data || [];
       if (input.vehicle_name) {
         const needle = input.vehicle_name.toLowerCase();
         vehs = vehs.filter(
-          (v) => (v.name || "").toLowerCase().includes(needle) || (v.plate || "").toLowerCase().includes(needle),
+          (v) =>
+            (v.name || "").toLowerCase().includes(needle) ||
+            (v.plate || "").toLowerCase().includes(needle),
         );
       }
       return vehs.slice(0, 25).map((v) => ({
@@ -464,8 +579,7 @@ async function executeTool(admin, perms, companyId, name, input) {
       if (!perms.maint_submit && !perms.maint_manage) {
         return { error: "This user does not have permission to view maintenance requests." };
       }
-      let q = admin.from("maintenance_requests").select("*")
-        .eq("company_id", companyId).limit(30);
+      let q = admin.from("maintenance_requests").select("*").eq("company_id", companyId).limit(30);
       if (input.status) q = q.eq("status", input.status);
       const { data, error } = await q;
       if (error) return { error: error.message };
@@ -481,10 +595,11 @@ async function executeTool(admin, perms, companyId, name, input) {
       if (!perms.maint_manage && !perms.fleet_view) {
         return { error: "This user does not have permission to view maintenance insights." };
       }
-      const [{ data: vehData, error: vehError }, { data: reqData, error: reqError }] = await Promise.all([
-        admin.from("vehicles").select("*").eq("company_id", companyId).limit(200),
-        admin.from("maintenance_requests").select("*").eq("company_id", companyId).limit(500),
-      ]);
+      const [{ data: vehData, error: vehError }, { data: reqData, error: reqError }] =
+        await Promise.all([
+          admin.from("vehicles").select("*").eq("company_id", companyId).limit(200),
+          admin.from("maintenance_requests").select("*").eq("company_id", companyId).limit(500),
+        ]);
       if (vehError) return { error: vehError.message };
       if (reqError) return { error: reqError.message };
 
@@ -496,7 +611,9 @@ async function executeTool(admin, perms, companyId, name, input) {
       if (input.vehicle_name) {
         const needle = input.vehicle_name.toLowerCase();
         const veh = (vehData || []).find(
-          (v) => (v.name || "").toLowerCase().includes(needle) || (v.plate || "").toLowerCase().includes(needle),
+          (v) =>
+            (v.name || "").toLowerCase().includes(needle) ||
+            (v.plate || "").toLowerCase().includes(needle),
         );
         result.predicted_next_service = veh
           ? learnServiceIntervals(veh)
@@ -509,10 +626,11 @@ async function executeTool(admin, perms, companyId, name, input) {
       if (!perms.maint_manage && !perms.fleet_view) {
         return { error: "This user does not have permission to view maintenance recommendations." };
       }
-      const [{ data: vehData, error: vehError }, { data: reqData, error: reqError }] = await Promise.all([
-        admin.from("vehicles").select("*").eq("company_id", companyId).limit(200),
-        admin.from("maintenance_requests").select("*").eq("company_id", companyId).limit(500),
-      ]);
+      const [{ data: vehData, error: vehError }, { data: reqData, error: reqError }] =
+        await Promise.all([
+          admin.from("vehicles").select("*").eq("company_id", companyId).limit(200),
+          admin.from("maintenance_requests").select("*").eq("company_id", companyId).limit(500),
+        ]);
       if (vehError) return { error: vehError.message };
       if (reqError) return { error: reqError.message };
 
@@ -520,7 +638,9 @@ async function executeTool(admin, perms, companyId, name, input) {
       if (input.vehicle_name) {
         const needle = input.vehicle_name.toLowerCase();
         vehicles = vehicles.filter(
-          (v) => (v.name || "").toLowerCase().includes(needle) || (v.plate || "").toLowerCase().includes(needle),
+          (v) =>
+            (v.name || "").toLowerCase().includes(needle) ||
+            (v.plate || "").toLowerCase().includes(needle),
         );
         if (vehicles.length === 0) {
           return { error: `No vehicle found matching "${input.vehicle_name}".` };
@@ -531,7 +651,9 @@ async function executeTool(admin, perms, companyId, name, input) {
       // when the caller asked about one truck — a fleet-wide spike is context
       // that changes the recommendation for the single vehicle too.
       const horizonDays =
-        Number.isFinite(input.horizon_days) && input.horizon_days > 0 ? Math.min(input.horizon_days, 365) : 30;
+        Number.isFinite(input.horizon_days) && input.horizon_days > 0
+          ? Math.min(input.horizon_days, 365)
+          : 30;
       return buildMaintenanceRecommendations(vehicles, reqData || [], { horizonDays });
     }
     default:
@@ -547,19 +669,31 @@ const rawHandler = async (event) => {
     return { statusCode: 204, headers: corsHeaders, body: "" };
   }
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: "Method not allowed" }) };
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Method not allowed" }),
+    };
   }
 
   let body;
   try {
     body = JSON.parse(event.body || "{}");
   } catch {
-    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid JSON body" }) };
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Invalid JSON body" }),
+    };
   }
 
   const { accessToken, messages } = body;
   if (!accessToken || !Array.isArray(messages) || messages.length === 0) {
-    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Missing accessToken or messages" }) };
+    return {
+      statusCode: 400,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: "Missing accessToken or messages" }),
+    };
   }
 
   try {
@@ -570,11 +704,18 @@ const rawHandler = async (event) => {
 
     const { caller, error: callerError } = await resolveCaller(admin, accessToken);
     if (callerError) {
-      return { statusCode: callerError.status, headers: corsHeaders, body: JSON.stringify({ error: callerError.message }) };
+      return {
+        statusCode: callerError.status,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: callerError.message }),
+      };
     }
 
     const { data: profile } = await admin
-      .from("profiles").select("full_name, name").eq("id", caller.userId).single();
+      .from("profiles")
+      .select("full_name, name")
+      .eq("id", caller.userId)
+      .single();
 
     const perms = await getEffectivePerms(admin, caller.userId, caller.companyId, caller.role);
 
@@ -600,7 +741,10 @@ Keep answers short and directly useful — this is an internal ops tool, not a c
       });
 
       const toolUses = response.content.filter((b) => b.type === "tool_use");
-      finalText = response.content.filter((b) => b.type === "text").map((b) => b.text).join("\n");
+      finalText = response.content
+        .filter((b) => b.type === "text")
+        .map((b) => b.text)
+        .join("\n");
 
       if (response.stop_reason !== "tool_use" || toolUses.length === 0) break;
 

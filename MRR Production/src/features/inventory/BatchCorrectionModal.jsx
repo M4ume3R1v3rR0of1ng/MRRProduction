@@ -19,7 +19,8 @@ import { Btn, Fld, Inp, Modal } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
-export const lineFor = (job, itemId) => (job.items || job.materials || []).find((i) => i && i.iid === itemId);
+export const lineFor = (job, itemId) =>
+  (job.items || job.materials || []).find((i) => i && i.iid === itemId);
 
 export const usedOf = (job, itemId) => {
   const l = lineFor(job, itemId);
@@ -55,8 +56,16 @@ export const jobsUsingBatch = (jobs, itemId, batchId, oldPrice) => {
 };
 
 export default function BatchCorrectionModal({
-  item, batch, jobs = [], users = [], user, perms = {},
-  fetchLiveBatches, onCorrected, onJobRecosted, onClose,
+  item,
+  batch,
+  jobs = [],
+  users = [],
+  user,
+  perms = {},
+  fetchLiveBatches,
+  onCorrected,
+  onJobRecosted,
+  onClose,
 }) {
   const [form, setForm] = useState({
     price: batch.price ?? "",
@@ -67,7 +76,9 @@ export default function BatchCorrectionModal({
   const [saving, setSaving] = useState(false);
   const { showToast } = useNotify();
 
-  const close = () => { if (!saving) onClose?.(); };
+  const close = () => {
+    if (!saving) onClose?.();
+  };
 
   const save = async () => {
     const canPrice = perms.inv_pricing_edit;
@@ -83,7 +94,9 @@ export default function BatchCorrectionModal({
 
     // PO and vendor do not touch cost and save straight through. A price change
     // pauses on the preview screen first.
-    const hits = priceChanged ? jobsUsingBatch(jobs, item.id, batch.id, oldPrice) : { exact: [], blended: [] };
+    const hits = priceChanged
+      ? jobsUsingBatch(jobs, item.id, batch.id, oldPrice)
+      : { exact: [], blended: [] };
     if (priceChanged && hits.exact.length > 0 && !recalc) {
       setRecalc({ oldPrice, newPrice, ...hits });
       return;
@@ -93,8 +106,13 @@ export default function BatchCorrectionModal({
     try {
       const live = await fetchLiveBatches(item.id);
       const idx = live.findIndex((b) => b.id === batch.id);
-      if (idx === -1) throw new Error("This batch no longer exists — someone may have changed it. Refresh and try again.");
-      const updated = live.map((b, i) => (i === idx ? { ...b, price: newPrice, ref: newRef, vendor: newVendor } : b));
+      if (idx === -1)
+        throw new Error(
+          "This batch no longer exists — someone may have changed it. Refresh and try again.",
+        );
+      const updated = live.map((b, i) =>
+        i === idx ? { ...b, price: newPrice, ref: newRef, vendor: newVendor } : b,
+      );
 
       const { error } = await updateRowStrict("inventory", item.id, { batches: updated });
       if (error) throw error;
@@ -135,7 +153,9 @@ export default function BatchCorrectionModal({
       );
 
       showToast(
-        recalced > 0 ? `Batch corrected — ${recalced} job${recalced > 1 ? "s" : ""} recalculated.` : "Batch corrected.",
+        recalced > 0
+          ? `Batch corrected — ${recalced} job${recalced > 1 ? "s" : ""} recalculated.`
+          : "Batch corrected.",
         "success",
       );
       setRecalc(null);
@@ -150,22 +170,42 @@ export default function BatchCorrectionModal({
 
   return (
     <Modal title={`Correct Batch — ${fd(batch.rcvd)}`} onClose={close}>
-      <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px", marginBottom: "var(--space-4)", fontSize: "var(--text-xs)", color: C.sub }}>
+      <div
+        style={{
+          background: C.lg,
+          borderRadius: "var(--radius-md)",
+          padding: "10px 12px",
+          marginBottom: "var(--space-4)",
+          fontSize: "var(--text-xs)",
+          color: C.sub,
+        }}
+      >
         Received {fd(batch.rcvd)} · {batch.qty} {item.unit} · {batch.rem} remaining · by{" "}
         {/* Third copy of the same broken lookup. See utils/people. */}
         {resolveBatchPerson(users, batch)}
-        <div style={{ marginTop: 4 }}>Quantities aren't editable here — use 🔧 Adjust Stock for those.</div>
+        <div style={{ marginTop: 4 }}>
+          Quantities aren't editable here — use 🔧 Adjust Stock for those.
+        </div>
       </div>
 
       {recalc ? (
         <div>
-          <div style={{ background: "color-mix(in srgb, var(--c-warn) 12%, transparent)", border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "12px 14px", marginBottom: "var(--space-4)" }}>
+          <div
+            style={{
+              background: "color-mix(in srgb, var(--c-warn) 12%, transparent)",
+              border: `1.5px solid ${C.am}`,
+              borderRadius: "var(--radius-md)",
+              padding: "12px 14px",
+              marginBottom: "var(--space-4)",
+            }}
+          >
             <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, marginBottom: 6 }}>
               This changes {recalc.exact.length} finished job{recalc.exact.length > 1 ? "s" : ""}
             </div>
             <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 10 }}>
-              These jobs recorded {item.name} at {fm(recalc.oldPrice)} — the price you're correcting. Their cost
-              will be re-derived at {fm(recalc.newPrice)}. Nothing is typed in by hand.
+              These jobs recorded {item.name} at {fm(recalc.oldPrice)} — the price you're
+              correcting. Their cost will be re-derived at {fm(recalc.newPrice)}. Nothing is typed
+              in by hand.
             </div>
             {recalc.exact.map((j) => {
               const line = lineFor(j, item.id);
@@ -175,11 +215,25 @@ export default function BatchCorrectionModal({
               const before = used * (parseFloat(line.priceAtPull) || 0);
               const after = used * (recostLine(line, batch.id, recalc.newPrice).priceAtPull || 0);
               return (
-                <div key={j.id} style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", fontSize: "var(--text-xs)", padding: "4px 0", borderTop: `1px solid ${C.bd}` }}>
+                <div
+                  key={j.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "var(--space-3)",
+                    fontSize: "var(--text-xs)",
+                    padding: "4px 0",
+                    borderTop: `1px solid ${C.bd}`,
+                  }}
+                >
                   <span style={{ color: C.navy, fontWeight: "var(--weight-bold)" }}>
-                    {j.title || j.name || j.id} <span style={{ color: C.sub, fontWeight: "normal" }}>({j.status})</span>
+                    {j.title || j.name || j.id}{" "}
+                    <span style={{ color: C.sub, fontWeight: "normal" }}>({j.status})</span>
                     {hasSplit(line) && line.consumed.length > 1 && (
-                      <span style={{ color: C.sub, fontWeight: "normal" }}> · {line.consumed.length} batches</span>
+                      <span style={{ color: C.sub, fontWeight: "normal" }}>
+                        {" "}
+                        · {line.consumed.length} batches
+                      </span>
                     )}
                   </span>
                   <span style={{ whiteSpace: "nowrap" }}>
@@ -188,26 +242,78 @@ export default function BatchCorrectionModal({
                 </div>
               );
             })}
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--text-sm)", fontWeight: "var(--weight-extrabold)", color: C.navy, paddingTop: 8, marginTop: 4, borderTop: `2px solid ${C.bd}` }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: "var(--text-sm)",
+                fontWeight: "var(--weight-extrabold)",
+                color: C.navy,
+                paddingTop: 8,
+                marginTop: 4,
+                borderTop: `2px solid ${C.bd}`,
+              }}
+            >
               <span>Total change</span>
               <span>
-                {fm(recalc.exact.reduce((s, j) => s + usedOf(j, item.id) * (parseFloat(lineFor(j, item.id)?.priceAtPull) || 0), 0))} →{" "}
-                {fm(recalc.exact.reduce((s, j) => s + usedOf(j, item.id) * (recostLine(lineFor(j, item.id), batch.id, recalc.newPrice).priceAtPull || 0), 0))}
+                {fm(
+                  recalc.exact.reduce(
+                    (s, j) =>
+                      s + usedOf(j, item.id) * (parseFloat(lineFor(j, item.id)?.priceAtPull) || 0),
+                    0,
+                  ),
+                )}{" "}
+                →{" "}
+                {fm(
+                  recalc.exact.reduce(
+                    (s, j) =>
+                      s +
+                      usedOf(j, item.id) *
+                        (recostLine(lineFor(j, item.id), batch.id, recalc.newPrice).priceAtPull ||
+                          0),
+                    0,
+                  ),
+                )}
               </span>
             </div>
           </div>
 
           {recalc.blended.length > 0 && (
-            <div style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px", marginBottom: "var(--space-4)", fontSize: "var(--text-xs)", color: C.sub }}>
-              <strong style={{ color: C.navy }}>{recalc.blended.length} other job{recalc.blended.length > 1 ? "s" : ""} won't be touched.</strong>{" "}
-              They pulled {item.name} across several batches, so their cost is a blend this correction can't
-              safely re-derive: {recalc.blended.map((j) => j.title || j.name || j.id).join(", ")}.
+            <div
+              style={{
+                background: C.lg,
+                borderRadius: "var(--radius-md)",
+                padding: "10px 12px",
+                marginBottom: "var(--space-4)",
+                fontSize: "var(--text-xs)",
+                color: C.sub,
+              }}
+            >
+              <strong style={{ color: C.navy }}>
+                {recalc.blended.length} other job{recalc.blended.length > 1 ? "s" : ""} won't be
+                touched.
+              </strong>{" "}
+              They pulled {item.name} across several batches, so their cost is a blend this
+              correction can't safely re-derive:{" "}
+              {recalc.blended.map((j) => j.title || j.name || j.id).join(", ")}.
             </div>
           )}
 
           <div style={{ display: "flex", gap: "var(--space-3)" }}>
-            <Btn v="ghost" onClick={() => setRecalc(null)} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Back</Btn>
-            <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>
+            <Btn
+              v="ghost"
+              onClick={() => setRecalc(null)}
+              style={{ flex: 1, justifyContent: "center" }}
+              disabled={saving}
+            >
+              Back
+            </Btn>
+            <Btn
+              v="primary"
+              onClick={save}
+              style={{ flex: 1, justifyContent: "center" }}
+              disabled={saving}
+            >
               {saving ? "⏳ Applying..." : `✅ Correct & recalculate ${recalc.exact.length}`}
             </Btn>
           </div>
@@ -216,18 +322,49 @@ export default function BatchCorrectionModal({
         <div>
           {perms.inv_pricing_edit && (
             <Fld label="Unit Price *">
-              <Inp type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" disabled={saving} />
+              <Inp
+                type="number"
+                step="0.01"
+                value={form.price}
+                onChange={(e) => setForm({ ...form, price: e.target.value })}
+                placeholder="0.00"
+                disabled={saving}
+              />
             </Fld>
           )}
           <Fld label="Invoice / PO Number">
-            <Inp value={form.ref} onChange={(e) => setForm({ ...form, ref: e.target.value })} placeholder="e.g. 2011850932-001" disabled={saving} />
+            <Inp
+              value={form.ref}
+              onChange={(e) => setForm({ ...form, ref: e.target.value })}
+              placeholder="e.g. 2011850932-001"
+              disabled={saving}
+            />
           </Fld>
           <Fld label="Supplier / Vendor">
-            <Inp value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} placeholder="e.g. ABC Supply" disabled={saving} />
+            <Inp
+              value={form.vendor}
+              onChange={(e) => setForm({ ...form, vendor: e.target.value })}
+              placeholder="e.g. ABC Supply"
+              disabled={saving}
+            />
           </Fld>
           <div style={{ display: "flex", gap: "var(--space-3)", marginTop: "var(--space-5)" }}>
-            <Btn v="ghost" onClick={close} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
-            <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{saving ? "⏳ Saving..." : "💾 Save Batch"}</Btn>
+            <Btn
+              v="ghost"
+              onClick={close}
+              style={{ flex: 1, justifyContent: "center" }}
+              disabled={saving}
+            >
+              Cancel
+            </Btn>
+            <Btn
+              v="primary"
+              onClick={save}
+              style={{ flex: 1, justifyContent: "center" }}
+              disabled={saving}
+            >
+              {saving ? "⏳ Saving..." : "💾 Save Batch"}
+            </Btn>
           </div>
         </div>
       )}

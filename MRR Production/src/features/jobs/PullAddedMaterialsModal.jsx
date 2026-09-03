@@ -26,7 +26,15 @@ import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { sendLowStockAlerts } from "@/features/inventory/lowStockAlerts";
 
-export default function PullAddedMaterialsModal({ job, inv, users, activeUser, t, onSaved, onClose }) {
+export default function PullAddedMaterialsModal({
+  job,
+  inv,
+  users,
+  activeUser,
+  t,
+  onSaved,
+  onClose,
+}) {
   // Only a line nothing has been pulled for yet belongs here — a line already
   // pulled (even partially) goes through Correct Return, not this.
   const items = (job.items || job.materials || []).filter((i) => i && (i.pulled || 0) === 0);
@@ -39,7 +47,9 @@ export default function PullAddedMaterialsModal({ job, inv, users, activeUser, t
 
   const setQty = (iid, val) => setQtys((p) => ({ ...p, [iid]: val }));
 
-  const close = () => { if (!saving) onClose?.(); };
+  const close = () => {
+    if (!saving) onClose?.();
+  };
 
   const save = async () => {
     const requests = items
@@ -78,7 +88,11 @@ export default function PullAddedMaterialsModal({ job, inv, users, activeUser, t
           ref: jobRef,
         });
         if (res.shortfall > 0) {
-          shortRows.push({ name: item.iname || item.name, unit: item.unit || "", short: res.shortfall });
+          shortRows.push({
+            name: item.iname || item.name,
+            unit: item.unit || "",
+            short: res.shortfall,
+          });
         }
         changedBatches[item.iid] = res.batches;
         patches[item.iid] = {
@@ -101,7 +115,10 @@ export default function PullAddedMaterialsModal({ job, inv, users, activeUser, t
           cancelLabel: t.cancel,
           tone: "danger",
         });
-        if (!go) { setSaving(false); return; }
+        if (!go) {
+          setSaving(false);
+          return;
+        }
       }
 
       const { data, error } = await supabase.rpc("pull_added_job_materials", {
@@ -126,19 +143,29 @@ export default function PullAddedMaterialsModal({ job, inv, users, activeUser, t
         {
           job_id: job.id,
           po: job.po || null,
-          lines: requests.map((r) => ({ item: r.item.iname || r.item.name, qty: r.qty, unit: r.item.unit || "" })),
+          lines: requests.map((r) => ({
+            item: r.item.iname || r.item.name,
+            qty: r.qty,
+            unit: r.item.unit || "",
+          })),
           short: shortRows,
         },
         "production",
       );
 
       sendLowStockAlerts(
-        Object.entries(changedBatches).map(([iid, batches]) => {
-          const invItem = (inv || []).find((i) => i.id === iid);
-          return invItem
-            ? { item: invItem, prevTotal: tot({ batches: freshById.get(iid) || [] }), newTotal: tot({ batches }) }
-            : null;
-        }).filter(Boolean),
+        Object.entries(changedBatches)
+          .map(([iid, batches]) => {
+            const invItem = (inv || []).find((i) => i.id === iid);
+            return invItem
+              ? {
+                  item: invItem,
+                  prevTotal: tot({ batches: freshById.get(iid) || [] }),
+                  newTotal: tot({ batches }),
+                }
+              : null;
+          })
+          .filter(Boolean),
         users || [],
         showToast,
       );
@@ -155,19 +182,30 @@ export default function PullAddedMaterialsModal({ job, inv, users, activeUser, t
 
   return (
     <Modal title={`${t.bjPullAddedTitle} — ${job.po}`} onClose={close} wide>
-      <p style={{ fontSize: "var(--text-sm)", color: C.sub, marginTop: 0 }}>
-        {t.bjPullAddedInfo}
-      </p>
+      <p style={{ fontSize: "var(--text-sm)", color: C.sub, marginTop: 0 }}>{t.bjPullAddedInfo}</p>
 
       {items.length === 0 ? (
         <p style={{ fontSize: "var(--text-sm)" }}>—</p>
       ) : (
         <div className="sw-table-scroll">
-          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+          <table
+            className="mrr-table"
+            style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
+          >
             <thead>
               <tr style={{ background: C.lg }}>
                 {[t.colItem, t.colPlanned, t.colAvailable, t.colActualPull].map((h) => (
-                  <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
+                  <th
+                    key={h}
+                    style={{
+                      padding: "7px 10px",
+                      textAlign: "left",
+                      color: C.sub,
+                      fontWeight: "var(--weight-bold)",
+                    }}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -177,11 +215,34 @@ export default function PullAddedMaterialsModal({ job, inv, users, activeUser, t
                 const qty = parseFloat(qtys[item.iid]) || 0;
                 const short = qty > avail;
                 return (
-                  <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}`, background: short ? C.rB : "transparent" }}>
-                    <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname || item.name}</td>
-                    <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0} {item.unit || ""}</td>
-                    <td style={{ padding: "8px 10px", color: short ? C.rd : C.gr, fontWeight: "var(--weight-bold)" }}>
-                      {avail} {item.unit || ""}{short && " ⚠️"}
+                  <tr
+                    key={item.iid}
+                    style={{
+                      borderTop: `1px solid ${C.lg}`,
+                      background: short ? C.rB : "transparent",
+                    }}
+                  >
+                    <td
+                      style={{
+                        padding: "8px 10px",
+                        fontWeight: "var(--weight-bold)",
+                        color: C.navy,
+                      }}
+                    >
+                      {item.iname || item.name}
+                    </td>
+                    <td style={{ padding: "8px 10px" }}>
+                      {item.planned || item.qty || 0} {item.unit || ""}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 10px",
+                        color: short ? C.rd : C.gr,
+                        fontWeight: "var(--weight-bold)",
+                      }}
+                    >
+                      {avail} {item.unit || ""}
+                      {short && " ⚠️"}
                     </td>
                     <td style={{ padding: "8px 10px" }}>
                       <Inp
@@ -202,8 +263,20 @@ export default function PullAddedMaterialsModal({ job, inv, users, activeUser, t
       )}
 
       <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-        <Btn v="ghost" onClick={close} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>{t.cancel}</Btn>
-        <Btn v="teal" onClick={save} style={{ flex: 1, justifyContent: "center" }} disabled={saving || items.length === 0}>
+        <Btn
+          v="ghost"
+          onClick={close}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={saving}
+        >
+          {t.cancel}
+        </Btn>
+        <Btn
+          v="teal"
+          onClick={save}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={saving || items.length === 0}
+        >
           {saving ? t.bjPullAddedSaving : t.bjPullAdded}
         </Btn>
       </div>

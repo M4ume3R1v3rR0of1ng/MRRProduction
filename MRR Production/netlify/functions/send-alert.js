@@ -2,7 +2,13 @@
 // Low-stock alert email. Runs on Netlify's servers, never in the browser.
 
 import { Resend } from "resend";
-import { adminClient, resolveCaller, corsHeaders, platformFromAddress, companyMemberEmails } from "./_shared/tenant.js";
+import {
+  adminClient,
+  resolveCaller,
+  corsHeaders,
+  platformFromAddress,
+  companyMemberEmails,
+} from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 
 // alerts@<verified platform domain> — shares the domain with send-email, keeps its own
@@ -28,18 +34,28 @@ const rawHandler = async (event) => {
   }
 
   try {
-    const { email, itemName, currentStock, unit, alertThreshold, accessToken } = JSON.parse(event.body || "{}");
+    const { email, itemName, currentStock, unit, alertThreshold, accessToken } = JSON.parse(
+      event.body || "{}",
+    );
 
     // Require a verified, active session in a paid-up company — this previously
     // accepted any unauthenticated request and sent from a verified company domain.
     const admin = adminClient();
     const { caller, error: callerError } = await resolveCaller(admin, accessToken);
     if (callerError) {
-      return { statusCode: callerError.status, headers, body: JSON.stringify({ error: callerError.message }) };
+      return {
+        statusCode: callerError.status,
+        headers,
+        body: JSON.stringify({ error: callerError.message }),
+      };
     }
 
     if (!email) {
-      return { statusCode: 400, headers, body: JSON.stringify({ error: "Missing recipient email." }) };
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: "Missing recipient email." }),
+      };
     }
 
     // Fence the relay: only alert an address that belongs to an active member of the
@@ -47,7 +63,11 @@ const rawHandler = async (event) => {
     const recipient = String(email).trim().toLowerCase();
     const allowed = await companyMemberEmails(admin, caller.companyId);
     if (!allowed.has(recipient)) {
-      return { statusCode: 403, headers, body: JSON.stringify({ error: "Recipient must be a member of your company." }) };
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: "Recipient must be a member of your company." }),
+      };
     }
 
     const resend = new Resend(process.env.RESEND_API_KEY);

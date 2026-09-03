@@ -19,10 +19,25 @@ function LiveClock({ lang }) {
   const locale = lang === "es" ? "es-ES" : "en-US";
   return (
     <div style={{ textAlign: "right", flexShrink: 0 }}>
-      <div style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy, fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}>
+      <div
+        style={{
+          fontSize: "var(--text-2xl)",
+          fontWeight: "var(--weight-black)",
+          color: C.navy,
+          fontVariantNumeric: "tabular-nums",
+          lineHeight: 1.1,
+        }}
+      >
         {now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
       </div>
-      <div style={{ fontSize: "var(--text-xs)", color: C.sub, fontWeight: "var(--weight-bold)", textTransform: "capitalize" }}>
+      <div
+        style={{
+          fontSize: "var(--text-xs)",
+          color: C.sub,
+          fontWeight: "var(--weight-bold)",
+          textTransform: "capitalize",
+        }}
+      >
         {now.toLocaleDateString(locale, { weekday: "long" })}
       </div>
     </div>
@@ -90,7 +105,15 @@ function Sparkline({ data, labels = [], color, format = (v) => String(v), h = 44
         </defs>
         {/* The zero line, one step off the surface and hairline, so a flat run
             reads as sitting on zero instead of floating. */}
-        <line x1="0" y1={h - PAD} x2="100" y2={h - PAD} stroke={C.bd} strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        <line
+          x1="0"
+          y1={h - PAD}
+          x2="100"
+          y2={h - PAD}
+          stroke={C.bd}
+          strokeWidth="1"
+          vectorEffect="non-scaling-stroke"
+        />
         <polygon points={`${line} 100,${h - PAD} 0,${h - PAD}`} fill={`url(#${gradId})`} />
         {/* preserveAspectRatio="none" stretches the box to the card width, which
             would also stretch the stroke into a wedge. non-scaling-stroke keeps it
@@ -105,7 +128,16 @@ function Sparkline({ data, labels = [], color, format = (v) => String(v), h = 44
           vectorEffect="non-scaling-stroke"
         />
         {hover !== null && (
-          <line x1={xOf(hover)} y1="0" x2={xOf(hover)} y2={h - PAD} stroke={color} strokeWidth="1" strokeOpacity="0.4" vectorEffect="non-scaling-stroke" />
+          <line
+            x1={xOf(hover)}
+            y1="0"
+            x2={xOf(hover)}
+            y2={h - PAD}
+            stroke={color}
+            strokeWidth="1"
+            strokeOpacity="0.4"
+            vectorEffect="non-scaling-stroke"
+          />
         )}
       </svg>
 
@@ -174,7 +206,19 @@ function BarRow({ label, value, max, color, display, tone }) {
     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 7 }}>
       {/* title, because a long category name truncates here and the full string
           is otherwise nowhere on the card. */}
-      <div title={label} style={{ width: 92, flexShrink: 0, fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      <div
+        title={label}
+        style={{
+          width: 92,
+          flexShrink: 0,
+          fontSize: "var(--text-2xs)",
+          color: C.sub,
+          fontWeight: "var(--weight-bold)",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
         {label}
       </div>
       <div style={{ flex: 1, minWidth: 40, height: 10, background: tone || C.lg, borderRadius: 2 }}>
@@ -192,7 +236,18 @@ function BarRow({ label, value, max, color, display, tone }) {
       </div>
       {/* minWidth, not width: a seven-figure spend has to be allowed to widen the
           gutter and take the room off the bar, rather than spill out of it. */}
-      <div style={{ minWidth: 58, flexShrink: 0, textAlign: "right", whiteSpace: "nowrap", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-extrabold)", color: C.navy, fontVariantNumeric: "tabular-nums" }}>
+      <div
+        style={{
+          minWidth: 58,
+          flexShrink: 0,
+          textAlign: "right",
+          whiteSpace: "nowrap",
+          fontSize: "var(--text-2xs)",
+          fontWeight: "var(--weight-extrabold)",
+          color: C.navy,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
         {display ?? value}
       </div>
     </div>
@@ -233,8 +288,12 @@ export default function DashboardView({
   // Materials consumed on a job, priced at what was actually pulled. Returns are
   // netted off. Extracted so the month total and the trend line below cannot
   // drift apart.
-  const jobMaterialCost = (j) => (j.items || j.materials || []).reduce(
-    (a, i) => a + (i ? Math.max(0, (i.pulled || 0) - (i.returned || 0)) * (i.priceAtPull || 0) : 0), 0);
+  const jobMaterialCost = (j) =>
+    (j.items || j.materials || []).reduce(
+      (a, i) =>
+        a + (i ? Math.max(0, (i.pulled || 0) - (i.returned || 0)) * (i.priceAtPull || 0) : 0),
+      0,
+    );
   const materialCostThisMonth = jobs
     .filter((j) => isDoneJob(j) && doneAtMs(j) >= monthStartMs)
     .reduce((s, j) => s + jobMaterialCost(j), 0);
@@ -274,7 +333,9 @@ export default function DashboardView({
   );
   const money = (v) => `$${Math.round(v).toLocaleString()}`;
 
-  const myJobs = jobs.filter((j) => (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "completed");
+  const myJobs = jobs.filter(
+    (j) => (j.assignedto === user.id || j.assignedTo === user.id) && j.status !== "completed",
+  );
   const newJobs = myJobs.filter((j) => j.newforassigned);
 
   // Which of the three dashboards this user gets. Resolved here rather than in the
@@ -283,7 +344,10 @@ export default function DashboardView({
   // of opening a second row of their own further down, below the banners, the
   // quick actions and the weather.
   const dashboardKind =
-    perms.settings_manage || user.role === "manager" || user.role === "admin" || user.role === "coordinator"
+    perms.settings_manage ||
+    user.role === "manager" ||
+    user.role === "admin" ||
+    user.role === "coordinator"
       ? "manager"
       : perms.inv_view && (user.role === "warehouse" || user.role === "inventory")
         ? "warehouse"
@@ -364,7 +428,7 @@ export default function DashboardView({
 
       if (setJobs) {
         setJobs((p) =>
-          p.map((j) => (j.id === newJobAlert.id ? { ...j, newforassigned: false } : j))
+          p.map((j) => (j.id === newJobAlert.id ? { ...j, newforassigned: false } : j)),
         );
       }
       setNewJobAlert(null);
@@ -378,7 +442,10 @@ export default function DashboardView({
   // Requires a `acked_by` jsonb column on maintenance_requests (array of user ids who've dismissed it),
   // since — unlike jobs, which have one assignedto supervisor — a request can be relevant to several managers.
   const newMaintForMe = perms.maint_manage
-    ? reqs.filter((r) => r.status === "pending" && !(Array.isArray(r.acked_by) && r.acked_by.includes(user.id)))
+    ? reqs.filter(
+        (r) =>
+          r.status === "pending" && !(Array.isArray(r.acked_by) && r.acked_by.includes(user.id)),
+      )
     : [];
 
   const [maintAlert, setMaintAlert] = useState(null);
@@ -392,7 +459,9 @@ export default function DashboardView({
   const acknowledgeMaint = async (openRequests) => {
     if (!maintAlert) return;
     try {
-      const nextAcked = Array.isArray(maintAlert.acked_by) ? [...maintAlert.acked_by, user.id] : [user.id];
+      const nextAcked = Array.isArray(maintAlert.acked_by)
+        ? [...maintAlert.acked_by, user.id]
+        : [user.id];
       const { error } = await supabase
         .from("maintenance_requests")
         .update({ acked_by: nextAcked })
@@ -414,7 +483,7 @@ export default function DashboardView({
   // same pattern as the supervisor new-job alert). Requires a `newforrequester` boolean column on
   // maintenance_requests, set by updateStatus in MaintenanceRequestsView and cleared here on acknowledge.
   const myStatusUpdates = reqs.filter(
-    (r) => (r.newforrequester || r.newForRequester) && String(r.uid) === String(user.id)
+    (r) => (r.newforrequester || r.newForRequester) && String(r.uid) === String(user.id),
   );
 
   const [statusAlert, setStatusAlert] = useState(null);
@@ -437,7 +506,9 @@ export default function DashboardView({
 
       if (setReqs) {
         setReqs((p) =>
-          p.map((r) => (r.id === statusAlert.id ? { ...r, newforrequester: false, newForRequester: false } : r))
+          p.map((r) =>
+            r.id === statusAlert.id ? { ...r, newforrequester: false, newForRequester: false } : r,
+          ),
         );
       }
       setStatusAlert(null);
@@ -466,22 +537,52 @@ export default function DashboardView({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", minWidth: 0 }}>
-        <div style={{ width: 34, height: 34, borderRadius: "var(--radius-lg)", background: `color-mix(in srgb, ${color} 8%, transparent)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-lg)", flexShrink: 0 }}>
+        <div
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: "var(--radius-lg)",
+            background: `color-mix(in srgb, ${color} 8%, transparent)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "var(--text-lg)",
+            flexShrink: 0,
+          }}
+        >
           {icon}
         </div>
         <div style={{ minWidth: 0 }}>
           {/* nowrap + ellipsis: the valuation card carries "$1,284,003" and these
               columns are narrower now. A number that wraps mid-figure is worse
               than one that is cut off. */}
-          <div style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-extrabold)", color, lineHeight: 1.1, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div
+            style={{
+              fontSize: "var(--text-2xl)",
+              fontWeight: "var(--weight-extrabold)",
+              color,
+              lineHeight: 1.1,
+              fontVariantNumeric: "tabular-nums",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
             {value}
           </div>
-          <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 2, fontWeight: "var(--weight-semibold)" }}>{label}</div>
+          <div
+            style={{
+              fontSize: "var(--text-xs)",
+              color: C.sub,
+              marginTop: 2,
+              fontWeight: "var(--weight-semibold)",
+            }}
+          >
+            {label}
+          </div>
         </div>
       </div>
-      {sub && (
-        <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 4 }}>{sub}</div>
-      )}
+      {sub && <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 4 }}>{sub}</div>}
       {series && <Sparkline data={series} labels={seriesLabels} color={color} format={format} />}
     </div>
   );
@@ -502,31 +603,54 @@ export default function DashboardView({
         minWidth: 0,
       }}
     >
-      <div style={{
-        width: 38,
-        height: 38,
-        borderRadius: "var(--radius-lg)",
-        background: `color-mix(in srgb, ${color} 9%, transparent)`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "var(--text-xl)",
-        flexShrink: 0
-      }}>
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: "var(--radius-lg)",
+          background: `color-mix(in srgb, ${color} 9%, transparent)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "var(--text-xl)",
+          flexShrink: 0,
+        }}
+      >
         {icon}
       </div>
       {/* minWidth 0 on both, or the subtitle refuses to shrink and pushes the
           tile wider than its grid column. */}
       <div style={{ textAlign: "left", minWidth: 0 }}>
-        <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-sm)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{title}</div>
-        <div style={{ color: C.sub, fontSize: "var(--text-2xs)", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subtitle}</div>
+        <div
+          style={{
+            fontWeight: "var(--weight-bold)",
+            color: C.navy,
+            fontSize: "var(--text-sm)",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {title}
+        </div>
+        <div
+          style={{
+            color: C.sub,
+            fontSize: "var(--text-2xs)",
+            marginTop: 1,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {subtitle}
+        </div>
       </div>
     </div>
   );
 
   const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? t.goodMorning : hour < 17 ? t.goodAfternoon : t.goodEvening;
+  const greeting = hour < 12 ? t.goodMorning : hour < 17 ? t.goodAfternoon : t.goodEvening;
 
   // ── 🔨 LAYOUT 1: FIELD WORKER PORTAL ──
   const renderFieldDashboard = () => {
@@ -534,44 +658,133 @@ export default function DashboardView({
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         {/* The three status cards that used to head this section now sit in the
             KPI strip at the top of the page. */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-6)", alignItems: "start" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "var(--space-6)",
+            alignItems: "start",
+          }}
+        >
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📅 {t.activeAgenda}</h3>
+            <div
+              style={{
+                background: C.w,
+                borderRadius: "var(--radius-xl)",
+                padding: 16,
+                border: `1px solid ${C.bd}`,
+                boxShadow: "var(--shadow-xs)",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0 0 12px",
+                  fontSize: "var(--text-base)",
+                  fontWeight: "var(--weight-extrabold)",
+                  color: C.navy,
+                }}
+              >
+                📅 {t.activeAgenda}
+              </h3>
               {myJobs.length === 0 ? (
                 <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>{t.noJobs}</p>
               ) : (
                 myJobs.map((j) => (
-                  <div key={j.id} style={{ padding: "10px", background: C.lg, borderRadius: "var(--radius-md)", marginBottom: 6, fontSize: "var(--text-sm)", borderLeft: `3px solid ${C.tl}` }}>
-                    <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{j.title || j.name}</div>
-                    <div style={{ color: C.sub, fontSize: "var(--text-2xs)", marginTop: 2 }}>📍 {j.addr || j.address}</div>
+                  <div
+                    key={j.id}
+                    style={{
+                      padding: "10px",
+                      background: C.lg,
+                      borderRadius: "var(--radius-md)",
+                      marginBottom: 6,
+                      fontSize: "var(--text-sm)",
+                      borderLeft: `3px solid ${C.tl}`,
+                    }}
+                  >
+                    <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                      {j.title || j.name}
+                    </div>
+                    <div style={{ color: C.sub, fontSize: "var(--text-2xs)", marginTop: 2 }}>
+                      📍 {j.addr || j.address}
+                    </div>
                   </div>
                 ))
               )}
             </div>
 
-            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🚛 {t.assignedTruck}</h3>
+            <div
+              style={{
+                background: C.w,
+                borderRadius: "var(--radius-xl)",
+                padding: 16,
+                border: `1px solid ${C.bd}`,
+                boxShadow: "var(--shadow-xs)",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0 0 12px",
+                  fontSize: "var(--text-base)",
+                  fontWeight: "var(--weight-extrabold)",
+                  color: C.navy,
+                }}
+              >
+                🚛 {t.assignedTruck}
+              </h3>
               {myVehicle ? (
                 <div style={{ background: C.lg, padding: 16, borderRadius: "var(--radius-lg)" }}>
-                  <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: C.sub, textTransform: "uppercase", marginBottom: 4 }}>
+                  <div
+                    style={{
+                      fontSize: "var(--text-xs)",
+                      fontWeight: "var(--weight-bold)",
+                      color: C.sub,
+                      textTransform: "uppercase",
+                      marginBottom: 4,
+                    }}
+                  >
                     {t.assignedTruck}
                   </div>
-                  <div style={{ fontSize: "var(--text-lg)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>
+                  <div
+                    style={{
+                      fontSize: "var(--text-lg)",
+                      fontWeight: "var(--weight-extrabold)",
+                      color: C.navy,
+                    }}
+                  >
                     {myVehicle.name} — {myVehicle.make} {myVehicle.model}
                   </div>
-                  <div style={{ fontSize: "var(--text-base)", color: C.blue, fontWeight: "var(--weight-bold)", marginTop: 2 }}>
+                  <div
+                    style={{
+                      fontSize: "var(--text-base)",
+                      color: C.blue,
+                      fontWeight: "var(--weight-bold)",
+                      marginTop: 2,
+                    }}
+                  >
                     Plate ID: {myVehicle.plate || "No Plate Registered"}
                   </div>
                 </div>
               ) : (
-                <div style={{ fontSize: "var(--text-base)", color: C.sub, fontStyle: "italic", padding: "12px 0" }}>
+                <div
+                  style={{
+                    fontSize: "var(--text-base)",
+                    color: C.sub,
+                    fontStyle: "italic",
+                    padding: "12px 0",
+                  }}
+                >
                   {t.noTruck}
                 </div>
               )}
             </div>
           </div>
-          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} lang={lang} />
+          <TeamChatBox
+            user={user}
+            users={users}
+            limit={30}
+            onMarkRead={onMarkChatRead}
+            lang={lang}
+          />
         </div>
       </div>
     );
@@ -582,12 +795,38 @@ export default function DashboardView({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         {/* Status cards for this role live in the KPI strip at the top now. */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-6)", alignItems: "start" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "var(--space-6)",
+            alignItems: "start",
+          }}
+        >
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>🚨 {t.lowStockWatch}</h3>
+            <div
+              style={{
+                background: C.w,
+                borderRadius: "var(--radius-xl)",
+                padding: 16,
+                border: `1px solid ${C.bd}`,
+                boxShadow: "var(--shadow-xs)",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0 0 12px",
+                  fontSize: "var(--text-base)",
+                  fontWeight: "var(--weight-extrabold)",
+                  color: C.navy,
+                }}
+              >
+                🚨 {t.lowStockWatch}
+              </h3>
               {low.length === 0 ? (
-                <p style={{ color: C.gr, fontSize: "var(--text-sm)", margin: 0 }}>✅ {t.allStockSafe}</p>
+                <p style={{ color: C.gr, fontSize: "var(--text-sm)", margin: 0 }}>
+                  ✅ {t.allStockSafe}
+                </p>
               ) : (
                 /* A meter each, on-hand against that item's own alert level, rather
                    than a number you have to hold the threshold in your head to
@@ -604,14 +843,49 @@ export default function DashboardView({
                   const track = out || pct <= 0.5 ? C.rB : C.aB;
                   return (
                     <div key={item.id} style={{ marginBottom: 10 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "var(--space-3)", marginBottom: 4, fontSize: "var(--text-sm)" }}>
-                        <span style={{ fontWeight: "var(--weight-bold)", color: C.navy, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</span>
-                        <span style={{ color: tone, fontWeight: "var(--weight-extrabold)", whiteSpace: "nowrap", fontSize: "var(--text-xs)" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "baseline",
+                          gap: "var(--space-3)",
+                          marginBottom: 4,
+                          fontSize: "var(--text-sm)",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight: "var(--weight-bold)",
+                            color: C.navy,
+                            minWidth: 0,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {item.name}
+                        </span>
+                        <span
+                          style={{
+                            color: tone,
+                            fontWeight: "var(--weight-extrabold)",
+                            whiteSpace: "nowrap",
+                            fontSize: "var(--text-xs)",
+                          }}
+                        >
                           {out ? "Out" : "Low"} · {onHand} / {limit} {item.unit}
                         </span>
                       </div>
                       <div style={{ height: 8, background: track, borderRadius: 2 }}>
-                        <div style={{ width: `${(pct * 100).toFixed(1)}%`, minWidth: onHand > 0 ? 3 : 0, height: "100%", background: tone, borderRadius: "2px 4px 4px 2px" }} />
+                        <div
+                          style={{
+                            width: `${(pct * 100).toFixed(1)}%`,
+                            minWidth: onHand > 0 ? 3 : 0,
+                            height: "100%",
+                            background: tone,
+                            borderRadius: "2px 4px 4px 2px",
+                          }}
+                        />
                       </div>
                     </div>
                   );
@@ -619,17 +893,58 @@ export default function DashboardView({
               )}
             </div>
 
-            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📦 {t.stagedOrders}</h3>
+            <div
+              style={{
+                background: C.w,
+                borderRadius: "var(--radius-xl)",
+                padding: 16,
+                border: `1px solid ${C.bd}`,
+                boxShadow: "var(--shadow-xs)",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0 0 12px",
+                  fontSize: "var(--text-base)",
+                  fontWeight: "var(--weight-extrabold)",
+                  color: C.navy,
+                }}
+              >
+                📦 {t.stagedOrders}
+              </h3>
               {pendingPulls.slice(0, 4).map((p) => (
-                <div key={p.id} onClick={() => onNav("pull")} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: C.lg, borderRadius: 7, marginBottom: 6, fontSize: "var(--text-sm)", cursor: "pointer" }}>
-                  <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{p.title || p.name}</span>
-                  <Bdg color={p.status === "approved" ? "blue" : "gray"}>{p.status.toUpperCase()}</Bdg>
+                <div
+                  key={p.id}
+                  onClick={() => onNav("pull")}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "8px 10px",
+                    background: C.lg,
+                    borderRadius: 7,
+                    marginBottom: 6,
+                    fontSize: "var(--text-sm)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                    {p.title || p.name}
+                  </span>
+                  <Bdg color={p.status === "approved" ? "blue" : "gray"}>
+                    {p.status.toUpperCase()}
+                  </Bdg>
                 </div>
               ))}
             </div>
           </div>
-          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} lang={lang} />
+          <TeamChatBox
+            user={user}
+            users={users}
+            limit={30}
+            onMarkRead={onMarkChatRead}
+            lang={lang}
+          />
         </div>
       </div>
     );
@@ -640,12 +955,44 @@ export default function DashboardView({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         {/* Status cards for this role live in the KPI strip at the top now. */}
-        <ScheduleCard jobs={jobs} reqs={reqs} jobTrailers={jobTrailers} vehs={vehs} users={users} onNav={onNav} lang={lang} />
+        <ScheduleCard
+          jobs={jobs}
+          reqs={reqs}
+          jobTrailers={jobTrailers}
+          vehs={vehs}
+          users={users}
+          onNav={onNav}
+          lang={lang}
+        />
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-6)", alignItems: "start" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "var(--space-6)",
+            alignItems: "start",
+          }}
+        >
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-            <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
-              <h3 style={{ margin: "0 0 12px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>📋 {t.masterPipeline}</h3>
+            <div
+              style={{
+                background: C.w,
+                borderRadius: "var(--radius-xl)",
+                padding: 16,
+                border: `1px solid ${C.bd}`,
+                boxShadow: "var(--shadow-xs)",
+              }}
+            >
+              <h3
+                style={{
+                  margin: "0 0 12px",
+                  fontSize: "var(--text-base)",
+                  fontWeight: "var(--weight-extrabold)",
+                  color: C.navy,
+                }}
+              >
+                📋 {t.masterPipeline}
+              </h3>
 
               {/* The whole queue as five bars, above the four-job sample that used
                   to be the only thing here. A list of four rows out of sixty said
@@ -653,44 +1000,104 @@ export default function DashboardView({
                   these are magnitudes, and the length is already the answer. */}
               <div style={{ marginBottom: 12 }}>
                 {stageCounts.map((s) => (
-                  <BarRow key={s.key} label={s.label} value={s.count} max={stageMax} color={C.gold} />
+                  <BarRow
+                    key={s.key}
+                    label={s.label}
+                    value={s.count}
+                    max={stageMax}
+                    color={C.gold}
+                  />
                 ))}
               </div>
               <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 10 }} />
 
-              {jobs.filter((j) => j.status !== "completed").slice(0, 4).map((j) => {
-                const sup = users.find((u) => u.id === j.assignedto || u.id === j.assignedTo);
-                const st = jSC[j.status] || { c: "gray", l: j.status };
-                return (
-                  <div key={j.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 10px", background: C.lg, borderRadius: 7, marginBottom: 6, fontSize: "var(--text-sm)" }}>
-                    <div>
-                      <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{j.title || j.name}</div>
-                      <div style={{ color: C.sub, fontSize: "var(--text-2xs)" }}>{j.po || t.noPO}{sup ? ` · ${sup.full_name || sup.name}` : ""}</div>
+              {jobs
+                .filter((j) => j.status !== "completed")
+                .slice(0, 4)
+                .map((j) => {
+                  const sup = users.find((u) => u.id === j.assignedto || u.id === j.assignedTo);
+                  const st = jSC[j.status] || { c: "gray", l: j.status };
+                  return (
+                    <div
+                      key={j.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "8px 10px",
+                        background: C.lg,
+                        borderRadius: 7,
+                        marginBottom: 6,
+                        fontSize: "var(--text-sm)",
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                          {j.title || j.name}
+                        </div>
+                        <div style={{ color: C.sub, fontSize: "var(--text-2xs)" }}>
+                          {j.po || t.noPO}
+                          {sup ? ` · ${sup.full_name || sup.name}` : ""}
+                        </div>
+                      </div>
+                      <Bdg color={st.c}>{st.l}</Bdg>
                     </div>
-                    <Bdg color={st.c}>{st.l}</Bdg>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
 
             {/* Where the month's material money actually went. The KPI tile gives
                 the total and the trend; this says which five categories it is,
                 which is the question the total prompts and nothing answered. */}
             {perms.inv_pricing_view && (
-              <div style={{ background: C.w, borderRadius: "var(--radius-xl)", padding: 16, border: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)" }}>
-                <h3 style={{ margin: "0 0 4px", fontSize: "var(--text-base)", fontWeight: "var(--weight-extrabold)", color: C.navy }}>💰 {t.materialThisMonth}</h3>
-                <p style={{ margin: "0 0 12px", fontSize: "var(--text-2xs)", color: C.sub }}>Top 5 categories by spend</p>
+              <div
+                style={{
+                  background: C.w,
+                  borderRadius: "var(--radius-xl)",
+                  padding: 16,
+                  border: `1px solid ${C.bd}`,
+                  boxShadow: "var(--shadow-xs)",
+                }}
+              >
+                <h3
+                  style={{
+                    margin: "0 0 4px",
+                    fontSize: "var(--text-base)",
+                    fontWeight: "var(--weight-extrabold)",
+                    color: C.navy,
+                  }}
+                >
+                  💰 {t.materialThisMonth}
+                </h3>
+                <p style={{ margin: "0 0 12px", fontSize: "var(--text-2xs)", color: C.sub }}>
+                  Top 5 categories by spend
+                </p>
                 {costByCategory.length === 0 ? (
-                  <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>No material consumed yet this month.</p>
+                  <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
+                    No material consumed yet this month.
+                  </p>
                 ) : (
                   costByCategory.map(([cat, spend]) => (
-                    <BarRow key={cat} label={cat} value={spend} max={costByCategoryMax} color={C.am} display={money(spend)} />
+                    <BarRow
+                      key={cat}
+                      label={cat}
+                      value={spend}
+                      max={costByCategoryMax}
+                      color={C.am}
+                      display={money(spend)}
+                    />
                   ))
                 )}
               </div>
             )}
           </div>
-          <TeamChatBox user={user} users={users} limit={30} onMarkRead={onMarkChatRead} lang={lang} />
+          <TeamChatBox
+            user={user}
+            users={users}
+            limit={30}
+            onMarkRead={onMarkChatRead}
+            lang={lang}
+          />
         </div>
       </div>
     );
@@ -701,12 +1108,33 @@ export default function DashboardView({
       {/* Upper Welcome Context Row — company-branded + live clock. The accent stripe
           picks up each company's brand color; the subtitle is the company's own name
           + tagline (was a hardcoded "Saint Joe Road Warehouse" shown for every tenant). */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 14, borderLeft: "4px solid var(--brand-accent, var(--c-amber))", paddingLeft: 14, flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          marginBottom: 14,
+          borderLeft: "4px solid var(--brand-accent, var(--c-amber))",
+          paddingLeft: 14,
+          flexWrap: "wrap",
+        }}
+      >
         {activeLogo && (
-          <img src={activeLogo} alt="" style={{ height: 44, maxWidth: 130, objectFit: "contain", flexShrink: 0 }} />
+          <img
+            src={activeLogo}
+            alt=""
+            style={{ height: 44, maxWidth: 130, objectFit: "contain", flexShrink: 0 }}
+          />
         )}
         <div style={{ minWidth: 0, flex: "1 1 220px" }}>
-          <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "var(--text-2xl)",
+              fontWeight: "var(--weight-black)",
+              color: C.navy,
+            }}
+          >
             {greeting}, {displayName(user)}! 👋
           </h1>
           <p style={{ margin: "3px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
@@ -729,13 +1157,19 @@ export default function DashboardView({
       {(perms.jobs_build || perms.jobs_pull || perms.maint_submit || perms.maint_manage) && (
         <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", marginBottom: 16 }}>
           {perms.jobs_build && (
-            <Btn v="gold" onClick={() => onNav("buildjobs")}>➕ {t.quickNewJob}</Btn>
+            <Btn v="gold" onClick={() => onNav("buildjobs")}>
+              ➕ {t.quickNewJob}
+            </Btn>
           )}
           {perms.jobs_pull && (
-            <Btn v="teal" onClick={() => onNav("pull")}>🚛 {t.pull}</Btn>
+            <Btn v="teal" onClick={() => onNav("pull")}>
+              🚛 {t.pull}
+            </Btn>
           )}
           {(perms.maint_submit || perms.maint_manage) && (
-            <Btn v="outline" onClick={() => onNav("requests")}>🔧 {t.quickMaint}</Btn>
+            <Btn v="outline" onClick={() => onNav("requests")}>
+              🔧 {t.quickMaint}
+            </Btn>
           )}
         </div>
       )}
@@ -748,32 +1182,118 @@ export default function DashboardView({
 
           The two kinds still read as different questions, because the labels ask
           different questions: "Active Projects" now, "Completed This Week" lately. */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-3)", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "var(--space-3)",
+          marginBottom: 16,
+        }}
+      >
         {dashboardKind === "manager" && (
           <>
-            <SC label={t.activeProjects} value={activeJobsList.length} color={C.am} icon="🔄" onClick={() => onNav("pull")} />
-            <SC label={t.fleetDisruptions} value={deadlinedTrucks.length} color={deadlinedTrucks.length > 0 ? C.rd : C.gr} icon="🚛" onClick={() => onNav("fleet")} />
-            <SC label={t.holdingValuation} value={`$${Math.round(totalInventoryCost).toLocaleString()}`} color={C.blue} icon="💰" onClick={() => onNav("reports")} />
+            <SC
+              label={t.activeProjects}
+              value={activeJobsList.length}
+              color={C.am}
+              icon="🔄"
+              onClick={() => onNav("pull")}
+            />
+            <SC
+              label={t.fleetDisruptions}
+              value={deadlinedTrucks.length}
+              color={deadlinedTrucks.length > 0 ? C.rd : C.gr}
+              icon="🚛"
+              onClick={() => onNav("fleet")}
+            />
+            <SC
+              label={t.holdingValuation}
+              value={`$${Math.round(totalInventoryCost).toLocaleString()}`}
+              color={C.blue}
+              icon="💰"
+              onClick={() => onNav("reports")}
+            />
           </>
         )}
         {dashboardKind === "warehouse" && (
           <>
-            <SC label={t.lowStockWatch} value={low.length} color={low.length > 0 ? C.rd : C.gr} icon="🚨" onClick={() => onNav("inventory")} />
-            <SC label={t.stagedOrders} value={pendingPulls.length} color={C.blue} icon="📦" onClick={() => onNav("pull")} />
-            <SC label={t.myOpenTickets} value={pendingReqs.length} color={C.pu} icon="🔧" onClick={() => onNav("requests")} />
+            <SC
+              label={t.lowStockWatch}
+              value={low.length}
+              color={low.length > 0 ? C.rd : C.gr}
+              icon="🚨"
+              onClick={() => onNav("inventory")}
+            />
+            <SC
+              label={t.stagedOrders}
+              value={pendingPulls.length}
+              color={C.blue}
+              icon="📦"
+              onClick={() => onNav("pull")}
+            />
+            <SC
+              label={t.myOpenTickets}
+              value={pendingReqs.length}
+              color={C.pu}
+              icon="🔧"
+              onClick={() => onNav("requests")}
+            />
           </>
         )}
         {dashboardKind === "field" && (
           <>
-            <SC label={t.myAssignedJobs} value={myJobs.length} color={C.tl} icon="📋" onClick={() => onNav("pull")} />
-            <SC label={t.activeBuilds} value={myJobs.filter((j) => j.status === "active").length} color={C.am} icon="🔄" onClick={() => onNav("pull")} />
-            <SC label={t.myOpenTickets} value={myOpenTickets.length} color={C.pu} icon="🔧" onClick={() => onNav("requests")} />
+            <SC
+              label={t.myAssignedJobs}
+              value={myJobs.length}
+              color={C.tl}
+              icon="📋"
+              onClick={() => onNav("pull")}
+            />
+            <SC
+              label={t.activeBuilds}
+              value={myJobs.filter((j) => j.status === "active").length}
+              color={C.am}
+              icon="🔄"
+              onClick={() => onNav("pull")}
+            />
+            <SC
+              label={t.myOpenTickets}
+              value={myOpenTickets.length}
+              color={C.pu}
+              icon="🔧"
+              onClick={() => onNav("requests")}
+            />
           </>
         )}
-        <SC label={t.completedThisWeek} value={completedThisWeek} color={C.gr} icon="✅" series={completedSeries} seriesLabels={trendLabels} onClick={perms.reports_view ? () => onNav("reports") : undefined} />
-        <SC label={t.completedThisMonth} value={completedThisMonth} color={C.blue} icon="🏁" series={completedSeries} seriesLabels={trendLabels} onClick={perms.reports_view ? () => onNav("reports") : undefined} />
+        <SC
+          label={t.completedThisWeek}
+          value={completedThisWeek}
+          color={C.gr}
+          icon="✅"
+          series={completedSeries}
+          seriesLabels={trendLabels}
+          onClick={perms.reports_view ? () => onNav("reports") : undefined}
+        />
+        <SC
+          label={t.completedThisMonth}
+          value={completedThisMonth}
+          color={C.blue}
+          icon="🏁"
+          series={completedSeries}
+          seriesLabels={trendLabels}
+          onClick={perms.reports_view ? () => onNav("reports") : undefined}
+        />
         {perms.inv_pricing_view && (
-          <SC label={t.materialThisMonth} value={money(materialCostThisMonth)} color={C.am} icon="💰" series={materialCostSeries} seriesLabels={trendLabels} format={money} onClick={perms.reports_view ? () => onNav("reports") : undefined} />
+          <SC
+            label={t.materialThisMonth}
+            value={money(materialCostThisMonth)}
+            color={C.am}
+            icon="💰"
+            series={materialCostSeries}
+            seriesLabels={trendLabels}
+            format={money}
+            onClick={perms.reports_view ? () => onNav("reports") : undefined}
+          />
         )}
       </div>
 
@@ -781,27 +1301,66 @@ export default function DashboardView({
       {user.role === "field" && newJobs.length > 0 && (
         <div
           onClick={() => onNav("pull")}
-          style={{ background: C.tB, border: `2px solid ${C.tl}`, borderRadius: "var(--radius-lg)", padding: "12px 16px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
+          style={{
+            background: C.tB,
+            border: `2px solid ${C.tl}`,
+            borderRadius: "var(--radius-lg)",
+            padding: "12px 16px",
+            marginBottom: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            cursor: "pointer",
+          }}
         >
-          <div style={{ fontWeight: "var(--weight-bold)", color: C.tl, fontSize: "var(--text-base)" }}>
+          <div
+            style={{ fontWeight: "var(--weight-bold)", color: C.tl, fontSize: "var(--text-base)" }}
+          >
             🎉 {newJobs.length} {t.newAssignments}
           </div>
-          <Btn v="teal" sz="sm">{t.view} →</Btn>
+          <Btn v="teal" sz="sm">
+            {t.view} →
+          </Btn>
         </div>
       )}
       {perms.maint_manage && pendingReqs.length > 0 && (
         <div
           onClick={() => onNav("requests")}
-          style={{ background: C.pB, border: `2px solid ${C.pu}`, borderRadius: "var(--radius-lg)", padding: "12px 16px", marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}
+          style={{
+            background: C.pB,
+            border: `2px solid ${C.pu}`,
+            borderRadius: "var(--radius-lg)",
+            padding: "12px 16px",
+            marginBottom: 12,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            cursor: "pointer",
+          }}
         >
-          <div style={{ fontWeight: "var(--weight-bold)", color: C.pu, fontSize: "var(--text-base)" }}>
+          <div
+            style={{ fontWeight: "var(--weight-bold)", color: C.pu, fontSize: "var(--text-base)" }}
+          >
             🔔 {pendingReqs.length} {t.pendingMaint}
           </div>
-          <Btn v="purple" sz="sm">{t.view} →</Btn>
+          <Btn v="purple" sz="sm">
+            {t.view} →
+          </Btn>
         </div>
       )}
       {low.length > 0 && (
-        <div style={{ background: C.aB, border: `1.5px solid ${C.am}`, borderRadius: "var(--radius-lg)", padding: "10px 14px", marginBottom: 12, fontSize: "var(--text-sm)", color: C.am, fontWeight: "var(--weight-semibold)" }}>
+        <div
+          style={{
+            background: C.aB,
+            border: `1.5px solid ${C.am}`,
+            borderRadius: "var(--radius-lg)",
+            padding: "10px 14px",
+            marginBottom: 12,
+            fontSize: "var(--text-sm)",
+            color: C.am,
+            fontWeight: "var(--weight-semibold)",
+          }}
+        >
           ⚠️ {low.length} {t.lowStockAlert}
         </div>
       )}
@@ -810,8 +1369,22 @@ export default function DashboardView({
           of content and was being stretched across the whole screen on its own; the
           action tiles are a 2×2 block of roughly the same height beside it. Both
           halves fall back to full width below 320px of column. */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "var(--space-4)", alignItems: "start", marginBottom: 20 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "var(--space-3)" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+          gap: "var(--space-4)",
+          alignItems: "start",
+          marginBottom: 20,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: "var(--space-3)",
+          }}
+        >
           <QuickActionCard
             title={t.pull}
             subtitle={t.dashQaStage}
@@ -853,21 +1426,39 @@ export default function DashboardView({
         : dashboardKind === "warehouse"
           ? renderWarehouseDashboard()
           : renderFieldDashboard()}
-      
+
       {/* Live Assignment Modal Overlay */}
       {newJobAlert && (
         <Modal title={`🚨 ${t.newAssignments}`} onClose={() => acknowledgeJob(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
             <div style={{ fontSize: 42, marginBottom: 10 }}>🏗️</div>
-            <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: "var(--weight-black)", fontSize: "var(--text-lg)" }}>
+            <h3
+              style={{
+                margin: "0 0 6px 0",
+                color: C.navy,
+                fontWeight: "var(--weight-black)",
+                fontSize: "var(--text-lg)",
+              }}
+            >
               {newJobAlert.title || newJobAlert.name || t.dashUntitledContract}
             </h3>
             <p style={{ margin: "0 0 14px 0", color: C.sub, fontSize: "var(--text-base)" }}>
               {t.dashPoTracker} <strong>{newJobAlert.po || "—"}</strong>
             </p>
-            
-            <div style={{ background: "var(--c-subtle)", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
-              <strong>📍 {t.dashDispatchAddress}:</strong> {newJobAlert.addr || newJobAlert.address || t.dashNoLocation}
+
+            <div
+              style={{
+                background: "var(--c-subtle)",
+                padding: 12,
+                borderRadius: "var(--radius-md)",
+                textAlign: "left",
+                fontSize: "var(--text-sm)",
+                border: `1px solid ${C.bd}`,
+                marginBottom: 16,
+              }}
+            >
+              <strong>📍 {t.dashDispatchAddress}:</strong>{" "}
+              {newJobAlert.addr || newJobAlert.address || t.dashNoLocation}
               {newJobAlert.notes && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
                   <strong>📝 {t.dashCrewInstructions}:</strong> {newJobAlert.notes}
@@ -876,12 +1467,28 @@ export default function DashboardView({
             </div>
 
             {alertTrailerNames.length > 0 && (
-              <div style={{ background: "var(--c-warn-wash)", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1.5px solid ${C.am}`, marginBottom: 16, fontWeight: "var(--weight-bold)", color: C.am }}>
+              <div
+                style={{
+                  background: "var(--c-warn-wash)",
+                  padding: 12,
+                  borderRadius: "var(--radius-md)",
+                  textAlign: "left",
+                  fontSize: "var(--text-sm)",
+                  border: `1.5px solid ${C.am}`,
+                  marginBottom: 16,
+                  fontWeight: "var(--weight-bold)",
+                  color: C.am,
+                }}
+              >
                 🚚 {t.dashBringTrailers}: {alertTrailerNames.join(", ")}
               </div>
             )}
 
-            <Btn v="teal" onClick={() => acknowledgeJob(true)} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
+            <Btn
+              v="teal"
+              onClick={() => acknowledgeJob(true)}
+              style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}
+            >
               {t.dashGotItMaterials}
             </Btn>
           </div>
@@ -893,22 +1500,51 @@ export default function DashboardView({
         <Modal title={t.dashNewMaintReq} onClose={() => acknowledgeMaint(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
             <div style={{ fontSize: 42, marginBottom: 10 }}>🔧</div>
-            <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: "var(--weight-black)", fontSize: "var(--text-lg)" }}>
+            <h3
+              style={{
+                margin: "0 0 6px 0",
+                color: C.navy,
+                fontWeight: "var(--weight-black)",
+                fontSize: "var(--text-lg)",
+              }}
+            >
               {maintAlert.vname || "Unknown Vehicle"}
             </h3>
-            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                justifyContent: "center",
+                marginBottom: 12,
+                flexWrap: "wrap",
+              }}
+            >
               {maintAlert.urgency === "urgent" && <Bdg color="red">🚨 URGENT</Bdg>}
               <Bdg color="gray">{maintAlert.type}</Bdg>
             </div>
 
-            <div style={{ background: "var(--c-subtle)", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
+            <div
+              style={{
+                background: "var(--c-subtle)",
+                padding: 12,
+                borderRadius: "var(--radius-md)",
+                textAlign: "left",
+                fontSize: "var(--text-sm)",
+                border: `1px solid ${C.bd}`,
+                marginBottom: 16,
+              }}
+            >
               <strong>📝 Reported Issue:</strong> {maintAlert.notes || "No description provided"}
               <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
                 <strong>👤 Submitted By:</strong> {maintAlert.uname || "Unknown"}
               </div>
             </div>
 
-            <Btn v="purple" onClick={() => acknowledgeMaint(true)} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
+            <Btn
+              v="purple"
+              onClick={() => acknowledgeMaint(true)}
+              style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}
+            >
               {t.dashGotItMaint}
             </Btn>
           </div>
@@ -919,27 +1555,64 @@ export default function DashboardView({
       {!newJobAlert && !maintAlert && statusAlert && (
         <Modal title={t.dashMaintUpdate} onClose={() => acknowledgeStatusUpdate(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
-            <div style={{ fontSize: 42, marginBottom: 10 }}>{statusAlert.status === "completed" ? "✅" : "🗓️"}</div>
-            <h3 style={{ margin: "0 0 6px 0", color: C.navy, fontWeight: "var(--weight-black)", fontSize: "var(--text-lg)" }}>
+            <div style={{ fontSize: 42, marginBottom: 10 }}>
+              {statusAlert.status === "completed" ? "✅" : "🗓️"}
+            </div>
+            <h3
+              style={{
+                margin: "0 0 6px 0",
+                color: C.navy,
+                fontWeight: "var(--weight-black)",
+                fontSize: "var(--text-lg)",
+              }}
+            >
               {statusAlert.vname || "Unknown Vehicle"}
             </h3>
-            <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12, flexWrap: "wrap" }}>
-              <Bdg color={statusAlert.status === "pending" ? "amber" : statusAlert.status === "scheduled" ? "blue" : "green"}>
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                justifyContent: "center",
+                marginBottom: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <Bdg
+                color={
+                  statusAlert.status === "pending"
+                    ? "amber"
+                    : statusAlert.status === "scheduled"
+                      ? "blue"
+                      : "green"
+                }
+              >
                 {(statusAlert.status || "updated").toUpperCase()}
               </Bdg>
               <Bdg color="gray">{statusAlert.type}</Bdg>
             </div>
 
-            <div style={{ background: "var(--c-subtle)", padding: 12, borderRadius: "var(--radius-md)", textAlign: "left", fontSize: "var(--text-sm)", border: `1px solid ${C.bd}`, marginBottom: 16 }}>
+            <div
+              style={{
+                background: "var(--c-subtle)",
+                padding: 12,
+                borderRadius: "var(--radius-md)",
+                textAlign: "left",
+                fontSize: "var(--text-sm)",
+                border: `1px solid ${C.bd}`,
+                marginBottom: 16,
+              }}
+            >
               <strong>🔧 Your maintenance request is now {statusAlert.status}.</strong>
               {statusAlert.status === "scheduled" && statusAlert.scheduled_date && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
-                  <strong>🗓️ Scheduled for:</strong> {new Date(statusAlert.scheduled_date).toLocaleDateString()}
+                  <strong>🗓️ Scheduled for:</strong>{" "}
+                  {new Date(statusAlert.scheduled_date).toLocaleDateString()}
                 </div>
               )}
               {statusAlert.status === "completed" && statusAlert.completed_at && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
-                  <strong>🏁 Completed on:</strong> {new Date(statusAlert.completed_at).toLocaleDateString()}
+                  <strong>🏁 Completed on:</strong>{" "}
+                  {new Date(statusAlert.completed_at).toLocaleDateString()}
                 </div>
               )}
               {statusAlert.wh_notes && (
@@ -949,7 +1622,11 @@ export default function DashboardView({
               )}
             </div>
 
-            <Btn v="teal" onClick={() => acknowledgeStatusUpdate(true)} style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}>
+            <Btn
+              v="teal"
+              onClick={() => acknowledgeStatusUpdate(true)}
+              style={{ width: "100%", justifyContent: "center", padding: "10px 0" }}
+            >
               {t.dashGotItMyReq}
             </Btn>
           </div>

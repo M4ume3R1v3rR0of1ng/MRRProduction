@@ -743,6 +743,8 @@ function JobPipelineDemo() {
         >
           {atEnd ? "Start over" : "Advance job →"}
         </button>
+        {/* eslint-disable-next-line react/jsx-no-comment-textnodes -- deliberate "code
+            comment" styled caption, not an actual JS comment */}
         <span className="cap" style={{ marginTop: 0 }}>// try it: click a stage, or advance one at a time</span>
       </div>
       <div className={`pipe-report${atEnd ? " in" : ""}`} aria-hidden={!atEnd}>
@@ -1105,6 +1107,8 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
               </table>
             </div>
           </div>
+          {/* eslint-disable-next-line react/jsx-no-comment-textnodes -- deliberate "code
+              comment" styled caption, not an actual JS comment */}
           <p className="cap reveal">// pulled to jobs in real time · costs derive from the batch actually consumed</p>
 
           <div className="band-head reveal" style={{ marginTop: 56 }}>
@@ -1159,6 +1163,8 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
               <p>Inventory, jobs, fleet, maintenance, costed reports, and per-role access for the whole crew. This isn't a starter tier. It's the whole thing.</p>
               <div className="rate-cta">
                 <button className="btn btn-primary btn-lg" type="button" onClick={onStart}>Start your company</button>
+                {/* eslint-disable-next-line react/jsx-no-comment-textnodes -- deliberate
+                    "code comment" styled caption, not an actual JS comment */}
                 <span className="rate-note">// {TRIAL_DAYS} days free · cancel anytime · no setup fee</span>
               </div>
             </div>

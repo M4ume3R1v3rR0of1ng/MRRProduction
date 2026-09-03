@@ -22,16 +22,16 @@ import { supabase } from "./supabase";
 export const C = {
   // ── Semantic names. Prefer these in new code. ──
   barnwood: "var(--c-barnwood)", // the structural dark: sidebars, headings
-  amber: "var(--c-amber)",       // the accent: CTAs, active states
-  leather: "var(--c-leather)",   // the secondary accent
-  ground: "var(--c-ground)",     // the app background
-  surface: "var(--c-surface)",   // cards, modals, table backgrounds
-  subtle: "var(--c-subtle)",     // light neutral: table stripes, wells
-  line: "var(--c-line)",         // borders
-  sub: "var(--c-sub)",           // muted secondary text
-  pasture: "var(--c-pasture)",   // success / active
-  rust: "var(--c-rust)",         // destructive. NOT red. See note above.
-  warn: "var(--c-warn)",         // deep amber — warnings
+  amber: "var(--c-amber)", // the accent: CTAs, active states
+  leather: "var(--c-leather)", // the secondary accent
+  ground: "var(--c-ground)", // the app background
+  surface: "var(--c-surface)", // cards, modals, table backgrounds
+  subtle: "var(--c-subtle)", // light neutral: table stripes, wells
+  line: "var(--c-line)", // borders
+  sub: "var(--c-sub)", // muted secondary text
+  pasture: "var(--c-pasture)", // success / active
+  rust: "var(--c-rust)", // destructive. NOT red. See note above.
+  warn: "var(--c-warn)", // deep amber — warnings
   plum: "var(--c-plum)",
   teal: "var(--c-teal)",
   slate: "var(--c-slate)",
@@ -149,33 +149,21 @@ export const ft = (d) =>
   });
 
 // 5. Currency Display Converter (e.g., $1,250.00)
-export const fm = (n) =>
-  "$" + (n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+export const fm = (n) => "$" + (n || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
 // 6. Real-time Inventory Summation Loop
 export function tot(item) {
   // Defensive null guard ensures it won't throw if item or item.batches is missing
   if (!item || !item.batches || !Array.isArray(item.batches)) return 0;
 
-  return item.batches.reduce(
-    (sum, batch) => sum + (parseFloat(batch.rem) || 0),
-    0,
-  );
+  return item.batches.reduce((sum, batch) => sum + (parseFloat(batch.rem) || 0), 0);
 }
 // 7. Pricing Evaluator Array sorter
 export function newestPrice(item) {
-  if (
-    !item ||
-    !item.batches ||
-    !Array.isArray(item.batches) ||
-    item.batches.length === 0
-  )
-    return 0;
+  if (!item || !item.batches || !Array.isArray(item.batches) || item.batches.length === 0) return 0;
 
   // Create a copy to sort chronologically by received date to grab the newest entry
-  const sorted = [...item.batches].sort(
-    (a, b) => new Date(b.rcvd) - new Date(a.rcvd),
-  );
+  const sorted = [...item.batches].sort((a, b) => new Date(b.rcvd) - new Date(a.rcvd));
   return parseFloat(sorted[0]?.price) || 0;
 }
 // 8. Odometer Status Evaluator Rules
@@ -199,7 +187,9 @@ export function compressImg(file, maxDim, quality, cb, onError) {
   reader.onload = (ev) => {
     const img = new Image();
     img.onerror = () =>
-      fail("That photo format isn't supported here — try a different photo, or take a screenshot of it and upload that.");
+      fail(
+        "That photo format isn't supported here — try a different photo, or take a screenshot of it and upload that.",
+      );
     img.onload = () => {
       let w = img.width,
         h = img.height;
@@ -233,9 +223,7 @@ export function compressImg(file, maxDim, quality, cb, onError) {
 // entry naming the job was deleted after 30 days. The batch row outlives the purge,
 // so the provenance has to live here.
 export const doFifo = (item, qty, meta = {}) => {
-  const s = [...item.batches].sort(
-    (a, b) => new Date(a.rcvd) - new Date(b.rcvd),
-  );
+  const s = [...item.batches].sort((a, b) => new Date(a.rcvd) - new Date(b.rcvd));
   let r = qty,
     c = 0;
   // Which batch supplied which units, at which price. This is the only record of it:
@@ -328,9 +316,7 @@ export const recostLine = (line, batchId, newPrice) => {
 // actually pulled/returned. The editor wins on planning fields; the recorded
 // pull history survives.
 export const mergePullTracking = (editedItems, liveItems) => {
-  const liveById = new Map(
-    (liveItems || []).filter(Boolean).map((i) => [i.iid, i]),
-  );
+  const liveById = new Map((liveItems || []).filter(Boolean).map((i) => [i.iid, i]));
   return (editedItems || []).map((item) => {
     if (!item) return item;
     const live = liveById.get(item.iid);
@@ -384,8 +370,7 @@ export const predDays = (v) => {
   return lf <= 0 ? 0 : Math.round(lf / d);
 };
 
-export const displayName = (user) =>
-  (user?.name || user?.full_name || "").split(" ")[0] || "User";
+export const displayName = (user) => (user?.name || user?.full_name || "").split(" ")[0] || "User";
 
 // Jobs bucketed into date bands: [ ["2026-08-12", [job, job]], … ].
 //
@@ -476,4 +461,3 @@ export function mkJI(iid, name, cat, unit, plannedQty = 1) {
     pullCost: 0, // Populated dynamically via FIFO calculations upon load execution
   };
 }
-

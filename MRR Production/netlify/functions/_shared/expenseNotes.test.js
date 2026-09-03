@@ -5,7 +5,11 @@ import { describe, it, expect } from "vitest";
 import { buildExpenseNotes, MAX_EXPENSE_NOTES } from "./expenseNotes.js";
 
 const item = (name, qty = 1, unit = "each", price = 10) => ({
-  name, quantity: qty, unit, unitPrice: price, totalCost: qty * price,
+  name,
+  quantity: qty,
+  unit,
+  unitPrice: price,
+  totalCost: qty * price,
 });
 
 describe("buildExpenseNotes", () => {
@@ -16,7 +20,9 @@ describe("buildExpenseNotes", () => {
   });
 
   it("never exceeds the cap, however many materials the job has", () => {
-    const many = Array.from({ length: 60 }, (_, i) => item(`Material Number ${i}`, 12, "bundles", 199.99));
+    const many = Array.from({ length: 60 }, (_, i) =>
+      item(`Material Number ${i}`, 12, "bundles", 199.99),
+    );
     const notes = buildExpenseNotes("Material Cost - 22450: Luisa Noblecilla", many);
     expect(notes.length).toBeLessThanOrEqual(MAX_EXPENSE_NOTES);
   });

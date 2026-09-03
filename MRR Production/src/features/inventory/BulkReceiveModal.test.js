@@ -10,11 +10,24 @@
 import { describe, it, expect } from "vitest";
 import { createElement as h } from "react";
 import { renderToString } from "react-dom/server";
-import BulkReceiveModal, { hasQuantity, manifestTotal, resolveBulkPrices } from "./BulkReceiveModal.jsx";
+import BulkReceiveModal, {
+  hasQuantity,
+  manifestTotal,
+  resolveBulkPrices,
+} from "./BulkReceiveModal.jsx";
 import { NotificationProvider } from "@/shared/context/NotificationContext";
 
 const inv = [
-  { id: "i1", name: "Shingle", unit: "bd", cat: "Roofing", batches: [{ rem: 10, price: 32.5, rcvd: "2026-05-01" }, { rem: 5, price: 34, rcvd: "2026-06-01" }] },
+  {
+    id: "i1",
+    name: "Shingle",
+    unit: "bd",
+    cat: "Roofing",
+    batches: [
+      { rem: 10, price: 32.5, rcvd: "2026-05-01" },
+      { rem: 5, price: 34, rcvd: "2026-06-01" },
+    ],
+  },
   { id: "i2", name: "Ridge Cap", unit: "bx", cat: "Roofing", batches: [] }, // never purchased: no price to fall back on
 ];
 
@@ -42,15 +55,30 @@ describe("hasQuantity", () => {
 
 describe("manifestTotal", () => {
   it("sums quantity times price across rows", () => {
-    expect(manifestTotal([{ qty: "2", price: "10" }, { qty: "3", price: "5" }])).toBe(35);
+    expect(
+      manifestTotal([
+        { qty: "2", price: "10" },
+        { qty: "3", price: "5" },
+      ]),
+    ).toBe(35);
   });
 
   it("treats blank quantity or price as zero rather than NaN", () => {
-    expect(manifestTotal([{ qty: "", price: "10" }, { qty: "2", price: "" }])).toBe(0);
+    expect(
+      manifestTotal([
+        { qty: "", price: "10" },
+        { qty: "2", price: "" },
+      ]),
+    ).toBe(0);
   });
 
   it("lets a negative correction row reduce the total", () => {
-    expect(manifestTotal([{ qty: "5", price: "10" }, { qty: "-2", price: "10" }])).toBe(30);
+    expect(
+      manifestTotal([
+        { qty: "5", price: "10" },
+        { qty: "-2", price: "10" },
+      ]),
+    ).toBe(30);
   });
 
   it("is zero for an empty or missing manifest", () => {
@@ -95,7 +123,14 @@ describe("resolveBulkPrices", () => {
   });
 
   it("resolves each row independently", () => {
-    const out = resolveBulkPrices([{ iid: "i1", price: "" }, { iid: "i2", price: "" }, { iid: "i1", price: "99" }], inv);
+    const out = resolveBulkPrices(
+      [
+        { iid: "i1", price: "" },
+        { iid: "i2", price: "" },
+        { iid: "i1", price: "99" },
+      ],
+      inv,
+    );
     expect(out.map((r) => r.rate)).toEqual([34, null, 99]);
   });
 });
@@ -103,7 +138,19 @@ describe("resolveBulkPrices", () => {
 describe("BulkReceiveModal render", () => {
   const render = (props) =>
     renderToString(
-      h(NotificationProvider, null, h(BulkReceiveModal, { inv, setInv: () => {}, users: [], user: { id: "u1" }, perms: {}, onClose: () => {}, ...props })),
+      h(
+        NotificationProvider,
+        null,
+        h(BulkReceiveModal, {
+          inv,
+          setInv: () => {},
+          users: [],
+          user: { id: "u1" },
+          perms: {},
+          onClose: () => {},
+          ...props,
+        }),
+      ),
     );
 
   it("mounts with an empty manifest queue", () => {

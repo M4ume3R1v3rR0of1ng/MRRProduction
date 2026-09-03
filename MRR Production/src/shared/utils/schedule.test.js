@@ -72,7 +72,15 @@ describe("dayKeyOf", () => {
 
 describe("buildSchedule", () => {
   it("places a job on its scheduled day", () => {
-    const jobs = [{ id: "j1", title: "Re-roof", status: "active", scheduledDate: plusDays(2), assignedto: "u1" }];
+    const jobs = [
+      {
+        id: "j1",
+        title: "Re-roof",
+        status: "active",
+        scheduledDate: plusDays(2),
+        assignedto: "u1",
+      },
+    ];
     const week = buildSchedule({ jobs, users });
     expect(week[2].jobs).toHaveLength(1);
     expect(week[2].jobs[0].title).toBe("Re-roof");
@@ -113,12 +121,23 @@ describe("buildSchedule", () => {
       { id: "j1", title: "A", status: "active", scheduledDate: plusDays(0) },
       { id: "j2", title: "B", status: "active", scheduledDate: plusDays(0) },
     ];
-    const jobTrailers = [{ job_id: "j1", trailer_id: "v2" }, { job_id: "j2", trailer_id: "v2" }];
+    const jobTrailers = [
+      { job_id: "j1", trailer_id: "v2" },
+      { job_id: "j2", trailer_id: "v2" },
+    ];
     expect(buildSchedule({ jobs, jobTrailers, vehs })[0].trailerCount).toBe(1);
   });
 
   it("places scheduled maintenance and names the vehicle", () => {
-    const reqs = [{ id: "r1", vehicle_id: "v1", status: "scheduled", scheduled_date: plusDays(3), type: "Oil Change" }];
+    const reqs = [
+      {
+        id: "r1",
+        vehicle_id: "v1",
+        status: "scheduled",
+        scheduled_date: plusDays(3),
+        type: "Oil Change",
+      },
+    ];
     const week = buildSchedule({ reqs, vehs });
     expect(week[3].maint).toHaveLength(1);
     expect(week[3].maint[0].vehicle).toBe("Truck 3");
@@ -139,7 +158,15 @@ describe("buildSchedule", () => {
     // both sides of this: trailers live in Fleet, shop time lives in Maintenance.
     const jobs = [{ id: "j1", title: "Re-roof", status: "active", scheduledDate: plusDays(1) }];
     const jobTrailers = [{ job_id: "j1", trailer_id: "v2" }];
-    const reqs = [{ id: "r1", vehicle_id: "v2", status: "scheduled", scheduled_date: plusDays(1), type: "Brakes" }];
+    const reqs = [
+      {
+        id: "r1",
+        vehicle_id: "v2",
+        status: "scheduled",
+        scheduled_date: plusDays(1),
+        type: "Brakes",
+      },
+    ];
     const week = buildSchedule({ jobs, reqs, jobTrailers, vehs });
     expect(week[1].conflicts).toEqual(["Trailer 1"]);
   });
@@ -148,7 +175,9 @@ describe("buildSchedule", () => {
     const jobs = [{ id: "j1", title: "Re-roof", status: "active", scheduledDate: plusDays(1) }];
     const jobTrailers = [{ job_id: "j1", trailer_id: "v2" }];
     const reqs = [{ id: "r1", vehicle_id: "v2", status: "scheduled", scheduled_date: plusDays(2) }];
-    expect(buildSchedule({ jobs, reqs, jobTrailers, vehs }).every((d) => d.conflicts.length === 0)).toBe(true);
+    expect(
+      buildSchedule({ jobs, reqs, jobTrailers, vehs }).every((d) => d.conflicts.length === 0),
+    ).toBe(true);
   });
 
   it("does not flag a vehicle in the shop that is not booked out", () => {
@@ -181,7 +210,9 @@ describe("ScheduleCard render", () => {
   });
 
   it("lists a scheduled job", () => {
-    const jobs = [{ id: "j1", title: "Maumee Re-roof", status: "active", scheduledDate: plusDays(1) }];
+    const jobs = [
+      { id: "j1", title: "Maumee Re-roof", status: "active", scheduledDate: plusDays(1) },
+    ];
     const html = render({ jobs });
     expect(html).toContain("Maumee Re-roof");
     expect(html).not.toContain("Nothing scheduled this week");
@@ -272,7 +303,14 @@ describe("history (includeFinished)", () => {
     const j = [{ id: "j1", title: "Old", status: "completed", scheduledDate: past }];
     const jt = [{ job_id: "j1", trailer_id: "v2" }];
     const r = [{ id: "r1", vehicle_id: "v2", status: "completed", scheduled_date: past }];
-    const [day] = buildSchedule({ jobs: j, reqs: r, jobTrailers: jt, vehs, keys, includeFinished: true });
+    const [day] = buildSchedule({
+      jobs: j,
+      reqs: r,
+      jobTrailers: jt,
+      vehs,
+      keys,
+      includeFinished: true,
+    });
     expect(day.conflicts).toEqual([]);
   });
 
@@ -280,7 +318,14 @@ describe("history (includeFinished)", () => {
     const j = [{ id: "j1", title: "Old", status: "active", scheduledDate: past }];
     const jt = [{ job_id: "j1", trailer_id: "v2" }];
     const r = [{ id: "r1", vehicle_id: "v2", status: "scheduled", scheduled_date: past }];
-    const [day] = buildSchedule({ jobs: j, reqs: r, jobTrailers: jt, vehs, keys, includeFinished: true });
+    const [day] = buildSchedule({
+      jobs: j,
+      reqs: r,
+      jobTrailers: jt,
+      vehs,
+      keys,
+      includeFinished: true,
+    });
     expect(day.conflicts).toEqual(["Trailer 1"]);
   });
 });

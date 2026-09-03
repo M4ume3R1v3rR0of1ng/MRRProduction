@@ -30,7 +30,10 @@ export default function ScheduleView({
   const today = todayLocal();
   const todayDate = parseDay(today);
 
-  const [cursor, setCursor] = useState(() => ({ year: todayDate.getFullYear(), month: todayDate.getMonth() }));
+  const [cursor, setCursor] = useState(() => ({
+    year: todayDate.getFullYear(),
+    month: todayDate.getMonth(),
+  }));
   const [dayOpen, setDayOpen] = useState(null); // day key of the expanded day
 
   const keys = useMemo(() => monthGrid(cursor.year, cursor.month), [cursor]);
@@ -62,38 +65,109 @@ export default function ScheduleView({
     { jobs: 0, maint: 0, conflicts: 0 },
   );
 
-  const isCurrentMonth = cursor.year === todayDate.getFullYear() && cursor.month === todayDate.getMonth();
+  const isCurrentMonth =
+    cursor.year === todayDate.getFullYear() && cursor.month === todayDate.getMonth();
   const openDay = dayOpen ? byKey.get(dayOpen) : null;
 
   return (
     <div>
       {/* ── header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: "var(--space-4)" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+          flexWrap: "wrap",
+          gap: "var(--space-4)",
+        }}
+      >
         <div>
-          <h1 style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "var(--text-2xl)",
+              fontWeight: "var(--weight-black)",
+              color: C.navy,
+            }}
+          >
             🗓️ {t.schedule || "Schedule"}
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-            {monthTotals.jobs} {monthTotals.jobs === 1 ? t.schJob : t.schJobs} · {monthTotals.maint} {t.schInShop}
+            {monthTotals.jobs} {monthTotals.jobs === 1 ? t.schJob : t.schJobs} · {monthTotals.maint}{" "}
+            {t.schInShop}
             {monthTotals.conflicts > 0 && (
-              <span style={{ color: C.am, fontWeight: "var(--weight-bold)" }}> · {monthTotals.conflicts} {monthTotals.conflicts > 1 ? t.schConflicts : t.schConflict}</span>
+              <span style={{ color: C.am, fontWeight: "var(--weight-bold)" }}>
+                {" "}
+                · {monthTotals.conflicts}{" "}
+                {monthTotals.conflicts > 1 ? t.schConflicts : t.schConflict}
+              </span>
             )}
           </p>
         </div>
         <div className="sw-wrap" style={{ alignItems: "center", gap: "var(--space-3)" }}>
-          <Btn v="ghost" sz="sm" onClick={() => step(-1)} aria-label={t.schPrevMonth}>←</Btn>
-          <span style={{ minWidth: 148, textAlign: "center", fontFamily: "var(--font-display)", fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-lg)", color: C.navy }}>
+          <Btn v="ghost" sz="sm" onClick={() => step(-1)} aria-label={t.schPrevMonth}>
+            ←
+          </Btn>
+          <span
+            style={{
+              minWidth: 148,
+              textAlign: "center",
+              fontFamily: "var(--font-display)",
+              fontWeight: "var(--weight-extrabold)",
+              fontSize: "var(--text-lg)",
+              color: C.navy,
+            }}
+          >
             {MONTH_NAMES[cursor.month]} {cursor.year}
           </span>
-          <Btn v="ghost" sz="sm" onClick={() => step(1)} aria-label={t.schNextMonth}>→</Btn>
-          {!isCurrentMonth && <Btn v="outline" sz="sm" onClick={goToday}>{t.schToday}</Btn>}
+          <Btn v="ghost" sz="sm" onClick={() => step(1)} aria-label={t.schNextMonth}>
+            →
+          </Btn>
+          {!isCurrentMonth && (
+            <Btn v="outline" sz="sm" onClick={goToday}>
+              {t.schToday}
+            </Btn>
+          )}
         </div>
       </div>
 
       {/* ── legend ── */}
-      <div className="sw-wrap" style={{ marginBottom: 12, fontSize: "var(--text-2xs)", color: C.sub, alignItems: "center" }}>
-        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: C.gr, marginRight: 5 }} />{t.schLegendJob}</span>
-        <span><span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: C.pu, marginRight: 5 }} />{t.schLegendShop}</span>
+      <div
+        className="sw-wrap"
+        style={{
+          marginBottom: 12,
+          fontSize: "var(--text-2xs)",
+          color: C.sub,
+          alignItems: "center",
+        }}
+      >
+        <span>
+          <span
+            style={{
+              display: "inline-block",
+              width: 9,
+              height: 9,
+              borderRadius: 2,
+              background: C.gr,
+              marginRight: 5,
+            }}
+          />
+          {t.schLegendJob}
+        </span>
+        <span>
+          <span
+            style={{
+              display: "inline-block",
+              width: 9,
+              height: 9,
+              borderRadius: 2,
+              background: C.pu,
+              marginRight: 5,
+            }}
+          />
+          {t.schLegendShop}
+        </span>
         <span>{t.schLegendTrailers}</span>
         <span style={{ color: C.am }}>{t.schLegendConflict}</span>
         <span style={{ opacity: 0.55 }}>{t.schLegendFaded}</span>
@@ -102,9 +176,27 @@ export default function ScheduleView({
       {/* ── month grid ── */}
       <div className="sw-table-scroll">
         <div style={{ minWidth: 700 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3, marginBottom: 3 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7, 1fr)",
+              gap: 3,
+              marginBottom: 3,
+            }}
+          >
             {WEEKDAY_SHORT.map((d) => (
-              <div key={d} style={{ textAlign: "center", fontSize: "var(--text-2xs)", fontWeight: "var(--weight-extrabold)", color: C.sub, textTransform: "uppercase", letterSpacing: "0.5px", padding: "4px 0" }}>
+              <div
+                key={d}
+                style={{
+                  textAlign: "center",
+                  fontSize: "var(--text-2xs)",
+                  fontWeight: "var(--weight-extrabold)",
+                  color: C.sub,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  padding: "4px 0",
+                }}
+              >
                 {d}
               </div>
             ))}
@@ -135,12 +227,30 @@ export default function ScheduleView({
                     font: "inherit",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                    <span style={{ fontSize: "var(--text-sm)", fontWeight: isToday ? "var(--weight-black)" : "var(--weight-bold)", color: isToday ? C.am : C.navy, fontVariantNumeric: "tabular-nums" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        fontWeight: isToday ? "var(--weight-black)" : "var(--weight-bold)",
+                        color: isToday ? C.am : C.navy,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
                       {d.getDate()}
                     </span>
                     {day.trailerCount > 0 && (
-                      <span title={`${day.trailerCount} trailer(s) out`} style={{ fontSize: "var(--text-2xs)", color: C.sub }}>🚛{day.trailerCount}</span>
+                      <span
+                        title={`${day.trailerCount} trailer(s) out`}
+                        style={{ fontSize: "var(--text-2xs)", color: C.sub }}
+                      >
+                        🚛{day.trailerCount}
+                      </span>
                     )}
                   </div>
 
@@ -149,10 +259,16 @@ export default function ScheduleView({
                       key={j.id}
                       title={`${j.title}${j.supervisor ? ` · ${j.supervisor}` : ""}`}
                       style={{
-                        borderLeft: `3px solid ${C.gr}`, background: C.lg, borderRadius: 3,
-                        padding: "2px 4px", fontSize: "var(--text-2xs)", color: C.navy,
-                        fontWeight: "var(--weight-bold)", overflow: "hidden",
-                        textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        borderLeft: `3px solid ${C.gr}`,
+                        background: C.lg,
+                        borderRadius: 3,
+                        padding: "2px 4px",
+                        fontSize: "var(--text-2xs)",
+                        color: C.navy,
+                        fontWeight: "var(--weight-bold)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                         opacity: j.finished ? 0.55 : 1,
                         textDecoration: j.finished ? "line-through" : "none",
                       }}
@@ -166,10 +282,16 @@ export default function ScheduleView({
                       key={m.id}
                       title={`${m.vehicle} · ${m.issue}`}
                       style={{
-                        borderLeft: `3px solid ${C.pu}`, background: C.lg, borderRadius: 3,
-                        padding: "2px 4px", fontSize: "var(--text-2xs)", color: C.navy,
-                        fontWeight: "var(--weight-bold)", overflow: "hidden",
-                        textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        borderLeft: `3px solid ${C.pu}`,
+                        background: C.lg,
+                        borderRadius: 3,
+                        padding: "2px 4px",
+                        fontSize: "var(--text-2xs)",
+                        color: C.navy,
+                        fontWeight: "var(--weight-bold)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                         opacity: m.finished ? 0.55 : 1,
                       }}
                     >
@@ -177,14 +299,22 @@ export default function ScheduleView({
                     </span>
                   ))}
 
-                  {busy > (day.jobs.length > 3 ? 3 : day.jobs.length) + (day.maint.length > 2 ? 2 : day.maint.length) && (
+                  {busy >
+                    (day.jobs.length > 3 ? 3 : day.jobs.length) +
+                      (day.maint.length > 2 ? 2 : day.maint.length) && (
                     <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
                       +{busy - Math.min(day.jobs.length, 3) - Math.min(day.maint.length, 2)} more
                     </span>
                   )}
 
                   {day.conflicts.length > 0 && (
-                    <span style={{ fontSize: "var(--text-2xs)", color: C.am, fontWeight: "var(--weight-bold)" }}>
+                    <span
+                      style={{
+                        fontSize: "var(--text-2xs)",
+                        color: C.am,
+                        fontWeight: "var(--weight-bold)",
+                      }}
+                    >
                       ⚠️ {day.conflicts.length}
                     </span>
                   )}
@@ -204,30 +334,87 @@ export default function ScheduleView({
       {/* ── one day, expanded ── */}
       {openDay && (
         <Modal
-          title={parseDay(openDay.key).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          title={parseDay(openDay.key).toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
           onClose={() => setDayOpen(null)}
           wide
         >
           {openDay.conflicts.length > 0 && (
-            <div style={{ background: C.aB, border: `1px solid ${C.am}`, borderRadius: "var(--radius-md)", padding: "9px 12px", marginBottom: 14, fontSize: "var(--text-sm)", color: C.am, fontWeight: "var(--weight-bold)" }}>
-              ⚠️ {openDay.conflicts.join(", ")} {openDay.conflicts.length > 1 ? "are" : "is"} booked out and due in the shop on this day.
+            <div
+              style={{
+                background: C.aB,
+                border: `1px solid ${C.am}`,
+                borderRadius: "var(--radius-md)",
+                padding: "9px 12px",
+                marginBottom: 14,
+                fontSize: "var(--text-sm)",
+                color: C.am,
+                fontWeight: "var(--weight-bold)",
+              }}
+            >
+              ⚠️ {openDay.conflicts.join(", ")} {openDay.conflicts.length > 1 ? "are" : "is"} booked
+              out and due in the shop on this day.
             </div>
           )}
 
           {openDay.jobs.length > 0 && (
             <>
-              <h4 style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>Jobs ({openDay.jobs.length})</h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)", marginBottom: 16 }}>
+              <h4
+                style={{
+                  margin: "0 0 8px",
+                  color: C.navy,
+                  fontSize: "var(--text-sm)",
+                  textTransform: "uppercase",
+                }}
+              >
+                Jobs ({openDay.jobs.length})
+              </h4>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--space-2)",
+                  marginBottom: 16,
+                }}
+              >
                 {openDay.jobs.map((j) => {
                   const st = jSC[j.status] || { c: "gray", l: j.status };
                   return (
                     <button
                       key={j.id}
-                      onClick={() => { setDayOpen(null); onNav?.("buildjobs"); }}
-                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)", background: C.lg, border: "none", borderRadius: "var(--radius-md)", padding: "10px 12px", cursor: "pointer", textAlign: "left", font: "inherit", width: "100%" }}
+                      onClick={() => {
+                        setDayOpen(null);
+                        onNav?.("buildjobs");
+                      }}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: "var(--space-4)",
+                        background: C.lg,
+                        border: "none",
+                        borderRadius: "var(--radius-md)",
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        font: "inherit",
+                        width: "100%",
+                      }}
                     >
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-md)" }}>{j.title}</div>
+                        <div
+                          style={{
+                            fontWeight: "var(--weight-bold)",
+                            color: C.navy,
+                            fontSize: "var(--text-md)",
+                          }}
+                        >
+                          {j.title}
+                        </div>
                         <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
                           {j.po || "No PO"}
                           {j.supervisor ? ` · ${j.supervisor}` : ""}
@@ -244,19 +431,58 @@ export default function ScheduleView({
 
           {openDay.maint.length > 0 && (
             <>
-              <h4 style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)", textTransform: "uppercase" }}>In the shop ({openDay.maint.length})</h4>
+              <h4
+                style={{
+                  margin: "0 0 8px",
+                  color: C.navy,
+                  fontSize: "var(--text-sm)",
+                  textTransform: "uppercase",
+                }}
+              >
+                In the shop ({openDay.maint.length})
+              </h4>
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
                 {openDay.maint.map((m) => (
                   <button
                     key={m.id}
-                    onClick={() => { setDayOpen(null); onNav?.("requests"); }}
-                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--space-4)", background: C.lg, border: "none", borderRadius: "var(--radius-md)", padding: "10px 12px", cursor: "pointer", textAlign: "left", font: "inherit", width: "100%" }}
+                    onClick={() => {
+                      setDayOpen(null);
+                      onNav?.("requests");
+                    }}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "var(--space-4)",
+                      background: C.lg,
+                      border: "none",
+                      borderRadius: "var(--radius-md)",
+                      padding: "10px 12px",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      font: "inherit",
+                      width: "100%",
+                    }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-md)" }}>🔧 {m.vehicle}</div>
+                      <div
+                        style={{
+                          fontWeight: "var(--weight-bold)",
+                          color: C.navy,
+                          fontSize: "var(--text-md)",
+                        }}
+                      >
+                        🔧 {m.vehicle}
+                      </div>
                       <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{m.issue}</div>
                     </div>
-                    {m.finished ? <Bdg color="green">{t.schDone}</Bdg> : m.urgency === "high" ? <Bdg color="red">{t.schUrgent}</Bdg> : <Bdg color="gray">{t.schScheduled}</Bdg>}
+                    {m.finished ? (
+                      <Bdg color="green">{t.schDone}</Bdg>
+                    ) : m.urgency === "high" ? (
+                      <Bdg color="red">{t.schUrgent}</Bdg>
+                    ) : (
+                      <Bdg color="gray">{t.schScheduled}</Bdg>
+                    )}
                   </button>
                 ))}
               </div>

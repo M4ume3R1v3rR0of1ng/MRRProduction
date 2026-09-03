@@ -33,7 +33,10 @@ describe("getAccessToken", () => {
 
   it("refreshes when the stored token has already expired", async () => {
     getSession.mockResolvedValue({ data: { session: null } });
-    refreshSession.mockResolvedValue({ data: { session: { access_token: "renewed" } }, error: null });
+    refreshSession.mockResolvedValue({
+      data: { session: { access_token: "renewed" } },
+      error: null,
+    });
 
     expect(await getAccessToken()).toBe("renewed");
     expect(refreshSession).toHaveBeenCalledOnce();
@@ -49,7 +52,10 @@ describe("getAccessToken", () => {
 
   it("survives getSession returning an empty payload", async () => {
     getSession.mockResolvedValue({});
-    refreshSession.mockResolvedValue({ data: { session: { access_token: "renewed" } }, error: null });
+    refreshSession.mockResolvedValue({
+      data: { session: { access_token: "renewed" } },
+      error: null,
+    });
 
     expect(await getAccessToken()).toBe("renewed");
   });

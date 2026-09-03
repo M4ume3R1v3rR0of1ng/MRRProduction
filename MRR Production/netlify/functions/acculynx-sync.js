@@ -34,14 +34,22 @@ const rawHandler = async (event) => {
     }
 
     if (event.httpMethod !== "POST") {
-      return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: "Method not allowed" }) };
+      return {
+        statusCode: 405,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Method not allowed" }),
+      };
     }
 
     let body;
     try {
       body = JSON.parse(event.body || "{}");
     } catch {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: "Invalid JSON body" }) };
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Invalid JSON body" }),
+      };
     }
 
     // ── Require a verified, active Supabase session for every action ──
@@ -51,7 +59,11 @@ const rawHandler = async (event) => {
     const admin = adminClient();
     const { caller, error: callerError } = await resolveCaller(admin, body.accessToken);
     if (callerError) {
-      return { statusCode: callerError.status, headers: corsHeaders, body: JSON.stringify({ error: callerError.message }) };
+      return {
+        statusCode: callerError.status,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: callerError.message }),
+      };
     }
 
     // ── The caller's OWN company's AccuLynx key ──
@@ -79,9 +91,17 @@ const rawHandler = async (event) => {
           headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
         });
         if (!res.ok) throw new Error(`AccuLynx connection rejected: HTTP ${res.status}`);
-        return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, message: "Connection validated" }) };
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ ok: true, message: "Connection validated" }),
+        };
       } catch (err) {
-        return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ ok: false, error: err.message }) };
+        return {
+          statusCode: 502,
+          headers: corsHeaders,
+          body: JSON.stringify({ ok: false, error: err.message }),
+        };
       }
     }
 
@@ -91,7 +111,11 @@ const rawHandler = async (event) => {
     if (body.action === "search") {
       const q = (body.query || "").trim();
       if (!q) {
-        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Missing search query" }) };
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({ ok: false, error: "Missing search query" }),
+        };
       }
       try {
         const res = await fetch(
@@ -100,7 +124,7 @@ const rawHandler = async (event) => {
             method: "POST",
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({ searchTerm: q }),
-          }
+          },
         );
         if (!res.ok) {
           const txt = await res.text();
@@ -120,12 +144,26 @@ const rawHandler = async (event) => {
           };
         });
         if (jobs.length === 0) {
-          const debugInfo = [{ keys: Object.keys(d || {}), status: res.status, sample: JSON.stringify(d).slice(0, 500) }];
-          return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, jobs: [], _debug: debugInfo }) };
+          const debugInfo = [
+            {
+              keys: Object.keys(d || {}),
+              status: res.status,
+              sample: JSON.stringify(d).slice(0, 500),
+            },
+          ];
+          return {
+            statusCode: 200,
+            headers: corsHeaders,
+            body: JSON.stringify({ ok: true, jobs: [], _debug: debugInfo }),
+          };
         }
         return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, jobs }) };
       } catch (err) {
-        return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ ok: false, error: err.message }) };
+        return {
+          statusCode: 502,
+          headers: corsHeaders,
+          body: JSON.stringify({ ok: false, error: err.message }),
+        };
       }
     }
 
@@ -139,14 +177,14 @@ const rawHandler = async (event) => {
     const listDocumentFolders = async () => {
       const res = await fetch(
         "https://api.acculynx.com/api/v2/company-settings/job-file-settings/document-folders?pageSize=100&recordStartIndex=0",
-        { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } }
+        { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } },
       );
       if (!res.ok) {
         const txt = await res.text();
         throw new Error(`AccuLynx folder list failed: HTTP ${res.status} ${txt}`);
       }
       const d = await res.json();
-      const raw = Array.isArray(d?.items) ? d.items : (Array.isArray(d) ? d : []);
+      const raw = Array.isArray(d?.items) ? d.items : Array.isArray(d) ? d : [];
       return raw
         .map((f) => ({ id: f.documentFolderId, name: f.name || "Unnamed folder" }))
         .filter((f) => f.id);
@@ -155,9 +193,17 @@ const rawHandler = async (event) => {
     // ── Document folders: populates the Settings dropdown ────────────────
     if (body.action === "documentFolders") {
       try {
-        return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, folders: await listDocumentFolders() }) };
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ ok: true, folders: await listDocumentFolders() }),
+        };
       } catch (err) {
-        return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ ok: false, error: err.message }) };
+        return {
+          statusCode: 502,
+          headers: corsHeaders,
+          body: JSON.stringify({ ok: false, error: err.message }),
+        };
       }
     }
 
@@ -179,19 +225,24 @@ const rawHandler = async (event) => {
               method: "POST",
               headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
               body: JSON.stringify({ searchTerm: body.poNumber }),
-            }
+            },
           );
           if (lookup.ok) {
             const d = await lookup.json();
-            const candidates = d?.data || d?.items || d?.jobs || d?.results || (Array.isArray(d) ? d : []);
-            acculynxJobId = candidates.find((j) => String(j.jobNumber) === String(body.poNumber))?.id || null;
+            const candidates =
+              d?.data || d?.items || d?.jobs || d?.results || (Array.isArray(d) ? d : []);
+            acculynxJobId =
+              candidates.find((j) => String(j.jobNumber) === String(body.poNumber))?.id || null;
           }
         }
         if (!acculynxJobId) {
           return {
             statusCode: 404,
             headers: corsHeaders,
-            body: JSON.stringify({ ok: false, error: `No AccuLynx job matches "${body.poNumber || "(no PO)"}" — upload skipped to avoid filing the report on the wrong job` }),
+            body: JSON.stringify({
+              ok: false,
+              error: `No AccuLynx job matches "${body.poNumber || "(no PO)"}" — upload skipped to avoid filing the report on the wrong job`,
+            }),
           };
         }
         // The office files these in "Job Paperwork" by hand today, so that folder is
@@ -200,9 +251,12 @@ const rawHandler = async (event) => {
         // it as "Job paperwork".
         let folderId = documentFolderId || null;
         if (!folderId) {
-          const wanted = String(body.documentFolderName || "Job Paperwork").trim().toLowerCase();
+          const wanted = String(body.documentFolderName || "Job Paperwork")
+            .trim()
+            .toLowerCase();
           const folders = await listDocumentFolders();
-          folderId = folders.find((f) => String(f.name).trim().toLowerCase() === wanted)?.id || null;
+          folderId =
+            folders.find((f) => String(f.name).trim().toLowerCase() === wanted)?.id || null;
           if (!folderId) {
             return {
               statusCode: 404,
@@ -215,7 +269,11 @@ const rawHandler = async (event) => {
           }
         }
         if (!fileBase64) {
-          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Missing file payload" }) };
+          return {
+            statusCode: 400,
+            headers: corsHeaders,
+            body: JSON.stringify({ ok: false, error: "Missing file payload" }),
+          };
         }
 
         const bytes = Buffer.from(fileBase64, "base64");
@@ -223,22 +281,36 @@ const rawHandler = async (event) => {
         // A material report is tens of KB; anything near the cap is a bug upstream,
         // and failing here names the real problem instead of a truncated upload.
         if (bytes.length === 0 || bytes.length > 4 * 1024 * 1024) {
-          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Report PDF is empty or too large to upload" }) };
+          return {
+            statusCode: 400,
+            headers: corsHeaders,
+            body: JSON.stringify({
+              ok: false,
+              error: "Report PDF is empty or too large to upload",
+            }),
+          };
         }
 
         // Node 18+ on Netlify has FormData/Blob natively, so the multipart body
         // needs no extra dependency. Do NOT set Content-Type by hand — fetch has
         // to append its own multipart boundary.
         const form = new FormData();
-        form.append("file", new Blob([bytes], { type: "application/pdf" }), fileName || "JobReport.pdf");
+        form.append(
+          "file",
+          new Blob([bytes], { type: "application/pdf" }),
+          fileName || "JobReport.pdf",
+        );
         form.append("documentFolderId", folderId);
         if (description) form.append("description", String(description).slice(0, 500));
 
-        const upRes = await fetch(`https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/documents`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}` },
-          body: form,
-        });
+        const upRes = await fetch(
+          `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/documents`,
+          {
+            method: "POST",
+            headers: { Authorization: `Bearer ${apiKey}` },
+            body: form,
+          },
+        );
 
         if (!upRes.ok) {
           const txt = await upRes.text();
@@ -248,10 +320,17 @@ const rawHandler = async (event) => {
         return {
           statusCode: 200,
           headers: corsHeaders,
-          body: JSON.stringify({ ok: true, message: "Completion report uploaded to the AccuLynx job file." }),
+          body: JSON.stringify({
+            ok: true,
+            message: "Completion report uploaded to the AccuLynx job file.",
+          }),
         };
       } catch (err) {
-        return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ ok: false, error: err.message }) };
+        return {
+          statusCode: 502,
+          headers: corsHeaders,
+          body: JSON.stringify({ ok: false, error: err.message }),
+        };
       }
     }
 
@@ -277,19 +356,35 @@ const rawHandler = async (event) => {
               method: "POST",
               headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
               body: JSON.stringify({ searchTerm: poNumber }),
-            }
+            },
           );
           if (searchRes.ok) {
             const searchData = await searchRes.json();
-            const candidates = searchData?.data || searchData?.items || searchData?.jobs || searchData?.results || (Array.isArray(searchData) ? searchData : []);
-            rawJob = candidates.find((j) => String(j.jobNumber) === String(poNumber)) || candidates[0] || null;
+            const candidates =
+              searchData?.data ||
+              searchData?.items ||
+              searchData?.jobs ||
+              searchData?.results ||
+              (Array.isArray(searchData) ? searchData : []);
+            rawJob =
+              candidates.find((j) => String(j.jobNumber) === String(poNumber)) ||
+              candidates[0] ||
+              null;
           }
         } else {
-          return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Provide acculynxJobId or poNumber" }) };
+          return {
+            statusCode: 400,
+            headers: corsHeaders,
+            body: JSON.stringify({ ok: false, error: "Provide acculynxJobId or poNumber" }),
+          };
         }
 
         if (!rawJob) {
-          return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Job not found" }) };
+          return {
+            statusCode: 404,
+            headers: corsHeaders,
+            body: JSON.stringify({ ok: false, error: "Job not found" }),
+          };
         }
 
         const loc = rawJob.locationAddress || {};
@@ -302,15 +397,30 @@ const rawHandler = async (event) => {
           milestone: rawJob.currentMilestone || null,
           _raw: rawJob,
         };
-        return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ ok: true, job: normalizedJob }) };
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({ ok: true, job: normalizedJob }),
+        };
       } catch (err) {
-        return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ ok: false, error: err.message }) };
+        return {
+          statusCode: 502,
+          headers: corsHeaders,
+          body: JSON.stringify({ ok: false, error: err.message }),
+        };
       }
     }
 
     // ── Default action: record material costs on the AccuLynx job ──
     if (!body.acculynxJobId && (!body.poNumber || body.poNumber === "NO_PO")) {
-      return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ ok: false, error: "Job has no PO number to match against AccuLynx" }) };
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          ok: false,
+          error: "Job has no PO number to match against AccuLynx",
+        }),
+      };
     }
 
     const amount = Math.round(Number(body.totalMaterialCost) * 100) / 100;
@@ -318,7 +428,11 @@ const rawHandler = async (event) => {
       return {
         statusCode: 200,
         headers: corsHeaders,
-        body: JSON.stringify({ ok: true, skipped: true, message: "No material cost to sync (net pulled quantity is zero)." }),
+        body: JSON.stringify({
+          ok: true,
+          skipped: true,
+          message: "No material cost to sync (net pulled quantity is zero).",
+        }),
       };
     }
 
@@ -330,13 +444,13 @@ const rawHandler = async (event) => {
       const searchRes = await fetch(
         `https://api.acculynx.com/api/v2/jobs/search?pageSize=25&recordStartIndex=0`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
             Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ searchTerm: body.poNumber }),
-        }
+        },
       );
 
       if (!searchRes.ok) {
@@ -345,7 +459,12 @@ const rawHandler = async (event) => {
       }
 
       const searchData = await searchRes.json();
-      const searchCandidates = searchData?.data || searchData?.items || searchData?.jobs || searchData?.results || (Array.isArray(searchData) ? searchData : []);
+      const searchCandidates =
+        searchData?.data ||
+        searchData?.items ||
+        searchData?.jobs ||
+        searchData?.results ||
+        (Array.isArray(searchData) ? searchData : []);
       // Exact jobNumber match only — costs are written to the job, so a
       // best-guess fallback would silently post expenses onto the wrong file.
       acculynxJob = searchCandidates.find((j) => String(j.jobNumber) === String(body.poNumber));
@@ -357,7 +476,7 @@ const rawHandler = async (event) => {
         headers: corsHeaders,
         body: JSON.stringify({
           ok: false,
-          error: `No AccuLynx job with job number "${body.poNumber}" — sync skipped to avoid posting costs to the wrong job`
+          error: `No AccuLynx job with job number "${body.poNumber}" — sync skipped to avoid posting costs to the wrong job`,
         }),
       };
     }
@@ -373,18 +492,20 @@ const rawHandler = async (event) => {
     // Matching on amount AND our PO reference, because a company legitimately
     // has several expenses on one job (dumpster, labor) and only OUR line is the
     // one being replayed.
-    const expenseRef = body.poNumber && body.poNumber !== "NO_PO" ? String(body.poNumber).slice(0, 50) : null;
+    const expenseRef =
+      body.poNumber && body.poNumber !== "NO_PO" ? String(body.poNumber).slice(0, 50) : null;
     try {
       const existingRes = await fetch(
         `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/payments?pageSize=100&recordStartIndex=0`,
-        { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } }
+        { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } },
       );
       if (existingRes.ok) {
         const existing = await existingRes.json();
         const priorPayments = Array.isArray(existing?.items) ? existing.items : [];
         const duplicate = priorPayments.find(
-          (p) => Math.abs(Number(p.amount) - amount) < 0.005 &&
-                 (!expenseRef || String(p.refNumber || "") === expenseRef)
+          (p) =>
+            Math.abs(Number(p.amount) - amount) < 0.005 &&
+            (!expenseRef || String(p.refNumber || "") === expenseRef),
         );
         if (duplicate) {
           return {
@@ -420,10 +541,10 @@ const rawHandler = async (event) => {
     const expenseRes = await fetch(
       `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/payments/expense`,
       {
-        method: 'POST',
+        method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           to: body.paidTo || "MRR Warehouse",
@@ -436,7 +557,7 @@ const rawHandler = async (event) => {
           // uses, or a replay would fail to recognise its own earlier expense.
           refNumber: expenseRef || undefined,
         }),
-      }
+      },
     );
 
     if (!expenseRes.ok) {
@@ -447,9 +568,12 @@ const rawHandler = async (event) => {
     return {
       statusCode: 200,
       headers: corsHeaders,
-      body: JSON.stringify({ ok: true, acculynxJobId, message: "Material costs recorded in AccuLynx as an additional job expense." }),
+      body: JSON.stringify({
+        ok: true,
+        acculynxJobId,
+        message: "Material costs recorded in AccuLynx as an additional job expense.",
+      }),
     };
-
   } catch (globalError) {
     return {
       statusCode: 502,

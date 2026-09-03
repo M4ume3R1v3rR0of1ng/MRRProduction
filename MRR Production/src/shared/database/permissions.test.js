@@ -33,16 +33,22 @@ describe("getEffectivePerms", () => {
   });
 
   it("lets a per-user override beat the role, in both directions", () => {
-    const grant = getEffectivePerms({ id: "u2", role: "field" }, ROLE_PERMS, { u2: { jobs_close: true } });
+    const grant = getEffectivePerms({ id: "u2", role: "field" }, ROLE_PERMS, {
+      u2: { jobs_close: true },
+    });
     expect(grant.jobs_close).toBe(true);
 
-    const revoke = getEffectivePerms({ id: "jerry", role: "coordinator" }, ROLE_PERMS, { jerry: { jobs_pull: false } });
+    const revoke = getEffectivePerms({ id: "jerry", role: "coordinator" }, ROLE_PERMS, {
+      jerry: { jobs_pull: false },
+    });
     expect(revoke.jobs_pull).toBe(false);
     expect(revoke.jobs_complete).toBe(true); // untouched keys survive
   });
 
   it("applies an override only to the user it belongs to", () => {
-    const other = getEffectivePerms({ id: "jason", role: "field" }, ROLE_PERMS, { someone_else: { jobs_close: true } });
+    const other = getEffectivePerms({ id: "jason", role: "field" }, ROLE_PERMS, {
+      someone_else: { jobs_close: true },
+    });
     expect(other.jobs_close).toBeUndefined();
   });
 

@@ -38,7 +38,12 @@ export function isSubscribed(status) {
  * a comped company has no Stripe subscription, so no webhook ever computes a number for
  * them, and writing one would cap an account that is supposed to be uncapped.
  */
-export function seatCapacity({ baseSeats = BASE_SEATS, grandfatheredPacks = 0, recurringPacks = 0, status } = {}) {
+export function seatCapacity({
+  baseSeats = BASE_SEATS,
+  grandfatheredPacks = 0,
+  recurringPacks = 0,
+  status,
+} = {}) {
   if (baseSeats == null) return null;
   const packs = Math.max(0, grandfatheredPacks || 0) + Math.max(0, recurringPacks || 0);
   return isSubscribed(status) ? baseSeats + PACK_SEATS * packs : baseSeats;
@@ -76,7 +81,8 @@ export function validatePackChange({ delta, recurringPacks = 0, capacity, used =
   if (!Number.isInteger(delta) || delta === 0) {
     return { ok: false, error: "Choose how many packs to add or remove." };
   }
-  if (delta > 0) return { ok: true, nextRecurring: Math.max(0, recurringPacks) + delta, error: null };
+  if (delta > 0)
+    return { ok: true, nextRecurring: Math.max(0, recurringPacks) + delta, error: null };
 
   const wanted = Math.abs(delta);
   const allowed = maxRemovablePacks({ recurringPacks, capacity, used });

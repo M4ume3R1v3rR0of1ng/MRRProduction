@@ -15,7 +15,17 @@ import { Btn, Fld, Inp, Modal, Sel } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
-const BLANK = { name: "", type: "truck", yr: "", make: "", model: "", plate: "", mi: "", oii: "5000", dii: "90" };
+const BLANK = {
+  name: "",
+  type: "truck",
+  yr: "",
+  make: "",
+  model: "",
+  plate: "",
+  mi: "",
+  oii: "5000",
+  dii: "90",
+};
 
 // Turn the form strings into the row the fleet table expects. Pure, so the
 // defaulting rules are checkable: a blank oil interval becomes 5000 rather than
@@ -52,7 +62,9 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
   const { showToast } = useNotify();
 
   const set = (patch) => setForm((p) => ({ ...p, ...patch }));
-  const close = () => { if (!submitting) onClose?.(); };
+  const close = () => {
+    if (!submitting) onClose?.();
+  };
 
   const save = async () => {
     if (!form.name.trim() || !form.plate.trim()) {
@@ -89,44 +101,97 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
   return (
     <Modal title="🚛 Register New Fleet Vehicle" onClose={close}>
       <Fld label="Name / Nickname *">
-        <Inp value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Truck 013" disabled={submitting} />
+        <Inp
+          value={form.name}
+          onChange={(e) => set({ name: e.target.value })}
+          placeholder="e.g. Truck 013"
+          disabled={submitting}
+        />
       </Fld>
       <Fld label="Type">
-        <Sel value={form.type} onChange={(e) => set({ type: e.target.value })} disabled={submitting}>
+        <Sel
+          value={form.type}
+          onChange={(e) => set({ type: e.target.value })}
+          disabled={submitting}
+        >
           <option value="truck">Truck</option>
           <option value="trailer">Trailer</option>
         </Sel>
       </Fld>
       <div className="sw-grid-3" style={{ gap: "var(--space-3)" }}>
         <Fld label="Year">
-          <Inp type="number" value={form.yr} onChange={(e) => set({ yr: e.target.value })} disabled={submitting} />
+          <Inp
+            type="number"
+            value={form.yr}
+            onChange={(e) => set({ yr: e.target.value })}
+            disabled={submitting}
+          />
         </Fld>
         <Fld label="Make">
-          <Inp value={form.make} onChange={(e) => set({ make: e.target.value })} disabled={submitting} />
+          <Inp
+            value={form.make}
+            onChange={(e) => set({ make: e.target.value })}
+            disabled={submitting}
+          />
         </Fld>
         <Fld label="Model">
-          <Inp value={form.model} onChange={(e) => set({ model: e.target.value })} disabled={submitting} />
+          <Inp
+            value={form.model}
+            onChange={(e) => set({ model: e.target.value })}
+            disabled={submitting}
+          />
         </Fld>
       </div>
       <Fld label="License Plate *">
-        <Inp value={form.plate} onChange={(e) => set({ plate: e.target.value })} disabled={submitting} />
+        <Inp
+          value={form.plate}
+          onChange={(e) => set({ plate: e.target.value })}
+          disabled={submitting}
+        />
       </Fld>
       {form.type === "truck" && (
         <div className="sw-grid-2" style={{ gap: "var(--space-3)" }}>
           <Fld label="Starting Mileage">
-            <Inp type="number" value={form.mi} onChange={(e) => set({ mi: e.target.value })} disabled={submitting} />
+            <Inp
+              type="number"
+              value={form.mi}
+              onChange={(e) => set({ mi: e.target.value })}
+              disabled={submitting}
+            />
           </Fld>
           <Fld label="Oil Change Interval (mi)">
-            <Inp type="number" value={form.oii} onChange={(e) => set({ oii: e.target.value })} disabled={submitting} />
+            <Inp
+              type="number"
+              value={form.oii}
+              onChange={(e) => set({ oii: e.target.value })}
+              disabled={submitting}
+            />
           </Fld>
         </div>
       )}
       <Fld label="Detail Interval (days)">
-        <Inp type="number" value={form.dii} onChange={(e) => set({ dii: e.target.value })} disabled={submitting} />
+        <Inp
+          type="number"
+          value={form.dii}
+          onChange={(e) => set({ dii: e.target.value })}
+          disabled={submitting}
+        />
       </Fld>
       <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
-        <Btn v="ghost" onClick={close} style={{ flex: 1, justifyContent: "center" }} disabled={submitting}>Cancel</Btn>
-        <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }} disabled={submitting}>
+        <Btn
+          v="ghost"
+          onClick={close}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={submitting}
+        >
+          Cancel
+        </Btn>
+        <Btn
+          v="primary"
+          onClick={save}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={submitting}
+        >
           {submitting ? "⏳ Saving..." : "+ Add Vehicle"}
         </Btn>
       </div>

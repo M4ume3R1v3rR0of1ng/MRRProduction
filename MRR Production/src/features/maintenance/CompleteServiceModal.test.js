@@ -11,8 +11,24 @@ import CompleteServiceModal, { guessServiceType } from "./CompleteServiceModal.j
 import { NotificationProvider } from "@/shared/context/NotificationContext";
 
 const vehs = [
-  { id: "v1", name: "Truck 3", plate: "ABC-1234", type: "truck", yr: 2019, make: "Ford", model: "F-250" },
-  { id: 7, name: "Trailer 1", plate: "TRL-99", type: "trailer", yr: 2021, make: "PJ", model: "Dump" },
+  {
+    id: "v1",
+    name: "Truck 3",
+    plate: "ABC-1234",
+    type: "truck",
+    yr: 2019,
+    make: "Ford",
+    model: "F-250",
+  },
+  {
+    id: 7,
+    name: "Trailer 1",
+    plate: "TRL-99",
+    type: "trailer",
+    yr: 2021,
+    make: "PJ",
+    model: "Dump",
+  },
 ];
 const user = { id: "u1", name: "Sam Schwartz", email: "sam@example.com" };
 
@@ -21,7 +37,13 @@ const render = (Comp, props) =>
 
 describe("renders", () => {
   it("CompleteServiceModal shows the vehicle and the scheduling notes", () => {
-    const req = { id: "r1", vid: "v1", vname: "Truck 3 (ABC-1234)", type: "Brake Service, Electrical Issue", wh_notes: "Bring it in Thursday" };
+    const req = {
+      id: "r1",
+      vid: "v1",
+      vname: "Truck 3 (ABC-1234)",
+      type: "Brake Service, Electrical Issue",
+      wh_notes: "Bring it in Thursday",
+    };
     const html = render(CompleteServiceModal, { req, vehs, users: [], onSubmit: () => {} });
     expect(html).toContain("Complete Service");
     expect(html).toContain("Truck 3 (ABC-1234)");
@@ -30,7 +52,9 @@ describe("renders", () => {
 
   it("CompleteServiceModal survives a request with no matching vehicle", () => {
     const req = { id: "r1", vid: "gone", vname: "Unknown Fleet Asset", type: "" };
-    expect(() => render(CompleteServiceModal, { req, vehs, users: [], onSubmit: () => {} })).not.toThrow();
+    expect(() =>
+      render(CompleteServiceModal, { req, vehs, users: [], onSubmit: () => {} }),
+    ).not.toThrow();
   });
 });
 

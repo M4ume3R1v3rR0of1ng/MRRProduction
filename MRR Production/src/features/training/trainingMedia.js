@@ -54,7 +54,8 @@ export function validateMediaFile(file) {
     return {
       ok: false,
       kind: null,
-      error: "That file type is not supported. Use MP4 or WebM for video, or JPG, PNG or WebP for a photo.",
+      error:
+        "That file type is not supported. Use MP4 or WebM for video, or JPG, PNG or WebP for a photo.",
     };
   }
 
@@ -78,9 +79,16 @@ export function validateMediaFile(file) {
 // supabase/05_storage.sql and 26 key on. The random suffix stops two people uploading
 // "training.mp4" in the same second from colliding.
 export function mediaObjectPath(companyId, file) {
-  if (!companyId) throw new Error("mediaObjectPath: companyId is required (tenant-scoped storage).");
+  if (!companyId)
+    throw new Error("mediaObjectPath: companyId is required (tenant-scoped storage).");
   const dot = String(file?.name || "").lastIndexOf(".");
-  const ext = dot > -1 ? String(file.name).slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, "") : "bin";
+  const ext =
+    dot > -1
+      ? String(file.name)
+          .slice(dot + 1)
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "")
+      : "bin";
   const rand = Math.random().toString(36).slice(2, 10);
   return `${companyId}/${Date.now()}_${rand}.${ext}`;
 }
@@ -88,7 +96,8 @@ export function mediaObjectPath(companyId, file) {
 // A title is required; everything else is optional. Falling back to the filename would
 // fill the library with "VID_20260810_113045.mp4" as headings.
 export function validateMediaForm({ title, file }) {
-  if (!String(title || "").trim()) return { ok: false, error: "Give the clip a title so people know what it covers." };
+  if (!String(title || "").trim())
+    return { ok: false, error: "Give the clip a title so people know what it covers." };
   return validateMediaFile(file);
 }
 
@@ -96,7 +105,10 @@ export function validateMediaForm({ title, file }) {
 export function mediaRow({ title, blurb, kind, url, sortOrder, user }) {
   return {
     title: String(title).trim().slice(0, 160),
-    blurb: String(blurb || "").trim().slice(0, 600) || null,
+    blurb:
+      String(blurb || "")
+        .trim()
+        .slice(0, 600) || null,
     kind,
     url,
     sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,

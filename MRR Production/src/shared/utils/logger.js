@@ -42,34 +42,39 @@ export const ACTION_TYPES = [
  * @param {object} metadata - Optional entity IDs, snapshot data, or tracking states
  * @param {string} [currentView] - Optional active state layout view passed from App.jsx state
  */
-export const logAction = async (userId, userEmail, actionType, description, metadata = {}, currentView = null) => {
+export const logAction = async (
+  userId,
+  userEmail,
+  actionType,
+  description,
+  metadata = {},
+  currentView = null,
+) => {
   try {
     const payload = {
-      user_id: userId || null, 
+      user_id: userId || null,
       user_email: userEmail || null,
       action_type: actionType,
       description: description,
       metadata: {
         ...metadata,
         // FIX: Prioritize the state-driven application view string over the static '/' route
-        active_view: currentView || 'system_core',
-        page_url: window.location.pathname + window.location.hash, 
-        user_agent: navigator.userAgent 
+        active_view: currentView || "system_core",
+        page_url: window.location.pathname + window.location.hash,
+        user_agent: navigator.userAgent,
       },
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     };
 
     // Continuous developer feedback
     console.log(`📝 [AUDIT LOG]: ${actionType}`, payload);
 
     // Write packet straight to the immutable database block
-    let { error } = await supabase
-      .from('audit_logs')
-      .insert([payload]);
+    let { error } = await supabase.from("audit_logs").insert([payload]);
 
     // One immediate retry — a transient network blip shouldn't cost the trail
     if (error) {
-      ({ error } = await supabase.from('audit_logs').insert([payload]));
+      ({ error } = await supabase.from("audit_logs").insert([payload]));
     }
 
     if (error) {
@@ -87,7 +92,7 @@ export const logAction = async (userId, userEmail, actionType, description, meta
 // Surfaced once per session as a toast via NotificationProvider's listener.
 let auditFailureAnnounced = false;
 function reportAuditFailure(message) {
-  if (auditFailureAnnounced || typeof window === 'undefined') return;
+  if (auditFailureAnnounced || typeof window === "undefined") return;
   auditFailureAnnounced = true;
-  window.dispatchEvent(new CustomEvent('mrr-audit-log-failure', { detail: message }));
+  window.dispatchEvent(new CustomEvent("mrr-audit-log-failure", { detail: message }));
 }

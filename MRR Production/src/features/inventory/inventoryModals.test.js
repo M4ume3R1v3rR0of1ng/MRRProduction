@@ -13,16 +13,39 @@ import { NotificationProvider } from "@/shared/context/NotificationContext";
 import { tot, newestPrice, fd } from "@/shared/utils/helpers";
 
 import ItemDetailModal, { batchesOldestFirst } from "./ItemDetailModal.jsx";
-import ItemFormModal, { isPriceChange, applyPriceToBatches, CATEGORIES, UNITS } from "./ItemFormModal.jsx";
+import ItemFormModal, {
+  isPriceChange,
+  applyPriceToBatches,
+  CATEGORIES,
+  UNITS,
+} from "./ItemFormModal.jsx";
 import ReceiveBatchModal, { missingReceiveFields } from "./ReceiveBatchModal.jsx";
 import AdjustStockModal, { applyStockCorrection } from "./AdjustStockModal.jsx";
-import BatchCorrectionModal, { lineFor, usedOf, hasSplit, jobsUsingBatch } from "./BatchCorrectionModal.jsx";
+import BatchCorrectionModal, {
+  lineFor,
+  usedOf,
+  hasSplit,
+  jobsUsingBatch,
+} from "./BatchCorrectionModal.jsx";
 
 const item = {
-  id: "i1", name: "Shingle", cat: "Roofing Materials", unit: "bd", alrt: 40,
+  id: "i1",
+  name: "Shingle",
+  cat: "Roofing Materials",
+  unit: "bd",
+  alrt: 40,
   batches: [
     { id: "b2", rcvd: "2026-06-10", qty: 60, rem: 42, price: 34, by: "u1" },
-    { id: "b1", rcvd: "2026-05-01", qty: 120, rem: 100, price: 32.5, by: "u1", vendor: "ABC Supply", ref: "PO-1001" },
+    {
+      id: "b1",
+      rcvd: "2026-05-01",
+      qty: 120,
+      rem: 100,
+      price: 32.5,
+      by: "u1",
+      vendor: "ABC Supply",
+      ref: "PO-1001",
+    },
   ],
 };
 const user = { id: "u1", name: "Sam Schwartz", email: "sam@example.com" };
@@ -30,7 +53,13 @@ const users = [user];
 const fetchLiveBatches = async () => item.batches;
 
 const render = (Comp, props) =>
-  renderToString(h(NotificationProvider, null, h(Comp, { user, users, perms: {}, fetchLiveBatches, onClose: () => {}, ...props })));
+  renderToString(
+    h(
+      NotificationProvider,
+      null,
+      h(Comp, { user, users, perms: {}, fetchLiveBatches, onClose: () => {}, ...props }),
+    ),
+  );
 
 describe("batchesOldestFirst", () => {
   it("sorts by received date regardless of array order", () => {
@@ -203,8 +232,14 @@ describe("job line helpers", () => {
 
 describe("jobsUsingBatch", () => {
   // The classification that decides whose finished job cost gets restated.
-  const withSplit = { id: "split-hit", items: [{ iid: "i1", pulled: 5, consumed: [{ bid: "b1", qty: 5 }], priceAtPull: 32.5 }] };
-  const splitElsewhere = { id: "split-miss", items: [{ iid: "i1", pulled: 5, consumed: [{ bid: "bZ", qty: 5 }], priceAtPull: 99 }] };
+  const withSplit = {
+    id: "split-hit",
+    items: [{ iid: "i1", pulled: 5, consumed: [{ bid: "b1", qty: 5 }], priceAtPull: 32.5 }],
+  };
+  const splitElsewhere = {
+    id: "split-miss",
+    items: [{ iid: "i1", pulled: 5, consumed: [{ bid: "bZ", qty: 5 }], priceAtPull: 99 }],
+  };
   const legacyMatch = { id: "legacy-match", items: [{ iid: "i1", pulled: 5, priceAtPull: 32.5 }] };
   const legacyBlend = { id: "legacy-blend", items: [{ iid: "i1", pulled: 5, priceAtPull: 33.2 }] };
   const untouched = { id: "untouched", items: [{ iid: "i1", pulled: 0, priceAtPull: 32.5 }] };
@@ -247,7 +282,10 @@ describe("jobsUsingBatch", () => {
 
 describe("renders", () => {
   it("ItemDetailModal shows specs and batch history oldest first", () => {
-    const html = render(ItemDetailModal, { item, perms: { inv_pricing_view: true, inv_edit: true } });
+    const html = render(ItemDetailModal, {
+      item,
+      perms: { inv_pricing_view: true, inv_edit: true },
+    });
     expect(html).toContain("Shingle");
     expect(html).toContain("Batch History");
     expect(html).toContain("ABC Supply");
@@ -283,7 +321,9 @@ describe("renders", () => {
   });
 
   it("ItemFormModal hides the price field without pricing rights", () => {
-    expect(render(ItemFormModal, { item, perms: { inv_pricing_edit: false } })).not.toContain("Current Price Per Unit");
+    expect(render(ItemFormModal, { item, perms: { inv_pricing_edit: false } })).not.toContain(
+      "Current Price Per Unit",
+    );
   });
 
   it("ReceiveBatchModal warns when pricing is locked", () => {
@@ -297,7 +337,12 @@ describe("renders", () => {
   });
 
   it("BatchCorrectionModal opens on the edit form, not the recalc preview", () => {
-    const html = render(BatchCorrectionModal, { item, batch: item.batches[1], jobs: [], perms: { inv_pricing_edit: true } });
+    const html = render(BatchCorrectionModal, {
+      item,
+      batch: item.batches[1],
+      jobs: [],
+      perms: { inv_pricing_edit: true },
+    });
     expect(html).toContain("Correct Batch");
     expect(html).toContain("Adjust Stock"); // the "quantities live elsewhere" note
     expect(html).not.toContain("finished job");

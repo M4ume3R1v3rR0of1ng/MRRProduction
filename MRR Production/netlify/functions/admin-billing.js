@@ -27,7 +27,11 @@ import Stripe from "stripe";
 import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 
-const json = (statusCode, headers, payload) => ({ statusCode, headers, body: JSON.stringify(payload) });
+const json = (statusCode, headers, payload) => ({
+  statusCode,
+  headers,
+  body: JSON.stringify(payload),
+});
 
 // Stripe money is in the currency's minor unit. Everything downstream wants
 // dollars, so convert once here rather than in the React component.
@@ -139,7 +143,9 @@ const rawHandler = async (event) => {
     return json(200, headers, {
       ok: true,
       billed: true,
-      card: card ? { brand: card.brand, last4: card.last4, expMonth: card.exp_month, expYear: card.exp_year } : null,
+      card: card
+        ? { brand: card.brand, last4: card.last4, expMonth: card.exp_month, expYear: card.exp_year }
+        : null,
       subscription,
       invoices,
     });

@@ -26,47 +26,49 @@ import {
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const T = {
-  navy:    "var(--c-barnwood)",
-  blue:    "var(--c-slate)",
-  blueSoft:"var(--c-slate-wash)",
-  blueRing:"var(--c-slate-wash)",
-  slate:   "var(--c-barnwood)",
-  slateL:  "var(--c-sub)",
-  border:  "var(--c-line)",
-  bg:      "var(--c-subtle)",
+  navy: "var(--c-barnwood)",
+  blue: "var(--c-slate)",
+  blueSoft: "var(--c-slate-wash)",
+  blueRing: "var(--c-slate-wash)",
+  slate: "var(--c-barnwood)",
+  slateL: "var(--c-sub)",
+  border: "var(--c-line)",
+  bg: "var(--c-subtle)",
   // Was a literal #ffffff. That made every card in this view stay white in dark
   // mode while its text inverted to cream, which is how the permissions grid
   // ended up as pale-on-white. `white` is now the surface slot, so it follows
   // the theme; the name is kept because a dozen call sites use it.
-  white:   "var(--c-surface)",
+  white: "var(--c-surface)",
   // Chrome that stays dark in both themes, for the permission group headers.
   // T.navy cannot do this job: it maps to the ink token, which inverts.
-  shell:   "var(--c-shell)",
-  shellInk:"var(--c-shell-ink)",
-  green:   "var(--c-pasture)",
+  shell: "var(--c-shell)",
+  shellInk: "var(--c-shell-ink)",
+  green: "var(--c-pasture)",
   greenBg: "var(--c-pasture-wash)",
   greenBd: "var(--c-pasture-wash)",
-  amber:   "var(--c-warn)",
+  amber: "var(--c-warn)",
   amberBg: "var(--c-warn-wash)",
   amberBd: "var(--c-warn-wash)",
-  red:     "var(--c-rust)",
-  redBg:   "var(--c-rust-wash)",
-  radius:  "10px",
-  radiusLg:"16px",
-  shadow:  "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
-  shadowMd:"0 4px 12px rgba(0,0,0,0.08)",
+  red: "var(--c-rust)",
+  redBg: "var(--c-rust-wash)",
+  radius: "10px",
+  radiusLg: "16px",
+  shadow: "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
+  shadowMd: "0 4px 12px rgba(0,0,0,0.08)",
 };
 
 // ── Shared sub-components ────────────────────────────────────────────────────
 const Card = ({ children, style = {} }) => (
-  <div style={{
-    background: T.white,
-    border: `1px solid ${T.border}`,
-    borderRadius: T.radiusLg,
-    padding: "24px",
-    boxShadow: T.shadow,
-    ...style,
-  }}>
+  <div
+    style={{
+      background: T.white,
+      border: `1px solid ${T.border}`,
+      borderRadius: T.radiusLg,
+      padding: "24px",
+      boxShadow: T.shadow,
+      ...style,
+    }}
+  >
     {children}
   </div>
 );
@@ -75,7 +77,15 @@ const SectionTitle = ({ icon, title, subtitle }) => (
   <div style={{ marginBottom: 20 }}>
     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 4 }}>
       <span style={{ fontSize: "var(--text-xl)" }}>{icon}</span>
-      <h2 style={{ margin: 0, fontSize: 17, fontWeight: "var(--weight-extrabold)", color: T.navy, letterSpacing: "-0.3px" }}>
+      <h2
+        style={{
+          margin: 0,
+          fontSize: 17,
+          fontWeight: "var(--weight-extrabold)",
+          color: T.navy,
+          letterSpacing: "-0.3px",
+        }}
+      >
         {title}
       </h2>
     </div>
@@ -88,13 +98,20 @@ const SectionTitle = ({ icon, title, subtitle }) => (
 );
 
 const StatusPill = ({ active, labelOn = "Active", labelOff = "Offline" }) => (
-  <span style={{
-    display: "inline-flex", alignItems: "center", gap: 5,
-    padding: "3px 10px", borderRadius: "var(--radius-pill)", fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)",
-    background: active ? T.greenBg : T.bg,
-    color: active ? T.green : T.slateL,
-    border: `1px solid ${active ? T.greenBd : T.border}`,
-  }}>
+  <span
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 5,
+      padding: "3px 10px",
+      borderRadius: "var(--radius-pill)",
+      fontSize: "var(--text-sm)",
+      fontWeight: "var(--weight-bold)",
+      background: active ? T.greenBg : T.bg,
+      color: active ? T.green : T.slateL,
+      border: `1px solid ${active ? T.greenBd : T.border}`,
+    }}
+  >
     <span style={{ fontSize: 8 }}>{active ? "●" : "●"}</span>
     {active ? labelOn : labelOff}
   </span>
@@ -103,15 +120,25 @@ const StatusPill = ({ active, labelOn = "Active", labelOff = "Offline" }) => (
 const Alert = ({ children, type = "warning" }) => {
   const colors = {
     warning: { bg: T.amberBg, bd: T.amberBd, text: T.amber },
-    info:    { bg: T.blueSoft, bd: T.blueRing, text: T.blue },
+    info: { bg: T.blueSoft, bd: T.blueRing, text: T.blue },
   };
   const c = colors[type];
   return (
-    <div style={{
-      background: c.bg, border: `1px solid ${c.bd}`, borderRadius: T.radius,
-      padding: "11px 14px", color: c.text, fontSize: "var(--text-base)", fontWeight: "var(--weight-semibold)",
-      display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 20,
-    }}>
+    <div
+      style={{
+        background: c.bg,
+        border: `1px solid ${c.bd}`,
+        borderRadius: T.radius,
+        padding: "11px 14px",
+        color: c.text,
+        fontSize: "var(--text-base)",
+        fontWeight: "var(--weight-semibold)",
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-3)",
+        marginBottom: 20,
+      }}
+    >
       {children}
     </div>
   );
@@ -163,7 +190,9 @@ export default function SettingsView({
     maintenance: { stored: maintenanceNotifications, apply: setMaintenanceNotifications },
   };
   const [automationForm, setAutomationForm] = useState(() =>
-    Object.fromEntries(AUTOMATION_GROUPS.map((g) => [g.id, mergePrefs(g.id, GROUP_STATE[g.id]?.stored)])),
+    Object.fromEntries(
+      AUTOMATION_GROUPS.map((g) => [g.id, mergePrefs(g.id, GROUP_STATE[g.id]?.stored)]),
+    ),
   );
   // Which group is mid-save, so one Save button spins without freezing the others.
   const [savingGroup, setSavingGroup] = useState(null);
@@ -176,7 +205,11 @@ export default function SettingsView({
     try {
       const value = serializePrefs(group.id, automationForm[group.id]);
       const { error } = await supabase.from("settings").upsert(
-        { key: group.settingsKey, value: JSON.stringify(value), updated_at: new Date().toISOString() },
+        {
+          key: group.settingsKey,
+          value: JSON.stringify(value),
+          updated_at: new Date().toISOString(),
+        },
         { onConflict: "company_id,key" },
       );
       if (error) throw error;
@@ -236,7 +269,9 @@ export default function SettingsView({
       if (error) throw error;
       // Reflect immediately everywhere that reads company.branding (top bar, PDFs).
       if (typeof setCompany === "function") {
-        setCompany((prev) => (prev ? { ...prev, branding: data || { ...prev.branding, ...patch } } : prev));
+        setCompany((prev) =>
+          prev ? { ...prev, branding: data || { ...prev.branding, ...patch } } : prev,
+        );
       }
       showToast(t.stCompanySaved, "success");
     } catch (err) {
@@ -245,14 +280,14 @@ export default function SettingsView({
       setSavingBrand(false);
     }
   };
-  const [whForm, setWhForm]         = useState({ name: "", location: "", code: "" });
-  const [savingAx, setSavingAx]     = useState(false);
+  const [whForm, setWhForm] = useState({ name: "", location: "", code: "" });
+  const [savingAx, setSavingAx] = useState(false);
 
   // ── 🆕 TEST LOOKUP LOCAL STATE ADDED ─────────────────────────────────────────
-  const [lookupPo, setLookupPo]         = useState("");
+  const [lookupPo, setLookupPo] = useState("");
   const [lookupResult, setLookupResult] = useState(null);
-  const [lookingUp, setLookingUp]       = useState(false);
-  const [docFolders, setDocFolders]     = useState([]);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [docFolders, setDocFolders] = useState([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
 
   const tabs = [
@@ -265,10 +300,10 @@ export default function SettingsView({
     // connect to, not the only one planned. Naming the tab after the category
     // means adding Jobber or ServiceTitan later is a new section in this panel,
     // not a renamed tab and a broken bookmark.
-    { id: "CRM",        label: "CRM Integration", icon: "🔗" },
-    { id: "Branding",   label: "Branding",     icon: "🏢" },
-    { id: "Warehouses", label: "Warehouses",   icon: "🏭" },
-    { id: "System",     label: "System",       icon: "ℹ️"  },
+    { id: "CRM", label: "CRM Integration", icon: "🔗" },
+    { id: "Branding", label: "Branding", icon: "🏢" },
+    { id: "Warehouses", label: "Warehouses", icon: "🏭" },
+    { id: "System", label: "System", icon: "ℹ️" },
   ];
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -277,13 +312,14 @@ export default function SettingsView({
     e.preventDefault();
     if (!whForm.name.trim()) return;
 
-    const code     = whForm.code.trim().toUpperCase() || whForm.name.trim().substring(0, 3).toUpperCase();
+    const code =
+      whForm.code.trim().toUpperCase() || whForm.name.trim().substring(0, 3).toUpperCase();
     const newEntry = {
-      id:       "w_" + Math.random().toString(36).substr(2, 9),
-      name:     whForm.name.trim(),
+      id: "w_" + Math.random().toString(36).substr(2, 9),
+      name: whForm.name.trim(),
       code,
       location: whForm.location.trim() || "N/A",
-      active:   true,
+      active: true,
     };
 
     try {
@@ -299,14 +335,16 @@ export default function SettingsView({
 
   const handleTogglePerm = async (targetRole, permKey) => {
     const current = rolePerms?.[targetRole] || {};
-    const next    = { ...current, [permKey]: !current[permKey] };
+    const next = { ...current, [permKey]: !current[permKey] };
 
     try {
       // Keyed (company_id, role) — each company defines its own 'manager'.
-      const { error } = await supabase.from("role_permissions").upsert(
-        { role: targetRole, permissions: next, updated_at: new Date().toISOString() },
-        { onConflict: "company_id,role" },
-      );
+      const { error } = await supabase
+        .from("role_permissions")
+        .upsert(
+          { role: targetRole, permissions: next, updated_at: new Date().toISOString() },
+          { onConflict: "company_id,role" },
+        );
       if (error) throw error;
       setRolePerms((prev) => ({ ...prev, [targetRole]: next }));
     } catch (err) {
@@ -319,10 +357,12 @@ export default function SettingsView({
     if (!window.confirm(t.stResetRoleConfirm.replace("{role}", targetRole))) return;
 
     try {
-      const { error } = await supabase.from("role_permissions").upsert(
-        { role: targetRole, permissions: defaults, updated_at: new Date().toISOString() },
-        { onConflict: "company_id,role" },
-      );
+      const { error } = await supabase
+        .from("role_permissions")
+        .upsert(
+          { role: targetRole, permissions: defaults, updated_at: new Date().toISOString() },
+          { onConflict: "company_id,role" },
+        );
       if (error) throw error;
       setRolePerms((prev) => ({ ...prev, [targetRole]: defaults }));
       showToast(t.stRoleReset.replace("{role}", targetRole), "success");
@@ -361,7 +401,7 @@ export default function SettingsView({
           value: JSON.stringify(publicConfig),
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "company_id,key" }
+        { onConflict: "company_id,key" },
       );
 
       if (error) {
@@ -440,22 +480,28 @@ export default function SettingsView({
     if (!file) return;
 
     try {
-      await compressImg(file, 400, 0.85, async (base64Data) => {
-        if (!base64Data) {
-          showToast(t.stCompressFail, "error");
-          return;
-        }
-        // The logo lives on the company row now, not in `settings`. The login screen
-        // has to render it BEFORE anyone authenticates, and it reads it through
-        // company_branding(slug) — an anon-safe lookup that can't be used to
-        // enumerate the customer list the way an open SELECT on settings could.
-        const { error } = await supabase.rpc("set_company_branding", {
-          patch: { logo: base64Data },
-        });
-        if (error) throw error;
-        if (typeof setLogos === "function") setLogos(base64Data);
-        showToast(t.stLogoSaved, "success");
-      }, (msg) => showToast(msg, "error"));
+      await compressImg(
+        file,
+        400,
+        0.85,
+        async (base64Data) => {
+          if (!base64Data) {
+            showToast(t.stCompressFail, "error");
+            return;
+          }
+          // The logo lives on the company row now, not in `settings`. The login screen
+          // has to render it BEFORE anyone authenticates, and it reads it through
+          // company_branding(slug) — an anon-safe lookup that can't be used to
+          // enumerate the customer list the way an open SELECT on settings could.
+          const { error } = await supabase.rpc("set_company_branding", {
+            patch: { logo: base64Data },
+          });
+          if (error) throw error;
+          if (typeof setLogos === "function") setLogos(base64Data);
+          showToast(t.stLogoSaved, "success");
+        },
+        (msg) => showToast(msg, "error"),
+      );
     } catch (err) {
       showToast(`${t.stLogoUploadFail} ${err.message}`, "error");
     } finally {
@@ -481,13 +527,20 @@ export default function SettingsView({
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ fontFamily: "'Inter', system-ui, sans-serif", maxWidth: "100%", padding: "4px 0" }}>
-
+    <div
+      style={{ fontFamily: "'Inter', system-ui, sans-serif", maxWidth: "100%", padding: "4px 0" }}
+    >
       {/* Tab bar */}
-      <div style={{
-        display: "flex", gap: "var(--space-1)", marginBottom: 20,
-        borderBottom: `1px solid ${T.border}`, paddingBottom: 0, flexWrap: "wrap",
-      }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "var(--space-1)",
+          marginBottom: 20,
+          borderBottom: `1px solid ${T.border}`,
+          paddingBottom: 0,
+          flexWrap: "wrap",
+        }}
+      >
         {tabs.map((tab) => {
           const active = currentTab === tab.id;
           return (
@@ -495,12 +548,18 @@ export default function SettingsView({
               key={tab.id}
               onClick={() => setCurrentTab(tab.id)}
               style={{
-                display: "flex", alignItems: "center", gap: "var(--space-2)",
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-2)",
                 padding: "9px 16px",
-                border: "none", borderBottom: active ? `2px solid ${T.blue}` : "2px solid transparent",
-                background: "none", fontSize: "var(--text-base)", fontWeight: active ? 700 : 500,
+                border: "none",
+                borderBottom: active ? `2px solid ${T.blue}` : "2px solid transparent",
+                background: "none",
+                fontSize: "var(--text-base)",
+                fontWeight: active ? 700 : 500,
                 color: active ? T.blue : T.slate,
-                cursor: "pointer", transition: "all 0.15s ease",
+                cursor: "pointer",
+                transition: "all 0.15s ease",
                 marginBottom: -1,
               }}
             >
@@ -517,16 +576,28 @@ export default function SettingsView({
           <SectionTitle icon="🔒" title={t.stRolePerms} subtitle={t.stRolePermsDesc} />
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: 860 }}>
-
               {/* Header row */}
-              <div style={{
-                display: "flex", alignItems: "center",
-                padding: "10px 16px",
-                background: T.bg, borderRadius: T.radius,
-                border: `1px solid ${T.border}`,
-                marginBottom: 8,
-              }}>
-                <div style={{ width: "36%", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", color: T.slateL, textTransform: "uppercase", letterSpacing: "0.6px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "10px 16px",
+                  background: T.bg,
+                  borderRadius: T.radius,
+                  border: `1px solid ${T.border}`,
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{
+                    width: "36%",
+                    fontSize: "var(--text-xs)",
+                    fontWeight: "var(--weight-bold)",
+                    color: T.slateL,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.6px",
+                  }}
+                >
                   {t.stPermission}
                 </div>
                 <div style={{ width: "64%", display: "flex" }}>
@@ -536,15 +607,28 @@ export default function SettingsView({
                     const [roleKey, roleLabel] = roleArray;
                     return (
                       <div key={roleKey} style={{ width: "20%", textAlign: "center" }}>
-                        <div style={{ fontSize: "var(--text-xs)", fontWeight: "var(--weight-extrabold)", color: T.navy, textTransform: "uppercase", letterSpacing: "0.4px" }}>
+                        <div
+                          style={{
+                            fontSize: "var(--text-xs)",
+                            fontWeight: "var(--weight-extrabold)",
+                            color: T.navy,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.4px",
+                          }}
+                        >
                           {roleLabel}
                         </div>
                         <button
                           onClick={() => handleResetRole(roleKey)}
                           style={{
-                            background: "none", border: "none", color: T.blue,
-                            fontSize: "var(--text-xs)", cursor: "pointer", marginTop: 3,
-                            fontWeight: "var(--weight-semibold)", padding: 0,
+                            background: "none",
+                            border: "none",
+                            color: T.blue,
+                            fontSize: "var(--text-xs)",
+                            cursor: "pointer",
+                            marginTop: 3,
+                            fontWeight: "var(--weight-semibold)",
+                            padding: 0,
                           }}
                         >
                           ↩ Reset
@@ -558,50 +642,80 @@ export default function SettingsView({
               {/* Permission rows */}
               {PERM_GROUPS?.map(([groupTitle, groupKeys]) => (
                 <div key={groupTitle} style={{ marginBottom: 10 }}>
-                  <div style={{
-                    background: T.shell, padding: "8px 16px",
-                    fontWeight: "var(--weight-bold)", color: T.shellInk, fontSize: "var(--text-xs)",
-                    letterSpacing: "0.7px", textTransform: "uppercase",
-                    borderRadius: `${T.radius} ${T.radius} 0 0`,
-                  }}>
+                  <div
+                    style={{
+                      background: T.shell,
+                      padding: "8px 16px",
+                      fontWeight: "var(--weight-bold)",
+                      color: T.shellInk,
+                      fontSize: "var(--text-xs)",
+                      letterSpacing: "0.7px",
+                      textTransform: "uppercase",
+                      borderRadius: `${T.radius} ${T.radius} 0 0`,
+                    }}
+                  >
                     {groupTitle}
                   </div>
 
-                  <div style={{ border: `1px solid ${T.border}`, borderTop: "none", borderRadius: `0 0 ${T.radius} ${T.radius}`, overflow: "hidden" }}>
-                    {Array.isArray(groupKeys) && groupKeys.map((pKey, idx) => (
-                      <div
-                        key={pKey}
-                        style={{
-                          display: "flex", alignItems: "center",
-                          padding: "13px 16px",
-                          borderTop: idx === 0 ? "none" : `1px solid ${T.border}`,
-                          background: T.white,
-                        }}
-                      >
-                        <div style={{ width: "36%", paddingRight: 16 }}>
-                          <div style={{ fontWeight: "var(--weight-semibold)", color: T.navy, fontSize: "var(--text-base)" }}>
-                            {PERM_DEFS[pKey]?.label || pKey}
+                  <div
+                    style={{
+                      border: `1px solid ${T.border}`,
+                      borderTop: "none",
+                      borderRadius: `0 0 ${T.radius} ${T.radius}`,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {Array.isArray(groupKeys) &&
+                      groupKeys.map((pKey, idx) => (
+                        <div
+                          key={pKey}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            padding: "13px 16px",
+                            borderTop: idx === 0 ? "none" : `1px solid ${T.border}`,
+                            background: T.white,
+                          }}
+                        >
+                          <div style={{ width: "36%", paddingRight: 16 }}>
+                            <div
+                              style={{
+                                fontWeight: "var(--weight-semibold)",
+                                color: T.navy,
+                                fontSize: "var(--text-base)",
+                              }}
+                            >
+                              {PERM_DEFS[pKey]?.label || pKey}
+                            </div>
+                            <div
+                              style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 2 }}
+                            >
+                              {PERM_DEFS[pKey]?.desc || ""}
+                            </div>
                           </div>
-                          <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 2 }}>
-                            {PERM_DEFS[pKey]?.desc || ""}
+                          <div style={{ width: "64%", display: "flex" }}>
+                            {ROLE_COLS?.map((roleArray) => {
+                              if (!Array.isArray(roleArray)) return null;
+                              const [roleKey] = roleArray;
+                              return (
+                                <div
+                                  key={roleKey}
+                                  style={{
+                                    width: "20%",
+                                    display: "flex",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  <Toggle
+                                    on={!!rolePerms?.[roleKey]?.[pKey]}
+                                    onChange={() => handleTogglePerm(roleKey, pKey)}
+                                  />
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
-                        <div style={{ width: "64%", display: "flex" }}>
-                          {ROLE_COLS?.map((roleArray) => {
-                            if (!Array.isArray(roleArray)) return null;
-                            const [roleKey] = roleArray;
-                            return (
-                              <div key={roleKey} style={{ width: "20%", display: "flex", justifyContent: "center" }}>
-                                <Toggle
-                                  on={!!rolePerms?.[roleKey]?.[pKey]}
-                                  onChange={() => handleTogglePerm(roleKey, pKey)}
-                                />
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </div>
               ))}
@@ -620,19 +734,37 @@ export default function SettingsView({
                 title={`${group.label} ${t.stAutomationsTitle}`}
                 subtitle={group.blurb}
               />
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: T.radius, overflow: "hidden", marginTop: 8 }}>
+              <div
+                style={{
+                  border: `1px solid ${T.border}`,
+                  borderRadius: T.radius,
+                  overflow: "hidden",
+                  marginTop: 8,
+                }}
+              >
                 {automationsForGroup(group.id).map((row, idx) => (
                   <div
                     key={row.key}
                     style={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      gap: "var(--space-4)", padding: "14px 16px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "var(--space-4)",
+                      padding: "14px 16px",
                       borderTop: idx === 0 ? "none" : `1px solid ${T.border}`,
                       background: T.white,
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: "var(--weight-bold)", color: T.navy || T.slate, fontSize: "var(--text-base)" }}>{row.label}</div>
+                      <div
+                        style={{
+                          fontWeight: "var(--weight-bold)",
+                          color: T.navy || T.slate,
+                          fontSize: "var(--text-base)",
+                        }}
+                      >
+                        {row.label}
+                      </div>
                       <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{row.desc}</div>
                       <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 4 }}>
                         ✉️ {t.stAutomationSendsTo} <strong>{row.recipient}</strong>
@@ -646,7 +778,11 @@ export default function SettingsView({
                 ))}
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
-                <Btn v="primary" onClick={() => saveAutomations(group)} disabled={savingGroup === group.id}>
+                <Btn
+                  v="primary"
+                  onClick={() => saveAutomations(group)}
+                  disabled={savingGroup === group.id}
+                >
                   {savingGroup === group.id ? "Saving…" : t.stSaveAutomations}
                 </Btn>
               </div>
@@ -661,7 +797,16 @@ export default function SettingsView({
       {/* ── PANEL: CRM Integration ─────────────────────────────────────── */}
       {currentTab === "CRM" && (
         <Card>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, flexWrap: "wrap", gap: "var(--space-5)" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              marginBottom: 20,
+              flexWrap: "wrap",
+              gap: "var(--space-5)",
+            }}
+          >
             <SectionTitle
               icon="🔗"
               title={t.stAxIntegration}
@@ -699,31 +844,70 @@ export default function SettingsView({
               </Fld>
             </div>
 
-            <div style={{
-              display: "flex", gap: "var(--space-10)", marginBottom: 24,
-              padding: "16px 20px",
-              background: T.bg, borderRadius: T.radius,
-              border: `1px solid ${T.border}`,
-              flexWrap: "wrap",
-            }}>
-              <label style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", cursor: "pointer" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "var(--space-10)",
+                marginBottom: 24,
+                padding: "16px 20px",
+                background: T.bg,
+                borderRadius: T.radius,
+                border: `1px solid ${T.border}`,
+                flexWrap: "wrap",
+              }}
+            >
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-5)",
+                  cursor: "pointer",
+                }}
+              >
                 <Toggle
                   on={!!acculynxConfig?.enabled}
                   onChange={() => setAccuLynxConfig((p) => ({ ...p, enabled: !p.enabled }))}
                 />
                 <div>
-                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)" }}>{t.stEnableIntegration}</div>
-                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>{t.stEnableIntegrationDesc}</div>
+                  <div
+                    style={{
+                      fontWeight: "var(--weight-bold)",
+                      color: T.navy,
+                      fontSize: "var(--text-base)",
+                    }}
+                  >
+                    {t.stEnableIntegration}
+                  </div>
+                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>
+                    {t.stEnableIntegrationDesc}
+                  </div>
                 </div>
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", cursor: "pointer" }}>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-5)",
+                  cursor: "pointer",
+                }}
+              >
                 <Toggle
                   on={!!acculynxConfig?.autoSync}
                   onChange={() => setAccuLynxConfig((p) => ({ ...p, autoSync: !p.autoSync }))}
                 />
                 <div>
-                  <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)" }}>{t.stAutoSync}</div>
-                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>{t.stAutoSyncDesc}</div>
+                  <div
+                    style={{
+                      fontWeight: "var(--weight-bold)",
+                      color: T.navy,
+                      fontSize: "var(--text-base)",
+                    }}
+                  >
+                    {t.stAutoSync}
+                  </div>
+                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>
+                    {t.stAutoSyncDesc}
+                  </div>
                 </div>
               </label>
             </div>
@@ -739,7 +923,11 @@ export default function SettingsView({
                         // Store the name alongside the id purely so the picker can label
                         // the saved folder before the list has been fetched again.
                         const name = docFolders.find((f) => f.id === id)?.name || "";
-                        setAccuLynxConfig((p) => ({ ...p, documentFolderId: id, documentFolderName: name }));
+                        setAccuLynxConfig((p) => ({
+                          ...p,
+                          documentFolderId: id,
+                          documentFolderName: name,
+                        }));
                       }}
                       style={{ flex: 1 }}
                     >
@@ -752,15 +940,24 @@ export default function SettingsView({
                         </option>
                       )}
                       {docFolders.map((f) => (
-                        <option key={f.id} value={f.id}>{f.name}</option>
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
                       ))}
                     </Sel>
-                    <Btn v="ghost" type="button" onClick={handleLoadFolders} disabled={loadingFolders}>
+                    <Btn
+                      v="ghost"
+                      type="button"
+                      onClick={handleLoadFolders}
+                      disabled={loadingFolders}
+                    >
                       {loadingFolders ? "⏳" : `📁 ${t.stLoadFolders}`}
                     </Btn>
                   </div>
                 </Fld>
-                <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 6 }}>{t.stDocFolderHint}</div>
+                <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 6 }}>
+                  {t.stDocFolderHint}
+                </div>
               </div>
             )}
 
@@ -773,9 +970,22 @@ export default function SettingsView({
 
           {/* ── 🆕 TEST JOB LOOKUP SECTION ADDED ───────────────────────────────── */}
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
-            <div style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-base)", marginBottom: 10 }}>{t.stTestLookup}</div>
+            <div
+              style={{
+                fontWeight: "var(--weight-bold)",
+                color: T.navy,
+                fontSize: "var(--text-base)",
+                marginBottom: 10,
+              }}
+            >
+              {t.stTestLookup}
+            </div>
             <div style={{ display: "flex", gap: "var(--space-3)" }}>
-              <Inp value={lookupPo} onChange={(e) => setLookupPo(e.target.value)} placeholder={t.stPoPlaceholder} />
+              <Inp
+                value={lookupPo}
+                onChange={(e) => setLookupPo(e.target.value)}
+                placeholder={t.stPoPlaceholder}
+              />
               <Btn type="button" onClick={handleTestLookup} disabled={lookingUp}>
                 {lookingUp ? "⏳" : "🔍 Lookup"}
               </Btn>
@@ -791,19 +1001,20 @@ export default function SettingsView({
         </Card>
       )}
 
-
-      
-
       {/* ── PANEL: Branding ────────────────────────────────────────────── */}
       {currentTab === "Branding" && (
         <Card>
-          <SectionTitle
-            icon="🏢"
-            title={t.stCompanyDetails}
-            subtitle={t.stCompanyDetailsDesc}
-          />
+          <SectionTitle icon="🏢" title={t.stCompanyDetails} subtitle={t.stCompanyDetailsDesc} />
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "var(--space-4)", paddingTop: 12, marginBottom: 8 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "var(--space-4)",
+              paddingTop: 12,
+              marginBottom: 8,
+            }}
+          >
             <Fld label={t.stCompanyName} hint={t.stCompanyNameHint}>
               <Inp
                 value={brandForm.displayName}
@@ -828,15 +1039,33 @@ export default function SettingsView({
                   onChange={(e) => setBrandForm({ ...brandForm, accent: e.target.value })}
                   disabled={savingBrand}
                   aria-label={t.stAccentAria}
-                  style={{ width: 48, height: 38, border: `1.5px solid ${T.border}`, borderRadius: T.radius, background: "none", cursor: "pointer", padding: 2 }}
+                  style={{
+                    width: 48,
+                    height: 38,
+                    border: `1.5px solid ${T.border}`,
+                    borderRadius: T.radius,
+                    background: "none",
+                    cursor: "pointer",
+                    padding: 2,
+                  }}
                 />
-                <code style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{(brandForm.accent || "var(--c-amber)").toUpperCase()}</code>
+                <code style={{ fontSize: "var(--text-sm)", color: T.slateL }}>
+                  {(brandForm.accent || "var(--c-amber)").toUpperCase()}
+                </code>
                 {(brandForm.accent || "").toLowerCase() !== "var(--c-amber)" && (
                   <button
                     type="button"
                     onClick={() => setBrandForm({ ...brandForm, accent: "var(--c-amber)" })}
                     disabled={savingBrand}
-                    style={{ background: "none", border: "none", color: T.blue, fontSize: "var(--text-sm)", fontWeight: 700, cursor: "pointer", padding: 0 }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: T.blue,
+                      fontSize: "var(--text-sm)",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
                   >
                     {t.stReset}
                   </button>
@@ -844,14 +1073,23 @@ export default function SettingsView({
               </div>
             </Fld>
             <Fld label={t.stState} hint={t.stStateHint}>
-              <Sel value={brandForm.state} onChange={(e) => applyState(e.target.value)} disabled={savingBrand}>
+              <Sel
+                value={brandForm.state}
+                onChange={(e) => applyState(e.target.value)}
+                disabled={savingBrand}
+              >
                 <option value="">{t.stSelectState}</option>
                 {US_STATES.map((s) => (
-                  <option key={s.code} value={s.code}>{s.name}</option>
+                  <option key={s.code} value={s.code}>
+                    {s.name}
+                  </option>
                 ))}
               </Sel>
             </Fld>
-            <Fld label={t.stTaxRate} hint="Auto-filled from your state, or set it by hand. Local county/city tax may add on top. Leave blank for 7%.">
+            <Fld
+              label={t.stTaxRate}
+              hint="Auto-filled from your state, or set it by hand. Local county/city tax may add on top. Leave blank for 7%."
+            >
               <Inp
                 type="number"
                 step="0.01"
@@ -876,19 +1114,26 @@ export default function SettingsView({
             </Btn>
           </div>
 
-          <SectionTitle
-            icon="🖼️"
-            title={t.stCompanyLogo}
-            subtitle={t.stCompanyLogoDesc}
-          />
+          <SectionTitle icon="🖼️" title={t.stCompanyLogo} subtitle={t.stCompanyLogoDesc} />
 
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 12 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              paddingTop: 12,
+            }}
+          >
             {logos && (
-              <div style={{
-                marginBottom: 20, padding: 12,
-                background: T.bg, borderRadius: T.radius,
-                border: `1px solid ${T.border}`,
-              }}>
+              <div
+                style={{
+                  marginBottom: 20,
+                  padding: 12,
+                  background: T.bg,
+                  borderRadius: T.radius,
+                  border: `1px solid ${T.border}`,
+                }}
+              >
                 <img
                   src={logos}
                   alt={t.stCurrentLogo}
@@ -897,23 +1142,41 @@ export default function SettingsView({
               </div>
             )}
 
-            <label style={{
-              border: `2px dashed ${T.blueRing}`,
-              borderRadius: T.radiusLg,
-              padding: "48px 40px",
-              textAlign: "center",
-              background: T.blueSoft,
-              display: "flex", flexDirection: "column", alignItems: "center",
-              justifyContent: "center", gap: "var(--space-3)", cursor: "pointer",
-              width: "100%", maxWidth: 360,
-              transition: "background 0.15s ease",
-            }}>
+            <label
+              style={{
+                border: `2px dashed ${T.blueRing}`,
+                borderRadius: T.radiusLg,
+                padding: "48px 40px",
+                textAlign: "center",
+                background: T.blueSoft,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "var(--space-3)",
+                cursor: "pointer",
+                width: "100%",
+                maxWidth: 360,
+                transition: "background 0.15s ease",
+              }}
+            >
               <span style={{ fontSize: 28 }}>🖼️</span>
-              <div style={{ fontWeight: "var(--weight-bold)", color: T.blue, fontSize: "var(--text-md)" }}>
+              <div
+                style={{
+                  fontWeight: "var(--weight-bold)",
+                  color: T.blue,
+                  fontSize: "var(--text-md)",
+                }}
+              >
                 {logos ? "Replace logo" : "Upload logo"}
               </div>
               <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{t.stLogoFormats}</div>
-              <input type="file" accept="image/*" onChange={handleLogoFileChange} style={{ display: "none" }} />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLogoFileChange}
+                style={{ display: "none" }}
+              />
             </label>
 
             {logos && (
@@ -928,20 +1191,23 @@ export default function SettingsView({
       {/* ── PANEL: Warehouses ──────────────────────────────────────────── */}
       {currentTab === "Warehouses" && (
         <Card>
-          <SectionTitle
-            icon="🏭"
-            title={t.stWarehouses}
-            subtitle={t.stWarehousesDesc}
-          />
+          <SectionTitle icon="🏭" title={t.stWarehouses} subtitle={t.stWarehousesDesc} />
 
           {/* BUG FIX #4 — added success toast in handleAddWarehouse above */}
-          <form onSubmit={handleAddWarehouse} style={{
-            display: "flex", gap: "var(--space-5)", alignItems: "flex-end",
-            flexWrap: "wrap", marginBottom: 20,
-            padding: "16px 20px",
-            background: T.bg, borderRadius: T.radius,
-            border: `1px solid ${T.border}`,
-          }}>
+          <form
+            onSubmit={handleAddWarehouse}
+            style={{
+              display: "flex",
+              gap: "var(--space-5)",
+              alignItems: "flex-end",
+              flexWrap: "wrap",
+              marginBottom: 20,
+              padding: "16px 20px",
+              background: T.bg,
+              borderRadius: T.radius,
+              border: `1px solid ${T.border}`,
+            }}
+          >
             <div style={{ flex: 2, minWidth: 180 }}>
               <Fld label={t.stFacilityName}>
                 <Inp
@@ -978,34 +1244,73 @@ export default function SettingsView({
           </form>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-            {warehouses?.length > 0 ? warehouses.map((w) => (
-              <div key={w.id} style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                padding: "13px 18px",
-                background: T.bg, borderRadius: T.radius,
-                border: `1px solid ${T.border}`,
-              }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 3 }}>
-                    <span style={{ fontWeight: "var(--weight-bold)", color: T.navy, fontSize: "var(--text-md)" }}>{w.name}</span>
-                    {w.code && (
-                      <span style={{
-                        fontSize: "var(--text-2xs)", fontWeight: "var(--weight-extrabold)", color: T.blue,
-                        background: T.blueSoft, border: `1px solid ${T.blueRing}`,
-                        padding: "1px 7px", borderRadius: "var(--radius-pill)", letterSpacing: "0.5px",
-                      }}>
-                        {w.code}
+            {warehouses?.length > 0 ? (
+              warehouses.map((w) => (
+                <div
+                  key={w.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "13px 18px",
+                    background: T.bg,
+                    borderRadius: T.radius,
+                    border: `1px solid ${T.border}`,
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "var(--space-3)",
+                        marginBottom: 3,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontWeight: "var(--weight-bold)",
+                          color: T.navy,
+                          fontSize: "var(--text-md)",
+                        }}
+                      >
+                        {w.name}
                       </span>
-                    )}
+                      {w.code && (
+                        <span
+                          style={{
+                            fontSize: "var(--text-2xs)",
+                            fontWeight: "var(--weight-extrabold)",
+                            color: T.blue,
+                            background: T.blueSoft,
+                            border: `1px solid ${T.blueRing}`,
+                            padding: "1px 7px",
+                            borderRadius: "var(--radius-pill)",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          {w.code}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>
+                      📍 {w.location || "No address logged"}
+                    </div>
                   </div>
-                  <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>
-                    📍 {w.location || "No address logged"}
-                  </div>
+                  <StatusPill active={w.active} labelOn={t.stOperational} labelOff={t.stInactive} />
                 </div>
-                <StatusPill active={w.active} labelOn={t.stOperational} labelOff={t.stInactive} />
-              </div>
-            )) : (
-              <p style={{ margin: 0, fontSize: "var(--text-base)", color: T.slateL, fontStyle: "italic", textAlign: "center", padding: "32px 0" }}>
+              ))
+            ) : (
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "var(--text-base)",
+                  color: T.slateL,
+                  fontStyle: "italic",
+                  textAlign: "center",
+                  padding: "32px 0",
+                }}
+              >
                 {t.stNoWarehouses}
               </p>
             )}
@@ -1018,24 +1323,57 @@ export default function SettingsView({
         <Card>
           <SectionTitle icon="ℹ️" title={t.stSystemInfo} />
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "var(--space-5)" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              gap: "var(--space-5)",
+            }}
+          >
             {[
-              { label: "Version",      value: "WMS v5.0" },
-              { label: "Storage",      value: "Supabase (row-level security)" },
-              { label: "Photos",       value: "Auto-compressed JPEG" },
-              { label: "PDF Engine",   value: "Browser print → Save as PDF" },
-              { label: "AccuLynx",     value: acculynxConfig?.enabled && acculynxConfig?.proxyUrl ? "Enabled" : "Not configured" },
-              { label: "Permissions",  value: "Role-based with per-user overrides" },
+              { label: "Version", value: "WMS v5.0" },
+              { label: "Storage", value: "Supabase (row-level security)" },
+              { label: "Photos", value: "Auto-compressed JPEG" },
+              { label: "PDF Engine", value: "Browser print → Save as PDF" },
+              {
+                label: "AccuLynx",
+                value:
+                  acculynxConfig?.enabled && acculynxConfig?.proxyUrl
+                    ? "Enabled"
+                    : "Not configured",
+              },
+              { label: "Permissions", value: "Role-based with per-user overrides" },
             ].map(({ label, value }) => (
-              <div key={label} style={{
-                padding: "14px 16px",
-                background: T.bg, borderRadius: T.radius,
-                border: `1px solid ${T.border}`,
-              }}>
-                <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: T.slateL, textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 5 }}>
+              <div
+                key={label}
+                style={{
+                  padding: "14px 16px",
+                  background: T.bg,
+                  borderRadius: T.radius,
+                  border: `1px solid ${T.border}`,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "var(--text-2xs)",
+                    fontWeight: "var(--weight-bold)",
+                    color: T.slateL,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.6px",
+                    marginBottom: 5,
+                  }}
+                >
                   {label}
                 </div>
-                <div style={{ fontSize: "var(--text-base)", fontWeight: "var(--weight-bold)", color: T.navy }}>{value}</div>
+                <div
+                  style={{
+                    fontSize: "var(--text-base)",
+                    fontWeight: "var(--weight-bold)",
+                    color: T.navy,
+                  }}
+                >
+                  {value}
+                </div>
               </div>
             ))}
           </div>

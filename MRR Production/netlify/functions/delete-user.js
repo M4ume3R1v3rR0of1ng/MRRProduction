@@ -38,13 +38,21 @@ const rawHandler = async (event) => {
 
   const { caller, error: callerError } = await resolveCaller(admin, accessToken);
   if (callerError) {
-    return { statusCode: callerError.status, headers, body: JSON.stringify({ error: callerError.message }) };
+    return {
+      statusCode: callerError.status,
+      headers,
+      body: JSON.stringify({ error: callerError.message }),
+    };
   }
   if (!isCompanyAdmin(caller)) {
     return { statusCode: 403, headers, body: JSON.stringify({ error: "Admin access required" }) };
   }
   if (targetUserId === caller.userId) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: "You cannot remove your own account." }) };
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: "You cannot remove your own account." }),
+    };
   }
 
   try {
@@ -59,7 +67,11 @@ const rawHandler = async (event) => {
       .maybeSingle();
 
     if (!targetMembership) {
-      return { statusCode: 404, headers, body: JSON.stringify({ error: "That user is not a member of your company." }) };
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: "That user is not a member of your company." }),
+      };
     }
 
     // Company-scoped cleanup only. Their overrides at another company are none of

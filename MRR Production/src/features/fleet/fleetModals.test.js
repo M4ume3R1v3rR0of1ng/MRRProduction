@@ -13,8 +13,24 @@ import { oilSt } from "@/shared/utils/helpers";
 import { NotificationProvider } from "@/shared/context/NotificationContext";
 
 const vehs = [
-  { id: "v1", name: "Truck 3", plate: "ABC-1234", type: "truck", yr: 2019, make: "Ford", model: "F-250" },
-  { id: 7, name: "Trailer 1", plate: "TRL-99", type: "trailer", yr: 2021, make: "PJ", model: "Dump" },
+  {
+    id: "v1",
+    name: "Truck 3",
+    plate: "ABC-1234",
+    type: "truck",
+    yr: 2019,
+    make: "Ford",
+    model: "F-250",
+  },
+  {
+    id: 7,
+    name: "Trailer 1",
+    plate: "TRL-99",
+    type: "trailer",
+    yr: 2021,
+    make: "PJ",
+    model: "Dump",
+  },
 ];
 const user = { id: "u1", name: "Sam Schwartz", email: "sam@example.com" };
 
@@ -22,7 +38,17 @@ const render = (Comp, props) =>
   renderToString(h(NotificationProvider, null, h(Comp, { user, onClose: () => {}, ...props })));
 
 describe("buildVehicle", () => {
-  const base = { name: " Truck 13 ", type: "truck", yr: "2022", make: " Ford ", model: " F-350 ", plate: " XYZ-1 ", mi: "12000", oii: "5000", dii: "90" };
+  const base = {
+    name: " Truck 13 ",
+    type: "truck",
+    yr: "2022",
+    make: " Ford ",
+    model: " F-350 ",
+    plate: " XYZ-1 ",
+    mi: "12000",
+    oii: "5000",
+    dii: "90",
+  };
 
   it("trims the free-text fields", () => {
     const v = buildVehicle(base);

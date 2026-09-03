@@ -38,7 +38,14 @@ export const guessServiceType = (reqType) => {
   return SERVICE_TYPES.includes(first) ? first : "";
 };
 
-export default function CompleteServiceModal({ req, vehs = [], users = [], user, onSubmit, onClose }) {
+export default function CompleteServiceModal({
+  req,
+  vehs = [],
+  users = [],
+  user,
+  onSubmit,
+  onClose,
+}) {
   const veh = vehs.find((v) => v.id === req.vid);
   const currentDriver = veh?.assignedTo ? users.find((u) => u.id === veh.assignedTo) : null;
   const { showToast } = useNotify();
@@ -66,7 +73,10 @@ export default function CompleteServiceModal({ req, vehs = [], users = [], user,
       return;
     }
     if (form.mileage && veh && parseFloat(form.mileage) < (parseFloat(veh.mi) || 0)) {
-      showToast(`Odometer can't be behind the vehicle's last logged mileage (${(veh.mi || 0).toLocaleString()}).`, "warning");
+      showToast(
+        `Odometer can't be behind the vehicle's last logged mileage (${(veh.mi || 0).toLocaleString()}).`,
+        "warning",
+      );
       return;
     }
 
@@ -81,9 +91,11 @@ export default function CompleteServiceModal({ req, vehs = [], users = [], user,
         notes: form.notes.trim(),
         // undefined = don't send the arg at all = RPC default (no change)
         reassignDriverId:
-          form.driverChoice === "unchanged" ? undefined
-          : form.driverChoice === "clear" ? ""
-          : form.driverChoice,
+          form.driverChoice === "unchanged"
+            ? undefined
+            : form.driverChoice === "clear"
+              ? ""
+              : form.driverChoice,
       });
       onClose();
     } catch (err) {
@@ -97,7 +109,14 @@ export default function CompleteServiceModal({ req, vehs = [], users = [], user,
     <Modal title={`✅ Complete Service — ${req.vname}`} onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {req.wh_notes && (
-          <div style={{ background: C.lg, padding: 10, borderRadius: "var(--radius-md)", fontSize: "var(--text-sm)" }}>
+          <div
+            style={{
+              background: C.lg,
+              padding: 10,
+              borderRadius: "var(--radius-md)",
+              fontSize: "var(--text-sm)",
+            }}
+          >
             <strong>Scheduling notes:</strong> {req.wh_notes}
           </div>
         )}
@@ -113,42 +132,77 @@ export default function CompleteServiceModal({ req, vehs = [], users = [], user,
               fontWeight: "var(--weight-semibold)",
             }}
           >
-            A spare was lent while this truck was in for service. Completing it returns the
-            original driver automatically — pick a driver below only if that's not what you want.
+            A spare was lent while this truck was in for service. Completing it returns the original
+            driver automatically — pick a driver below only if that's not what you want.
           </div>
         )}
 
         <div className="sw-grid-2" style={{ gap: "var(--space-4)" }}>
           <Fld label="Service Performed *">
-            <Sel value={form.serviceType} onChange={(e) => setForm({ ...form, serviceType: e.target.value })}>
+            <Sel
+              value={form.serviceType}
+              onChange={(e) => setForm({ ...form, serviceType: e.target.value })}
+            >
               <option value="">— Select —</option>
               {SERVICE_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </Sel>
           </Fld>
           <Fld label="Service Date *">
-            <Inp type="date" value={form.serviceDate} onChange={(e) => setForm({ ...form, serviceDate: e.target.value })} />
+            <Inp
+              type="date"
+              value={form.serviceDate}
+              onChange={(e) => setForm({ ...form, serviceDate: e.target.value })}
+            />
           </Fld>
         </div>
 
         <div className="sw-grid-2" style={{ gap: "var(--space-4)" }}>
           <Fld label="Performed By *">
-            <Inp value={form.performedBy} onChange={(e) => setForm({ ...form, performedBy: e.target.value })} placeholder="Shop or technician name" />
+            <Inp
+              value={form.performedBy}
+              onChange={(e) => setForm({ ...form, performedBy: e.target.value })}
+              placeholder="Shop or technician name"
+            />
           </Fld>
           <Fld label="Cost" hint="Optional">
-            <Inp type="number" min="0" step="0.01" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} placeholder="0.00" />
+            <Inp
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.cost}
+              onChange={(e) => setForm({ ...form, cost: e.target.value })}
+              placeholder="0.00"
+            />
           </Fld>
         </div>
 
         {veh && veh.type === "truck" && (
-          <Fld label="Odometer at Completion" hint={`Optional — last logged: ${(veh.mi || 0).toLocaleString()} mi`}>
-            <Inp type="number" value={form.mileage} onChange={(e) => setForm({ ...form, mileage: e.target.value })} placeholder={String(veh.mi || "")} />
+          <Fld
+            label="Odometer at Completion"
+            hint={`Optional — last logged: ${(veh.mi || 0).toLocaleString()} mi`}
+          >
+            <Inp
+              type="number"
+              value={form.mileage}
+              onChange={(e) => setForm({ ...form, mileage: e.target.value })}
+              placeholder={String(veh.mi || "")}
+            />
           </Fld>
         )}
 
-        <Fld label="Resolution Notes" hint="What was found and fixed — this replaces the ticket's scheduling notes.">
-          <TA value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="e.g. Replaced front brake pads, bled lines..." />
+        <Fld
+          label="Resolution Notes"
+          hint="What was found and fixed — this replaces the ticket's scheduling notes."
+        >
+          <TA
+            value={form.notes}
+            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            placeholder="e.g. Replaced front brake pads, bled lines..."
+          />
         </Fld>
 
         <Fld
@@ -159,20 +213,37 @@ export default function CompleteServiceModal({ req, vehs = [], users = [], user,
               : "No driver currently assigned"
           }
         >
-          <Sel value={form.driverChoice} onChange={(e) => setForm({ ...form, driverChoice: e.target.value })}>
+          <Sel
+            value={form.driverChoice}
+            onChange={(e) => setForm({ ...form, driverChoice: e.target.value })}
+          >
             <option value="unchanged">— No change —</option>
             <option value="clear">Remove driver</option>
-            {users.filter((u) => u.active !== false).map((u) => (
-              <option key={u.id} value={u.id}>{u.name || u.email}</option>
-            ))}
+            {users
+              .filter((u) => u.active !== false)
+              .map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name || u.email}
+                </option>
+              ))}
           </Sel>
         </Fld>
 
         <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 4 }}>
-          <Btn v="ghost" onClick={onClose} style={{ flex: 1, justifyContent: "center" }} disabled={submitting}>
+          <Btn
+            v="ghost"
+            onClick={onClose}
+            style={{ flex: 1, justifyContent: "center" }}
+            disabled={submitting}
+          >
             Cancel
           </Btn>
-          <Btn v="green" onClick={submit} style={{ flex: 1, justifyContent: "center" }} disabled={submitting}>
+          <Btn
+            v="green"
+            onClick={submit}
+            style={{ flex: 1, justifyContent: "center" }}
+            disabled={submitting}
+          >
             {submitting ? "Completing…" : "Complete Service ✅"}
           </Btn>
         </div>

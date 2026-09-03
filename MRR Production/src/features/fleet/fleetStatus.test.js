@@ -36,7 +36,9 @@ describe("vehicleStatusKind", () => {
   });
 
   it("puts the shop above the mileage warnings", () => {
-    expect(vehicleStatusKind({ vehicle: truck(), oilStatus: "overdue", blocked: true })).toBe("in_shop");
+    expect(vehicleStatusKind({ vehicle: truck(), oilStatus: "overdue", blocked: true })).toBe(
+      "in_shop",
+    );
   });
 
   it("separates an overdue oil change from a grounded truck", () => {
@@ -50,26 +52,38 @@ describe("vehicleStatusKind", () => {
   });
 
   it("shows an overdue detail instead of letting it render as a clean truck", () => {
-    expect(vehicleStatusKind({ vehicle: truck(), oilStatus: "ok", detailStatus: "overdue" })).toBe("service_due");
+    expect(vehicleStatusKind({ vehicle: truck(), oilStatus: "ok", detailStatus: "overdue" })).toBe(
+      "service_due",
+    );
   });
 
   it("never grounds a vehicle for overdue service alone", () => {
     for (const detailStatus of ["ok", "soon", "overdue"]) {
       for (const oilStatus of ["ok", "soon", "overdue"]) {
-        expect(vehicleStatusKind({ vehicle: truck(), oilStatus, detailStatus })).not.toBe("grounded");
+        expect(vehicleStatusKind({ vehicle: truck(), oilStatus, detailStatus })).not.toBe(
+          "grounded",
+        );
         expect(isUndispatchable(truck())).toBe(false);
       }
     }
   });
 
   it("falls through to active", () => {
-    expect(vehicleStatusKind({ vehicle: truck(), oilStatus: "ok", detailStatus: "ok" })).toBe("active");
+    expect(vehicleStatusKind({ vehicle: truck(), oilStatus: "ok", detailStatus: "ok" })).toBe(
+      "active",
+    );
     expect(vehicleStatusKind({})).toBe("active");
   });
 
   it("treats a trailer with no oil status as active, not service due", () => {
     // oilSt returns null for trailers; null must not read as a warning.
-    expect(vehicleStatusKind({ vehicle: truck({ type: "trailer" }), oilStatus: null, detailStatus: null })).toBe("active");
+    expect(
+      vehicleStatusKind({
+        vehicle: truck({ type: "trailer" }),
+        oilStatus: null,
+        detailStatus: null,
+      }),
+    ).toBe("active");
   });
 });
 

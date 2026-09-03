@@ -42,7 +42,16 @@ const ANNUAL_SAVINGS_PCT = Math.round((1 - ANNUAL_PRICE / (MONTHLY_PRICE * 12)) 
 // plumbing; it recovers any valid session that useAppData could not resolve to a
 // company on its own.
 
-export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang, initialMode = "login", onBack, onShowTerms, onShowPrivacy }) {
+export default function LoginScreen({
+  onLogin,
+  activeLogo,
+  lang = "en",
+  setLang,
+  initialMode = "login",
+  onBack,
+  onShowTerms,
+  onShowPrivacy,
+}) {
   const t = translations[lang] || translations.en;
   // "login" = existing user signing in · "signup" = public "start a company" flow.
   // initialMode lets the landing page open us straight on the right tab.
@@ -117,7 +126,9 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
       // must not skip the factor just because it arrived by redirect.
       await gateOnMfa(session.user);
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Self-serve "start a company": provision + redirect to Stripe Checkout.
@@ -168,7 +179,14 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
       return;
     }
 
-    await logAction(user.id, user.email, "LOGIN", `Signed in to ${membership.companies?.name || "company"}.`, {}, "login");
+    await logAction(
+      user.id,
+      user.email,
+      "LOGIN",
+      `Signed in to ${membership.companies?.name || "company"}.`,
+      {},
+      "login",
+    );
 
     onLogin({
       id: user.id,
@@ -201,7 +219,9 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
       /* swallowed on purpose — see note above */
     } finally {
       setSubmitting(false);
-      setNotice(`If an account exists for ${target}, a password-reset link is on its way. Check your inbox (and spam).`);
+      setNotice(
+        `If an account exists for ${target}, a password-reset link is on its way. Check your inbox (and spam).`,
+      );
     }
   };
 
@@ -356,7 +376,11 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
         }
       }
 
-      const withName = { ...user, full_name: profileData.full_name, is_platform_admin: profileData.is_platform_admin };
+      const withName = {
+        ...user,
+        full_name: profileData.full_name,
+        is_platform_admin: profileData.is_platform_admin,
+      };
 
       if (memberships.length === 1) {
         await enterCompany(withName, memberships[0]);
@@ -456,7 +480,17 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
         </div>
 
         {notice && (
-          <div style={{ background: "var(--c-pasture-wash)", color: BRAND.pasture, padding: "10px 14px", borderRadius: "var(--radius-md)", fontSize: "var(--text-base)", marginBottom: 16, fontWeight: "var(--weight-semibold)" }}>
+          <div
+            style={{
+              background: "var(--c-pasture-wash)",
+              color: BRAND.pasture,
+              padding: "10px 14px",
+              borderRadius: "var(--radius-md)",
+              fontSize: "var(--text-base)",
+              marginBottom: 16,
+              fontWeight: "var(--weight-semibold)",
+            }}
+          >
             {notice}
           </div>
         )}
@@ -510,7 +544,15 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
             for someone whose identity is already fully established. */}
         {mfaStep ? (
           <form onSubmit={submitMfaCode}>
-            <p style={{ margin: "0 0 16px", color: C.navy, fontSize: "var(--text-base)", lineHeight: 1.6, textAlign: "center" }}>
+            <p
+              style={{
+                margin: "0 0 16px",
+                color: C.navy,
+                fontSize: "var(--text-base)",
+                lineHeight: 1.6,
+                textAlign: "center",
+              }}
+            >
               {t.mfaChallengePrompt}
             </p>
             <Fld label={t.mfaCodeLabel}>
@@ -523,7 +565,13 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                 autoComplete="one-time-code"
                 autoFocus
                 disabled={submitting}
-                style={{ ...inputStyle, fontFamily: "var(--font-mono)", fontSize: 22, letterSpacing: 6, textAlign: "center" }}
+                style={{
+                  ...inputStyle,
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 22,
+                  letterSpacing: 6,
+                  textAlign: "center",
+                }}
               />
             </Fld>
             <button
@@ -548,7 +596,16 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
             <button
               type="button"
               onClick={cancelMfa}
-              style={{ width: "100%", background: "none", border: "none", color: C.sub, fontWeight: 700, cursor: "pointer", padding: 6, fontSize: "var(--text-2xs)" }}
+              style={{
+                width: "100%",
+                background: "none",
+                border: "none",
+                color: C.sub,
+                fontWeight: 700,
+                cursor: "pointer",
+                padding: 6,
+                fontSize: "var(--text-2xs)",
+              }}
             >
               {t.cancel}
             </button>
@@ -578,7 +635,14 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                 }}
               >
                 {m.companies?.name || "Company"}
-                <div style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-semibold)", marginTop: 2 }}>
+                <div
+                  style={{
+                    fontSize: "var(--text-2xs)",
+                    color: C.sub,
+                    fontWeight: "var(--weight-semibold)",
+                    marginTop: 2,
+                  }}
+                >
                   {m.role}
                 </div>
               </button>
@@ -631,7 +695,9 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                 type="password"
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !submitting && (mode === "signup" ? trySignup() : tryLogin())}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && !submitting && (mode === "signup" ? trySignup() : tryLogin())
+                }
                 placeholder={mode === "signup" ? t.lgPasswordPlaceholder : t.password}
                 style={inputStyle}
                 disabled={submitting}
@@ -639,7 +705,15 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
             </Fld>
 
             {mode === "login" && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, marginTop: -4 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 16,
+                  marginTop: -4,
+                }}
+              >
                 <label
                   style={{
                     display: "flex",
@@ -664,7 +738,15 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                   type="button"
                   onClick={forgotPassword}
                   disabled={submitting}
-                  style={{ background: "none", border: "none", color: BRAND.amberDeep, fontWeight: 700, cursor: submitting ? "not-allowed" : "pointer", padding: 0, fontSize: "var(--text-base)" }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: BRAND.amberDeep,
+                    fontWeight: 700,
+                    cursor: submitting ? "not-allowed" : "pointer",
+                    padding: 0,
+                    fontSize: "var(--text-base)",
+                  }}
                 >
                   {t.lgForgotPassword}
                 </button>
@@ -676,7 +758,11 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                 <div style={{ display: "flex", gap: 8 }}>
                   {[
                     { id: "monthly", title: `$${MONTHLY_PRICE}/mo`, note: "Billed monthly" },
-                    { id: "annual", title: `$${ANNUAL_PRICE}/yr`, note: `Save ${ANNUAL_SAVINGS_PCT}%` },
+                    {
+                      id: "annual",
+                      title: `$${ANNUAL_PRICE}/yr`,
+                      note: `Save ${ANNUAL_SAVINGS_PCT}%`,
+                    },
                   ].map((opt) => {
                     const active = billingInterval === opt.id;
                     return (
@@ -690,13 +776,31 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                           padding: "10px 12px",
                           borderRadius: "var(--radius-md)",
                           border: `2px solid ${active ? C.gold : C.bd}`,
-                          background: active ? "color-mix(in srgb, var(--c-amber) 10%, transparent)" : "var(--c-surface)",
+                          background: active
+                            ? "color-mix(in srgb, var(--c-amber) 10%, transparent)"
+                            : "var(--c-surface)",
                           cursor: submitting ? "not-allowed" : "pointer",
                           textAlign: "left",
                         }}
                       >
-                        <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, fontSize: 15 }}>{opt.title}</div>
-                        <div style={{ fontSize: "var(--text-2xs)", fontWeight: "var(--weight-bold)", color: opt.id === "annual" ? BRAND.pasture : C.sub }}>{opt.note}</div>
+                        <div
+                          style={{
+                            fontWeight: "var(--weight-extrabold)",
+                            color: C.navy,
+                            fontSize: 15,
+                          }}
+                        >
+                          {opt.title}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "var(--text-2xs)",
+                            fontWeight: "var(--weight-bold)",
+                            color: opt.id === "annual" ? BRAND.pasture : C.sub,
+                          }}
+                        >
+                          {opt.note}
+                        </div>
                       </button>
                     );
                   })}
@@ -725,12 +829,24 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
               disabled={submitting}
             >
               {submitting
-                ? (mode === "signup" ? t.lgStartingCheckout : t.processingQuery)
-                : (mode === "signup" ? t.lgContinuePayment : t.signIn)}
+                ? mode === "signup"
+                  ? t.lgStartingCheckout
+                  : t.processingQuery
+                : mode === "signup"
+                  ? t.lgContinuePayment
+                  : t.signIn}
             </button>
 
             {mode === "login" && (
-              <p style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.6, margin: "0 0 16px" }}>
+              <p
+                style={{
+                  fontSize: "var(--text-2xs)",
+                  color: C.sub,
+                  textAlign: "center",
+                  lineHeight: 1.6,
+                  margin: "0 0 16px",
+                }}
+              >
                 By logging in, you agree to the{" "}
                 <button
                   type="button"
@@ -768,7 +884,8 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                   }}
                 >
                   {t.lgPrivacy}
-                </button>.
+                </button>
+                .
               </p>
             )}
 
@@ -780,23 +897,62 @@ export default function LoginScreen({ onLogin, activeLogo, lang = "en", setLang,
                 buy is itself steering. Owners sign up on the web and their crew
                 signs in here. See utils/platform.js. */}
             {IS_IOS_APP ? null : mode === "login" ? (
-              <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.6 }}>
+              <div
+                style={{
+                  fontSize: "var(--text-2xs)",
+                  color: C.sub,
+                  textAlign: "center",
+                  lineHeight: 1.6,
+                }}
+              >
                 {t.lgNeedAccess}
                 <br />
                 <button
-                  onClick={() => { setMode("signup"); setErr(""); setNotice(""); }}
-                  style={{ background: "none", border: "none", color: BRAND.amberDeep, fontWeight: 800, cursor: "pointer", padding: "6px 0 0", fontSize: "var(--text-base)" }}
+                  onClick={() => {
+                    setMode("signup");
+                    setErr("");
+                    setNotice("");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: BRAND.amberDeep,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    padding: "6px 0 0",
+                    fontSize: "var(--text-base)",
+                  }}
                 >
                   {t.lgStartOwn}
                 </button>
               </div>
             ) : (
-              <div style={{ fontSize: "var(--text-2xs)", color: C.sub, textAlign: "center", lineHeight: 1.6 }}>
-                You'll enter payment details on the next screen. Your portal goes live the moment payment clears.
+              <div
+                style={{
+                  fontSize: "var(--text-2xs)",
+                  color: C.sub,
+                  textAlign: "center",
+                  lineHeight: 1.6,
+                }}
+              >
+                You'll enter payment details on the next screen. Your portal goes live the moment
+                payment clears.
                 <br />
                 <button
-                  onClick={() => { setMode("login"); setErr(""); setNotice(""); }}
-                  style={{ background: "none", border: "none", color: BRAND.amberDeep, fontWeight: 800, cursor: "pointer", padding: "6px 0 0", fontSize: "var(--text-base)" }}
+                  onClick={() => {
+                    setMode("login");
+                    setErr("");
+                    setNotice("");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: BRAND.amberDeep,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    padding: "6px 0 0",
+                    fontSize: "var(--text-base)",
+                  }}
                 >
                   ← Back to sign in
                 </button>

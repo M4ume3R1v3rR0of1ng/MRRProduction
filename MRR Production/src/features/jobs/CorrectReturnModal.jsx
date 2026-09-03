@@ -38,7 +38,9 @@ export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClos
 
   const setQty = (iid, val) => setQtys((p) => ({ ...p, [iid]: val }));
 
-  const close = () => { if (!saving) onClose?.(); };
+  const close = () => {
+    if (!saving) onClose?.();
+  };
 
   const save = async () => {
     const corrections = {};
@@ -99,20 +101,43 @@ export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClos
         <p style={{ fontSize: "var(--text-sm)" }}>—</p>
       ) : (
         <div className="sw-table-scroll">
-          <table className="mrr-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}>
+          <table
+            className="mrr-table"
+            style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
+          >
             <thead>
               <tr style={{ background: C.lg }}>
-                {[t.colItem, t.colPulled, t.colCurrentlyReturned, t.colCorrectedReturned].map((h) => (
-                  <th key={h} style={{ padding: "7px 10px", textAlign: "left", color: C.sub, fontWeight: "var(--weight-bold)" }}>{h}</th>
-                ))}
+                {[t.colItem, t.colPulled, t.colCurrentlyReturned, t.colCorrectedReturned].map(
+                  (h) => (
+                    <th
+                      key={h}
+                      style={{
+                        padding: "7px 10px",
+                        textAlign: "left",
+                        color: C.sub,
+                        fontWeight: "var(--weight-bold)",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
                 <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
-                  <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}>{item.iname}</td>
-                  <td style={{ padding: "8px 10px" }}>{item.pulled || 0} {item.unit || ""}</td>
-                  <td style={{ padding: "8px 10px" }}>{item.returned || 0} {item.unit || ""}</td>
+                  <td
+                    style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}
+                  >
+                    {item.iname}
+                  </td>
+                  <td style={{ padding: "8px 10px" }}>
+                    {item.pulled || 0} {item.unit || ""}
+                  </td>
+                  <td style={{ padding: "8px 10px" }}>
+                    {item.returned || 0} {item.unit || ""}
+                  </td>
                   <td style={{ padding: "8px 10px" }}>
                     <input
                       type="number"
@@ -132,8 +157,20 @@ export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClos
       )}
 
       <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
-        <Btn v="ghost" onClick={close} style={{ flex: 1, justifyContent: "center" }} disabled={saving}>Cancel</Btn>
-        <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }} disabled={saving || items.length === 0}>
+        <Btn
+          v="ghost"
+          onClick={close}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={saving}
+        >
+          Cancel
+        </Btn>
+        <Btn
+          v="primary"
+          onClick={save}
+          style={{ flex: 1, justifyContent: "center" }}
+          disabled={saving || items.length === 0}
+        >
           {saving ? t.bjCorrectReturnSaving : "💾 Save Correction"}
         </Btn>
       </div>

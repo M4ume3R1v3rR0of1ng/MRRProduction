@@ -53,7 +53,9 @@ const InventoryView = lazy(() => import("./features/inventory/InventoryView.jsx"
 const BuildJobsView = lazy(() => import("./features/jobs/BuildJobsView"));
 const PullInventoryView = lazy(() => import("./features/jobs/PullInventoryView"));
 const FleetManagementView = lazy(() => import("./features/fleet/FleetManagementView"));
-const MaintenanceRequestsView = lazy(() => import("./features/maintenance/MaintenanceRequestsView"));
+const MaintenanceRequestsView = lazy(
+  () => import("./features/maintenance/MaintenanceRequestsView"),
+);
 const ReportsView = lazy(() => import("./features/reports/ReportsView"));
 const UserManagementView = lazy(() => import("./features/users/UserManagementView"));
 const SettingsView = lazy(() => import("./features/settings/SettingsView"));
@@ -65,16 +67,20 @@ const ChatWidget = lazy(() => import("./shared/components/ChatWidget"));
 
 // Mascot Branding Asset
 
-
-
 // Shown while a lazy view chunk is in flight. Painted on the app ground rather
 // than left blank so a slow connection does not flash white between routes.
 function ChunkFallback({ full = false }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "center",
-      minHeight: full ? "100vh" : 240, width: "100%", background: full ? C.bg : "transparent",
-    }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: full ? "100vh" : 240,
+        width: "100%",
+        background: full ? C.bg : "transparent",
+      }}
+    >
       <LoadingState label="Loading..." />
     </div>
   );
@@ -144,7 +150,9 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } = {} }) => {
       if (!cancelled && session?.user) navigate("/login");
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [app.loading, app.curUser]);
 
   // The active tenant's name for display. branding.displayName (editable in Settings)
@@ -152,7 +160,10 @@ export default function App() {
   // Falls back to the PRODUCT name, never to a hardcoded tenant — that would show one
   // company another's name.
   const companyDisplayName =
-    app.company?.branding?.displayName || app.company?.name || app.curUser?.companyName || "Steadwerk";
+    app.company?.branding?.displayName ||
+    app.company?.name ||
+    app.curUser?.companyName ||
+    "Steadwerk";
 
   // The platform operator's own tenant — no roofing operations, so the app is the
   // Owner Console rather than the product. See supabase/32.
@@ -257,7 +268,10 @@ export default function App() {
     } catch {
       // Private mode / storage disabled. Fall through to detection.
     }
-    return typeof navigator !== "undefined" && String(navigator.language || "").toLowerCase().startsWith("es")
+    return typeof navigator !== "undefined" &&
+      String(navigator.language || "")
+        .toLowerCase()
+        .startsWith("es")
       ? "es"
       : "en";
   });
@@ -278,18 +292,18 @@ export default function App() {
   if (recovery) {
     return (
       <Suspense fallback={<ChunkFallback full />}>
-      <ResetPasswordScreen
-        lang={lang}
-        onDone={() => {
-          // Password changed and session signed out inside the screen. Navigating
-          // to /login (rather than a raw replaceState) both drops back to a clean
-          // login and clears the recovery hash — the new URL carries none — while
-          // keeping the router's own location in sync with the address bar.
-          app.setCurUser(null);
-          setRecovery(false);
-          navigate("/login", { replace: true });
-        }}
-      />
+        <ResetPasswordScreen
+          lang={lang}
+          onDone={() => {
+            // Password changed and session signed out inside the screen. Navigating
+            // to /login (rather than a raw replaceState) both drops back to a clean
+            // login and clears the recovery hash — the new URL carries none — while
+            // keeping the router's own location in sync with the address bar.
+            app.setCurUser(null);
+            setRecovery(false);
+            navigate("/login", { replace: true });
+          }}
+        />
       </Suspense>
     );
   }
@@ -297,16 +311,44 @@ export default function App() {
   // ── ⏳ HARDENED PROGRESS BAR LOADING FALLBACK ──
   if (app.loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyGroup: "center", justifyContent: "center", minHeight: "100vh", background: C.bg, flexDirection: "column", gap: "var(--space-6)" }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyGroup: "center",
+          justifyContent: "center",
+          minHeight: "100vh",
+          background: C.bg,
+          flexDirection: "column",
+          gap: "var(--space-6)",
+        }}
+      >
         {/* Platform mark, not the Maumee River mascot — this splash renders for every
             company on the platform, before we even know which one. */}
         <div style={{ marginBottom: 4 }}>
           <SteadwerkMark size={88} filled />
         </div>
-        
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--space-3)", width: "100%", maxWidth: "240px" }}>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "var(--space-3)",
+            width: "100%",
+            maxWidth: "240px",
+          }}
+        >
           {/* External Track Container */}
-          <div style={{ width: "100%", height: "6px", backgroundColor: C.line, borderRadius: "10px", overflow: "hidden" }}>
+          <div
+            style={{
+              width: "100%",
+              height: "6px",
+              backgroundColor: C.line,
+              borderRadius: "10px",
+              overflow: "hidden",
+            }}
+          >
             {/* Dynamic Colored Bar Indicator */}
             <div
               style={{
@@ -314,12 +356,20 @@ export default function App() {
                 backgroundColor: C.amber,
                 width: `${app.loadingProgress}%`,
                 transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                borderRadius: "10px"
+                borderRadius: "10px",
               }}
             />
           </div>
 
-          <div style={{ color: C.navy, fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", letterSpacing: "0.5px", marginTop: 4 }}>
+          <div
+            style={{
+              color: C.navy,
+              fontWeight: "var(--weight-bold)",
+              fontSize: "var(--text-base)",
+              letterSpacing: "0.5px",
+              marginTop: 4,
+            }}
+          >
             Syncing your yard... {app.loadingProgress}%
           </div>
         </div>
@@ -329,7 +379,10 @@ export default function App() {
             that is coming makes the wait feel shorter and stops the hard jump
             from blank to full dashboard. Hidden on phones, where it would push
             the progress bar off-screen. */}
-        <div className="sw-hide-phone" style={{ width: "100%", maxWidth: 880, padding: "0 24px", marginTop: 8, opacity: 0.55 }}>
+        <div
+          className="sw-hide-phone"
+          style={{ width: "100%", maxWidth: 880, padding: "0 24px", marginTop: 8, opacity: 0.55 }}
+        >
           <SkeletonCards count={3} cols={3} />
         </div>
       </div>
@@ -343,18 +396,27 @@ export default function App() {
         <Routes>
           {/* Public Terms & Conditions page — reachable from the landing footer
               and the login disclaimer; "← Back" returns to whichever opened it. */}
-          <Route path="/terms" element={<TermsPage onBack={() => backFromAuthView(termsReturn)} />} />
+          <Route
+            path="/terms"
+            element={<TermsPage onBack={() => backFromAuthView(termsReturn)} />}
+          />
           {/* Public Privacy Policy. Shares termsReturn with the Terms page above:
               both are reachable from the same two places and both go back where
               they came from, so a second piece of state would only be a second
               thing to keep in step. Apple requires a reachable privacy URL for
               App Store review, and this route is it. */}
-          <Route path="/privacy" element={<PrivacyPage onBack={() => backFromAuthView(termsReturn)} />} />
+          <Route
+            path="/privacy"
+            element={<PrivacyPage onBack={() => backFromAuthView(termsReturn)} />}
+          />
           {/* Public help & training page — the product tour and future
               walkthroughs. Lazy like Terms: it carries its own stylesheet and a
               video element, and cold traffic landing on the marketing page
               should not pay for either. */}
-          <Route path="/training" element={<TrainingPage onBack={() => backFromAuthView("landing")} />} />
+          <Route
+            path="/training"
+            element={<TrainingPage onBack={() => backFromAuthView("landing")} />}
+          />
           {/* Public front door. The marketing landing page hands off to the
               login/signup form via its Sign in / Start your company buttons.
               The !IS_IOS_APP guard is what actually keeps LandingPage out of the
@@ -369,10 +431,22 @@ export default function App() {
                 <Navigate to="/login" replace />
               ) : (
                 <LandingPage
-                  onSignIn={() => { setLoginMode("login"); navigate("/login"); }}
-                  onStart={() => { setLoginMode("signup"); navigate("/login"); }}
-                  onShowTerms={() => { setTermsReturn("landing"); navigate("/terms"); }}
-                  onShowPrivacy={() => { setTermsReturn("landing"); navigate("/privacy"); }}
+                  onSignIn={() => {
+                    setLoginMode("login");
+                    navigate("/login");
+                  }}
+                  onStart={() => {
+                    setLoginMode("signup");
+                    navigate("/login");
+                  }}
+                  onShowTerms={() => {
+                    setTermsReturn("landing");
+                    navigate("/terms");
+                  }}
+                  onShowPrivacy={() => {
+                    setTermsReturn("landing");
+                    navigate("/privacy");
+                  }}
                   onShowTraining={() => navigate("/training")}
                 />
               )
@@ -388,8 +462,14 @@ export default function App() {
                 }}
                 initialMode={loginMode}
                 onBack={() => backFromAuthView("landing")}
-                onShowTerms={() => { setTermsReturn("login"); navigate("/terms"); }}
-                onShowPrivacy={() => { setTermsReturn("login"); navigate("/privacy"); }}
+                onShowTerms={() => {
+                  setTermsReturn("login");
+                  navigate("/terms");
+                }}
+                onShowPrivacy={() => {
+                  setTermsReturn("login");
+                  navigate("/privacy");
+                }}
                 activeLogo={app.activeLogo}
                 lang={lang}
                 setLang={setLang}
@@ -410,24 +490,27 @@ export default function App() {
   // this string exactly as they did when it was its own piece of state.
   const view = location.pathname.slice(1) || "dashboard";
 
-return (
-<IdleTimeoutWrapper
+  return (
+    <IdleTimeoutWrapper
       lang={lang}
-      isAuthenticated={!!app.curUser} 
+      isAuthenticated={!!app.curUser}
       onLogout={handleLogout}
       timeout={1800000}
-    >    {/* ── 🟢 1. LOCK THE ROOT CONTAINER VIEWPORT TO SCREEN HEIGHT ── */}
-    <div style={{
-      display: "flex",
-      flexDirection: isMobile ? "column" : "row",
-      height: "100vh", // Force the layout wrapper to freeze at exactly screen height
-      maxHeight: "100vh",
-      background: C.bg,
-      fontFamily: "var(--font-sans)",
-      width: "100vw",
-      overflow: "hidden" // Prevents the whole browser page from ever scrolling
-    }}>
-
+    >
+      {" "}
+      {/* ── 🟢 1. LOCK THE ROOT CONTAINER VIEWPORT TO SCREEN HEIGHT ── */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          height: "100vh", // Force the layout wrapper to freeze at exactly screen height
+          maxHeight: "100vh",
+          background: C.bg,
+          fontFamily: "var(--font-sans)",
+          width: "100vw",
+          overflow: "hidden", // Prevents the whole browser page from ever scrolling
+        }}
+      >
         {/* Renders nothing unless the platform owner is inside a tenant they are
             not a member of. See components/VisitingBanner. */}
         <VisitingBanner user={app.curUser} onLogout={handleLogout} lang={lang} />
@@ -439,15 +522,52 @@ return (
             the top of an otherwise dark app. Left/right insets cover landscape,
             where the notch moves to one side. */}
         {isMobile && (
-          <div style={{ background: C.shell, color: C.shellInk, padding: "var(--safe-top) calc(20px + var(--safe-right)) 0 calc(20px + var(--safe-left))", height: "var(--chrome-total)", boxSizing: "border-box", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 100, boxShadow: "0 2px 4px rgba(0,0,0,0.15)", flexShrink: 0 }}>
+          <div
+            style={{
+              background: C.shell,
+              color: C.shellInk,
+              padding:
+                "var(--safe-top) calc(20px + var(--safe-right)) 0 calc(20px + var(--safe-left))",
+              height: "var(--chrome-total)",
+              boxSizing: "border-box",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              position: "sticky",
+              top: 0,
+              zIndex: 100,
+              boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+              flexShrink: 0,
+            }}
+          >
             {/* The TENANT's name, not the platform's. This header sits inside their
                 portal — hardcoding "MAUMEE RIVER ROOFING" here would have greeted
                 every other company by your company's name. */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-display)", fontWeight: "var(--weight-bold)", fontSize: "var(--text-base)", color: C.shellInk }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontFamily: "var(--font-display)",
+                fontWeight: "var(--weight-bold)",
+                fontSize: "var(--text-base)",
+                color: C.shellInk,
+              }}
+            >
               <TrussMark size={20} />
               {companyDisplayName}
             </div>
-            <button onClick={() => setMobileMenuOpen((o) => !o)} style={{ background: "transparent", border: "none", color: C.shellInk, fontSize: "var(--text-3xl)", cursor: "pointer", lineHeight: 1 }}>
+            <button
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: C.shellInk,
+                fontSize: "var(--text-3xl)",
+                cursor: "pointer",
+                lineHeight: 1,
+              }}
+            >
               {mobileMenuOpen ? "✕" : "☰"}
             </button>
           </div>
@@ -459,7 +579,21 @@ return (
             height PLUS the status-bar inset and loses that same amount of height.
             paddingBottom keeps the last nav item clear of the home indicator,
             which otherwise sits on top of it and eats the tap. */}
-        <div style={{ width: isMobile ? "100%" : collapsed ? 64 : 260, display: isMobile && !mobileMenuOpen ? "none" : "block", position: isMobile ? "fixed" : "relative", top: isMobile ? "var(--chrome-total)" : 0, left: 0, height: isMobile ? "calc(100vh - var(--chrome-total))" : "100vh", paddingBottom: isMobile ? "var(--safe-bottom)" : 0, boxSizing: "border-box", zIndex: 99, overflowY: "auto", flexShrink: 0 }}>
+        <div
+          style={{
+            width: isMobile ? "100%" : collapsed ? 64 : 260,
+            display: isMobile && !mobileMenuOpen ? "none" : "block",
+            position: isMobile ? "fixed" : "relative",
+            top: isMobile ? "var(--chrome-total)" : 0,
+            left: 0,
+            height: isMobile ? "calc(100vh - var(--chrome-total))" : "100vh",
+            paddingBottom: isMobile ? "var(--safe-bottom)" : 0,
+            boxSizing: "border-box",
+            zIndex: 99,
+            overflowY: "auto",
+            flexShrink: 0,
+          }}
+        >
           <Sidebar
             cur={view}
             onNav={(v) => {
@@ -479,46 +613,97 @@ return (
             jobsAwaitingClose={app.jobsAwaitingCloseCount}
             chatUnread={app.chatUnread}
             activeLogo={app.activeLogo}
-            perms={app.userPerms} 
+            perms={app.userPerms}
             lang={lang}
             setLang={setLang}
           />
         </div>
 
         {/* 📊 CORE PANEL FRAMEWORK METER BODY */}
-        <div style={{ 
-          flex: 1, 
-          display: "flex", 
-          flexDirection: "column", 
-          minWidth: 0,
-          height: "100%", // Inherit frozen screen layout constraints
-          marginTop: isMobile ? "var(--chrome-total)" : 0,
-          // Keeps the bottom of every view clear of the home indicator on an
-          // installed iOS app. 0px everywhere else.
-          paddingBottom: isMobile ? "var(--safe-bottom)" : 0,
-          boxSizing: "border-box",
-          overflow: "hidden"
-        }}>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+            height: "100%", // Inherit frozen screen layout constraints
+            marginTop: isMobile ? "var(--chrome-total)" : 0,
+            // Keeps the bottom of every view clear of the home indicator on an
+            // installed iOS app. 0px everywhere else.
+            paddingBottom: isMobile ? "var(--safe-bottom)" : 0,
+            boxSizing: "border-box",
+            overflow: "hidden",
+          }}
+        >
           {app.loadErrors.length > 0 && (
-            <div style={{ background: "var(--c-rust-wash)", borderBottom: "2px solid var(--c-rust)", color: "var(--c-rust)", padding: "10px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", flexShrink: 0, fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>
+            <div
+              style={{
+                background: "var(--c-rust-wash)",
+                borderBottom: "2px solid var(--c-rust)",
+                color: "var(--c-rust)",
+                padding: "10px 20px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+                flexShrink: 0,
+                fontSize: "var(--text-sm)",
+                fontWeight: "var(--weight-bold)",
+              }}
+            >
               <span>
-                ⚠️ Live data failed to load: {app.loadErrors.join(", ")}. Those sections are shown empty rather than with possibly-wrong data — don't make changes until this clears.
+                ⚠️ Live data failed to load: {app.loadErrors.join(", ")}. Those sections are shown
+                empty rather than with possibly-wrong data — don't make changes until this clears.
               </span>
               <button
                 onClick={() => app.reload()}
-                style={{ background: C.rust, color: C.onAccent, border: "none", borderRadius: "var(--radius-md)", padding: "6px 14px", cursor: "pointer", fontWeight: "var(--weight-bold)", fontSize: "var(--text-sm)", flexShrink: 0 }}
+                style={{
+                  background: C.rust,
+                  color: C.onAccent,
+                  border: "none",
+                  borderRadius: "var(--radius-md)",
+                  padding: "6px 14px",
+                  cursor: "pointer",
+                  fontWeight: "var(--weight-bold)",
+                  fontSize: "var(--text-sm)",
+                  flexShrink: 0,
+                }}
               >
                 🔄 Retry
               </button>
             </div>
           )}
           {!isMobile && (
-            <div style={{ background: C.w, padding: "0 20px", height: 56, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${C.bd}`, boxShadow: "var(--shadow-xs)", flexShrink: 0 }}>
-              <div style={{ fontSize: "var(--text-sm)", color: C.sub, flexShrink: 0, marginRight: 24 }}>
-                {companyDisplayName}{app.warehouses?.[0]?.name ? ` · ${app.warehouses[0].name}` : ""}
+            <div
+              style={{
+                background: C.w,
+                padding: "0 20px",
+                height: 56,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                borderBottom: `1px solid ${C.bd}`,
+                boxShadow: "var(--shadow-xs)",
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{ fontSize: "var(--text-sm)", color: C.sub, flexShrink: 0, marginRight: 24 }}
+              >
+                {companyDisplayName}
+                {app.warehouses?.[0]?.name ? ` · ${app.warehouses[0].name}` : ""}
               </div>
 
-              <div style={{ flex: 1, maxWidth: "400px", display: "flex", justifyContent: "flex-start", paddingRight: "40px" }}>
+              <div
+                style={{
+                  flex: 1,
+                  maxWidth: "400px",
+                  display: "flex",
+                  justifyContent: "flex-start",
+                  paddingRight: "40px",
+                }}
+              >
                 <OmniSearch
                   jobs={app.jobs}
                   users={app.users}
@@ -533,25 +718,78 @@ return (
                 />
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-5)", flexShrink: 0, marginLeft: 24 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "var(--space-5)",
+                  flexShrink: 0,
+                  marginLeft: 24,
+                }}
+              >
                 <SyncIndicator lang={lang} />
                 {app.newJobsForMe > 0 && (
-                  <div onClick={() => navigateTo("pull")} style={{ background: C.tB, color: C.tl, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
-                    🎉 {app.newJobsForMe} {app.newJobsForMe === 1 ? t.chromeNewJobOne : t.chromeNewJobMany}
+                  <div
+                    onClick={() => navigateTo("pull")}
+                    style={{
+                      background: C.tB,
+                      color: C.tl,
+                      borderRadius: 20,
+                      padding: "3px 10px",
+                      fontSize: "var(--text-xs)",
+                      fontWeight: "var(--weight-bold)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    🎉 {app.newJobsForMe}{" "}
+                    {app.newJobsForMe === 1 ? t.chromeNewJobOne : t.chromeNewJobMany}
                   </div>
                 )}
                 {app.pendingReqCount > 0 && app.userPerms.maint_manage && (
-                  <div onClick={() => navigateTo("requests")} style={{ background: C.pB, color: C.pu, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
+                  <div
+                    onClick={() => navigateTo("requests")}
+                    style={{
+                      background: C.pB,
+                      color: C.pu,
+                      borderRadius: 20,
+                      padding: "3px 10px",
+                      fontSize: "var(--text-xs)",
+                      fontWeight: "var(--weight-bold)",
+                      cursor: "pointer",
+                    }}
+                  >
                     🔧 {app.pendingReqCount} {t.chromePending}
                   </div>
                 )}
                 {app.lowStockCount > 0 && app.userPerms.inv_view && (
-                  <div onClick={() => navigateTo("inventory")} style={{ background: C.aB, color: C.am, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
+                  <div
+                    onClick={() => navigateTo("inventory")}
+                    style={{
+                      background: C.aB,
+                      color: C.am,
+                      borderRadius: 20,
+                      padding: "3px 10px",
+                      fontSize: "var(--text-xs)",
+                      fontWeight: "var(--weight-bold)",
+                      cursor: "pointer",
+                    }}
+                  >
                     ⚠️ {app.lowStockCount} {t.chromeLowStock}
                   </div>
                 )}
                 {app.jobsAwaitingCloseCount > 0 && app.userPerms.jobs_close && (
-                  <div onClick={() => navigateTo("buildjobs")} style={{ background: C.tB, color: C.tl, borderRadius: 20, padding: "3px 10px", fontSize: "var(--text-xs)", fontWeight: "var(--weight-bold)", cursor: "pointer" }}>
+                  <div
+                    onClick={() => navigateTo("buildjobs")}
+                    style={{
+                      background: C.tB,
+                      color: C.tl,
+                      borderRadius: 20,
+                      padding: "3px 10px",
+                      fontSize: "var(--text-xs)",
+                      fontWeight: "var(--weight-bold)",
+                      cursor: "pointer",
+                    }}
+                  >
                     🧾 {app.jobsAwaitingCloseCount} awaiting close
                   </div>
                 )}
@@ -562,120 +800,372 @@ return (
           )}
 
           {/* ── 🟢 2. CENTRAL DISPATCH PANEL CARDS SCROLL INSIDE THIS CANVAS ONLY ── */}
-          <div 
+          <div
             className="global-app-scrollbar" // Connects with custom slim styling markers
-            style={{ 
-              flex: 1, 
-              padding: isMobile ? 16 : 20, 
+            style={{
+              flex: 1,
+              padding: isMobile ? 16 : 20,
               overflowY: "auto", // Confines scroll mechanics strictly to the open sub-view card
-              background: C.bg 
+              background: C.bg,
             }}
           >
             {/* One boundary for the whole switch: only one view is ever mounted,
                 so a single fallback covers every route change. */}
             <Suspense fallback={<ChunkFallback />}>
-            <Routes>
-            {/* "/" and a lingering "/login" both just mean "put me somewhere
+              <Routes>
+                {/* "/" and a lingering "/login" both just mean "put me somewhere
                 inside the portal" once signed in. */}
-            <Route path="/" element={<Navigate to={isPlatformCompany ? "/owner" : "/dashboard"} replace />} />
-            <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={
-              <DashboardView inv={app.inv} vehs={app.vehs} reqs={app.reqs} jobs={app.jobs} jobTrailers={app.jobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} onNav={navigateTo} tot={tot} jSC={jSC} lang={lang} setLang={setLang} onMarkChatRead={app.markChatRead} setJobs={app.setJobs} setReqs={app.setReqs} company={app.company} activeLogo={app.activeLogo} />
-            } />
-            <Route path="/schedule" element={
-              <ScheduleView
-                jobs={app.jobs}
-                reqs={app.reqs}
-                vehs={app.vehs}
-                jobTrailers={app.jobTrailers}
-                users={app.users}
-                jSC={jSC}
-                onNav={navigateTo}
-                lang={lang}
-              />
-            } />
-            <Route path="/buildjobs" element={
-              (app.userPerms.jobs_build || app.userPerms.jobs_close) ? (
-                <BuildJobsView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} jSC={jSC} view={view} onNav={navigateTo} acculynxConfig={app.acculynxConfig} lang={lang} setLang={setLang} openItemId={searchTargetFor("buildjobs")} onOpenItemHandled={clearSearchTarget} activeLogo={app.activeLogo} highlight={highlightFor("buildjobs")} onHighlightCleared={clearJobHighlight} onShowJobIn={showJobIn}/>
-              ) : <Navigate to="/dashboard" replace />
-            } />
-            <Route path="/pull" element={
-              <PullInventoryView jobs={app.jobs} company={app.company} jobNotifications={app.jobNotifications} setJobs={app.setJobs} inv={app.inv} setInv={app.setInv} vehs={app.vehs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} users={app.users} user={app.curUser} perms={app.userPerms} activeLogo={app.activeLogo} acculynxConfig={app.acculynxConfig} jSC={jSC} lang={lang} setLang={setLang} openItemId={searchTargetFor("pull")} onOpenItemHandled={clearSearchTarget} highlight={highlightFor("pull")} onHighlightCleared={clearJobHighlight} onShowJobIn={showJobIn} />
-            } />
-            <Route path="/inventory" element={
-              app.userPerms.inv_view ? (
-                <InventoryView inv={app.inv} setInv={app.setInv} jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} />
-              ) : <Navigate to="/dashboard" replace />
-            } />
-            <Route path="/fleet" element={
-              app.userPerms.fleet_view ? (
-                <FleetManagementView vehs={app.vehs} setVehs={app.setVehs} reqs={app.reqs} setReqs={app.setReqs} jobs={app.jobs} setJobs={app.setJobs} jobTrailers={app.jobTrailers} setJobTrailers={app.setJobTrailers} jSC={jSC} users={app.users} user={app.curUser} perms={app.userPerms} maintenanceNotifications={app.maintenanceNotifications} maintManagers={app.maintManagers} oilSt={oilSt} detSt={detSt} predDays={predDays} fd={fd} fm={fm} inventorySearchQuery={inventorySearchQuery} setInventorySearchQuery={setInventorySearchQuery} lang={lang} setLang={setLang} openItemId={searchTargetFor("fleet")} onOpenItemHandled={clearSearchTarget} />
-              ) : <Navigate to="/dashboard" replace />
-            } />
-            <Route path="/requests" element={
-              (app.userPerms.maint_submit || app.userPerms.maint_manage) ? (
-                <MaintenanceRequestsView reqs={app.reqs} setReqs={app.setReqs} vehs={app.vehs} setVehs={app.setVehs} users={app.users} user={app.curUser} perms={app.userPerms} maintenanceNotifications={app.maintenanceNotifications} maintManagers={app.maintManagers} lang={lang} setLang={setLang} openItemId={searchTargetFor("requests")} onOpenItemHandled={clearSearchTarget} />
-              ) : <Navigate to="/dashboard" replace />
-            } />
-            <Route path="/reports" element={
-              app.userPerms.reports_view ? (
-                <ReportsView jobs={app.jobs} setJobs={app.setJobs} users={app.users} user={app.curUser} perms={app.userPerms} inv={app.inv} vehs={app.vehs} reqs={app.reqs} lang={lang} setLang={setLang} />
-              ) : <Navigate to="/dashboard" replace />
-            } />
-            <Route path="/users" element={
-              app.userPerms.users_manage ? (
-                <UserManagementView users={app.users} setUsers={app.setUsers} currentUser={app.curUser} rolePerms={app.rolePerms} userOverrides={app.userOverrides} setUserOverrides={app.setUserOverrides} onUpdateUser={(updated) => { app.setCurUser(updated); app.setUsers((p) => p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u))); }} lang={lang} setLang={setLang} openItemId={searchTargetFor("users")} onOpenItemHandled={clearSearchTarget} />
-              ) : <Navigate to="/dashboard" replace />
-            } />
-            <Route path="/settings" element={
-              app.userPerms.settings_manage ? (
-                <SettingsView warehouses={app.warehouses} company={app.company} setCompany={app.setCompany} jobNotifications={app.jobNotifications} setJobNotifications={app.setJobNotifications} maintenanceNotifications={app.maintenanceNotifications} setMaintenanceNotifications={app.setMaintenanceNotifications} setWarehouses={app.setWH} logos={app.logos} setLogos={app.setLogos} rolePerms={app.rolePerms} setRolePerms={app.setRolePerms} acculynxConfig={app.acculynxConfig} setAccuLynxConfig={app.setAccuLynxConfig} lang={lang} />
-              ) : <Navigate to="/dashboard" replace />
-            } />
-            <Route path="/logs" element={
-              app.userPerms.users_manage ? (
-                <AuditLogView perms={app.userPerms} inv={app.inv} users={app.users} companyId={app.curUser?.companyId} lang={lang} />
-              ) : <Navigate to="/dashboard" replace />
-            } />
-            <Route path="/owner" element={
-              app.curUser.isPlatformAdmin ? <OwnerConsole user={app.curUser} lang={lang} /> : <Navigate to="/dashboard" replace />
-            } />
-            {/* Sold outside the app on iOS. BillingView buys seat packs and opens
+                <Route
+                  path="/"
+                  element={<Navigate to={isPlatformCompany ? "/owner" : "/dashboard"} replace />}
+                />
+                <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <DashboardView
+                      inv={app.inv}
+                      vehs={app.vehs}
+                      reqs={app.reqs}
+                      jobs={app.jobs}
+                      jobTrailers={app.jobTrailers}
+                      users={app.users}
+                      user={app.curUser}
+                      perms={app.userPerms}
+                      onNav={navigateTo}
+                      tot={tot}
+                      jSC={jSC}
+                      lang={lang}
+                      setLang={setLang}
+                      onMarkChatRead={app.markChatRead}
+                      setJobs={app.setJobs}
+                      setReqs={app.setReqs}
+                      company={app.company}
+                      activeLogo={app.activeLogo}
+                    />
+                  }
+                />
+                <Route
+                  path="/schedule"
+                  element={
+                    <ScheduleView
+                      jobs={app.jobs}
+                      reqs={app.reqs}
+                      vehs={app.vehs}
+                      jobTrailers={app.jobTrailers}
+                      users={app.users}
+                      jSC={jSC}
+                      onNav={navigateTo}
+                      lang={lang}
+                    />
+                  }
+                />
+                <Route
+                  path="/buildjobs"
+                  element={
+                    app.userPerms.jobs_build || app.userPerms.jobs_close ? (
+                      <BuildJobsView
+                        jobs={app.jobs}
+                        company={app.company}
+                        jobNotifications={app.jobNotifications}
+                        setJobs={app.setJobs}
+                        inv={app.inv}
+                        setInv={app.setInv}
+                        vehs={app.vehs}
+                        jobTrailers={app.jobTrailers}
+                        setJobTrailers={app.setJobTrailers}
+                        users={app.users}
+                        user={app.curUser}
+                        perms={app.userPerms}
+                        jSC={jSC}
+                        view={view}
+                        onNav={navigateTo}
+                        acculynxConfig={app.acculynxConfig}
+                        lang={lang}
+                        setLang={setLang}
+                        openItemId={searchTargetFor("buildjobs")}
+                        onOpenItemHandled={clearSearchTarget}
+                        activeLogo={app.activeLogo}
+                        highlight={highlightFor("buildjobs")}
+                        onHighlightCleared={clearJobHighlight}
+                        onShowJobIn={showJobIn}
+                      />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/pull"
+                  element={
+                    <PullInventoryView
+                      jobs={app.jobs}
+                      company={app.company}
+                      jobNotifications={app.jobNotifications}
+                      setJobs={app.setJobs}
+                      inv={app.inv}
+                      setInv={app.setInv}
+                      vehs={app.vehs}
+                      jobTrailers={app.jobTrailers}
+                      setJobTrailers={app.setJobTrailers}
+                      users={app.users}
+                      user={app.curUser}
+                      perms={app.userPerms}
+                      activeLogo={app.activeLogo}
+                      acculynxConfig={app.acculynxConfig}
+                      jSC={jSC}
+                      lang={lang}
+                      setLang={setLang}
+                      openItemId={searchTargetFor("pull")}
+                      onOpenItemHandled={clearSearchTarget}
+                      highlight={highlightFor("pull")}
+                      onHighlightCleared={clearJobHighlight}
+                      onShowJobIn={showJobIn}
+                    />
+                  }
+                />
+                <Route
+                  path="/inventory"
+                  element={
+                    app.userPerms.inv_view ? (
+                      <InventoryView
+                        inv={app.inv}
+                        setInv={app.setInv}
+                        jobs={app.jobs}
+                        setJobs={app.setJobs}
+                        users={app.users}
+                        user={app.curUser}
+                        perms={app.userPerms}
+                        inventorySearchQuery={inventorySearchQuery}
+                        setInventorySearchQuery={setInventorySearchQuery}
+                        lang={lang}
+                        setLang={setLang}
+                      />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/fleet"
+                  element={
+                    app.userPerms.fleet_view ? (
+                      <FleetManagementView
+                        vehs={app.vehs}
+                        setVehs={app.setVehs}
+                        reqs={app.reqs}
+                        setReqs={app.setReqs}
+                        jobs={app.jobs}
+                        setJobs={app.setJobs}
+                        jobTrailers={app.jobTrailers}
+                        setJobTrailers={app.setJobTrailers}
+                        jSC={jSC}
+                        users={app.users}
+                        user={app.curUser}
+                        perms={app.userPerms}
+                        maintenanceNotifications={app.maintenanceNotifications}
+                        maintManagers={app.maintManagers}
+                        oilSt={oilSt}
+                        detSt={detSt}
+                        predDays={predDays}
+                        fd={fd}
+                        fm={fm}
+                        inventorySearchQuery={inventorySearchQuery}
+                        setInventorySearchQuery={setInventorySearchQuery}
+                        lang={lang}
+                        setLang={setLang}
+                        openItemId={searchTargetFor("fleet")}
+                        onOpenItemHandled={clearSearchTarget}
+                      />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/requests"
+                  element={
+                    app.userPerms.maint_submit || app.userPerms.maint_manage ? (
+                      <MaintenanceRequestsView
+                        reqs={app.reqs}
+                        setReqs={app.setReqs}
+                        vehs={app.vehs}
+                        setVehs={app.setVehs}
+                        users={app.users}
+                        user={app.curUser}
+                        perms={app.userPerms}
+                        maintenanceNotifications={app.maintenanceNotifications}
+                        maintManagers={app.maintManagers}
+                        lang={lang}
+                        setLang={setLang}
+                        openItemId={searchTargetFor("requests")}
+                        onOpenItemHandled={clearSearchTarget}
+                      />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/reports"
+                  element={
+                    app.userPerms.reports_view ? (
+                      <ReportsView
+                        jobs={app.jobs}
+                        setJobs={app.setJobs}
+                        users={app.users}
+                        user={app.curUser}
+                        perms={app.userPerms}
+                        inv={app.inv}
+                        vehs={app.vehs}
+                        reqs={app.reqs}
+                        lang={lang}
+                        setLang={setLang}
+                      />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/users"
+                  element={
+                    app.userPerms.users_manage ? (
+                      <UserManagementView
+                        users={app.users}
+                        setUsers={app.setUsers}
+                        currentUser={app.curUser}
+                        rolePerms={app.rolePerms}
+                        userOverrides={app.userOverrides}
+                        setUserOverrides={app.setUserOverrides}
+                        onUpdateUser={(updated) => {
+                          app.setCurUser(updated);
+                          app.setUsers((p) =>
+                            p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)),
+                          );
+                        }}
+                        lang={lang}
+                        setLang={setLang}
+                        openItemId={searchTargetFor("users")}
+                        onOpenItemHandled={clearSearchTarget}
+                      />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    app.userPerms.settings_manage ? (
+                      <SettingsView
+                        warehouses={app.warehouses}
+                        company={app.company}
+                        setCompany={app.setCompany}
+                        jobNotifications={app.jobNotifications}
+                        setJobNotifications={app.setJobNotifications}
+                        maintenanceNotifications={app.maintenanceNotifications}
+                        setMaintenanceNotifications={app.setMaintenanceNotifications}
+                        setWarehouses={app.setWH}
+                        logos={app.logos}
+                        setLogos={app.setLogos}
+                        rolePerms={app.rolePerms}
+                        setRolePerms={app.setRolePerms}
+                        acculynxConfig={app.acculynxConfig}
+                        setAccuLynxConfig={app.setAccuLynxConfig}
+                        lang={lang}
+                      />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/logs"
+                  element={
+                    app.userPerms.users_manage ? (
+                      <AuditLogView
+                        perms={app.userPerms}
+                        inv={app.inv}
+                        users={app.users}
+                        companyId={app.curUser?.companyId}
+                        lang={lang}
+                      />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  }
+                />
+                <Route
+                  path="/owner"
+                  element={
+                    app.curUser.isPlatformAdmin ? (
+                      <OwnerConsole user={app.curUser} lang={lang} />
+                    ) : (
+                      <Navigate to="/dashboard" replace />
+                    )
+                  }
+                />
+                {/* Sold outside the app on iOS. BillingView buys seat packs and opens
                 the Stripe portal, both of which are purchases Apple would require
                 to run through In-App Purchase. The flag guards the route
                 registration itself, on top of the lazy import above being
                 conditional, so the component drops out of the App Store bundle
                 entirely. */}
-            {!IS_IOS_APP && (
-              <Route path="/billing" element={
-                (app.curUser.role === "admin" || app.curUser.isPlatformAdmin) ? (
-                  <BillingView user={app.curUser} lang={lang} />
-                ) : <Navigate to="/dashboard" replace />
-              } />
-            )}
-            {/* No permission gate. Training is how someone learns the parts of
+                {!IS_IOS_APP && (
+                  <Route
+                    path="/billing"
+                    element={
+                      app.curUser.role === "admin" || app.curUser.isPlatformAdmin ? (
+                        <BillingView user={app.curUser} lang={lang} />
+                      ) : (
+                        <Navigate to="/dashboard" replace />
+                      )
+                    }
+                  />
+                )}
+                {/* No permission gate. Training is how someone learns the parts of
                 the app they already have access to; gating it would hide the
                 explanation from exactly the people who need it most. */}
-            <Route path="/training" element={
-              <TrainingView lang={lang} user={app.curUser} company={app.company} trainingMedia={app.trainingMedia} setTrainingMedia={app.setTrainingMedia} />
-            } />
-            <Route path="/profile" element={
-              <ProfileView
-                user={app.curUser}
-                lang={lang}
-                onUpdateUser={(updated) => {
-                  app.setCurUser(updated);
-                  app.setUsers((p) => p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)));
-                }}
-              />
-            } />
-            <Route path="/terms" element={<TermsPage onBack={() => backFromAuthView(termsReturn)} />} />
-            <Route path="/privacy" element={<PrivacyPage onBack={() => backFromAuthView(termsReturn)} />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+                <Route
+                  path="/training"
+                  element={
+                    <TrainingView
+                      lang={lang}
+                      user={app.curUser}
+                      company={app.company}
+                      trainingMedia={app.trainingMedia}
+                      setTrainingMedia={app.setTrainingMedia}
+                    />
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProfileView
+                      user={app.curUser}
+                      lang={lang}
+                      onUpdateUser={(updated) => {
+                        app.setCurUser(updated);
+                        app.setUsers((p) =>
+                          p.map((u) => (u.id === updated.id ? { ...u, ...updated } : u)),
+                        );
+                      }}
+                    />
+                  }
+                />
+                <Route
+                  path="/terms"
+                  element={<TermsPage onBack={() => backFromAuthView(termsReturn)} />}
+                />
+                <Route
+                  path="/privacy"
+                  element={<PrivacyPage onBack={() => backFromAuthView(termsReturn)} />}
+                />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
             </Suspense>
           </div>
-
         </div>
       </div>
       <Suspense fallback={null}>

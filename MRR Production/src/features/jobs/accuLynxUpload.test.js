@@ -25,11 +25,31 @@ vi.mock("./jobReportPdf", () => ({
 
 const { syncJobReportToAccuLynx } = await import("./accuLynxSync");
 
-const inv = [{ id: "i1", name: "OSB", batches: [{ id: "a", rcvd: "2026-07-01", qty: 10, price: 100, rem: 10 }] }];
+const inv = [
+  {
+    id: "i1",
+    name: "OSB",
+    batches: [{ id: "a", rcvd: "2026-07-01", qty: 10, price: 100, rem: 10 }],
+  },
+];
 // One unit at $100 keeps the tax arithmetic exact: 7% -> $7.00 -> $107.00 total.
 const jobWithMaterials = {
-  id: "j1", po: "22450", name: "Test", acculynx_job_id: "ax-1",
-  items: [{ iid: "i1", iname: "OSB", icat: "Materials", unit: "each", planned: 1, pulled: 1, returned: 0, priceAtPull: 100 }],
+  id: "j1",
+  po: "22450",
+  name: "Test",
+  acculynx_job_id: "ax-1",
+  items: [
+    {
+      iid: "i1",
+      iname: "OSB",
+      icat: "Materials",
+      unit: "each",
+      planned: 1,
+      pulled: 1,
+      returned: 0,
+      priceAtPull: 100,
+    },
+  ],
 };
 const emptyJob = { id: "j2", po: "22451", name: "Empty", acculynx_job_id: "ax-2", items: [] };
 const config = { enabled: true, proxyUrl: "https://example.test/sync", apiKey: "k" };
@@ -75,7 +95,9 @@ describe("what Sync Upload sends", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await syncJobReportToAccuLynx({
-      job: jobWithMaterials, config, inv,
+      job: jobWithMaterials,
+      config,
+      inv,
       company: { name: "Sunrise", branding: { taxRate: 0.0725, taxLabel: "Lucas County Tax" } },
     });
 
@@ -94,7 +116,12 @@ describe("what Sync Upload sends", () => {
 
     const expense = bodiesOf(fetchMock)[1];
     expect(expense.lineItems).toHaveLength(1);
-    expect(expense.lineItems[0]).toMatchObject({ name: "OSB", quantity: 1, unitPrice: 100, totalCost: 100 });
+    expect(expense.lineItems[0]).toMatchObject({
+      name: "OSB",
+      quantity: 1,
+      unitPrice: 100,
+      totalCost: 100,
+    });
   });
 
   it("skips the expense when the job consumed nothing, but still files the report", async () => {
@@ -152,7 +179,10 @@ describe("the halves do not gate each other", () => {
   });
 
   it("records both successes so the badge survives a reload", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => okJson({ ok: true, message: "ok" })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => okJson({ ok: true, message: "ok" })),
+    );
     const setJobs = vi.fn();
 
     await syncJobReportToAccuLynx({ job: jobWithMaterials, config, inv, setJobs });
@@ -171,7 +201,9 @@ describe("the halves do not gate each other", () => {
 
 describe("neither half is ever retried", () => {
   it("makes exactly one attempt per endpoint on failure", async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ error: "boom" }), { status: 502 }));
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ error: "boom" }), { status: 502 }),
+    );
     vi.stubGlobal("fetch", fetchMock);
 
     await syncJobReportToAccuLynx({ job: jobWithMaterials, config, inv });
@@ -195,7 +227,11 @@ describe("neither half is ever retried", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    const r = await syncJobReportToAccuLynx({ job: jobWithMaterials, config: { enabled: false }, inv });
+    const r = await syncJobReportToAccuLynx({
+      job: jobWithMaterials,
+      config: { enabled: false },
+      inv,
+    });
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateRowStrict.mock.calls[0][2].syncStatus).toBe("manual");

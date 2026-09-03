@@ -31,7 +31,8 @@ export const readTheme = () => {
   }
 };
 
-export const resolveTheme = (pref) => (pref === "system" ? (prefersDark() ? "dark" : "light") : pref);
+export const resolveTheme = (pref) =>
+  pref === "system" ? (prefersDark() ? "dark" : "light") : pref;
 
 // Stamps the resolved theme and keeps the address-bar color in step. Safe to call
 // repeatedly; it is also what the OS-change listener re-runs.
@@ -56,4 +57,5 @@ export const saveTheme = (pref) => {
 // Order the toggle cycles through. System first because it is the default.
 export const THEME_CYCLE = ["system", "light", "dark"];
 
-export const nextTheme = (pref) => THEME_CYCLE[(THEME_CYCLE.indexOf(pref) + 1) % THEME_CYCLE.length];
+export const nextTheme = (pref) =>
+  THEME_CYCLE[(THEME_CYCLE.indexOf(pref) + 1) % THEME_CYCLE.length];

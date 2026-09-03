@@ -32,22 +32,35 @@ const bindingsIn = (src, open) => {
     if (src[i] === "{") depth++;
     else if (src[i] === "}") {
       depth--;
-      if (depth === 0) { end = i; break; }
+      if (depth === 0) {
+        end = i;
+        break;
+      }
     }
   }
-  return [...src.slice(open + 1, end).matchAll(/([A-Za-z_$][\w$]*)\s*(?:[,:=}]|$)/g)].map((m) => m[1]);
+  return [...src.slice(open + 1, end).matchAll(/([A-Za-z_$][\w$]*)\s*(?:[,:=}]|$)/g)].map(
+    (m) => m[1],
+  );
 };
 
 const declaredIn = (src) => {
   const declared = new Set();
-  for (const m of src.matchAll(/\b(?:const|let|var|function)\s+([A-Za-z_$][\w$]*)/g)) declared.add(m[1]);
+  for (const m of src.matchAll(/\b(?:const|let|var|function)\s+([A-Za-z_$][\w$]*)/g))
+    declared.add(m[1]);
   // const [value, setValue] = useState(...)
   for (const m of src.matchAll(/\[\s*([A-Za-z_$][\w$]*)\s*,\s*([A-Za-z_$][\w$]*)\s*\]/g)) {
     declared.add(m[1]);
     declared.add(m[2]);
   }
   for (const m of src.matchAll(/import\s+(?:\{([^}]*)\}|([A-Za-z_$][\w$]*))/g)) {
-    if (m[1]) for (const n of m[1].split(",")) declared.add(n.trim().split(/\s+as\s+/).pop());
+    if (m[1])
+      for (const n of m[1].split(","))
+        declared.add(
+          n
+            .trim()
+            .split(/\s+as\s+/)
+            .pop(),
+        );
     else declared.add(m[2]);
   }
   // Object destructuring, multi-line aware: component props and const { x } = hook().
@@ -79,7 +92,10 @@ describe("dangling references", () => {
 
   it("has no setter called without being declared, imported, or received", () => {
     const offenders = files
-      .map((f) => [f.replace(SRC, "").replace(/\\/g, "/"), danglingSetters(readFileSync(f, "utf8"))])
+      .map((f) => [
+        f.replace(SRC, "").replace(/\\/g, "/"),
+        danglingSetters(readFileSync(f, "utf8")),
+      ])
       .filter(([, missing]) => missing.length)
       .map(([f, missing]) => `${f}: ${missing.join(", ")}`);
     expect(offenders).toEqual([]);

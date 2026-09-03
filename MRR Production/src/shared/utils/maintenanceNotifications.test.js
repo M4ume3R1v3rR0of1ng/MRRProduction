@@ -4,7 +4,14 @@ import { describe, it, expect, vi } from "vitest";
 vi.mock("./email", () => ({
   sendEmail: vi.fn(),
   escapeHtml: (v) =>
-    v == null ? "" : String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"),
+    v == null
+      ? ""
+      : String(v)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;"),
 }));
 
 const {
@@ -66,7 +73,9 @@ describe("eventForNewRequest", () => {
   });
 
   it("lets urgent-only fire without emailing every routine ticket", () => {
-    expect(eventForNewRequest({ urgency: "urgent" }, { filed: false, urgent: true })).toBe("urgent");
+    expect(eventForNewRequest({ urgency: "urgent" }, { filed: false, urgent: true })).toBe(
+      "urgent",
+    );
     expect(eventForNewRequest({ urgency: "normal" }, { filed: false, urgent: true })).toBeNull();
   });
 
@@ -96,7 +105,10 @@ describe("resolveMaintManagers", () => {
   });
 
   it("includes admins, who bypass the permission matrix", () => {
-    const withAdmin = [...users, { id: "ad1", email: "boss@example.com", role: "admin", active: true }];
+    const withAdmin = [
+      ...users,
+      { id: "ad1", email: "boss@example.com", role: "admin", active: true },
+    ];
     expect(resolveMaintManagers(withAdmin, {}, {}).map((u) => u.id)).toContain("ad1");
   });
 
@@ -134,7 +146,11 @@ describe("buildMaintEmail", () => {
   });
 
   it("escapes user-entered text so a crafted note can't inject markup", () => {
-    const m = buildMaintEmail("filed", { ...req, vname: "<script>alert(1)</script>", notes: "<b>bad</b>" });
+    const m = buildMaintEmail("filed", {
+      ...req,
+      vname: "<script>alert(1)</script>",
+      notes: "<b>bad</b>",
+    });
     expect(m.html).not.toMatch(/<script>alert/);
     expect(m.html).toMatch(/&lt;script&gt;/);
     expect(m.html).toMatch(/&lt;b&gt;bad/);
@@ -147,8 +163,12 @@ describe("buildMaintEmail", () => {
   });
 
   it("reads snake_case and camelCase shop notes alike", () => {
-    expect(buildMaintEmail("completed", { ...req, wh_notes: "Pads replaced" }).html).toMatch(/Pads replaced/);
-    expect(buildMaintEmail("completed", { ...req, whNotes: "Pads replaced" }).html).toMatch(/Pads replaced/);
+    expect(buildMaintEmail("completed", { ...req, wh_notes: "Pads replaced" }).html).toMatch(
+      /Pads replaced/,
+    );
+    expect(buildMaintEmail("completed", { ...req, whNotes: "Pads replaced" }).html).toMatch(
+      /Pads replaced/,
+    );
   });
 
   it("keeps an unparseable date rather than rendering Invalid Date", () => {
@@ -179,7 +199,12 @@ describe("notifyMaintFiled", () => {
 
   it("does not send when the group is off", async () => {
     const send = vi.fn();
-    const res = await notifyMaintFiled({ req, recipients, prefs: { filed: false, urgent: false }, send });
+    const res = await notifyMaintFiled({
+      req,
+      recipients,
+      prefs: { filed: false, urgent: false },
+      send,
+    });
     expect(res.reason).toBe("disabled");
     expect(send).not.toHaveBeenCalled();
   });
@@ -214,14 +239,26 @@ describe("notifyMaintFiled", () => {
 
   it("does not email the manager who filed the request themselves", async () => {
     const send = vi.fn().mockResolvedValue({});
-    const res = await notifyMaintFiled({ req, recipients, prefs: { filed: true }, excludeUserId: "wh1", send });
+    const res = await notifyMaintFiled({
+      req,
+      recipients,
+      prefs: { filed: true },
+      excludeUserId: "wh1",
+      send,
+    });
     expect(res.sent).toBe(true);
     expect(send.mock.calls[0][0].to).toEqual(["sam@example.com"]);
   });
 
   it("stays silent when the only manager is the one who filed it", async () => {
     const send = vi.fn();
-    const res = await notifyMaintFiled({ req, recipients: [recipients[0]], prefs: { filed: true }, excludeUserId: "wh1", send });
+    const res = await notifyMaintFiled({
+      req,
+      recipients: [recipients[0]],
+      prefs: { filed: true },
+      excludeUserId: "wh1",
+      send,
+    });
     expect(res.reason).toBe("no-recipients");
     expect(send).not.toHaveBeenCalled();
   });
@@ -237,34 +274,66 @@ describe("notifyMaintFiled", () => {
 describe("notifyMaintStatus", () => {
   it("emails the person who filed the ticket", async () => {
     const send = vi.fn().mockResolvedValue({});
-    const res = await notifyMaintStatus({ status: "scheduled", req, users, prefs: { scheduled: true }, actorId: "wh1", send });
+    const res = await notifyMaintStatus({
+      status: "scheduled",
+      req,
+      users,
+      prefs: { scheduled: true },
+      actorId: "wh1",
+      send,
+    });
     expect(res).toMatchObject({ sent: true, to: "jason@example.com", event: "scheduled" });
   });
 
   it("stays quiet when someone updates their own ticket", async () => {
     const send = vi.fn();
-    const res = await notifyMaintStatus({ status: "completed", req, users, prefs: { completed: true }, actorId: "emp1", send });
+    const res = await notifyMaintStatus({
+      status: "completed",
+      req,
+      users,
+      prefs: { completed: true },
+      actorId: "emp1",
+      send,
+    });
     expect(res.reason).toBe("self-update");
     expect(send).not.toHaveBeenCalled();
   });
 
   it("does not send for a status nobody subscribed to", async () => {
     const send = vi.fn();
-    const res = await notifyMaintStatus({ status: "pending", req, users, prefs: { scheduled: true, completed: true }, send });
+    const res = await notifyMaintStatus({
+      status: "pending",
+      req,
+      users,
+      prefs: { scheduled: true, completed: true },
+      send,
+    });
     expect(res.reason).toBe("no-event-for-status");
     expect(send).not.toHaveBeenCalled();
   });
 
   it("does not send when the automation is off", async () => {
     const send = vi.fn();
-    const res = await notifyMaintStatus({ status: "scheduled", req, users, prefs: { scheduled: false }, send });
+    const res = await notifyMaintStatus({
+      status: "scheduled",
+      req,
+      users,
+      prefs: { scheduled: false },
+      send,
+    });
     expect(res.reason).toBe("disabled");
     expect(send).not.toHaveBeenCalled();
   });
 
   it("skips a requester who has no email or has been deactivated", async () => {
     const send = vi.fn();
-    const gone = await notifyMaintStatus({ status: "scheduled", req: { ...req, uid: "ghost" }, users, prefs: { scheduled: true }, send });
+    const gone = await notifyMaintStatus({
+      status: "scheduled",
+      req: { ...req, uid: "ghost" },
+      users,
+      prefs: { scheduled: true },
+      send,
+    });
     expect(gone.reason).toBe("no-requester-email");
     const inactive = await notifyMaintStatus({
       status: "scheduled",
@@ -279,7 +348,13 @@ describe("notifyMaintStatus", () => {
 
   it("swallows a send failure instead of throwing into the status update", async () => {
     const send = vi.fn().mockRejectedValue(new Error("resend down"));
-    const res = await notifyMaintStatus({ status: "completed", req, users, prefs: { completed: true }, send });
+    const res = await notifyMaintStatus({
+      status: "completed",
+      req,
+      users,
+      prefs: { completed: true },
+      send,
+    });
     expect(res.sent).toBe(false);
     expect(res.reason).toBe("send-failed");
   });

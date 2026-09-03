@@ -1,16 +1,7 @@
 // src/features/fleet/FleetManagementView.jsx
 import { useState, useEffect } from "react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
-import {
-  Btn,
-  Bdg,
-  Fld,
-  Inp,
-  Sel,
-  Modal,
-  TA,
-  PhotoUpload,
-} from "@/shared/components/UIPrimitives";
+import { Btn, Bdg, Fld, Inp, Sel, Modal, TA, PhotoUpload } from "@/shared/components/UIPrimitives";
 import { C, uid, todayLocal } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
 import { useStickySort } from "@/shared/hooks/useStickySort";
@@ -25,7 +16,6 @@ import { vehicleStatusKind, isGrounded, isUndispatchable, groundingPatch } from 
 import MaintenanceRequestModal from "./MaintenanceRequestModal";
 import AddVehicleModal from "./AddVehicleModal";
 import InspectionModal from "./InspectionModal";
-
 
 // ── MAIN VIEW COMPONENT (The Only Default Export) ──
 // The values of the <option> list in this view's sort dropdown, in the same
@@ -66,11 +56,11 @@ export default function FleetManagementView({
   // a maintenance warning on a truck you can still drive, so it gets the deep-amber warn
   // token rather than sharing the destructive colour and the "Out of Service" wording.
   const STATUS_DISPLAY = {
-    grounded:    { dot: "🔴", label: t.flStatusOutOfService, color: C.rd },
-    in_shop:     { dot: "🔧", label: t.flStatusInService,    color: C.pu },
-    oil_overdue: { dot: "🟠", label: t.flStatusOilOverdue,   color: C.am },
-    service_due: { dot: "🟡", label: t.flStatusServiceDue,   color: C.gold },
-    active:      { dot: "🟢", label: t.flStatusActive,       color: C.gr },
+    grounded: { dot: "🔴", label: t.flStatusOutOfService, color: C.rd },
+    in_shop: { dot: "🔧", label: t.flStatusInService, color: C.pu },
+    oil_overdue: { dot: "🟠", label: t.flStatusOilOverdue, color: C.am },
+    service_due: { dot: "🟡", label: t.flStatusServiceDue, color: C.gold },
+    active: { dot: "🟢", label: t.flStatusActive, color: C.gr },
   };
 
   const [subView, setSubView] = useState("list");
@@ -198,7 +188,9 @@ export default function FleetManagementView({
       return;
     }
     try {
-      const photo_url = data ? await uploadPhotoToBucket("vehicle-photos", user.companyId, id, data) : null;
+      const photo_url = data
+        ? await uploadPhotoToBucket("vehicle-photos", user.companyId, id, data)
+        : null;
       const { error } = await updateRowStrict("vehicles", id, { photo_url });
       if (error) throw error;
       setVehs((p) => p.map((v) => (v.id === id ? { ...v, photo_url } : v)));
@@ -212,11 +204,7 @@ export default function FleetManagementView({
   // to this device's copy (loaded once at sign-in) silently erased entries
   // other devices logged since. Same disease the inventory batches had.
   const fetchLiveVehicle = async (id, cols) => {
-    const { data, error } = await supabase
-      .from("vehicles")
-      .select(cols)
-      .eq("id", id)
-      .single();
+    const { data, error } = await supabase.from("vehicles").select(cols).eq("id", id).single();
     if (error) throw error;
     return data || {};
   };
@@ -296,7 +284,7 @@ export default function FleetManagementView({
         "FLEET_MAINTENANCE",
         `Logged service for "${sel.name}": ${e.type} @ ${e.mi} mi${e.cost ? ` ($${e.cost})` : ""}`,
         { vehicle_id: sel.id, service: e },
-        "fleet"
+        "fleet",
       );
     } catch (err) {
       showToast(`${t.flServiceLogFail} ${err.message}`, "error");
@@ -359,7 +347,7 @@ export default function FleetManagementView({
         "MAINTENANCE_REQUEST_CREATE",
         `Filed new maintenance request for vehicle: ${r.vname} (Urgency: ${(r.urgency || "normal").toUpperCase()})`,
         { ticket_id: created.id || "N/A", vehicle_id: r.vid, issue_types: r.type },
-        "maintenance"
+        "maintenance",
       );
 
       // Tell the people who can schedule it. Deliberately not awaited: the request is
@@ -443,7 +431,7 @@ export default function FleetManagementView({
         "FLEET_STATUS_CHANGE",
         `Updated vehicle details for "${updated.name}" (ID: ${sel.id})`,
         { vehicle_id: sel.id, changes },
-        "fleet"
+        "fleet",
       );
 
       showToast(t.flVehicleSaved, "success");
@@ -455,19 +443,11 @@ export default function FleetManagementView({
     }
   };
 
- const handleRemoveVehicle = async (vehicleId, vehicleName) => {
-    if (
-      !window.confirm(
-        t.flRemoveConfirm.replace("{name}", vehicleName),
-      )
-    )
-      return;
-      
-    const { error } = await supabase
-      .from("vehicles")
-      .delete()
-      .eq("id", vehicleId);
-      
+  const handleRemoveVehicle = async (vehicleId, vehicleName) => {
+    if (!window.confirm(t.flRemoveConfirm.replace("{name}", vehicleName))) return;
+
+    const { error } = await supabase.from("vehicles").delete().eq("id", vehicleId);
+
     if (error) {
       showToast(`${t.flDbError} ${error.message}`, "error");
     } else {
@@ -477,29 +457,52 @@ export default function FleetManagementView({
         "FLEET_STATUS_CHANGE",
         `Permanently purged vehicle asset record "${vehicleName}" (ID: ${vehicleId}) from the company fleet roster.`,
         { deleted_vehicle_id: vehicleId, deleted_vehicle_name: vehicleName },
-        "fleet"
+        "fleet",
       );
 
       setVehs((prev) => prev.filter((v) => v.id !== vehicleId));
       showToast(t.flVehicleRemoved, "success");
     }
   };
-  const vReqs = sel
-    ? reqs.filter((r) => r.vid === sel.id && r.status !== "completed")
-    : [];
+  const vReqs = sel ? reqs.filter((r) => r.vid === sel.id && r.status !== "completed") : [];
 
   if (vehs.length === 0) {
     return (
       <>
-        <div style={{
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          padding: "60px 20px", background: "var(--c-surface)", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-          textAlign: "center", marginTop: 10
-        }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "60px 20px",
+            background: "var(--c-surface)",
+            borderRadius: "12px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            textAlign: "center",
+            marginTop: 10,
+          }}
+        >
           <span style={{ fontSize: "48px", marginBottom: 16 }}>🚛</span>
-          <h3 style={{ margin: "0 0 8px 0", color: "var(--c-slate)", fontWeight: "var(--weight-extrabold)" }}>{t.flRegistryEmpty}</h3>
-          <p style={{ margin: "0 0 20px 0", color: "var(--c-sub)", fontSize: "var(--text-base)", maxWidth: "340px" }}>
-            No company vehicles are currently configured for tracking at the Saint Joe Road Warehouse.
+          <h3
+            style={{
+              margin: "0 0 8px 0",
+              color: "var(--c-slate)",
+              fontWeight: "var(--weight-extrabold)",
+            }}
+          >
+            {t.flRegistryEmpty}
+          </h3>
+          <p
+            style={{
+              margin: "0 0 20px 0",
+              color: "var(--c-sub)",
+              fontSize: "var(--text-base)",
+              maxWidth: "340px",
+            }}
+          >
+            No company vehicles are currently configured for tracking at the Saint Joe Road
+            Warehouse.
           </p>
           {perms.fleet_edit && (
             <Btn v="gold" onClick={() => setIsAddVehicleOpen(true)}>
@@ -520,15 +523,16 @@ export default function FleetManagementView({
 
   return (
     // ── 🟢 1. WRAP ENTIRE VIEW TO FILL WIDTH AND LOCK SCREEN ELEMENT OVERFLOW ──
-    <div style={{ 
-      display: "flex", 
-      flexDirection: "column", 
-      height: "calc(100vh - 96px)", // Dynamic compensation boundary calculation subtracting parent layout bars
-      width: "100%",
-      maxWidth: "100%",
-      overflow: "hidden"
-    }}>
-      
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "calc(100vh - 96px)", // Dynamic compensation boundary calculation subtracting parent layout bars
+        width: "100%",
+        maxWidth: "100%",
+        overflow: "hidden",
+      }}
+    >
       {/* HEADER SECTION TIER (flexShrink: 0 keeps it locked in view) */}
       <div
         style={{
@@ -538,12 +542,17 @@ export default function FleetManagementView({
           marginBottom: 16,
           flexWrap: "wrap",
           gap: "var(--space-4)",
-          flexShrink: 0
+          flexShrink: 0,
         }}
       >
         <div>
           <h1
-            style={{ margin: 0, fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: C.navy }}
+            style={{
+              margin: 0,
+              fontSize: "var(--text-2xl)",
+              fontWeight: "var(--weight-black)",
+              color: C.navy,
+            }}
           >
             {t.fleetTitle}
           </h1>
@@ -609,7 +618,12 @@ export default function FleetManagementView({
                   {label}
                 </Btn>
               ))}
-              <Sel value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label={t.flSortAria} style={{ width: "auto" }}>
+              <Sel
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                aria-label={t.flSortAria}
+                style={{ width: "auto" }}
+              >
                 <option value="name_az">{t.flSortNameAZ}</option>
                 <option value="name_za">{t.flSortNameZA}</option>
                 <option value="year_new">{t.flSortYearNew}</option>
@@ -620,7 +634,10 @@ export default function FleetManagementView({
             </div>
           )}
           <div style={{ display: "flex", gap: 5 }}>
-            {[["list", t.flViewList], ["calendar", t.flViewTrailerCal]].map(([v, label]) => (
+            {[
+              ["list", t.flViewList],
+              ["calendar", t.flViewTrailerCal],
+            ].map(([v, label]) => (
               <Btn
                 key={v}
                 v={subView === v ? "primary" : "ghost"}
@@ -663,326 +680,325 @@ export default function FleetManagementView({
           />
         </div>
       ) : (
-      <>
-      {/* ── 🟢 2. INJECT ENCLOSED SCROLL TRACK CONTAINER FOR INTERIOR ELEMENTS ONLY ── */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          paddingRight: 6,
-          paddingBottom: 24,
-          scrollbarWidth: "thin", // Native Firefox layout alignment compatibility rules fallback
-          scrollbarColor: "var(--c-line) transparent"
-        }}
-      >
-        {/* Fleet Grid Tracker */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(265px, 1fr))",
-            gap: "var(--space-6)",
-          }}
-        >
-          {filtered.map((v) => {
-            const os = oilSt(v);
-            const ds = detSt(v);
-            // Blocked means SCHEDULED, not merely requested. Submitting a request
-            // needs only maint_submit, so treating 'pending' as blocking would let
-            // any driver pull a truck off the road by asking for service. Moving a
-            // request to 'scheduled' needs maint_manage, i.e. someone agreed. The
-            // same rule is enforced in the database — see supabase/19.
-            //
-            // Declared up here because fleetStatus below reads it.
-            const blockingReq = reqs.find(
-              (r) => r.vid === v.id && r.status === "scheduled",
-            );
-            const isBlocked = !!blockingReq;
-            // Precedence lives in features/fleet/fleetStatus so it can be tested without the
-            // theme or translations. Note "Out of Service" now means only a deliberate
-            // grounding; an overdue oil change gets its own red label, because sharing
-            // one made people hunt for a switch that turns off a mileage calculation.
-            const fleetStatus = STATUS_DISPLAY[
-              vehicleStatusKind({ vehicle: v, oilStatus: os, detailStatus: ds, blocked: isBlocked })
-            ];
-            const bc =
-              os === "overdue" || ds === "overdue"
-                ? C.rd
-                : os === "soon" || ds === "soon"
-                  ? C.am
-                  : "transparent";
-            const oLeft = v.type === "truck" ? v.oii - (v.mi - v.lomi) : null;
-            const pd = predDays(v);
-            const vOpenReqs = reqs.filter(
-              (r) => r.vid === v.id && r.status !== "completed",
-            );
-            const asgn = users.find((u) => u.id === v.assignedTo);
-            const photo = v.photo_url;
-            return (
-              <div
-                key={v.id}
-                className="mrr-card-click"
-                onClick={() => setSel(v)}
-                style={{
-                  background: C.w,
-                  borderRadius: "var(--radius-xl)",
-                  overflow: "hidden",
-                  cursor: "pointer",
-                  boxShadow: "var(--shadow-sm)",
-                  border: `2px solid ${isBlocked ? C.pu : bc}`,
-                  // Dimmed, not hidden. The truck still exists and people need to
-                  // see when it is due back, so the card stays clickable and the
-                  // detail view stays reachable. Opacity lives here rather than a
-                  // grayscale filter because a filter would also drain the purple
-                  // border that marks it as blocked.
-                  opacity: isBlocked ? 0.72 : 1,
-                }}
-              >
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "var(--space-1)",
-                    fontSize: "11px",
-                    fontWeight: "var(--weight-extrabold)",
-                    color: fleetStatus.color,
-                    padding: "8px 12px 4px"
-                  }}
-                >
-                  <span>{fleetStatus.dot}</span>
-                  <span>{fleetStatus.label}</span>
-                  {/* The date lives on the status line, not on the photo: the
-                      photo is desaturated when blocked and would drain it. */}
-                  {isBlocked && blockingReq.scheduled_date && (
-                    <span style={{ fontWeight: "var(--weight-bold)", opacity: 0.8 }}>
-                      · {fd(blockingReq.scheduled_date)}
-                    </span>
-                  )}
-                </div>
-                <div
-                  style={{
-                    height: 130,
-                    background: photo ? "#000" : C.lg,
-                    overflow: "hidden",
-                    position: "relative",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    // Only the photo is desaturated. Doing this to the whole card
-                    // would flatten the status colours that carry the meaning.
-                    filter: isBlocked ? "grayscale(1)" : "none",
-                  }}
-                >
-                  {photo ? (
-                    <img
-                      src={photo}
-                      alt={v.name}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  ) : (
-                    <span style={{ fontSize: 52, opacity: 0.25 }}>
-                      {v.type === "truck" ? "🚛" : "🚜"}
-                    </span>
-                  )}
-                  <div style={{ position: "absolute", top: 8, left: 8 }}>
-                    {vOpenReqs.length > 0 && (
-                      <span
-                        style={{
-                          background: C.pu,
-                          color: C.onAccent,
-                          borderRadius: 20,
-                          fontSize: "var(--text-2xs)",
-                          padding: "2px 8px",
-                          fontWeight: "var(--weight-extrabold)",
-                        }}
-                      >
-                        {vOpenReqs.length} req
-                      </span>
-                    )}
-                  </div>
+        <>
+          {/* ── 🟢 2. INJECT ENCLOSED SCROLL TRACK CONTAINER FOR INTERIOR ELEMENTS ONLY ── */}
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              paddingRight: 6,
+              paddingBottom: 24,
+              scrollbarWidth: "thin", // Native Firefox layout alignment compatibility rules fallback
+              scrollbarColor: "var(--c-line) transparent",
+            }}
+          >
+            {/* Fleet Grid Tracker */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(265px, 1fr))",
+                gap: "var(--space-6)",
+              }}
+            >
+              {filtered.map((v) => {
+                const os = oilSt(v);
+                const ds = detSt(v);
+                // Blocked means SCHEDULED, not merely requested. Submitting a request
+                // needs only maint_submit, so treating 'pending' as blocking would let
+                // any driver pull a truck off the road by asking for service. Moving a
+                // request to 'scheduled' needs maint_manage, i.e. someone agreed. The
+                // same rule is enforced in the database — see supabase/19.
+                //
+                // Declared up here because fleetStatus below reads it.
+                const blockingReq = reqs.find((r) => r.vid === v.id && r.status === "scheduled");
+                const isBlocked = !!blockingReq;
+                // Precedence lives in features/fleet/fleetStatus so it can be tested without the
+                // theme or translations. Note "Out of Service" now means only a deliberate
+                // grounding; an overdue oil change gets its own red label, because sharing
+                // one made people hunt for a switch that turns off a mileage calculation.
+                const fleetStatus =
+                  STATUS_DISPLAY[
+                    vehicleStatusKind({
+                      vehicle: v,
+                      oilStatus: os,
+                      detailStatus: ds,
+                      blocked: isBlocked,
+                    })
+                  ];
+                const bc =
+                  os === "overdue" || ds === "overdue"
+                    ? C.rd
+                    : os === "soon" || ds === "soon"
+                      ? C.am
+                      : "transparent";
+                const oLeft = v.type === "truck" ? v.oii - (v.mi - v.lomi) : null;
+                const pd = predDays(v);
+                const vOpenReqs = reqs.filter((r) => r.vid === v.id && r.status !== "completed");
+                const asgn = users.find((u) => u.id === v.assignedTo);
+                const photo = v.photo_url;
+                return (
                   <div
+                    key={v.id}
+                    className="mrr-card-click"
+                    onClick={() => setSel(v)}
                     style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      background: "linear-gradient(transparent,rgba(0,0,0,0.55))",
-                      padding: "8px 10px 6px",
+                      background: C.w,
+                      borderRadius: "var(--radius-xl)",
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      boxShadow: "var(--shadow-sm)",
+                      border: `2px solid ${isBlocked ? C.pu : bc}`,
+                      // Dimmed, not hidden. The truck still exists and people need to
+                      // see when it is due back, so the card stays clickable and the
+                      // detail view stays reachable. Opacity lives here rather than a
+                      // grayscale filter because a filter would also drain the purple
+                      // border that marks it as blocked.
+                      opacity: isBlocked ? 0.72 : 1,
                     }}
                   >
                     <div
                       style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "var(--space-1)",
+                        fontSize: "11px",
                         fontWeight: "var(--weight-extrabold)",
-                        color: photo ? C.w : C.navy,
-                        fontSize: "var(--text-md)",
-                    }}
-                    >
-                      {v.name}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "var(--text-2xs)",
-                        color: photo ? "rgba(255,255,255,0.8)" : C.sub,
+                        color: fleetStatus.color,
+                        padding: "8px 12px 4px",
                       }}
                     >
-                      {v.yr} {v.make} {v.model} · #{v.plate}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ padding: 12 }}>
-                  {asgn && (
-                    <div
-                      style={{
-                        fontSize: "var(--text-2xs)",
-                        color: C.blue,
-                        fontWeight: "var(--weight-bold)",
-                        marginBottom: 6,
-                      }}
-                    >
-                      👤 {asgn.name}
-                    </div>
-                  )}
-                  {/* Offered at the moment of need, on the card of the truck that
-                      just went out of service, rather than buried in the detail
-                      modal. stopPropagation so it doesn't also open that modal.
-                      Hidden once a spare is already out, because the RPC refuses a
-                      second loan and a button that always errors is worse than none. */}
-                  {isBlocked && !blockingReq.replacement_vehicle_id && perms.fleet_edit && (
-                    <Btn
-                      v="purple"
-                      sz="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSwapReq(blockingReq);
-                      }}
-                      style={{ width: "100%", marginBottom: 8, justifyContent: "center" }}
-                    >
-                      🔑 {t.flLendSpare}
-                    </Btn>
-                  )}
-                  {isBlocked && blockingReq.replacement_vehicle_id && (
-                    <div
-                      style={{
-                        fontSize: "var(--text-2xs)",
-                        color: C.pu,
-                        fontWeight: "var(--weight-bold)",
-                        marginBottom: 6,
-                      }}
-                    >
-                      🔑 {t.flSpareOut}{" "}
-                      {vehs.find((x) => x.id === blockingReq.replacement_vehicle_id)?.name ||
-                        blockingReq.replacement_vehicle_id}
-                    </div>
-                  )}
-                  {v.type === "truck" && (
-                    <div style={{ marginBottom: 8 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          fontSize: "var(--text-xs)",
-                          marginBottom: 3,
-                        }}
-                      >
-                        <span style={{ color: C.sub }}>{t.mileage}</span>
-                        <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
-                          {v.mi.toLocaleString()} mi
+                      <span>{fleetStatus.dot}</span>
+                      <span>{fleetStatus.label}</span>
+                      {/* The date lives on the status line, not on the photo: the
+                      photo is desaturated when blocked and would drain it. */}
+                      {isBlocked && blockingReq.scheduled_date && (
+                        <span style={{ fontWeight: "var(--weight-bold)", opacity: 0.8 }}>
+                          · {fd(blockingReq.scheduled_date)}
                         </span>
+                      )}
+                    </div>
+                    <div
+                      style={{
+                        height: 130,
+                        background: photo ? "#000" : C.lg,
+                        overflow: "hidden",
+                        position: "relative",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        // Only the photo is desaturated. Doing this to the whole card
+                        // would flatten the status colours that carry the meaning.
+                        filter: isBlocked ? "grayscale(1)" : "none",
+                      }}
+                    >
+                      {photo ? (
+                        <img
+                          src={photo}
+                          alt={v.name}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                          }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: 52, opacity: 0.25 }}>
+                          {v.type === "truck" ? "🚛" : "🚜"}
+                        </span>
+                      )}
+                      <div style={{ position: "absolute", top: 8, left: 8 }}>
+                        {vOpenReqs.length > 0 && (
+                          <span
+                            style={{
+                              background: C.pu,
+                              color: C.onAccent,
+                              borderRadius: 20,
+                              fontSize: "var(--text-2xs)",
+                              padding: "2px 8px",
+                              fontWeight: "var(--weight-extrabold)",
+                            }}
+                          >
+                            {vOpenReqs.length} req
+                          </span>
+                        )}
                       </div>
                       <div
                         style={{
-                          height: 4,
-                          background: C.lg,
-                          borderRadius: 3,
-                          marginBottom: 3,
+                          position: "absolute",
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          background: "linear-gradient(transparent,rgba(0,0,0,0.55))",
+                          padding: "8px 10px 6px",
                         }}
                       >
                         <div
                           style={{
-                            height: "100%",
-                            borderRadius: 3,
-                            background:
-                              os === "overdue"
-                                ? C.rd
-                                : os === "soon"
-                                  ? C.am
-                                  : C.gr,
-                            width: `${Math.max(0, Math.min(100, (1 - oLeft / v.oii) * 100))}%`,
+                            fontWeight: "var(--weight-extrabold)",
+                            color: photo ? C.w : C.navy,
+                            fontSize: "var(--text-md)",
                           }}
-                        />
-                      </div>
-                      <div
-                        style={{ fontSize: "var(--text-2xs)", color: oLeft <= 0 ? C.rd : C.sub }}
-                      >
-                        {oLeft <= 0
-                          ? "🚨 Oil overdue!"
-                          : `${Math.max(0, oLeft)} mi until oil change`}
-                        {pd !== null && (
-                          <span style={{ color: C.blue }}>
-                            {" "}
-                            · ~{pd === 0 ? "overdue" : `${pd}d`}
-                          </span>
-                        )}
+                        >
+                          {v.name}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "var(--text-2xs)",
+                            color: photo ? "rgba(255,255,255,0.8)" : C.sub,
+                          }}
+                        >
+                          {v.yr} {v.make} {v.model} · #{v.plate}
+                        </div>
                       </div>
                     </div>
-                  )}
-                  <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
-                    {v.type === "truck" && (
-                      <Bdg
-                        color={
-                          os === "overdue"
-                            ? "red"
-                            : os === "soon"
-                              ? "amber"
-                              : "green"
-                        }
-                      >
-                        {os === "overdue"
-                          ? "Oil Overdue"
-                          : os === "soon"
-                            ? "Oil Soon"
-                            : "Oil OK"}
-                      </Bdg>
-                    )}
-                    <Bdg
-                      color={
-                        ds === "overdue"
-                          ? "red"
-                          : ds === "soon"
-                            ? "amber"
-                            : "green"
-                      }
-                    >
-                      {ds === "overdue"
-                        ? "Detail Overdue"
-                        : ds === "soon"
-                          ? "Detail Soon"
-                          : "Detail OK"}
-                    </Bdg>
+                    <div style={{ padding: 12 }}>
+                      {asgn && (
+                        <div
+                          style={{
+                            fontSize: "var(--text-2xs)",
+                            color: C.blue,
+                            fontWeight: "var(--weight-bold)",
+                            marginBottom: 6,
+                          }}
+                        >
+                          👤 {asgn.name}
+                        </div>
+                      )}
+                      {/* Offered at the moment of need, on the card of the truck that
+                      just went out of service, rather than buried in the detail
+                      modal. stopPropagation so it doesn't also open that modal.
+                      Hidden once a spare is already out, because the RPC refuses a
+                      second loan and a button that always errors is worse than none. */}
+                      {isBlocked && !blockingReq.replacement_vehicle_id && perms.fleet_edit && (
+                        <Btn
+                          v="purple"
+                          sz="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSwapReq(blockingReq);
+                          }}
+                          style={{ width: "100%", marginBottom: 8, justifyContent: "center" }}
+                        >
+                          🔑 {t.flLendSpare}
+                        </Btn>
+                      )}
+                      {isBlocked && blockingReq.replacement_vehicle_id && (
+                        <div
+                          style={{
+                            fontSize: "var(--text-2xs)",
+                            color: C.pu,
+                            fontWeight: "var(--weight-bold)",
+                            marginBottom: 6,
+                          }}
+                        >
+                          🔑 {t.flSpareOut}{" "}
+                          {vehs.find((x) => x.id === blockingReq.replacement_vehicle_id)?.name ||
+                            blockingReq.replacement_vehicle_id}
+                        </div>
+                      )}
+                      {v.type === "truck" && (
+                        <div style={{ marginBottom: 8 }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              fontSize: "var(--text-xs)",
+                              marginBottom: 3,
+                            }}
+                          >
+                            <span style={{ color: C.sub }}>{t.mileage}</span>
+                            <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                              {v.mi.toLocaleString()} mi
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              height: 4,
+                              background: C.lg,
+                              borderRadius: 3,
+                              marginBottom: 3,
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: "100%",
+                                borderRadius: 3,
+                                background: os === "overdue" ? C.rd : os === "soon" ? C.am : C.gr,
+                                width: `${Math.max(0, Math.min(100, (1 - oLeft / v.oii) * 100))}%`,
+                              }}
+                            />
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "var(--text-2xs)",
+                              color: oLeft <= 0 ? C.rd : C.sub,
+                            }}
+                          >
+                            {oLeft <= 0
+                              ? "🚨 Oil overdue!"
+                              : `${Math.max(0, oLeft)} mi until oil change`}
+                            {pd !== null && (
+                              <span style={{ color: C.blue }}>
+                                {" "}
+                                · ~{pd === 0 ? "overdue" : `${pd}d`}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                        {v.type === "truck" && (
+                          <Bdg color={os === "overdue" ? "red" : os === "soon" ? "amber" : "green"}>
+                            {os === "overdue"
+                              ? "Oil Overdue"
+                              : os === "soon"
+                                ? "Oil Soon"
+                                : "Oil OK"}
+                          </Bdg>
+                        )}
+                        <Bdg color={ds === "overdue" ? "red" : ds === "soon" ? "amber" : "green"}>
+                          {ds === "overdue"
+                            ? "Detail Overdue"
+                            : ds === "soon"
+                              ? "Detail Soon"
+                              : "Detail OK"}
+                        </Bdg>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      </>
+                );
+              })}
+            </div>
+          </div>
+        </>
       )}
 
       {calSel && (
-        <Modal title={calSel.title || calSel.name || t.flJobDetails} onClose={() => setCalSel(null)}>
-          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>{t.flPoLabel}</strong> {calSel.po}</p>
-          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>{t.flAddressLabel}</strong> {calSel.addr || "N/A"}</p>
-          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}><strong>{t.flScheduledLabel}</strong> {calSel.scheduledDate || "N/A"}</p>
+        <Modal
+          title={calSel.title || calSel.name || t.flJobDetails}
+          onClose={() => setCalSel(null)}
+        >
           <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}>
-            <strong>{t.flSupervisorLabel}</strong> {users.find((u) => u.id === (calSel.assignedto || calSel.assignedTo))?.name || t.flUnassigned}
+            <strong>{t.flPoLabel}</strong> {calSel.po}
+          </p>
+          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}>
+            <strong>{t.flAddressLabel}</strong> {calSel.addr || "N/A"}
+          </p>
+          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}>
+            <strong>{t.flScheduledLabel}</strong> {calSel.scheduledDate || "N/A"}
+          </p>
+          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}>
+            <strong>{t.flSupervisorLabel}</strong>{" "}
+            {users.find((u) => u.id === (calSel.assignedto || calSel.assignedTo))?.name ||
+              t.flUnassigned}
           </p>
           <p style={{ margin: 0, fontSize: "var(--text-sm)", color: C.sub }}>
             <strong>{t.flTrailersLabel}</strong>{" "}
-            {jobTrailers.filter((jt) => jt.job_id === calSel.id).map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name).filter(Boolean).join(", ") || t.flNoneAssigned}
+            {jobTrailers
+              .filter((jt) => jt.job_id === calSel.id)
+              .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
+              .filter(Boolean)
+              .join(", ") || t.flNoneAssigned}
           </p>
         </Modal>
       )}
@@ -1064,14 +1080,11 @@ export default function FleetManagementView({
                   setIsEditingInfo(!isEditingInfo);
                 }}
               >
-                ✏️{" "}
-                {isEditingInfo
-                  ? "Cancel Details Edit"
-                  : "Edit Vehicle Name/Plate"}
+                ✏️ {isEditingInfo ? "Cancel Details Edit" : "Edit Vehicle Name/Plate"}
               </Btn>
             )}
-            {perms.fleet_edit && (
-              isGrounded(sel) ? (
+            {perms.fleet_edit &&
+              (isGrounded(sel) ? (
                 <Btn v="green" sz="sm" disabled={grounding} onClick={() => setServiceStatus(false)}>
                   ✅ {grounding ? "…" : t.flReturnToService}
                 </Btn>
@@ -1086,8 +1099,7 @@ export default function FleetManagementView({
                 >
                   🔴 {t.flGroundVehicle}
                 </Btn>
-              )
-            )}
+              ))}
             {user.role === "admin" && (
               <Btn
                 v="danger"
@@ -1152,9 +1164,7 @@ export default function FleetManagementView({
                 <Fld label={t.flModel}>
                   <Inp
                     value={form.model || ""}
-                    onChange={(e) =>
-                      setForm({ ...form, model: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, model: e.target.value })}
                   />
                 </Fld>
               </div>
@@ -1166,18 +1176,16 @@ export default function FleetManagementView({
                   />
                 </Fld>
                 <Fld label={t.flAssetType}>
-                  <Sel value={form.type || "truck"} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                  <Sel
+                    value={form.type || "truck"}
+                    onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  >
                     <option value="truck">{t.flTruck}</option>
                     <option value="trailer">{t.flTrailer}</option>
                   </Sel>
                 </Fld>
               </div>
-              <Btn
-                v="green"
-                sz="sm"
-                onClick={saveVehicleInfo}
-                disabled={savingVehicleInfo}
-              >
+              <Btn v="green" sz="sm" onClick={saveVehicleInfo} disabled={savingVehicleInfo}>
                 {savingVehicleInfo ? "⏳ Saving..." : "Save Vehicle Changes"}
               </Btn>
             </div>
@@ -1207,11 +1215,7 @@ export default function FleetManagementView({
           >
             {[
               ["Plate", sel.plate],
-              [
-                "Assigned To",
-                users.find((u) => u.id === sel.assignedTo)?.name ||
-                  "Unassigned",
-              ],
+              ["Assigned To", users.find((u) => u.id === sel.assignedTo)?.name || "Unassigned"],
               ...(sel.type === "truck"
                 ? [
                     [t.mileage, sel.mi.toLocaleString()],
@@ -1275,12 +1279,14 @@ export default function FleetManagementView({
                   >
                     <div style={{ fontWeight: "var(--weight-extrabold)", color: C.pu }}>
                       {p.type} — ~{fd(p.predictedNextDate)}
-                      {p.predictedNextMileage !== null && ` · ${p.predictedNextMileage.toLocaleString()} mi`}
+                      {p.predictedNextMileage !== null &&
+                        ` · ${p.predictedNextMileage.toLocaleString()} mi`}
                     </div>
                     <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
                       Based on {p.sampleSize} past service{p.sampleSize === 1 ? "" : "s"} · every ~
                       {p.avgIntervalDays}d
-                      {p.avgIntervalMiles !== null && ` / ${p.avgIntervalMiles.toLocaleString()} mi`}
+                      {p.avgIntervalMiles !== null &&
+                        ` / ${p.avgIntervalMiles.toLocaleString()} mi`}
                     </div>
                   </div>
                 ))}
@@ -1324,9 +1330,7 @@ export default function FleetManagementView({
                     }}
                   >
                     <div>
-                      <Bdg color={s.type === "Oil Change" ? "blue" : "green"}>
-                        {s.type}
-                      </Bdg>
+                      <Bdg color={s.type === "Oil Change" ? "blue" : "green"}>{s.type}</Bdg>
                       <div
                         style={{
                           fontWeight: "var(--weight-bold)",
@@ -1355,10 +1359,7 @@ export default function FleetManagementView({
       )}
 
       {modal === "assign" && sel && (
-        <Modal
-          title={`Assign Driver — ${sel.name}`}
-          onClose={() => setModal(null)}
-        >
+        <Modal title={`Assign Driver — ${sel.name}`} onClose={() => setModal(null)}>
           <Fld label={t.flAssignedDriver}>
             <Sel
               value={form.assignedTo || ""}
@@ -1384,11 +1385,7 @@ export default function FleetManagementView({
             >
               {t.cancel}
             </Btn>
-            <Btn
-              v="primary"
-              onClick={assignUser}
-              style={{ flex: 1, justifyContent: "center" }}
-            >
+            <Btn v="primary" onClick={assignUser} style={{ flex: 1, justifyContent: "center" }}>
               {t.flSave}
             </Btn>
           </div>
@@ -1396,10 +1393,7 @@ export default function FleetManagementView({
       )}
 
       {modal === "mi" && sel && (
-        <Modal
-          title={`Log Mileage — ${sel.name}`}
-          onClose={() => setModal(null)}
-        >
+        <Modal title={`Log Mileage — ${sel.name}`} onClose={() => setModal(null)}>
           <div
             style={{
               background: C.lg,
@@ -1434,11 +1428,7 @@ export default function FleetManagementView({
             >
               {t.cancel}
             </Btn>
-            <Btn
-              v="primary"
-              onClick={logMi}
-              style={{ flex: 1, justifyContent: "center" }}
-            >
+            <Btn v="primary" onClick={logMi} style={{ flex: 1, justifyContent: "center" }}>
               {t.flSave}
             </Btn>
           </div>
@@ -1446,10 +1436,7 @@ export default function FleetManagementView({
       )}
 
       {modal === "svc" && sel && perms.fleet_log_service && (
-        <Modal
-          title={`Log Service — ${sel.name}`}
-          onClose={() => setModal(null)}
-        >
+        <Modal title={`Log Service — ${sel.name}`} onClose={() => setModal(null)}>
           <Fld label={t.flServiceType}>
             <Sel
               value={form.type || "Oil Change"}
@@ -1466,7 +1453,9 @@ export default function FleetManagementView({
                 ["Inspection", t.svcInspection],
                 ["Other", t.svcOther],
               ].map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
+                <option key={value} value={value}>
+                  {label}
+                </option>
               ))}
             </Sel>
           </Fld>
@@ -1515,11 +1504,7 @@ export default function FleetManagementView({
             >
               {t.cancel}
             </Btn>
-            <Btn
-              v="primary"
-              onClick={logSvc}
-              style={{ flex: 1, justifyContent: "center" }}
-            >
+            <Btn v="primary" onClick={logSvc} style={{ flex: 1, justifyContent: "center" }}>
               {t.flSave}
             </Btn>
           </div>
@@ -1550,7 +1535,11 @@ export default function FleetManagementView({
             />
           </Fld>
           <div style={{ display: "flex", gap: "var(--space-4)" }}>
-            <Btn v="ghost" onClick={() => setGroundModal(false)} style={{ flex: 1, justifyContent: "center" }}>
+            <Btn
+              v="ghost"
+              onClick={() => setGroundModal(false)}
+              style={{ flex: 1, justifyContent: "center" }}
+            >
               Cancel
             </Btn>
             <Btn
@@ -1593,7 +1582,9 @@ export default function FleetManagementView({
       {swapReq && (
         <Modal
           title={`${t.flLendSpare} — ${swapReq.vname || swapReq.vid}`}
-          onClose={() => { if (!swapping) setSwapReq(null); }}
+          onClose={() => {
+            if (!swapping) setSwapReq(null);
+          }}
         >
           <p style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 14 }}>
             {t.flLendSpareHelp}
@@ -1657,7 +1648,6 @@ export default function FleetManagementView({
           </div>
         </Modal>
       )}
-
     </div>
   );
 }

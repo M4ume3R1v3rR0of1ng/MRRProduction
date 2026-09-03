@@ -38,7 +38,9 @@ export default function MfaPanel({ user, lang = "en" }) {
     setLoading(false);
   };
 
-  useEffect(() => { loadFactors(); }, []);
+  useEffect(() => {
+    loadFactors();
+  }, []);
 
   const startEnroll = async () => {
     setBusy(true);
@@ -126,12 +128,17 @@ export default function MfaPanel({ user, lang = "en" }) {
 
   return (
     <div style={card}>
-      <h2 style={{ margin: "0 0 6px", fontSize: "var(--text-xl)", fontWeight: "var(--weight-black)", color: C.navy }}>
+      <h2
+        style={{
+          margin: "0 0 6px",
+          fontSize: "var(--text-xl)",
+          fontWeight: "var(--weight-black)",
+          color: C.navy,
+        }}
+      >
         🛡️ {t.mfaTitle}
       </h2>
-      <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>
-        {t.mfaIntro}
-      </p>
+      <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>{t.mfaIntro}</p>
 
       {msg.text && (
         <div
@@ -153,7 +160,15 @@ export default function MfaPanel({ user, lang = "en" }) {
         <div style={{ color: C.sub, fontSize: "var(--text-base)" }}>{t.mfaLoading}</div>
       ) : pending ? (
         <form onSubmit={confirmEnroll}>
-          <ol style={{ margin: "0 0 16px", paddingLeft: 20, color: C.navy, fontSize: "var(--text-base)", lineHeight: 1.7 }}>
+          <ol
+            style={{
+              margin: "0 0 16px",
+              paddingLeft: 20,
+              color: C.navy,
+              fontSize: "var(--text-base)",
+              lineHeight: 1.7,
+            }}
+          >
             <li>{t.mfaStep1}</li>
             <li>{t.mfaStep2}</li>
           </ol>
@@ -168,7 +183,14 @@ export default function MfaPanel({ user, lang = "en" }) {
               <img
                 src={pending.qr}
                 alt={t.mfaQrAlt}
-                style={{ width: 200, height: 200, background: "var(--c-scan-paper)", padding: 8, borderRadius: "var(--radius-md)", border: `1px solid ${C.bd}` }}
+                style={{
+                  width: 200,
+                  height: 200,
+                  background: "var(--c-scan-paper)",
+                  padding: 8,
+                  borderRadius: "var(--radius-md)",
+                  border: `1px solid ${C.bd}`,
+                }}
               />
             </div>
           )}
@@ -200,22 +222,45 @@ export default function MfaPanel({ user, lang = "en" }) {
               inputMode="numeric"
               autoComplete="one-time-code"
               autoFocus
-              style={{ fontFamily: "var(--font-mono)", fontSize: 20, letterSpacing: 4, textAlign: "center" }}
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 20,
+                letterSpacing: 4,
+                textAlign: "center",
+              }}
             />
           </Fld>
 
           <div style={{ display: "flex", gap: "var(--space-3)" }}>
-            <Btn v="ghost" type="button" onClick={cancelEnroll} disabled={busy} style={{ flex: 1, justifyContent: "center" }}>
+            <Btn
+              v="ghost"
+              type="button"
+              onClick={cancelEnroll}
+              disabled={busy}
+              style={{ flex: 1, justifyContent: "center" }}
+            >
               {t.cancel}
             </Btn>
-            <Btn v="gold" type="submit" disabled={busy || code.length < 6} style={{ flex: 2, justifyContent: "center" }}>
+            <Btn
+              v="gold"
+              type="submit"
+              disabled={busy || code.length < 6}
+              style={{ flex: 2, justifyContent: "center" }}
+            >
               {busy ? t.mfaVerifying : t.mfaTurnOn}
             </Btn>
           </div>
         </form>
       ) : verified.length > 0 ? (
         <>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", marginBottom: 16 }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--space-3)",
+              marginBottom: 16,
+            }}
+          >
             {verified.map((f) => (
               <div
                 key={f.id}
@@ -231,7 +276,13 @@ export default function MfaPanel({ user, lang = "en" }) {
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: "var(--weight-bold)", color: C.navy, fontSize: "var(--text-base)" }}>
+                  <div
+                    style={{
+                      fontWeight: "var(--weight-bold)",
+                      color: C.navy,
+                      fontSize: "var(--text-base)",
+                    }}
+                  >
                     ✅ {f.friendly_name || t.mfaAuthenticator}
                   </div>
                   <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
@@ -250,11 +301,24 @@ export default function MfaPanel({ user, lang = "en" }) {
         </>
       ) : (
         <>
-          <Btn v="gold" onClick={startEnroll} disabled={busy} style={{ width: "100%", justifyContent: "center" }}>
+          <Btn
+            v="gold"
+            onClick={startEnroll}
+            disabled={busy}
+            style={{ width: "100%", justifyContent: "center" }}
+          >
             {busy ? t.mfaStarting : t.mfaSetUp}
           </Btn>
           {user?.isPlatformAdmin && (
-            <p style={{ margin: "14px 0 0", fontSize: "var(--text-2xs)", color: C.rd, fontWeight: "var(--weight-bold)", lineHeight: 1.6 }}>
+            <p
+              style={{
+                margin: "14px 0 0",
+                fontSize: "var(--text-2xs)",
+                color: C.rd,
+                fontWeight: "var(--weight-bold)",
+                lineHeight: 1.6,
+              }}
+            >
               {t.mfaOwnerNudge}
             </p>
           )}
