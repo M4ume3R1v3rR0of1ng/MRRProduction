@@ -347,7 +347,7 @@ Anything prefixed `VITE_` is inlined into the client bundle at build time and is
 | AccuLynx | `ACCULYNX_API_KEY`, `ACCULYNX_IMPORT_SECRET` | The import secret is the only authentication on the machine-to-machine import endpoint, which has no user session. |
 | Anthropic | `ANTHROPIC_API_KEY` | Powers `chat.js`. |
 | App URL | `PUBLIC_APP_URL` | Only needed for local dev; Netlify sets `URL` automatically on deployed sites. |
-| Sentry | `VITE_SENTRY_DSN` (client), `SENTRY_DSN` (functions) | Both optional. Monitoring code is a complete no-op with no DSN set. |
+| Sentry | `VITE_SENTRY_DSN` (client), `SENTRY_DSN` (functions), `SENTRY_AUTH_TOKEN` (build-time source map upload) | All optional. Monitoring code is a complete no-op with no DSN set, and the build skips source map upload (and map generation entirely) with no auth token set. Confirmed present in the local `.env` as of September 2026; deployed builds need the same three set in Netlify's own site environment settings, since a local `.env` file has no bearing on what's live. |
 
 ## 17. Local development
 
@@ -422,6 +422,9 @@ Sentry is wired into both runtimes and is a complete no-op anywhere a DSN is not
 
 - **Client** (`src/shared/utils/sentry.js`): browser error/performance tracing plus session replay. Replay defaults to masking all text and blocking all media before anything is recorded, which matters here specifically because these screens show customer names, addresses, and job pricing; the recording captures layout and interaction, not the underlying data. This is documented as a disclosed sub-processor in the privacy policy, and that disclosure has to stay in sync if the masking defaults are ever changed.
 - **Functions** (`netlify/functions/_shared/sentry.js`): a `withSentry(name, handler)` wrapper around every function. Because each function already catches its own errors and turns them into a JSON response, a plain try/catch wrapper would rarely see anything; the wrapper also inspects the handler's returned status code and reports anything 500 or above, using the message the function's own catch block already produced.
+- **Source maps**: `vite.config.js` wires in `@sentry/vite-plugin`, gated on `SENTRY_AUTH_TOKEN` being present. When it's set, the production build uploads source maps to Sentry (as `sourcemap: "hidden"`, so they're generated and uploaded but never shipped to the browser) so stack traces in the Sentry UI show real, unminified code instead of a wall of minified garbage. With no token, no maps are generated at all, so there's nothing to accidentally leak.
+
+**Confirmed status (checked directly, September 2026)**: `VITE_SENTRY_DSN`, `SENTRY_DSN`, and `SENTRY_AUTH_TOKEN` are all set in the local `.env`, so client tracing, function error reporting, and source map upload are all live for anyone running this repo locally. That says nothing about the deployed site: Netlify reads its own environment variables, not this repository's `.env` file, so whether Sentry is actually capturing errors in production depends on the same three variables being set in Netlify's site settings. Confirm there by checking Site settings -> Environment variables, or by triggering a real error on the live site and watching for it in the Sentry project dashboard.
 
 ## 23. Known gaps and roadmap
 
