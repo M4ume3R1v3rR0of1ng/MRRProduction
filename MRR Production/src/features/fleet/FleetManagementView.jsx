@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { Btn, Bdg, Fld, Inp, Sel, Modal, TA, PhotoUpload } from "@/shared/components/UIPrimitives";
-import { C, uid, todayLocal } from "@/shared/utils/helpers";
+import { C, todayLocal } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
 import { useStickySort } from "@/shared/hooks/useStickySort";
 import { learnServiceIntervals } from "./patterns";
@@ -464,7 +464,6 @@ export default function FleetManagementView({
       showToast(t.flVehicleRemoved, "success");
     }
   };
-  const vReqs = sel ? reqs.filter((r) => r.vid === sel.id && r.status !== "completed") : [];
 
   if (vehs.length === 0) {
     return (

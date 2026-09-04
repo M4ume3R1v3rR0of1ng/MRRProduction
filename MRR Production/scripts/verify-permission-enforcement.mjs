@@ -183,7 +183,7 @@ async function expectAllow(label, client, from, to) {
 
 async function expectDeny(label, client, from, to) {
   const id = await seedJob(from);
-  const { ok, error } = await tryTransition(client, id, to);
+  const { ok } = await tryTransition(client, id, to);
   const landed = await statusOf(id);
   const denied = !ok && landed === from;
   check(

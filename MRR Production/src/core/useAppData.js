@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "@/shared/utils/supabase";
 import { storage } from "@/shared/utils/storage";
 import { useNotify } from "@/shared/context/NotificationContext";
-import { SEED_U, SEED_W, SEED_I, SEED_V, SEED_JOBS } from "@/shared/data/seeds";
 import { DEFAULT_ROLE_PERMS, getEffectivePerms } from "@/shared/database/permissions";
 import { tot } from "@/shared/utils/helpers";
 import { defaultPrefs, mergePrefs, groupById } from "@/shared/utils/automations";

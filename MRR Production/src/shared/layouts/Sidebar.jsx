@@ -1,6 +1,5 @@
 // src/shared/layouts/Sidebar.jsx
 import { useEffect, useState } from "react";
-import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";

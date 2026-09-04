@@ -2,7 +2,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
-import { Bdg, Btn } from "@/shared/components/UIPrimitives";
+import { Btn } from "@/shared/components/UIPrimitives";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";

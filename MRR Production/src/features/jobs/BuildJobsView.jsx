@@ -52,7 +52,6 @@ export default function BuildJobs({
   curUser,
   perms,
   jSC,
-  onNav,
   acculynxConfig,
   lang = "en",
   openItemId,
