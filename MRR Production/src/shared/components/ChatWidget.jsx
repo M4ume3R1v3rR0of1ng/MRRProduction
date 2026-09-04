@@ -22,7 +22,7 @@ function toApiContent(msg) {
   return blocks.length === 1 && blocks[0].type === "text" ? blocks[0].text : blocks;
 }
 
-export default function ChatWidget({ user, lang = "en" }) {
+export default function ChatWidget({ lang = "en" }) {
   const t = translations[lang] || translations.en;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);

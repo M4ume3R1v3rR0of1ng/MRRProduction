@@ -42,7 +42,7 @@ export async function uploadPhotoToBucket(bucketName, companyId, fileId, base64S
     const filePath = `${companyId}/${fileId}_${Date.now()}.jpg`;
 
     // 1. Dispatch binary file payload straight out to your object storage bucket tier
-    const { data, error } = await supabase.storage.from(bucketName).upload(filePath, imageBlob, {
+    const { error } = await supabase.storage.from(bucketName).upload(filePath, imageBlob, {
       cacheControl: "3600",
       upsert: true,
       contentType: "image/jpeg",

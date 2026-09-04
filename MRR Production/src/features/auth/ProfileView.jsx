@@ -1,7 +1,7 @@
 // src/features/auth/ProfileView.jsx
 import { useState, useEffect } from "react";
 import { supabase } from "@/shared/utils/supabase";
-import { C, displayName } from "@/shared/utils/helpers";
+import { C } from "@/shared/utils/helpers";
 import { Fld, Inp, Btn } from "@/shared/components/UIPrimitives";
 import { sendEmail } from "@/shared/utils/email";
 import { translations } from "@/shared/utils/translations";

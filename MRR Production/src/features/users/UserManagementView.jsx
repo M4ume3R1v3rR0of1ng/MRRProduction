@@ -1,9 +1,9 @@
 // src/features/users/UserManagementView.jsx
 import { useState, useEffect } from "react";
 import { supabase, getAccessToken } from "@/shared/utils/supabase";
-import { C, uid } from "@/shared/utils/helpers";
+import { C } from "@/shared/utils/helpers";
 import { validatePassword, PASSWORD_HINT } from "@/features/auth/passwordPolicy";
-import { PERM_DEFS, PERM_GROUPS, ROLE_COLS, ROLES } from "@/shared/database/permissions";
+import { PERM_DEFS, PERM_GROUPS, ROLES } from "@/shared/database/permissions";
 import { Btn, Bdg, RoleBdg, Toggle, Modal, Fld, Sel, Inp } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";

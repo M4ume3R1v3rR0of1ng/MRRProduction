@@ -1,5 +1,3 @@
-import { supabase } from "./supabase";
-
 // 1. Global UI Color Theme Utility
 //
 // Steadwerk — Direction 02, "The Raising": weathered barnwood + harvest amber.

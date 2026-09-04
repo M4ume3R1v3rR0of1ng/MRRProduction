@@ -36,7 +36,7 @@ export default function BillingView({ user, lang = "en" }) {
 
   const load = async () => {
     setLoading(true);
-    const [{ data: seatRows }, { data: co }] = await Promise.all([
+    const [{ data: seatRows }] = await Promise.all([
       supabase.rpc("company_seat_status"),
       supabase.rpc("my_company"),
     ]);

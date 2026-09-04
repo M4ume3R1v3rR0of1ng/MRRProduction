@@ -1,6 +1,5 @@
 // src/shared/components/ErrorBoundary.jsx
 import React from "react";
-import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { captureException } from "../utils/sentry";
 

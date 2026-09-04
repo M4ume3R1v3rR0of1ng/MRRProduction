@@ -1,15 +1,14 @@
 // src/features/settings/SettingsView.jsx
-import React, { useState } from "react";
+import { useState } from "react";
 import { supabase, getAccessToken } from "@/shared/utils/supabase";
-import { C, compressImg } from "@/shared/utils/helpers";
+import { compressImg } from "@/shared/utils/helpers";
 import {
   PERM_DEFS,
   PERM_GROUPS,
   ROLE_COLS,
   DEFAULT_ROLE_PERMS,
 } from "@/shared/database/permissions";
-import { Btn, Bdg, Fld, Inp, Sel, Toggle } from "@/shared/components/UIPrimitives";
-import { logAction } from "@/shared/utils/logger";
+import { Btn, Fld, Inp, Sel, Toggle } from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 import { useNotify } from "@/shared/context/NotificationContext";
 // ── 🆕 IMPORT ADDED ──────────────────────────────────────────────────────────
@@ -160,9 +159,6 @@ export default function SettingsView({
   setRolePerms,
   acculynxConfig,
   setAccuLynxConfig,
-  users,
-  setUsers,
-  curUser,
   lang = "en",
 }) {
   const { showToast } = useNotify();

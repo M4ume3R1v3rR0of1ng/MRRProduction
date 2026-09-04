@@ -44,7 +44,6 @@ const ANNUAL_SAVINGS_PCT = Math.round((1 - ANNUAL_PRICE / (MONTHLY_PRICE * 12)) 
 
 export default function LoginScreen({
   onLogin,
-  activeLogo,
   lang = "en",
   setLang,
   initialMode = "login",

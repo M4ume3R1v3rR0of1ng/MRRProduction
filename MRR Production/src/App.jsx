@@ -22,7 +22,7 @@ import { IS_IOS_APP } from "./core/platform";
 
 import CompanySwitcher from "./shared/components/CompanySwitcher";
 import VisitingBanner from "./shared/components/VisitingBanner";
-import { SteadwerkMark, TrussMark, BRAND } from "./shared/components/SteadwerkMark";
+import { SteadwerkMark, TrussMark } from "./shared/components/SteadwerkMark";
 import Sidebar from "./shared/layouts/Sidebar";
 
 // ── Code splitting ──────────────────────────────────────────────────────────
@@ -235,8 +235,7 @@ export default function App() {
   // Gated on pathname (not just "is there an ?open= param") so a stray query
   // string left over from a previous view never gets picked up by whichever
   // route happens to render next.
-  const searchTargetFor = (v) =>
-    location.pathname === "/" + v ? searchParams.get("open") : null;
+  const searchTargetFor = (v) => (location.pathname === "/" + v ? searchParams.get("open") : null);
   const clearSearchTarget = () => {
     setSearchParams(
       (prev) => {
