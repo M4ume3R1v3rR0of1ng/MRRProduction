@@ -24,6 +24,7 @@ import { Fld } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";
 import { SteadwerkLockup, BRAND } from "@/shared/components/SteadwerkMark";
+import { useDocumentMeta } from "@/shared/hooks/useDocumentMeta";
 
 // Display-only prices for the plan toggle. These must match the amounts on the
 // Stripe Prices that create-checkout bills (STRIPE_BASE_PRICE_ID / STRIPE_ANNUAL_PRICE_ID);
@@ -51,6 +52,7 @@ export default function LoginScreen({
   onShowTerms,
   onShowPrivacy,
 }) {
+  useDocumentMeta("Sign In");
   const t = translations[lang] || translations.en;
   // "login" = existing user signing in · "signup" = public "start a company" flow.
   // initialMode lets the landing page open us straight on the right tab.
@@ -73,6 +75,13 @@ export default function LoginScreen({
   // Monthly (default) vs the discounted annual prepay — passed to create-checkout,
   // which maps it to the matching Stripe Price.
   const [billingInterval, setBillingInterval] = useState("monthly");
+  // Signup is where a new contract actually forms and a card gets authorized — the
+  // login screen's passive "by logging in, you agree..." text below is fine for a
+  // returning user, but it isn't consent to anything new. This has to be an
+  // affirmative, unchecked-by-default checkbox (clickwrap), not more passive text,
+  // to hold up as acceptance of the Terms the way a "by continuing" sentence alone
+  // does not.
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Set only when an authenticated user belongs to more than one company.
   const [choices, setChoices] = useState(null); // [{ company_id, role, companies: {name, slug} }]
@@ -139,6 +148,9 @@ export default function LoginScreen({
     }
     if (!pass || pass.length < 8) {
       return setErr(t.lgChoosePassword8);
+    }
+    if (!agreedToTerms) {
+      return setErr(t.lgMustAgreeTerms);
     }
     setSubmitting(true);
     try {
@@ -807,25 +819,96 @@ export default function LoginScreen({
               </Fld>
             )}
 
+            {mode === "signup" && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "var(--space-3)",
+                  marginBottom: 16,
+                  fontSize: "var(--text-2xs)",
+                  color: C.sub,
+                  lineHeight: 1.5,
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  disabled={submitting}
+                  style={{
+                    transform: "scale(1.15)",
+                    cursor: "pointer",
+                    accentColor: C.gold,
+                    marginTop: 2,
+                    flexShrink: 0,
+                  }}
+                  required
+                />
+                <span>
+                  {t.lgAgreeToTerms}{" "}
+                  <button
+                    type="button"
+                    onClick={onShowTerms}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      color: BRAND.amberDeep,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontSize: "inherit",
+                      fontFamily: "inherit",
+                      textDecoration: "underline",
+                      textUnderlineOffset: 2,
+                    }}
+                  >
+                    {t.lgTerms}
+                  </button>{" "}
+                  {t.lgAgreeToTermsAnd}{" "}
+                  <button
+                    type="button"
+                    onClick={onShowPrivacy}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      color: BRAND.amberDeep,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      fontSize: "inherit",
+                      fontFamily: "inherit",
+                      textDecoration: "underline",
+                      textUnderlineOffset: 2,
+                    }}
+                  >
+                    {t.lgPrivacy}
+                  </button>
+                </span>
+              </label>
+            )}
+
             <button
               className="mrr-btn"
               onClick={mode === "signup" ? trySignup : tryLogin}
               style={{
                 width: "100%",
                 padding: "14px",
-                background: submitting ? C.bd : C.gold,
+                background: submitting || (mode === "signup" && !agreedToTerms) ? C.bd : C.gold,
                 color: C.navy,
                 border: "none",
                 borderRadius: "var(--radius-md)",
                 fontSize: "var(--text-lg)",
                 fontWeight: "var(--weight-extrabold)",
-                cursor: submitting ? "not-allowed" : "pointer",
+                cursor:
+                  submitting || (mode === "signup" && !agreedToTerms) ? "not-allowed" : "pointer",
                 marginTop: mode === "signup" ? 8 : 0,
                 marginBottom: 16,
-                opacity: submitting ? 0.7 : 1,
+                opacity: submitting || (mode === "signup" && !agreedToTerms) ? 0.7 : 1,
                 boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               }}
-              disabled={submitting}
+              disabled={submitting || (mode === "signup" && !agreedToTerms)}
             >
               {submitting
                 ? mode === "signup"
@@ -959,6 +1042,61 @@ export default function LoginScreen({
             )}
           </>
         )}
+
+        {/* Persistent, not gated on mode/choices/mfaStep like the consent copy
+            above. Before this, the only way to reach Terms/Privacy from this
+            screen was the login-mode disclaimer and the signup checkbox — so
+            someone mid-MFA-challenge, or looking at the company picker, had no
+            way to open either document at all. This is deliberately outside
+            that conditional. */}
+        <div
+          style={{
+            marginTop: 24,
+            paddingTop: 16,
+            borderTop: "1px solid var(--c-line)",
+            textAlign: "center",
+            fontSize: "var(--text-2xs)",
+            color: C.sub,
+          }}
+        >
+          <button
+            type="button"
+            onClick={onShowTerms}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              color: "inherit",
+              fontWeight: 600,
+              cursor: "pointer",
+              fontSize: "inherit",
+              fontFamily: "inherit",
+              textDecoration: "underline",
+              textUnderlineOffset: 2,
+            }}
+          >
+            {t.lgTerms}
+          </button>
+          <span> · </span>
+          <button
+            type="button"
+            onClick={onShowPrivacy}
+            style={{
+              background: "none",
+              border: "none",
+              padding: 0,
+              color: "inherit",
+              fontWeight: 600,
+              cursor: "pointer",
+              fontSize: "inherit",
+              fontFamily: "inherit",
+              textDecoration: "underline",
+              textUnderlineOffset: 2,
+            }}
+          >
+            {t.lgPrivacy}
+          </button>
+        </div>
       </div>
     </div>
   );

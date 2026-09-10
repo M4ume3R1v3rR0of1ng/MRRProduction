@@ -9,6 +9,7 @@
 // a data-sw-theme attribute on its own wrapper — it never touches the document
 // root, so it can't fight the rest of the app.
 import { useEffect, useRef, useState } from "react";
+import { useDocumentMeta } from "@/shared/hooks/useDocumentMeta";
 
 // The published rates, in one place. These must match what Stripe actually
 // charges — BASE/PACK mirror BillingView.jsx, and TRIAL_DAYS mirrors
@@ -756,6 +757,10 @@ function JobPipelineDemo() {
 }
 
 export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPrivacy, onShowTraining }) {
+  useDocumentMeta(
+    "Steadwerk",
+    "Warehouse & fleet software for roofing and construction companies. Inventory, fleet, jobs, and scheduling in one place — $99/mo for 10 users.",
+  );
   const [theme, setTheme] = useState(readStoredTheme); // null = follow OS preference
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);

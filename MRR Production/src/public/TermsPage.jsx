@@ -9,8 +9,9 @@
 // and tailor it — especially the billing, liability, governing-law, and data
 // sections — before relying on it. Keep the Effective date in sync when you edit.
 import { useEffect, useRef } from "react";
+import { useDocumentMeta } from "@/shared/hooks/useDocumentMeta";
 
-const EFFECTIVE_DATE = "July 20, 2026";
+const EFFECTIVE_DATE = "September 8, 2026";
 const CONTACT_EMAIL = "legal@steadwerk.com";
 
 const CSS = `
@@ -314,12 +315,34 @@ const SECTIONS = [
           designated payment method for all applicable fees and taxes.
         </p>
         <ul>
+          <li><b>Free trial.</b> New Subscriptions on the base plan begin with a 14-day free trial. Your payment method is collected at signup but not charged until the trial ends; cancel any time during the trial and you will not be billed.</li>
           <li><b>Auto-renewal.</b> Subscriptions automatically renew for successive periods at the then-current rate unless cancelled before the renewal date.</li>
-          <li><b>Non-refundable.</b> Except where required by law or expressly stated, fees are non-refundable, including for partial periods and unused capacity.</li>
           <li><b>Taxes.</b> Fees are exclusive of taxes; you are responsible for all sales, use, VAT, and similar taxes, other than taxes on our net income.</li>
           <li><b>Failed or overdue payment.</b> If a charge fails or an account is past due, we may suspend, limit, or downgrade the Services until payment is received.</li>
           <li><b>Price changes.</b> We may change fees, and will give reasonable advance notice; changes take effect on your next renewal.</li>
         </ul>
+      </>
+    ),
+  },
+  {
+    id: "refunds",
+    title: "Refunds",
+    body: (
+      <>
+        <p>
+          The 14-day free trial described above is the mechanism for trying the Services before you are charged
+          anything — we encourage you to use it. Once a paid period has been charged, fees for that period are{" "}
+          <b>non-refundable</b>, including for a partial period, an unused seat, or a cancellation partway through a
+          billing cycle, except where required by applicable law or expressly stated otherwise in these Terms or in a
+          separate written agreement with you.
+        </p>
+        <p>
+          Cancelling a Subscription stops the <i>next</i> renewal; it does not refund the period already paid for,
+          and you retain access through the end of that period. If you believe you were charged in error — a
+          duplicate charge, a charge after a trial you cancelled in time, or similar — contact{" "}
+          <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and we will investigate and correct a genuine
+          billing error.
+        </p>
       </>
     ),
   },
@@ -482,6 +505,7 @@ const SECTIONS = [
 ];
 
 export default function TermsPage({ onBack }) {
+  useDocumentMeta("Terms & Conditions", "Steadwerk's terms and conditions of service.");
   const rootRef = useRef(null);
 
   // Land at the top when the page opens.

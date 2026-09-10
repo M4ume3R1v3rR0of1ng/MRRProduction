@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   isGrounded,
   isUndispatchable,
+  isServiceDue,
   vehicleStatusKind,
   normalizeGroundReason,
   groundingPatch,
@@ -94,6 +95,26 @@ describe("isUndispatchable", () => {
 
   it("leaves an overdue oil change dispatchable, since that has always been advisory", () => {
     expect(isUndispatchable(truck())).toBe(false);
+  });
+});
+
+describe("isServiceDue", () => {
+  it("is due once the scheduled date has arrived", () => {
+    expect(isServiceDue({ scheduled_date: "2026-09-10" }, "2026-09-10")).toBe(true);
+  });
+
+  it("is due once the scheduled date is in the past", () => {
+    expect(isServiceDue({ scheduled_date: "2026-09-01" }, "2026-09-10")).toBe(true);
+  });
+
+  it("is NOT due while the scheduled date is still in the future", () => {
+    expect(isServiceDue({ scheduled_date: "2026-09-15" }, "2026-09-10")).toBe(false);
+  });
+
+  it("treats a request scheduled with no date as due immediately", () => {
+    expect(isServiceDue({ scheduled_date: "" }, "2026-09-10")).toBe(true);
+    expect(isServiceDue({ scheduled_date: null }, "2026-09-10")).toBe(true);
+    expect(isServiceDue({}, "2026-09-10")).toBe(true);
   });
 });
 

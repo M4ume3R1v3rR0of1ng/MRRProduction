@@ -361,7 +361,16 @@ export default function DashboardView({
   const pendingPulls = jobs.filter((j) => j.status === "approved" || j.status === "draft");
   const activeJobsList = jobs.filter((j) => j.status === "active");
   const deadlinedTrucks = vehs.filter((v) => v.status === "maintenance" || v.status === "down");
-  const totalInventoryCost = inv.reduce((sum, item) => sum + tot(item) * (item.cost || 0), 0);
+  // Inventory items don't carry a top-level cost; value lives per-batch as
+  // (remaining qty × received price). Mirrors warehouseAssetCapital in
+  // ReportsView so the dashboard tile and the report it links to agree.
+  const totalInventoryCost = inv.reduce(
+    (sum, item) =>
+      sum +
+      (item.batches?.reduce((s, b) => s + (parseFloat(b.rem) || 0) * (parseFloat(b.price) || 0), 0) ||
+        0),
+    0,
+  );
 
   // ── Pipeline by stage ──
   // Where the work is sitting, as five magnitudes rather than five badges. Read

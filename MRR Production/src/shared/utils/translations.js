@@ -14,6 +14,7 @@ export const translations = {
     billing: "Billing",
     ownerConsole: "Owner Console",
     sbCompanyLogo: "Company logo",
+    sbGoToDashboard: "Go to dashboard",
     sbManageProfile: "Click to manage profile settings",
 
     // Dashboard alert overlays and quick actions
@@ -350,6 +351,9 @@ export const translations = {
     mfaChallengePrompt: "Enter the 6-digit code from your authenticator app.",
     lgTerms: "Steadwerk Terms and Conditions",
     lgPrivacy: "Privacy Policy",
+    lgAgreeToTerms: "I agree to the",
+    lgAgreeToTermsAnd: "and",
+    lgMustAgreeTerms: "You must agree to the Terms and Conditions and Privacy Policy to continue.",
     lgNeedAccess: "Need access to an existing company? Ask its administrator to add you.",
     lgStartOwn: "Start your own company →",
     lgEnterEmailFirst: "Enter your email above first, then tap “Forgot password”.",
@@ -659,6 +663,8 @@ export const translations = {
     maintRequestClosed: "✅ Request Closed",
     maintResolutionNotesLabel: "Resolution Notes:",
     maintClosedOn: "Closed on:",
+    maintDownloadPdf: "Download PDF",
+    maintPdfPopupBlocked: "Your browser blocked the report popup. Allow popups for this site and try again.",
     maintReported: "reported",
     maintInLast60: "in the last 60 days",
     maintTrendingUp: "requests trending up fleet-wide",
@@ -1299,6 +1305,7 @@ export const translations = {
     billing: "Facturación",
     ownerConsole: "Consola del Propietario",
     sbCompanyLogo: "Logotipo de la empresa",
+    sbGoToDashboard: "Ir al panel principal",
     sbManageProfile: "Haga clic para administrar su perfil",
 
     // Dashboard alert overlays and quick actions
@@ -1633,6 +1640,10 @@ export const translations = {
     mfaChallengePrompt: "Ingrese el código de 6 dígitos de su app de autenticación.",
     lgTerms: "Términos y Condiciones de Steadwerk",
     lgPrivacy: "Política de Privacidad",
+    lgAgreeToTerms: "Acepto los",
+    lgAgreeToTermsAnd: "y la",
+    lgMustAgreeTerms:
+      "Debe aceptar los Términos y Condiciones y la Política de Privacidad para continuar.",
     lgNeedAccess:
       "¿Necesita acceso a una empresa existente? Pida a su administrador que lo agregue.",
     lgStartOwn: "Comience su propia empresa →",
@@ -1952,6 +1963,8 @@ export const translations = {
     maintRequestClosed: "✅ Solicitud Cerrada",
     maintResolutionNotesLabel: "Notas de Resolución:",
     maintClosedOn: "Cerrado el:",
+    maintDownloadPdf: "Descargar PDF",
+    maintPdfPopupBlocked: "Su navegador bloqueó la ventana emergente del informe. Permita ventanas emergentes para este sitio e intente de nuevo.",
     maintReported: "reportado",
     maintInLast60: "en los últimos 60 días",
     maintTrendingUp: "solicitudes en aumento en toda la flota",

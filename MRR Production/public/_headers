@@ -22,10 +22,17 @@
 # so nothing ever calls these hosts; the entry just means events aren't
 # silently CSP-blocked the day someone does set the DSN. Self-hosted Sentry
 # needs its own host added here instead of (or alongside) these.
+#
+# fonts.googleapis.com / fonts.gstatic.com are deliberately NOT allowed. Fonts
+# used to be @import'd live from Google's CDN, which sends every visitor's IP to
+# Google before they've agreed to anything — see the comment in src/tokens.css.
+# They're self-hosted from /fonts/ now (font-src 'self' already covers that), so
+# re-adding either host here would silently reopen that data transfer the next
+# time someone "fixes" a font problem by pointing back at Google's CDN.
 /*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https://qdwtdrezwfrpdfsxjhps.supabase.co; media-src 'self' blob: https://qdwtdrezwfrpdfsxjhps.supabase.co; connect-src 'self' https://qdwtdrezwfrpdfsxjhps.supabase.co wss://qdwtdrezwfrpdfsxjhps.supabase.co https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://qdwtdrezwfrpdfsxjhps.supabase.co; media-src 'self' blob: https://qdwtdrezwfrpdfsxjhps.supabase.co; connect-src 'self' https://qdwtdrezwfrpdfsxjhps.supabase.co wss://qdwtdrezwfrpdfsxjhps.supabase.co https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'

@@ -11,8 +11,9 @@
 // Abuse note: this endpoint creates an auth user + a locked company row without a
 // prior session, so it's a spam surface. The blast radius is limited — every company
 // it makes is 'incomplete' (invisible, unusable) until a real card clears at Stripe —
-// but a captcha or rate limit belongs here before a big public launch. Flagged, not
-// yet added.
+// but it's rate-limited per IP below (see _shared/rateLimit.js) as a first layer. A
+// captcha would still be worth adding before a big public launch; this stops a single
+// script from hammering it, not a distributed one.
 //
 // Pricing: the base plan is $99/mo and includes 10 users (STRIPE_BASE_PRICE_ID).
 // Extra seats are sold in +5 packs for a RECURRING $10/mo (STRIPE_SEAT_PACK_PRICE_ID,
@@ -29,6 +30,7 @@
 import Stripe from "stripe";
 import { adminClient, corsHeaders, errorMessage } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
+import { checkRateLimit, clientIp, rateLimitedResponse } from "./_shared/rateLimit.js";
 
 /** @typedef {import("./_shared/types.js").NetlifyEvent} NetlifyEvent */
 /** @typedef {import("./_shared/types.js").NetlifyResponse} NetlifyResponse */
@@ -73,6 +75,13 @@ const rawHandler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
   }
+
+  // 5 signups per hour per IP — a real prospect never hits this; a spam script does.
+  const rl = checkRateLimit(`create-checkout:${clientIp(event)}`, {
+    max: 5,
+    windowMs: 60 * 60 * 1000,
+  });
+  if (!rl.allowed) return rateLimitedResponse(rl.retryAfterSeconds, headers);
 
   let body;
   try {

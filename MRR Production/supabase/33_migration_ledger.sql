@@ -288,6 +288,10 @@ begin
   perform public._mig_record('36_pull_added_job_materials.sql',
     public._mig_has_function('pull_added_job_materials'),
     'function pull_added_job_materials()');
+
+  perform public._mig_record('37_maintenance_service_details.sql',
+    public._mig_has_column('maintenance_requests', 'service_type'),
+    'maintenance_requests.service_type');
 end $$;
 
 -- The three that leave no distinguishable trace. Recorded so the ledger lists

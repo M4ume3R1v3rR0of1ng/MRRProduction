@@ -5,7 +5,7 @@
 // Going through a function (not a direct browser fetch) also keeps it inside the
 // app's Content-Security-Policy, which only allows connect-src to 'self' + Supabase.
 
-import { adminClient, resolveCaller } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders as getCorsHeaders } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 
 // Fallback: the Saint Joe Road warehouse, Fort Wayne IN. Each company sets its own
@@ -15,24 +15,10 @@ const DEFAULT_LAT = 41.0793;
 const DEFAULT_LON = -85.1394;
 const DEFAULT_TZ = "America/New_York";
 
-const ALLOWED_ORIGINS = [
-  "https://steadwerk.com",
-  "https://www.steadwerk.com",
-  "https://mrrproduction.netlify.app",
-  "http://localhost:5173",
-  "http://localhost:8888",
-  "http://localhost:3000",
-];
-
-function getCorsHeaders(requestOrigin) {
-  const origin = ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Max-Age": "86400",
-  };
-}
+// CORS used to be a second, hand-copied ALLOWED_ORIGINS list here, which had
+// drifted from _shared/tenant.js's copy and was missing "capacitor://localhost" —
+// the iOS app's origin under WKWebView. That silently CORS-blocked the weather
+// card for every iOS user. Importing the one shared list means it can't drift again.
 
 const rawHandler = async (event) => {
   const requestOrigin = event.headers?.origin || event.headers?.Origin || "";

@@ -6,7 +6,7 @@ import { useNotify } from "@/shared/context/NotificationContext";
 import { DEFAULT_ROLE_PERMS, getEffectivePerms } from "@/shared/database/permissions";
 import { tot } from "@/shared/utils/helpers";
 import { defaultPrefs, mergePrefs, groupById } from "@/shared/utils/automations";
-import { resolveMaintManagers } from "@/shared/utils/maintenanceNotifications";
+import { resolveMaintManagers, isUrgent } from "@/shared/utils/maintenanceNotifications";
 
 export function useAppData() {
   const [loading, setLoading] = useState(true);
@@ -661,6 +661,87 @@ export function useAppData() {
       supabase.removeChannel(channel);
     };
   }, [curUser]);
+
+  // ── 🔔 REALTIME: MAINTENANCE REQUEST LIFECYCLE ──
+  // Two directions on one channel, both fixing the same underlying gap: `reqs` only
+  // ever loaded once (sign-in, or a manual reload), so both of the Dashboard's own
+  // maintenance banners — the "new request" one (maintAlert, for maint_manage
+  // holders) and the "your vehicle is ready" one (statusAlert, for the driver who
+  // filed it) — depend on state that could be stale for anyone already signed in
+  // when the row changed. RLS scopes both events to the caller's own company, so no
+  // explicit filter is needed.
+  //
+  //   INSERT → tell whoever can act on it (same as before).
+  //   UPDATE → tell the driver who filed it, once it's scheduled or completed.
+  useEffect(() => {
+    if (!curUser) return;
+
+    const channel = supabase
+      .channel("realtime-maint-requests")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "maintenance_requests" },
+        (payload) => {
+          const row = payload.new;
+          // The filer's own client already appended the row optimistically
+          // (handleCreateRequest / FleetManagementView's file flow) before the insert
+          // even resolves — skip the dupe rather than showing it twice.
+          setReqs((prev) => (prev.some((r) => r.id === row.id) ? prev : [row, ...prev]));
+
+          // Nobody gets alerted to their own filing, matching the email automation's
+          // excludeUserId rule and the dashboard popup's acked_by rule.
+          if (String(row.uid) === String(curUser.id)) return;
+          if (row.status !== "pending") return;
+
+          const perms = getEffectivePerms(curUser, rolePerms, userOverrides);
+          if (!perms.maint_manage) return;
+
+          const urgent = isUrgent(row);
+          showToast(
+            `${urgent ? "🚨" : "🛠️"} New maintenance request: ${row.vname || "a vehicle"}${
+              urgent ? " — URGENT" : ""
+            }, filed by ${row.uname || "a teammate"}.`,
+            urgent ? "warning" : "success",
+            urgent ? 10000 : 6000,
+          );
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "maintenance_requests" },
+        (payload) => {
+          const row = payload.new;
+          setReqs((prev) => prev.map((r) => (r.id === row.id ? { ...r, ...row } : r)));
+
+          // newforrequester is the same flag MaintenanceRequestsView's updateStatus
+          // (the "scheduled" path) and supabase/38_complete_service_notifies_driver.sql
+          // (the "completed" path) both set — and both already skip setting it when the
+          // actor updating the ticket is the driver themself, so this only needs to
+          // check who the row belongs to.
+          if (!(row.newforrequester || row.newForRequester)) return;
+          if (String(row.uid) !== String(curUser.id)) return;
+
+          if (row.status === "completed") {
+            showToast(
+              `✅ Your vehicle, ${row.vname || "your vehicle"}, is ready — maintenance complete.`,
+              "success",
+              8000,
+            );
+          } else if (row.status === "scheduled") {
+            showToast(
+              `🗓️ Your maintenance request for ${row.vname || "your vehicle"} has been scheduled.`,
+              "success",
+              8000,
+            );
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [curUser, rolePerms, userOverrides]);
 
   // ── 📊 COMPUTED MEMO VALUES ──
   const pendingReqCount = useMemo(() => reqs.filter((r) => r.status === "pending").length, [reqs]);

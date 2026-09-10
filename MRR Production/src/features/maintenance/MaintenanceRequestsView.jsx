@@ -12,6 +12,7 @@ import { logAction } from "@/shared/utils/logger";
 import MaintenanceCalendar from "./MaintenanceCalendar";
 import SearchBar, { matchesQuery } from "@/shared/components/SearchBar";
 import CompleteServiceModal from "./CompleteServiceModal";
+import { generateMaintenancePdf } from "./maintenancePdf";
 
 // The values of the <option> list in this view's sort dropdown, in the same
 // order. useStickySort checks a remembered choice against this before trusting
@@ -33,6 +34,8 @@ export default function MaintenanceRequestsView({
   lang,
   openItemId,
   onOpenItemHandled,
+  company,
+  activeLogo,
 }) {
   const { showToast } = useNotify();
   const t = translations[lang] || translations.en;
@@ -329,6 +332,10 @@ export default function MaintenanceRequestsView({
               status: "completed",
               wh_notes: details.notes || r.wh_notes,
               completed_at: nowIso,
+              // Mirrors what supabase/38_complete_service_notifies_driver.sql now sets
+              // server-side, so this session's own optimistic update doesn't disagree
+              // with the row the RPC actually wrote.
+              newforrequester: notifyRequester,
             }
           : r,
       ),
@@ -369,6 +376,12 @@ export default function MaintenanceRequestsView({
     setSel(null);
     setForm({});
     showToast(t.maintStatusUpdated, "success");
+  };
+
+  const downloadServiceReport = (req) => {
+    if (!generateMaintenancePdf(req, company, activeLogo)) {
+      showToast(t.maintPdfPopupBlocked, "warning");
+    }
   };
 
   const pendingCount = reqs.filter((r) => r.status === "pending").length;
@@ -702,6 +715,18 @@ export default function MaintenanceRequestsView({
                       {r.status === "scheduled" && perms.maint_manage && (
                         <Btn v="green" sz="sm" onClick={() => setSel(r)}>
                           ✅ {t.maintCompleteBtn}
+                        </Btn>
+                      )}
+                      {r.status === "completed" && (
+                        <Btn
+                          v="ghost"
+                          sz="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadServiceReport(r);
+                          }}
+                        >
+                          📄 {t.maintDownloadPdf}
                         </Btn>
                       )}
                       <Btn v="ghost" sz="sm" onClick={() => setSel(r)}>
@@ -1040,7 +1065,19 @@ export default function MaintenanceRequestsView({
                   borderRadius: "var(--radius-md)",
                 }}
               >
-                <strong style={{ color: "var(--c-pasture)" }}>{t.maintRequestClosed}</strong>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: "var(--space-3)",
+                  }}
+                >
+                  <strong style={{ color: "var(--c-pasture)" }}>{t.maintRequestClosed}</strong>
+                  <Btn v="ghost" sz="sm" onClick={() => downloadServiceReport(sel)}>
+                    📄 {t.maintDownloadPdf}
+                  </Btn>
+                </div>
                 {sel.wh_notes && (
                   <div style={{ marginTop: 4 }}>
                     <strong>{t.maintResolutionNotesLabel}</strong> {sel.wh_notes}

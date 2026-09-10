@@ -25,6 +25,11 @@
 //                 Supabase session
 //   Retention     audit logs are deleted after 30 days by
 //                 archive_old_audit_logs() in supabase/03_functions.sql
+//   Fonts         self-hosted from public/fonts/ (src/tokens.css) — no request to
+//                 fonts.googleapis.com/fonts.gstatic.com or any other third-party
+//                 CDN happens on any page load. If tokens.css ever goes back to a
+//                 live @import, the "cookies" section below stops being accurate
+//                 and needs updating in the same change.
 //
 // Sentry (error monitoring) was added deliberately and is disclosed in the
 // processors table below and in "What we collect". It is distinct from the
@@ -43,8 +48,9 @@
 // for Apple's App Privacy questionnaire, and an answer there that contradicts
 // this page is grounds for removal from the App Store.
 import { useEffect, useRef } from "react";
+import { useDocumentMeta } from "@/shared/hooks/useDocumentMeta";
 
-const EFFECTIVE_DATE = "August 19, 2026";
+const EFFECTIVE_DATE = "September 8, 2026";
 const CONTACT_EMAIL = "privacy@steadwerk.com";
 
 const CSS = `
@@ -261,6 +267,45 @@ const SECTIONS = [
             the background.
           </li>
         </ul>
+      </>
+    ),
+  },
+  {
+    id: "cookies",
+    title: "Cookies & local storage",
+    body: (
+      <>
+        <p>
+          Steadwerk does not use cookies for tracking or advertising, and does not run a cookie-consent banner,
+          because there is no non-essential cookie to ask consent for. Here is everything actually stored in your
+          browser, and why.
+        </p>
+        <ul>
+          <li>
+            <b>Your sign-in session.</b> So you stay signed in between visits instead of re-entering your password
+            every time you open the app.
+          </li>
+          <li>
+            <b>Your language and theme choice</b>, and your email address if you ticked "remember me" on the sign-in
+            screen — so the app looks and behaves the way you left it.
+          </li>
+          <li>
+            <b>Fonts, served by us.</b> The app's typefaces are bundled with the app itself rather than fetched from
+            a third party's servers on every visit, so loading a page does not send your IP address to anyone but
+            us.
+          </li>
+          <li>
+            <b>Error monitoring, if enabled.</b> If Sentry (see "Companies we rely on") is turned on for this
+            deployment, its SDK keeps a small amount of browser storage of its own to group related events into one
+            session — the same masked, functional-only data described there, never advertising or cross-site
+            tracking.
+          </li>
+        </ul>
+        <p>
+          None of the above identifies you to an outside party or follows you to another website. If a future
+          version of Steadwerk adds anything that would, this section — and a consent mechanism, if the law where you
+          are requires one — gets added first, not after.
+        </p>
       </>
     ),
   },
@@ -487,6 +532,7 @@ const SECTIONS = [
 ];
 
 export default function PrivacyPage({ onBack }) {
+  useDocumentMeta("Privacy Policy", "How Steadwerk collects, uses, and protects your data.");
   const rootRef = useRef(null);
 
   // Land at the top when the page opens.

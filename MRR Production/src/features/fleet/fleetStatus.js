@@ -34,9 +34,11 @@ export const STATUS_KINDS = ["grounded", "in_shop", "oil_overdue", "service_due"
 //                including being in the shop: the shop visit may be exactly why it was
 //                grounded, and "in service" would read as reassuring on a truck someone
 //                deliberately took off the road.
-//   in_shop      a maintenance request reached `scheduled`, meaning somebody with
-//                maint_manage agreed to it. Outranks the mileage warnings, because an
-//                oil reminder on a truck already in the bay is noise.
+//   in_shop      a maintenance request reached `scheduled` AND its date has arrived
+//                (see isServiceDue) — booking it for a future date does not ground it
+//                today. Reaching `scheduled` means somebody with maint_manage agreed
+//                to it. Outranks the mileage warnings, because an oil reminder on a
+//                truck already in the bay is noise.
 //   oil_overdue  derived. Miles since the last oil change met or passed the interval.
 //   service_due  derived. Oil or detail approaching, or a service_due status on the row.
 //   active       nothing outstanding.
@@ -64,6 +66,17 @@ export function vehicleStatusKind({ vehicle, oilStatus, detailStatus, blocked = 
 // fleet the moment this shipped. Grounding is the explicit, reversible decision.
 export function isUndispatchable(vehicle) {
   return isGrounded(vehicle);
+}
+
+// A 'scheduled' maintenance request only takes its vehicle off the road once the
+// scheduled date has actually arrived — booking a truck in for next Monday must not
+// ground it today. `scheduled_date` is a plain yyyy-mm-dd string (see helpers.js's
+// todayLocal/formatDay), so a lexicographic compare against `today` is also a
+// chronological one; no Date parsing needed. A request with no date set at all
+// (scheduled with nothing entered) keeps the old behaviour of blocking immediately,
+// since there is no future date to defer to.
+export function isServiceDue(req, today) {
+  return !req?.scheduled_date || req.scheduled_date <= today;
 }
 
 // Trim and cap a free-text grounding reason. Empty stays null rather than "" so the

@@ -12,7 +12,13 @@ import TrailerCalendar from "./TrailerCalendar";
 import SearchBar, { matchesQuery } from "@/shared/components/SearchBar";
 import { uploadPhotoToBucket } from "@/shared/utils/storageBucketUpload";
 import { notifyMaintFiled } from "@/shared/utils/maintenanceNotifications";
-import { vehicleStatusKind, isGrounded, isUndispatchable, groundingPatch } from "./fleetStatus";
+import {
+  vehicleStatusKind,
+  isGrounded,
+  isUndispatchable,
+  groundingPatch,
+  isServiceDue,
+} from "./fleetStatus";
 import MaintenanceRequestModal from "./MaintenanceRequestModal";
 import AddVehicleModal from "./AddVehicleModal";
 import InspectionModal from "./InspectionModal";
@@ -59,7 +65,12 @@ export default function FleetManagementView({
     grounded: { dot: "🔴", label: t.flStatusOutOfService, color: C.rd },
     in_shop: { dot: "🔧", label: t.flStatusInService, color: C.pu },
     oil_overdue: { dot: "🟠", label: t.flStatusOilOverdue, color: C.am },
-    service_due: { dot: "🟡", label: t.flStatusServiceDue, color: C.gold },
+    // Was C.gold (the bright accent) — at this badge's size (11px bold) that's
+    // 3.30:1 on a white card, under WCAG AA's 4.5:1 for normal text. C.am is the
+    // same deep-amber "warn" token oil_overdue already uses one line up, for the
+    // same reason described in the comment above: 4.66:1, and it was already the
+    // semantically correct token for a warning-severity badge.
+    service_due: { dot: "🟡", label: t.flStatusServiceDue, color: C.am },
     active: { dot: "🟢", label: t.flStatusActive, color: C.gr },
   };
 
@@ -81,15 +92,19 @@ export default function FleetManagementView({
   const predictedServices = sel ? learnServiceIntervals(sel) : [];
 
   // Vehicles that can stand in for one in the shop: no driver on them, not themselves
-  // scheduled for service, and not grounded. Excludes the serviced vehicle implicitly
-  // (it is blocked, so it fails the second test).
+  // due in for service today, and not grounded. Excludes the serviced vehicle implicitly
+  // (it is blocked, so it fails the second test). A truck booked for a FUTURE service
+  // date is still fair game as a loaner today — isServiceDue is what keeps that date
+  // honest instead of blocking on any 'scheduled' row regardless of when it's for.
   const availableSpares = (forReq) =>
     vehs.filter(
       (x) =>
         x.id !== forReq?.vid &&
         !x.assignedTo &&
         !isUndispatchable(x) &&
-        !reqs.some((r) => r.vid === x.id && r.status === "scheduled"),
+        !reqs.some(
+          (r) => r.vid === x.id && r.status === "scheduled" && isServiceDue(r, todayLocal()),
+        ),
     );
 
   // Lend a spare while a vehicle is in for service.
@@ -708,8 +723,14 @@ export default function FleetManagementView({
                 // request to 'scheduled' needs maint_manage, i.e. someone agreed. The
                 // same rule is enforced in the database — see supabase/19.
                 //
+                // AND due today: a request scheduled for a future date must not ground
+                // the truck the moment it's booked — only once that date arrives. See
+                // fleetStatus.isServiceDue.
+                //
                 // Declared up here because fleetStatus below reads it.
-                const blockingReq = reqs.find((r) => r.vid === v.id && r.status === "scheduled");
+                const blockingReq = reqs.find(
+                  (r) => r.vid === v.id && r.status === "scheduled" && isServiceDue(r, todayLocal()),
+                );
                 const isBlocked = !!blockingReq;
                 // Precedence lives in features/fleet/fleetStatus so it can be tested without the
                 // theme or translations. Note "Out of Service" now means only a deliberate

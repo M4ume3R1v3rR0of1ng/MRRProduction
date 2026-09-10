@@ -15,6 +15,7 @@
 import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
 import { validatePassword } from "./_shared/password.js";
 import { withSentry } from "./_shared/sentry.js";
+import { checkRateLimit, rateLimitedResponse } from "./_shared/rateLimit.js";
 
 const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
@@ -53,6 +54,13 @@ const rawHandler = async (event) => {
   if (!isCompanyAdmin(caller)) {
     return { statusCode: 403, headers, body: JSON.stringify({ error: "Admin access required" }) };
   }
+
+  // Defense in depth, not the primary control: this action already requires a
+  // verified admin session and the takeover guard below. The cap exists for the
+  // case that guard doesn't cover — a compromised admin session scripting mass
+  // password resets across the company's own users.
+  const rl = checkRateLimit(`reset-password:${caller.userId}`, { max: 10, windowMs: 60 * 1000 });
+  if (!rl.allowed) return rateLimitedResponse(rl.retryAfterSeconds, headers);
 
   try {
     const { data: memberships } = await admin

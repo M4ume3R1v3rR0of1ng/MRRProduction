@@ -200,16 +200,26 @@ export default function Sidebar({
         flexShrink: 0,
       }}
     >
-      {/* Sidebar Header/Logo Wrapper */}
-      <div
+      {/* Sidebar Header/Logo Wrapper. A <button>, not a <div> — it used to be
+          inert, the only thing in the whole chrome that looked like a home
+          link but wasn't one. */}
+      <button
+        type="button"
+        onClick={() => onNav("dashboard")}
+        aria-label={t.sbGoToDashboard || "Go to dashboard"}
         style={{
           padding: collapsed ? "12px 0" : "12px 14px",
           display: "flex",
           alignItems: "center",
           gap: "var(--space-4)",
-          borderBottom: "1px solid rgba(255,255,255,0.1)",
           justifyContent: collapsed ? "center" : "flex-start",
           minHeight: 62,
+          width: "100%",
+          background: "transparent",
+          border: "none",
+          borderBottom: "1px solid rgba(255,255,255,0.1)",
+          cursor: "pointer",
+          textAlign: "left",
         }}
       >
         {/* The TENANT's logo if they've uploaded one; the Steadwerk truss otherwise.
@@ -267,7 +277,7 @@ export default function Sidebar({
             </div>
           </div>
         )}
-      </div>
+      </button>
 
       {/* Main Navigation Links */}
       <nav style={{ flex: 1, padding: "10px 6px" }}>

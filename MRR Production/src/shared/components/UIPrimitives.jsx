@@ -188,8 +188,10 @@ export function Modal({ title, onClose, children, wide, extraWide, disableCloseB
           </h2>
           {!disableCloseButton && (
             <button
+              type="button"
               className="mrr-close"
               onClick={onClose}
+              aria-label="Close"
               style={{
                 border: "none",
                 cursor: "pointer",
@@ -210,22 +212,34 @@ export function Modal({ title, onClose, children, wide, extraWide, disableCloseB
 }
 
 export function Fld({ label, children, hint }) {
+  // {children} used to render as the <label>'s sibling, not inside it — so the
+  // label text and the actual input had no association at all, implicit or
+  // explicit. A screen reader focusing the input never announced what it was,
+  // and clicking the label text did nothing, because as far as the DOM was
+  // concerned they were two unrelated elements that happened to sit near each
+  // other. Nesting the control inside the <label> is the standard implicit-label
+  // pattern: it associates automatically with no id/htmlFor bookkeeping needed,
+  // and works the same for every kind of child Fld already wraps across the
+  // app — a plain <input>, a <select>, or a non-input control group (like the
+  // billing-interval toggle in LoginScreen) that simply ignores it.
   return (
     <div style={{ marginBottom: "var(--space-5)" }}>
-      <label
-        style={{
-          display: "block",
-          fontSize: "var(--text-xs)",
-          fontWeight: "var(--weight-bold)",
-          color: C.navy,
-          marginBottom: "var(--space-1)",
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-        }}
-      >
-        {label}
+      <label style={{ display: "block" }}>
+        <span
+          style={{
+            display: "block",
+            fontSize: "var(--text-xs)",
+            fontWeight: "var(--weight-bold)",
+            color: C.navy,
+            marginBottom: "var(--space-1)",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+          }}
+        >
+          {label}
+        </span>
+        {children}
       </label>
-      {children}
       {hint && (
         <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
           {hint}

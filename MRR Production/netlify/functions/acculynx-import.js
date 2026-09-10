@@ -16,8 +16,23 @@
 // stage, or ?milestones=<stage> for a specific one (lead, prospect, approved, completed,
 // invoiced, closed, cancelled, dead). Paginate with ?page=<recordStartIndex>.
 
+import { timingSafeEqual } from "node:crypto";
 import { adminClient } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
+import { checkRateLimit, clientIp, rateLimitedResponse } from "./_shared/rateLimit.js";
+
+// Plain !== leaks how many leading bytes of the guess matched via response
+// timing. The secret is the only auth on this endpoint (no user session to
+// fall back on), so it gets a constant-time compare like any bearer secret
+// would. Length is checked first since timingSafeEqual throws on a length
+// mismatch rather than returning false.
+function secretMatches(provided, expected) {
+  if (typeof provided !== "string" || typeof expected !== "string") return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
 
 const ACCULYNX_BASE = "https://api.acculynx.com/api/v2";
 
@@ -134,6 +149,18 @@ function mapToSupabaseRow(job, customer, companyId) {
 
 const rawHandler = async (event) => {
   try {
+    // ── Rate limit: this endpoint's only auth is a shared secret in a header, so
+    // without a throttle, guessing it is limited only by network speed. 10 tries
+    // per 5 minutes per IP is generous for the real caller (a cron/CI job that
+    // knows the secret) and useless for anyone brute-forcing it.
+    const rl = checkRateLimit(`acculynx-import:${clientIp(event)}`, {
+      max: 10,
+      windowMs: 5 * 60 * 1000,
+    });
+    if (!rl.allowed) {
+      return rateLimitedResponse(rl.retryAfterSeconds, {});
+    }
+
     const params = event.queryStringParameters || {};
 
     // ── Shared-secret guard: without this, anyone with the URL could trigger a full AccuLynx pull ──
@@ -144,7 +171,7 @@ const rawHandler = async (event) => {
 
     if (
       !process.env.ACCULYNX_IMPORT_SECRET ||
-      providedSecret !== process.env.ACCULYNX_IMPORT_SECRET
+      !secretMatches(providedSecret, process.env.ACCULYNX_IMPORT_SECRET)
     ) {
       return { statusCode: 401, body: JSON.stringify({ error: "Unauthorized" }) };
     }

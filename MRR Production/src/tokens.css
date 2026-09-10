@@ -6,9 +6,87 @@
 
 /* Steadwerk — Direction 02, "The Raising".
    Space Grotesk for display (Swiss grotesque, engineer's personality), Inter for UI,
-   IBM Plex Mono for data. All three are on Google Fonts, which netlify.toml's CSP
-   already allows via style-src/font-src — no header change needed. */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;600&display=swap");
+   IBM Plex Mono for data.
+
+   Self-hosted from public/fonts/ (latin subset only, woff2, ~368KB total) rather
+   than pulled live from Google's CDN on every visit. Loading fonts.googleapis.com
+   at runtime sends every visitor's IP address to Google before they've agreed to
+   anything — several EU courts (Munich among them) have specifically fined sites
+   for exactly this pattern, since it's a third-party data transfer with no
+   consent and no legitimate-interest basis once self-hosting is trivially
+   available, which it is. Self-hosting removes the transfer entirely: nothing
+   about a visit to this site reaches Google. Re-run scripts/refresh-fonts.mjs
+   (see that file) if a weight is added or a family changes. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/inter-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/inter-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/inter-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/inter-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/inter-800.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("/fonts/inter-900.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/space-grotesk-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/space-grotesk-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-600.woff2") format("woff2");
+}
 
 :root {
   /* ── Typeface ── */
@@ -45,7 +123,15 @@
   --c-surface: #ffffff;
   --c-subtle: #f4f0e7;
   --c-line: #dcd3c4;
-  --c-sub: #6e7780;
+  /* Was #6e7780 (3.67:1 on --c-ground) — fails WCAG AA's 4.5:1 for normal text.
+     This one token backs ~350 call sites of C.sub across the app (muted labels,
+     helper text, secondary copy), almost always sitting directly on the page's
+     --c-ground background, so the failure was systemic rather than one-off.
+     Darkened along the same hue/saturation to 4.90:1 on ground / 6.08:1 on
+     surface — passes both everywhere C.sub actually renders, with a difference
+     small enough not to read as a design change. Dark mode's --c-sub already
+     passes (6.63:1 / 5.82:1) and is untouched. */
+  --c-sub: #5c636b;
   --c-pasture: #4a7a5c;
   --c-rust: #a34e28;
   --c-warn: #a8641f;
@@ -241,8 +327,25 @@
 }
 
 /* ── Global base ── */
+/* box-sizing reset. Without it, any of the ~1,100 inline style objects across the
+   views that combine width: 100% with padding (very common — most of this app's
+   containers do exactly that) computes wider than its parent under the browser
+   default (content-box), which is the single most common cause of an app-wide
+   horizontal scrollbar. border-box makes width:100%+padding mean what it looks
+   like it means. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
+  /* Last-resort guard, not the fix itself: a genuinely overflowing element should
+     still be found and constrained (see the overflow-x: auto pattern below for
+     tables/wide content), but nothing should ever be able to push the page itself
+     into a horizontal scrollbar on a phone. */
+  overflow-x: hidden;
 }
 
 /* Pre-hydration flash guard. The CSP is script-src 'self' with no unsafe-inline,
@@ -271,6 +374,8 @@ body {
      theme. */
   background: var(--c-ground);
   color: var(--c-barnwood);
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* Form controls and buttons don't inherit fonts by default — force the app typeface */

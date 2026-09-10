@@ -1,27 +1,16 @@
 // netlify/functions/acculynx-sync.js
 
-import { adminClient, resolveCaller } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders as buildCorsHeaders } from "./_shared/tenant.js";
 import { buildExpenseNotes } from "./_shared/expenseNotes.js";
 import { withSentry } from "./_shared/sentry.js";
 
-const ALLOWED_ORIGINS = [
-  "https://steadwerk.com",
-  "https://www.steadwerk.com",
-  "https://mrrproduction.netlify.app",
-  "http://localhost:5173",
-  "http://localhost:8888",
-  "http://localhost:3000",
-];
-
+// CORS used to be a second, hand-copied ALLOWED_ORIGINS list here, which had
+// drifted from _shared/tenant.js's copy and was missing "capacitor://localhost" —
+// the iOS app's origin under WKWebView. That silently CORS-blocked AccuLynx sync
+// for every iOS user. Importing the one shared list means it can't drift again.
+// X-Content-Type-Options is added on top since the shared helper doesn't set it.
 function getCorsHeaders(requestOrigin) {
-  const origin = ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization", // 🟢 CORS allows Authorization headers
-    "Access-Control-Max-Age": "86400",
-    "X-Content-Type-Options": "nosniff",
-  };
+  return { ...buildCorsHeaders(requestOrigin), "X-Content-Type-Options": "nosniff" };
 }
 
 const rawHandler = async (event) => {

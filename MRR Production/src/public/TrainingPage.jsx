@@ -18,6 +18,7 @@
 // Everything on this page is generated from it.
 import { useEffect, useRef, useState } from "react";
 import { TRAINING_VIDEOS } from "@/shared/data/trainingVideos";
+import { useDocumentMeta } from "@/shared/hooks/useDocumentMeta";
 
 const Badge = ({ size = 30 }) => (
   <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
@@ -135,6 +136,7 @@ const CSS = `
 `;
 
 export default function TrainingPage({ onBack }) {
+  useDocumentMeta("Training", "See Steadwerk's warehouse & fleet software in action.");
   const rootRef = useRef(null);
   // Which clips have been started. Keyed by id rather than a single boolean so
   // several videos on the page track their own poster independently.

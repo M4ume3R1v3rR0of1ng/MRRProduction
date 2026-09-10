@@ -72,6 +72,28 @@ const AuditLogView = lazy(() => import("./features/users/AuditLogView"));
 // the app, so it loads after the view they actually asked for.
 const ChatWidget = lazy(() => import("./shared/components/ChatWidget"));
 
+// Browser-tab titles, keyed by the same route string (location.pathname minus
+// the leading slash) that drives Sidebar's active-item highlight. English only —
+// this app is bilingual in its UI copy, but a browser tab title/history entry
+// isn't something either language's users have ever asked to see localized.
+const VIEW_TITLES = {
+  dashboard: "Dashboard",
+  schedule: "Schedule",
+  buildjobs: "Build Jobs",
+  pull: "Pull Inventory",
+  inventory: "Inventory",
+  fleet: "Fleet",
+  requests: "Maintenance Requests",
+  reports: "Reports",
+  users: "Users",
+  logs: "Audit Log",
+  settings: "Settings",
+  billing: "Billing",
+  owner: "Owner Console",
+  training: "Training",
+  profile: "Profile",
+};
+
 // Mascot Branding Asset
 
 // Shown while a lazy view chunk is in flight. Painted on the app ground rather
@@ -114,6 +136,24 @@ export default function App() {
   // state, so a link to /buildjobs?open=4471 is bookmarkable and shareable and
   // survives a refresh instead of evaporating the moment the tab reloads.
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // The whole app used to ship one static <title>Steadwerk</title> from index.html
+  // no matter which screen was open — every tab in a crew's browser looked
+  // identical, and "Steadwerk" was the only thing a browser history search could
+  // ever match. Has to run unconditionally, ahead of the recovery/loading/logged-out
+  // early returns below — a hook after a conditional return breaks the rules of
+  // hooks, so this reads location.pathname directly rather than the `view` constant
+  // derived from it further down, after those returns.
+  //
+  // Only acts on paths VIEW_TITLES actually knows (the authenticated app views) and
+  // no-ops otherwise — the logged-out pages (landing, login, terms, privacy) set
+  // their own title via useDocumentMeta, and this effect runs in the same render as
+  // theirs but commits AFTER them (child effects before parent effects), so an
+  // unconditional write here would win the race and silently overwrite what they set.
+  useEffect(() => {
+    const view = location.pathname.slice(1);
+    if (VIEW_TITLES[view]) document.title = `${VIEW_TITLES[view]} · Steadwerk`;
+  }, [location.pathname]);
 
   // Password-recovery interception. When someone opens the reset link from their
   // email, Supabase redirects back here with a recovery token in the URL hash and
@@ -1038,6 +1078,8 @@ export default function App() {
                         setLang={setLang}
                         openItemId={searchTargetFor("requests")}
                         onOpenItemHandled={clearSearchTarget}
+                        company={app.company}
+                        activeLogo={app.activeLogo}
                       />
                     ) : (
                       <Navigate to="/dashboard" replace />

@@ -6,27 +6,14 @@
 // role/override logic as src/shared/database/permissions.js's getEffectivePerms.
 
 import Anthropic from "@anthropic-ai/sdk";
-import { adminClient, resolveCaller } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders as getCorsHeaders } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
+import { checkRateLimit, rateLimitedResponse } from "./_shared/rateLimit.js";
 
-const ALLOWED_ORIGINS = [
-  "https://steadwerk.com",
-  "https://www.steadwerk.com",
-  "https://mrrproduction.netlify.app",
-  "http://localhost:5173",
-  "http://localhost:8888",
-  "http://localhost:3000",
-];
-
-function getCorsHeaders(requestOrigin) {
-  const origin = ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : ALLOWED_ORIGINS[0];
-  return {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Max-Age": "86400",
-  };
-}
+// CORS used to be a second, hand-copied ALLOWED_ORIGINS list here, which had
+// drifted from _shared/tenant.js's copy and was missing "capacitor://localhost" —
+// the iOS app's origin under WKWebView. That silently CORS-blocked chat for
+// every iOS user. Importing the one shared list means it can't drift again.
 
 const TOOLS = [
   {
@@ -710,6 +697,13 @@ const rawHandler = async (event) => {
         body: JSON.stringify({ error: callerError.message }),
       };
     }
+
+    // Keyed by the verified user, not IP — this is authenticated, and the thing
+    // worth capping is per-account Anthropic API cost, not anonymous abuse.
+    // 20 messages/min is generous for a person typing, cheap insurance against a
+    // compromised session or a runaway integration scripting the chat endpoint.
+    const rl = checkRateLimit(`chat:${caller.userId}`, { max: 20, windowMs: 60 * 1000 });
+    if (!rl.allowed) return rateLimitedResponse(rl.retryAfterSeconds, corsHeaders);
 
     const { data: profile } = await admin
       .from("profiles")
