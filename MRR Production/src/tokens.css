@@ -133,8 +133,23 @@
      passes (6.63:1 / 5.82:1) and is untouched. */
   --c-sub: #5c636b;
   --c-pasture: #4a7a5c;
-  --c-rust: #a34e28;
-  --c-warn: #a8641f;
+  /* Was #a34e28 / #a8641f — 12° apart in hue and within a point of each other
+     in lightness, so a "reorder now" dot and a "getting low" dot read as
+     nearly the same color (1.23:1 contrast between them). Rust stays the same
+     hue, just deepened a touch; warn moves to a true gold (45° vs rust's
+     18.5°) instead of a second shade of orange. Both still clear 4.5:1 against
+     white on their own (7.20:1 / 4.51:1) — this only widens the gap between
+     them, not just one against white. */
+  --c-rust: #8c4221;
+  --c-warn: #937210;
+  /* A dedicated "getting low" gold, separate from --c-warn above. --c-warn
+     also carries small text in ~24 other views (badges, warning banners), so
+     it can't go past ~4.5:1 against white without hurting legibility there.
+     Inventory's stock cards don't have that constraint — the color rides on a
+     dot, a border, a big bold quantity number, and (worst case) a small
+     uppercase label — so this can sit much brighter and read as unmistakably
+     "yellow" next to rust, rather than a second shade of brown. */
+  --c-stock-low: #d9a404;
   --c-plum: #5c5470;
   --c-teal: #3e6b6b;
   --c-slate: #4a6178;
@@ -248,6 +263,8 @@
   --c-pasture: #7aae8c;
   --c-rust: #d2724a;
   --c-warn: #d89a52;
+  /* Not flagged in dark mode — same value --c-warn already had there. */
+  --c-stock-low: #d89a52;
   --c-plum: #9a8fb0;
   --c-teal: #6fa3a3;
   --c-slate: #8199b0;

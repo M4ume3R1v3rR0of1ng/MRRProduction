@@ -114,8 +114,13 @@ export default function InventoryView({
   // barnwood brand tokens (C.rd is rust, C.am is brown, C.gr is sage). A low item has to
   // jump off the screen so it's obvious what needs ordering; functional clarity beats
   // brand harmony for this one signal. Scoped to inventory, so nothing else reskins.
+  //
+  // STOCK_YELLOW reads --c-stock-low rather than --c-warn: --c-warn also colors
+  // small text in ~24 other views and can't go past ~4.5:1 against white without
+  // hurting legibility there. Nothing else reads --c-warn as a dot next to a
+  // rust dot, so it never had to be THIS distinct from red — --c-stock-low does.
   const STOCK_RED = "var(--c-rust)";
-  const STOCK_YELLOW = "var(--c-warn)";
+  const STOCK_YELLOW = "var(--c-stock-low)";
   const STOCK_GREEN = "var(--c-pasture)";
 
   const toggleSpecial = async (item, e) => {
