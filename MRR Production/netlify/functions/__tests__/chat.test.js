@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractText } from "./chat.js";
+import { extractText } from "../chat.js";
 
 // What gets persisted to chat_messages.text (supabase/41) for the newest
 // incoming turn — see the "Persist this turn" block in rawHandler.

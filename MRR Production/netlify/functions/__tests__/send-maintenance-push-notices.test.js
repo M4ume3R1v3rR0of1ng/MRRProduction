@@ -4,7 +4,7 @@ import {
   isSameUtcDay,
   buildHeadsUpMessage,
   buildUrgentMessage,
-} from "./send-maintenance-push-notices.js";
+} from "../send-maintenance-push-notices.js";
 
 // A truck whose mileage log projects a due date exactly `daysOut` days after
 // `todayStr`, by construction: 100 mi/day, remaining = daysOut * 100.
