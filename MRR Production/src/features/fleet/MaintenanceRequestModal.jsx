@@ -12,6 +12,7 @@
 //     called from anywhere. Approval happens in the Maintenance view, not here.
 //   - an unused `uid` prop. The id below is generated inline and always was.
 import { useState } from "react";
+import { Wrench, Bell } from "lucide-react";
 import { C } from "@/shared/utils/helpers";
 import { Btn, Fld, Inp, Modal, Sel, TA } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -57,7 +58,14 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
   };
 
   return (
-    <Modal title="🔧 Submit Maintenance Request" onClose={onClose}>
+    <Modal
+      title={
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Wrench size={17} aria-hidden="true" /> Submit Maintenance Request
+        </span>
+      }
+      onClose={onClose}
+    >
       <div
         style={{
           background: C.pB,
@@ -76,7 +84,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
         <Sel
           value={form.vid}
           onChange={
-            (e) => setForm({ ...form, vid: e.target.value, type: [] }) // 🟢 FIXED: Flushes checkbox state on toggle
+            (e) => setForm({ ...form, vid: e.target.value, type: [] }) // Flushes checkbox state on toggle
           }
         >
           <option value="">— Select a vehicle —</option>
@@ -89,7 +97,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
       </Fld>
       {selV && (
         <>
-          {/* ── 🟢 FIXED: MULTI-SELECT CHECKBOX GRID INTERACTION LAYER ── */}
+          {/* ── MULTI-SELECT CHECKBOX GRID INTERACTION LAYER ── */}
           <Fld label="Service Types (Select all that apply) *">
             <div
               className="sw-grid-2"
@@ -189,7 +197,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
           Cancel
         </Btn>
         <Btn v="purple" onClick={submit} style={{ flex: 1, justifyContent: "center" }}>
-          Submit Request 🔔
+          Submit Request <Bell size={14} aria-hidden="true" />
         </Btn>
       </div>
     </Modal>

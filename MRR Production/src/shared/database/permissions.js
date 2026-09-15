@@ -5,7 +5,7 @@
  * @typedef {Object} PermDef
  * @property {string} label - Short name shown next to the checkbox in Settings.
  * @property {string} desc  - Longer explanation of what the permission unlocks.
- * @property {string} g     - The PERM_GROUPS heading (with emoji) this belongs to.
+ * @property {string} g     - The PERM_GROUPS heading this belongs to.
  */
 
 // 1. Core Permission Rules & UI Descriptions
@@ -18,32 +18,32 @@
 // removed permission id fails to compile instead of silently granting nothing.
 /** @satisfies {Record<string, PermDef>} */
 export const PERM_DEFS = {
-  inv_view: { label: "View Inventory", desc: "Browse items & stock levels", g: "📦 Inventory" },
+  inv_view: { label: "View Inventory", desc: "Browse items & stock levels", g: "Inventory" },
   inv_edit: {
     label: "Add & Edit Items",
     desc: "Create items & edit item details",
-    g: "📦 Inventory",
+    g: "Inventory",
   },
   inv_receive: {
     label: "Receive Batches",
     desc: "Receive individual item batches",
-    g: "📦 Inventory",
+    g: "Inventory",
   },
   inv_bulk_receive: {
     label: "Receive Bulk Orders",
     desc: "Multi-item bulk order receiving",
-    g: "📦 Inventory",
+    g: "Inventory",
   },
   inv_pricing_view: {
     label: "View Pricing",
     desc: "See purchase prices & batch costs",
-    g: "📦 Inventory",
+    g: "Inventory",
   },
-  inv_pricing_edit: { label: "Edit Pricing", desc: "Change & set item pricing", g: "📦 Inventory" },
+  inv_pricing_edit: { label: "Edit Pricing", desc: "Change & set item pricing", g: "Inventory" },
   inv_adjust: {
     label: "Adjust Stock",
     desc: "Manually correct on-hand quantities",
-    g: "📦 Inventory",
+    g: "Inventory",
   },
   // Needs inv_view as well: the count sheet is a tab inside Inventory, and
   // Inventory itself is gated on inv_view one level up in App.jsx. Granting this
@@ -52,53 +52,53 @@ export const PERM_DEFS = {
   inv_count: {
     label: "Monthly Count",
     desc: "Run physical stock counts & see the bleed rate (needs View Inventory)",
-    g: "📦 Inventory",
+    g: "Inventory",
   },
-  fleet_view: { label: "View Fleet", desc: "View vehicles & service history", g: "🚛 Fleet" },
-  fleet_edit: { label: "Manage Fleet", desc: "Add & edit vehicles, assign drivers", g: "🚛 Fleet" },
+  fleet_view: { label: "View Fleet", desc: "View vehicles & service history", g: "Fleet" },
+  fleet_edit: { label: "Manage Fleet", desc: "Add & edit vehicles, assign drivers", g: "Fleet" },
   fleet_log_service: {
     label: "Log Service",
     desc: "Record completed service work on vehicles",
-    g: "🚛 Fleet",
+    g: "Fleet",
   },
   fleet_log_inspection: {
     label: "Log Inspections",
     desc: "File formal vehicle condition inspection reports",
-    g: "🚛 Fleet",
+    g: "Fleet",
   },
   fleet_photo_delete: {
     label: "Delete Vehicle Photos",
     desc: "Remove or replace truck & trailer photos",
-    g: "🚛 Fleet",
+    g: "Fleet",
   },
-  fleet_log_mi: { label: "Log Mileage", desc: "Submit vehicle mileage readings", g: "🚛 Fleet" },
+  fleet_log_mi: { label: "Log Mileage", desc: "Submit vehicle mileage readings", g: "Fleet" },
   maint_submit: {
     label: "Submit Requests",
     desc: "Submit maintenance & service requests",
-    g: "🔧 Maintenance",
+    g: "Maintenance",
   },
   maint_manage: {
     label: "Manage Requests",
     desc: "Schedule & close maintenance requests",
-    g: "🔧 Maintenance",
+    g: "Maintenance",
   },
-  jobs_view: { label: "View Jobs", desc: "View job pipeline & job details", g: "🏗️ Jobs" },
-  jobs_build: { label: "Build Jobs", desc: "Create & edit jobs, plan materials", g: "🏗️ Jobs" },
+  jobs_view: { label: "View Jobs", desc: "View job pipeline & job details", g: "Jobs" },
+  jobs_build: { label: "Build Jobs", desc: "Create & edit jobs, plan materials", g: "Jobs" },
   jobs_approve: {
     label: "Approve & Assign",
     desc: "Approve jobs & assign supervisors",
-    g: "🏗️ Jobs",
+    g: "Jobs",
   },
-  jobs_pull: { label: "Pull Inventory", desc: "Pull materials from approved jobs", g: "🏗️ Jobs" },
+  jobs_pull: { label: "Pull Inventory", desc: "Pull materials from approved jobs", g: "Jobs" },
   jobs_edit_pull: {
     label: "Edit Job (Pull Inventory)",
     desc: "Edit job info & reassign site supervisor from Pull Inventory",
-    g: "🏗️ Jobs",
+    g: "Jobs",
   },
   jobs_complete: {
     label: "Complete Jobs",
     desc: "Return inventory & mark jobs done",
-    g: "🏗️ Jobs",
+    g: "Jobs",
   },
   // Contract value is more sensitive than material cost: it is what the customer
   // was charged. Kept separate from inv_pricing_view so a warehouse manager can
@@ -106,23 +106,23 @@ export const PERM_DEFS = {
   jobs_revenue: {
     label: "View & Set Contract Value",
     desc: "See what a job sold for, and job profitability",
-    g: "🏗️ Jobs",
+    g: "Jobs",
   },
   jobs_close: {
     label: "Close Completed Jobs",
     desc: "Archive completed jobs once payment is confirmed in AccuLynx",
-    g: "🏗️ Jobs",
+    g: "Jobs",
   },
-  reports_view: { label: "View Reports", desc: "Access reports & analytics", g: "📊 Reports" },
+  reports_view: { label: "View Reports", desc: "Access reports & analytics", g: "Reports" },
   users_manage: {
     label: "Manage Users",
     desc: "Add, edit & deactivate user accounts",
-    g: "⚙️ Admin",
+    g: "Admin",
   },
   settings_manage: {
     label: "System Settings",
     desc: "Settings, permissions & API config",
-    g: "⚙️ Admin",
+    g: "Admin",
   },
 };
 
@@ -135,7 +135,7 @@ export const PERM_DEFS = {
 /** @type {PermGroup[]} */
 export const PERM_GROUPS = [
   [
-    "📦 Inventory",
+    "Inventory",
     [
       "inv_view",
       "inv_edit",
@@ -148,7 +148,7 @@ export const PERM_GROUPS = [
     ],
   ],
   [
-    "🚛 Fleet",
+    "Fleet",
     [
       "fleet_view",
       "fleet_edit",
@@ -158,9 +158,9 @@ export const PERM_GROUPS = [
       "fleet_log_mi",
     ],
   ],
-  ["🔧 Maintenance", ["maint_submit", "maint_manage"]],
+  ["Maintenance", ["maint_submit", "maint_manage"]],
   [
-    "🏗️ Jobs",
+    "Jobs",
     [
       "jobs_view",
       "jobs_build",
@@ -172,8 +172,8 @@ export const PERM_GROUPS = [
       "jobs_revenue",
     ],
   ],
-  ["📊 Reports", ["reports_view"]],
-  ["⚙️ Admin", ["users_manage", "settings_manage"]],
+  ["Reports", ["reports_view"]],
+  ["Admin", ["users_manage", "settings_manage"]],
 ];
 
 export const ALL_PERM_KEYS = /** @type {PermKey[]} */ (Object.keys(PERM_DEFS));

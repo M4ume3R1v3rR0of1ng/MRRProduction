@@ -1,5 +1,6 @@
 // src/features/dashboard/TeamChatBox.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MessageSquare, RefreshCw, AlertTriangle, Camera, X } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { supabase } from "@/shared/utils/supabase";
 import { C, ft, compressImg } from "@/shared/utils/helpers";
@@ -274,16 +275,22 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
         <h3
           style={{
             margin: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 7,
             fontSize: "var(--text-lg)",
             fontWeight: "var(--weight-black)",
             color: C.navy,
           }}
         >
-          💬 Team Chat
+          <MessageSquare size={17} aria-hidden="true" /> Team Chat
         </h3>
         <button
           onClick={fetchMessages}
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
             background: "none",
             border: "none",
             color: C.blue,
@@ -292,7 +299,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
             fontWeight: "var(--weight-bold)",
           }}
         >
-          🔄 Refresh
+          <RefreshCw size={13} aria-hidden="true" /> Refresh
         </button>
       </div>
 
@@ -481,6 +488,9 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
       {error && (
         <div
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
             color: C.rd,
             background: C.rB,
             borderRadius: "var(--radius-md)",
@@ -490,7 +500,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
             marginBottom: 8,
           }}
         >
-          ⚠️ {error}
+          <AlertTriangle size={14} aria-hidden="true" /> {error}
         </div>
       )}
 
@@ -550,12 +560,13 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
               borderRadius: "50%",
               width: 18,
               height: 18,
-              fontSize: "var(--text-xs)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               cursor: "pointer",
-              lineHeight: 1,
             }}
           >
-            ✕
+            <X size={11} aria-hidden="true" />
           </button>
         </div>
       )}
@@ -576,11 +587,12 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
             border: "none",
             borderRadius: "var(--radius-md)",
             padding: "9px 12px",
-            fontSize: "var(--text-md)",
+            display: "flex",
+            alignItems: "center",
             cursor: "pointer",
           }}
         >
-          📷
+          <Camera size={16} color={C.navy} aria-hidden="true" />
         </button>
         <input
           value={draft}

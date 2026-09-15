@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 
 import { translations } from "../utils/translations";
-// ── 🟢 FIXED: ACCEPT THE TIMEOUT PROP WITH A 5-MINUTE DEFAULT FALLBACK ──
+// ── ACCEPT THE TIMEOUT PROP WITH A 5-MINUTE DEFAULT FALLBACK ──
 export default function IdleTimeoutWrapper({
   children,
   onLogout,
@@ -48,7 +48,7 @@ export default function IdleTimeoutWrapper({
       if (timerRef.current) clearTimeout(timerRef.current); //[cite: 4]
       activityEvents.forEach((event) => window.removeEventListener(event, resetTimer)); //[cite: 4]
     };
-  }, [isAuthenticated, TIMEOUT_IN_MS]); // 🟢 Added TIMEOUT_IN_MS to safely track prop changes!
+  }, [isAuthenticated, TIMEOUT_IN_MS]); // Added TIMEOUT_IN_MS to safely track prop changes!
 
   return <>{children}</>; //[cite: 4]
 }

@@ -12,6 +12,7 @@
 // and which cannot; it is exported pure because it is the most consequential
 // logic in the inventory module and was unreachable from a test before this split.
 import { useState } from "react";
+import { Wrench, CheckCircle2, Save, Loader2 } from "lucide-react";
 import { updateRowStrict } from "@/shared/utils/supabase";
 import { C, fd, fm, recostLine } from "@/shared/utils/helpers";
 import { resolveBatchPerson } from "@/shared/utils/people";
@@ -183,8 +184,9 @@ export default function BatchCorrectionModal({
         Received {fd(batch.rcvd)} · {batch.qty} {item.unit} · {batch.rem} remaining · by{" "}
         {/* Third copy of the same broken lookup. See utils/people. */}
         {resolveBatchPerson(users, batch)}
-        <div style={{ marginTop: 4 }}>
-          Quantities aren't editable here — use 🔧 Adjust Stock for those.
+        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+          Quantities aren't editable here — use <Wrench size={10} aria-hidden="true" /> Adjust
+          Stock for those.
         </div>
       </div>
 
@@ -314,7 +316,21 @@ export default function BatchCorrectionModal({
               style={{ flex: 1, justifyContent: "center" }}
               disabled={saving}
             >
-              {saving ? "⏳ Applying..." : `✅ Correct & recalculate ${recalc.exact.length}`}
+              {saving ? (
+                <>
+                  <Loader2
+                    size={14}
+                    style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                    aria-hidden="true"
+                  />{" "}
+                  Applying...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={14} aria-hidden="true" /> Correct & recalculate{" "}
+                  {recalc.exact.length}
+                </>
+              )}
             </Btn>
           </div>
         </div>
@@ -363,7 +379,20 @@ export default function BatchCorrectionModal({
               style={{ flex: 1, justifyContent: "center" }}
               disabled={saving}
             >
-              {saving ? "⏳ Saving..." : "💾 Save Batch"}
+              {saving ? (
+                <>
+                  <Loader2
+                    size={14}
+                    style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                    aria-hidden="true"
+                  />{" "}
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save size={14} aria-hidden="true" /> Save Batch
+                </>
+              )}
             </Btn>
           </div>
         </div>

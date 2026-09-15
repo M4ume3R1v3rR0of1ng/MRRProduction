@@ -10,6 +10,7 @@
 // already committed, or a truck due in the shop on a day it is scheduled to run.
 // So this shows all three sources against the same seven days and flags the
 // collisions. Editing still belongs to the full calendars.
+import { Calendar, AlertTriangle, Truck, Wrench } from "lucide-react";
 import { C, parseDay, todayLocal } from "@/shared/utils/helpers";
 import { buildSchedule } from "@/shared/utils/schedule";
 
@@ -47,12 +48,15 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
         <h3
           style={{
             margin: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
             fontSize: "var(--text-base)",
             fontWeight: "var(--weight-extrabold)",
             color: C.navy,
           }}
         >
-          🗓️ {es ? "La semana que viene" : "The week ahead"}
+          <Calendar size={15} aria-hidden="true" /> {es ? "La semana que viene" : "The week ahead"}
         </h3>
         <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-4)" }}>
           <span
@@ -85,6 +89,9 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
       {anyConflict && (
         <div
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
             background: C.aB,
             border: `1px solid ${C.am}`,
             borderRadius: "var(--radius-md)",
@@ -95,7 +102,7 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
             fontWeight: "var(--weight-bold)",
           }}
         >
-          ⚠️{" "}
+          <AlertTriangle size={13} aria-hidden="true" />{" "}
           {es
             ? "Un vehículo está reservado y en el taller el mismo día."
             : "A vehicle is booked out and in the shop on the same day."}
@@ -182,9 +189,18 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                   >
                     {j.title}
                     {j.trailers.length > 0 && (
-                      <span style={{ color: C.sub, fontWeight: "normal" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 2,
+                          color: C.sub,
+                          fontWeight: "normal",
+                        }}
+                      >
                         {" "}
-                        🚛{j.trailers.length}
+                        <Truck size={10} aria-hidden="true" />
+                        {j.trailers.length}
                       </span>
                     )}
                   </button>
@@ -208,6 +224,9 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                       padding: "3px 5px",
                       cursor: "pointer",
                       textAlign: "left",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 3,
                       fontSize: "var(--text-2xs)",
                       color: C.navy,
                       fontWeight: "var(--weight-bold)",
@@ -217,7 +236,7 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                       width: "100%",
                     }}
                   >
-                    🔧 {m.vehicle}
+                    <Wrench size={10} aria-hidden="true" /> {m.vehicle}
                   </button>
                 ))}
                 {day.maint.length > 2 && (
@@ -230,12 +249,15 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                   <span
                     title={`${day.conflicts.join(", ")} booked and in the shop`}
                     style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 3,
                       fontSize: "var(--text-2xs)",
                       color: C.am,
                       fontWeight: "var(--weight-bold)",
                     }}
                   >
-                    ⚠️ {day.conflicts.length}
+                    <AlertTriangle size={10} aria-hidden="true" /> {day.conflicts.length}
                   </span>
                 )}
               </div>

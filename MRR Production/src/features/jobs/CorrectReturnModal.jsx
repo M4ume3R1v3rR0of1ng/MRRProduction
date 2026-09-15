@@ -18,6 +18,7 @@
 // Reached from inside Edit Job (EditJobModal), alongside Pull Added
 // Materials, rather than as its own top-level button on the job detail view.
 import { useState } from "react";
+import { Save } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
@@ -171,7 +172,13 @@ export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClos
           style={{ flex: 1, justifyContent: "center" }}
           disabled={saving || items.length === 0}
         >
-          {saving ? t.bjCorrectReturnSaving : "💾 Save Correction"}
+          {saving ? (
+            t.bjCorrectReturnSaving
+          ) : (
+            <>
+              <Save size={14} aria-hidden="true" /> Save Correction
+            </>
+          )}
         </Btn>
       </div>
     </Modal>

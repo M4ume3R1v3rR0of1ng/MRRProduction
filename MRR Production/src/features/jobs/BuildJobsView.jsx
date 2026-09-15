@@ -1,6 +1,25 @@
 // src/features/jobs/BuildJobsView.jsx
 import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import {
+  HardHat,
+  ClipboardList,
+  Calendar,
+  Sparkles,
+  Package,
+  User,
+  AlertTriangle,
+  FileText,
+  Lock,
+  Trash2,
+  Pencil,
+  CheckCircle2,
+  Truck,
+  Loader2,
+  Save,
+  Search,
+  LayoutTemplate,
+} from "lucide-react";
+import {
   C,
   uid,
   fd,
@@ -16,7 +35,7 @@ import JobHandoff from "./JobHandoff";
 import SearchBar from "@/shared/components/SearchBar";
 import { translations } from "@/shared/utils/translations";
 import { useStickySort } from "@/shared/hooks/useStickySort";
-import { Btn, Bdg, Fld, Inp, Sel, TA, Modal } from "@/shared/components/UIPrimitives";
+import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, StatusDot } from "@/shared/components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "@/shared/utils/email";
 import { shouldNotifyJobMove, notifyJobMove } from "./jobNotifications";
 import { supabase, getAccessToken, updateRowStrict } from "@/shared/utils/supabase";
@@ -103,7 +122,7 @@ export default function BuildJobs({
   // The handed-over card, so the effect above can scroll to it.
   const highlightRef = useRef(null);
 
-  // ── ✏️ EDIT JOB STATE ──────────────────────────────────────────────────────
+  // ── EDIT JOB STATE ──────────────────────────────────────────────────────
   const fieldUsers = users.filter(
     (u) => (u.role === "field" || u.role === "Site Supervisor") && u.active,
   );
@@ -296,7 +315,7 @@ export default function BuildJobs({
   };
 
   // Job material templates: saved ones from the DB (managed in Inventory →
-  // 🧰 Templates), falling back to the built-in starter packages.
+  // Templates), falling back to the built-in starter packages.
   const [savedTemplates, setSavedTemplates] = useState(null);
   useEffect(() => {
     let cancelled = false;
@@ -444,7 +463,7 @@ export default function BuildJobs({
                 <p><strong>PO:</strong> ${esc(wPO.po)}</p>
                 <p><strong>Address:</strong> ${esc(wPO.addr)}</p>
                 ${wPO.notes ? `<p><strong>Notes:</strong> ${esc(wPO.notes)}</p>` : ""}
-                ${trailerNames.length > 0 ? `<p><strong>🚚 Trailer(s) to bring:</strong> ${trailerNames.map(esc).join(", ")}</p>` : ""}
+                ${trailerNames.length > 0 ? `<p><strong>Trailer(s) to bring:</strong> ${trailerNames.map(esc).join(", ")}</p>` : ""}
                 <p>Log in to pull inventory and get started.</p>`,
           });
         }
@@ -525,7 +544,7 @@ export default function BuildJobs({
                  <p><strong>Job:</strong> ${esc(sel.name || sel.title)}</p>
                  <p><strong>PO:</strong> ${esc(sel.po)}</p>
                  <p><strong>Address:</strong> ${esc(sel.addr || "N/A")}</p>
-                 ${trailerNames.length > 0 ? `<p><strong>🚚 Trailer(s) to bring:</strong> ${trailerNames.map(esc).join(", ")}</p>` : ""}
+                 ${trailerNames.length > 0 ? `<p><strong>Trailer(s) to bring:</strong> ${trailerNames.map(esc).join(", ")}</p>` : ""}
                  <p>Log in to pull inventory and get started.</p>`,
         });
       }
@@ -598,7 +617,7 @@ export default function BuildJobs({
           html: `<h2>Trailer requirement updated for your job</h2>
                  <p><strong>Job:</strong> ${esc(job.title || job.name)}</p>
                  <p><strong>PO:</strong> ${esc(job.po)}</p>
-                 <p>🚚 Trailer <strong>${esc(trailerName)}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
+                 <p>Trailer <strong>${esc(trailerName)}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
         });
       }
       showToast(
@@ -762,7 +781,7 @@ export default function BuildJobs({
 
   const filtInv = inv.filter((i) => (i?.name || "").toLowerCase().includes(iSrch.toLowerCase()));
 
-  // ── ✏️ EDIT JOB HELPERS ────────────────────────────────────────────────────
+  // ── EDIT JOB HELPERS ────────────────────────────────────────────────────
   // The dialog seeds itself from the job it is handed, so opening it is now just
   // a modal switch. It used to require calling this first to populate four
   // pieces of parent state, in the right order.
@@ -770,7 +789,7 @@ export default function BuildJobs({
 
   return (
     <div>
-      {/* ── 🏗️ CORE APP ACTIONS MENU NAVIGATION ── */}
+      {/* ── CORE APP ACTIONS MENU NAVIGATION ── */}
       <div
         style={{
           display: "flex",
@@ -790,7 +809,9 @@ export default function BuildJobs({
               color: C.navy,
             }}
           >
-            🏗️ Build Jobs
+            <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <HardHat size={22} aria-hidden="true" /> Build Jobs
+            </span>
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
             {t.bjSubtitle}
@@ -819,9 +840,12 @@ export default function BuildJobs({
                 background: subView === "list" ? C.w : "transparent",
                 color: subView === "list" ? C.navy : C.sub,
                 boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              📋 Pipeline List
+              <ClipboardList size={13} aria-hidden="true" /> Pipeline List
             </button>
             <button
               onClick={() => setSubView("calendar")}
@@ -835,9 +859,12 @@ export default function BuildJobs({
                 background: subView === "calendar" ? C.w : "transparent",
                 color: subView === "calendar" ? C.navy : C.sub,
                 boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              📅 Shift Timeline
+              <Calendar size={13} aria-hidden="true" /> Shift Timeline
             </button>
           </div>
 
@@ -1054,7 +1081,7 @@ export default function BuildJobs({
                             color: statusMeta.color,
                           }}
                         >
-                          <span>{statusMeta.dot}</span>
+                          <StatusDot color={statusMeta.color} />
                           <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
                         </span>
                         <span
@@ -1066,7 +1093,13 @@ export default function BuildJobs({
                         >
                           · {job.po}
                         </span>
-                        {isHighlighted && <Bdg color="gold">✨ {highlight.label}</Bdg>}
+                        {isHighlighted && (
+                          <Bdg color="gold">
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              <Sparkles size={11} aria-hidden="true" /> {highlight.label}
+                            </span>
+                          </Bdg>
+                        )}
                         {(syncStatusOf(job) === "synced" || reportUploadedAtOf(job)) && (
                           <Bdg color="green">{t.pullReportFiled}</Bdg>
                         )}
@@ -1108,11 +1141,25 @@ export default function BuildJobs({
                           flexWrap: "wrap",
                         }}
                       >
-                        <span>📦 {Math.max(currentItems.length, 0)} items</span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <Package size={11} aria-hidden="true" /> {Math.max(currentItems.length, 0)}{" "}
+                          items
+                        </span>
                         {sup ? (
-                          <span>👤 {sup.name}</span>
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <User size={11} aria-hidden="true" /> {sup.name}
+                          </span>
                         ) : (
-                          <span style={{ color: C.am }}>⚠️ Unassigned</span>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              color: C.am,
+                            }}
+                          >
+                            <AlertTriangle size={11} aria-hidden="true" /> Unassigned
+                          </span>
                         )}
                         {/* No "Created …" line: the day header above every card
                             now says it, on every sort. */}
@@ -1193,7 +1240,7 @@ export default function BuildJobs({
                                 }
                               }}
                             >
-                              📄 PDF
+                              <FileText size={13} aria-hidden="true" /> PDF
                             </Btn>
                           )}
                           {perms.jobs_close && job.status === "completed" && (
@@ -1211,7 +1258,7 @@ export default function BuildJobs({
                                 if (go) closeJob(job);
                               }}
                             >
-                              🔒 {closing ? t.bjClosing : "Close"}
+                              <Lock size={13} aria-hidden="true" /> {closing ? t.bjClosing : "Close"}
                             </Btn>
                           )}
                           {perms.jobs_approve && (
@@ -1229,7 +1276,7 @@ export default function BuildJobs({
                                 if (go) deleteJob(job.id);
                               }}
                             >
-                              🗑️ Delete
+                              <Trash2 size={13} aria-hidden="true" /> Delete
                             </Btn>
                           )}
                         </div>
@@ -1262,7 +1309,7 @@ export default function BuildJobs({
         </>
       )}
 
-      {/* ── 📂 MODAL: DETAILS DRAWER VIEW ── */}
+      {/* ── MODAL: DETAILS DRAWER VIEW ── */}
       {modal === "detail" && sel && (
         <Modal
           title={`${sel.po} — ${sel.title || sel.name}`}
@@ -1277,7 +1324,7 @@ export default function BuildJobs({
           >
             {perms.jobs_build && sel.status !== "closed" && (
               <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>
-                ✏️ Edit Job
+                <Pencil size={13} aria-hidden="true" /> Edit Job
               </Btn>
             )}
             {perms.jobs_approve && sel.status === "draft" && (
@@ -1289,7 +1336,7 @@ export default function BuildJobs({
                   setModal("approve");
                 }}
               >
-                ✅ Approve & Assign
+                <CheckCircle2 size={13} aria-hidden="true" /> Approve & Assign
               </Btn>
             )}
             {(sel.status === "completed" || sel.status === "closed") && (
@@ -1302,7 +1349,7 @@ export default function BuildJobs({
                   }
                 }}
               >
-                📄 Download PDF Report
+                <FileText size={13} aria-hidden="true" /> Download PDF Report
               </Btn>
             )}
             {perms.jobs_close && sel.status === "completed" && (
@@ -1319,7 +1366,7 @@ export default function BuildJobs({
                   if (go) closeJob();
                 }}
               >
-                🔒 {closing ? t.bjClosing : "Close Job"}
+                <Lock size={13} aria-hidden="true" /> {closing ? t.bjClosing : "Close Job"}
               </Btn>
             )}
             {perms.jobs_close && sel.status === "closed" && (
@@ -1344,7 +1391,7 @@ export default function BuildJobs({
                   }
                 }}
               >
-                🗑️ Delete
+                <Trash2 size={13} aria-hidden="true" /> Delete
               </Btn>
             )}
           </div>
@@ -1374,7 +1421,7 @@ export default function BuildJobs({
               ["Approved", fd(sel.approved)],
               ["Completed", fd(sel.completed || sel.completedAt)],
               [
-                "🚚 Trailers",
+                "Trailers",
                 jobTrailers
                   .filter((jt) => jt.job_id === sel.id)
                   .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
@@ -1413,6 +1460,9 @@ export default function BuildJobs({
             <div style={{ marginBottom: 16 }}>
               <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
                   fontSize: "var(--text-2xs)",
                   color: C.sub,
                   fontWeight: "var(--weight-bold)",
@@ -1420,7 +1470,7 @@ export default function BuildJobs({
                   marginBottom: 6,
                 }}
               >
-                🚚 Assign Trailers
+                <Truck size={11} aria-hidden="true" /> Assign Trailers
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
                 {vehs
@@ -1549,8 +1599,8 @@ export default function BuildJobs({
         </Modal>
       )}
 
-      {/* ── 📂 MODAL: EDIT JOB BUILD ── */}
-      {/* ── 📂 MODAL: SUPERVISOR APPROVAL POPUP ── */}
+      {/* ── MODAL: EDIT JOB BUILD ── */}
+      {/* ── MODAL: SUPERVISOR APPROVAL POPUP ── */}
       {modal === "edit" && sel && (
         <EditJobModal
           job={sel}
@@ -1569,7 +1619,7 @@ export default function BuildJobs({
         />
       )}
 
-      {/* ── 📂 MODAL: CORRECT A WRONG RETURN ON A COMPLETED JOB ──
+      {/* ── MODAL: CORRECT A WRONG RETURN ON A COMPLETED JOB ──
           Reached from inside Edit Job, so it hands control back there rather
           than to the detail drawer underneath it. */}
       {modal === "correctReturn" && sel && (
@@ -1586,7 +1636,7 @@ export default function BuildJobs({
         />
       )}
 
-      {/* ── 📂 MODAL: PULL A LINE ADDED AFTER THE INITIAL PULL ──
+      {/* ── MODAL: PULL A LINE ADDED AFTER THE INITIAL PULL ──
           Also reached from inside Edit Job — same hand-back as above. */}
       {modal === "pullAdded" && sel && (
         <PullAddedMaterialsModal
@@ -1670,13 +1720,26 @@ export default function BuildJobs({
               style={{ flex: 1, justifyContent: "center" }}
               disabled={approving}
             >
-              {approving ? "⏳ Approving..." : "✅ Approve & Notify"}
+              {approving ? (
+                <>
+                  <Loader2
+                    size={14}
+                    style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                    aria-hidden="true"
+                  />{" "}
+                  Approving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={14} aria-hidden="true" /> Approve & Notify
+                </>
+              )}
             </Btn>
           </div>
         </Modal>
       )}
 
-      {/* ── 📂 MODAL: NEW CREATION MULTI-STEP WIZARD ── */}
+      {/* ── MODAL: NEW CREATION MULTI-STEP WIZARD ── */}
       {modal === "new" && (
         <Modal
           title={`New Job — Step ${wStep} of 3`}
@@ -1729,7 +1792,13 @@ export default function BuildJobs({
                   disabled={axL}
                 />
                 <Btn v="primary" onClick={searchAX} disabled={axL}>
-                  {axL ? "Searching..." : "🔍 Search"}
+                  {axL ? (
+                    "Searching..."
+                  ) : (
+                    <>
+                      <Search size={13} aria-hidden="true" /> Search
+                    </>
+                  )}
                 </Btn>
               </div>
               {axR.length > 0 && (
@@ -1867,10 +1936,12 @@ export default function BuildJobs({
                   color: C.navy,
                 }}
               >
-                📋 {wPO.po} — {wPO.name}
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  <ClipboardList size={14} aria-hidden="true" /> {wPO.po} — {wPO.name}
+                </span>
               </div>
 
-              {/* ── 🆕 OPTION 2: MULTI-COLUMN INTERACTIVE SIDE PANEL LAYOUT ── */}
+              {/* ── MULTI-COLUMN INTERACTIVE SIDE PANEL LAYOUT ── */}
               <div style={{ display: "flex", gap: "var(--space-7)", flexWrap: "wrap" }}>
                 {/* Column A: Job Material Templates */}
                 <div
@@ -1895,7 +1966,7 @@ export default function BuildJobs({
                       gap: 5,
                     }}
                   >
-                    🧰 Job Templates
+                    <LayoutTemplate size={14} aria-hidden="true" /> Job Templates
                   </h4>
                   <p style={{ margin: "0 0 10px 0", fontSize: "var(--text-xs)", color: C.sub }}>
                     One-click material packages. Apply one, then fine-tune quantities in the Job
@@ -1954,8 +2025,17 @@ export default function BuildJobs({
                       </div>
                     ))}
                   </div>
-                  <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: C.sub }}>
-                    ✏️ Manage these in Inventory → 🧰 Templates
+                  <p
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      margin: "10px 0 0",
+                      fontSize: "var(--text-2xs)",
+                      color: C.sub,
+                    }}
+                  >
+                    <Pencil size={10} aria-hidden="true" /> Manage these in Inventory → Templates
                   </p>
                 </div>
 
@@ -2033,8 +2113,17 @@ export default function BuildJobs({
                       top: 0,
                     }}
                   >
-                    <h4 style={{ margin: "0 0 10px", color: C.navy, fontSize: "var(--text-base)" }}>
-                      📦 Job List ({wItems.length})
+                    <h4
+                      style={{
+                        margin: "0 0 10px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        color: C.navy,
+                        fontSize: "var(--text-base)",
+                      }}
+                    >
+                      <Package size={14} aria-hidden="true" /> Job List ({wItems.length})
                     </h4>
                     {wItems.length === 0 ? (
                       <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
@@ -2163,6 +2252,9 @@ export default function BuildJobs({
               </Fld>
               <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                   background: wAssign ? C.tB : C.aB,
                   border: `1px solid ${wAssign ? C.tl : C.am}`,
                   borderRadius: "var(--radius-md)",
@@ -2173,9 +2265,17 @@ export default function BuildJobs({
                   fontWeight: "var(--weight-semibold)",
                 }}
               >
-                {wAssign
-                  ? `✅ ${users.find((u) => u.id === wAssign)?.name} will be notified when you approve.`
-                  : "⚠️ No supervisor assigned — will save as draft."}
+                {wAssign ? (
+                  <>
+                    <CheckCircle2 size={14} aria-hidden="true" />{" "}
+                    {users.find((u) => u.id === wAssign)?.name} will be notified when you approve.
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle size={14} aria-hidden="true" /> No supervisor assigned — will
+                    save as draft.
+                  </>
+                )}
               </div>
               {vehs.some((v) => v.type === "trailer") && (
                 <Fld label={t.bjTrailersNeeded} hint={t.bjTrailersHint}>
@@ -2233,7 +2333,20 @@ export default function BuildJobs({
                   style={{ flex: 1, justifyContent: "center" }}
                   disabled={saving}
                 >
-                  {saving ? "⏳ Caching..." : "💾 Save Draft"}
+                  {saving ? (
+                    <>
+                      <Loader2
+                        size={14}
+                        style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                        aria-hidden="true"
+                      />{" "}
+                      Caching...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={14} aria-hidden="true" /> Save Draft
+                    </>
+                  )}
                 </Btn>
                 <Btn
                   v="teal"
@@ -2241,7 +2354,20 @@ export default function BuildJobs({
                   style={{ flex: 1, justifyContent: "center" }}
                   disabled={saving}
                 >
-                  {saving ? "⏳ Submitting..." : "✅ Approve & Notify"}
+                  {saving ? (
+                    <>
+                      <Loader2
+                        size={14}
+                        style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                        aria-hidden="true"
+                      />{" "}
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={14} aria-hidden="true" /> Approve & Notify
+                    </>
+                  )}
                 </Btn>
               </div>
             </div>
@@ -2278,7 +2404,16 @@ export default function BuildJobs({
                     : t.bjCreatedUnassigned
                   : t.bjClosedMsg
               }
-              actionLabel={built ? `📋 ${t.bjSeeInPull}` : `🔒 ${t.bjSeeInClosed}`}
+              actionLabel={
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  {built ? (
+                    <ClipboardList size={13} aria-hidden="true" />
+                  ) : (
+                    <Lock size={13} aria-hidden="true" />
+                  )}{" "}
+                  {built ? t.bjSeeInPull : t.bjSeeInClosed}
+                </span>
+              }
               onGo={() => {
                 const j = handoff.job;
                 setHandoff(null);

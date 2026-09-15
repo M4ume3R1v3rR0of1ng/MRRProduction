@@ -76,7 +76,7 @@ const rawHandler = async (event) => {
     const data = await resend.emails.send({
       from: `${caller.companyName} Alerts <${MAIL_FROM}>`,
       to: recipient,
-      subject: `⚠️ Low Stock Alert — ${itemName}`,
+      subject: `Low Stock Alert — ${itemName}`,
       html: `
         <h2>Inventory Item Running Low</h2>
         <p><strong>Company:</strong> ${escapeHtml(caller.companyName)}</p>

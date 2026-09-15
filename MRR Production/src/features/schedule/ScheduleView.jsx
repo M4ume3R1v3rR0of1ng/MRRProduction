@@ -9,6 +9,7 @@
 // none of them offers is a single timeline you can page backwards through, so
 // that is what this is: look across all three, and look at what already happened.
 import { useMemo, useState } from "react";
+import { Calendar, Truck, Wrench, AlertTriangle } from "lucide-react";
 import { C, parseDay, todayLocal } from "@/shared/utils/helpers";
 import { buildSchedule, monthGrid, monthNames, weekdayShort } from "@/shared/utils/schedule";
 import { Btn, Bdg, Modal } from "@/shared/components/UIPrimitives";
@@ -86,12 +87,15 @@ export default function ScheduleView({
           <h1
             style={{
               margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
               fontSize: "var(--text-2xl)",
               fontWeight: "var(--weight-black)",
               color: C.navy,
             }}
           >
-            🗓️ {t.schedule || "Schedule"}
+            <Calendar size={22} aria-hidden="true" /> {t.schedule || "Schedule"}
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
             {monthTotals.jobs} {monthTotals.jobs === 1 ? t.schJob : t.schJobs} · {monthTotals.maint}{" "}
@@ -247,9 +251,16 @@ export default function ScheduleView({
                     {day.trailerCount > 0 && (
                       <span
                         title={`${day.trailerCount} trailer(s) out`}
-                        style={{ fontSize: "var(--text-2xs)", color: C.sub }}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 2,
+                          fontSize: "var(--text-2xs)",
+                          color: C.sub,
+                        }}
                       >
-                        🚛{day.trailerCount}
+                        <Truck size={10} aria-hidden="true" />
+                        {day.trailerCount}
                       </span>
                     )}
                   </div>
@@ -293,9 +304,12 @@ export default function ScheduleView({
                         textOverflow: "ellipsis",
                         whiteSpace: "nowrap",
                         opacity: m.finished ? 0.55 : 1,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 3,
                       }}
                     >
-                      🔧 {m.vehicle}
+                      <Wrench size={9} aria-hidden="true" /> {m.vehicle}
                     </span>
                   ))}
 
@@ -310,12 +324,15 @@ export default function ScheduleView({
                   {day.conflicts.length > 0 && (
                     <span
                       style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 3,
                         fontSize: "var(--text-2xs)",
                         color: C.am,
                         fontWeight: "var(--weight-bold)",
                       }}
                     >
-                      ⚠️ {day.conflicts.length}
+                      <AlertTriangle size={10} aria-hidden="true" /> {day.conflicts.length}
                     </span>
                   )}
                 </button>
@@ -346,6 +363,9 @@ export default function ScheduleView({
           {openDay.conflicts.length > 0 && (
             <div
               style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 7,
                 background: C.aB,
                 border: `1px solid ${C.am}`,
                 borderRadius: "var(--radius-md)",
@@ -356,8 +376,11 @@ export default function ScheduleView({
                 fontWeight: "var(--weight-bold)",
               }}
             >
-              ⚠️ {openDay.conflicts.join(", ")} {openDay.conflicts.length > 1 ? "are" : "is"} booked
-              out and due in the shop on this day.
+              <AlertTriangle size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
+              <span>
+                {openDay.conflicts.join(", ")} {openDay.conflicts.length > 1 ? "are" : "is"} booked
+                out and due in the shop on this day.
+              </span>
             </div>
           )}
 
@@ -418,7 +441,17 @@ export default function ScheduleView({
                         <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
                           {j.po || "No PO"}
                           {j.supervisor ? ` · ${j.supervisor}` : ""}
-                          {j.trailers.length ? ` · 🚛 ${j.trailers.join(", ")}` : ""}
+                          {j.trailers.length > 0 && (
+                            <>
+                              {" · "}
+                              <Truck
+                                size={10}
+                                style={{ verticalAlign: -1 }}
+                                aria-hidden="true"
+                              />{" "}
+                              {j.trailers.join(", ")}
+                            </>
+                          )}
                         </div>
                       </div>
                       <Bdg color={st.c}>{st.l}</Bdg>
@@ -467,12 +500,15 @@ export default function ScheduleView({
                     <div style={{ minWidth: 0 }}>
                       <div
                         style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
                           fontWeight: "var(--weight-bold)",
                           color: C.navy,
                           fontSize: "var(--text-md)",
                         }}
                       >
-                        🔧 {m.vehicle}
+                        <Wrench size={12} aria-hidden="true" /> {m.vehicle}
                       </div>
                       <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{m.issue}</div>
                     </div>

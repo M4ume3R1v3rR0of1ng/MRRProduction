@@ -1,5 +1,6 @@
 // src/shared/components/ChatWidget.jsx
 import { useEffect, useRef, useState } from "react";
+import { Bot, X, AlertTriangle, Camera } from "lucide-react";
 import { translations } from "../utils/translations";
 import { supabase } from "../utils/supabase";
 import { C, compressImg } from "../utils/helpers";
@@ -22,7 +23,13 @@ function toApiContent(msg) {
   return blocks.length === 1 && blocks[0].type === "text" ? blocks[0].text : blocks;
 }
 
-export default function ChatWidget({ lang = "en" }) {
+// A per-browser marker of when this user last opened the chat — NOT the
+// conversation itself (that's chat_messages, see supabase/41, genuinely
+// persisted server-side and synced across devices). This is only for the
+// unread badge, which doesn't need to survive a browser switch to be useful.
+const lastSeenKey = (userId) => `mrr-chat-last-seen-${userId}`;
+
+export default function ChatWidget({ user, lang = "en" }) {
   const t = translations[lang] || translations.en;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -32,14 +39,123 @@ export default function ChatWidget({ lang = "en" }) {
   const [error, setError] = useState("");
   const [editingIndex, setEditingIndex] = useState(null);
   const [lightboxPhoto, setLightboxPhoto] = useState(null);
+  // A message the assistant volunteered on its own (an oil-due reminder, see
+  // send-maintenance-push-notices.js) rather than one it was asked for.
+  // Drives the unread badge on the launcher button below.
+  const [hasUnread, setHasUnread] = useState(false);
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
+  // Tags every message THIS TAB sends, so its own realtime echo can be told
+  // apart from a message that genuinely arrived from elsewhere — see the
+  // realtime effect below and supabase/41's "WHY origin_session_id".
+  const sessionIdRef = useRef(crypto.randomUUID());
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, sending]);
+
+  // Load recent history on login (or when the signed-in user changes) — this
+  // is what makes the conversation survive a reload instead of starting blank
+  // every time. Capped at 50: plenty of "memory" for continuity without
+  // pulling in a driver's entire multi-month history on every mount (chat.js
+  // only ever forwards the last 20 turns to the model anyway).
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+
+    supabase
+      .from("chat_messages")
+      .select("id, role, text, proactive, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .then(({ data, error: loadError }) => {
+        if (cancelled) return;
+        if (loadError) {
+          console.error("ChatWidget: failed to load chat history:", loadError.message);
+          return;
+        }
+        const rows = data || [];
+        setMessages(
+          [...rows]
+            .reverse()
+            .map((r) => ({ id: r.id, role: r.role, text: r.text, proactive: r.proactive })),
+        );
+
+        // The newest row (rows[0], since this fetch is newest-first) is a
+        // reminder the assistant raised on its own and hasn't been opened
+        // since — show the badge without needing to have been in the tab
+        // when it was written.
+        const newest = rows[0];
+        if (newest?.proactive) {
+          try {
+            const lastSeen = window.localStorage.getItem(lastSeenKey(user.id));
+            if (!lastSeen || new Date(newest.created_at) > new Date(lastSeen)) setHasUnread(true);
+          } catch {
+            // Private browsing / storage disabled — badge just won't persist
+            // across a reload for this viewer, nothing else is affected.
+          }
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
+  // Live delivery while mounted: another tab's message, or — the actual point
+  // of this — a reminder send-maintenance-push-notices.js writes directly
+  // into chat_messages. RLS (supabase/41) already scopes what Realtime will
+  // ever fan to this subscriber to this user's own rows, same reasoning as
+  // useAppData.js's other realtime effects.
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel("realtime-chat-messages")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        (payload) => {
+          const row = payload.new;
+          // This tab already rendered its own optimistic copy the moment
+          // chat.js's HTTP response came back — skip the echo of that same
+          // row rather than showing it twice. A row with no origin_session_id
+          // at all (every backend-job-written row) never matches and always
+          // gets through.
+          if (row.origin_session_id && row.origin_session_id === sessionIdRef.current) return;
+
+          setMessages((prev) =>
+            prev.some((m) => m.id === row.id)
+              ? prev
+              : [...prev, { id: row.id, role: row.role, text: row.text, proactive: row.proactive }],
+          );
+          if (row.proactive && !open) setHasUnread(true);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, open]);
+
+  const toggleOpen = () => {
+    if (!open) {
+      setHasUnread(false);
+      if (user?.id) {
+        try {
+          window.localStorage.setItem(lastSeenKey(user.id), new Date().toISOString());
+        } catch {
+          // Nothing to persist to — the badge just re-derives from scratch
+          // next load, same fallback as above.
+        }
+      }
+    }
+    setOpen((o) => !o);
+  };
 
   const attachPhoto = (e) => {
     const file = e.target.files[0];
@@ -75,6 +191,7 @@ export default function ChatWidget({ lang = "en" }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           accessToken,
+          sessionId: sessionIdRef.current,
           messages: nextMessages.map((m) => ({ role: m.role, content: toApiContent(m) })),
         }),
       });
@@ -91,7 +208,21 @@ export default function ChatWidget({ lang = "en" }) {
       }
       if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`);
 
-      setMessages((prev) => [...prev, { role: "assistant", text: result.reply }]);
+      setMessages((prev) => {
+        // Tag the user turn we just optimistically rendered with its real
+        // persisted id, so a later edit/delete of it can clean up that row
+        // too — it's always the last entry, since sendFrom is the only thing
+        // that ever appends one.
+        const tagged = prev.map((m, i) =>
+          i === prev.length - 1 && m.role === "user" && !m.id && result.userMessageId
+            ? { ...m, id: result.userMessageId }
+            : m,
+        );
+        return [
+          ...tagged,
+          { role: "assistant", text: result.reply, id: result.assistantMessageId },
+        ];
+      });
     } catch (err) {
       console.error("Chat widget error:", err);
       setError(err.message || "Something went wrong.");
@@ -120,13 +251,42 @@ export default function ChatWidget({ lang = "en" }) {
     const text = draft.trim();
     if (!text && !pendingPhoto) return;
     // Re-send from the point of the edited message — everything after it (including
-    // the old reply) is discarded, since it was a response to the un-edited version.
+    // the old reply) is discarded locally, since it was a response to the
+    // un-edited version. Their persisted rows need cleaning up too, or a
+    // reload would resurrect content nobody can see here anymore.
+    const idsToDrop = messages
+      .slice(editingIndex)
+      .map((m) => m.id)
+      .filter(Boolean);
+    if (idsToDrop.length) {
+      supabase
+        .from("chat_messages")
+        .delete()
+        .in("id", idsToDrop)
+        .then(({ error: deleteError }) => {
+          if (deleteError) {
+            console.error("ChatWidget: failed to clean up edited messages:", deleteError.message);
+          }
+        });
+    }
     sendFrom(messages.slice(0, editingIndex), text, pendingPhoto);
   };
 
   const deleteMessage = (index) => {
     if (!window.confirm(t.chDeleteConfirm)) return;
+    const target = messages[index];
     setMessages((prev) => prev.filter((_, i) => i !== index));
+    if (target?.id) {
+      supabase
+        .from("chat_messages")
+        .delete()
+        .eq("id", target.id)
+        .then(({ error: deleteError }) => {
+          if (deleteError) {
+            console.error("ChatWidget: failed to delete persisted message:", deleteError.message);
+          }
+        });
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -175,8 +335,16 @@ export default function ChatWidget({ lang = "en" }) {
               alignItems: "center",
             }}
           >
-            <div style={{ fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-md)" }}>
-              🤖 Steadwerk Assistant
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                fontWeight: "var(--weight-extrabold)",
+                fontSize: "var(--text-md)",
+              }}
+            >
+              <Bot size={17} aria-hidden="true" /> Steadwerk Assistant
             </div>
             <button
               onClick={() => setOpen(false)}
@@ -222,7 +390,7 @@ export default function ChatWidget({ lang = "en" }) {
               const isEditing = editingIndex === i;
               return (
                 <div
-                  key={i}
+                  key={m.id ?? `local-${i}`}
                   style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "85%" }}
                 >
                   {!isEditing && (
@@ -377,7 +545,9 @@ export default function ChatWidget({ lang = "en" }) {
                 fontWeight: "var(--weight-semibold)",
               }}
             >
-              ⚠️ {error}
+              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <AlertTriangle size={12} aria-hidden="true" /> {error}
+              </span>
             </div>
           )}
 
@@ -413,12 +583,13 @@ export default function ChatWidget({ lang = "en" }) {
                   borderRadius: "50%",
                   width: 16,
                   height: 16,
-                  fontSize: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                   cursor: "pointer",
-                  lineHeight: 1,
                 }}
               >
-                ✕
+                <X size={10} aria-hidden="true" />
               </button>
             </div>
           )}
@@ -447,11 +618,12 @@ export default function ChatWidget({ lang = "en" }) {
                 border: "none",
                 borderRadius: "var(--radius-md)",
                 padding: "9px var(--space-4)",
-                fontSize: "var(--text-md)",
+                display: "flex",
+                alignItems: "center",
                 cursor: "pointer",
               }}
             >
-              📷
+              <Camera size={16} color={C.navy} aria-hidden="true" />
             </button>
             <input
               value={draft}
@@ -490,9 +662,10 @@ export default function ChatWidget({ lang = "en" }) {
       )}
 
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleOpen}
         title={t.cwAssistant}
         style={{
+          position: "relative",
           width: 56,
           height: 56,
           borderRadius: "50%",
@@ -501,13 +674,28 @@ export default function ChatWidget({ lang = "en" }) {
           border: "none",
           boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
           cursor: "pointer",
-          fontSize: 26,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        {open ? "×" : "🤖"}
+        {open ? <X size={24} aria-hidden="true" /> : <Bot size={26} aria-hidden="true" />}
+        {/* The assistant has something to say that wasn't asked for — see the
+            history-load and realtime effects above. Cleared the moment this opens. */}
+        {hasUnread && !open && (
+          <span
+            style={{
+              position: "absolute",
+              top: 2,
+              right: 2,
+              width: 14,
+              height: 14,
+              borderRadius: "50%",
+              background: C.rd,
+              border: `2px solid ${C.w}`,
+            }}
+          />
+        )}
       </button>
 
       {lightboxPhoto && (

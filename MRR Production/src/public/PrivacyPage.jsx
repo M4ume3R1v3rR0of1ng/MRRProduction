@@ -4,7 +4,7 @@
 // footer, and the Terms page. Styles are scoped under .sw-privacy so nothing
 // leaks into the app's global stylesheet.
 //
-// ⚠️ IMPORTANT (for the Steadwerk team, not end users): this is a starting
+// IMPORTANT (for the Steadwerk team, not end users): this is a starting
 // template, not legal advice. Have a licensed attorney review it before relying
 // on it, especially the rights, retention, and international-transfer sections,
 // which change with jurisdiction.

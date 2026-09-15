@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Required for @capacitor/push-notifications. "development" here talks to
+  APNs' sandbox host — matches send-maintenance-push-notices.js sending to
+  the sandbox host whenever APNS_PRODUCTION is unset. Change to "production"
+  (and set APNS_PRODUCTION=true in Netlify) for the TestFlight/App Store
+  build, matching whichever provisioning profile actually signs the build.
+
+  This file alone does not enable the capability — Xcode has to know it
+  exists. Open ios/App/App.xcworkspace, select the App target, go to
+  Signing & Capabilities, and add "Push Notifications": that both wires this
+  file into the build settings (CODE_SIGN_ENTITLEMENTS) and regenerates the
+  provisioning profile to include the capability. Hand-editing
+  project.pbxproj to do the same is fragile without Xcode there to validate
+  it, so this is intentionally left as a manual step.
+-->
+<plist version="1.0">
+<dict>
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

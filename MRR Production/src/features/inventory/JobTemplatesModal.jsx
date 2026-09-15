@@ -12,6 +12,16 @@
 // way to say "I'm done". Templates persist through features/jobs/jobTemplates, so the
 // parent never sees them and has nothing to keep in sync.
 import { useEffect, useState } from "react";
+import {
+  LayoutTemplate,
+  Package,
+  Search,
+  Pencil,
+  Trash2,
+  Save,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 import { C, uid, tot } from "@/shared/utils/helpers";
 // jobTemplates.js is a jobs-domain data model; JobTemplatesModal itself stays
 // in inventory since Inventory is its only real UI entry point.
@@ -125,7 +135,15 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
   };
 
   return (
-    <Modal title="🧰 Job Material Templates" onClose={requestClose} wide>
+    <Modal
+      title={
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <LayoutTemplate size={17} aria-hidden="true" /> Job Material Templates
+        </span>
+      }
+      onClose={requestClose}
+      wide
+    >
       {loading ? (
         <p style={{ color: C.sub, textAlign: "center", padding: "20px 0" }}>Loading templates...</p>
       ) : editing ? (
@@ -150,8 +168,17 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
           </div>
           <div className="sw-grid-2" style={{ gap: "var(--space-5)" }}>
             <div>
-              <h4 style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)" }}>
-                📦 Materials ({editing.items.length})
+              <h4
+                style={{
+                  margin: "0 0 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  color: C.navy,
+                  fontSize: "var(--text-sm)",
+                }}
+              >
+                <Package size={13} aria-hidden="true" /> Materials ({editing.items.length})
               </h4>
               {editing.items.length === 0 ? (
                 <p style={{ color: C.sub, fontSize: "var(--text-sm)" }}>
@@ -183,7 +210,18 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                           }}
                         >
                           {t.iname}{" "}
-                          {!inCatalog && <span style={{ color: C.am }}>⚠ not in catalog</span>}
+                          {!inCatalog && (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 3,
+                                color: C.am,
+                              }}
+                            >
+                              <AlertTriangle size={10} aria-hidden="true" /> not in catalog
+                            </span>
+                          )}
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                           <Inp
@@ -231,13 +269,21 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
               )}
             </div>
             <div>
-              <Inp
-                value={srch}
-                onChange={(e) => setSrch(e.target.value)}
-                placeholder="🔍 Search catalog..."
-                style={{ marginBottom: 8 }}
-                disabled={saving}
-              />
+              <div style={{ position: "relative", marginBottom: 8 }}>
+                <Search
+                  size={13}
+                  color={C.sub}
+                  style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
+                  aria-hidden="true"
+                />
+                <Inp
+                  value={srch}
+                  onChange={(e) => setSrch(e.target.value)}
+                  placeholder="Search catalog..."
+                  style={{ paddingLeft: 28 }}
+                  disabled={saving}
+                />
+              </div>
               <div
                 style={{
                   maxHeight: 260,
@@ -309,7 +355,20 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
               style={{ flex: 1, justifyContent: "center" }}
               disabled={saving}
             >
-              {saving ? "⏳ Saving..." : "💾 Save Template"}
+              {saving ? (
+                <>
+                  <Loader2
+                    size={14}
+                    style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                    aria-hidden="true"
+                  />{" "}
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save size={14} aria-hidden="true" /> Save Template
+                </>
+              )}
             </Btn>
           </div>
         </>
@@ -373,10 +432,10 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                       }}
                       disabled={saving}
                     >
-                      ✏️ Edit
+                      <Pencil size={12} aria-hidden="true" /> Edit
                     </Btn>
                     <Btn v="danger" sz="sm" onClick={() => deleteTpl(tpl)} disabled={saving}>
-                      🗑️
+                      <Trash2 size={12} aria-hidden="true" />
                     </Btn>
                   </div>
                 </div>

@@ -6,6 +6,7 @@
 // Extracted from FleetManagementView along with its three useState hooks and the
 // insert handler. Nothing outside this dialog touched that state.
 import { useState } from "react";
+import { ClipboardList, Save, Loader2, X } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { Btn, Fld, Modal, PhotoUpload, Sel, TA } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
@@ -67,7 +68,11 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
 
   return (
     <Modal
-      title="📋 File Vehicle Condition & Inspection Report"
+      title={
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <ClipboardList size={17} aria-hidden="true" /> File Vehicle Condition & Inspection Report
+        </span>
+      }
       onClose={() => {
         if (!submitting) onClose?.();
       }}
@@ -145,12 +150,13 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
                         borderRadius: "50%",
                         width: 18,
                         height: 18,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         cursor: "pointer",
-                        fontSize: 10,
-                        lineHeight: 1,
                       }}
                     >
-                      ✕
+                      <X size={10} aria-hidden="true" />
                     </button>
                   </div>
                 ))}
@@ -174,7 +180,20 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
             onClick={submit}
             disabled={submitting}
           >
-            {submitting ? "⏳ Saving Log Entry..." : "💾 Commit Inspection Log"}
+            {submitting ? (
+              <>
+                <Loader2
+                  size={14}
+                  style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                  aria-hidden="true"
+                />{" "}
+                Saving Log Entry...
+              </>
+            ) : (
+              <>
+                <Save size={14} aria-hidden="true" /> Commit Inspection Log
+              </>
+            )}
           </Btn>
         </div>
       </div>

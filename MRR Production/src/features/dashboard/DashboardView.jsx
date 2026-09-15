@@ -1,5 +1,25 @@
 // src/features/dashboard/DashboardView.jsx
 import { useState, useEffect, useId } from "react";
+import {
+  Calendar,
+  Truck,
+  DollarSign,
+  AlertTriangle,
+  AlertOctagon,
+  Package,
+  Wrench,
+  ClipboardList,
+  CheckCircle2,
+  Flag,
+  Plus,
+  PartyPopper,
+  Bell,
+  MapPin,
+  FileText,
+  User,
+  HardHat,
+  RefreshCw,
+} from "lucide-react";
 import { C, displayName } from "@/shared/utils/helpers";
 import { Bdg, Btn, Modal } from "@/shared/components/UIPrimitives";
 import TeamChatBox from "./TeamChatBox";
@@ -447,7 +467,7 @@ export default function DashboardView({
     }
   };
 
-  // ── 🔔 NEW MAINTENANCE REQUEST ALERT (pops for anyone with maint_manage, same pattern as new-job alert) ──
+  // ── NEW MAINTENANCE REQUEST ALERT (pops for anyone with maint_manage, same pattern as new-job alert) ──
   // Requires a `acked_by` jsonb column on maintenance_requests (array of user ids who've dismissed it),
   // since — unlike jobs, which have one assignedto supervisor — a request can be relevant to several managers.
   const newMaintForMe = perms.maint_manage
@@ -488,7 +508,7 @@ export default function DashboardView({
     }
   };
 
-  // ── 🛠️ MAINTENANCE STATUS UPDATE ALERT (pops for the requester when a manager moves their ticket,
+  // ── MAINTENANCE STATUS UPDATE ALERT (pops for the requester when a manager moves their ticket,
   // same pattern as the supervisor new-job alert). Requires a `newforrequester` boolean column on
   // maintenance_requests, set by updateStatus in MaintenanceRequestsView and cleared here on acknowledge.
   const myStatusUpdates = reqs.filter(
@@ -533,7 +553,7 @@ export default function DashboardView({
   // card roughly fifty vertical pixels to say nothing the label did not. It now
   // sits beside the figure, so a row of these is about a third shorter and two
   // rows of them fit where one used to.
-  const SC = ({ label, value, color, icon, onClick, sub, series, seriesLabels, format }) => (
+  const SC = ({ label, value, color, icon: Icon, onClick, sub, series, seriesLabels, format }) => (
     <div
       onClick={onClick}
       className={onClick ? "mrr-card mrr-card-click" : "mrr-card"}
@@ -555,11 +575,10 @@ export default function DashboardView({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "var(--text-lg)",
             flexShrink: 0,
           }}
         >
-          {icon}
+          {Icon && <Icon size={18} color={color} aria-hidden="true" />}
         </div>
         <div style={{ minWidth: 0 }}>
           {/* nowrap + ellipsis: the valuation card carries "$1,284,003" and these
@@ -597,7 +616,7 @@ export default function DashboardView({
   );
 
   // Reusable Quick Action Card Primitive
-  const QuickActionCard = ({ title, subtitle, icon, color, onClick }) => (
+  const QuickActionCard = ({ title, subtitle, icon: Icon, color, onClick }) => (
     <div
       onClick={onClick}
       className="mrr-card mrr-card-click"
@@ -621,11 +640,10 @@ export default function DashboardView({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "var(--text-xl)",
           flexShrink: 0,
         }}
       >
-        {icon}
+        <Icon size={19} color={color} aria-hidden="true" />
       </div>
       {/* minWidth 0 on both, or the subtitle refuses to shrink and pushes the
           tile wider than its grid column. */}
@@ -661,7 +679,7 @@ export default function DashboardView({
   const hour = new Date().getHours();
   const greeting = hour < 12 ? t.goodMorning : hour < 17 ? t.goodAfternoon : t.goodEvening;
 
-  // ── 🔨 LAYOUT 1: FIELD WORKER PORTAL ──
+  // ── LAYOUT 1: FIELD WORKER PORTAL ──
   const renderFieldDashboard = () => {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -688,12 +706,15 @@ export default function DashboardView({
               <h3
                 style={{
                   margin: "0 0 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
                   fontSize: "var(--text-base)",
                   fontWeight: "var(--weight-extrabold)",
                   color: C.navy,
                 }}
               >
-                📅 {t.activeAgenda}
+                <Calendar size={15} aria-hidden="true" /> {t.activeAgenda}
               </h3>
               {myJobs.length === 0 ? (
                 <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>{t.noJobs}</p>
@@ -713,8 +734,17 @@ export default function DashboardView({
                     <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
                       {j.title || j.name}
                     </div>
-                    <div style={{ color: C.sub, fontSize: "var(--text-2xs)", marginTop: 2 }}>
-                      📍 {j.addr || j.address}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        color: C.sub,
+                        fontSize: "var(--text-2xs)",
+                        marginTop: 2,
+                      }}
+                    >
+                      <MapPin size={11} aria-hidden="true" /> {j.addr || j.address}
                     </div>
                   </div>
                 ))
@@ -733,12 +763,15 @@ export default function DashboardView({
               <h3
                 style={{
                   margin: "0 0 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
                   fontSize: "var(--text-base)",
                   fontWeight: "var(--weight-extrabold)",
                   color: C.navy,
                 }}
               >
-                🚛 {t.assignedTruck}
+                <Truck size={15} aria-hidden="true" /> {t.assignedTruck}
               </h3>
               {myVehicle ? (
                 <div style={{ background: C.lg, padding: 16, borderRadius: "var(--radius-lg)" }}>
@@ -799,7 +832,7 @@ export default function DashboardView({
     );
   };
 
-  // ── 🏭 LAYOUT 2: WAREHOUSE FULFILLMENT HUB ──
+  // ── LAYOUT 2: WAREHOUSE FULFILLMENT HUB ──
   const renderWarehouseDashboard = () => {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -825,16 +858,28 @@ export default function DashboardView({
               <h3
                 style={{
                   margin: "0 0 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
                   fontSize: "var(--text-base)",
                   fontWeight: "var(--weight-extrabold)",
                   color: C.navy,
                 }}
               >
-                🚨 {t.lowStockWatch}
+                <AlertOctagon size={15} aria-hidden="true" /> {t.lowStockWatch}
               </h3>
               {low.length === 0 ? (
-                <p style={{ color: C.gr, fontSize: "var(--text-sm)", margin: 0 }}>
-                  ✅ {t.allStockSafe}
+                <p
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    color: C.gr,
+                    fontSize: "var(--text-sm)",
+                    margin: 0,
+                  }}
+                >
+                  <CheckCircle2 size={14} aria-hidden="true" /> {t.allStockSafe}
                 </p>
               ) : (
                 /* A meter each, on-hand against that item's own alert level, rather
@@ -914,12 +959,15 @@ export default function DashboardView({
               <h3
                 style={{
                   margin: "0 0 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
                   fontSize: "var(--text-base)",
                   fontWeight: "var(--weight-extrabold)",
                   color: C.navy,
                 }}
               >
-                📦 {t.stagedOrders}
+                <Package size={15} aria-hidden="true" /> {t.stagedOrders}
               </h3>
               {pendingPulls.slice(0, 4).map((p) => (
                 <div
@@ -959,7 +1007,7 @@ export default function DashboardView({
     );
   };
 
-  // ── 📊 LAYOUT 3: MANAGEMENT COMMAND CENTRE ──
+  // ── LAYOUT 3: MANAGEMENT COMMAND CENTRE ──
   const renderManagerDashboard = () => {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -995,12 +1043,15 @@ export default function DashboardView({
               <h3
                 style={{
                   margin: "0 0 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
                   fontSize: "var(--text-base)",
                   fontWeight: "var(--weight-extrabold)",
                   color: C.navy,
                 }}
               >
-                📋 {t.masterPipeline}
+                <ClipboardList size={15} aria-hidden="true" /> {t.masterPipeline}
               </h3>
 
               {/* The whole queue as five bars, above the four-job sample that used
@@ -1071,12 +1122,15 @@ export default function DashboardView({
                 <h3
                   style={{
                     margin: "0 0 4px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 7,
                     fontSize: "var(--text-base)",
                     fontWeight: "var(--weight-extrabold)",
                     color: C.navy,
                   }}
                 >
-                  💰 {t.materialThisMonth}
+                  <DollarSign size={15} aria-hidden="true" /> {t.materialThisMonth}
                 </h3>
                 <p style={{ margin: "0 0 12px", fontSize: "var(--text-2xs)", color: C.sub }}>
                   Top 5 categories by spend
@@ -1144,7 +1198,7 @@ export default function DashboardView({
               color: C.navy,
             }}
           >
-            {greeting}, {displayName(user)}! 👋
+            {greeting}, {displayName(user)}
           </h1>
           <p style={{ margin: "3px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
             {company?.branding?.displayName || company?.name || "Steadwerk"}
@@ -1167,17 +1221,17 @@ export default function DashboardView({
         <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", marginBottom: 16 }}>
           {perms.jobs_build && (
             <Btn v="gold" onClick={() => onNav("buildjobs")}>
-              ➕ {t.quickNewJob}
+              <Plus size={14} aria-hidden="true" /> {t.quickNewJob}
             </Btn>
           )}
           {perms.jobs_pull && (
             <Btn v="teal" onClick={() => onNav("pull")}>
-              🚛 {t.pull}
+              <Truck size={14} aria-hidden="true" /> {t.pull}
             </Btn>
           )}
           {(perms.maint_submit || perms.maint_manage) && (
             <Btn v="outline" onClick={() => onNav("requests")}>
-              🔧 {t.quickMaint}
+              <Wrench size={14} aria-hidden="true" /> {t.quickMaint}
             </Btn>
           )}
         </div>
@@ -1205,21 +1259,21 @@ export default function DashboardView({
               label={t.activeProjects}
               value={activeJobsList.length}
               color={C.am}
-              icon="🔄"
+              icon={RefreshCw}
               onClick={() => onNav("pull")}
             />
             <SC
               label={t.fleetDisruptions}
               value={deadlinedTrucks.length}
               color={deadlinedTrucks.length > 0 ? C.rd : C.gr}
-              icon="🚛"
+              icon={Truck}
               onClick={() => onNav("fleet")}
             />
             <SC
               label={t.holdingValuation}
               value={`$${Math.round(totalInventoryCost).toLocaleString()}`}
               color={C.blue}
-              icon="💰"
+              icon={DollarSign}
               onClick={() => onNav("reports")}
             />
           </>
@@ -1230,21 +1284,21 @@ export default function DashboardView({
               label={t.lowStockWatch}
               value={low.length}
               color={low.length > 0 ? C.rd : C.gr}
-              icon="🚨"
+              icon={AlertOctagon}
               onClick={() => onNav("inventory")}
             />
             <SC
               label={t.stagedOrders}
               value={pendingPulls.length}
               color={C.blue}
-              icon="📦"
+              icon={Package}
               onClick={() => onNav("pull")}
             />
             <SC
               label={t.myOpenTickets}
               value={pendingReqs.length}
               color={C.pu}
-              icon="🔧"
+              icon={Wrench}
               onClick={() => onNav("requests")}
             />
           </>
@@ -1255,21 +1309,21 @@ export default function DashboardView({
               label={t.myAssignedJobs}
               value={myJobs.length}
               color={C.tl}
-              icon="📋"
+              icon={ClipboardList}
               onClick={() => onNav("pull")}
             />
             <SC
               label={t.activeBuilds}
               value={myJobs.filter((j) => j.status === "active").length}
               color={C.am}
-              icon="🔄"
+              icon={RefreshCw}
               onClick={() => onNav("pull")}
             />
             <SC
               label={t.myOpenTickets}
               value={myOpenTickets.length}
               color={C.pu}
-              icon="🔧"
+              icon={Wrench}
               onClick={() => onNav("requests")}
             />
           </>
@@ -1278,7 +1332,7 @@ export default function DashboardView({
           label={t.completedThisWeek}
           value={completedThisWeek}
           color={C.gr}
-          icon="✅"
+          icon={CheckCircle2}
           series={completedSeries}
           seriesLabels={trendLabels}
           onClick={perms.reports_view ? () => onNav("reports") : undefined}
@@ -1287,7 +1341,7 @@ export default function DashboardView({
           label={t.completedThisMonth}
           value={completedThisMonth}
           color={C.blue}
-          icon="🏁"
+          icon={Flag}
           series={completedSeries}
           seriesLabels={trendLabels}
           onClick={perms.reports_view ? () => onNav("reports") : undefined}
@@ -1297,7 +1351,7 @@ export default function DashboardView({
             label={t.materialThisMonth}
             value={money(materialCostThisMonth)}
             color={C.am}
-            icon="💰"
+            icon={DollarSign}
             series={materialCostSeries}
             seriesLabels={trendLabels}
             format={money}
@@ -1323,9 +1377,16 @@ export default function DashboardView({
           }}
         >
           <div
-            style={{ fontWeight: "var(--weight-bold)", color: C.tl, fontSize: "var(--text-base)" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              fontWeight: "var(--weight-bold)",
+              color: C.tl,
+              fontSize: "var(--text-base)",
+            }}
           >
-            🎉 {newJobs.length} {t.newAssignments}
+            <PartyPopper size={16} aria-hidden="true" /> {newJobs.length} {t.newAssignments}
           </div>
           <Btn v="teal" sz="sm">
             {t.view} →
@@ -1348,9 +1409,16 @@ export default function DashboardView({
           }}
         >
           <div
-            style={{ fontWeight: "var(--weight-bold)", color: C.pu, fontSize: "var(--text-base)" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              fontWeight: "var(--weight-bold)",
+              color: C.pu,
+              fontSize: "var(--text-base)",
+            }}
           >
-            🔔 {pendingReqs.length} {t.pendingMaint}
+            <Bell size={15} aria-hidden="true" /> {pendingReqs.length} {t.pendingMaint}
           </div>
           <Btn v="purple" sz="sm">
             {t.view} →
@@ -1360,6 +1428,9 @@ export default function DashboardView({
       {low.length > 0 && (
         <div
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
             background: C.aB,
             border: `1.5px solid ${C.am}`,
             borderRadius: "var(--radius-lg)",
@@ -1370,7 +1441,7 @@ export default function DashboardView({
             fontWeight: "var(--weight-semibold)",
           }}
         >
-          ⚠️ {low.length} {t.lowStockAlert}
+          <AlertTriangle size={14} aria-hidden="true" /> {low.length} {t.lowStockAlert}
         </div>
       )}
 
@@ -1397,28 +1468,28 @@ export default function DashboardView({
           <QuickActionCard
             title={t.pull}
             subtitle={t.dashQaStage}
-            icon="📦"
+            icon={Package}
             color="var(--c-slate)"
             onClick={() => onNav("pull")}
           />
           <QuickActionCard
             title={t.requests}
             subtitle={t.dashQaMaint}
-            icon="🔧"
+            icon={Wrench}
             color="var(--c-plum)"
             onClick={() => onNav("requests")}
           />
           <QuickActionCard
             title={t.myAssignedJobs}
             subtitle={t.dashQaCheck}
-            icon="📋"
+            icon={ClipboardList}
             color="var(--c-teal)"
             onClick={() => onNav("pull")}
           />
           <QuickActionCard
             title={t.fleet}
             subtitle={t.dashQaFlag}
-            icon="⚠️"
+            icon={AlertTriangle}
             color="var(--c-rust)"
             onClick={() => onNav("fleet")}
           />
@@ -1438,9 +1509,18 @@ export default function DashboardView({
 
       {/* Live Assignment Modal Overlay */}
       {newJobAlert && (
-        <Modal title={`🚨 ${t.newAssignments}`} onClose={() => acknowledgeJob(false)}>
+        <Modal
+          title={
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertOctagon size={17} aria-hidden="true" /> {t.newAssignments}
+            </span>
+          }
+          onClose={() => acknowledgeJob(false)}
+        >
           <div style={{ textAlign: "center", padding: "8px 0" }}>
-            <div style={{ fontSize: 42, marginBottom: 10 }}>🏗️</div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+              <HardHat size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
+            </div>
             <h3
               style={{
                 margin: "0 0 6px 0",
@@ -1466,11 +1546,18 @@ export default function DashboardView({
                 marginBottom: 16,
               }}
             >
-              <strong>📍 {t.dashDispatchAddress}:</strong>{" "}
+              <strong>
+                <MapPin size={13} style={{ verticalAlign: -2 }} aria-hidden="true" />{" "}
+                {t.dashDispatchAddress}:
+              </strong>{" "}
               {newJobAlert.addr || newJobAlert.address || t.dashNoLocation}
               {newJobAlert.notes && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
-                  <strong>📝 {t.dashCrewInstructions}:</strong> {newJobAlert.notes}
+                  <strong>
+                    <FileText size={13} style={{ verticalAlign: -2 }} aria-hidden="true" />{" "}
+                    {t.dashCrewInstructions}:
+                  </strong>{" "}
+                  {newJobAlert.notes}
                 </div>
               )}
             </div>
@@ -1489,7 +1576,8 @@ export default function DashboardView({
                   color: C.am,
                 }}
               >
-                🚚 {t.dashBringTrailers}: {alertTrailerNames.join(", ")}
+                <Truck size={13} style={{ verticalAlign: -2 }} aria-hidden="true" />{" "}
+                {t.dashBringTrailers}: {alertTrailerNames.join(", ")}
               </div>
             )}
 
@@ -1508,7 +1596,9 @@ export default function DashboardView({
       {!newJobAlert && maintAlert && (
         <Modal title={t.dashNewMaintReq} onClose={() => acknowledgeMaint(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
-            <div style={{ fontSize: 42, marginBottom: 10 }}>🔧</div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+              <Wrench size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
+            </div>
             <h3
               style={{
                 margin: "0 0 6px 0",
@@ -1528,7 +1618,13 @@ export default function DashboardView({
                 flexWrap: "wrap",
               }}
             >
-              {maintAlert.urgency === "urgent" && <Bdg color="red">🚨 URGENT</Bdg>}
+              {maintAlert.urgency === "urgent" && (
+                <Bdg color="red">
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <AlertOctagon size={11} aria-hidden="true" /> URGENT
+                  </span>
+                </Bdg>
+              )}
               <Bdg color="gray">{maintAlert.type}</Bdg>
             </div>
 
@@ -1543,9 +1639,16 @@ export default function DashboardView({
                 marginBottom: 16,
               }}
             >
-              <strong>📝 Reported Issue:</strong> {maintAlert.notes || "No description provided"}
+              <strong>
+                <FileText size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Reported
+                Issue:
+              </strong>{" "}
+              {maintAlert.notes || "No description provided"}
               <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
-                <strong>👤 Submitted By:</strong> {maintAlert.uname || "Unknown"}
+                <strong>
+                  <User size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Submitted By:
+                </strong>{" "}
+                {maintAlert.uname || "Unknown"}
               </div>
             </div>
 
@@ -1564,8 +1667,12 @@ export default function DashboardView({
       {!newJobAlert && !maintAlert && statusAlert && (
         <Modal title={t.dashMaintUpdate} onClose={() => acknowledgeStatusUpdate(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
-            <div style={{ fontSize: 42, marginBottom: 10 }}>
-              {statusAlert.status === "completed" ? "✅" : "🗓️"}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+              {statusAlert.status === "completed" ? (
+                <CheckCircle2 size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
+              ) : (
+                <Calendar size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
+              )}
             </div>
             <h3
               style={{
@@ -1611,22 +1718,35 @@ export default function DashboardView({
                 marginBottom: 16,
               }}
             >
-              <strong>🔧 Your maintenance request is now {statusAlert.status}.</strong>
+              <strong>
+                <Wrench size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Your
+                maintenance request is now {statusAlert.status}.
+              </strong>
               {statusAlert.status === "scheduled" && statusAlert.scheduled_date && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
-                  <strong>🗓️ Scheduled for:</strong>{" "}
+                  <strong>
+                    <Calendar size={13} style={{ verticalAlign: -2 }} aria-hidden="true" />{" "}
+                    Scheduled for:
+                  </strong>{" "}
                   {new Date(statusAlert.scheduled_date).toLocaleDateString()}
                 </div>
               )}
               {statusAlert.status === "completed" && statusAlert.completed_at && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
-                  <strong>🏁 Completed on:</strong>{" "}
+                  <strong>
+                    <Flag size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Completed
+                    on:
+                  </strong>{" "}
                   {new Date(statusAlert.completed_at).toLocaleDateString()}
                 </div>
               )}
               {statusAlert.wh_notes && (
                 <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
-                  <strong>📝 Shop Notes:</strong> {statusAlert.wh_notes}
+                  <strong>
+                    <FileText size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Shop
+                    Notes:
+                  </strong>{" "}
+                  {statusAlert.wh_notes}
                 </div>
               )}
             </div>

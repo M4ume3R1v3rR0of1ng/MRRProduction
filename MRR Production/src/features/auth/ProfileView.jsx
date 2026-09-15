@@ -1,5 +1,6 @@
 // src/features/auth/ProfileView.jsx
 import { useState, useEffect } from "react";
+import { User, Shield, Bell, Mail, KeyRound } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { Fld, Inp, Btn } from "@/shared/components/UIPrimitives";
@@ -68,7 +69,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
         isError: true,
       });
     } else {
-      setProfileMsg({ text: "🎉 Profile permanently saved!", isError: false });
+      setProfileMsg({ text: "Profile permanently saved!", isError: false });
       onUpdateUser({ ...user, name: name.trim(), full_name: name.trim() });
     }
   };
@@ -100,12 +101,12 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
     // 2. If Email Alerts are enabled, send an immediate free confirmation receipt
     if (alertEmail && user?.email) {
       const confirmMessage =
-        "⚙️ MRR System Note: Your inventory alert subscription has been successfully updated! You will now receive notifications here whenever items drop below threshold values.";
+        "MRR System Note: Your inventory alert subscription has been successfully updated! You will now receive notifications here whenever items drop below threshold values.";
 
       try {
         await sendEmail({
           to: user.email,
-          subject: "✅ Notification Channels Confirmed",
+          subject: "Notification Channels Confirmed",
           html: `<p>${confirmMessage}</p>`,
         });
       } catch (err) {
@@ -122,7 +123,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
 
     setSavingAlerts(false);
     setAlertMsg({
-      text: "🔔 Alert preferences updated! Confirmation sent.",
+      text: "Alert preferences updated! Confirmation sent.",
       isError: false,
     });
   };
@@ -167,7 +168,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
         isError: true,
       });
     } else {
-      setPassMsg({ text: "🎉 Password updated successfully!", isError: false });
+      setPassMsg({ text: "Password updated successfully!", isError: false });
       setCurrentPass("");
       setNewPass("");
       setConfirmPass("");
@@ -196,12 +197,15 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
         <h1
           style={{
             margin: "0 0 6px",
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
             fontSize: "var(--text-2xl)",
             fontWeight: "var(--weight-black)",
             color: C.navy,
           }}
         >
-          👤 Personal Profile
+          <User size={22} aria-hidden="true" /> Personal Profile
         </h1>
         <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>
           {t.profIdentity}
@@ -234,9 +238,12 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
                 fontSize: "var(--text-base)",
                 fontWeight: "var(--weight-bold)",
                 textTransform: "capitalize",
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
               }}
             >
-              🛡️ {user.role || "Employee"} Account
+              <Shield size={14} aria-hidden="true" /> {user.role || "Employee"} Account
             </div>
           </Fld>
           {profileMsg.text && (
@@ -282,7 +289,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
             marginBottom: 6,
           }}
         >
-          <span style={{ fontSize: "var(--text-2xl)" }}>🔔</span>
+          <Bell size={22} color={C.navy} aria-hidden="true" />
           <h3
             style={{
               margin: 0,
@@ -327,6 +334,9 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
           </div>
           <div
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
               background: C.lg,
               padding: "10px 14px",
               borderRadius: "var(--radius-md)",
@@ -336,7 +346,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
               border: `1.5px solid ${C.bd}`,
             }}
           >
-            📧 {user?.email || "No email associated with this profile"}
+            <Mail size={14} aria-hidden="true" /> {user?.email || "No email associated with this profile"}
           </div>
         </div>
 
@@ -417,12 +427,15 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
         <h2
           style={{
             margin: "0 0 6px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
             fontSize: "var(--text-xl)",
             fontWeight: "var(--weight-black)",
             color: C.navy,
           }}
         >
-          🔐 Access Credentials
+          <KeyRound size={18} aria-hidden="true" /> Access Credentials
         </h2>
         <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>
           {t.profSecurity}

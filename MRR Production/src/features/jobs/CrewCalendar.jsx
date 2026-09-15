@@ -1,5 +1,6 @@
 // src/features/jobs/CrewCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
+import { FileEdit, FileText, Calendar, HardHat, Shield, AlertTriangle } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
 import { Btn } from "@/shared/components/UIPrimitives";
@@ -45,7 +46,7 @@ export default function CrewCalendar({
   const { showToast } = useNotify();
   const [draggingId, setDraggingId] = useState(null);
   const [dragOverKey, setDragOverKey] = useState(null);
-  // ── 📅 CALENDAR WINDOWING NAVIGATION STATE ──
+  // ── CALENDAR WINDOWING NAVIGATION STATE ──
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const d = new Date();
     const day = d.getDay();
@@ -100,7 +101,7 @@ export default function CrewCalendar({
     setCurrentWeekStart(d);
   }, []);
 
-  // ── 🖐️ DRAG-AND-DROP: RESCHEDULE / REASSIGN A JOB ──
+  // ── DRAG-AND-DROP: RESCHEDULE / REASSIGN A JOB ──
   const handleDropOnCell = async (dateKey, assigneeId) => {
     const jobId = draggingId;
     setDraggingId(null);
@@ -164,7 +165,7 @@ export default function CrewCalendar({
     toLocalDateKey(weekStart) <= todayString && todayString <= toLocalDateKey(weekEnd);
 
   const JobCard = ({ job }) => {
-    const statusConfig = jSC[job.status] || { c: "gray", icon: "📋", l: job.status };
+    const statusConfig = jSC[job.status] || { c: "gray", icon: FileEdit, l: job.status };
     const borderColor = resolveStatusColor(statusConfig);
     const jobLabel = job.title || job.name || "Untitled Job";
 
@@ -214,8 +215,10 @@ export default function CrewCalendar({
             color: C.sub,
           }}
         >
-          <span>📄 {job.po}</span>
-          <span>{statusConfig.icon}</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+            <FileText size={10} aria-hidden="true" /> {job.po}
+          </span>
+          <statusConfig.icon size={12} color={borderColor} aria-hidden="true" />
         </div>
       </div>
     );
@@ -246,12 +249,15 @@ export default function CrewCalendar({
           <h2
             style={{
               margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
               fontSize: "var(--text-lg)",
               fontWeight: "var(--weight-extrabold)",
               color: C.navy,
             }}
           >
-            📅 Weekly Production Crew & Shift Calendar
+            <Calendar size={16} aria-hidden="true" /> Weekly Production Crew & Shift Calendar
           </h2>
           <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
             {t.ccSubtitle}
@@ -296,13 +302,16 @@ export default function CrewCalendar({
                   width: 150,
                   padding: "12px 10px",
                   textAlign: "left",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                   color: C.sub,
                   fontSize: "var(--text-xs)",
                   fontWeight: "var(--weight-bold)",
                   borderBottom: `2px solid ${C.bd}`,
                 }}
               >
-                👷 Assigned Crew Lead
+                <HardHat size={13} aria-hidden="true" /> Assigned Crew Lead
               </th>
               {weekDays.map((day) => {
                 const isToday = toLocalDateKey(day) === todayString;
@@ -348,13 +357,16 @@ export default function CrewCalendar({
                   </div>
                   <div
                     style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
                       fontSize: "var(--text-2xs)",
                       color: C.sub,
                       textTransform: "capitalize",
                       marginTop: 2,
                     }}
                   >
-                    🛡️ {crewLead.role}
+                    <Shield size={10} aria-hidden="true" /> {crewLead.role}
                   </div>
                 </td>
 
@@ -401,6 +413,10 @@ export default function CrewCalendar({
                         {isDoubleBooked && (
                           <div
                             style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 4,
                               fontSize: "var(--text-2xs)",
                               fontWeight: "var(--weight-bold)",
                               color: C.rd,
@@ -410,7 +426,8 @@ export default function CrewCalendar({
                               textAlign: "center",
                             }}
                           >
-                            ⚠️ {dayJobs.length} jobs — double-booked
+                            <AlertTriangle size={10} aria-hidden="true" /> {dayJobs.length} jobs —
+                            double-booked
                           </div>
                         )}
                       </div>
@@ -434,12 +451,15 @@ export default function CrewCalendar({
                 >
                   <div
                     style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
                       fontWeight: "var(--weight-bold)",
                       fontSize: "var(--text-base)",
                       color: C.am,
                     }}
                   >
-                    ⚠️ Unassigned
+                    <AlertTriangle size={14} aria-hidden="true" /> Unassigned
                   </div>
                   <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>
                     {t.ccNoSupervisor}

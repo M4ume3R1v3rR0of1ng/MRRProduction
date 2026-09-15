@@ -1,5 +1,17 @@
 // src/shared/components/OmniSearch.jsx
 import { useState, useRef, useEffect, useMemo } from "react";
+import {
+  Home,
+  HardHat,
+  ClipboardList,
+  Package,
+  Truck,
+  Wrench,
+  BarChart3,
+  Users as UsersIcon,
+  ScrollText,
+  Settings,
+} from "lucide-react";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
 
@@ -54,7 +66,7 @@ export default function OmniSearch({
 
   const txt = query.trim().toLowerCase();
 
-  // ── 🔍 THE SEARCH FILTER MATRIX ──
+  // ── THE SEARCH FILTER MATRIX ──
   // Every category is gated by the same permission that controls its page in
   // the Sidebar, so users only ever see results they are allowed to open.
   const results = useMemo(() => {
@@ -64,70 +76,70 @@ export default function OmniSearch({
     const pages = [
       {
         id: "dashboard",
-        icon: "🏠",
+        icon: Home,
         label: t.dashboard,
         keywords: "home overview team chat",
         show: true,
       },
       {
         id: "buildjobs",
-        icon: "🏗️",
+        icon: HardHat,
         label: t.buildjobs,
         keywords: "create job wizard acculynx close po",
         show: !!(perms.jobs_build || perms.jobs_close),
       },
       {
         id: "pull",
-        icon: "📋",
+        icon: ClipboardList,
         label: t.pull,
         keywords: "jobs pull materials return complete",
         show: true,
       },
       {
         id: "inventory",
-        icon: "📦",
+        icon: Package,
         label: t.inventory,
         keywords: "stock materials receive batches sku",
         show: !!perms.inv_view,
       },
       {
         id: "fleet",
-        icon: "🚛",
+        icon: Truck,
         label: t.fleet,
         keywords: "trucks trailers vehicles mileage plates",
         show: !!perms.fleet_view,
       },
       {
         id: "requests",
-        icon: "🔧",
+        icon: Wrench,
         label: t.requests,
         keywords: "requests tickets repair service oil",
         show: !!(perms.maint_submit || perms.maint_manage),
       },
       {
         id: "reports",
-        icon: "📊",
+        icon: BarChart3,
         label: t.reports,
         keywords: "analytics costs charts export",
         show: !!perms.reports_view,
       },
       {
         id: "users",
-        icon: "👥",
+        icon: UsersIcon,
         label: t.users,
         keywords: "staff team accounts profiles roles",
         show: !!perms.users_manage,
       },
       {
         id: "logs",
-        icon: "📜",
+        icon: ScrollText,
         label: t.logs,
         keywords: "history activity audit trail",
         show: !!perms.users_manage,
       },
       {
         id: "settings",
-        icon: "⚙️",
+        icon: Settings,
         label: t.settings,
         keywords: "acculynx permissions api logo config",
         show: !!perms.settings_manage,
@@ -135,10 +147,10 @@ export default function OmniSearch({
     ];
 
     return {
-      // 🧭 0. Direct page navigation
+      // 0. Direct page navigation
       pages: pages.filter((p) => p.show && match(txt, p.label, p.keywords)).slice(0, 4),
 
-      // 🏗️ 1. Jobs — rows may carry legacy (name/items) or current
+      // 1. Jobs — rows may carry legacy (name/items) or current
       // (title/materials) column names, so check both. Material lines are
       // searchable too, so a job can be found by what's loaded on it.
       jobs: !perms.jobs_view
@@ -153,14 +165,14 @@ export default function OmniSearch({
             })
             .slice(0, 4),
 
-      // 👥 2. Team members — only for user management
+      // 2. Team members — only for user management
       users: !perms.users_manage
         ? []
         : users
             .filter((u) => match(txt, u.full_name, u.name, u.email, u.role, u.phone_number))
             .slice(0, 4),
 
-      // 🚛 3. Fleet — only for fleet viewers
+      // 3. Fleet — only for fleet viewers
       vehicles: !perms.fleet_view
         ? []
         : vehs
@@ -181,14 +193,14 @@ export default function OmniSearch({
             )
             .slice(0, 4),
 
-      // 🔧 4. Maintenance tickets — only for submit/manage
+      // 4. Maintenance tickets — only for submit/manage
       requests: !(perms.maint_submit || perms.maint_manage)
         ? []
         : reqs
             .filter((r) => match(txt, r.type, r.vname, r.notes, r.urgency, r.status, r.uname))
             .slice(0, 4),
 
-      // 📦 5. Inventory — only for inventory viewers
+      // 5. Inventory — only for inventory viewers
       inventory: !perms.inv_view
         ? []
         : inv.filter((i) => match(txt, i.name, i.cat, i.sku, i.unit)).slice(0, 4),
@@ -199,14 +211,18 @@ export default function OmniSearch({
 
   const hasResults = results && Object.values(results).some((arr) => arr.length > 0);
 
-  // ── 🗂️ CATEGORY RENDER CONFIG ──
+  // ── CATEGORY RENDER CONFIG ──
   const sections = results
     ? [
         {
           key: "pages",
           header: t.osSecGoTo,
           items: results.pages,
-          title: (p) => `${p.icon} ${p.label}`,
+          title: (p) => (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <p.icon size={13} aria-hidden="true" /> {p.label}
+            </span>
+          ),
           sub: () => t.osOpenPage,
           onClick: (p) => handleSelection(p.id),
         },
@@ -290,7 +306,7 @@ export default function OmniSearch({
         }}
       />
 
-      {/* ── 🗺️ RESULT PANEL ── */}
+      {/* ── RESULT PANEL ── */}
       {isOpen && results && (
         <div
           style={{

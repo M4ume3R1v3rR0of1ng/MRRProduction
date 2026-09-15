@@ -1,5 +1,6 @@
 // src/features/reports/ReportsView.jsx
 import { useState, useEffect } from "react";
+import { TrendingUp, Factory, Truck, Lock, AlertTriangle, Trash2 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
@@ -20,7 +21,7 @@ import {
   summarizeJobs,
 } from "./jobCosting";
 
-// ── 📊 TREND COMPONENT 1: JOB PROFITABILITY ──
+// ── TREND COMPONENT 1: JOB PROFITABILITY ──
 //
 // Revenue comes from jobs.contract_value, which a person enters. It used to be
 // `estimatedMaterialCost * 3.2`, which made the margin column a constant: any job
@@ -180,6 +181,9 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
           the second, an owner assumes the total covers every job. */}
       <div
         style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 7,
           background: C.aB,
           border: "1.5px solid " + C.am,
           borderRadius: "var(--radius-md)",
@@ -190,7 +194,8 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
           lineHeight: 1.5,
         }}
       >
-        ⚠️ {t.rptMaterialsOnlyNote}
+        <AlertTriangle size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
+        <span>{t.rptMaterialsOnlyNote}</span>
       </div>
 
       {canSeeRevenue && summary.unpricedCount > 0 && (
@@ -412,7 +417,7 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
   );
 }
 
-// ── 🏭 TREND COMPONENT 2: INVENTORY STOCK COSTING TRENDS ──
+// ── TREND COMPONENT 2: INVENTORY STOCK COSTING TRENDS ──
 function InventoryCostTrendsReport({ inv, t }) {
   const [trendFilter, setTrendFilter] = useState("all");
 
@@ -601,9 +606,9 @@ function InventoryCostTrendsReport({ inv, t }) {
   );
 }
 
-// ── 🚛 TREND COMPONENT 3: FLEET MAINTENANCE COSTS ANALYSIS ──
+// ── TREND COMPONENT 3: FLEET MAINTENANCE COSTS ANALYSIS ──
 function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
-  // ── 🟢 NEW: ADD HOOK STATES FOR RUNTIME CONDITION DATA LOADING ──
+  // ── ADD HOOK STATES FOR RUNTIME CONDITION DATA LOADING ──
   const [inspections, setInspections] = useState([]);
   const [loadingInspect, setLoadingInspect] = useState(true);
   const [lightboxPic, setLightboxPic] = useState(null);
@@ -998,7 +1003,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
         </div>
       </div>
 
-      {/* ── 🟢 NEW: HISTORICAL VEHICLE INSPECTION LOOPS LIST CANVA PIPELINE ── */}
+      {/* ── HISTORICAL VEHICLE INSPECTION LOOPS LIST CANVA PIPELINE ── */}
       <div
         style={{
           background: C.w,
@@ -1145,7 +1150,6 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                     border: "none",
                     color: C.rd,
                     cursor: "pointer",
-                    fontSize: "var(--text-lg)",
                     padding: "4px 8px",
                     display: "flex",
                     alignItems: "center",
@@ -1155,7 +1159,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                   onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
                   title={t.rptDeleteInspTitle}
                 >
-                  🗑️
+                  <Trash2 size={15} aria-hidden="true" />
                 </button>
               </div>
             ))}
@@ -1192,7 +1196,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
   );
 }
 
-// ── 🔒 HISTORICAL SYSTEM AUDIT LEDGER ──
+// ── HISTORICAL SYSTEM AUDIT LEDGER ──
 function AuditTrailReport({ t, companyId }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1423,10 +1427,10 @@ export default function Reports({
   );
 
   const tabOptions = [
-    { id: "Jobs", label: t.rptTabJobs, icon: "📈" },
-    { id: "Inventory", label: t.rptTabInventory, icon: "🏭" },
-    { id: "Fleet", label: t.rptTabFleet, icon: "🚛" },
-    { id: "Audit", label: t.rptTabAudit, icon: "🔒" },
+    { id: "Jobs", label: t.rptTabJobs, icon: TrendingUp },
+    { id: "Inventory", label: t.rptTabInventory, icon: Factory },
+    { id: "Fleet", label: t.rptTabFleet, icon: Truck },
+    { id: "Audit", label: t.rptTabAudit, icon: Lock },
   ];
 
   return (
@@ -1551,7 +1555,7 @@ export default function Reports({
                 transition: "all 0.2s",
               }}
             >
-              <span>{tab.icon}</span> {tab.label}
+              <tab.icon size={15} aria-hidden="true" /> {tab.label}
             </button>
           );
         })}

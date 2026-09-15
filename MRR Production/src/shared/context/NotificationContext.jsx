@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { CheckCircle2, AlertTriangle, XCircle, X } from "lucide-react";
 import { C } from "../utils/helpers";
 import { TrussMark } from "../components/SteadwerkMark";
 
@@ -55,7 +56,7 @@ export function NotificationProvider({ children }) {
   useEffect(() => {
     const onAuditFailure = () => {
       showToast(
-        "⚠️ Activity logging is failing — actions are not being recorded in the audit log. Let your admin know.",
+        "Activity logging is failing — actions are not being recorded in the audit log. Let your admin know.",
         "warning",
         10000,
       );
@@ -68,12 +69,22 @@ export function NotificationProvider({ children }) {
   const getToastStyle = (type) => {
     switch (type) {
       case "success":
-        return { bg: C.gB || "#d1fae5", border: C.gr || "#10b981", color: "#065f46" };
+        return {
+          bg: C.gB || "#d1fae5",
+          border: C.gr || "#10b981",
+          color: "#065f46",
+          Icon: CheckCircle2,
+        };
       case "warning":
-        return { bg: C.aB || "#fef3c7", border: C.am || "#f59e0b", color: "#92400e" };
+        return {
+          bg: C.aB || "#fef3c7",
+          border: C.am || "#f59e0b",
+          color: "#92400e",
+          Icon: AlertTriangle,
+        };
       case "error":
       default:
-        return { bg: "#fee2e2", border: "#ef4444", color: "#991b1b" };
+        return { bg: "#fee2e2", border: "#ef4444", color: "#991b1b", Icon: XCircle };
     }
   };
 
@@ -251,7 +262,10 @@ export function NotificationProvider({ children }) {
                 gap: 12,
               }}
             >
-              <div>{t.message}</div>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
+                <style.Icon size={17} style={{ marginTop: 1, flexShrink: 0 }} aria-hidden="true" />
+                <div>{t.message}</div>
+              </div>
               <button
                 onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
                 style={{
@@ -259,13 +273,13 @@ export function NotificationProvider({ children }) {
                   border: "none",
                   color: "inherit",
                   cursor: "pointer",
-                  fontWeight: "var(--weight-black)",
                   padding: 0,
-                  fontSize: "var(--text-md)",
-                  lineHeight: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: 0,
                 }}
               >
-                ×
+                <X size={15} aria-hidden="true" />
               </button>
             </div>
           );

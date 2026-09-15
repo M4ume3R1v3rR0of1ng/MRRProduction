@@ -9,6 +9,7 @@
 // overflow rules, and a banner in the flow would either steal height from the
 // layout or get scrolled away exactly when it matters.
 import { useState } from "react";
+import { Eye } from "lucide-react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
@@ -71,8 +72,9 @@ export default function VisitingBanner({ user, onLogout, lang = "en" }) {
         boxShadow: "0 -2px 12px rgba(0,0,0,0.28)",
       }}
     >
-      <span>
-        👁️ {t.visitingBanner.replace("{name}", user.companyName || t.visitingUnknownCompany)}
+      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Eye size={16} aria-hidden="true" />{" "}
+        {t.visitingBanner.replace("{name}", user.companyName || t.visitingUnknownCompany)}
       </span>
       <button
         onClick={leave}

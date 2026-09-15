@@ -12,6 +12,7 @@
 // owns the actual supabase.rpc() call, the audit log entry, and the requester
 // notification — same division as MaintenanceRequestModal and InspectionModal.
 import { useState } from "react";
+import { CheckCircle2 } from "lucide-react";
 import { C, todayLocal } from "@/shared/utils/helpers";
 import { Btn, Fld, Inp, Modal, Sel, TA } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -106,7 +107,14 @@ export default function CompleteServiceModal({
   };
 
   return (
-    <Modal title={`✅ Complete Service — ${req.vname}`} onClose={onClose}>
+    <Modal
+      title={
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <CheckCircle2 size={17} aria-hidden="true" /> Complete Service — {req.vname}
+        </span>
+      }
+      onClose={onClose}
+    >
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
         {req.wh_notes && (
           <div
@@ -244,7 +252,13 @@ export default function CompleteServiceModal({
             style={{ flex: 1, justifyContent: "center" }}
             disabled={submitting}
           >
-            {submitting ? "Completing…" : "Complete Service ✅"}
+            {submitting ? (
+              "Completing…"
+            ) : (
+              <>
+                <CheckCircle2 size={14} aria-hidden="true" /> Complete Service
+              </>
+            )}
           </Btn>
         </div>
       </div>

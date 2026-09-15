@@ -18,6 +18,7 @@
 // 0 — this is for a line nothing has gone out for yet, not a general
 // materials editor (same boundary CorrectReturnModal draws on `returned`).
 import { useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C, tot, doFifo, todayLocal } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
@@ -242,7 +243,7 @@ export default function PullAddedMaterialsModal({
                       }}
                     >
                       {avail} {item.unit || ""}
-                      {short && " ⚠️"}
+                      {short && <AlertTriangle size={11} style={{ marginLeft: 4, verticalAlign: -1 }} aria-hidden="true" />}
                     </td>
                     <td style={{ padding: "8px 10px" }}>
                       <Inp

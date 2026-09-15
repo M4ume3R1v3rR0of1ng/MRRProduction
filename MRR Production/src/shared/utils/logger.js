@@ -67,7 +67,7 @@ export const logAction = async (
     };
 
     // Continuous developer feedback
-    console.log(`📝 [AUDIT LOG]: ${actionType}`, payload);
+    console.log(`[AUDIT LOG]: ${actionType}`, payload);
 
     // Write packet straight to the immutable database block
     let { error } = await supabase.from("audit_logs").insert([payload]);
@@ -78,11 +78,11 @@ export const logAction = async (
     }
 
     if (error) {
-      console.error("❌ Supabase Audit Log Database Error:", error.message);
+      console.error("Supabase Audit Log Database Error:", error.message);
       reportAuditFailure(error.message);
     }
   } catch (err) {
-    console.error("❌ Critical Failure inside Logger Utility:", err.message);
+    console.error("Critical Failure inside Logger Utility:", err.message);
     reportAuditFailure(err.message);
   }
 };

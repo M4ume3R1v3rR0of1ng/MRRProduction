@@ -1,5 +1,6 @@
 // src/shared/components/ErrorBoundary.jsx
 import React from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import { translations } from "../utils/translations";
 import { captureException } from "../utils/sentry";
 
@@ -39,7 +40,7 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Log the exact error and component stack trace to the console
-    console.group("🚨 CRITICAL APPLICATION CRASH DETECTED 🚨");
+    console.group("CRITICAL APPLICATION CRASH DETECTED");
     console.error("Error Detail:", error);
     console.error("Component Stack Trace:", errorInfo.componentStack);
     console.groupEnd();
@@ -67,7 +68,13 @@ export default class ErrorBoundary extends React.Component {
             textAlign: "center",
           }}
         >
-          <div style={{ fontSize: 64, marginBottom: 16 }}>⚠️</div>
+          <AlertTriangle
+            size={56}
+            color="var(--c-rust)"
+            strokeWidth={1.5}
+            style={{ marginBottom: 16 }}
+            aria-hidden="true"
+          />
           <h1
             style={{
               color: "var(--c-slate)",
@@ -136,6 +143,9 @@ export default class ErrorBoundary extends React.Component {
           <button
             onClick={() => window.location.reload()}
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
               background: "var(--c-slate)",
               color: "var(--c-on-accent)",
               border: "none",
@@ -150,7 +160,7 @@ export default class ErrorBoundary extends React.Component {
             onMouseEnter={(e) => (e.currentTarget.style.background = "var(--c-slate)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "var(--c-slate)")}
           >
-            🔄 Force App Reload
+            <RefreshCw size={15} aria-hidden="true" /> Force App Reload
           </button>
         </div>
       );

@@ -43,12 +43,15 @@ const users = [user, { id: "u2", name: "Alex Reed", role: "employee", email: "al
 // Everything on, so no section is skipped for lack of a permission.
 const perms = new Proxy({}, { get: () => true });
 
+// icon is a component reference in the real jSC (src/App.jsx); a no-op stub
+// here is enough to prove the render tree builds without pulling in lucide-react.
+const StubIcon = () => null;
 const jSC = {
-  draft: { c: "gray", l: "Draft", icon: "📝" },
-  approved: { c: "blue", l: "Approved", icon: "✅" },
-  active: { c: "amber", l: "Active", icon: "🔄" },
-  completed: { c: "green", l: "Completed", icon: "🏁" },
-  closed: { c: "purple", l: "Closed", icon: "🔒" },
+  draft: { c: "gray", l: "Draft", icon: StubIcon },
+  approved: { c: "blue", l: "Approved", icon: StubIcon },
+  active: { c: "amber", l: "Active", icon: StubIcon },
+  completed: { c: "green", l: "Completed", icon: StubIcon },
+  closed: { c: "purple", l: "Closed", icon: StubIcon },
 };
 
 const inv = [

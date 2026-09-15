@@ -1,5 +1,23 @@
 // src/features/settings/SettingsView.jsx
 import { useState } from "react";
+import {
+  Lock,
+  Bell,
+  Link2,
+  Building2,
+  Factory,
+  Info,
+  Image as ImageIcon,
+  Plus,
+  MapPin,
+  Mail,
+  FolderOpen,
+  Search,
+  Trash2,
+  Save,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 import { supabase, getAccessToken } from "@/shared/utils/supabase";
 import { compressImg } from "@/shared/utils/helpers";
 import {
@@ -11,7 +29,7 @@ import {
 import { Btn, Fld, Inp, Sel, Toggle } from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 import { useNotify } from "@/shared/context/NotificationContext";
-// ── 🆕 IMPORT ADDED ──────────────────────────────────────────────────────────
+// ── IMPORT ADDED ──────────────────────────────────────────────────────────
 // accuLynxSync.js lives in features/jobs/ (its primary domain) — settings only
 // reads its config/test-connection helpers, so this stays a cross-feature @/ import.
 import { fetchAccuLynxJob, fetchAccuLynxDocumentFolders } from "@/features/jobs/accuLynxSync";
@@ -72,10 +90,10 @@ const Card = ({ children, style = {} }) => (
   </div>
 );
 
-const SectionTitle = ({ icon, title, subtitle }) => (
+const SectionTitle = ({ icon: Icon, title, subtitle }) => (
   <div style={{ marginBottom: 20 }}>
     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 4 }}>
-      <span style={{ fontSize: "var(--text-xl)" }}>{icon}</span>
+      {Icon && <Icon size={19} aria-hidden="true" />}
       <h2
         style={{
           margin: 0,
@@ -118,8 +136,8 @@ const StatusPill = ({ active, labelOn = "Active", labelOff = "Offline" }) => (
 
 const Alert = ({ children, type = "warning" }) => {
   const colors = {
-    warning: { bg: T.amberBg, bd: T.amberBd, text: T.amber },
-    info: { bg: T.blueSoft, bd: T.blueRing, text: T.blue },
+    warning: { bg: T.amberBg, bd: T.amberBd, text: T.amber, Icon: AlertTriangle },
+    info: { bg: T.blueSoft, bd: T.blueRing, text: T.blue, Icon: Info },
   };
   const c = colors[type];
   return (
@@ -138,6 +156,7 @@ const Alert = ({ children, type = "warning" }) => {
         marginBottom: 20,
       }}
     >
+      <c.Icon size={16} style={{ flexShrink: 0 }} aria-hidden="true" />
       {children}
     </div>
   );
@@ -279,7 +298,7 @@ export default function SettingsView({
   const [whForm, setWhForm] = useState({ name: "", location: "", code: "" });
   const [savingAx, setSavingAx] = useState(false);
 
-  // ── 🆕 TEST LOOKUP LOCAL STATE ADDED ─────────────────────────────────────────
+  // ── TEST LOOKUP LOCAL STATE ADDED ─────────────────────────────────────────
   const [lookupPo, setLookupPo] = useState("");
   const [lookupResult, setLookupResult] = useState(null);
   const [lookingUp, setLookingUp] = useState(false);
@@ -287,19 +306,19 @@ export default function SettingsView({
   const [loadingFolders, setLoadingFolders] = useState(false);
 
   const tabs = [
-    { id: "Permissions", label: "Permissions", icon: "🔒" },
+    { id: "Permissions", label: "Permissions", icon: Lock },
     // "Automations" rather than "Notifications": email is the first thing this panel
     // switches on, not the only thing planned, and the rows already read as rules
     // rather than as a notification inbox.
-    { id: "Automations", label: "Automations", icon: "🔔" },
+    { id: "Automations", label: "Automations", icon: Bell },
     // "CRM Integration" rather than "AccuLynx": AccuLynx is the first CRM we
     // connect to, not the only one planned. Naming the tab after the category
     // means adding Jobber or ServiceTitan later is a new section in this panel,
     // not a renamed tab and a broken bookmark.
-    { id: "CRM", label: "CRM Integration", icon: "🔗" },
-    { id: "Branding", label: "Branding", icon: "🏢" },
-    { id: "Warehouses", label: "Warehouses", icon: "🏭" },
-    { id: "System", label: "System", icon: "ℹ️" },
+    { id: "CRM", label: "CRM Integration", icon: Link2 },
+    { id: "Branding", label: "Branding", icon: Building2 },
+    { id: "Warehouses", label: "Warehouses", icon: Factory },
+    { id: "System", label: "System", icon: Info },
   ];
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -411,7 +430,7 @@ export default function SettingsView({
         const accessToken = await getAccessToken();
 
         const response = await fetch(proxyRoute, {
-          method: "POST", // 🟢 Changed from GET to POST
+          method: "POST", // Changed from GET to POST
           headers: {
             "Content-Type": "application/json",
           },
@@ -455,7 +474,7 @@ export default function SettingsView({
     }
   };
 
-  // ── 🆕 LOOKUP SUBMIT HANDLER ADDED ───────────────────────────────────────────
+  // ── LOOKUP SUBMIT HANDLER ADDED ───────────────────────────────────────────
   const handleTestLookup = async () => {
     if (!lookupPo.trim()) return;
     setLookingUp(true);
@@ -559,7 +578,7 @@ export default function SettingsView({
                 marginBottom: -1,
               }}
             >
-              <span style={{ fontSize: "var(--text-md)" }}>{tab.icon}</span>
+              <tab.icon size={16} aria-hidden="true" />
               {tab.label}
             </button>
           );
@@ -569,7 +588,7 @@ export default function SettingsView({
       {/* ── PANEL: Permissions ─────────────────────────────────────────── */}
       {currentTab === "Permissions" && (
         <Card>
-          <SectionTitle icon="🔒" title={t.stRolePerms} subtitle={t.stRolePermsDesc} />
+          <SectionTitle icon={Lock} title={t.stRolePerms} subtitle={t.stRolePermsDesc} />
           <div style={{ overflowX: "auto" }}>
             <div style={{ minWidth: 860 }}>
               {/* Header row */}
@@ -762,8 +781,18 @@ export default function SettingsView({
                         {row.label}
                       </div>
                       <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{row.desc}</div>
-                      <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 4 }}>
-                        ✉️ {t.stAutomationSendsTo} <strong>{row.recipient}</strong>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: "var(--text-xs)",
+                          color: T.slateL,
+                          marginTop: 4,
+                        }}
+                      >
+                        <Mail size={11} aria-hidden="true" /> {t.stAutomationSendsTo}{" "}
+                        <strong>{row.recipient}</strong>
                       </div>
                     </div>
                     <Toggle
@@ -804,11 +833,11 @@ export default function SettingsView({
             }}
           >
             <SectionTitle
-              icon="🔗"
+              icon={Link2}
               title={t.stAxIntegration}
               subtitle="Sync Upload files the completion report PDF in the AccuLynx job's Documents and posts the material cost, including tax, as an Additional Job Expense. The PDF button in Pull Inventory only opens the report for printing."
             />
-            {/* 🟢 Status pill updated to seamlessly allow headless environment configurations */}
+            {/* Status pill updated to seamlessly allow headless environment configurations */}
             <StatusPill
               active={!!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl)}
               labelOn={t.stConnected}
@@ -817,7 +846,7 @@ export default function SettingsView({
           </div>
 
           <Alert type="warning">
-            ⚠️ API tokens are sent through your proxy server — never directly from the browser.
+            API tokens are sent through your proxy server — never directly from the browser.
           </Alert>
 
           <form onSubmit={handleSaveAccuLynx}>
@@ -947,7 +976,17 @@ export default function SettingsView({
                       onClick={handleLoadFolders}
                       disabled={loadingFolders}
                     >
-                      {loadingFolders ? "⏳" : `📁 ${t.stLoadFolders}`}
+                      {loadingFolders ? (
+                        <Loader2
+                          size={14}
+                          style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <>
+                          <FolderOpen size={14} aria-hidden="true" /> {t.stLoadFolders}
+                        </>
+                      )}
                     </Btn>
                   </div>
                 </Fld>
@@ -959,12 +998,25 @@ export default function SettingsView({
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
               <Btn v="primary" type="submit" disabled={savingAx}>
-                {savingAx ? "⏳ Saving…" : "💾 Save & Test Connection"}
+                {savingAx ? (
+                  <>
+                    <Loader2
+                      size={14}
+                      style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                      aria-hidden="true"
+                    />{" "}
+                    Saving…
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} aria-hidden="true" /> Save & Test Connection
+                  </>
+                )}
               </Btn>
             </div>
           </form>
 
-          {/* ── 🆕 TEST JOB LOOKUP SECTION ADDED ───────────────────────────────── */}
+          {/* ── TEST JOB LOOKUP SECTION ADDED ───────────────────────────────── */}
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
             <div
               style={{
@@ -983,7 +1035,17 @@ export default function SettingsView({
                 placeholder={t.stPoPlaceholder}
               />
               <Btn type="button" onClick={handleTestLookup} disabled={lookingUp}>
-                {lookingUp ? "⏳" : "🔍 Lookup"}
+                {lookingUp ? (
+                  <Loader2
+                    size={14}
+                    style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <>
+                    <Search size={14} aria-hidden="true" /> Lookup
+                  </>
+                )}
               </Btn>
             </div>
             {lookupResult && (
@@ -1000,7 +1062,7 @@ export default function SettingsView({
       {/* ── PANEL: Branding ────────────────────────────────────────────── */}
       {currentTab === "Branding" && (
         <Card>
-          <SectionTitle icon="🏢" title={t.stCompanyDetails} subtitle={t.stCompanyDetailsDesc} />
+          <SectionTitle icon={Building2} title={t.stCompanyDetails} subtitle={t.stCompanyDetailsDesc} />
 
           <div
             style={{
@@ -1110,7 +1172,7 @@ export default function SettingsView({
             </Btn>
           </div>
 
-          <SectionTitle icon="🖼️" title={t.stCompanyLogo} subtitle={t.stCompanyLogoDesc} />
+          <SectionTitle icon={ImageIcon} title={t.stCompanyLogo} subtitle={t.stCompanyLogoDesc} />
 
           <div
             style={{
@@ -1156,7 +1218,7 @@ export default function SettingsView({
                 transition: "background 0.15s ease",
               }}
             >
-              <span style={{ fontSize: 28 }}>🖼️</span>
+              <ImageIcon size={26} color={T.blue} strokeWidth={1.5} aria-hidden="true" />
               <div
                 style={{
                   fontWeight: "var(--weight-bold)",
@@ -1177,7 +1239,7 @@ export default function SettingsView({
 
             {logos && (
               <Btn v="danger" sz="sm" onClick={handleRemoveLogo} style={{ marginTop: 14 }}>
-                🗑️ Remove logo
+                <Trash2 size={13} aria-hidden="true" /> Remove logo
               </Btn>
             )}
           </div>
@@ -1187,7 +1249,7 @@ export default function SettingsView({
       {/* ── PANEL: Warehouses ──────────────────────────────────────────── */}
       {currentTab === "Warehouses" && (
         <Card>
-          <SectionTitle icon="🏭" title={t.stWarehouses} subtitle={t.stWarehousesDesc} />
+          <SectionTitle icon={Factory} title={t.stWarehouses} subtitle={t.stWarehousesDesc} />
 
           {/* BUG FIX #4 — added success toast in handleAddWarehouse above */}
           <form
@@ -1234,7 +1296,7 @@ export default function SettingsView({
             </div>
             <div style={{ paddingBottom: 1 }}>
               <Btn v="primary" type="submit" style={{ height: 38 }}>
-                ➕ Add
+                <Plus size={14} aria-hidden="true" /> Add
               </Btn>
             </div>
           </form>
@@ -1289,8 +1351,16 @@ export default function SettingsView({
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>
-                      📍 {w.location || "No address logged"}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: "var(--text-sm)",
+                        color: T.slateL,
+                      }}
+                    >
+                      <MapPin size={12} aria-hidden="true" /> {w.location || "No address logged"}
                     </div>
                   </div>
                   <StatusPill active={w.active} labelOn={t.stOperational} labelOff={t.stInactive} />
@@ -1317,7 +1387,7 @@ export default function SettingsView({
       {/* ── PANEL: System ──────────────────────────────────────────────── */}
       {currentTab === "System" && (
         <Card>
-          <SectionTitle icon="ℹ️" title={t.stSystemInfo} />
+          <SectionTitle icon={Info} title={t.stSystemInfo} />
 
           <div
             style={{

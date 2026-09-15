@@ -16,6 +16,7 @@
 // src/data/trainingVideos.js, which is the only thing that would actually hurt to
 // have in two places. Add a clip there and it appears in both.
 import { useRef, useState } from "react";
+import { Video, Plus, Trash2 } from "lucide-react";
 import { C } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
 import { TRAINING_VIDEOS } from "@/shared/data/trainingVideos";
@@ -201,12 +202,15 @@ export default function TrainingView({
             <div style={{ minWidth: 0 }}>
               <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 7,
                   fontWeight: "var(--weight-extrabold)",
                   color: C.navy,
                   fontSize: "var(--text-md)",
                 }}
               >
-                🎬 {t.trAdminTitle}
+                <Video size={15} aria-hidden="true" /> {t.trAdminTitle}
               </div>
               <div
                 style={{ color: C.sub, fontSize: "var(--text-sm)", marginTop: 4, maxWidth: "70ch" }}
@@ -222,7 +226,13 @@ export default function TrainingView({
                 resetForm();
               }}
             >
-              {addOpen ? t.trCancel : `➕ ${t.trAddMedia}`}
+              {addOpen ? (
+                t.trCancel
+              ) : (
+                <>
+                  <Plus size={13} aria-hidden="true" /> {t.trAddMedia}
+                </>
+              )}
             </Btn>
           </div>
 
@@ -332,7 +342,7 @@ export default function TrainingView({
                     nothing a tenant admin could delete even if the button were here. */}
                 {isAdmin && !clip.bundled && (
                   <Btn v="danger" sz="sm" onClick={() => removeMedia(clip)}>
-                    🗑️ {t.trRemove}
+                    <Trash2 size={13} aria-hidden="true" /> {t.trRemove}
                   </Btn>
                 )}
               </div>

@@ -2,7 +2,7 @@
 //
 // Steadwerk — Direction 02, "The Raising": weathered barnwood + harvest amber.
 //
-// ⚠️ THE BRAND HAS NO RED. Destructive actions (delete, overdue) use a muted rust —
+// THE BRAND HAS NO RED. Destructive actions (delete, overdue) use a muted rust —
 // still unmistakably "danger", without a color the brand doesn't own. Keep it that way.
 //
 // ── Why these are var() strings and not hex ──
@@ -403,24 +403,28 @@ export const groupJobsByDay = (list, { newestFirst = false } = {}) => {
 // The status line at the top of a job card: a dot, a colour, and a label.
 //
 // Build Jobs and Pull Inventory list the same jobs, so a job that reads
-// "🟡 APPROVED" on one screen has to read the same on the other. This used to be
+// "APPROVED" on one screen has to read the same on the other. This used to be
 // a private function in Build Jobs while Pull Inventory drew a jSC badge, and the
 // two disagreed on both wording and shape for the same row.
 //
 // jSC (App.jsx) is still the source for badges inside modals and calendars, where
 // the pill shape is wanted. This is the card-header treatment only.
+//
+// dot is a solid circle rendered in `color` by the caller (see StatusDot in
+// UIPrimitives.jsx), not an icon component — every status here is the same
+// plain severity dot, just recolored, so there is nothing an icon shape would add.
 export const jobStatusMeta = (status) => {
   switch (String(status || "").toLowerCase()) {
     case "completed":
     case "closed":
-      return { dot: "🟢", color: C.gr, label: "Completed" };
+      return { dot: true, color: C.gr, label: "Completed" };
     case "active":
-      return { dot: "🟡", color: C.am, label: "In Progress" };
+      return { dot: true, color: C.am, label: "In Progress" };
     case "approved":
-      return { dot: "🟡", color: C.blue, label: "Approved" };
+      return { dot: true, color: C.blue, label: "Approved" };
     case "draft":
     default:
-      return { dot: "🔴", color: C.rd, label: "Delayed / Draft" };
+      return { dot: true, color: C.rd, label: "Delayed / Draft" };
   }
 };
 

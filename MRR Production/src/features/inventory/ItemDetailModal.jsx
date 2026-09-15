@@ -7,6 +7,7 @@
 // shared `form` object before switching modals, so each one had to know the
 // exact field shape the destination dialog expected. They now just say which
 // dialog to open, and the dialog seeds itself.
+import { Pencil, Wrench, Trash2, AlertTriangle } from "lucide-react";
 import { C, fd, fm, tot, newestPrice } from "@/shared/utils/helpers";
 import { resolveBatchPerson } from "@/shared/utils/people";
 import { Btn, Modal, PhotoUpload } from "@/shared/components/UIPrimitives";
@@ -117,7 +118,7 @@ export default function ItemDetailModal({
           <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 12, flexWrap: "wrap" }}>
             {perms.inv_edit && (
               <Btn v="outline" sz="sm" onClick={onEdit}>
-                ✏️ Edit Materials
+                <Pencil size={13} aria-hidden="true" /> Edit Materials
               </Btn>
             )}
             {perms.inv_receive && (
@@ -127,12 +128,12 @@ export default function ItemDetailModal({
             )}
             {perms.inv_adjust && (
               <Btn v="gold" sz="sm" onClick={onAdjust}>
-                🔧 Adjust Stock
+                <Wrench size={13} aria-hidden="true" /> Adjust Stock
               </Btn>
             )}
             {perms.inv_edit && (
               <Btn v="danger" sz="sm" onClick={onDelete}>
-                🗑️ Delete Product
+                <Trash2 size={13} aria-hidden="true" /> Delete Product
               </Btn>
             )}
           </div>
@@ -217,7 +218,18 @@ export default function ItemDetailModal({
                         fontWeight: "var(--weight-bold)",
                       }}
                     >
-                      {fm(b.price)} ea.{unpriced && b.rem > 0 ? " ⚠️ unpriced" : ""}
+                      {fm(b.price)} ea.
+                      {unpriced && b.rem > 0 && (
+                        <>
+                          {" "}
+                          <AlertTriangle
+                            size={10}
+                            style={{ verticalAlign: -1 }}
+                            aria-hidden="true"
+                          />{" "}
+                          unpriced
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -228,7 +240,7 @@ export default function ItemDetailModal({
                     onClick={() => onCorrectBatch?.(b)}
                     title="Correct this batch's price, PO or vendor"
                   >
-                    ✏️
+                    <Pencil size={13} aria-hidden="true" />
                   </Btn>
                 )}
               </div>

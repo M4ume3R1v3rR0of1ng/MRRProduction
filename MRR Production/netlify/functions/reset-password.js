@@ -1,7 +1,7 @@
 // netlify/functions/reset-password.js
 // Admin-only: sets a new password for a user in the CALLER'S company.
 //
-// ⚠️ This one needs more care than it looks like it does.
+// This one needs more care than it looks like it does.
 //
 // A password is not company-scoped — it unlocks the whole account. So if a user
 // belongs to two companies, letting an admin at company A set their password hands

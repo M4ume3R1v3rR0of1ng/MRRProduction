@@ -1,5 +1,18 @@
 // src/features/fleet/FleetManagementView.jsx
 import { useState, useEffect } from "react";
+import {
+  Truck,
+  Tractor,
+  Wrench,
+  User,
+  KeyRound,
+  MapPin,
+  Pencil,
+  CheckCircle2,
+  Ban,
+  Trash2,
+  AlertOctagon,
+} from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { Btn, Bdg, Fld, Inp, Sel, Modal, TA, PhotoUpload } from "@/shared/components/UIPrimitives";
 import { C, todayLocal } from "@/shared/utils/helpers";
@@ -61,17 +74,34 @@ export default function FleetManagementView({
   // that is genuinely off the road, i.e. one a person grounded. An overdue oil change is
   // a maintenance warning on a truck you can still drive, so it gets the deep-amber warn
   // token rather than sharing the destructive colour and the "Out of Service" wording.
+  // A solid dot in the status color, except in_shop which gets the wrench glyph
+  // instead — that state is "being worked on", not a plain severity level.
+  const Dot = ({ color }) => (
+    <span
+      style={{
+        display: "inline-block",
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        background: color,
+      }}
+    />
+  );
   const STATUS_DISPLAY = {
-    grounded: { dot: "🔴", label: t.flStatusOutOfService, color: C.rd },
-    in_shop: { dot: "🔧", label: t.flStatusInService, color: C.pu },
-    oil_overdue: { dot: "🟠", label: t.flStatusOilOverdue, color: C.am },
+    grounded: { dot: <Dot color={C.rd} />, label: t.flStatusOutOfService, color: C.rd },
+    in_shop: {
+      dot: <Wrench size={10} aria-hidden="true" />,
+      label: t.flStatusInService,
+      color: C.pu,
+    },
+    oil_overdue: { dot: <Dot color={C.am} />, label: t.flStatusOilOverdue, color: C.am },
     // Was C.gold (the bright accent) — at this badge's size (11px bold) that's
     // 3.30:1 on a white card, under WCAG AA's 4.5:1 for normal text. C.am is the
     // same deep-amber "warn" token oil_overdue already uses one line up, for the
     // same reason described in the comment above: 4.66:1, and it was already the
     // semantically correct token for a warning-severity badge.
-    service_due: { dot: "🟡", label: t.flStatusServiceDue, color: C.am },
-    active: { dot: "🟢", label: t.flStatusActive, color: C.gr },
+    service_due: { dot: <Dot color={C.am} />, label: t.flStatusServiceDue, color: C.am },
+    active: { dot: <Dot color={C.gr} />, label: t.flStatusActive, color: C.gr },
   };
 
   const [subView, setSubView] = useState("list");
@@ -497,7 +527,7 @@ export default function FleetManagementView({
             marginTop: 10,
           }}
         >
-          <span style={{ fontSize: "48px", marginBottom: 16 }}>🚛</span>
+          <Truck size={44} color="var(--c-slate)" strokeWidth={1.5} style={{ marginBottom: 16 }} aria-hidden="true" />
           <h3
             style={{
               margin: "0 0 8px 0",
@@ -536,7 +566,7 @@ export default function FleetManagementView({
   }
 
   return (
-    // ── 🟢 1. WRAP ENTIRE VIEW TO FILL WIDTH AND LOCK SCREEN ELEMENT OVERFLOW ──
+    // ── WRAP ENTIRE VIEW TO FILL WIDTH AND LOCK SCREEN ELEMENT OVERFLOW ──
     <div
       style={{
         display: "flex",
@@ -593,7 +623,7 @@ export default function FleetManagementView({
               {t.flAddVehicle}
             </Btn>
           )}
-          {/* ── 🟢 ADD HERE: THE LOG INSPECTION TOGGLE ACTION BUTTON ── */}
+          {/* ── THE LOG INSPECTION TOGGLE ACTION BUTTON ── */}
           {perms.fleet_log_inspection && (
             <Btn
               v="gold"
@@ -695,7 +725,7 @@ export default function FleetManagementView({
         </div>
       ) : (
         <>
-          {/* ── 🟢 2. INJECT ENCLOSED SCROLL TRACK CONTAINER FOR INTERIOR ELEMENTS ONLY ── */}
+          {/* ── INJECT ENCLOSED SCROLL TRACK CONTAINER FOR INTERIOR ELEMENTS ONLY ── */}
           <div
             style={{
               flex: 1,
@@ -822,8 +852,12 @@ export default function FleetManagementView({
                           }}
                         />
                       ) : (
-                        <span style={{ fontSize: 52, opacity: 0.25 }}>
-                          {v.type === "truck" ? "🚛" : "🚜"}
+                        <span style={{ opacity: 0.25 }}>
+                          {v.type === "truck" ? (
+                            <Truck size={48} strokeWidth={1.5} aria-hidden="true" />
+                          ) : (
+                            <Tractor size={48} strokeWidth={1.5} aria-hidden="true" />
+                          )}
                         </span>
                       )}
                       <div style={{ position: "absolute", top: 8, left: 8 }}>
@@ -875,13 +909,16 @@ export default function FleetManagementView({
                       {asgn && (
                         <div
                           style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
                             fontSize: "var(--text-2xs)",
                             color: C.blue,
                             fontWeight: "var(--weight-bold)",
                             marginBottom: 6,
                           }}
                         >
-                          👤 {asgn.name}
+                          <User size={11} aria-hidden="true" /> {asgn.name}
                         </div>
                       )}
                       {/* Offered at the moment of need, on the card of the truck that
@@ -899,19 +936,22 @@ export default function FleetManagementView({
                           }}
                           style={{ width: "100%", marginBottom: 8, justifyContent: "center" }}
                         >
-                          🔑 {t.flLendSpare}
+                          <KeyRound size={13} aria-hidden="true" /> {t.flLendSpare}
                         </Btn>
                       )}
                       {isBlocked && blockingReq.replacement_vehicle_id && (
                         <div
                           style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
                             fontSize: "var(--text-2xs)",
                             color: C.pu,
                             fontWeight: "var(--weight-bold)",
                             marginBottom: 6,
                           }}
                         >
-                          🔑 {t.flSpareOut}{" "}
+                          <KeyRound size={11} aria-hidden="true" /> {t.flSpareOut}{" "}
                           {vehs.find((x) => x.id === blockingReq.replacement_vehicle_id)?.name ||
                             blockingReq.replacement_vehicle_id}
                         </div>
@@ -950,13 +990,20 @@ export default function FleetManagementView({
                           </div>
                           <div
                             style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
                               fontSize: "var(--text-2xs)",
                               color: oLeft <= 0 ? C.rd : C.sub,
                             }}
                           >
-                            {oLeft <= 0
-                              ? "🚨 Oil overdue!"
-                              : `${Math.max(0, oLeft)} mi until oil change`}
+                            {oLeft <= 0 ? (
+                              <>
+                                <AlertOctagon size={11} aria-hidden="true" /> Oil overdue!
+                              </>
+                            ) : (
+                              `${Math.max(0, oLeft)} mi until oil change`
+                            )}
                             {pd !== null && (
                               <span style={{ color: C.blue }}>
                                 {" "}
@@ -1053,7 +1100,7 @@ export default function FleetManagementView({
                   setModal("mi");
                 }}
               >
-                📍 Log Mileage
+                <MapPin size={14} aria-hidden="true" /> Log Mileage
               </Btn>
             )}
             {perms.fleet_log_service && (
@@ -1069,7 +1116,7 @@ export default function FleetManagementView({
                   setModal("svc");
                 }}
               >
-                🔧 Log Service
+                <Wrench size={14} aria-hidden="true" /> Log Service
               </Btn>
             )}
             {perms.fleet_edit && (
@@ -1081,7 +1128,7 @@ export default function FleetManagementView({
                   setModal("assign");
                 }}
               >
-                👤 Assign Driver
+                <User size={14} aria-hidden="true" /> Assign Driver
               </Btn>
             )}
             {perms.fleet_edit && (
@@ -1100,13 +1147,14 @@ export default function FleetManagementView({
                   setIsEditingInfo(!isEditingInfo);
                 }}
               >
-                ✏️ {isEditingInfo ? "Cancel Details Edit" : "Edit Vehicle Name/Plate"}
+                <Pencil size={13} aria-hidden="true" />{" "}
+                {isEditingInfo ? "Cancel Details Edit" : "Edit Vehicle Name/Plate"}
               </Btn>
             )}
             {perms.fleet_edit &&
               (isGrounded(sel) ? (
                 <Btn v="green" sz="sm" disabled={grounding} onClick={() => setServiceStatus(false)}>
-                  ✅ {grounding ? "…" : t.flReturnToService}
+                  <CheckCircle2 size={14} aria-hidden="true" /> {grounding ? "…" : t.flReturnToService}
                 </Btn>
               ) : (
                 <Btn
@@ -1117,7 +1165,7 @@ export default function FleetManagementView({
                     setGroundModal(true);
                   }}
                 >
-                  🔴 {t.flGroundVehicle}
+                  <Ban size={14} aria-hidden="true" /> {t.flGroundVehicle}
                 </Btn>
               ))}
             {user.role === "admin" && (
@@ -1129,7 +1177,7 @@ export default function FleetManagementView({
                   setSel(null);
                 }}
               >
-                🗑️ Decommission Asset
+                <Trash2 size={14} aria-hidden="true" /> Decommission Asset
               </Btn>
             )}
           </div>
@@ -1137,6 +1185,9 @@ export default function FleetManagementView({
           {isGrounded(sel) && (
             <div
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
                 background: C.rB,
                 border: `1.5px solid ${C.rd}`,
                 borderRadius: "var(--radius-md)",
@@ -1147,7 +1198,8 @@ export default function FleetManagementView({
                 fontWeight: "var(--weight-semibold)",
               }}
             >
-              🔴 {t.flGroundedBadge} {sel.oos_reason || t.flStatusOutOfService}
+              <Ban size={14} aria-hidden="true" /> {t.flGroundedBadge}{" "}
+              {sel.oos_reason || t.flStatusOutOfService}
             </div>
           )}
 
@@ -1278,12 +1330,15 @@ export default function FleetManagementView({
               <h4
                 style={{
                   margin: "0 0 8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                   color: C.navy,
                   fontSize: "var(--text-sm)",
                   textTransform: "uppercase",
                 }}
               >
-                🔧 Predicted Next Service
+                <Wrench size={13} aria-hidden="true" /> Predicted Next Service
               </h4>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {predictedServices.map((p) => (
@@ -1532,7 +1587,14 @@ export default function FleetManagementView({
       )}
 
       {groundModal && sel && perms.fleet_edit && (
-        <Modal title={`🔴 ${t.flGroundTitle}`} onClose={() => setGroundModal(false)}>
+        <Modal
+          title={
+            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Ban size={16} aria-hidden="true" /> {t.flGroundTitle}
+            </span>
+          }
+          onClose={() => setGroundModal(false)}
+        >
           <div
             style={{
               background: C.aB,
@@ -1648,8 +1710,21 @@ export default function FleetManagementView({
                   }}
                 >
                   <span>
-                    <span style={{ fontWeight: "var(--weight-extrabold)", color: C.navy }}>
-                      {x.type === "truck" ? "🚛" : "🚜"} {x.name}
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        fontWeight: "var(--weight-extrabold)",
+                        color: C.navy,
+                      }}
+                    >
+                      {x.type === "truck" ? (
+                        <Truck size={13} aria-hidden="true" />
+                      ) : (
+                        <Tractor size={13} aria-hidden="true" />
+                      )}{" "}
+                      {x.name}
                     </span>
                     <span style={{ display: "block", fontSize: "var(--text-2xs)", color: C.sub }}>
                       {x.yr} {x.make} {x.model} · #{x.plate}

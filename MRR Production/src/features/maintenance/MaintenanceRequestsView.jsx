@@ -1,5 +1,19 @@
 // src/features/maintenance/MaintenanceRequestsView.jsx
 import { useState, useEffect } from "react";
+import {
+  Wrench,
+  Bell,
+  ClipboardList,
+  Calendar,
+  Plus,
+  Repeat,
+  TrendingUp,
+  AlertOctagon,
+  CheckCircle2,
+  FileText,
+  Trash2,
+  History,
+} from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
@@ -162,7 +176,7 @@ export default function MaintenanceRequestsView({
 
     const createdRecord = data[0];
 
-    // ── 🟢 AUDIT LOG: NEW TICKET CREATED ──
+    // ── AUDIT LOG: NEW TICKET CREATED ──
     await logAction(
       user.id,
       user.email,
@@ -222,7 +236,7 @@ export default function MaintenanceRequestsView({
 
     const vehicleLabel = currentTicket ? currentTicket.vname : `Ticket ID: ${id}`;
 
-    // ── 🟢 AUDIT LOG: STATUS CHANGE WORKFLOW ──
+    // ── AUDIT LOG: STATUS CHANGE WORKFLOW ──
     await logAction(
       user.id,
       user.email,
@@ -284,7 +298,7 @@ export default function MaintenanceRequestsView({
       return;
     }
 
-    // ── 🟢 AUDIT LOG: REQUEST REMOVED / DELETED ──
+    // ── AUDIT LOG: REQUEST REMOVED / DELETED ──
     await logAction(
       user.id,
       user.email,
@@ -413,7 +427,7 @@ export default function MaintenanceRequestsView({
               gap: "var(--space-3)",
             }}
           >
-            🔧 {t.maintTitle}
+            <Wrench size={26} aria-hidden="true" /> {t.maintTitle}
           </h1>
         </div>
         <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
@@ -432,7 +446,7 @@ export default function MaintenanceRequestsView({
                 gap: "var(--space-2)",
               }}
             >
-              🔔 {pendingCount} {t.maintAwaiting}
+              <Bell size={13} aria-hidden="true" /> {pendingCount} {t.maintAwaiting}
             </div>
           )}
           <div
@@ -456,9 +470,12 @@ export default function MaintenanceRequestsView({
                 background: subView === "list" ? "var(--c-surface)" : "transparent",
                 color: subView === "list" ? "var(--c-barnwood)" : "var(--c-sub)",
                 boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              📋 {t.maintRequestList}
+              <ClipboardList size={13} aria-hidden="true" /> {t.maintRequestList}
             </button>
             <button
               onClick={() => setSubView("calendar")}
@@ -472,9 +489,12 @@ export default function MaintenanceRequestsView({
                 background: subView === "calendar" ? "var(--c-surface)" : "transparent",
                 color: subView === "calendar" ? "var(--c-barnwood)" : "var(--c-sub)",
                 boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              📅 {t.maintScheduleCalendar}
+              <Calendar size={13} aria-hidden="true" /> {t.maintScheduleCalendar}
             </button>
           </div>
           <Btn
@@ -483,7 +503,7 @@ export default function MaintenanceRequestsView({
             onClick={() => setIsCreateOpen(true)}
             style={{ fontWeight: "var(--weight-extrabold)" }}
           >
-            ➕ {t.maintNewRequest}
+            <Plus size={14} aria-hidden="true" /> {t.maintNewRequest}
           </Btn>
         </div>
       </div>
@@ -494,6 +514,9 @@ export default function MaintenanceRequestsView({
             <div
               key={`${c.vid}::${c.issueType}`}
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
                 background: "var(--c-rust-wash)",
                 border: "1px solid var(--c-rust-wash)",
                 color: "var(--c-rust)",
@@ -503,13 +526,17 @@ export default function MaintenanceRequestsView({
                 fontWeight: "var(--weight-bold)",
               }}
             >
-              🔁 {c.vname} — "{c.issueType}" {t.maintReported} {c.count}x {t.maintInLast60}
+              <Repeat size={13} aria-hidden="true" /> {c.vname} — "{c.issueType}" {t.maintReported}{" "}
+              {c.count}x {t.maintInLast60}
             </div>
           ))}
           {trendingIssues.map((trend) => (
             <div
               key={trend.issueType}
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
                 background: "var(--c-warn-wash)",
                 border: "1px solid var(--c-warn-wash)",
                 color: "var(--c-warn)",
@@ -519,7 +546,8 @@ export default function MaintenanceRequestsView({
                 fontWeight: "var(--weight-bold)",
               }}
             >
-              📈 "{trend.issueType}" {t.maintTrendingUp} — {trend.recentCount} {t.maintInLast30}
+              <TrendingUp size={13} aria-hidden="true" /> "{trend.issueType}" {t.maintTrendingUp} —{" "}
+              {trend.recentCount} {t.maintInLast30}
               {!trend.isNew && ` (${trend.ratio}${t.maintBaselineRate})`}
             </div>
           ))}
@@ -665,7 +693,13 @@ export default function MaintenanceRequestsView({
                             r.status
                           ] || r.status}
                         </Bdg>
-                        {isUrgent && <Bdg color="red">🚨 {t.maintUrgent}</Bdg>}
+                        {isUrgent && (
+                          <Bdg color="red">
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                              <AlertOctagon size={11} aria-hidden="true" /> {t.maintUrgent}
+                            </span>
+                          </Bdg>
+                        )}
                         <Bdg color="gray">{r.type}</Bdg>
                       </div>
                       <h3
@@ -694,12 +728,16 @@ export default function MaintenanceRequestsView({
                         {r.scheduled_date && (
                           <span
                             style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
                               marginLeft: 8,
                               color: "var(--c-slate)",
                               fontWeight: "var(--weight-bold)",
                             }}
                           >
-                            🗓️ {t.scheduled}: {new Date(r.scheduled_date).toLocaleDateString()}
+                            <Calendar size={11} aria-hidden="true" /> {t.scheduled}:{" "}
+                            {new Date(r.scheduled_date).toLocaleDateString()}
                           </span>
                         )}
                       </div>
@@ -709,12 +747,12 @@ export default function MaintenanceRequestsView({
                     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                       {r.status === "pending" && perms.maint_manage && (
                         <Btn v="primary" sz="sm" onClick={() => setSel(r)}>
-                          🗓️ {t.maintScheduleBtn}
+                          <Calendar size={13} aria-hidden="true" /> {t.maintScheduleBtn}
                         </Btn>
                       )}
                       {r.status === "scheduled" && perms.maint_manage && (
                         <Btn v="green" sz="sm" onClick={() => setSel(r)}>
-                          ✅ {t.maintCompleteBtn}
+                          <CheckCircle2 size={13} aria-hidden="true" /> {t.maintCompleteBtn}
                         </Btn>
                       )}
                       {r.status === "completed" && (
@@ -726,7 +764,7 @@ export default function MaintenanceRequestsView({
                             downloadServiceReport(r);
                           }}
                         >
-                          📄 {t.maintDownloadPdf}
+                          <FileText size={13} aria-hidden="true" /> {t.maintDownloadPdf}
                         </Btn>
                       )}
                       <Btn v="ghost" sz="sm" onClick={() => setSel(r)}>
@@ -744,14 +782,13 @@ export default function MaintenanceRequestsView({
                             border: "none",
                             color: C.rd,
                             cursor: "pointer",
-                            fontSize: "var(--text-lg)",
                             padding: "4px 8px",
                             display: "flex",
                             alignItems: "center",
                           }}
                           title={t.maintRemoveTitle}
                         >
-                          🗑️
+                          <Trash2 size={15} aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -956,12 +993,15 @@ export default function MaintenanceRequestsView({
                   >
                     <strong
                       style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
                         fontSize: "var(--text-xs)",
                         color: "var(--c-pasture)",
                         textTransform: "uppercase",
                       }}
                     >
-                      🕓 {t.maintLastCompleted} — {sel.vname}
+                      <History size={12} aria-hidden="true" /> {t.maintLastCompleted} — {sel.vname}
                     </strong>
                     <div
                       style={{
@@ -1075,7 +1115,7 @@ export default function MaintenanceRequestsView({
                 >
                   <strong style={{ color: "var(--c-pasture)" }}>{t.maintRequestClosed}</strong>
                   <Btn v="ghost" sz="sm" onClick={() => downloadServiceReport(sel)}>
-                    📄 {t.maintDownloadPdf}
+                    <FileText size={13} aria-hidden="true" /> {t.maintDownloadPdf}
                   </Btn>
                 </div>
                 {sel.wh_notes && (

@@ -118,7 +118,7 @@ async function fetchRead(url, options, { retries = 2, timeoutMs = 15000 } = {}) 
 // either can land without the other — so a refused expense must never cost you the
 // paperwork, and a refused upload must never hide a posted cost.
 //
-// Separately, the 📄 PDF button does NOT sync. Generating a report to read and
+// Separately, the PDF button does NOT sync. Generating a report to read and
 // filing it in the CRM are different intentions, and merging them meant every
 // reprint of a finished job dropped another copy into Job Paperwork.
 export async function syncJobReportToAccuLynx({
@@ -333,7 +333,7 @@ export async function uploadJobReportToAccuLynx({ job, users, activeLogo, inv, c
   }
 }
 
-// ── 🆕 ADDED: Fetch Job Data Helper ──────────────────────────────────────────
+// ── Fetch Job Data Helper ──────────────────────────────────────────
 export async function fetchAccuLynxJob({ poNumber, acculynxJobId }, config) {
   if (!config?.enabled || !config?.proxyUrl) {
     throw new Error("AccuLynx integration is not configured.");

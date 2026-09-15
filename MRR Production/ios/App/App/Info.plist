@@ -36,6 +36,17 @@
 	<string>Steadwerk uses the camera to attach photos to jobs, vehicle inspections and maintenance requests.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Steadwerk lets you attach photos you have already taken to jobs, vehicle inspections and maintenance requests.</string>
+	<!-- REQUIRED by @capacitor/push-notifications. Unlike the camera, iOS does
+	     not require a usage-description string for the push permission prompt
+	     itself — but background-mode remote notifications (a push arriving
+	     while the app isn't in the foreground) are opt-in per capability, and
+	     this is how the app declares it wants them. Without this key, a push
+	     sent while the app is closed/backgrounded may not reliably wake
+	     processing of it. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

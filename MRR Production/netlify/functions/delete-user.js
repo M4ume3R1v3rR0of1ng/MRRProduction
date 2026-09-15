@@ -1,7 +1,7 @@
 // netlify/functions/delete-user.js
 // Admin-only: removes a user from the CALLER'S company.
 //
-// ⚠️ The semantics changed with multi-tenancy, and the old behaviour is now a bug.
+// The semantics changed with multi-tenancy, and the old behaviour is now a bug.
 //
 // Before, this deleted the auth account outright. With memberships, a person can
 // work for two companies — so an admin at Maumee River pressing "remove" would have

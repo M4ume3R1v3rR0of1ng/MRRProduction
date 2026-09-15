@@ -10,7 +10,7 @@ import { resolveMaintManagers, isUrgent } from "@/shared/utils/maintenanceNotifi
 
 export function useAppData() {
   const [loading, setLoading] = useState(true);
-  // ── 🟢 FIXED: ADDED LACKING PROGRESS TRACKER STATE ──
+  // ── ADDED LACKING PROGRESS TRACKER STATE ──
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   const [curUser, setCurUser] = useState(null);
@@ -69,9 +69,9 @@ export function useAppData() {
   // under, so the auth listener below only refetches on a genuine identity change.
   const loadedAuthIdRef = useRef(null);
 
-  // ── ⚙️ UNIFIED DATA INITIALIZATION ENGINE ──
+  // ── UNIFIED DATA INITIALIZATION ENGINE ──
   async function load() {
-    console.log("🚀 Initializing Steadwerk boot sequence via useAppData...");
+    console.log("Initializing Steadwerk boot sequence via useAppData...");
     try {
       setLoading(true);
       setLoadingProgress(10); // Start cache extraction step[cite: 6]
@@ -182,7 +182,7 @@ export function useAppData() {
         setLoadingProgress((prev) => Math.min(prev + incrementValue, 95));
       };
 
-      // ⚠️ NO SEED FALLBACK ON EMPTY. This used to fall back to SEED_I / SEED_V /
+      // NO SEED FALLBACK ON EMPTY. This used to fall back to SEED_I / SEED_V /
       // SEED_JOBS / SEED_W / SEED_U whenever a table came back with zero rows.
       // That was defensible with one company; it is a serious bug with several.
       //
@@ -493,9 +493,9 @@ export function useAppData() {
 
       setLoadErrors(failedTables);
       setLoadingProgress(100);
-      console.log("🏁 Core synchronization complete. Hook environment primed.");
+      console.log("Core synchronization complete. Hook environment primed.");
     } catch (e) {
-      console.error("🚨 Critical failure during app instantiation sequence:", e);
+      console.error("Critical failure during app instantiation sequence:", e);
       setLoadErrors(["App Startup"]);
     } finally {
       setLoading(false);
@@ -506,7 +506,7 @@ export function useAppData() {
     load();
   }, []);
 
-  // ── 🔐 POST-LOGIN DATA REFETCH ──
+  // ── POST-LOGIN DATA REFETCH ──
   // The boot load above can run before anyone is signed in; RLS then returns zero rows
   // and every table falls back to seed data. Re-run the full load whenever a different
   // identity signs in. The id guard skips the SIGNED_IN echoes supabase emits on tab
@@ -525,7 +525,7 @@ export function useAppData() {
     return () => subscription?.unsubscribe();
   }, []);
 
-  // ── 💾 BACKGROUND STORAGE SYNCHRONIZER EFFECTS ──
+  // ── BACKGROUND STORAGE SYNCHRONIZER EFFECTS ──
   useEffect(() => {
     if (!loading) storage.set("mrr-v7-roleperms", JSON.stringify(rolePerms)).catch(() => {});
   }, [rolePerms, loading]);
@@ -536,7 +536,7 @@ export function useAppData() {
     if (!loading) storage.set("mrr-v7-acculynx", JSON.stringify(acculynxConfig)).catch(() => {});
   }, [acculynxConfig, loading]);
 
-  // ── 💬 TEAM CHAT UNREAD TRACKING ──
+  // ── TEAM CHAT UNREAD TRACKING ──
   const [chatUnread, setChatUnread] = useState(0);
 
   const markChatRead = async () => {
@@ -615,7 +615,7 @@ export function useAppData() {
     };
   }, [curUser]);
 
-  // ── 🔄 LIVE PERMISSION REFRESH ──
+  // ── LIVE PERMISSION REFRESH ──
   // Permissions used to load once at login and go stale until re-login — an admin
   // toggling a role's access wouldn't reach anyone already signed in (the source of
   // the "I turned it on but it won't let him" confusion). Subscribe to changes on the
@@ -662,7 +662,7 @@ export function useAppData() {
     };
   }, [curUser]);
 
-  // ── 🔔 REALTIME: MAINTENANCE REQUEST LIFECYCLE ──
+  // ── REALTIME: MAINTENANCE REQUEST LIFECYCLE ──
   // Two directions on one channel, both fixing the same underlying gap: `reqs` only
   // ever loaded once (sign-in, or a manual reload), so both of the Dashboard's own
   // maintenance banners — the "new request" one (maintAlert, for maint_manage
@@ -698,7 +698,7 @@ export function useAppData() {
 
           const urgent = isUrgent(row);
           showToast(
-            `${urgent ? "🚨" : "🛠️"} New maintenance request: ${row.vname || "a vehicle"}${
+            `New maintenance request: ${row.vname || "a vehicle"}${
               urgent ? " — URGENT" : ""
             }, filed by ${row.uname || "a teammate"}.`,
             urgent ? "warning" : "success",
@@ -723,13 +723,13 @@ export function useAppData() {
 
           if (row.status === "completed") {
             showToast(
-              `✅ Your vehicle, ${row.vname || "your vehicle"}, is ready — maintenance complete.`,
+              `Your vehicle, ${row.vname || "your vehicle"}, is ready — maintenance complete.`,
               "success",
               8000,
             );
           } else if (row.status === "scheduled") {
             showToast(
-              `🗓️ Your maintenance request for ${row.vname || "your vehicle"} has been scheduled.`,
+              `Your maintenance request for ${row.vname || "your vehicle"} has been scheduled.`,
               "success",
               8000,
             );
@@ -743,7 +743,71 @@ export function useAppData() {
     };
   }, [curUser, rolePerms, userOverrides]);
 
-  // ── 📊 COMPUTED MEMO VALUES ──
+  // ── REALTIME: OIL-DUE NOTICES (in-app fallback while iOS push is pending) ──
+  // send-maintenance-push-notices.js writes one oil_due_notices row per vehicle
+  // per escalation cycle, driver_id set to the assigned driver. supabase/40
+  // gives that driver (and only that driver) SELECT on their own rows, and
+  // Realtime fans postgres_changes out through each subscriber's own RLS — so
+  // like the maintenance_requests channel above, no client-side uid filter is
+  // needed; this driver is the only one who will ever receive this row's events.
+  //
+  // The job only ever WRITES a row on a real action (see decideNoticeAction in
+  // that file), so which timestamp is freshly set says which notice this is
+  // without needing the pre-image: urgent_last_sent_at present (and not yet
+  // resolved) means urgent — whether that's the first time (INSERT, heads-up
+  // window was missed) or a later day's repeat (UPDATE) reads the same either
+  // way. Otherwise, heads_up_sent_at present is the normal 7-day notice.
+  // resolved_at present means stay quiet — the driver already handled it.
+  //
+  // Voiced as the assistant rather than a bare system banner, and delivered
+  // twice: this toast (guaranteed visible even if the driver never opens the
+  // chat) plus — separately, in send-maintenance-push-notices.js itself — a
+  // chat_messages row (supabase/41) that ChatWidget picks up over its OWN
+  // realtime subscription. That used to be a window event this hook
+  // dispatched for ChatWidget to catch, back when the reminder only ever
+  // lived in local component state; now the backend job writes the durable
+  // copy directly, so this effect only needs to handle the toast.
+  useEffect(() => {
+    if (!curUser) return;
+
+    const notifyFromRow = (row) => {
+      if (row.resolved_at) return;
+      const vehicleName = row.vehicle_name || "a vehicle";
+      let text = null;
+      if (row.urgent_last_sent_at) {
+        text = `URGENT — ${vehicleName}'s oil change is overdue and no maintenance request has been filed yet. Want me to help you file one?`;
+      } else if (row.heads_up_sent_at) {
+        text = `Heads up — ${vehicleName}'s oil change is projected due around ${row.projected_due_date}. Let me know if you'd like help requesting maintenance for it.`;
+      }
+      if (!text) return;
+
+      showToast(
+        `Steadwerk Assistant: ${text}`,
+        row.urgent_last_sent_at ? "warning" : "success",
+        row.urgent_last_sent_at ? 12000 : 8000,
+      );
+    };
+
+    const channel = supabase
+      .channel("realtime-oil-due-notices")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "oil_due_notices" },
+        (payload) => notifyFromRow(payload.new),
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "oil_due_notices" },
+        (payload) => notifyFromRow(payload.new),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [curUser]);
+
+  // ── COMPUTED MEMO VALUES ──
   const pendingReqCount = useMemo(() => reqs.filter((r) => r.status === "pending").length, [reqs]);
   const lowStockCount = useMemo(() => inv.filter((i) => tot(i) <= i.alrt).length, [inv]);
   const newJobsForMe = useMemo(
@@ -773,7 +837,7 @@ export function useAppData() {
     [users, rolePerms, userOverrides],
   );
 
-  // ── 🔔 SIGN-IN ALERT: tell whoever can close jobs how many are waiting ──
+  // ── SIGN-IN ALERT: tell whoever can close jobs how many are waiting ──
   useEffect(() => {
     if (!curUser) return;
     const perms = getEffectivePerms(curUser, rolePerms, userOverrides);
@@ -781,7 +845,7 @@ export function useAppData() {
     const count = jobs.filter((j) => j.status === "completed").length;
     if (count > 0) {
       showToast(
-        `🧾 ${count} completed job${count !== 1 ? "s" : ""} waiting to be closed out once AccuLynx pricing is confirmed.`,
+        `${count} completed job${count !== 1 ? "s" : ""} waiting to be closed out once AccuLynx pricing is confirmed.`,
         "warning",
         8000,
       );

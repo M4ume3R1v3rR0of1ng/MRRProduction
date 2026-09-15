@@ -1,8 +1,18 @@
 // src/features/inventory/InventoryView.jsx
 import { useState, useMemo, useEffect } from "react";
+import {
+  Package,
+  LayoutTemplate,
+  Plus,
+  Grid3x3,
+  Calculator,
+  Search,
+  AlertOctagon,
+  Star,
+} from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm, tot, newestPrice } from "@/shared/utils/helpers";
-import { Btn, Inp, Sel } from "@/shared/components/UIPrimitives";
+import { Btn, Inp, Sel, StatusDot } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { translations } from "@/shared/utils/translations";
@@ -197,16 +207,18 @@ export default function InventoryView({
         }}
       >
         <div>
-          {/* ── 🟢 FIXED: TRANSLATED CORE MAIN HEADER TERMINALS ── */}
           <h1
             style={{
               margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 9,
               fontSize: "var(--text-2xl)",
               fontWeight: "var(--weight-black)",
               color: C.navy,
             }}
           >
-            📦 {t.inventory || "Inventory"}
+            <Package size={22} aria-hidden="true" /> {t.inventory || "Inventory"}
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
             {inv.length} {t.invCatalogPositions} · {t.invRealtimeStock}
@@ -222,18 +234,17 @@ export default function InventoryView({
         >
           {perms.inv_bulk_receive && (
             <Btn v="gold" onClick={() => setModal("bulk")}>
-              {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}
-              📦 {t.invReceiveBulk}
+              <Package size={14} aria-hidden="true" /> {t.invReceiveBulk}
             </Btn>
           )}
           {perms.inv_edit && (
             <Btn v="outline" onClick={() => setModal("tpl")}>
-              🧰 {t.invTemplates}
+              <LayoutTemplate size={14} aria-hidden="true" /> {t.invTemplates}
             </Btn>
           )}
           {perms.inv_edit && (
             <Btn v="primary" onClick={() => setModal("add")}>
-              {/* ── 🟢 FIXED: TRANSLATED ACTION BUTTONS ── */}+ {t.invAddItem}
+              <Plus size={14} aria-hidden="true" /> {t.invAddItem}
             </Btn>
           )}
         </div>
@@ -254,14 +265,19 @@ export default function InventoryView({
         }}
       >
         {[
-          ["catalog", `📦 ${t.invTabCatalog}`, t.invTabCatalogHint],
-          ...(perms.inv_count ? [["count", `🧮 ${t.invTabCount}`, t.invTabCountHint]] : []),
-        ].map(([k, label, hint]) => (
+          ["catalog", Grid3x3, t.invTabCatalog, t.invTabCatalogHint],
+          ...(perms.inv_count
+            ? [["count", Calculator, t.invTabCount, t.invTabCountHint]]
+            : []),
+        ].map(([k, Icon, label, hint]) => (
           <button
             key={k}
             onClick={() => setTab(k)}
             title={hint}
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
               background: "none",
               border: "none",
               cursor: "pointer",
@@ -273,7 +289,7 @@ export default function InventoryView({
               marginBottom: -2,
             }}
           >
-            {label}
+            <Icon size={14} aria-hidden="true" /> {label}
           </button>
         ))}
       </div>
@@ -296,18 +312,25 @@ export default function InventoryView({
           <div
             style={{ display: "flex", gap: "var(--space-4)", marginBottom: 14, flexWrap: "wrap" }}
           >
-            <Inp
-              /* ── 🟢 FIXED: TRANSLATED SEARCH INPUT PLACEHOLDER ── */
-              placeholder={t.searchInventory || "🔍 Search items..."}
-              value={srch}
-              onChange={(e) => {
-                setSrch(e.target.value);
-                if (typeof setInventorySearchQuery === "function") {
-                  setInventorySearchQuery(e.target.value);
-                }
-              }}
-              style={{ flex: 1, minWidth: 160, maxWidth: 300 }}
-            />
+            <div style={{ position: "relative", flex: 1, minWidth: 160, maxWidth: 300 }}>
+              <Search
+                size={13}
+                color={C.sub}
+                style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
+                aria-hidden="true"
+              />
+              <Inp
+                placeholder={t.searchInventory || "Search items..."}
+                value={srch}
+                onChange={(e) => {
+                  setSrch(e.target.value);
+                  if (typeof setInventorySearchQuery === "function") {
+                    setInventorySearchQuery(e.target.value);
+                  }
+                }}
+                style={{ width: "100%", paddingLeft: 28 }}
+              />
+            </div>
             <Sel value={cat} onChange={(e) => setCat(e.target.value)} style={{ width: "auto" }}>
               {cats.map((c) => (
                 <option key={c} value={c}>
@@ -341,29 +364,51 @@ export default function InventoryView({
               const photo = item.photo_url;
 
               // Traffic light: RED = order now (out, or at/below the reorder point),
-              // YELLOW = getting close, GREEN = healthy. `critical` drives the 🚨 flag.
+              // YELLOW = getting close, GREEN = healthy. `critical` drives the alert flag.
               const getStockStatusMeta = (currentStock, alertThreshold) => {
                 const th = alertThreshold || 0;
                 // Below zero is NOT the same as empty, and collapsing the two into
                 // "Out of Stock" was hiding the more serious of the two. Empty means
                 // order more. Negative means the books are provably wrong: more was
                 // issued than ever existed, so nothing on this card can be trusted
-                // until someone counts the shelf.
+                // until someone counts the shelf. It gets the octagon (not just the
+                // dot every other severity shares) so it still reads as distinct at
+                // a glance.
                 if (currentStock < 0)
                   return {
-                    dot: "🛑",
+                    dot: <AlertOctagon size={11} aria-hidden="true" />,
                     label: t.invStockNegative,
                     color: STOCK_RED,
                     critical: true,
                     negative: true,
                   };
                 if (currentStock === 0)
-                  return { dot: "🔴", label: t.invStockOut, color: STOCK_RED, critical: true };
+                  return {
+                    dot: <StatusDot color={STOCK_RED} />,
+                    label: t.invStockOut,
+                    color: STOCK_RED,
+                    critical: true,
+                  };
                 if (currentStock <= th)
-                  return { dot: "🔴", label: t.invStockReorder, color: STOCK_RED, critical: true };
+                  return {
+                    dot: <StatusDot color={STOCK_RED} />,
+                    label: t.invStockReorder,
+                    color: STOCK_RED,
+                    critical: true,
+                  };
                 if (currentStock <= th * 1.5)
-                  return { dot: "🟡", label: t.invStockLow, color: STOCK_YELLOW, critical: false };
-                return { dot: "🟢", label: t.invStockIn, color: STOCK_GREEN, critical: false };
+                  return {
+                    dot: <StatusDot color={STOCK_YELLOW} />,
+                    label: t.invStockLow,
+                    color: STOCK_YELLOW,
+                    critical: false,
+                  };
+                return {
+                  dot: <StatusDot color={STOCK_GREEN} />,
+                  label: t.invStockIn,
+                  color: STOCK_GREEN,
+                  critical: false,
+                };
               };
 
               const stockStatus = getStockStatusMeta(stock, item.alrt);
@@ -404,14 +449,16 @@ export default function InventoryView({
                         background: "rgba(0,0,0,0.45)",
                         border: "none",
                         borderRadius: "50%",
-                        fontSize: 14,
-                        lineHeight: 1,
                         padding: 0,
-                        color: C.w,
+                        color: item.special ? C.gold : C.w,
                         cursor: perms.inv_edit ? "pointer" : "default",
                       }}
                     >
-                      {item.special ? "⭐" : "☆"}
+                      <Star
+                        size={14}
+                        fill={item.special ? "currentColor" : "none"}
+                        aria-hidden="true"
+                      />
                     </button>
                   )}
                   {photo ? (
@@ -433,6 +480,9 @@ export default function InventoryView({
                           position: "absolute",
                           top: 8,
                           left: 8,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
                           background: "rgba(0,0,0,0.65)",
                           color: C.w,
                           borderRadius: 20,
@@ -461,6 +511,9 @@ export default function InventoryView({
                         {!photo && (
                           <div
                             style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
                               fontSize: "var(--text-2xs)",
                               fontWeight: "var(--weight-extrabold)",
                               color: stockStatus.color,
@@ -486,7 +539,12 @@ export default function InventoryView({
                         <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{item.cat}</div>
                       </div>
                       {stockStatus.critical && (
-                        <span style={{ fontSize: 15, marginLeft: 4 }}>🚨</span>
+                        <AlertOctagon
+                          size={15}
+                          color={STOCK_RED}
+                          style={{ marginLeft: 4, flexShrink: 0 }}
+                          aria-hidden="true"
+                        />
                       )}
                     </div>
 
@@ -589,7 +647,7 @@ export default function InventoryView({
         </>
       )}
 
-      {/* ── 🧰 JOB MATERIAL TEMPLATES MANAGER ── */}
+      {/* ── JOB MATERIAL TEMPLATES MANAGER ── */}
       {modal === "tpl" && <JobTemplatesModal inv={inv} onClose={() => setModal(null)} />}
 
       {modal === "bulk" && perms.inv_bulk_receive && (

@@ -1,5 +1,6 @@
 // src/features/maintenance/MaintenanceCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
+import { AlertOctagon, Clock, Calendar, Truck, AlertTriangle, Inbox } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
 import { Btn } from "@/shared/components/UIPrimitives";
@@ -15,9 +16,9 @@ const toLocalDateKey = (date) => {
 };
 
 const urgencyMeta = (urgency) => {
-  if (urgency === "urgent") return { color: C.rd, label: "🚨 Urgent" };
-  if (urgency === "soon") return { color: C.am, label: "⏳ Soon" };
-  return { color: C.blue, label: "Standard" };
+  if (urgency === "urgent") return { color: C.rd, icon: AlertOctagon, label: "Urgent" };
+  if (urgency === "soon") return { color: C.am, icon: Clock, label: "Soon" };
+  return { color: C.blue, icon: null, label: "Standard" };
 };
 
 export default function MaintenanceCalendar({
@@ -227,13 +228,16 @@ export default function MaintenanceCalendar({
           </span>
           <span
             style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 3,
               color: meta.color,
               fontWeight: "var(--weight-bold)",
               flexShrink: 0,
               marginLeft: 4,
             }}
           >
-            {meta.label}
+            {meta.icon && <meta.icon size={10} aria-hidden="true" />} {meta.label}
           </span>
         </div>
       </div>
@@ -264,12 +268,15 @@ export default function MaintenanceCalendar({
           <h2
             style={{
               margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
               fontSize: "var(--text-lg)",
               fontWeight: "var(--weight-extrabold)",
               color: C.navy,
             }}
           >
-            📅 Weekly Maintenance Schedule
+            <Calendar size={16} aria-hidden="true" /> Weekly Maintenance Schedule
           </h2>
           <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
             {t.mcSubtitle}
@@ -323,6 +330,9 @@ export default function MaintenanceCalendar({
       >
         <div
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
             fontSize: "var(--text-xs)",
             fontWeight: "var(--weight-extrabold)",
             color: C.sub,
@@ -330,7 +340,8 @@ export default function MaintenanceCalendar({
             marginBottom: 8,
           }}
         >
-          📥 Awaiting Scheduling {unscheduledReqs.length > 0 && `(${unscheduledReqs.length})`}
+          <Inbox size={12} aria-hidden="true" /> Awaiting Scheduling{" "}
+          {unscheduledReqs.length > 0 && `(${unscheduledReqs.length})`}
         </div>
         {unscheduledReqs.length === 0 ? (
           <div style={{ fontSize: "var(--text-sm)", color: C.sub, fontStyle: "italic" }}>
@@ -358,13 +369,16 @@ export default function MaintenanceCalendar({
                   width: 170,
                   padding: "12px 10px",
                   textAlign: "left",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                   color: C.sub,
                   fontSize: "var(--text-xs)",
                   fontWeight: "var(--weight-bold)",
                   borderBottom: `2px solid ${C.bd}`,
                 }}
               >
-                🚛 Vehicle
+                <Truck size={13} aria-hidden="true" /> Vehicle
               </th>
               {weekDays.map((day) => {
                 const isToday = toLocalDateKey(day) === todayString;
@@ -456,6 +470,10 @@ export default function MaintenanceCalendar({
                         {isDoubleBooked && (
                           <div
                             style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 4,
                               fontSize: "var(--text-2xs)",
                               fontWeight: "var(--weight-bold)",
                               color: C.rd,
@@ -465,7 +483,7 @@ export default function MaintenanceCalendar({
                               textAlign: "center",
                             }}
                           >
-                            ⚠️ {dayReqs.length} requests
+                            <AlertTriangle size={10} aria-hidden="true" /> {dayReqs.length} requests
                           </div>
                         )}
                       </div>

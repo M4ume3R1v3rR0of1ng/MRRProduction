@@ -13,6 +13,7 @@
 // updates its own list, which keeps the "who owns the jobs array" question with
 // the component that actually owns it.
 import { useState } from "react";
+import { Truck, RefreshCw, AlertTriangle, Search, Save, Loader2 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, mkJI, mergePullTracking } from "@/shared/utils/helpers";
 import { Btn, Fld, Inp, Modal, Sel, TA } from "@/shared/components/UIPrimitives";
@@ -271,12 +272,12 @@ export default function EditJobModal({
           <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
             {canPullAdded && (
               <Btn v="outline" sz="sm" onClick={() => onPullAdded()} disabled={saving}>
-                🚛 Pull Added Materials
+                <Truck size={13} aria-hidden="true" /> Pull Added Materials
               </Btn>
             )}
             {canCorrectReturn && (
               <Btn v="outline" sz="sm" onClick={() => onCorrectReturn()} disabled={saving}>
-                🔄 Correct Return
+                <RefreshCw size={13} aria-hidden="true" /> Correct Return
               </Btn>
             )}
           </div>
@@ -319,8 +320,17 @@ export default function EditJobModal({
                   {item.iname}
                 </div>
                 {item.pulled > 0 && (
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.am }}>
-                    ⚠️ {item.pulled} {item.unit} already pulled
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: "var(--text-2xs)",
+                      color: C.am,
+                    }}
+                  >
+                    <AlertTriangle size={10} aria-hidden="true" /> {item.pulled} {item.unit} already
+                    pulled
                   </div>
                 )}
               </div>
@@ -355,12 +365,21 @@ export default function EditJobModal({
       </div>
 
       <Fld label="Add Material">
-        <Inp
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="🔍 Search inventory..."
-          disabled={saving}
-        />
+        <div style={{ position: "relative" }}>
+          <Search
+            size={13}
+            color={C.sub}
+            style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
+            aria-hidden="true"
+          />
+          <Inp
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search inventory..."
+            style={{ paddingLeft: 28 }}
+            disabled={saving}
+          />
+        </div>
       </Fld>
       {search.trim() && (
         <div
@@ -430,7 +449,20 @@ export default function EditJobModal({
           style={{ flex: 1, justifyContent: "center" }}
           disabled={saving}
         >
-          {saving ? "⏳ Saving..." : "💾 Save Changes"}
+          {saving ? (
+            <>
+              <Loader2
+                size={14}
+                style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                aria-hidden="true"
+              />{" "}
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save size={14} aria-hidden="true" /> Save Changes
+            </>
+          )}
         </Btn>
       </div>
     </Modal>

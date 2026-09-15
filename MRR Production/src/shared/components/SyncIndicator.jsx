@@ -12,6 +12,7 @@
 import { useState, useEffect } from "react";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
+import { StatusDot } from "./UIPrimitives";
 
 export default function SyncIndicator({ lang = "en" }) {
   const t = translations[lang] || translations.en;
@@ -43,7 +44,7 @@ export default function SyncIndicator({ lang = "en" }) {
           color: C.gr,
         }}
       >
-        <span>🟢</span> {t.chromeConnected}
+        <StatusDot color={C.gr} /> {t.chromeConnected}
       </span>
     );
   }
@@ -63,7 +64,7 @@ export default function SyncIndicator({ lang = "en" }) {
       }}
       title={t.chromeOfflineHint}
     >
-      <span>🟡</span> {t.chromeOffline}. {t.chromeOfflineWarning}
+      <StatusDot color={C.am} /> {t.chromeOffline}. {t.chromeOfflineWarning}
     </span>
   );
 }

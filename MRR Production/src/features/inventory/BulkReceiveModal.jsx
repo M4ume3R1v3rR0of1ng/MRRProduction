@@ -12,6 +12,7 @@
 // what a job is later billed, they have three branches that are easy to get
 // subtly wrong, and none of them were reachable from a test before this split.
 import { useMemo, useState } from "react";
+import { Package, Star, Search, ClipboardList, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "./lowStockAlerts";
 import { C, uid, fm, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
@@ -236,9 +237,20 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
   };
 
   return (
-    <Modal title="📦 Receive Bulk Order Manifest" onClose={close} wide>
+    <Modal
+      title={
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Package size={17} aria-hidden="true" /> Receive Bulk Order Manifest
+        </span>
+      }
+      onClose={close}
+      wide
+    >
       <div
         style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 7,
           background: C.gL,
           border: `1.5px solid ${C.gold}`,
           borderRadius: "var(--radius-md)",
@@ -248,8 +260,11 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
           color: C.navy,
         }}
       >
-        ⭐ <strong>Inbound Accounting:</strong> FIFO indices update automatically. Each item maps a
-        standalone discrete batch vector tracking vendor origins.
+        <Star size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
+        <span>
+          <strong>Inbound Accounting:</strong> FIFO indices update automatically. Each item maps a
+          standalone discrete batch vector tracking vendor origins.
+        </span>
       </div>
 
       <div
@@ -299,12 +314,20 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
           >
             Select Items to Receive
           </div>
-          <Inp
-            value={srch}
-            onChange={(e) => setSrch(e.target.value)}
-            placeholder="🔍 Search inventory..."
-            style={{ marginBottom: 8 }}
-          />
+          <div style={{ position: "relative", marginBottom: 8 }}>
+            <Search
+              size={13}
+              color={C.sub}
+              style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
+              aria-hidden="true"
+            />
+            <Inp
+              value={srch}
+              onChange={(e) => setSrch(e.target.value)}
+              placeholder="Search inventory..."
+              style={{ paddingLeft: 28 }}
+            />
+          </div>
           <div
             style={{
               maxHeight: 320,
@@ -414,7 +437,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                 gap: "var(--space-3)",
               }}
             >
-              <span style={{ fontSize: 32 }}>📋</span>
+              <ClipboardList size={30} strokeWidth={1.5} aria-hidden="true" />
               <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>
                 Manifest queue is empty
               </span>
@@ -634,7 +657,20 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
           style={{ flex: 2, justifyContent: "center" }}
           disabled={saving}
         >
-          {saving ? "⏳ Logging Operation..." : `✅ Commit Manifest (${validCount} Items)`}
+          {saving ? (
+            <>
+              <Loader2
+                size={14}
+                style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                aria-hidden="true"
+              />{" "}
+              Logging Operation...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 size={14} aria-hidden="true" /> Commit Manifest ({validCount} Items)
+            </>
+          )}
         </Btn>
       </div>
     </Modal>

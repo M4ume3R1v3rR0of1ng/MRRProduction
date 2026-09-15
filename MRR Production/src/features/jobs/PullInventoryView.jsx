@@ -2,6 +2,16 @@
 // ── Pull Inventory ────────────────────────────────
 import { useState, useEffect, useRef, Fragment } from "react";
 import {
+  ClipboardList,
+  X,
+  Sparkles,
+  Bell,
+  User,
+  Truck,
+  AlertTriangle,
+  Pencil,
+} from "lucide-react";
+import {
   C,
   fd,
   fm,
@@ -23,7 +33,17 @@ import { generatePDF } from "./pdfGenerator";
 // filed", which stops a retry after a failed commit from filing a second copy.
 // The badge and sync modal that used to need the rest went with the Completed tab.
 import { syncJobReportToAccuLynx, syncStatusOf, reportUploadedAtOf } from "./accuLynxSync";
-import { Btn, Bdg, Modal, Fld, TA, Inp, Sel, PhotoUpload } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Bdg,
+  Modal,
+  Fld,
+  TA,
+  Inp,
+  Sel,
+  PhotoUpload,
+  StatusDot,
+} from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { supabase, updateRowStrict, isTransportError } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "@/features/inventory/lowStockAlerts";
@@ -245,7 +265,7 @@ export default function PullInventory({
           html: `<h2>Trailer requirement updated for your job</h2>
                  <p><strong>Job:</strong> ${esc(job.title || job.name)}</p>
                  <p><strong>PO:</strong> ${esc(job.po)}</p>
-                 <p>🚚 Trailer <strong>${esc(trailerName)}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
+                 <p>Trailer <strong>${esc(trailerName)}</strong> ${action === "added" ? "now needs to be brought to this job." : "is no longer needed for this job."}</p>`,
         });
       }
       showToast(
@@ -296,7 +316,7 @@ export default function PullInventory({
     }
   };
 
-  // ── 🟢 SAFEGUARD PIPELINE MAPPING TO CORRECT DATABASE SHARDS ──
+  // ── SAFEGUARD PIPELINE MAPPING TO CORRECT DATABASE SHARDS ──
   const jobSorters = {
     newest: (a, b) =>
       new Date(b.created || b.createdAt || 0) - new Date(a.created || a.createdAt || 0),
@@ -850,7 +870,9 @@ export default function PullInventory({
               color: C.navy,
             }}
           >
-            📋 {t.pull}
+            <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
+              <ClipboardList size={22} aria-hidden="true" /> {t.pull}
+            </span>
           </h1>
           <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
             {isField ? t.pullYourJobs : t.pullAllJobs}
@@ -991,7 +1013,7 @@ export default function PullInventory({
               >
                 {srch && (
                   <Btn v="ghost" sz="sm" onClick={() => setSrch("")}>
-                    ✕ {t.pullClearSearch}
+                    <X size={13} aria-hidden="true" /> {t.pullClearSearch}
                   </Btn>
                 )}
                 <Btn
@@ -1117,7 +1139,7 @@ export default function PullInventory({
                         color: statusMeta.color,
                       }}
                     >
-                      <span>{statusMeta.dot}</span>
+                      <StatusDot color={statusMeta.color} />
                       <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
                     </span>
                     <span
@@ -1130,9 +1152,20 @@ export default function PullInventory({
                       · {job.po || t.pullNoPoHash}
                     </span>
                     {isHighlighted && (
-                      <Bdg color="gold">✨ {highlight.label || t.pullJustBuilt}</Bdg>
+                      <Bdg color="gold">
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <Sparkles size={11} aria-hidden="true" />{" "}
+                          {highlight.label || t.pullJustBuilt}
+                        </span>
+                      </Bdg>
                     )}
-                    {isNew && <Bdg color="teal">🔔 {t.pullNew}</Bdg>}
+                    {isNew && (
+                      <Bdg color="teal">
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <Bell size={11} aria-hidden="true" /> {t.pullNew}
+                        </span>
+                      </Bdg>
+                    )}
                   </div>
                   {/* Clamped to one line: an address is worth reading in full, but
                       a job title that wraps just shoves every card in the row
@@ -1156,12 +1189,15 @@ export default function PullInventory({
                   {!isField && sup && (
                     <div
                       style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
                         fontSize: "var(--text-xs)",
                         color: C.blue,
                         fontWeight: "var(--weight-bold)",
                       }}
                     >
-                      👤 {sup.name}
+                      <User size={11} aria-hidden="true" /> {sup.name}
                     </div>
                   )}
                   {jobTrailerNames.length > 0 && (
@@ -1286,7 +1322,7 @@ export default function PullInventory({
                           setSel(job);
                         }}
                       >
-                        🚛 {t.pullPullMaterials}
+                        <Truck size={13} aria-hidden="true" /> {t.pullPullMaterials}
                       </Btn>
                     )}
                     {perms.jobs_complete && job.status === "active" && (
@@ -1420,7 +1456,13 @@ export default function PullInventory({
                         }}
                       >
                         {avail} {item.unit || ""}
-                        {short && " ⚠️"}
+                        {short && (
+                          <AlertTriangle
+                            size={11}
+                            style={{ marginLeft: 4, verticalAlign: -1 }}
+                            aria-hidden="true"
+                          />
+                        )}
                       </td>
                     </tr>
                   );
@@ -1495,13 +1537,16 @@ export default function PullInventory({
           >
             <div
               style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
                 fontWeight: "var(--weight-bold)",
                 color: C.rd,
                 marginBottom: 4,
                 fontSize: "var(--text-base)",
               }}
             >
-              ⚠️ {t.pullShortHeading}
+              <AlertTriangle size={14} aria-hidden="true" /> {t.pullShortHeading}
             </div>
             <div style={{ fontSize: "var(--text-sm)", color: C.navy, lineHeight: 1.45 }}>
               {t.pullShortBody}
@@ -1926,8 +1971,17 @@ export default function PullInventory({
                       {item.iname}
                     </div>
                     {item.pulled > 0 && (
-                      <div style={{ fontSize: "var(--text-2xs)", color: C.am }}>
-                        ⚠️ {item.pulled} {item.unit} {t.pullAlreadyPulled}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: "var(--text-2xs)",
+                          color: C.am,
+                        }}
+                      >
+                        <AlertTriangle size={10} aria-hidden="true" /> {item.pulled} {item.unit}{" "}
+                        {t.pullAlreadyPulled}
                       </div>
                     )}
                   </div>
@@ -2057,7 +2111,7 @@ export default function PullInventory({
           {perms.jobs_edit_pull && (
             <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
               <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>
-                ✏️ {t.pullEditJob}
+                <Pencil size={13} aria-hidden="true" /> {t.pullEditJob}
               </Btn>
             </div>
           )}

@@ -1,10 +1,28 @@
 import { useRef } from "react";
+import { Camera, X } from "lucide-react";
 import { C } from "../utils/helpers";
 import { ROLES } from "../database/permissions";
 import { translations } from "../utils/translations";
 import { compressImg } from "../utils/helpers";
 import { useNotify } from "../context/NotificationContext";
 import { HAS_NATIVE_CAMERA, capturePhoto } from "../utils/photoCapture";
+
+// A plain colored severity dot — used wherever a status is conveyed by color
+// alone (jobStatusMeta in helpers.js), rather than reaching for an icon shape
+// that would just be decoration.
+export function StatusDot({ color, size = 8 }) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: color,
+      }}
+    />
+  );
+}
 
 export function Spinner({ size = 18, color }) {
   return (
@@ -530,13 +548,12 @@ export function PhotoUpload({
                 width: 26,
                 height: 26,
                 cursor: "pointer",
-                fontSize: "var(--text-base)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              ✕
+              <X size={14} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -557,7 +574,7 @@ export function PhotoUpload({
           }}
           onClick={openPicker}
         >
-          <span style={{ fontSize: 28 }}>📷</span>
+          <Camera size={26} color={C.sub} strokeWidth={1.75} aria-hidden="true" />
           <span
             style={{
               fontSize: "var(--text-sm)",

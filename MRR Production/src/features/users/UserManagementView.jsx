@@ -1,5 +1,6 @@
 // src/features/users/UserManagementView.jsx
 import { useState, useEffect } from "react";
+import { Users as UsersIcon, Lock, Trash2, KeyRound, AlertTriangle } from "lucide-react";
 import { supabase, getAccessToken } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { validatePassword, PASSWORD_HINT } from "@/features/auth/passwordPolicy";
@@ -42,7 +43,7 @@ export default function Users({
       return;
     }
 
-    // ✅ Map input cleanly to match your actual profiles table columns
+    // Map input cleanly to match your actual profiles table columns
     const profilePayload = {
       name: form.name.trim(),
       full_name: form.name.trim(),
@@ -323,12 +324,15 @@ export default function Users({
         <h1
           style={{
             margin: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
             fontSize: "var(--text-2xl)",
             fontWeight: "var(--weight-black)",
             color: C.navy,
           }}
         >
-          👥 User Management
+          <UsersIcon size={22} aria-hidden="true" /> User Management
         </h1>
         <Btn
           v="primary"
@@ -433,7 +437,7 @@ export default function Users({
                         onClick={() => handleOpenPermissionOverrides(u)}
                         title={t.umPermOverridesTitle}
                       >
-                        🔒 Override
+                        <Lock size={13} aria-hidden="true" /> Override
                       </Btn>
                       <Btn v="ghost" sz="sm" onClick={() => handleEditUser(u)}>
                         {t.umEdit}
@@ -444,7 +448,7 @@ export default function Users({
                         onClick={() => handleRemoveUser(u.id)}
                         style={{ minWidth: 95, textAlign: "center" }}
                       >
-                        🗑️ Remove
+                        <Trash2 size={13} aria-hidden="true" /> Remove
                       </Btn>
                     </div>
                   </td>
@@ -561,13 +565,16 @@ export default function Users({
             <div style={{ marginTop: 22, paddingTop: 18, borderTop: `1px solid ${C.lg}` }}>
               <div
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                   fontWeight: "var(--weight-bold)",
                   color: C.navy,
                   fontSize: "var(--text-sm)",
                   marginBottom: 8,
                 }}
               >
-                🔑 Reset Password
+                <KeyRound size={13} aria-hidden="true" /> Reset Password
               </div>
               <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 10 }}>
                 Forgot their password? Set a new temporary one here. Share it with them directly and
@@ -611,6 +618,9 @@ export default function Users({
         >
           <div
             style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 7,
               background: C.aB,
               border: `1.5px solid ${C.am}`,
               borderRadius: "var(--radius-md)",
@@ -621,9 +631,12 @@ export default function Users({
               fontWeight: "var(--weight-semibold)",
             }}
           >
-            ⚠️ Overrides apply <em>on top of</em> the{" "}
-            <strong>{ROLES[permUser.role]?.label || permUser.role}</strong> role permissions and
-            only affect <strong>{permUser.name}</strong>.
+            <AlertTriangle size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
+            <span>
+              Overrides apply <em>on top of</em> the{" "}
+              <strong>{ROLES[permUser.role]?.label || permUser.role}</strong> role permissions and
+              only affect <strong>{permUser.name}</strong>.
+            </span>
           </div>
           {userOverrides[permUser.id] && Object.keys(userOverrides[permUser.id]).length > 0 && (
             <div style={{ marginBottom: 10, display: "flex", justifyContent: "flex-end" }}>

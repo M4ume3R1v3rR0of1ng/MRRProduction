@@ -4,7 +4,7 @@
 // landing-page footer. Styles are scoped under .sw-terms so nothing leaks into
 // the app's global stylesheet.
 //
-// ⚠️ IMPORTANT (for the Steadwerk team, not end users): the text below is a
+// IMPORTANT (for the Steadwerk team, not end users): the text below is a
 // thorough starting template, not legal advice. Have a licensed attorney review
 // and tailor it — especially the billing, liability, governing-law, and data
 // sections — before relying on it. Keep the Effective date in sync when you edit.

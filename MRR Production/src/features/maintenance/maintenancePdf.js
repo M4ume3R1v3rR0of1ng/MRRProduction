@@ -82,7 +82,7 @@ export function generateMaintenancePdf(req, company = null, activeLogo = null) {
 
   const logoHtml = activeLogo
     ? `<img src="${activeLogo}" style="height:56px;object-fit:contain;display:block;margin-bottom:4px"/>`
-    : `<div style="width:50px;height:50px;background:#F5A800;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:4px">🔧</div>`;
+    : `<div style="width:50px;height:50px;background:#F5A800;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;margin-bottom:4px">${escapeHtml((m.companyName || "S")[0].toUpperCase())}</div>`;
 
   const html = `
     <!DOCTYPE html>
@@ -104,7 +104,7 @@ export function generateMaintenancePdf(req, company = null, activeLogo = null) {
           <div style="font-size:20px;font-weight:900;color:#0E2D6B">${escapeHtml(m.companyName.toUpperCase())}</div>
           <div style="font-size:12px;color:#64748B;letter-spacing:1px">MAINTENANCE SERVICE REPORT</div>
         </div>
-        <button id="mrr-print-btn" class="no-print" style="padding:10px 20px;background:#F5A800;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">🖨️ Save as PDF</button>
+        <button id="mrr-print-btn" class="no-print" style="padding:10px 20px;background:#F5A800;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px">Save as PDF</button>
       </div>
       <hr style="border:2px solid #F5A800;margin-bottom:24px">
 

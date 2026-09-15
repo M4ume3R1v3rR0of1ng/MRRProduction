@@ -1,5 +1,6 @@
 // src/features/fleet/TrailerCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
+import { Calendar, Truck, FileText, AlertTriangle, X, FileEdit } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
 import { Btn } from "@/shared/components/UIPrimitives";
@@ -105,7 +106,7 @@ export default function TrailerCalendar({
     setCurrentWeekStart(d);
   }, []);
 
-  // ── 🖐️ DRAG-AND-DROP: MOVE A BOOKING TO ANOTHER TRAILER / DAY ──
+  // ── DRAG-AND-DROP: MOVE A BOOKING TO ANOTHER TRAILER / DAY ──
   const handleDropOnCell = async (dateKey, trailerId) => {
     const bookingId = draggingId;
     setDraggingId(null);
@@ -171,7 +172,7 @@ export default function TrailerCalendar({
     }
   };
 
-  // ── 🗑️ REMOVE A BOOKING DIRECTLY FROM THE CALENDAR ──
+  // ── REMOVE A BOOKING DIRECTLY FROM THE CALENDAR ──
   const handleRemoveBooking = async (booking) => {
     if (typeof setJobTrailers !== "function") return;
     setJobTrailers((p) => p.filter((jt) => jt.id !== booking.id));
@@ -203,7 +204,7 @@ export default function TrailerCalendar({
 
   const BookingCard = ({ booking }) => {
     const job = booking.job;
-    const statusConfig = jSC[job.status] || { c: "gray", icon: "📋", l: job.status };
+    const statusConfig = jSC[job.status] || { c: "gray", icon: FileEdit, l: job.status };
     const borderColor = resolveStatusColor(statusConfig);
     const jobLabel = job.title || job.name || "Untitled Job";
 
@@ -245,13 +246,12 @@ export default function TrailerCalendar({
               background: "none",
               border: "none",
               cursor: "pointer",
-              fontSize: 12,
+              display: "flex",
               color: C.sub,
-              lineHeight: 1,
               padding: 2,
             }}
           >
-            ✕
+            <X size={11} aria-hidden="true" />
           </button>
         )}
         <div
@@ -277,8 +277,10 @@ export default function TrailerCalendar({
             color: C.sub,
           }}
         >
-          <span>📄 {job.po}</span>
-          <span>{statusConfig.icon}</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+            <FileText size={10} aria-hidden="true" /> {job.po}
+          </span>
+          <statusConfig.icon size={12} color={borderColor} aria-hidden="true" />
         </div>
       </div>
     );
@@ -308,12 +310,15 @@ export default function TrailerCalendar({
           <h2
             style={{
               margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
               fontSize: "var(--text-lg)",
               fontWeight: "var(--weight-extrabold)",
               color: C.navy,
             }}
           >
-            📅 Weekly Trailer Booking Calendar
+            <Calendar size={16} aria-hidden="true" /> Weekly Trailer Booking Calendar
           </h2>
           <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
             {canEdit
@@ -359,13 +364,16 @@ export default function TrailerCalendar({
                   width: 170,
                   padding: "12px 10px",
                   textAlign: "left",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                   color: C.sub,
                   fontSize: "var(--text-xs)",
                   fontWeight: "var(--weight-bold)",
                   borderBottom: `2px solid ${C.bd}`,
                 }}
               >
-                🚚 Trailer
+                <Truck size={13} aria-hidden="true" /> Trailer
               </th>
               {weekDays.map((day) => {
                 const isToday = toLocalDateKey(day) === todayString;
@@ -461,6 +469,10 @@ export default function TrailerCalendar({
                         {isDoubleBooked && (
                           <div
                             style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 4,
                               fontSize: "var(--text-2xs)",
                               fontWeight: "var(--weight-bold)",
                               color: C.rd,
@@ -470,7 +482,8 @@ export default function TrailerCalendar({
                               textAlign: "center",
                             }}
                           >
-                            ⚠️ {dayBookings.length} jobs — double-booked
+                            <AlertTriangle size={10} aria-hidden="true" /> {dayBookings.length} jobs
+                            — double-booked
                           </div>
                         )}
                       </div>

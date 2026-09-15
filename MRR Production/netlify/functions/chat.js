@@ -9,6 +9,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { adminClient, resolveCaller, corsHeaders as getCorsHeaders } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 import { checkRateLimit, rateLimitedResponse } from "./_shared/rateLimit.js";
+import { parseDay, oilStatus, daysUntilOilDue } from "./_shared/oilForecast.js";
 
 // CORS used to be a second, hand-copied ALLOWED_ORIGINS list here, which had
 // drifted from _shared/tenant.js's copy and was missing "capacitor://localhost" —
@@ -229,9 +230,11 @@ function detectFleetTrends(
 
 // --- Maintenance recommendation engine ---------------------------------------
 //
-// Mirrors oilSt / detSt / predDays in src/shared/utils/helpers.js, duplicated for the
-// same reason as the pattern helpers above: this file runs standalone in the
-// function bundle and can't import the frontend's ESM modules.
+// detailStatus below mirrors detSt in src/shared/utils/helpers.js, duplicated
+// for the same reason as the pattern helpers above: this file runs standalone
+// in the function bundle and can't import the frontend's ESM modules. oilStatus
+// and daysUntilOilDue used to be duplicated the same way; they now live in
+// ./_shared/oilForecast.js, a real shared import within this functions bundle.
 //
 // The scoring and ranking below happen HERE, not in the model. Asking an LLM to
 // do arithmetic across two dozen vehicles and then sort the results is exactly
@@ -241,45 +244,10 @@ function detectFleetTrends(
 
 const DAY_MS = 86400000;
 
-// Stored dates are plain calendar days ("YYYY-MM-DD"). Parse and format both
-// ends in one frame (UTC) so a projection never drifts across a day boundary —
-// the same mixed-reference-frame bug helpers.js calls out for detSt.
-function parseDay(value) {
-  if (!value) return null;
-  const [y, m, d] = String(value).split("T")[0].split("-").map(Number);
-  if (!y || !m || !d) return null;
-  return new Date(Date.UTC(y, m - 1, d));
-}
-
-function oilStatus(v) {
-  if (v.type !== "truck") return null;
-  const interval = Number(v.oii);
-  if (!interval || interval <= 0) return null;
-  const milesSince = (Number(v.mi) || 0) - (Number(v.lomi) || 0);
-  const pct = milesSince / interval;
-  return {
-    milesSince: Math.round(milesSince),
-    interval,
-    milesRemaining: Math.round(interval - milesSince),
-    state: pct >= 1 ? "overdue" : pct >= 0.8 ? "soon" : "ok",
-  };
-}
-
-// Days until the oil change comes due, projected from how fast this truck
-// actually accrues miles rather than a fleet-wide guess.
-function daysUntilOilDue(v) {
-  if (v.type !== "truck" || !Array.isArray(v.mil) || v.mil.length < 2) return null;
-  const log = v.mil
-    .filter((e) => e?.dt && typeof e.mi === "number" && parseDay(e.dt))
-    .sort((a, b) => parseDay(a.dt) - parseDay(b.dt));
-  if (log.length < 2) return null;
-  const spanDays = (parseDay(log[log.length - 1].dt) - parseDay(log[0].dt)) / DAY_MS;
-  if (spanDays < 1) return null;
-  const milesPerDay = (log[log.length - 1].mi - log[0].mi) / spanDays;
-  if (milesPerDay <= 0) return null;
-  const remaining = Number(v.oii) - ((Number(v.mi) || 0) - (Number(v.lomi) || 0));
-  return remaining <= 0 ? 0 : Math.round(remaining / milesPerDay);
-}
+// parseDay, oilStatus, daysUntilOilDue now live in ./_shared/oilForecast.js —
+// send-maintenance-push-notices.js needs the exact same projection this file
+// has always used for get_fleet_status/recommend_maintenance, so it's a real
+// shared import rather than a third copy.
 
 function detailStatus(v) {
   const interval = Number(v.dii);
@@ -472,7 +440,7 @@ async function getEffectivePerms(admin, userId, companyId, role) {
   return { ...(roleRow?.permissions || {}), ...(overrideRow?.overrides || {}) };
 }
 
-// ⚠️ `admin` is the SERVICE-ROLE client: RLS does not apply to a single query below.
+// `admin` is the SERVICE-ROLE client: RLS does not apply to a single query below.
 // The .eq("company_id", companyId) on each one is the ONLY thing keeping the
 // assistant from reading another company's jobs, trucks, and pricing. If you add a
 // tool here, it must be scoped the same way.
@@ -648,6 +616,27 @@ async function executeTool(admin, perms, companyId, name, input) {
   }
 }
 
+// A request's `content` is whatever ChatWidget's toApiContent() produced: a
+// bare string for a text-only turn, or an array of {type: "image"|"text", ...}
+// blocks when a photo was attached. Either way, this is what gets persisted to
+// chat_messages.text — image bytes never get a row of their own (see
+// supabase/41's "WHY THE BROWSER CAN READ BUT NEVER WRITE" for the rest of
+// that table's reasoning); a photo with no caption still needs SOME text so
+// the row isn't empty and history reads sensibly.
+export function extractText(content) {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    const text = content
+      .filter((b) => b?.type === "text")
+      .map((b) => b.text)
+      .join("\n")
+      .trim();
+    if (text) return text;
+    if (content.some((b) => b?.type === "image")) return "[Photo attached]";
+  }
+  return "";
+}
+
 const rawHandler = async (event) => {
   const requestOrigin = event.headers?.origin || event.headers?.Origin || "";
   const corsHeaders = getCorsHeaders(requestOrigin);
@@ -674,7 +663,7 @@ const rawHandler = async (event) => {
     };
   }
 
-  const { accessToken, messages } = body;
+  const { accessToken, messages, sessionId } = body;
   if (!accessToken || !Array.isArray(messages) || messages.length === 0) {
     return {
       statusCode: 400,
@@ -755,10 +744,52 @@ Keep answers short and directly useful — this is an internal ops tool, not a c
       workingMessages = [...workingMessages, { role: "user", content: toolResults }];
     }
 
+    const replyText = finalText || "I wasn't able to find an answer to that.";
+
+    // Persist this turn — see supabase/41. Only the newest user message (the
+    // one ChatWidget just appended before calling this endpoint) plus the
+    // reply get a row; everything before it in `messages` was already
+    // persisted the moment IT was the newest turn, on a prior call. Best
+    // effort: a failure here must not take down a reply the user already got.
+    let userMessageId = null;
+    let assistantMessageId = null;
+    try {
+      const lastIncoming = messages[messages.length - 1];
+      const rows = [];
+      if (lastIncoming?.role === "user") {
+        rows.push({
+          company_id: caller.companyId,
+          user_id: caller.userId,
+          role: "user",
+          text: extractText(lastIncoming.content) || "[Photo attached]",
+          origin_session_id: sessionId || null,
+        });
+      }
+      rows.push({
+        company_id: caller.companyId,
+        user_id: caller.userId,
+        role: "assistant",
+        text: replyText,
+        origin_session_id: sessionId || null,
+      });
+      const { data: inserted, error: insertError } = await admin
+        .from("chat_messages")
+        .insert(rows)
+        .select("id, role");
+      if (insertError) {
+        console.error("chat: failed to persist conversation turn:", insertError.message);
+      } else {
+        userMessageId = inserted.find((r) => r.role === "user")?.id || null;
+        assistantMessageId = inserted.find((r) => r.role === "assistant")?.id || null;
+      }
+    } catch (persistErr) {
+      console.error("chat: failed to persist conversation turn:", persistErr.message);
+    }
+
     return {
       statusCode: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      body: JSON.stringify({ reply: finalText || "I wasn't able to find an answer to that." }),
+      body: JSON.stringify({ reply: replyText, userMessageId, assistantMessageId }),
     };
   } catch (err) {
     console.error("Chat function error:", err);

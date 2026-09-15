@@ -1,5 +1,6 @@
 // src/features/users/AuditLogView.jsx
 import { useState, useEffect, useMemo } from "react";
+import { ScrollText, Package, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C, batchKind } from "@/shared/utils/helpers";
 import { Bdg, Sel, Inp, Btn, SkeletonTable } from "@/shared/components/UIPrimitives";
@@ -95,7 +96,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
     });
   }, [ledger, search, ledgerWho, users]);
 
-  // ── 🆕 PAGINATION STATE ───────────────────────────────────────────────────
+  // ── PAGINATION STATE ───────────────────────────────────────────────────
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 50;
 
@@ -174,7 +175,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
     );
   }, [logs, search]);
 
-  // ── 🆕 COMPUTE PAGINATED DATA SET ─────────────────────────────────────────
+  // ── COMPUTE PAGINATED DATA SET ─────────────────────────────────────────
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / ITEMS_PER_PAGE));
 
   const paginatedLogs = useMemo(() => {
@@ -230,9 +231,9 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
         }}
       >
         {[
-          ["logs", "📜 Activity Log", "Every action — last 30 days only"],
-          ["batches", "📦 Batch Ledger", "Every inventory receipt, permanently"],
-        ].map(([k, label, hint]) => (
+          ["logs", ScrollText, "Activity Log", "Every action — last 30 days only"],
+          ["batches", Package, "Batch Ledger", "Every inventory receipt, permanently"],
+        ].map(([k, Icon, label, hint]) => (
           <button
             key={k}
             onClick={() => {
@@ -242,6 +243,9 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
             }}
             title={hint}
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
               background: "none",
               border: "none",
               cursor: "pointer",
@@ -253,7 +257,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               marginBottom: -2,
             }}
           >
-            {label}
+            <Icon size={14} aria-hidden="true" /> {label}
           </button>
         ))}
       </div>
@@ -454,7 +458,13 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                             }}
                           >
                             ${r.price.toFixed(2)}
-                            {unpriced && " ⚠️"}
+                            {unpriced && (
+                              <AlertTriangle
+                                size={10}
+                                style={{ marginLeft: 4, verticalAlign: -1 }}
+                                aria-hidden="true"
+                              />
+                            )}
                           </td>
                           <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
                             ${(r.rem * r.price).toFixed(2)}
@@ -524,23 +534,27 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
         >
           <div
             style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 7,
               fontSize: "var(--text-md)",
               fontWeight: "var(--weight-bold)",
               marginBottom: 6,
             }}
           >
-            ⚠️ Couldn't load the audit history
+            <AlertTriangle size={16} aria-hidden="true" /> Couldn't load the audit history
           </div>
           <div style={{ fontSize: "var(--text-sm)", marginBottom: 14 }}>
             The log below is NOT empty — it just couldn't be fetched. ({loadError})
           </div>
           <Btn v="primary" sz="sm" onClick={() => setRetryTick((t) => t + 1)}>
-            🔄 Retry
+            <RefreshCw size={13} aria-hidden="true" /> Retry
           </Btn>
         </div>
       ) : (
         <>
-          {/* ── 🆕 COMPACT INNER SCROLLBAR CONTAINER ────────────────────────── */}
+          {/* ── COMPACT INNER SCROLLBAR CONTAINER ────────────────────────── */}
           <div
             style={{
               overflowX: "auto",
@@ -685,7 +699,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
             </table>
           </div>
 
-          {/* ── 🆕 PAGINATION CONTROLS BOTTOM BAR ─────────────────────────── */}
+          {/* ── PAGINATION CONTROLS BOTTOM BAR ─────────────────────────── */}
           <div
             style={{
               display: "flex",
@@ -845,13 +859,16 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               >
                 <div
                   style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
                     fontWeight: "var(--weight-bold)",
                     color: C.rd,
                     fontSize: "var(--text-sm)",
                     marginBottom: 4,
                   }}
                 >
-                  ⚠️ {t.alDetailShort}
+                  <AlertTriangle size={13} aria-hidden="true" /> {t.alDetailShort}
                 </div>
                 {activePayload.short.map((s, i) => (
                   <div key={i} style={{ fontSize: "var(--text-sm)", color: C.navy }}>

@@ -2,25 +2,41 @@
 // Warehouse weather + 5-day outlook for the dashboard. Data comes from the
 // /.netlify/functions/weather proxy (Open-Meteo), so no API key touches the browser.
 import { useState, useEffect } from "react";
+import {
+  Sun,
+  CloudSun,
+  Cloudy,
+  Cloud,
+  CloudFog,
+  CloudDrizzle,
+  CloudRain,
+  CloudRainWind,
+  CloudSnow,
+  CloudLightning,
+  Thermometer,
+  Wind,
+  Droplets,
+  AlertTriangle,
+} from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
 import { getAccessToken } from "@/shared/utils/supabase";
 import { Spinner } from "@/shared/components/UIPrimitives";
 
-// WMO weather code -> { icon, label }. Emoji match the app's existing icon style.
+// WMO weather code -> { icon, label }.
 function describeWeather(code) {
-  if (code === 0) return { icon: "☀️", label: "Clear" };
-  if (code === 1) return { icon: "🌤️", label: "Mainly Clear" };
-  if (code === 2) return { icon: "⛅", label: "Partly Cloudy" };
-  if (code === 3) return { icon: "☁️", label: "Overcast" };
-  if (code === 45 || code === 48) return { icon: "🌫️", label: "Fog" };
-  if (code >= 51 && code <= 57) return { icon: "🌦️", label: "Drizzle" };
-  if (code >= 61 && code <= 67) return { icon: "🌧️", label: "Rain" };
-  if (code >= 71 && code <= 77) return { icon: "🌨️", label: "Snow" };
-  if (code >= 80 && code <= 82) return { icon: "🌧️", label: "Rain Showers" };
-  if (code === 85 || code === 86) return { icon: "🌨️", label: "Snow Showers" };
-  if (code >= 95) return { icon: "⛈️", label: "Thunderstorm" };
-  return { icon: "🌡️", label: "—" };
+  if (code === 0) return { icon: Sun, label: "Clear" };
+  if (code === 1) return { icon: CloudSun, label: "Mainly Clear" };
+  if (code === 2) return { icon: Cloudy, label: "Partly Cloudy" };
+  if (code === 3) return { icon: Cloud, label: "Overcast" };
+  if (code === 45 || code === 48) return { icon: CloudFog, label: "Fog" };
+  if (code >= 51 && code <= 57) return { icon: CloudDrizzle, label: "Drizzle" };
+  if (code >= 61 && code <= 67) return { icon: CloudRain, label: "Rain" };
+  if (code >= 71 && code <= 77) return { icon: CloudSnow, label: "Snow" };
+  if (code >= 80 && code <= 82) return { icon: CloudRainWind, label: "Rain Showers" };
+  if (code === 85 || code === 86) return { icon: CloudSnow, label: "Snow Showers" };
+  if (code >= 95) return { icon: CloudLightning, label: "Thunderstorm" };
+  return { icon: Thermometer, label: "—" };
 }
 
 const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -145,7 +161,7 @@ export default function WeatherCard({ lang = "en" }) {
       <div
         style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 8 }}
       >
-        <span style={{ fontSize: 22, lineHeight: 1 }}>{cur.icon}</span>
+        <cur.icon size={22} color={C.navy} strokeWidth={1.75} aria-hidden="true" />
         <span
           style={{
             fontSize: "var(--text-xl)",
@@ -166,14 +182,27 @@ export default function WeatherCard({ lang = "en" }) {
         >
           {cur.label}
         </span>
-        <span style={{ marginLeft: "auto", fontSize: "var(--text-2xs)", color: C.sub }}>
-          💨 {Math.round(current.wind_speed_10m)} · 💧 {todayRain}%
+        <span
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center",
+            gap: 3,
+            fontSize: "var(--text-2xs)",
+            color: C.sub,
+          }}
+        >
+          <Wind size={11} aria-hidden="true" /> {Math.round(current.wind_speed_10m)} ·{" "}
+          <Droplets size={11} aria-hidden="true" /> {todayRain}%
         </span>
       </div>
 
       {advisory && (
         <div
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 5,
             background: advisory.bg,
             color: advisory.color,
             borderRadius: "var(--radius-sm)",
@@ -183,7 +212,7 @@ export default function WeatherCard({ lang = "en" }) {
             marginBottom: 8,
           }}
         >
-          ⚠️ {advisory.text}
+          <AlertTriangle size={12} aria-hidden="true" /> {advisory.text}
         </div>
       )}
 
@@ -214,7 +243,9 @@ export default function WeatherCard({ lang = "en" }) {
               >
                 {isToday ? "Today" : DAY[date.getDay()]}
               </div>
-              <div style={{ fontSize: 15, lineHeight: 1.2 }}>{d.icon}</div>
+              <div style={{ display: "flex", justifyContent: "center", lineHeight: 1.2 }}>
+                <d.icon size={15} color={C.navy} strokeWidth={1.75} aria-hidden="true" />
+              </div>
               <div style={{ fontSize: "var(--text-2xs)", fontVariantNumeric: "tabular-nums" }}>
                 <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
                   {Math.round(daily.temperature_2m_max[i])}°

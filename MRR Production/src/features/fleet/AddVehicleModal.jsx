@@ -9,6 +9,7 @@
 // The parent no longer receives a setter. It is told what was created through
 // onCreated, and decides for itself how to fold that into its list.
 import { useState } from "react";
+import { Truck } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { uid, todayLocal } from "@/shared/utils/helpers";
 import { Btn, Fld, Inp, Modal, Sel } from "@/shared/components/UIPrimitives";
@@ -99,7 +100,14 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
   };
 
   return (
-    <Modal title="🚛 Register New Fleet Vehicle" onClose={close}>
+    <Modal
+      title={
+        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Truck size={17} aria-hidden="true" /> Register New Fleet Vehicle
+        </span>
+      }
+      onClose={close}
+    >
       <Fld label="Name / Nickname *">
         <Inp
           value={form.name}

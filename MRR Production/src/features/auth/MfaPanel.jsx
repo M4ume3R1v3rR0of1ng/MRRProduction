@@ -9,6 +9,7 @@
 // aal2 from accounts that HAVE a verified factor, so turning this on is opt-in per
 // user and can never lock out someone who never enrolled.
 import { useState, useEffect } from "react";
+import { Shield, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { Btn, Inp, Fld } from "@/shared/components/UIPrimitives";
@@ -131,12 +132,15 @@ export default function MfaPanel({ user, lang = "en" }) {
       <h2
         style={{
           margin: "0 0 6px",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
           fontSize: "var(--text-xl)",
           fontWeight: "var(--weight-black)",
           color: C.navy,
         }}
       >
-        🛡️ {t.mfaTitle}
+        <Shield size={18} aria-hidden="true" /> {t.mfaTitle}
       </h2>
       <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>{t.mfaIntro}</p>
 
@@ -278,12 +282,16 @@ export default function MfaPanel({ user, lang = "en" }) {
                 <div>
                   <div
                     style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
                       fontWeight: "var(--weight-bold)",
                       color: C.navy,
                       fontSize: "var(--text-base)",
                     }}
                   >
-                    ✅ {f.friendly_name || t.mfaAuthenticator}
+                    <CheckCircle2 size={14} color={C.gr} aria-hidden="true" />{" "}
+                    {f.friendly_name || t.mfaAuthenticator}
                   </div>
                   <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
                     {t.mfaAddedOn} {new Date(f.created_at).toLocaleDateString()}

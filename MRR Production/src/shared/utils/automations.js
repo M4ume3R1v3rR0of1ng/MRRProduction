@@ -1,4 +1,5 @@
 // src/shared/utils/automations.js
+import { HardHat, Wrench } from "lucide-react";
 //
 // One registry for every automatic email the app sends. Settings → Automations renders
 // straight off this list, so adding an automation is a single entry here plus a call to
@@ -15,7 +16,7 @@ export const AUTOMATION_GROUPS = [
   {
     id: "jobs",
     label: "Jobs",
-    icon: "🏗️",
+    icon: HardHat,
     settingsKey: "job_notifications",
     blurb:
       "Email the assigned site supervisor when one of their jobs changes status. A job with no assigned supervisor, or one without an email on file, is skipped silently.",
@@ -23,7 +24,7 @@ export const AUTOMATION_GROUPS = [
   {
     id: "maintenance",
     label: "Maintenance",
-    icon: "🔧",
+    icon: Wrench,
     settingsKey: "maintenance_notifications",
     blurb:
       "Email the shop when a request comes in, and the person who filed it when their ticket moves. New requests go to everyone holding the Manage Requests permission (Warehouse Managers, Coordinators and Admins by default).",

@@ -8,6 +8,19 @@ import {
   useLocation,
   useSearchParams,
 } from "react-router-dom";
+import {
+  FileEdit,
+  CheckCircle2,
+  RefreshCw,
+  Flag,
+  Lock,
+  X,
+  Menu,
+  AlertTriangle,
+  PartyPopper,
+  Wrench,
+  Receipt,
+} from "lucide-react";
 import { supabase } from "./shared/utils/supabase";
 import { useAppData } from "./core/useAppData";
 import OmniSearch from "./shared/components/OmniSearch";
@@ -19,6 +32,7 @@ import IdleTimeoutWrapper from "./shared/components/IdleTimeoutWrapper";
 import { C, tot, oilSt, predDays, detSt, fd, fm } from "./shared/utils/helpers";
 import { translations } from "./shared/utils/translations";
 import { IS_IOS_APP } from "./core/platform";
+import { registerForPushNotifications } from "./shared/utils/pushRegistration";
 
 import CompanySwitcher from "./shared/components/CompanySwitcher";
 import VisitingBanner from "./shared/components/VisitingBanner";
@@ -116,11 +130,11 @@ function ChunkFallback({ full = false }) {
 }
 
 const jSC = {
-  draft: { c: "gray", l: "Draft", icon: "📝" },
-  approved: { c: "blue", l: "Approved", icon: "✅" },
-  active: { c: "amber", l: "Active", icon: "🔄" },
-  completed: { c: "green", l: "Completed", icon: "🏁" },
-  closed: { c: "purple", l: "Closed", icon: "🔒" },
+  draft: { c: "gray", l: "Draft", icon: FileEdit },
+  approved: { c: "blue", l: "Approved", icon: CheckCircle2 },
+  active: { c: "amber", l: "Active", icon: RefreshCw },
+  completed: { c: "green", l: "Completed", icon: Flag },
+  closed: { c: "purple", l: "Closed", icon: Lock },
 };
 
 export default function App() {
@@ -179,8 +193,23 @@ export default function App() {
   // both the landing footer and the login disclaimer.
   const [termsReturn, setTermsReturn] = useState("login");
 
-  // ── 🟢 CONSUME DECOUPLED CUSTOM STATE INFRASTRUCTURE HOOK ──
+  // ── CONSUME DECOUPLED CUSTOM STATE INFRASTRUCTURE HOOK ──
   const app = useAppData();
+
+  // Register this device for push once per login — no-ops on the web build
+  // (IS_IOS_APP false, see pushRegistration.js). Tapping an oil-due push
+  // deep-links to the fleet view for that vehicle, the same ?open=<id>
+  // convention openSearchResult below uses for every other search result.
+  useEffect(() => {
+    if (!IS_IOS_APP || !app.curUser?.id) return;
+    registerForPushNotifications({
+      onNotificationTap: (data) => {
+        if ((data?.type === "oil_due" || data?.type === "oil_due_urgent") && data?.vehicleId) {
+          navigate(`/fleet?open=${encodeURIComponent(data.vehicleId)}`);
+        }
+      },
+    });
+  }, [app.curUser?.id]);
 
   useEffect(() => {
     const { data: { subscription } = {} } = supabase.auth.onAuthStateChange((event) => {
@@ -230,7 +259,7 @@ export default function App() {
     }
   }, [isPlatformCompany, location.pathname]);
 
-  // ── 🎨 PER-COMPANY BRAND ACCENT ──
+  // ── PER-COMPANY BRAND ACCENT ──
   // Each company's accent color (companies.branding.accent) drives the --brand-accent
   // CSS variable the app themes off — primary CTAs, modal rules, the dashboard header.
   // Set on the document root so modals and popups inherit it too. --brand-accent-ink is
@@ -363,7 +392,7 @@ export default function App() {
   }, [lang]);
   const t = translations[lang] || translations.en;
 
-  // ── 🔑 PASSWORD RECOVERY RENDER LAYER ──
+  // ── PASSWORD RECOVERY RENDER LAYER ──
   // Takes precedence over the loading splash and the auth check: a recovery link
   // must land on the set-password screen, never on the portal, no matter what the
   // session bootstrap decided.
@@ -467,7 +496,7 @@ export default function App() {
     );
   }
 
-  // ── 🔒 AUTH CHECK RENDER LAYER ──
+  // ── AUTH CHECK RENDER LAYER ──
   if (!app.curUser) {
     return (
       <Suspense fallback={<ChunkFallback full />}>
@@ -576,7 +605,7 @@ export default function App() {
       timeout={1800000}
     >
       {" "}
-      {/* ── 🟢 1. LOCK THE ROOT CONTAINER VIEWPORT TO SCREEN HEIGHT ── */}
+      {/* ── LOCK THE ROOT CONTAINER VIEWPORT TO SCREEN HEIGHT ── */}
       <div
         style={{
           display: "flex",
@@ -593,7 +622,7 @@ export default function App() {
             not a member of. See components/VisitingBanner. */}
         <VisitingBanner user={app.curUser} onLogout={handleLogout} lang={lang} />
 
-        {/* 📱 MOBILE HEADER NAVIGATION BAR */}
+        {/* MOBILE HEADER NAVIGATION BAR */}
         {/* The status-bar inset is PADDING on this bar, not a margin above it, so
             the bar's own dark background fills the notch area. A margin would
             expose the page ground behind the clock and leave a pale stripe across
@@ -641,17 +670,17 @@ export default function App() {
                 background: "transparent",
                 border: "none",
                 color: C.shellInk,
-                fontSize: "var(--text-3xl)",
                 cursor: "pointer",
-                lineHeight: 1,
+                display: "flex",
+                alignItems: "center",
               }}
             >
-              {mobileMenuOpen ? "✕" : "☰"}
+              {mobileMenuOpen ? <X size={26} aria-hidden="true" /> : <Menu size={26} aria-hidden="true" />}
             </button>
           </div>
         )}
 
-        {/* 🗺️ CONTAINER ROUTER NAVIGATION DRAWER LAYOUT */}
+        {/* CONTAINER ROUTER NAVIGATION DRAWER LAYOUT */}
         {/* (Added height constraint to sidebar element) */}
         {/* The drawer hangs off the bottom of the header, so it starts at the bar
             height PLUS the status-bar inset and loses that same amount of height.
@@ -697,7 +726,7 @@ export default function App() {
           />
         </div>
 
-        {/* 📊 CORE PANEL FRAMEWORK METER BODY */}
+        {/* CORE PANEL FRAMEWORK METER BODY */}
         <div
           style={{
             flex: 1,
@@ -730,9 +759,12 @@ export default function App() {
                 fontWeight: "var(--weight-bold)",
               }}
             >
-              <span>
-                ⚠️ Live data failed to load: {app.loadErrors.join(", ")}. Those sections are shown
-                empty rather than with possibly-wrong data — don't make changes until this clears.
+              <span style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
+                <AlertTriangle size={15} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
+                <span>
+                  Live data failed to load: {app.loadErrors.join(", ")}. Those sections are shown
+                  empty rather than with possibly-wrong data — don't make changes until this clears.
+                </span>
               </span>
               <button
                 onClick={() => app.reload()}
@@ -746,9 +778,12 @@ export default function App() {
                   fontWeight: "var(--weight-bold)",
                   fontSize: "var(--text-sm)",
                   flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                 }}
               >
-                🔄 Retry
+                <RefreshCw size={13} aria-hidden="true" /> Retry
               </button>
             </div>
           )}
@@ -810,6 +845,9 @@ export default function App() {
                   <div
                     onClick={() => navigateTo("pull")}
                     style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
                       background: C.tB,
                       color: C.tl,
                       borderRadius: 20,
@@ -819,7 +857,7 @@ export default function App() {
                       cursor: "pointer",
                     }}
                   >
-                    🎉 {app.newJobsForMe}{" "}
+                    <PartyPopper size={12} aria-hidden="true" /> {app.newJobsForMe}{" "}
                     {app.newJobsForMe === 1 ? t.chromeNewJobOne : t.chromeNewJobMany}
                   </div>
                 )}
@@ -827,6 +865,9 @@ export default function App() {
                   <div
                     onClick={() => navigateTo("requests")}
                     style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
                       background: C.pB,
                       color: C.pu,
                       borderRadius: 20,
@@ -836,13 +877,16 @@ export default function App() {
                       cursor: "pointer",
                     }}
                   >
-                    🔧 {app.pendingReqCount} {t.chromePending}
+                    <Wrench size={12} aria-hidden="true" /> {app.pendingReqCount} {t.chromePending}
                   </div>
                 )}
                 {app.lowStockCount > 0 && app.userPerms.inv_view && (
                   <div
                     onClick={() => navigateTo("inventory")}
                     style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
                       background: C.aB,
                       color: C.am,
                       borderRadius: 20,
@@ -852,13 +896,17 @@ export default function App() {
                       cursor: "pointer",
                     }}
                   >
-                    ⚠️ {app.lowStockCount} {t.chromeLowStock}
+                    <AlertTriangle size={12} aria-hidden="true" /> {app.lowStockCount}{" "}
+                    {t.chromeLowStock}
                   </div>
                 )}
                 {app.jobsAwaitingCloseCount > 0 && app.userPerms.jobs_close && (
                   <div
                     onClick={() => navigateTo("buildjobs")}
                     style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
                       background: C.tB,
                       color: C.tl,
                       borderRadius: 20,
@@ -868,7 +916,8 @@ export default function App() {
                       cursor: "pointer",
                     }}
                   >
-                    🧾 {app.jobsAwaitingCloseCount} awaiting close
+                    <Receipt size={12} aria-hidden="true" /> {app.jobsAwaitingCloseCount} awaiting
+                    close
                   </div>
                 )}
                 <CompanySwitcher user={app.curUser} lang={lang} />
@@ -877,7 +926,7 @@ export default function App() {
             </div>
           )}
 
-          {/* ── 🟢 2. CENTRAL DISPATCH PANEL CARDS SCROLL INSIDE THIS CANVAS ONLY ── */}
+          {/* ── CENTRAL DISPATCH PANEL CARDS SCROLL INSIDE THIS CANVAS ONLY ── */}
           <div
             className="global-app-scrollbar" // Connects with custom slim styling markers
             style={{

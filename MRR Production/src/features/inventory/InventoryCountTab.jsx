@@ -11,6 +11,7 @@
 // A count is therefore a two-sided document: what the books EXPECT, computed live
 // from receipts and job usage, next to what a person COUNTED. The gap is the bleed.
 import { useState, useEffect, useMemo } from "react";
+import { RefreshCw, Calculator, Lock, ClipboardList, AlertTriangle } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm } from "@/shared/utils/helpers";
 import { resolvePersonName } from "@/shared/utils/people";
@@ -355,7 +356,7 @@ export default function InventoryCountTab({
           {t.cntLoadFailBody} ({loadError})
         </div>
         <Btn v="primary" sz="sm" onClick={() => setRetryTick((n) => n + 1)}>
-          🔄 {t.cntRetry}
+          <RefreshCw size={13} aria-hidden="true" /> {t.cntRetry}
         </Btn>
       </div>
     );
@@ -377,12 +378,15 @@ export default function InventoryCountTab({
           <h2
             style={{
               margin: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
               fontSize: "var(--text-xl)",
               fontWeight: "var(--weight-black)",
               color: C.navy,
             }}
           >
-            🧮 {t.cntTitle}
+            <Calculator size={18} aria-hidden="true" /> {t.cntTitle}
           </h2>
           <p
             style={{
@@ -457,6 +461,9 @@ export default function InventoryCountTab({
       {isClosed ? (
         <div
           style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 7,
             background: C.sB,
             border: `1.5px solid ${C.sl}`,
             borderRadius: "var(--radius-md)",
@@ -466,12 +473,18 @@ export default function InventoryCountTab({
             color: C.navy,
           }}
         >
-          🔒 <strong>{t.cntClosedBanner.replace("{period}", periodLabel(period))}</strong>{" "}
-          {t.cntClosedBannerBody}
+          <Lock size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
+          <span>
+            <strong>{t.cntClosedBanner.replace("{period}", periodLabel(period))}</strong>{" "}
+            {t.cntClosedBannerBody}
+          </span>
         </div>
       ) : (
         <div
           style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 7,
             background: C.aB,
             border: `1.5px solid ${C.am}`,
             borderRadius: "var(--radius-md)",
@@ -481,10 +494,13 @@ export default function InventoryCountTab({
             color: C.navy,
           }}
         >
-          📋 {t.cntOpenBanner}
-          {prevRow?.status === "closed"
-            ? ` ${t.cntOpeningFromCount.replace("{period}", periodLabel(prevRow.period))}`
-            : ` ${t.cntOpeningFromBook}`}
+          <ClipboardList size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
+          <span>
+            {t.cntOpenBanner}
+            {prevRow?.status === "closed"
+              ? ` ${t.cntOpeningFromCount.replace("{period}", periodLabel(prevRow.period))}`
+              : ` ${t.cntOpeningFromBook}`}
+          </span>
         </div>
       )}
 
@@ -500,13 +516,17 @@ export default function InventoryCountTab({
         >
           <div
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
               fontWeight: "var(--weight-extrabold)",
               color: C.rd,
               marginBottom: 8,
               fontSize: "var(--text-base)",
             }}
           >
-            ⚠️ {t.cntFlaggedTitle.replace("{n}", flagged.length)}
+            <AlertTriangle size={14} aria-hidden="true" />{" "}
+            {t.cntFlaggedTitle.replace("{n}", flagged.length)}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {flagged.slice(0, 8).map((l) => (
@@ -578,7 +598,7 @@ export default function InventoryCountTab({
               {saving ? t.cntSaving : dirty ? t.cntSaveProgress : t.cntAllSaved}
             </Btn>
             <Btn v="gold" sz="sm" onClick={closePeriod} disabled={saving}>
-              🔒 {t.cntClosePeriod}
+              <Lock size={13} aria-hidden="true" /> {t.cntClosePeriod}
             </Btn>
           </>
         )}

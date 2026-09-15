@@ -1,10 +1,33 @@
 // src/shared/layouts/Sidebar.jsx
 import { useEffect, useState } from "react";
+import {
+  Building2,
+  CreditCard,
+  Users,
+  ScrollText,
+  Settings,
+  Home,
+  Calendar,
+  HardHat,
+  ClipboardList,
+  Package,
+  Truck,
+  Wrench,
+  BarChart3,
+  GraduationCap,
+  Monitor,
+  Sun,
+  Moon,
+  ChevronRight,
+  ChevronLeft,
+  Palette,
+  Globe,
+} from "lucide-react";
 import { C } from "../utils/helpers";
 import { ROLES } from "../database/permissions";
 import { logAction } from "../utils/logger";
 import { TrussMark, TAGLINE } from "../components/SteadwerkMark";
-import { translations } from "../utils/translations"; // 🟢 Imported Dictionary
+import { translations } from "../utils/translations";
 import { readTheme, saveTheme, applyTheme } from "../utils/theme";
 import { IS_IOS_APP } from "@/core/platform";
 
@@ -25,7 +48,7 @@ export default function Sidebar({
   isPlatformAdmin,
   isPlatformCompany,
   perms,
-  // ── 🟢 NEW: ACCEPT LANG MATRIX CONTROL ARGS ──
+  // ── ACCEPT LANG MATRIX CONTROL ARGS ──
   lang = "en",
   setLang,
 }) {
@@ -54,12 +77,13 @@ export default function Sidebar({
   }, [theme]);
 
   const themeMeta = {
-    system: { icon: "◐", label: t.themeSystem || "Auto" },
-    light: { icon: "☀", label: t.themeLight || "Light" },
-    dark: { icon: "☾", label: t.themeDark || "Dark" },
+    system: { icon: Monitor, label: t.themeSystem || "Auto" },
+    light: { icon: Sun, label: t.themeLight || "Light" },
+    dark: { icon: Moon, label: t.themeDark || "Dark" },
   }[theme];
+  const ThemeIcon = themeMeta.icon;
 
-  // ── 🟢 TRANSLATED DYNAMIC SIDEBAR Blueprints ──
+  // ── TRANSLATED DYNAMIC SIDEBAR Blueprints ──
   //
   // Inside the platform operator's own tenant (supabase/32) the roofing product is
   // not the job — running the platform is. Dashboard, Schedule, Pull Inventory and
@@ -72,26 +96,26 @@ export default function Sidebar({
   // Console and the flag is false for that company, so the full portal below comes
   // back — which is what you went in there for.
   const platformNavItems = [
-    { id: "owner", icon: "🏛️", label: t.ownerConsole },
+    { id: "owner", icon: Building2, label: t.ownerConsole },
     // Hidden on iOS along with the view itself. A nav row that routes to a
     // screen the App Store build does not contain is a dead tap, and one that
     // said "Billing" would invite the reviewer to go looking for a purchase.
-    ...(IS_IOS_APP ? [] : [{ id: "billing", icon: "💳", label: t.billing }]),
+    ...(IS_IOS_APP ? [] : [{ id: "billing", icon: CreditCard, label: t.billing }]),
     ...(perms.users_manage
       ? [
-          { id: "users", icon: "👥", label: t.users || "Users" },
-          { id: "logs", icon: "📜", label: t.logs || "Audit Logs" },
+          { id: "users", icon: Users, label: t.users || "Users" },
+          { id: "logs", icon: ScrollText, label: t.logs || "Audit Logs" },
         ]
       : []),
     ...(perms.settings_manage
-      ? [{ id: "settings", icon: "⚙️", label: t.settings || "Settings" }]
+      ? [{ id: "settings", icon: Settings, label: t.settings || "Settings" }]
       : []),
   ];
 
   const navItems = [
     {
       id: "dashboard",
-      icon: "🏠",
+      icon: Home,
       label: t.dashboard || "Dashboard",
       badge: chatUnread,
       badgeColor: C.rd,
@@ -99,12 +123,12 @@ export default function Sidebar({
     // No permission gate: it only surfaces jobs and maintenance the viewer can
     // already see elsewhere, and knowing what is on the calendar is the point of
     // being on a crew.
-    { id: "schedule", icon: "🗓️", label: t.schedule || "Schedule" },
+    { id: "schedule", icon: Calendar, label: t.schedule || "Schedule" },
     ...(perms.jobs_build || perms.jobs_close
       ? [
           {
             id: "buildjobs",
-            icon: "🏗️",
+            icon: HardHat,
             label: t.buildjobs || "Build Jobs",
             badge: perms.jobs_close ? jobsAwaitingClose : 0,
             badgeColor: C.tl,
@@ -113,50 +137,54 @@ export default function Sidebar({
       : []),
     {
       id: "pull",
-      icon: "📋",
+      icon: ClipboardList,
       label: t.pull || "Pull Inventory",
       badge: newJobsForMe,
       badgeColor: C.tl,
     },
     ...(perms.inv_view
-      ? [{ id: "inventory", icon: "📦", label: t.inventory || "Inventory", badge: lowStock }]
+      ? [{ id: "inventory", icon: Package, label: t.inventory || "Inventory", badge: lowStock }]
       : []),
-    ...(perms.fleet_view ? [{ id: "fleet", icon: "🚛", label: t.fleet || "Fleet" }] : []),
+    ...(perms.fleet_view ? [{ id: "fleet", icon: Truck, label: t.fleet || "Fleet" }] : []),
     ...(perms.maint_submit || perms.maint_manage
       ? [
           {
             id: "requests",
-            icon: "🔧",
+            icon: Wrench,
             label: t.requests || "Maintenance",
             badge: perms.maint_manage ? pendingReqs : 0,
             badgeColor: C.pu,
           },
         ]
       : []),
-    ...(perms.reports_view ? [{ id: "reports", icon: "📊", label: t.reports || "Reports" }] : []),
-    ...(perms.users_manage ? [{ id: "users", icon: "👥", label: t.users || "Users" }] : []),
-    ...(perms.users_manage ? [{ id: "logs", icon: "📜", label: t.logs || "Audit Logs" }] : []),
+    ...(perms.reports_view
+      ? [{ id: "reports", icon: BarChart3, label: t.reports || "Reports" }]
+      : []),
+    ...(perms.users_manage ? [{ id: "users", icon: Users, label: t.users || "Users" }] : []),
+    ...(perms.users_manage
+      ? [{ id: "logs", icon: ScrollText, label: t.logs || "Audit Logs" }]
+      : []),
     ...(perms.settings_manage
-      ? [{ id: "settings", icon: "⚙️", label: t.settings || "Settings" }]
+      ? [{ id: "settings", icon: Settings, label: t.settings || "Settings" }]
       : []),
     // The company's own Billing/accounting tab — its admin only, and never in
     // the iOS build. See the platform list above and utils/platform.js.
     ...(!IS_IOS_APP && (user?.role === "admin" || isPlatformAdmin)
-      ? [{ id: "billing", icon: "💳", label: t.billing }]
+      ? [{ id: "billing", icon: CreditCard, label: t.billing }]
       : []),
     // Platform owner only — not a company permission. Visible to you across every
     // tenant; the underlying RPCs re-check is_platform_admin() server-side regardless.
-    ...(isPlatformAdmin ? [{ id: "owner", icon: "🏛️", label: t.ownerConsole }] : []),
+    ...(isPlatformAdmin ? [{ id: "owner", icon: Building2, label: t.ownerConsole }] : []),
     // Last, and deliberately ungated: everyone can be stuck, including the roles
     // with the fewest permissions. Sits below the work items because it is a
     // place you go when something else isn't working, not part of the daily loop.
-    { id: "training", icon: "🎓", label: t.training || "Training" },
+    { id: "training", icon: GraduationCap, label: t.training || "Training" },
   ];
 
   // Training stays in both lists: the platform operator is the person most likely
   // to be answering a customer's question about how a screen works.
   const items = isPlatformCompany
-    ? [...platformNavItems, { id: "training", icon: "🎓", label: t.training || "Training" }]
+    ? [...platformNavItems, { id: "training", icon: GraduationCap, label: t.training || "Training" }]
     : navItems;
 
   const rColor = (r) =>
@@ -300,7 +328,7 @@ export default function Sidebar({
               position: "relative",
             }}
           >
-            <span style={{ fontSize: 17 }}>{item.icon}</span>
+            <item.icon size={17} strokeWidth={2} aria-hidden="true" />
             {!collapsed && (
               <span
                 style={{
@@ -353,11 +381,11 @@ export default function Sidebar({
           border: "none",
           cursor: "pointer",
           color: "rgba(255,255,255,0.4)",
-          fontSize: "var(--text-lg)",
-          textAlign: "center",
+          display: "flex",
+          justifyContent: "center",
         }}
       >
-        {collapsed ? "▶" : "◀"}
+        {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
 
       {/* ── THEME CONTROL ──
@@ -375,12 +403,15 @@ export default function Sidebar({
         {!collapsed && (
           <span
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
               fontSize: "var(--text-2xs)",
               color: "rgba(255,255,255,0.4)",
               fontWeight: "var(--weight-extrabold)",
             }}
           >
-            🎨 {t.theme || "Theme"}:
+            <Palette size={12} aria-hidden="true" /> {t.theme || "Theme"}:
           </span>
         )}
         <button
@@ -402,12 +433,12 @@ export default function Sidebar({
             lineHeight: 1.6,
           }}
         >
-          <span aria-hidden="true">{themeMeta.icon}</span>
+          <ThemeIcon size={13} aria-hidden="true" />
           {!collapsed && themeMeta.label}
         </button>
       </div>
 
-      {/* ── 🟢 NEW: TRANSLATION CONTROL SWITCH DRUM ── */}
+      {/* ── TRANSLATION CONTROL SWITCH DRUM ── */}
       <div
         style={{
           padding: "4px 10px 10px",
@@ -420,12 +451,15 @@ export default function Sidebar({
         {!collapsed && (
           <span
             style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
               fontSize: "var(--text-2xs)",
               color: "rgba(255,255,255,0.4)",
               fontWeight: "var(--weight-extrabold)",
             }}
           >
-            🌐 {t.language}:
+            <Globe size={12} aria-hidden="true" /> {t.language}:
           </span>
         )}
         <div
