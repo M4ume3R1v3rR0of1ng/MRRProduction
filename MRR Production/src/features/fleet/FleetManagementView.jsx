@@ -12,6 +12,8 @@ import {
   Ban,
   Trash2,
   AlertOctagon,
+  Loader2,
+  Save,
 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { Btn, Bdg, Fld, Inp, Sel, Modal, TA, PhotoUpload } from "@/shared/components/UIPrimitives";
@@ -1258,7 +1260,20 @@ export default function FleetManagementView({
                 </Fld>
               </div>
               <Btn v="green" sz="sm" onClick={saveVehicleInfo} disabled={savingVehicleInfo}>
-                {savingVehicleInfo ? "⏳ Saving..." : "Save Vehicle Changes"}
+                {savingVehicleInfo ? (
+                  <>
+                    <Loader2
+                      size={14}
+                      style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                      aria-hidden="true"
+                    />{" "}
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={14} aria-hidden="true" /> Save Vehicle Changes
+                  </>
+                )}
               </Btn>
             </div>
           )}

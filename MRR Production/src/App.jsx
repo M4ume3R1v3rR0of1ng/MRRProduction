@@ -415,7 +415,7 @@ export default function App() {
     );
   }
 
-  // ── ⏳ HARDENED PROGRESS BAR LOADING FALLBACK ──
+  // ── HARDENED PROGRESS BAR LOADING FALLBACK ──
   if (app.loading) {
     return (
       <div

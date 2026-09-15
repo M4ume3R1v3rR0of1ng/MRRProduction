@@ -26,7 +26,7 @@ import {
   ROLE_COLS,
   DEFAULT_ROLE_PERMS,
 } from "@/shared/database/permissions";
-import { Btn, Fld, Inp, Sel, Toggle } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Sel, Toggle, StatusDot } from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 import { useNotify } from "@/shared/context/NotificationContext";
 // ── IMPORT ADDED ──────────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ const StatusPill = ({ active, labelOn = "Active", labelOff = "Offline" }) => (
       border: `1px solid ${active ? T.greenBd : T.border}`,
     }}
   >
-    <span style={{ fontSize: 8 }}>{active ? "●" : "●"}</span>
+    <StatusDot color={active ? T.green : T.slateL} size={7} />
     {active ? labelOn : labelOff}
   </span>
 );

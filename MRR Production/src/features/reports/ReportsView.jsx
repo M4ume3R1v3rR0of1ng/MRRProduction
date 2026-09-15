@@ -1,6 +1,6 @@
 // src/features/reports/ReportsView.jsx
 import { useState, useEffect } from "react";
-import { TrendingUp, Factory, Truck, Lock, AlertTriangle, Trash2 } from "lucide-react";
+import { TrendingUp, Factory, Truck, Lock, AlertTriangle, Trash2, Download } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
@@ -172,7 +172,7 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
           {t.rptJobProfTitle}
         </h2>
         <Btn v="green" sz="sm" onClick={handleExportExcel}>
-          {t.rptExportProfitability}
+          <Download size={13} aria-hidden="true" /> {t.rptExportProfitability}
         </Btn>
       </div>
 
@@ -530,7 +530,7 @@ function InventoryCostTrendsReport({ inv, t }) {
           </div>
         </div>
         <Btn v="green" sz="sm" onClick={handleExportInventoryCSV}>
-          {t.rptExportCostTrends}
+          <Download size={13} aria-hidden="true" /> {t.rptExportCostTrends}
         </Btn>
       </div>
       <div style={{ overflowX: "auto" }}>
@@ -897,7 +897,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
             {t.rptFleetLedgerTitle}
           </h2>
           <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>
-            {t.rptExportFleet}
+            <Download size={13} aria-hidden="true" /> {t.rptExportFleet}
           </Btn>
         </div>
         <div style={{ overflowX: "auto" }}>
@@ -1314,7 +1314,7 @@ function AuditTrailReport({ t, companyId }) {
           </div>
         </div>
         <Btn v="green" sz="sm" onClick={handleExportAuditExcel}>
-          {t.rptExportAudit}
+          <Download size={13} aria-hidden="true" /> {t.rptExportAudit}
         </Btn>
       </div>
       {loading ? (

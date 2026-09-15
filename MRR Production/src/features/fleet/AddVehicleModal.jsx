@@ -9,7 +9,7 @@
 // The parent no longer receives a setter. It is told what was created through
 // onCreated, and decides for itself how to fold that into its list.
 import { useState } from "react";
-import { Truck } from "lucide-react";
+import { Truck, Loader2, Plus } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { uid, todayLocal } from "@/shared/utils/helpers";
 import { Btn, Fld, Inp, Modal, Sel } from "@/shared/components/UIPrimitives";
@@ -200,7 +200,20 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
           style={{ flex: 1, justifyContent: "center" }}
           disabled={submitting}
         >
-          {submitting ? "⏳ Saving..." : "+ Add Vehicle"}
+          {submitting ? (
+            <>
+              <Loader2
+                size={14}
+                style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                aria-hidden="true"
+              />{" "}
+              Saving...
+            </>
+          ) : (
+            <>
+              <Plus size={14} aria-hidden="true" /> Add Vehicle
+            </>
+          )}
         </Btn>
       </div>
     </Modal>

@@ -11,7 +11,7 @@
 // A count is therefore a two-sided document: what the books EXPECT, computed live
 // from receipts and job usage, next to what a person COUNTED. The gap is the bleed.
 import { useState, useEffect, useMemo } from "react";
-import { RefreshCw, Calculator, Lock, ClipboardList, AlertTriangle } from "lucide-react";
+import { RefreshCw, Calculator, Lock, ClipboardList, AlertTriangle, Download } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm } from "@/shared/utils/helpers";
 import { resolvePersonName } from "@/shared/utils/people";
@@ -421,7 +421,7 @@ export default function InventoryCountTab({
             })}
           </Sel>
           <Btn v="ghost" sz="sm" onClick={exportCsv}>
-            ⬇ {t.cntExport}
+            <Download size={13} aria-hidden="true" /> {t.cntExport}
           </Btn>
         </div>
       </div>
