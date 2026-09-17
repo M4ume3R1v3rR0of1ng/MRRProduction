@@ -87,23 +87,15 @@ describe("validateMediaForm", () => {
 });
 
 describe("mediaObjectPath", () => {
-  it("puts the company first, which is what the storage policy keys on", () => {
-    expect(mediaObjectPath("co1", file("video/mp4", 1, "Tarp Demo.mp4"))).toMatch(/^co1\//);
-  });
-
   it("keeps the extension and sanitises it", () => {
-    expect(mediaObjectPath("co1", file("video/mp4", 1, "a.MP4"))).toMatch(/\.mp4$/);
-    expect(mediaObjectPath("co1", file("video/mp4", 1, "noext"))).toMatch(/\.bin$/);
+    expect(mediaObjectPath(file("video/mp4", 1, "a.MP4"))).toMatch(/\.mp4$/);
+    expect(mediaObjectPath(file("video/mp4", 1, "noext"))).toMatch(/\.bin$/);
   });
 
   it("does not collide for two uploads of the same name", () => {
-    const a = mediaObjectPath("co1", file("video/mp4", 1, "x.mp4"));
-    const b = mediaObjectPath("co1", file("video/mp4", 1, "x.mp4"));
+    const a = mediaObjectPath(file("video/mp4", 1, "x.mp4"));
+    const b = mediaObjectPath(file("video/mp4", 1, "x.mp4"));
     expect(a).not.toBe(b);
-  });
-
-  it("refuses to build an unscoped path", () => {
-    expect(() => mediaObjectPath("", file("video/mp4", 1))).toThrow(/companyId/);
   });
 });
 

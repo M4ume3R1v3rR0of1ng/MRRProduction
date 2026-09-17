@@ -453,10 +453,12 @@ export function useAppData() {
           // Ordered here rather than in the view so the list is already right if
           // anything else ever renders it. A missing table (migration 26 not run)
           // leaves the library empty rather than failing the whole boot.
+          // No company filter: training media is one shared library every company
+          // reads (RLS in supabase/42 allows any authenticated user to select all of
+          // it), not a per-tenant one.
           const { data, error } = await supabase
             .from("training_media")
             .select("*")
-            .eq("company_id", activeCompanyId)
             .order("sort_order", { ascending: true })
             .order("created_at", { ascending: true });
           if (error) {

@@ -93,6 +93,7 @@ in SQL, change it there too.
 | 34  | `34_complete_maintenance_service.sql`         | "Complete Service" as one atomic step: logs the service to the vehicle, closes the request, and optionally reassigns the driver.                                                                   |
 | 35  | `35_correct_job_return.sql`                   | Lets a `jobs_close` holder correct a wrong returned quantity on a completed job, without re-triggering completion. Refuses if the stock being clawed back has already been pulled for another job. |
 | 36  | `36_pull_added_job_materials.sql`             | Lets a `jobs_pull` holder FIFO-pull stock for a line added to a job after its initial pull (job already active/completed, not closed), without re-running the whole pull or changing job status.   |
+| 42  | `42_training_media_platform_only.sql`         | Training media becomes one shared library visible to every company; only a platform admin (Steadwerk) can add or remove a clip.                                                                    |
 
 ## Adding a migration
 

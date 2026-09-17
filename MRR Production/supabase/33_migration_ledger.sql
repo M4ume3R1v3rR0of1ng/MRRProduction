@@ -292,6 +292,10 @@ begin
   perform public._mig_record('37_maintenance_service_details.sql',
     public._mig_has_column('maintenance_requests', 'service_type'),
     'maintenance_requests.service_type');
+
+  perform public._mig_record('42_training_media_platform_only.sql',
+    public._mig_has_policy('training_media_row_write_platform_admin', 'training_media'),
+    'training_media policy training_media_row_write_platform_admin');
 end $$;
 
 -- The three that leave no distinguishable trace. Recorded so the ledger lists

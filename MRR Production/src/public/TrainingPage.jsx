@@ -126,9 +126,21 @@ const CSS = `
 /* ---- more-to-come note ---- */
 .sw-training .note {
   border:1px dashed var(--line-2); border-radius:14px; background:var(--surface);
-  padding:22px 24px; margin:0 0 64px; color:var(--ink-soft);
+  padding:22px 24px; margin:0 0 28px; color:var(--ink-soft);
 }
 .sw-training .note b { color:var(--ink); }
+
+/* ---- FAQ ---- */
+.sw-training .faq-head { margin:0 0 20px; }
+.sw-training .faq-head h2 { font-size:clamp(21px, 3vw, 27px); margin:6px 0 0; letter-spacing:-.01em; }
+.sw-training .faq { border-top:1px solid var(--line); margin:0 0 24px; }
+.sw-training .faq details { border-bottom:1px solid var(--line); padding:16px 0; }
+.sw-training .faq summary { cursor:pointer; font-weight:700; color:var(--ink); list-style:none; }
+.sw-training .faq summary::-webkit-details-marker { display:none; }
+.sw-training .faq summary::after { content:"+"; float:right; color:var(--accent-deep); font-weight:800; }
+.sw-training .faq details[open] summary::after { content:"–"; }
+.sw-training .faq .ans { color:var(--ink-soft); margin-top:10px; max-width:68ch; }
+.sw-training .faq-help { color:var(--ink-soft); margin:0 0 64px; }
 
 @media (prefers-reduced-motion: reduce) {
   .sw-training * { transition:none !important; animation:none !important; }
@@ -216,7 +228,50 @@ export default function TrainingPage({ onBack }) {
         <p className="note">
           <b>More walkthroughs are on the way.</b> Receiving stock, fleet inspections, and the
           maintenance board are next. If there is something you would rather see covered first,
-          say so at <a href="mailto:help@steadwerk.com">help@steadwerk.com</a> and it moves up the list.
+          say so at <a href="mailto:Sam@steadwerk.com">Sam@steadwerk.com</a> and it moves up the list.
+        </p>
+
+        <div className="faq-head">
+          <span className="eyebrow">Straight answers</span>
+          <h2>The questions people actually ask.</h2>
+        </div>
+        <div className="faq">
+          <details>
+            <summary>What's the difference between Build Jobs, Pull Inventory, and Inventory?</summary>
+            <div className="ans">
+              <b>They cover three different moments.</b> Build Jobs is where a job gets created,
+              staffed, and closed out. Pull Inventory is where a crew pulls the materials a
+              specific job needs. Inventory is the full stock view — levels, batches, and what's
+              running low — across everything in the yard.
+            </div>
+          </details>
+          <details>
+            <summary>What does the Fleet view show?</summary>
+            <div className="ans">
+              <b>Every vehicle, in one place.</b> Assignments, oil and service due dates, and
+              which trucks are currently out of service.
+            </div>
+          </details>
+          <details>
+            <summary>What's the Maintenance screen for?</summary>
+            <div className="ans">
+              <b>Reporting and tracking vehicle issues.</b> Anyone can submit a request when
+              something's wrong with a truck. Whoever manages maintenance sees the queue and
+              closes each one out once it's fixed.
+            </div>
+          </details>
+          <details>
+            <summary>Why don't I see the same tabs as someone else at my company?</summary>
+            <div className="ans">
+              <b>The sidebar follows your role.</b> What shows up depends on your permissions, so
+              a warehouse or field role sees a different list than an admin. If something you need
+              is missing, ask your company's admin to check your access.
+            </div>
+          </details>
+        </div>
+        <p className="faq-help">
+          Question that's not here? Email <a href="mailto:Sam@steadwerk.com">Sam@steadwerk.com</a> or
+          call <a href="tel:+12605792995">(260) 579-2995</a> and a real person answers, not a bot.
         </p>
       </div>
     </div>

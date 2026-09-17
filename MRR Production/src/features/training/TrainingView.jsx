@@ -42,16 +42,16 @@ const BUCKET = "training-media";
 export default function TrainingView({
   lang = "en",
   user,
-  company,
   trainingMedia = [],
   setTrainingMedia,
 }) {
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
-  // Uploading is an admin act: this media shows up for the whole company on login.
-  // Matches the storage and row policies in supabase/26 — the UI hiding the panel is
+  // The training library is shared by every company. Only Steadwerk (a platform
+  // admin) can add or remove a clip — matches the storage and row policies in
+  // supabase/42_training_media_platform_only.sql. The UI hiding the panel is
   // convenience, the database is what actually enforces it.
-  const isAdmin = user?.role === "admin";
+  const isPlatformAdmin = user?.isPlatformAdmin === true;
 
   // Which clips have been started, keyed by id so several videos each track
   // their own poster rather than sharing one flag.
@@ -76,15 +76,11 @@ export default function TrainingView({
       showToast(check.error, "info");
       return;
     }
-    if (!company?.id) {
-      showToast("No active company on this session, so there is nowhere to file this.", "error");
-      return;
-    }
 
     setUploading(true);
     let uploadedPath = null;
     try {
-      const path = mediaObjectPath(company.id, form.file);
+      const path = mediaObjectPath(form.file);
       const { url, path: storedPath } = await uploadFileToBucket(BUCKET, path, form.file);
       uploadedPath = storedPath;
 
@@ -179,7 +175,7 @@ export default function TrainingView({
         </p>
       </div>
 
-      {isAdmin && (
+      {isPlatformAdmin && (
         <div
           style={{
             background: C.w,
@@ -340,7 +336,7 @@ export default function TrainingView({
                 </div>
                 {/* Bundled clips ship in the build and belong to Steadwerk, so there is
                     nothing a tenant admin could delete even if the button were here. */}
-                {isAdmin && !clip.bundled && (
+                {isPlatformAdmin && !clip.bundled && (
                   <Btn v="danger" sz="sm" onClick={() => removeMedia(clip)}>
                     <Trash2 size={13} aria-hidden="true" /> {t.trRemove}
                   </Btn>
@@ -494,6 +490,96 @@ export default function TrainingView({
         }}
       >
         {t.trainingMoreComing}
+      </p>
+
+      {/* Native <details>/<summary>: no accordion library to ship, keyboard-operable
+          for free, and stays open to Ctrl+F. Same pattern as the FAQ on the public
+          landing page. */}
+      <div
+        style={{
+          marginTop: "var(--space-6)",
+          background: C.w,
+          borderRadius: "var(--radius-xl)",
+          boxShadow: "var(--shadow-sm)",
+          padding: "var(--space-5)",
+          border: `1px solid ${C.bd}`,
+        }}
+      >
+        <div
+          style={{
+            fontSize: "var(--text-2xs)",
+            letterSpacing: ".14em",
+            textTransform: "uppercase",
+            fontWeight: "var(--weight-extrabold)",
+            color: C.am,
+            marginBottom: 6,
+          }}
+        >
+          {t.trainingFaqEyebrow}
+        </div>
+        <div
+          style={{
+            fontSize: "var(--text-lg)",
+            fontWeight: "var(--weight-extrabold)",
+            color: C.navy,
+            marginBottom: "var(--space-3)",
+          }}
+        >
+          {t.trainingFaqHeading}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {[
+            [t.trFaqQ1, t.trFaqA1Lead, t.trFaqA1Rest],
+            [t.trFaqQ2, t.trFaqA2Lead, t.trFaqA2Rest],
+            [t.trFaqQ3, t.trFaqA3Lead, t.trFaqA3Rest],
+            [t.trFaqQ4, t.trFaqA4Lead, t.trFaqA4Rest],
+          ].map(([q, lead, rest]) => (
+            <details
+              key={q}
+              style={{ borderTop: `1px solid ${C.bd}`, padding: "var(--space-3) 0" }}
+            >
+              <summary
+                style={{
+                  cursor: "pointer",
+                  fontWeight: "var(--weight-bold)",
+                  color: C.navy,
+                  fontSize: "var(--text-sm)",
+                }}
+              >
+                {q}
+              </summary>
+              <div
+                style={{
+                  color: C.sub,
+                  fontSize: "var(--text-sm)",
+                  marginTop: 8,
+                  maxWidth: "70ch",
+                }}
+              >
+                <b style={{ color: C.navy }}>{lead}</b> {rest}
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+
+      <p
+        style={{
+          marginTop: "var(--space-4)",
+          padding: "0 var(--space-2)",
+          color: C.sub,
+          fontSize: "var(--text-sm)",
+        }}
+      >
+        {t.trainingHelpIntro}{" "}
+        <a href="mailto:Sam@steadwerk.com" style={{ color: C.am }}>
+          Sam@steadwerk.com
+        </a>{" "}
+        {t.trainingHelpOr}{" "}
+        <a href="tel:+12605792995" style={{ color: C.am }}>
+          (260) 579-2995
+        </a>{" "}
+        {t.trainingHelpOutro}
       </p>
     </div>
   );

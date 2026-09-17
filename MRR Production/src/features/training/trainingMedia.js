@@ -1,12 +1,14 @@
 // src/features/training/trainingMedia.js
 //
-// Company-uploaded training clips and photos.
+// The shared, runtime half of the training library.
 //
-// The bundled library in src/data/trainingVideos.js is Steadwerk's own product training
-// and ships in the build: a file in public/ plus an entry in that module, which means a
-// code change and a deploy per clip. That is correct for product training and useless for
-// "here is how WE tarp a roof", so this is the other half: per-company media an admin
-// uploads at runtime, stored in the training-media bucket and listed in training_media.
+// The bundled library in src/shared/data/trainingVideos.js is Steadwerk's own product
+// training and ships in the build: a file in public/ plus an entry in that module, which
+// means a code change and a deploy per clip. This is the other half: media a platform
+// admin (Steadwerk) uploads at runtime, stored in the training-media bucket and listed in
+// training_media. Unlike the early version of this feature, it is not per-company anymore
+// — every company sees the same library, and only Steadwerk can add or remove from it.
+// See supabase/42_training_media_platform_only.sql.
 //
 // The two render in the same list, bundled first. Nothing here can edit or remove the
 // bundled clips.
@@ -75,12 +77,11 @@ export function validateMediaFile(file) {
   return { ok: true, kind, error: null };
 }
 
-// Storage object path. Tenant prefix first, because that is what the RLS policies in
-// supabase/05_storage.sql and 26 key on. The random suffix stops two people uploading
-// "training.mp4" in the same second from colliding.
-export function mediaObjectPath(companyId, file) {
-  if (!companyId)
-    throw new Error("mediaObjectPath: companyId is required (tenant-scoped storage).");
+// Storage object path. No company prefix anymore — the bucket holds one shared library,
+// not one folder per tenant, and only a platform admin can write to it at all (see
+// supabase/42_training_media_platform_only.sql). The random suffix still stops two
+// uploads named "training.mp4" in the same second from colliding.
+export function mediaObjectPath(file) {
   const dot = String(file?.name || "").lastIndexOf(".");
   const ext =
     dot > -1
@@ -90,7 +91,7 @@ export function mediaObjectPath(companyId, file) {
           .replace(/[^a-z0-9]/g, "")
       : "bin";
   const rand = Math.random().toString(36).slice(2, 10);
-  return `${companyId}/${Date.now()}_${rand}.${ext}`;
+  return `${Date.now()}_${rand}.${ext}`;
 }
 
 // A title is required; everything else is optional. Falling back to the filename would
