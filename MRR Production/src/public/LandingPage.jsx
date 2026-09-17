@@ -90,10 +90,19 @@ const CSS = `
 
 /* The side insets keep content off the rounded corners and the notch when the
    installed app is held in landscape. Both resolve to 0px on every other device
-   and orientation, so this stays the plain 28px gutter it has always been. */
+   and orientation, so the gutter below is the whole story there.
+
+   The gutter itself is fluid, not the flat 28px it used to be. Flat 28px is
+   correct at a phone's width (see the 430px breakpoint below, tuned against
+   exactly that number) but reads as barely any margin at all once the window
+   is wide enough that .wrap is not yet capped by max-width — a laptop window
+   half the screen, say. clamp(28px, 6vw, 64px) leaves every phone untouched
+   (6vw stays under 28px below ~467px) and grows the margin smoothly from
+   there, so the in-between sizes get real breathing room instead of the
+   content running edge to edge. */
 .sw-landing .wrap {
   width:100%; max-width:1120px; margin:0 auto;
-  padding:0 calc(28px + var(--safe-right)) 0 calc(28px + var(--safe-left));
+  padding:0 calc(clamp(28px, 6vw, 64px) + var(--safe-right)) 0 calc(clamp(28px, 6vw, 64px) + var(--safe-left));
 }
 .sw-landing .tnum { font-variant-numeric:tabular-nums; }
 
