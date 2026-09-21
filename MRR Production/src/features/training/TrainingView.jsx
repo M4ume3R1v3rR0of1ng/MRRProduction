@@ -16,7 +16,7 @@
 // src/data/trainingVideos.js, which is the only thing that would actually hurt to
 // have in two places. Add a clip there and it appears in both.
 import { useRef, useState } from "react";
-import { Video, Plus, Trash2 } from "lucide-react";
+import { Video, Plus, Trash2, Pencil } from "lucide-react";
 import { C } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
 import { TRAINING_VIDEOS } from "@/shared/data/trainingVideos";
@@ -42,16 +42,21 @@ const BUCKET = "training-media";
 export default function TrainingView({
   lang = "en",
   user,
+  company,
   trainingMedia = [],
   setTrainingMedia,
 }) {
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
-  // The training library is shared by every company. Only Steadwerk (a platform
-  // admin) can add or remove a clip — matches the storage and row policies in
-  // supabase/42_training_media_platform_only.sql. The UI hiding the panel is
-  // convenience, the database is what actually enforces it.
+  // Two kinds of admin, two different reaches. A platform admin (Owner) can add,
+  // edit or remove ANY clip, global or not. A company's own Admin can only add,
+  // edit or remove their own company's private clips — never Steadwerk's global
+  // ones, and never another company's. Matches
+  // supabase/45_training_media_company_admin_edit.sql; the UI hiding a button is
+  // convenience, the database RLS is what actually enforces it.
   const isPlatformAdmin = user?.isPlatformAdmin === true;
+  const isCompanyAdmin = user?.role === "admin";
+  const canManage = isPlatformAdmin || isCompanyAdmin;
 
   // Which clips have been started, keyed by id so several videos each track
   // their own poster rather than sharing one flag.
@@ -62,6 +67,13 @@ export default function TrainingView({
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({ title: "", blurb: "", file: null });
   const [uploading, setUploading] = useState(false);
+
+  // Which clip (if any) is mid-edit, keyed by id so opening one closes any other.
+  // Only title and blurb are editable here — the file itself is not, so there is
+  // no re-upload path or storage write involved in saving one of these.
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({ title: "", blurb: "" });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const items = orderedMedia(TRAINING_VIDEOS, trainingMedia);
 
@@ -76,11 +88,15 @@ export default function TrainingView({
       showToast(check.error, "info");
       return;
     }
+    if (!company?.id) {
+      showToast("No active company on this session, so there is nowhere to file this.", "error");
+      return;
+    }
 
     setUploading(true);
     let uploadedPath = null;
     try {
-      const path = mediaObjectPath(form.file);
+      const path = mediaObjectPath(company.id, form.file);
       const { url, path: storedPath } = await uploadFileToBucket(BUCKET, path, form.file);
       uploadedPath = storedPath;
 
@@ -92,6 +108,10 @@ export default function TrainingView({
           url,
           sortOrder: trainingMedia.length,
           user,
+          // Only a platform admin's own upload ever lands in the shared, every-company
+          // tier — the row-write policy pins this to false for anyone else regardless
+          // of what gets sent, but there is no reason to send the wrong thing anyway.
+          isGlobal: isPlatformAdmin,
         }),
         object_path: storedPath,
       };
@@ -147,6 +167,49 @@ export default function TrainingView({
     }
   };
 
+  const startEdit = (clip) => {
+    setEditingId(clip.id);
+    setEditForm({ title: clip.title || "", blurb: clip.blurb || "" });
+  };
+
+  const cancelEdit = () => setEditingId(null);
+
+  const saveEdit = async (clip) => {
+    const title = editForm.title.trim();
+    if (!title) {
+      showToast(t.trTitleRequired, "info");
+      return;
+    }
+    const blurb = editForm.blurb.trim() || null;
+
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("training_media")
+        .update({ title, blurb })
+        .eq("id", clip.id);
+      if (error) throw error;
+
+      setTrainingMedia?.((p) => p.map((m) => (m.id === clip.id ? { ...m, title, blurb } : m)));
+
+      await logAction(
+        user.id,
+        user.email,
+        "TRAINING_MEDIA_EDIT",
+        `Edited training ${clip.kind}: "${clip.title}" → "${title}"`,
+        { media_id: clip.id },
+        "training",
+      );
+
+      showToast(t.trEditedOk, "success");
+      setEditingId(null);
+    } catch (err) {
+      showToast(`${t.trEditFail} ${err.message}`, "error");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const start = (id) => () => {
     setStarted((p) => ({ ...p, [id]: true }));
     const v = refs.current[id];
@@ -175,7 +238,7 @@ export default function TrainingView({
         </p>
       </div>
 
-      {isPlatformAdmin && (
+      {canManage && (
         <div
           style={{
             background: C.w,
@@ -206,12 +269,13 @@ export default function TrainingView({
                   fontSize: "var(--text-md)",
                 }}
               >
-                <Video size={15} aria-hidden="true" /> {t.trAdminTitle}
+                <Video size={15} aria-hidden="true" />{" "}
+                {isPlatformAdmin ? t.trAdminTitleGlobal : t.trAdminTitle}
               </div>
               <div
                 style={{ color: C.sub, fontSize: "var(--text-sm)", marginTop: 4, maxWidth: "70ch" }}
               >
-                {t.trAdminBlurb}
+                {isPlatformAdmin ? t.trAdminBlurbGlobal : t.trAdminBlurb}
               </div>
             </div>
             <Btn
@@ -287,7 +351,9 @@ export default function TrainingView({
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-        {items.map((clip) => (
+        {items.map((clip) => {
+          const isEditing = editingId === clip.id;
+          return (
           <div
             key={clip.id}
             style={{
@@ -306,7 +372,7 @@ export default function TrainingView({
                   gap: "var(--space-4)",
                 }}
               >
-                <div style={{ minWidth: 0 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
                   <div
                     style={{
                       fontSize: "var(--text-2xs)",
@@ -324,34 +390,82 @@ export default function TrainingView({
                         ? `${t.trAddedBy} ${clip.created_by_name}`
                         : t.trYourLibrary)}
                   </div>
-                  <div
-                    style={{
-                      fontSize: "var(--text-lg)",
-                      fontWeight: "var(--weight-extrabold)",
-                      color: C.navy,
-                    }}
-                  >
-                    {clip.title}
-                  </div>
+                  {isEditing ? (
+                    <Inp
+                      value={editForm.title}
+                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                      disabled={savingEdit}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        fontSize: "var(--text-lg)",
+                        fontWeight: "var(--weight-extrabold)",
+                        color: C.navy,
+                      }}
+                    >
+                      {clip.title}
+                    </div>
+                  )}
                 </div>
                 {/* Bundled clips ship in the build and belong to Steadwerk, so there is
-                    nothing a tenant admin could delete even if the button were here. */}
-                {isPlatformAdmin && !clip.bundled && (
-                  <Btn v="danger" sz="sm" onClick={() => removeMedia(clip)}>
-                    <Trash2 size={13} aria-hidden="true" /> {t.trRemove}
+                    nothing a tenant admin could edit or delete even if the button were
+                    here — "The Full Tour" included, since supabase/44 made it a real
+                    row. Beyond that: a platform admin (Owner) can edit anything; a
+                    company Admin can only edit their own company's clips, never a
+                    global one Steadwerk added — the row-write RLS policy refuses that
+                    regardless of whether this button is shown. */}
+                {!clip.bundled && (isPlatformAdmin || (isCompanyAdmin && !clip.is_global)) && (
+                  <Btn
+                    v="ghost"
+                    sz="sm"
+                    onClick={() => (isEditing ? cancelEdit() : startEdit(clip))}
+                  >
+                    {isEditing ? (
+                      t.trCancel
+                    ) : (
+                      <>
+                        <Pencil size={13} aria-hidden="true" /> {t.trEdit}
+                      </>
+                    )}
                   </Btn>
                 )}
               </div>
-              <p
-                style={{
-                  color: C.sub,
-                  fontSize: "var(--text-sm)",
-                  margin: "6px 0 0",
-                  maxWidth: "72ch",
-                }}
-              >
-                {clip.blurb}
-              </p>
+              {isEditing ? (
+                <div style={{ marginTop: "var(--space-3)" }}>
+                  <Fld label={t.trBlurb} hint={t.trBlurbHint}>
+                    <TA
+                      value={editForm.blurb}
+                      onChange={(e) => setEditForm({ ...editForm, blurb: e.target.value })}
+                      disabled={savingEdit}
+                    />
+                  </Fld>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <Btn v="primary" sz="sm" onClick={() => saveEdit(clip)} disabled={savingEdit}>
+                      {savingEdit ? t.trUploading : t.trSaveChanges}
+                    </Btn>
+                    <Btn
+                      v="danger"
+                      sz="sm"
+                      onClick={() => removeMedia(clip)}
+                      disabled={savingEdit}
+                    >
+                      <Trash2 size={13} aria-hidden="true" /> {t.trRemove}
+                    </Btn>
+                  </div>
+                </div>
+              ) : (
+                <p
+                  style={{
+                    color: C.sub,
+                    fontSize: "var(--text-sm)",
+                    margin: "6px 0 0",
+                    maxWidth: "72ch",
+                  }}
+                >
+                  {clip.blurb}
+                </p>
+              )}
             </div>
 
             {/* The poster is a real button so it is focusable and keyboard
@@ -476,7 +590,8 @@ export default function TrainingView({
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <p

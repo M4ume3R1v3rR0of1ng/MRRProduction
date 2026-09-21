@@ -11,13 +11,26 @@
 // update whenever the recording is re-cut. The landing page's "Watch the demo"
 // buttons now open this page instead of scrolling.
 //
-// ADDING A VIDEO
+// WHERE THE VIDEOS COME FROM
 //
-// Edit src/data/trainingVideos.js. The list is shared with the in-app view
-// (src/features/training/TrainingView.jsx) so a clip added once shows up in both places.
-// Everything on this page is generated from it.
+// Two tiers, merged with the exact same logic the in-app Training tab uses
+// (orderedMedia, from src/features/training/trainingMedia.js):
+//
+//   - src/shared/data/trainingVideos.js — hardcoded, build-shipped clips. Empty
+//     today (see that file's own header), kept wired up for anything that must
+//     never be editable at runtime.
+//   - public.training_media in Supabase — everything else, including "The Full
+//     Tour", fetched here with no login. That only works because
+//     supabase/44_training_media_editable_and_public.sql opened SELECT to the
+//     anon role; before that migration this table was authenticated-only, which
+//     is exactly why the tour used to have to live in the hardcoded file instead.
+//
+// A platform admin editing a clip's title in the portal is editing the same row
+// this page reads, so the two never drift the way two separate copies would.
 import { useEffect, useRef, useState } from "react";
 import { TRAINING_VIDEOS } from "@/shared/data/trainingVideos";
+import { orderedMedia } from "@/features/training/trainingMedia";
+import { supabase } from "@/shared/utils/supabase";
 import { useDocumentMeta } from "@/shared/hooks/useDocumentMeta";
 
 const Badge = ({ size = 30 }) => (
@@ -26,8 +39,6 @@ const Badge = ({ size = 30 }) => (
     <path className="mk-stroke" d="M14 20 L22 44 L32 24 L42 44 L50 20" fill="none" strokeWidth="5" strokeLinecap="square" />
   </svg>
 );
-
-const VIDEOS = TRAINING_VIDEOS;
 
 const CSS = `
 .sw-training {
@@ -155,9 +166,35 @@ export default function TrainingPage({ onBack }) {
   const [started, setStarted] = useState({});
   const refs = useRef({});
 
+  // Runtime clips from Steadwerk's own, globally-shared tier — a company's private
+  // uploads never belong on a logged-out marketing page, so this asks for is_global
+  // explicitly rather than leaning on RLS alone to keep them out. Video only — this
+  // page has never rendered a photo, so the query stays narrow rather than teaching
+  // the markup below a kind it does not support.
+  const [dbVideos, setDbVideos] = useState([]);
+
   useEffect(() => {
     window.scrollTo?.(0, 0);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("training_media")
+        .select("*")
+        .eq("kind", "video")
+        .eq("is_global", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (!cancelled && !error) setDbVideos(data || []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const VIDEOS = orderedMedia(TRAINING_VIDEOS, dbVideos);
 
   const start = (id) => () => {
     setStarted((p) => ({ ...p, [id]: true }));
@@ -194,7 +231,9 @@ export default function TrainingPage({ onBack }) {
         {VIDEOS.map((clip) => (
           <section className="clip" key={clip.id} id={clip.id}>
             <div className="clip-head">
-              <span className="eyebrow">Watch · {clip.eyebrow}</span>
+              {/* Bundled clips carry an eyebrow; runtime rows from training_media
+                  don't, so fall back to plain "Watch" rather than "Watch · undefined". */}
+              <span className="eyebrow">{clip.eyebrow ? `Watch · ${clip.eyebrow}` : "Watch"}</span>
               <h2>{clip.title}</h2>
               <p>{clip.blurb}</p>
             </div>
@@ -207,9 +246,12 @@ export default function TrainingPage({ onBack }) {
                 poster={clip.poster || undefined}
                 onPlay={() => setStarted((p) => ({ ...p, [clip.id]: true }))}
               >
-                <source src={clip.src} type="video/mp4" />
+                {/* Bundled clips carry `src` (a path under public/); runtime rows carry
+                    `url` (built the same way in this case — see supabase/44 — but a
+                    future upload's url could be a Supabase CDN link instead). */}
+                <source src={clip.src || clip.url} type="video/mp4" />
                 Your browser can’t play this video.{" "}
-                <a href={clip.src}>Download it instead.</a>
+                <a href={clip.src || clip.url}>Download it instead.</a>
               </video>
               <button
                 className="vid-poster"

@@ -1,17 +1,22 @@
 // src/features/training/trainingMedia.js
 //
-// The shared, runtime half of the training library.
+// The runtime half of the training library.
 //
 // The bundled library in src/shared/data/trainingVideos.js is Steadwerk's own product
 // training and ships in the build: a file in public/ plus an entry in that module, which
-// means a code change and a deploy per clip. This is the other half: media a platform
-// admin (Steadwerk) uploads at runtime, stored in the training-media bucket and listed in
-// training_media. Unlike the early version of this feature, it is not per-company anymore
-// — every company sees the same library, and only Steadwerk can add or remove from it.
-// See supabase/42_training_media_platform_only.sql.
+// means a code change and a deploy per clip (empty today — see that file). This is the
+// other half: media uploaded at runtime, stored in the training-media bucket and listed
+// in training_media, split into two tiers by is_global (see
+// supabase/45_training_media_company_admin_edit.sql):
 //
-// The two render in the same list, bundled first. Nothing here can edit or remove the
-// bundled clips.
+//   - is_global rows are Steadwerk's own uploads. Every company sees them, logged in or
+//     not, and only a platform admin (Owner) can add, edit or remove one.
+//   - non-global rows are a single company's own uploads ("here is how WE tarp a roof").
+//     Only that company sees them, and only that company's own Admin (or a platform
+//     admin) can add, edit or remove one.
+//
+// All three tiers (bundled, global, company-private) render in the same list, bundled
+// first. Nothing here can edit or remove the bundled clips.
 
 // Kept in step with the bucket limits in supabase/26_training_media.sql. The Supabase
 // plan also enforces a global per-request upload ceiling that can be LOWER than these;
@@ -77,11 +82,14 @@ export function validateMediaFile(file) {
   return { ok: true, kind, error: null };
 }
 
-// Storage object path. No company prefix anymore — the bucket holds one shared library,
-// not one folder per tenant, and only a platform admin can write to it at all (see
-// supabase/42_training_media_platform_only.sql). The random suffix still stops two
-// uploads named "training.mp4" in the same second from colliding.
-export function mediaObjectPath(file) {
+// Storage object path. Company prefix first, because that is what the storage write
+// policies in supabase/45_training_media_company_admin_edit.sql key on — a company
+// admin may only write inside their own folder, whether the clip they're adding ends
+// up global or private. The random suffix stops two uploads named "training.mp4" in
+// the same second from colliding.
+export function mediaObjectPath(companyId, file) {
+  if (!companyId)
+    throw new Error("mediaObjectPath: companyId is required (tenant-scoped storage).");
   const dot = String(file?.name || "").lastIndexOf(".");
   const ext =
     dot > -1
@@ -91,7 +99,7 @@ export function mediaObjectPath(file) {
           .replace(/[^a-z0-9]/g, "")
       : "bin";
   const rand = Math.random().toString(36).slice(2, 10);
-  return `${Date.now()}_${rand}.${ext}`;
+  return `${companyId}/${Date.now()}_${rand}.${ext}`;
 }
 
 // A title is required; everything else is optional. Falling back to the filename would
@@ -102,8 +110,10 @@ export function validateMediaForm({ title, file }) {
   return validateMediaFile(file);
 }
 
-// The row to insert. company_id is set by the database default, not here.
-export function mediaRow({ title, blurb, kind, url, sortOrder, user }) {
+// The row to insert. company_id is set by the database default, not here. isGlobal
+// should only ever be true for a platform admin's own upload — the write policy also
+// enforces this server-side, so a crafted request cannot smuggle a false one through.
+export function mediaRow({ title, blurb, kind, url, sortOrder, user, isGlobal = false }) {
   return {
     title: String(title).trim().slice(0, 160),
     blurb:
@@ -113,6 +123,7 @@ export function mediaRow({ title, blurb, kind, url, sortOrder, user }) {
     kind,
     url,
     sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
+    is_global: !!isGlobal,
     created_by: user?.id || null,
     // Denormalised for the same reason the other four tables do it: a deleted account
     // otherwise leaves an orphaned id and no way to say who added the clip.

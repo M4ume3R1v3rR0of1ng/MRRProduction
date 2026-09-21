@@ -87,15 +87,23 @@ describe("validateMediaForm", () => {
 });
 
 describe("mediaObjectPath", () => {
+  it("puts the company first, which is what the storage write policy keys on", () => {
+    expect(mediaObjectPath("co1", file("video/mp4", 1, "Tarp Demo.mp4"))).toMatch(/^co1\//);
+  });
+
   it("keeps the extension and sanitises it", () => {
-    expect(mediaObjectPath(file("video/mp4", 1, "a.MP4"))).toMatch(/\.mp4$/);
-    expect(mediaObjectPath(file("video/mp4", 1, "noext"))).toMatch(/\.bin$/);
+    expect(mediaObjectPath("co1", file("video/mp4", 1, "a.MP4"))).toMatch(/\.mp4$/);
+    expect(mediaObjectPath("co1", file("video/mp4", 1, "noext"))).toMatch(/\.bin$/);
   });
 
   it("does not collide for two uploads of the same name", () => {
-    const a = mediaObjectPath(file("video/mp4", 1, "x.mp4"));
-    const b = mediaObjectPath(file("video/mp4", 1, "x.mp4"));
+    const a = mediaObjectPath("co1", file("video/mp4", 1, "x.mp4"));
+    const b = mediaObjectPath("co1", file("video/mp4", 1, "x.mp4"));
     expect(a).not.toBe(b);
+  });
+
+  it("refuses to build an unscoped path", () => {
+    expect(() => mediaObjectPath("", file("video/mp4", 1))).toThrow(/companyId/);
   });
 });
 
@@ -125,6 +133,16 @@ describe("mediaRow", () => {
       mediaRow({ title: "T", kind: "video", url: "u", user: { id: "u1", email: "d@e.com" } })
         .created_by_name,
     ).toBe("d@e.com");
+  });
+
+  it("defaults to a private, company-scoped upload", () => {
+    expect(mediaRow({ title: "T", kind: "video", url: "u", user: {} }).is_global).toBe(false);
+  });
+
+  it("only marks a clip global when told to", () => {
+    expect(
+      mediaRow({ title: "T", kind: "video", url: "u", user: {}, isGlobal: true }).is_global,
+    ).toBe(true);
   });
 });
 

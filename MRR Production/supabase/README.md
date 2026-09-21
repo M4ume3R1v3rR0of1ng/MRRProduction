@@ -93,7 +93,10 @@ in SQL, change it there too.
 | 34  | `34_complete_maintenance_service.sql`         | "Complete Service" as one atomic step: logs the service to the vehicle, closes the request, and optionally reassigns the driver.                                                                   |
 | 35  | `35_correct_job_return.sql`                   | Lets a `jobs_close` holder correct a wrong returned quantity on a completed job, without re-triggering completion. Refuses if the stock being clawed back has already been pulled for another job. |
 | 36  | `36_pull_added_job_materials.sql`             | Lets a `jobs_pull` holder FIFO-pull stock for a line added to a job after its initial pull (job already active/completed, not closed), without re-running the whole pull or changing job status.   |
-| 42  | `42_training_media_platform_only.sql`         | Training media becomes one shared library visible to every company; only a platform admin (Steadwerk) can add or remove a clip.                                                                    |
+| 42  | `42_training_media_platform_only.sql`         | Training media becomes one shared library visible to every company; only a platform admin (Steadwerk) can add or remove a clip. **Superseded by 45.**                                              |
+| 44  | `44_training_media_editable_and_public.sql`   | Training media becomes readable logged-out too, and seeds "The Full Tour" as a real, editable row instead of a hardcoded one.                                                                      |
+| 45  | `45_training_media_company_admin_edit.sql`    | `is_global` splits the library: Steadwerk's global tier (Owner/platform-admin only) alongside each company's own private tier, managed by that company's Admin.                                    |
+| 46  | `46_training_media_unread.sql`                | `training_media_reads` — an unread badge on the sidebar's Training tab until a new clip is opened.                                                                                                 |
 
 ## Adding a migration
 

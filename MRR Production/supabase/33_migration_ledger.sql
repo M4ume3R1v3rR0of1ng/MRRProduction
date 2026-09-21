@@ -137,6 +137,18 @@ returns boolean language sql stable set search_path = public, pg_temp as $$
   select exists (select 1 from storage.buckets where id = b);
 $$;
 
+-- Unlike _mig_has_policy, this checks WHO a policy applies to, not just whether it
+-- exists by name - needed for 44, which widens an existing policy's roles rather
+-- than creating a differently-named one.
+create or replace function public._mig_policy_has_role(pol text, tbl text, role_name text, sch text default 'public')
+returns boolean language sql stable set search_path = public, pg_temp as $$
+  select exists (
+    select 1 from pg_policies
+    where schemaname = sch and tablename = tbl and policyname = pol
+      and role_name = any(roles)
+  );
+$$;
+
 -- Record one probe result.
 create or replace function public._mig_record(fname text, found boolean, why text)
 returns void language sql set search_path = public, pg_temp as $$
@@ -295,7 +307,19 @@ begin
 
   perform public._mig_record('42_training_media_platform_only.sql',
     public._mig_has_policy('training_media_row_write_platform_admin', 'training_media'),
-    'training_media policy training_media_row_write_platform_admin');
+    'training_media policy training_media_row_write_platform_admin (superseded by 45)');
+
+  perform public._mig_record('44_training_media_editable_and_public.sql',
+    public._mig_policy_has_role('training_media_row_select', 'training_media', 'anon'),
+    'training_media policy training_media_row_select includes anon');
+
+  perform public._mig_record('45_training_media_company_admin_edit.sql',
+    public._mig_has_column('training_media', 'is_global'),
+    'training_media.is_global');
+
+  perform public._mig_record('46_training_media_unread.sql',
+    public._mig_has_table('training_media_reads'),
+    'table training_media_reads');
 end $$;
 
 -- The three that leave no distinguishable trace. Recorded so the ledger lists

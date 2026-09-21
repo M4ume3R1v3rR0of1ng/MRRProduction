@@ -453,12 +453,20 @@ export function useAppData() {
           // Ordered here rather than in the view so the list is already right if
           // anything else ever renders it. A missing table (migration 26 not run)
           // leaves the library empty rather than failing the whole boot.
-          // No company filter: training media is one shared library every company
-          // reads (RLS in supabase/42 allows any authenticated user to select all of
-          // it), not a per-tenant one.
+          //
+          // Two tiers, one query: every globally-shared clip (Steadwerk's own
+          // uploads), plus this company's own private ones. RLS in supabase/45
+          // would actually allow a platform admin to read every company's private
+          // rows too, but this narrows the request to what's relevant to THIS
+          // session rather than pulling every tenant's library into one page load.
           const { data, error } = await supabase
             .from("training_media")
             .select("*")
+            .or(
+              activeCompanyId
+                ? `is_global.eq.true,company_id.eq.${activeCompanyId}`
+                : "is_global.eq.true",
+            )
             .order("sort_order", { ascending: true })
             .order("created_at", { ascending: true });
           if (error) {
@@ -558,6 +566,70 @@ export function useAppData() {
       console.error("Failed to update chat read state:", err);
     }
   };
+
+  // ── TRAINING TAB UNREAD TRACKING ──
+  // Same shape as chat above, against training_media_reads (supabase/46) instead
+  // of team_chat_reads. No realtime subscription: trainingMedia itself only loads
+  // at boot/login (see the load() effect), so this recomputes whenever that array
+  // changes rather than listening for inserts on its own.
+  const [trainingUnread, setTrainingUnread] = useState(0);
+
+  const markTrainingRead = async () => {
+    if (!curUser) return;
+    setTrainingUnread(0);
+    try {
+      await supabase
+        .from("training_media_reads")
+        .upsert(
+          { user_id: curUser.id, last_read_at: new Date().toISOString() },
+          { onConflict: "company_id,user_id" },
+        );
+    } catch (err) {
+      console.error("Failed to update training read state:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!curUser) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data: readRow } = await supabase
+          .from("training_media_reads")
+          .select("last_read_at")
+          .eq("user_id", curUser.id)
+          .eq("company_id", curUser.companyId)
+          .maybeSingle();
+
+        if (!readRow?.last_read_at) {
+          // First time ever seeing Training — mark caught up instead of flagging
+          // the whole pre-existing library as unread.
+          await supabase
+            .from("training_media_reads")
+            .upsert(
+              { user_id: curUser.id, last_read_at: new Date().toISOString() },
+              { onConflict: "company_id,user_id" },
+            );
+          if (!cancelled) setTrainingUnread(0);
+          return;
+        }
+
+        const unread = trainingMedia.filter(
+          (m) =>
+            m.created_by !== curUser.id &&
+            new Date(m.created_at) > new Date(readRow.last_read_at),
+        ).length;
+        if (!cancelled) setTrainingUnread(unread);
+      } catch (err) {
+        console.error("Failed to compute training unread count:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [curUser, trainingMedia]);
 
   useEffect(() => {
     if (!curUser) return;
@@ -885,6 +957,8 @@ export function useAppData() {
     setAccuLynxConfig,
     chatUnread,
     markChatRead,
+    trainingUnread,
+    markTrainingRead,
     logos,
     setLogos,
     company,

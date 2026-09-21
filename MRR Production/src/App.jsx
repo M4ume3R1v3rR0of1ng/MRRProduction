@@ -196,6 +196,15 @@ export default function App() {
   // ── CONSUME DECOUPLED CUSTOM STATE INFRASTRUCTURE HOOK ──
   const app = useAppData();
 
+  // Clears the sidebar's Training unread badge the moment someone actually lands
+  // on the tab — not on hover or on the badge itself, so a click that navigates
+  // anywhere else first (e.g. dismissing a modal) still counts once they arrive.
+  useEffect(() => {
+    if (location.pathname.slice(1) === "training" && app.curUser?.id) {
+      app.markTrainingRead();
+    }
+  }, [location.pathname, app.curUser?.id]);
+
   // Register this device for push once per login — no-ops on the web build
   // (IS_IOS_APP false, see pushRegistration.js). Tapping an oil-due push
   // deep-links to the fleet view for that vehicle, the same ?open=<id>
@@ -719,6 +728,7 @@ export default function App() {
             newJobsForMe={app.newJobsForMe}
             jobsAwaitingClose={app.jobsAwaitingCloseCount}
             chatUnread={app.chatUnread}
+            trainingUnread={app.trainingUnread}
             activeLogo={app.activeLogo}
             perms={app.userPerms}
             lang={lang}

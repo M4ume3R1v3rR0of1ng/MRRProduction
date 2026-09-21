@@ -1,15 +1,16 @@
 // src/shared/data/trainingVideos.js
 //
-// The training library, in one place, because it is rendered twice:
+// Hardcoded, build-shipped clips — the kind that needs a code change and a deploy
+// to add or edit. Empty since supabase/44_training_media_editable_and_public.sql:
+// the one entry that lived here ("The Full Tour") is now a real row in
+// public.training_media instead, editable from the portal, and readable logged-out
+// by src/public/TrainingPage.jsx the same way src/features/training/TrainingView.jsx
+// reads it.
 //
-//   src/public/TrainingPage.jsx — public, off the landing page's Help button.
-//                                Scoped .sw-training styling, own page chrome.
-//   src/features/training/TrainingView.jsx — inside the portal, off the sidebar. Uses the
-//                                app's tokens and sits in the normal app shell.
-//
-// The two look nothing alike on purpose: one is marketing chrome, the other is
-// the product. What must NOT diverge is which videos exist, so only that lives
-// here. Add a clip once and both surfaces pick it up.
+// This stays wired up (see orderedMedia in trainingMedia.js, and the `bundled` flag
+// both training views branch on) for the day something genuinely needs to ship this
+// way again — a video nobody should ever be able to edit or remove at runtime — not
+// because anything reads from it today.
 //
 // `src` is a path under public/, which Vite copies to dist/ verbatim — a file at
 // public/steadwerk-foo.mp4 resolves at /steadwerk-foo.mp4. Self-hosting is not a
@@ -17,15 +18,6 @@
 // so a YouTube or Vimeo embed is blocked outright. `poster` is optional; without
 // one each surface falls back to its own built-in still.
 
-export const TRAINING_VIDEOS = [
-  {
-    id: "full-tour",
-    eyebrow: "The full tour",
-    title: "Build a job to a costed report",
-    blurb:
-      "The whole loop, start to finish. Build the job, approve it, pull the materials, return what came back, and read the costed report that falls out the other end.",
-    src: "/steadwerk-demo.mp4",
-  },
-];
+export const TRAINING_VIDEOS = [];
 
 export default TRAINING_VIDEOS;

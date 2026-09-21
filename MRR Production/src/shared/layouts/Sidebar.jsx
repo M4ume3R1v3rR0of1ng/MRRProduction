@@ -43,6 +43,7 @@ export default function Sidebar({
   newJobsForMe,
   jobsAwaitingClose,
   chatUnread,
+  trainingUnread,
   activeLogo,
   companyName,
   isPlatformAdmin,
@@ -178,13 +179,26 @@ export default function Sidebar({
     // Last, and deliberately ungated: everyone can be stuck, including the roles
     // with the fewest permissions. Sits below the work items because it is a
     // place you go when something else isn't working, not part of the daily loop.
-    { id: "training", icon: GraduationCap, label: t.training || "Training" },
+    {
+      id: "training",
+      icon: GraduationCap,
+      label: t.training || "Training",
+      badge: trainingUnread,
+    },
   ];
 
   // Training stays in both lists: the platform operator is the person most likely
   // to be answering a customer's question about how a screen works.
   const items = isPlatformCompany
-    ? [...platformNavItems, { id: "training", icon: GraduationCap, label: t.training || "Training" }]
+    ? [
+        ...platformNavItems,
+        {
+          id: "training",
+          icon: GraduationCap,
+          label: t.training || "Training",
+          badge: trainingUnread,
+        },
+      ]
     : navItems;
 
   const rColor = (r) =>

@@ -448,10 +448,10 @@ export default function LoginScreen({
         style={{
           background: "color-mix(in srgb, var(--c-surface) 96%, transparent)",
           backdropFilter: "blur(8px)",
-          borderRadius: 20,
-          padding: "48px 56px",
+          borderRadius: 24,
+          padding: "60px 68px",
           width: "100%",
-          maxWidth: 400,
+          maxWidth: 540,
           boxShadow: "0 24px 60px rgba(0,0,0,0.45)",
           margin: "auto",
         }}
@@ -482,8 +482,8 @@ export default function LoginScreen({
             and it must not, since a company list here would be public. Steadwerk owns
             this screen; the company's own logo appears once you're inside. */}
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ marginBottom: 14 }}>
-            <SteadwerkLockup size={64} />
+          <div style={{ marginBottom: 16 }}>
+            <SteadwerkLockup size={76} />
           </div>
           <div style={{ fontSize: "var(--text-base)", color: C.sub, marginTop: 4 }}>
             {choices ? t.lgChooseCompany : mode === "signup" ? t.lgStartCompany : t.loginSubtitle}
