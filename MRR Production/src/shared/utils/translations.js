@@ -131,6 +131,13 @@ export const translations = {
     blComplimentary: "Complimentary — unlimited users",
     blUsers: "Users",
     blSeatLimit: "You're at your seat limit. Add a pack to invite more users.",
+    blBillingContact: "Billing contact",
+    blBillingContactBlurb:
+      "Who to address on receipts, invoices, and any custom email about this account.",
+    blBillingContactPlaceholder: "Full name",
+    blSaveContact: "Save",
+    blBillingContactSaved: "Billing contact saved.",
+    blBillingContactFail: "Could not save billing contact:",
     blPaymentInvoices: "Payment & invoices",
     blManagePayment: "Manage payment & invoices →",
     blPortalBlurb:
@@ -1452,6 +1459,13 @@ export const translations = {
     blComplimentary: "Cortesía — usuarios ilimitados",
     blUsers: "Usuarios",
     blSeatLimit: "Alcanzó su límite de usuarios. Agregue un paquete para invitar a más.",
+    blBillingContact: "Contacto de facturación",
+    blBillingContactBlurb:
+      "A quién dirigirse en recibos, facturas y cualquier correo personalizado sobre esta cuenta.",
+    blBillingContactPlaceholder: "Nombre completo",
+    blSaveContact: "Guardar",
+    blBillingContactSaved: "Contacto de facturación guardado.",
+    blBillingContactFail: "No se pudo guardar el contacto de facturación:",
     blPaymentInvoices: "Pagos y facturas",
     blManagePayment: "Administrar pagos y facturas →",
     blPortalBlurb:

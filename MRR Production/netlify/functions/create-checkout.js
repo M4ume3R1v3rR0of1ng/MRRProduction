@@ -210,6 +210,9 @@ const rawHandler = async (event) => {
         slug,
         subscription_status: "incomplete",
         branding: { displayName: companyName },
+        // Who to address on billing emails/receipts — distinct from companyName.
+        // See supabase/47.
+        billing_contact_name: fullName,
       })
       .select("id")
       .single();
@@ -245,7 +248,8 @@ const rawHandler = async (event) => {
     const customer = await stripe.customers.create({
       email,
       name: companyName,
-      metadata: { company_id: company.id },
+      // contact_name is the signer, not the account — see supabase/47.
+      metadata: { company_id: company.id, contact_name: fullName },
     });
     await admin
       .from("company_secrets")

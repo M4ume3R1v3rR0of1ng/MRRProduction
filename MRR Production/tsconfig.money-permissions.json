@@ -35,6 +35,7 @@
     "netlify/functions/add-seats.js",
     "netlify/functions/admin-billing.js",
     "netlify/functions/billing-portal.js",
+    "netlify/functions/update-billing-contact.js",
     "netlify/functions/start-company-billing.js",
     "netlify/functions/stripe-webhook.js"
   ]

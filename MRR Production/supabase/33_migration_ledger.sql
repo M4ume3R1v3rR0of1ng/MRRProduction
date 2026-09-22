@@ -320,6 +320,10 @@ begin
   perform public._mig_record('46_training_media_unread.sql',
     public._mig_has_table('training_media_reads'),
     'table training_media_reads');
+
+  perform public._mig_record('47_billing_contact_name.sql',
+    public._mig_has_column('companies', 'billing_contact_name'),
+    'companies.billing_contact_name');
 end $$;
 
 -- The three that leave no distinguishable trace. Recorded so the ledger lists

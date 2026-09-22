@@ -97,6 +97,7 @@ in SQL, change it there too.
 | 44  | `44_training_media_editable_and_public.sql`   | Training media becomes readable logged-out too, and seeds "The Full Tour" as a real, editable row instead of a hardcoded one.                                                                      |
 | 45  | `45_training_media_company_admin_edit.sql`    | `is_global` splits the library: Steadwerk's global tier (Owner/platform-admin only) alongside each company's own private tier, managed by that company's Admin.                                    |
 | 46  | `46_training_media_unread.sql`                | `training_media_reads` — an unread badge on the sidebar's Training tab until a new clip is opened.                                                                                                 |
+| 47  | `47_billing_contact_name.sql`                 | `companies.billing_contact_name` — the signer's name, distinct from the company name, so it can be pulled for custom billing emails.                                                              |
 
 ## Adding a migration
 

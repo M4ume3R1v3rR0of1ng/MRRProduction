@@ -113,7 +113,7 @@ const rawHandler = async (event) => {
   // ── 2. Load the target + enforce the guardrails ───────────────────────────
   const { data: company, error: coErr } = await admin
     .from("companies")
-    .select("id, name")
+    .select("id, name, billing_contact_name")
     .eq("id", companyId)
     .single();
   if (coErr || !company) {
@@ -149,7 +149,12 @@ const rawHandler = async (event) => {
       const customer = await stripe.customers.create({
         email,
         name: company.name,
-        metadata: { company_id: company.id },
+        // Carries over whatever billing contact name (see supabase/47) the
+        // company already had set — comped companies can fill one in from the
+        // Billing tab before ever reaching real Stripe billing.
+        metadata: company.billing_contact_name
+          ? { company_id: company.id, contact_name: company.billing_contact_name }
+          : { company_id: company.id },
       });
       customerId = customer.id;
       await admin

@@ -31,17 +31,23 @@ export default function BillingView({ user, lang = "en" }) {
   const [grandfatheredPacks, setGrandfatheredPacks] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [contactName, setContactName] = useState("");
+  const [savedContactName, setSavedContactName] = useState("");
+  const [contactBusy, setContactBusy] = useState(false);
 
   const isAdmin = user?.role === "admin" || user?.isPlatformAdmin;
 
   const load = async () => {
     setLoading(true);
-    const [{ data: seatRows }] = await Promise.all([
+    const [{ data: seatRows }, { data: companyRows }] = await Promise.all([
       supabase.rpc("company_seat_status"),
       supabase.rpc("my_company"),
     ]);
     const s = Array.isArray(seatRows) ? seatRows[0] : seatRows;
     setSeats(s || null);
+    const co = Array.isArray(companyRows) ? companyRows[0] : companyRows;
+    setContactName(co?.billing_contact_name || "");
+    setSavedContactName(co?.billing_contact_name || "");
     // subscription_status isn't returned by my_company (safe columns only); read it
     // off the current user's company via a lightweight companies select (RLS-scoped).
     const { data: statusRow } = await supabase
@@ -105,6 +111,29 @@ export default function BillingView({ user, lang = "en" }) {
       showToast(`${delta > 0 ? t.blAddSeatsFail : t.blRemoveSeatsFail} ${err.message}`, "error");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const saveContactName = async () => {
+    const trimmed = contactName.trim();
+    if (!trimmed) return;
+    setContactBusy(true);
+    try {
+      const accessToken = await getAccessToken();
+      const res = await fetch("/.netlify/functions/update-billing-contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken, name: trimmed }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      setContactName(trimmed);
+      setSavedContactName(trimmed);
+      showToast(t.blBillingContactSaved, "success");
+    } catch (err) {
+      showToast(`${t.blBillingContactFail} ${err.message}`, "error");
+    } finally {
+      setContactBusy(false);
     }
   };
 
@@ -206,6 +235,64 @@ export default function BillingView({ user, lang = "en" }) {
                 {status === "past_due" ? "Payment past due — update your card below" : status}
               </div>
             )}
+          </div>
+
+          {/* Billing contact — who to address on receipts, invoices, and any custom
+              email sent about this account. Stripe only ever knows the company
+              name, not a person; this is the one place that person's name lives.
+              See supabase/47. */}
+          <div style={card}>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: C.sub,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                marginBottom: 8,
+              }}
+            >
+              {t.blBillingContact}
+            </div>
+            <div style={{ fontSize: 13, color: C.sub, marginBottom: 12 }}>
+              {t.blBillingContactBlurb}
+            </div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <input
+                type="text"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                placeholder={t.blBillingContactPlaceholder}
+                style={{
+                  flex: "1 1 220px",
+                  padding: "10px 12px",
+                  border: `1.5px solid ${C.bd}`,
+                  borderRadius: 8,
+                  fontSize: 14,
+                  color: C.navy,
+                }}
+              />
+              <button
+                onClick={saveContactName}
+                disabled={contactBusy || !contactName.trim() || contactName.trim() === savedContactName}
+                style={{
+                  padding: "10px 16px",
+                  background: C.gold,
+                  color: C.navy,
+                  border: "none",
+                  borderRadius: 8,
+                  fontWeight: 800,
+                  fontSize: 14,
+                  cursor: contactBusy ? "wait" : "pointer",
+                  opacity:
+                    contactBusy || !contactName.trim() || contactName.trim() === savedContactName
+                      ? 0.5
+                      : 1,
+                }}
+              >
+                {t.blSaveContact}
+              </button>
+            </div>
           </div>
 
           {/* Seats */}
