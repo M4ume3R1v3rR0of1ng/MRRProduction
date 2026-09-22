@@ -305,6 +305,31 @@ begin
     public._mig_has_column('maintenance_requests', 'service_type'),
     'maintenance_requests.service_type');
 
+  -- create-or-replace on the SAME function 34 already created, so presence
+  -- alone proves nothing (same shape as check A/B for 11/13 below) — this
+  -- checks the installed body actually sets the flag 38 adds, not just that
+  -- a function by this name exists.
+  perform public._mig_record('38_complete_service_notifies_driver.sql',
+    coalesce((
+      select pg_get_functiondef(p.oid) like '%newforrequester%'
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'complete_maintenance_service'
+    ), false),
+    'function complete_maintenance_service() body sets newforrequester');
+
+  perform public._mig_record('39_oil_due_push_notices.sql',
+    public._mig_has_table('device_push_tokens') and public._mig_has_table('oil_due_notices'),
+    'tables device_push_tokens + oil_due_notices');
+
+  perform public._mig_record('40_oil_due_notices_driver_visibility.sql',
+    public._mig_has_column('oil_due_notices', 'driver_id'),
+    'oil_due_notices.driver_id');
+
+  perform public._mig_record('41_chat_message_history.sql',
+    public._mig_has_table('chat_messages'),
+    'table chat_messages');
+
   perform public._mig_record('42_training_media_platform_only.sql',
     public._mig_has_policy('training_media_row_write_platform_admin', 'training_media'),
     'training_media policy training_media_row_write_platform_admin (superseded by 45)');

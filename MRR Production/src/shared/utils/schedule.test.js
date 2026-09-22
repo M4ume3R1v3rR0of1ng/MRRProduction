@@ -129,10 +129,14 @@ describe("buildSchedule", () => {
   });
 
   it("places scheduled maintenance and names the vehicle", () => {
+    // vid, not vehicle_id — maintenance_requests.vehicle_id exists as a column
+    // but nothing ever writes it; every real request only sets vid. A fixture
+    // using vehicle_id here would pass while testing the wrong field, the same
+    // way the production bug this guards against went unnoticed.
     const reqs = [
       {
         id: "r1",
-        vehicle_id: "v1",
+        vid: "v1",
         status: "scheduled",
         scheduled_date: plusDays(3),
         type: "Oil Change",
@@ -144,12 +148,12 @@ describe("buildSchedule", () => {
   });
 
   it("ignores a pending request that has no date yet", () => {
-    const reqs = [{ id: "r1", vehicle_id: "v1", status: "pending", scheduled_date: null }];
+    const reqs = [{ id: "r1", vid: "v1", status: "pending", scheduled_date: null }];
     expect(buildSchedule({ reqs, vehs }).every((d) => d.maint.length === 0)).toBe(true);
   });
 
   it("ignores completed maintenance", () => {
-    const reqs = [{ id: "r1", vehicle_id: "v1", status: "completed", scheduled_date: plusDays(1) }];
+    const reqs = [{ id: "r1", vid: "v1", status: "completed", scheduled_date: plusDays(1) }];
     expect(buildSchedule({ reqs, vehs })[1].maint).toHaveLength(0);
   });
 
@@ -161,7 +165,7 @@ describe("buildSchedule", () => {
     const reqs = [
       {
         id: "r1",
-        vehicle_id: "v2",
+        vid: "v2",
         status: "scheduled",
         scheduled_date: plusDays(1),
         type: "Brakes",
@@ -174,20 +178,20 @@ describe("buildSchedule", () => {
   it("does not flag a conflict when the shop day is a different day", () => {
     const jobs = [{ id: "j1", title: "Re-roof", status: "active", scheduledDate: plusDays(1) }];
     const jobTrailers = [{ job_id: "j1", trailer_id: "v2" }];
-    const reqs = [{ id: "r1", vehicle_id: "v2", status: "scheduled", scheduled_date: plusDays(2) }];
+    const reqs = [{ id: "r1", vid: "v2", status: "scheduled", scheduled_date: plusDays(2) }];
     expect(
       buildSchedule({ jobs, reqs, jobTrailers, vehs }).every((d) => d.conflicts.length === 0),
     ).toBe(true);
   });
 
   it("does not flag a vehicle in the shop that is not booked out", () => {
-    const reqs = [{ id: "r1", vehicle_id: "v1", status: "scheduled", scheduled_date: plusDays(1) }];
+    const reqs = [{ id: "r1", vid: "v1", status: "scheduled", scheduled_date: plusDays(1) }];
     expect(buildSchedule({ reqs, vehs })[1].conflicts).toEqual([]);
   });
 
   it("matches vehicle ids across string and number forms", () => {
     const numericVehs = [{ id: 7, name: "Trailer 7" }];
-    const reqs = [{ id: "r1", vehicle_id: "7", status: "scheduled", scheduled_date: plusDays(0) }];
+    const reqs = [{ id: "r1", vid: "7", status: "scheduled", scheduled_date: plusDays(0) }];
     expect(buildSchedule({ reqs, vehs: numericVehs })[0].maint[0].vehicle).toBe("Trailer 7");
   });
 
@@ -221,7 +225,7 @@ describe("ScheduleCard render", () => {
   it("warns in the header when a vehicle is double-booked", () => {
     const jobs = [{ id: "j1", title: "Re-roof", status: "active", scheduledDate: plusDays(1) }];
     const jobTrailers = [{ job_id: "j1", trailer_id: "v2" }];
-    const reqs = [{ id: "r1", vehicle_id: "v2", status: "scheduled", scheduled_date: plusDays(1) }];
+    const reqs = [{ id: "r1", vid: "v2", status: "scheduled", scheduled_date: plusDays(1) }];
     expect(render({ jobs, reqs, jobTrailers, vehs })).toContain("in the shop on the same day");
   });
 
@@ -275,7 +279,7 @@ describe("history (includeFinished)", () => {
     { id: "done", title: "Finished re-roof", status: "completed", scheduledDate: past },
     { id: "open", title: "Still open", status: "active", scheduledDate: past },
   ];
-  const reqs = [{ id: "r1", vehicle_id: "v1", status: "completed", scheduled_date: past }];
+  const reqs = [{ id: "r1", vid: "v1", status: "completed", scheduled_date: past }];
   const keys = [past];
 
   it("omits finished work by default, as the dashboard card needs", () => {
@@ -302,7 +306,7 @@ describe("history (includeFinished)", () => {
     // not something to warn about now.
     const j = [{ id: "j1", title: "Old", status: "completed", scheduledDate: past }];
     const jt = [{ job_id: "j1", trailer_id: "v2" }];
-    const r = [{ id: "r1", vehicle_id: "v2", status: "completed", scheduled_date: past }];
+    const r = [{ id: "r1", vid: "v2", status: "completed", scheduled_date: past }];
     const [day] = buildSchedule({
       jobs: j,
       reqs: r,
@@ -317,7 +321,7 @@ describe("history (includeFinished)", () => {
   it("still raises a conflict for unfinished work in the past", () => {
     const j = [{ id: "j1", title: "Old", status: "active", scheduledDate: past }];
     const jt = [{ job_id: "j1", trailer_id: "v2" }];
-    const r = [{ id: "r1", vehicle_id: "v2", status: "scheduled", scheduled_date: past }];
+    const r = [{ id: "r1", vid: "v2", status: "scheduled", scheduled_date: past }];
     const [day] = buildSchedule({
       jobs: j,
       reqs: r,

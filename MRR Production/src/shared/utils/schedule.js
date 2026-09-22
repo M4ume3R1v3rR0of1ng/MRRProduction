@@ -93,9 +93,13 @@ export const buildSchedule = ({
     if (!key || !window.has(key)) continue;
     buckets.get(key).maint.push({
       id: r.id,
-      vehicle:
-        vehs.find((v) => String(v.id) === String(r.vehicle_id))?.name || r.vname || "Vehicle",
-      vehicleId: r.vehicle_id,
+      // maintenance_requests.vehicle_id exists but nothing ever writes it — every
+      // create path only sets vid (see the same fix in ReportsView.jsx). Matching
+      // on vehicle_id here always missed, which fell back to r.vname for display
+      // (masking the bug) but silently zeroed out the conflicts feature below,
+      // since vehicleId was always null and never equalled a real trailer id.
+      vehicle: vehs.find((v) => String(v.id) === String(r.vid))?.name || r.vname || "Vehicle",
+      vehicleId: r.vid,
       issue: r.type || r.issue || "Service",
       urgency: r.urgency,
       finished: r.status === "completed",
