@@ -636,7 +636,12 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
 
   const fleetMetrics = vehs
     .map((v) => {
-      const closedTickets = reqs.filter((r) => r.vehicle_id === v.id && r.status === "completed");
+      // maintenance_requests has a vehicle_id column, but nothing ever writes it —
+      // MaintenanceRequestsView's ticket insert (and every other create path) only
+      // sets `vid`. Matching on vehicle_id here silently matched zero rows, so
+      // every vehicle showed 0 resolved repairs no matter how much real service
+      // history existed.
+      const closedTickets = reqs.filter((r) => r.vid === v.id && r.status === "completed");
       const totalRepairInvestment = closedTickets.reduce(
         (sum, r) => sum + (parseFloat(r.cost) || 0),
         0,
