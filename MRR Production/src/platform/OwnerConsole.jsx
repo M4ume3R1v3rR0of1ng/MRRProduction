@@ -7,12 +7,13 @@
 // the real gate is in the database, so a non-owner poking the same RPCs gets nothing.
 import { useEffect, useState } from "react";
 import { supabase, getAccessToken } from "@/shared/utils/supabase";
-import { C, tot } from "@/shared/utils/helpers";
+import { C, tot, todayLocal } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
 import { BRAND, TrussMark } from "@/shared/components/SteadwerkMark";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
 import { BASE_SEATS } from "@/features/billing/seatPacks";
+import { downloadCSV } from "@/shared/utils/csvExport";
 
 // Same duplication note as the pricing block atop LandingPage.jsx and the pricing
 // constants in supabase/30_platform_revenue.sql: these dollar figures must match
@@ -152,6 +153,23 @@ export default function OwnerConsole({ user, lang = "en" }) {
     // rather than breaking the console.
     setRevenue(Object.fromEntries((revRows || []).map((r) => [r.id, r])));
     setLoading(false);
+  };
+
+  // CSV export of the columns useful for reaching out to customers — name, slug,
+  // billing contact (supabase/47), status, and MRR. Built client-side from data
+  // already loaded, so it always matches exactly what the table shows.
+  const exportCompaniesCsv = () => {
+    const headers = ["Company", "Slug", "Billing contact", "Status", "MRR", "Users", "Created"];
+    const rows = companies.map((co) => [
+      co.name,
+      co.slug,
+      co.billing_contact_name || "",
+      co.subscription_status,
+      revenue[co.id]?.mrr ?? "",
+      co.user_count ?? "",
+      co.created_at ? co.created_at.slice(0, 10) : "",
+    ]);
+    downloadCSV(`steadwerk-companies-${todayLocal()}.csv`, headers, rows);
   };
 
   const grantAdmin = async (e) => {
@@ -555,6 +573,24 @@ export default function OwnerConsole({ user, lang = "en" }) {
       </form>
 
       {/* Company table */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+        <button
+          onClick={exportCompaniesCsv}
+          disabled={companies.length === 0}
+          style={{
+            padding: "8px 14px",
+            background: "transparent",
+            color: companies.length === 0 ? C.sub : C.navy,
+            border: `1.5px solid ${C.bd}`,
+            borderRadius: 8,
+            fontWeight: 700,
+            fontSize: 13,
+            cursor: companies.length === 0 ? "not-allowed" : "pointer",
+          }}
+        >
+          {t.ocExportCsv}
+        </button>
+      </div>
       <div
         style={{
           background: C.w,

@@ -131,6 +131,16 @@ export const translations = {
     blComplimentary: "Complimentary — unlimited users",
     blUsers: "Users",
     blSeatLimit: "You're at your seat limit. Add a pack to invite more users.",
+    blSeatsNearLimit: "You're close to your seat limit. Add a pack before you run out.",
+    blSwitchAnnual: "Switch to annual billing",
+    blSwitchAnnualBlurb: "Prepay for the year and save {pct}% — ${price}/year instead of paying monthly.",
+    blSwitchAnnualConfirm:
+      "Switch to annual billing? You'll be charged today for the annual plan, prorated for what's left on your current cycle.",
+    blSwitchAnnualDone: "Switched to annual billing.",
+    blSwitchAnnualFail: "Could not switch to annual billing:",
+    blCardExpired: "Your card ending {last4} has expired ({month}/{year}). Update it below.",
+    blCardExpiringSoon:
+      "Your card ending {last4} expires {month}/{year}. Update it below before it lapses.",
     blBillingContact: "Billing contact",
     blBillingContactBlurb:
       "Who to address on receipts, invoices, and any custom email about this account.",
@@ -386,6 +396,7 @@ export const translations = {
     ocSlugPlaceholder: "steadwerk-exteriors",
     ocLoading: "Loading…",
     ocNoCompanies: "No companies yet.",
+    ocExportCsv: "Export CSV",
     ocView: "View",
     ocReactivate: "Reactivate",
     ocDelete: "Delete",
@@ -433,6 +444,8 @@ export const translations = {
     visitingUnknownCompany: "another company",
     visitingLeave: "Leave",
     visitingLeaving: "Leaving...",
+    pastDueBanner: "Payment past due — update your card to keep your subscription active.",
+    pastDueBannerAction: "Update payment",
     ocClose: "Close",
     ocLoadCompanyFail: "Could not load {name}:",
     ocLoadCompaniesFail: "Failed to load companies:",
@@ -1459,6 +1472,18 @@ export const translations = {
     blComplimentary: "Cortesía — usuarios ilimitados",
     blUsers: "Usuarios",
     blSeatLimit: "Alcanzó su límite de usuarios. Agregue un paquete para invitar a más.",
+    blSeatsNearLimit:
+      "Está cerca de su límite de usuarios. Agregue un paquete antes de agotarlo.",
+    blSwitchAnnual: "Cambiar a facturación anual",
+    blSwitchAnnualBlurb:
+      "Pague el año por adelantado y ahorre {pct}% — ${price}/año en vez de pagar mensualmente.",
+    blSwitchAnnualConfirm:
+      "¿Cambiar a facturación anual? Se le cobrará hoy el plan anual, prorrateado por lo que resta de su ciclo actual.",
+    blSwitchAnnualDone: "Se cambió a facturación anual.",
+    blSwitchAnnualFail: "No se pudo cambiar a facturación anual:",
+    blCardExpired: "Su tarjeta terminada en {last4} venció ({month}/{year}). Actualícela abajo.",
+    blCardExpiringSoon:
+      "Su tarjeta terminada en {last4} vence {month}/{year}. Actualícela abajo antes de que caduque.",
     blBillingContact: "Contacto de facturación",
     blBillingContactBlurb:
       "A quién dirigirse en recibos, facturas y cualquier correo personalizado sobre esta cuenta.",
@@ -1713,6 +1738,7 @@ export const translations = {
     ocSlugPlaceholder: "steadwerk-exteriors",
     ocLoading: "Cargando…",
     ocNoCompanies: "Aún no hay empresas.",
+    ocExportCsv: "Exportar CSV",
     ocView: "Ver",
     ocReactivate: "Reactivar",
     ocDelete: "Eliminar",
@@ -1761,6 +1787,8 @@ export const translations = {
     visitingUnknownCompany: "otra empresa",
     visitingLeave: "Salir",
     visitingLeaving: "Saliendo...",
+    pastDueBanner: "Pago atrasado — actualice su tarjeta para mantener su suscripción activa.",
+    pastDueBannerAction: "Actualizar pago",
     ocClose: "Cerrar",
     ocLoadCompanyFail: "No se pudo cargar {name}:",
     ocLoadCompaniesFail: "No se pudieron cargar las empresas:",

@@ -36,6 +36,7 @@ import { registerForPushNotifications } from "./shared/utils/pushRegistration";
 
 import CompanySwitcher from "./shared/components/CompanySwitcher";
 import VisitingBanner from "./shared/components/VisitingBanner";
+import PastDueBanner from "./shared/components/PastDueBanner";
 import { SteadwerkMark, TrussMark } from "./shared/components/SteadwerkMark";
 import Sidebar from "./shared/layouts/Sidebar";
 
@@ -752,6 +753,9 @@ export default function App() {
             overflow: "hidden",
           }}
         >
+          {/* Renders nothing unless the company's subscription is past_due. See
+              components/PastDueBanner. */}
+          <PastDueBanner user={app.curUser} lang={lang} />
           {app.loadErrors.length > 0 && (
             <div
               style={{

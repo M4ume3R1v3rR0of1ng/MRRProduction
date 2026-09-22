@@ -17,6 +17,13 @@ const BASE_PRICE = 99;
 const BASE_SEATS = 10;
 const PACK_PRICE = 10;
 const PACK_SEATS = 5;
+// Must match LandingPage.jsx's own ANNUAL_PRICE and the STRIPE_ANNUAL_PRICE_ID
+// amount — discounted 12-month prepay, the "2 months free" option.
+const ANNUAL_PRICE = 990;
+const ANNUAL_SAVINGS_PCT = Math.round((1 - ANNUAL_PRICE / (BASE_PRICE * 12)) * 100);
+// A member is warned once they're this far into their seat capacity, before
+// changePacks/atLimit actually blocks anything.
+const SEAT_WARNING_RATIO = 0.8;
 
 import { translations } from "@/shared/utils/translations";
 import { maxRemovablePacks, validatePackChange } from "./seatPacks";
@@ -34,6 +41,9 @@ export default function BillingView({ user, lang = "en" }) {
   const [contactName, setContactName] = useState("");
   const [savedContactName, setSavedContactName] = useState("");
   const [contactBusy, setContactBusy] = useState(false);
+  const [billingInterval, setBillingInterval] = useState(null); // "monthly" | "annual" | null
+  const [annualBusy, setAnnualBusy] = useState(false);
+  const [cardInfo, setCardInfo] = useState(null); // { hasCard, brand, last4, expMonth, expYear }
 
   const isAdmin = user?.role === "admin" || user?.isPlatformAdmin;
 
@@ -52,11 +62,30 @@ export default function BillingView({ user, lang = "en" }) {
     // off the current user's company via a lightweight companies select (RLS-scoped).
     const { data: statusRow } = await supabase
       .from("companies")
-      .select("subscription_status, purchased_seat_packs")
+      .select("subscription_status, purchased_seat_packs, billing_interval")
       .maybeSingle();
     setStatus(statusRow?.subscription_status || null);
     setGrandfatheredPacks(statusRow?.purchased_seat_packs || 0);
+    setBillingInterval(statusRow?.billing_interval || null);
     setLoading(false);
+
+    // Card details are a second, non-blocking round trip — only worth making for a
+    // company actually billed through Stripe, and the Payment & invoices card below
+    // renders fine while this is still in flight.
+    if (s?.capacity != null) {
+      try {
+        const accessToken = await getAccessToken();
+        const res = await fetch("/.netlify/functions/billing-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ accessToken }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) setCardInfo(data);
+      } catch {
+        // Non-critical — the card-expiry hint just doesn't show.
+      }
+    }
   };
 
   useEffect(() => {
@@ -76,6 +105,21 @@ export default function BillingView({ user, lang = "en" }) {
   const recurring = Math.max(0, (packs ?? 0) - grandfathered);
   const monthly = capacity == null ? null : BASE_PRICE + PACK_PRICE * recurring;
   const removable = maxRemovablePacks({ recurringPacks: recurring, capacity, used });
+  const nearingLimit =
+    capacity != null && used < capacity && used / capacity >= SEAT_WARNING_RATIO;
+
+  // Expired or expiring this month/next — a difference in total months, so it's
+  // correct across a December→January boundary without any date-library math.
+  let cardExpired = false;
+  let cardExpiringSoon = false;
+  if (cardInfo?.hasCard) {
+    const now = new Date();
+    const nowMonths = now.getFullYear() * 12 + (now.getMonth() + 1);
+    const cardMonths = cardInfo.expYear * 12 + cardInfo.expMonth;
+    const diff = cardMonths - nowMonths;
+    cardExpired = diff < 0;
+    cardExpiringSoon = diff >= 0 && diff <= 1;
+  }
 
   // delta is signed: +1 buys a pack, -1 drops one. Capacity moves when the
   // subscription.updated webhook lands, so this reloads rather than guessing.
@@ -134,6 +178,27 @@ export default function BillingView({ user, lang = "en" }) {
       showToast(`${t.blBillingContactFail} ${err.message}`, "error");
     } finally {
       setContactBusy(false);
+    }
+  };
+
+  const switchToAnnual = async () => {
+    if (!window.confirm(t.blSwitchAnnualConfirm)) return;
+    setAnnualBusy(true);
+    try {
+      const accessToken = await getAccessToken();
+      const res = await fetch("/.netlify/functions/switch-billing-interval", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      showToast(t.blSwitchAnnualDone, "success");
+      await load();
+    } catch (err) {
+      showToast(`${t.blSwitchAnnualFail} ${err.message}`, "error");
+    } finally {
+      setAnnualBusy(false);
     }
   };
 
@@ -235,6 +300,39 @@ export default function BillingView({ user, lang = "en" }) {
                 {status === "past_due" ? "Payment past due — update your card below" : status}
               </div>
             )}
+            {/* Only a monthly company sees this — an annual one already has it, and a
+                comped company (capacity == null) has no Stripe billing to switch. */}
+            {capacity != null && billingInterval === "monthly" && (
+              <div
+                style={{
+                  marginTop: 14,
+                  paddingTop: 14,
+                  borderTop: `1px solid ${C.bd}`,
+                }}
+              >
+                <div style={{ fontSize: 13, color: C.sub, marginBottom: 10 }}>
+                  {t.blSwitchAnnualBlurb
+                    .replace("{price}", ANNUAL_PRICE)
+                    .replace("{pct}", ANNUAL_SAVINGS_PCT)}
+                </div>
+                <button
+                  onClick={switchToAnnual}
+                  disabled={annualBusy}
+                  style={{
+                    padding: "9px 14px",
+                    background: "transparent",
+                    color: C.navy,
+                    border: `1.5px solid ${C.bd}`,
+                    borderRadius: 8,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: annualBusy ? "wait" : "pointer",
+                  }}
+                >
+                  {t.blSwitchAnnual}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Billing contact — who to address on receipts, invoices, and any custom
@@ -320,6 +418,13 @@ export default function BillingView({ user, lang = "en" }) {
             {atLimit && (
               <div style={{ fontSize: 13, color: BRAND.rust, marginTop: 6 }}>{t.blSeatLimit}</div>
             )}
+            {/* A quiet nudge before atLimit actually blocks anything — so an admin
+                can add a pack ahead of it stopping someone mid-invite. */}
+            {!atLimit && nearingLimit && (
+              <div style={{ fontSize: 13, color: BRAND.amberDeep, marginTop: 6 }}>
+                {t.blSeatsNearLimit}
+              </div>
+            )}
             {capacity != null && (
               <>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
@@ -392,6 +497,24 @@ export default function BillingView({ user, lang = "en" }) {
               </div>
             ) : (
               <>
+                {(cardExpired || cardExpiringSoon) && (
+                  <div
+                    style={{
+                      marginBottom: 12,
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      background: cardExpired ? "var(--c-rust-wash)" : "var(--c-warn-wash)",
+                      color: cardExpired ? BRAND.rust : BRAND.amberDeep,
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {(cardExpired ? t.blCardExpired : t.blCardExpiringSoon)
+                      .replace("{last4}", cardInfo.last4)
+                      .replace("{month}", String(cardInfo.expMonth).padStart(2, "0"))
+                      .replace("{year}", cardInfo.expYear)}
+                  </div>
+                )}
                 <div style={{ fontSize: 13, color: C.sub, marginBottom: 12 }}>
                   {t.blPortalBlurb}
                 </div>
