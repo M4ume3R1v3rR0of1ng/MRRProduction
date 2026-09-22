@@ -56,15 +56,15 @@ It is sold as a subscription ($99/mo including 10 users, or $990/yr) and runs as
 | Frontend framework | React 18 + Vite 7 | No Redux or similar; one central data hook feeds the whole tree. |
 | Routing | react-router-dom 7 | Real per-view URLs, added mid-project (see [Routing](#8-routing)). |
 | Styling | Inline style objects + a small CSS token file (`src/tokens.css`) | No CSS framework. Per-company branding (accent color) is applied as CSS custom properties at runtime. |
-| Backend | Netlify Functions (Node, serverless) | 19 functions, every one wrapped for Sentry reporting. |
-| Database | Supabase (hosted Postgres) | Row Level Security, 36 hand-applied SQL migrations. |
+| Backend | Netlify Functions (Node, serverless) | 23 functions, every one wrapped for Sentry reporting. |
+| Database | Supabase (hosted Postgres) | Row Level Security, 47 hand-applied SQL migrations. |
 | Auth | Supabase Auth | Email and password only, no SSO/federated login by design (see [Section 5](#5-multi-tenancy-and-security-model)). |
 | Billing | Stripe | Checkout, customer portal, and webhooks, all server-side. |
 | Email | Resend | Transactional email, sender-fenced to a company's own members. |
 | AI assistant | Anthropic API | Backs an in-app chat widget. |
 | PDF generation | jsPDF + jspdf-autotable | Lazy-loaded, kept out of the PWA precache on purpose (see [Section 14](#14-pwa-and-offline-behavior)). |
 | Mobile shell | Capacitor 8 | Wraps the web build for iOS App Store distribution. |
-| Error monitoring | Sentry (`@sentry/react` client-side, `@sentry/node` in functions) | An enhanced debugging and issue tracking tool. |
+| Error monitoring | Sentry (`@sentry/react` client-side, `@sentry/node` in functions) | Off by default; only activates if a DSN is configured. |
 | Testing | Vitest | Node environment, focused on pure logic (money and permissions), not component rendering. |
 | Type checking | TypeScript, scoped | `checkJs` turned on for a hand-picked list of money/permission files only, not the whole project. |
 | Linting/formatting | ESLint 9 (flat config) + Prettier | Gated in CI. |
@@ -139,7 +139,7 @@ src/
 netlify/functions/          Serverless backend, one file per endpoint
   _shared/                  tenant.js (isolation), password.js, sentry.js, expenseNotes.js
 
-supabase/                   36 hand-applied SQL migrations, run in order through the
+supabase/                   47 hand-applied SQL migrations, run in order through the
                              Supabase SQL editor (no migration runner, no CLI link)
 
 scripts/                    Node scripts run by hand: iOS asset generation, a magic-link
@@ -147,8 +147,9 @@ scripts/                    Node scripts run by hand: iOS asset generation, a ma
                              and three tenant-isolation/permission/atomicity verifiers
 
 ios/                        Generated Capacitor iOS project (checked in)
-.github/workflows/          CI pipeline
 ```
+
+The git repository root is actually one level ABOVE this folder — everything above lives under `MRR Production/`, space included (see any path in `.github/workflows/ios-build.yml`). `.github/workflows/` itself therefore lives at the true repo root, not inside this folder; see [Section 21](#21-cicd).
 
 ## 5. Multi-tenancy and security model
 
@@ -219,13 +220,15 @@ Vehicles and trailers, service logging, formal inspection reports, mileage loggi
 
 Crews submit requests against a vehicle; managers schedule and close them. "Complete Service" is one atomic action (migration 34): it logs the service to the vehicle's history, closes the request, and optionally reassigns the driver, all in one step rather than three that could get out of sync.
 
+A nightly job (`send-maintenance-push-notices.js`, migrations 38-40) forecasts each vehicle's next oil change from its own mileage log, warns the assigned driver 7 days out, then escalates to a daily urgent notice once it's actually due and no matching request has been filed. One decision ("heads-up" vs. "urgent") fans out to four channels at once: an iOS push via APNs, a realtime in-app toast, an email, and a persisted message in the driver's chat with the Steadwerk Assistant — so the notice is never just a toast that vanishes if nobody was looking. The APNs channel is code-complete but not yet live; see [Section 12](#12-integrations).
+
 ### Scheduling
 
 A calendar view spanning jobs, crew assignments, and trailer bookings.
 
 ### Dashboard
 
-The landing screen after login: job pipeline summary, a weather card, and a team chat box.
+The landing screen after login: job pipeline summary, a weather card, and a team chat box backed by durable message history (migration 41) rather than an ephemeral, reload-and-it's-gone thread.
 
 ### Reports
 
@@ -241,11 +244,13 @@ Company branding (name, logo, accent color used to theme the whole app for that 
 
 ### Training
 
-Two libraries: a bundled product tour that ships in the build, and admin-uploaded training media stored per company (migration 26). Training has no permission gate; the whole point is to explain the parts of the app someone already has access to, so hiding it from anyone would be self-defeating.
+A bundled product tour that ships in the build, plus one uploaded video library split into two tiers (migration 45, superseding an earlier platform-only version in 42/44): a global tier managed only by Steadwerk's platform admins and visible to every company, and each company's own private tier, managed by that company's own Admin. A sidebar badge (migration 46) tracks unread clips per member — anyone's upload counts as unread for everyone else until they open Training, mirroring the same `_reads` pattern team chat already used. Training has no permission gate; the whole point is to explain the parts of the app someone already has access to, so hiding it from anyone would be self-defeating.
 
 ### Billing
 
 Stripe checkout, seat pack purchases, and a link into the Stripe customer portal. See [Section 11](#11-billing-model). Not present at all in the iOS build; see [Section 13](#13-the-ios-app).
+
+The tab also collects a **billing contact name** (migration 47) — the actual person who signed up, distinct from the company name Stripe otherwise only ever knows — plus a handful of proactive nudges: a card-expiring warning, a seat-limit heads-up before an admin actually hits capacity, a self-serve "switch to annual" option, and a sitewide past-due banner outside the tab itself so a failed payment isn't only visible to someone who happens to go looking.
 
 ### Owner Console
 
@@ -260,13 +265,16 @@ The app uses `react-router-dom` for real, per-view URLs (`/dashboard`, `/buildjo
 
 ## 9. Backend: Netlify Functions
 
-All 19 functions live in `netlify/functions/` and are wrapped with `withSentry(name, handler)` for error reporting. Every one that touches a tenant table goes through `resolveCaller()` first (see [Section 5](#5-multi-tenancy-and-security-model)).
+All 23 functions live in `netlify/functions/` and are wrapped with `withSentry(name, handler)` for error reporting. Every one that touches a tenant table goes through `resolveCaller()` first (see [Section 5](#5-multi-tenancy-and-security-model)).
 
 | Function | Purpose |
 |---|---|
 | `create-checkout.js` | Starts a new company's Stripe subscription (self-serve signup). |
 | `start-company-billing.js` | Opens the checkout tab for an existing company starting to pay. |
 | `add-seats.js` | Purchases additional seat capacity. |
+| `switch-billing-interval.js` | Moves a monthly subscriber to the discounted annual plan, base + crew packs, charged immediately. |
+| `update-billing-contact.js` | Sets the Billing tab's billing contact name, mirrored onto the Stripe customer's metadata. |
+| `billing-status.js` | Read-only: the Billing tab's card-on-file brand/last4/expiry, for the expiring-card warning. |
 | `billing-portal.js` | Opens the Stripe customer portal for an existing subscriber. |
 | `stripe-webhook.js` | Reconciles subscription state from Stripe events. The largest function in the directory. |
 | `admin-billing.js` | Platform-operator billing oversight (Owner Console). |
@@ -280,17 +288,19 @@ All 19 functions live in `netlify/functions/` and are wrapped with `withSentry(n
 | `weather.js` | Backs the dashboard weather card. |
 | `chat.js` | Backs the in-app AI assistant (Anthropic). The second-largest function. |
 | `send-email.js` / `send-alert.js` | Transactional email relays, fenced so a user can only email people in their own company, never arbitrary external addresses. |
+| `register-push-token.js` | Registers/re-confirms a device's APNs push token for the signed-in user. |
+| `send-maintenance-push-notices.js` | Nightly oil-due forecast and escalation — push, realtime toast, email, and chat message, one decision fanned out to four channels. See [Feature modules](#7-feature-modules). |
 | `daily-archive.js` | A scheduled/cron cleanup job. |
 
 ## 10. Database: Supabase and migrations
 
-There is no migration runner and no Supabase CLI link in this project. All 36 SQL files in `supabase/` are applied by hand, in numeric order, through the Supabase SQL editor. Each file is meant to open with a header describing what it does and whether it's safe to re-run, and close with a `Verify` block that can be pasted straight into the editor.
+There is no migration runner and no Supabase CLI link in this project. All 47 SQL files in `supabase/` are applied by hand, in numeric order, through the Supabase SQL editor. Each file is meant to open with a header describing what it does and whether it's safe to re-run, and close with a `Verify` block that can be pasted straight into the editor. Numbering is not contiguous — 43 was rolled back and never reapplied, and the file itself says so where it would otherwise be expected.
 
 Two files are explicitly destructive and require a backup first: `02_tenancy_tables.sql` (rewrites every business table to sit behind a company) and `15_jobs_schema_debt.sql` (drops columns).
 
 To find out what has actually been applied to a given database, run `33_migration_ledger.sql`. It does not trust a changelog; it probes the live schema for the object each migration is supposed to create, and prints the result with anything missing sorted to the top.
 
-Selected highlights beyond tenancy and permissions (already covered above): a self-serve `incomplete` subscription state (07), seat limits at $99/mo for 10 users plus $10/mo per extra 5 (09), storage usage tracking for the Owner Console (08), MFA enforcement for accounts that have set up a second factor (29), per-company and platform-wide revenue reporting (30), and a mechanism letting the platform owner enter a tenant they don't belong to for support (31).
+Selected highlights beyond tenancy and permissions (already covered above): a self-serve `incomplete` subscription state (07), seat limits at $99/mo for 10 users plus $10/mo per extra 5 (09), storage usage tracking for the Owner Console (08), MFA enforcement for accounts that have set up a second factor (29), per-company and platform-wide revenue reporting (30), a mechanism letting the platform owner enter a tenant they don't belong to for support (31), the oil-due push-notification pipeline's storage and driver-visibility (38-40), durable chat message history (41), the training library's platform/company two-tier split and unread badge (42, 44-46), and a per-company billing contact name distinct from the Stripe customer's own name (47).
 
 ## 11. Billing model
 
@@ -305,6 +315,7 @@ Selected highlights beyond tenancy and permissions (already covered above): a se
 - **Resend**: transactional email. All platform mail goes out from one verified sending domain, with the company's name as the display name, and is fenced so a user can only send to their own company's active members.
 - **Anthropic**: powers the in-app chat assistant. Loads after the rest of the view the person actually asked for, since it's useful but never the reason someone opened the app.
 - **Weather**: a simple lookup backing the dashboard's weather card.
+- **Apple Push Notification service (APNs)**: `_shared/apns.js` signs its own ES256 provider JWT and posts over Node's built-in `http2` module rather than pulling in a push-sending library (the usual pick, `node-apn`, is effectively unmaintained). Backs the oil-due maintenance notice pipeline. **Not live**: none of its five required env vars (`APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID`, `APNS_PRODUCTION`) are set locally as of this writing, and the code that calls it catches that once per run rather than per notice. See [Section 13](#13-the-ios-app) for the matching native-side gap.
 - **Sentry**: see [Section 22](#22-error-monitoring).
 
 ## 13. The iOS app
@@ -320,6 +331,8 @@ Three things are cut from the iOS build, and the cut happens at build time, not 
 3. The Billing view (buys seat packs, opens the Stripe portal).
 
 Two supporting scripts exist for the iOS build: `scripts/generate-ios-assets.mjs` (regenerates the app icon and launch images from the Steadwerk mark; run by hand when the brand changes, not on every build) and `scripts/normalize-spm-paths.mjs` (fixes a path-separator bug Capacitor's `cap sync` introduces into the iOS Swift Package Manager manifest when run on Windows).
+
+**Push notifications** (`@capacitor/push-notifications`) were added to the native project: `AppDelegate.swift` forwards APNs' device-token and registration-error callbacks to the JS side (`src/shared/utils/pushRegistration.js`), and `App.entitlements` / `Info.plist` declare the capability. This is code-complete but not yet fully wired: the entitlements file's own header comment says adding the capability in Xcode (Signing & Capabilities) is "intentionally left as a manual step," and nobody on the team currently has a Mac to do it on — the CI build compiles unsigned on a macOS runner specifically so that gap doesn't block everyone else. A third delegate override that used to forward silent/background pushes was removed entirely (rather than stubbed) after it broke CI for a week straight compiling against a `Notification.Name` the installed Capacitor version never actually declared; nothing on the JS side depended on it.
 
 ## 14. PWA and offline behavior
 
@@ -346,6 +359,7 @@ Anything prefixed `VITE_` is inlined into the client bundle at build time and is
 | Email | `RESEND_API_KEY`, optional `PLATFORM_MAIL_DOMAIN` | Domain defaults to steadwerk.com if unset; this default matters, since a missing variable must never silently send a tenant's mail under the wrong brand. |
 | AccuLynx | `ACCULYNX_API_KEY`, `ACCULYNX_IMPORT_SECRET` | The import secret is the only authentication on the machine-to-machine import endpoint, which has no user session. |
 | Anthropic | `ANTHROPIC_API_KEY` | Powers `chat.js`. |
+| APNs | `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID`, `APNS_PRODUCTION` | All five required before `_shared/apns.js` will send anything; see [Section 12](#12-integrations). Not documented in `.env.example` until this pass — added there alongside this table. |
 | App URL | `PUBLIC_APP_URL` | Only needed for local dev; Netlify sets `URL` automatically on deployed sites. |
 | Sentry | `VITE_SENTRY_DSN` (client), `SENTRY_DSN` (functions), `SENTRY_AUTH_TOKEN` (build-time source map upload) | All optional. Monitoring code is a complete no-op with no DSN set, and the build skips source map upload (and map generation entirely) with no auth token set. Confirmed present in the local `.env` as of September 2026; deployed builds need the same three set in Netlify's own site environment settings, since a local `.env` file has no bearing on what's live. |
 
@@ -412,7 +426,12 @@ npm run typecheck:money
 
 ## 21. CI/CD
 
-**GitHub Actions** (`.github/workflows/ci.yml`) runs on every pull request and on every push to main: install, lint, format check, the scoped type check, the Vitest suite, then a full production build, in that order, so the pipeline fails fast on cheap checks before spending time on slower ones. Netlify's own PR preview deploys build the site too, but never run the test suite; this workflow is what actually gates on it.
+**GitHub Actions** — two workflows, both at the true repo root (`.github/workflows/`, one level above this folder; see [Section 4](#4-repository-layout)):
+
+- **`test.yml`** ("test") runs on every pull request and every push to main: install, lint, format check, the scoped type check, the Vitest suite, then a full production build, in that order, so the pipeline fails fast on cheap checks before spending time on slower ones. Netlify's own PR preview deploys build the site too, but never run the test suite; this is what actually gates on it.
+- **`ios-build.yml`** ("iOS build") compiles the Capacitor/Xcode project, unsigned, for the Simulator, on a pinned `macos-15` runner — the only way anyone finds out the native project is actually broken, since nobody on the team owns a Mac. Path-filtered to only the things that can change the iOS build (`src/`, `ios/`, `package.json`, `.env.ios`, etc.), since macOS runner minutes bill at roughly ten times the Linux rate and a Netlify-function-only commit has no business paying that. Runs unit tests and the web build first for the same fail-fast reason as `test.yml`, then `xcodebuild ... CODE_SIGNING_ALLOWED=NO`. It needs no Apple Developer account and produces nothing installable — see [Section 13](#13-the-ios-app) for what a real TestFlight pipeline would still need on top of this.
+
+A third file, `MRR Production/.github/workflows/ci.yml`, also exists in this repository but is **dead**: GitHub Actions only ever reads workflows from the true repo root's `.github/workflows/`, never from a subdirectory's, so this nested copy has not run since this folder became a subdirectory of a larger repo. It predates the split and was never cleaned up — see [Known gaps](#23-known-gaps-and-roadmap).
 
 **Netlify** hosts the deployed site and rebuilds on every push. One notable quirk documented in `netlify.toml`: the build is configured to never skip, even when Netlify's own "no content change" detection thinks it should. That detection was misfiring (most likely because the repository's base directory contains a space) and silently canceling real deploys, which is a worse failure mode than an occasional redundant build.
 
@@ -431,9 +450,11 @@ Sentry is wired into both runtimes and is a complete no-op anywhere a DSN is not
 Honest, current list, roughly in priority order:
 
 1. **No component-level or end-to-end tests.** The money and permission logic is unit-tested and partially type-checked, but nothing automated exercises a full user flow (login, build a job, pull it, complete it, close it) in an actual rendered browser session.
-2. **No rate limiting on public-facing functions.** Endpoints like the chat assistant, the AccuLynx import path, and password reset have no explicit throttling in front of them.
+2. **Rate limiting exists but is opt-in per function, not uniform.** `_shared/rateLimit.js` is an in-memory, best-effort, per-container throttle (not distributed — an attacker spread across enough containers isn't fully stopped by it alone) and is currently wired into `create-checkout.js`, `reset-password.js`, `chat.js`, `acculynx-import.js`, and `register-push-token.js`. Any new endpoint reachable without an established session needs to remember to add it; nothing enforces that automatically.
 3. **Scoped type checking is frozen at a specific file list.** As other files touching money or access control get written or modified, they should be added to `tsconfig.money-permissions.json` rather than left out indefinitely.
 4. **Styling has no shared component library.** Views build UI as inline style objects against a small token file rather than a set of shared, reusable components. Workable at the current size, but will not scale gracefully as more views are added.
+5. **Push notifications are code-complete but not live.** The APNs key, team ID, key ID, bundle ID, and production flag are all unset (see [Section 16](#16-environment-variables)), and the native Push Notifications capability has never been added in Xcode itself — `App.entitlements` alone does not enable it, and that step needs a Mac, which nobody on the team currently has. The oil-due notice pipeline still reaches drivers through its other three channels (realtime toast, email, chat message) in the meantime.
+6. **A dead, nested workflow file.** `MRR Production/.github/workflows/ci.yml` predates this folder becoming a subdirectory of a larger repo and no longer runs — GitHub only reads the true repo root's `.github/workflows/`, where `test.yml` and `ios-build.yml` actually live. Harmless but stale; worth deleting next time someone is in that area.
 
 ## 24. Conventions for contributors
 
