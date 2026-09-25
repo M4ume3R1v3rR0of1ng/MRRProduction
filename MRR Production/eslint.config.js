@@ -63,7 +63,9 @@ export default [
     },
   },
 
-  // Node-run code: Netlify functions, build/verify scripts, config files.
+  // Node-run code: Netlify functions, build/verify scripts, config files, E2E
+  // (Playwright's own globals — `test`, `expect` — come from an explicit
+  // `import ... from "@playwright/test"`, same as Vitest's test files below).
   {
     files: [
       "netlify/**/*.js",
@@ -71,6 +73,7 @@ export default [
       "scripts/**/*.js",
       "*.config.js",
       "src/test/setup.js",
+      "e2e/**/*.js",
     ],
     ignores: ["netlify/**/*.test.js"],
     languageOptions: {

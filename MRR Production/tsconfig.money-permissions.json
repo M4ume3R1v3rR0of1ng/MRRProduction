@@ -33,6 +33,7 @@
     "netlify/functions/_shared/tenant.js",
     "netlify/functions/create-checkout.js",
     "netlify/functions/add-seats.js",
+    "netlify/functions/delete-company.js",
     "netlify/functions/admin-billing.js",
     "netlify/functions/billing-portal.js",
     "netlify/functions/billing-status.js",

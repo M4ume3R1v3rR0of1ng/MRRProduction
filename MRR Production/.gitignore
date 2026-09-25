@@ -35,6 +35,13 @@ deno.lock
 
 .DS_Store
 
+# Playwright E2E: its HTML report, raw run artifacts, and the throwaway-tenant
+# state file global-setup.js hands off to the test file (real ids/passwords for
+# a disposable test company — never meant to be committed).
+playwright-report/
+test-results/
+e2e/.e2e-state.json
+
 # Claude Code's own local session state — per-machine settings and a lock file
 # it writes for scheduled/background tasks. .claude/skills/ stays tracked;
 # these two do not belong in history, they were only ever staged by accident.

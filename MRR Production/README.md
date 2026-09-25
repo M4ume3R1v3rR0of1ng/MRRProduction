@@ -51,24 +51,24 @@ It is sold as a subscription ($99/mo including 10 users, or $990/yr) and runs as
 
 ## 2. Tech stack
 
-| Layer | Technology | Notes |
-|---|---|---|
-| Frontend framework | React 18 + Vite 7 | No Redux or similar; one central data hook feeds the whole tree. |
-| Routing | react-router-dom 7 | Real per-view URLs, added mid-project (see [Routing](#8-routing)). |
-| Styling | Inline style objects + a small CSS token file (`src/tokens.css`) | No CSS framework. Per-company branding (accent color) is applied as CSS custom properties at runtime. |
-| Backend | Netlify Functions (Node, serverless) | 23 functions, every one wrapped for Sentry reporting. |
-| Database | Supabase (hosted Postgres) | Row Level Security, 47 hand-applied SQL migrations. |
-| Auth | Supabase Auth | Email and password only, no SSO/federated login by design (see [Section 5](#5-multi-tenancy-and-security-model)). |
-| Billing | Stripe | Checkout, customer portal, and webhooks, all server-side. |
-| Email | Resend | Transactional email, sender-fenced to a company's own members. |
-| AI assistant | Anthropic API | Backs an in-app chat widget. |
-| PDF generation | jsPDF + jspdf-autotable | Lazy-loaded, kept out of the PWA precache on purpose (see [Section 14](#14-pwa-and-offline-behavior)). |
-| Mobile shell | Capacitor 8 | Wraps the web build for iOS App Store distribution. |
-| Error monitoring | Sentry (`@sentry/react` client-side, `@sentry/node` in functions) | Off by default; only activates if a DSN is configured. |
-| Testing | Vitest | Node environment, focused on pure logic (money and permissions), not component rendering. |
-| Type checking | TypeScript, scoped | `checkJs` turned on for a hand-picked list of money/permission files only, not the whole project. |
-| Linting/formatting | ESLint 9 (flat config) + Prettier | Gated in CI. |
-| CI | GitHub Actions | Lint, format check, test, and build on every PR and push to main. |
+| Layer              | Technology                                                        | Notes                                                                                                             |
+| ------------------ | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Frontend framework | React 18 + Vite 7                                                 | No Redux or similar; one central data hook feeds the whole tree.                                                  |
+| Routing            | react-router-dom 7                                                | Real per-view URLs, added mid-project (see [Routing](#8-routing)).                                                |
+| Styling            | Inline style objects + a small CSS token file (`src/tokens.css`)  | No CSS framework. Per-company branding (accent color) is applied as CSS custom properties at runtime.             |
+| Backend            | Netlify Functions (Node, serverless)                              | 23 functions, every one wrapped for Sentry reporting.                                                             |
+| Database           | Supabase (hosted Postgres)                                        | Row Level Security, 47 hand-applied SQL migrations.                                                               |
+| Auth               | Supabase Auth                                                     | Email and password only, no SSO/federated login by design (see [Section 5](#5-multi-tenancy-and-security-model)). |
+| Billing            | Stripe                                                            | Checkout, customer portal, and webhooks, all server-side.                                                         |
+| Email              | Resend                                                            | Transactional email, sender-fenced to a company's own members.                                                    |
+| AI assistant       | Anthropic API                                                     | Backs an in-app chat widget.                                                                                      |
+| PDF generation     | jsPDF + jspdf-autotable                                           | Lazy-loaded, kept out of the PWA precache on purpose (see [Section 14](#14-pwa-and-offline-behavior)).            |
+| Mobile shell       | Capacitor 8                                                       | Wraps the web build for iOS App Store distribution.                                                               |
+| Error monitoring   | Sentry (`@sentry/react` client-side, `@sentry/node` in functions) | Off by default; only activates if a DSN is configured.                                                            |
+| Testing            | Vitest                                                            | Node environment, focused on pure logic (money and permissions), not component rendering.                         |
+| Type checking      | TypeScript, scoped                                                | `checkJs` turned on for a hand-picked list of money/permission files only, not the whole project.                 |
+| Linting/formatting | ESLint 9 (flat config) + Prettier                                 | Gated in CI.                                                                                                      |
+| CI                 | GitHub Actions                                                    | Lint, format check, test, and build on every PR and push to main.                                                 |
 
 ## 3. High-level architecture
 
@@ -178,14 +178,14 @@ Access control is fine-grained, role-based, with per-user overrides layered on t
 
 **Permission groups** (about 28 individual boolean permissions in total):
 
-| Group | Example permissions |
-|---|---|
-| Inventory | view, edit items, receive batches, bulk receive, view pricing, edit pricing, adjust stock, monthly count |
-| Fleet | view, manage, log service, log inspection, delete photos, log mileage |
-| Maintenance | submit requests, manage requests |
-| Jobs | view, build, approve and assign, pull inventory, edit during pull, complete, view/set contract value, close |
-| Reports | view reports |
-| Admin | manage users, manage settings |
+| Group       | Example permissions                                                                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------- |
+| Inventory   | view, edit items, receive batches, bulk receive, view pricing, edit pricing, adjust stock, monthly count    |
+| Fleet       | view, manage, log service, log inspection, delete photos, log mileage                                       |
+| Maintenance | submit requests, manage requests                                                                            |
+| Jobs        | view, build, approve and assign, pull inventory, edit during pull, complete, view/set contract value, close |
+| Reports     | view reports                                                                                                |
+| Admin       | manage users, manage settings                                                                               |
 
 Rules:
 
@@ -267,30 +267,30 @@ The app uses `react-router-dom` for real, per-view URLs (`/dashboard`, `/buildjo
 
 All 23 functions live in `netlify/functions/` and are wrapped with `withSentry(name, handler)` for error reporting. Every one that touches a tenant table goes through `resolveCaller()` first (see [Section 5](#5-multi-tenancy-and-security-model)).
 
-| Function | Purpose |
-|---|---|
-| `create-checkout.js` | Starts a new company's Stripe subscription (self-serve signup). |
-| `start-company-billing.js` | Opens the checkout tab for an existing company starting to pay. |
-| `add-seats.js` | Purchases additional seat capacity. |
-| `switch-billing-interval.js` | Moves a monthly subscriber to the discounted annual plan, base + crew packs, charged immediately. |
-| `update-billing-contact.js` | Sets the Billing tab's billing contact name, mirrored onto the Stripe customer's metadata. |
-| `billing-status.js` | Read-only: the Billing tab's card-on-file brand/last4/expiry, for the expiring-card warning. |
-| `billing-portal.js` | Opens the Stripe customer portal for an existing subscriber. |
-| `stripe-webhook.js` | Reconciles subscription state from Stripe events. The largest function in the directory. |
-| `admin-billing.js` | Platform-operator billing oversight (Owner Console). |
-| `create-user.js` | Creates a new user and membership, sends the invite email. |
-| `update-user.js` | Edits an existing user's profile/role. |
-| `delete-user.js` | Deactivates/removes a user. |
-| `delete-company.js` | Removes a company (platform-operator only). |
-| `reset-password.js` | Initiates the password recovery flow. |
-| `acculynx-sync.js` | Pushes/pulls job data to and from AccuLynx. |
-| `acculynx-import.js` | A machine-to-machine import path, authenticated by a shared secret header rather than a user session. |
-| `weather.js` | Backs the dashboard weather card. |
-| `chat.js` | Backs the in-app AI assistant (Anthropic). The second-largest function. |
-| `send-email.js` / `send-alert.js` | Transactional email relays, fenced so a user can only email people in their own company, never arbitrary external addresses. |
-| `register-push-token.js` | Registers/re-confirms a device's APNs push token for the signed-in user. |
+| Function                           | Purpose                                                                                                                                                                       |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create-checkout.js`               | Starts a new company's Stripe subscription (self-serve signup).                                                                                                               |
+| `start-company-billing.js`         | Opens the checkout tab for an existing company starting to pay.                                                                                                               |
+| `add-seats.js`                     | Purchases additional seat capacity.                                                                                                                                           |
+| `switch-billing-interval.js`       | Moves a monthly subscriber to the discounted annual plan, base + crew packs, charged immediately.                                                                             |
+| `update-billing-contact.js`        | Sets the Billing tab's billing contact name, mirrored onto the Stripe customer's metadata.                                                                                    |
+| `billing-status.js`                | Read-only: the Billing tab's card-on-file brand/last4/expiry, for the expiring-card warning.                                                                                  |
+| `billing-portal.js`                | Opens the Stripe customer portal for an existing subscriber.                                                                                                                  |
+| `stripe-webhook.js`                | Reconciles subscription state from Stripe events. The largest function in the directory.                                                                                      |
+| `admin-billing.js`                 | Platform-operator billing oversight (Owner Console).                                                                                                                          |
+| `create-user.js`                   | Creates a new user and membership, sends the invite email.                                                                                                                    |
+| `update-user.js`                   | Edits an existing user's profile/role.                                                                                                                                        |
+| `delete-user.js`                   | Deactivates/removes a user.                                                                                                                                                   |
+| `delete-company.js`                | Removes a company (platform-operator only).                                                                                                                                   |
+| `reset-password.js`                | Initiates the password recovery flow.                                                                                                                                         |
+| `acculynx-sync.js`                 | Pushes/pulls job data to and from AccuLynx.                                                                                                                                   |
+| `acculynx-import.js`               | A machine-to-machine import path, authenticated by a shared secret header rather than a user session.                                                                         |
+| `weather.js`                       | Backs the dashboard weather card.                                                                                                                                             |
+| `chat.js`                          | Backs the in-app AI assistant (Anthropic). The second-largest function.                                                                                                       |
+| `send-email.js` / `send-alert.js`  | Transactional email relays, fenced so a user can only email people in their own company, never arbitrary external addresses.                                                  |
+| `register-push-token.js`           | Registers/re-confirms a device's APNs push token for the signed-in user.                                                                                                      |
 | `send-maintenance-push-notices.js` | Nightly oil-due forecast and escalation — push, realtime toast, email, and chat message, one decision fanned out to four channels. See [Feature modules](#7-feature-modules). |
-| `daily-archive.js` | A scheduled/cron cleanup job. |
+| `daily-archive.js`                 | A scheduled/cron cleanup job.                                                                                                                                                 |
 
 ## 10. Database: Supabase and migrations
 
@@ -352,16 +352,16 @@ Copy `.env.example` to `.env` and fill it in for local development. Deployed bui
 
 Anything prefixed `VITE_` is inlined into the client bundle at build time and is public by design. Everything else is server-only and reaches nothing but the Netlify functions. This distinction is a security boundary, not a style preference; putting a secret behind a `VITE_` prefix ships it to every browser that loads the app.
 
-| Category | Variables | Notes |
-|---|---|---|
-| Supabase | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | The anon key is public and governed by RLS. The service-role key bypasses RLS entirely and must only ever live server-side. |
-| Stripe | `STRIPE_SECRET_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY`, four `STRIPE_*_PRICE_ID` values, `STRIPE_WEBHOOK_SECRET` | The four price IDs must match the amounts advertised on the landing page and login screen, or checkout will not honor what was promised. |
-| Email | `RESEND_API_KEY`, optional `PLATFORM_MAIL_DOMAIN` | Domain defaults to steadwerk.com if unset; this default matters, since a missing variable must never silently send a tenant's mail under the wrong brand. |
-| AccuLynx | `ACCULYNX_API_KEY`, `ACCULYNX_IMPORT_SECRET` | The import secret is the only authentication on the machine-to-machine import endpoint, which has no user session. |
-| Anthropic | `ANTHROPIC_API_KEY` | Powers `chat.js`. |
-| APNs | `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID`, `APNS_PRODUCTION` | All five required before `_shared/apns.js` will send anything; see [Section 12](#12-integrations). Not documented in `.env.example` until this pass — added there alongside this table. |
-| App URL | `PUBLIC_APP_URL` | Only needed for local dev; Netlify sets `URL` automatically on deployed sites. |
-| Sentry | `VITE_SENTRY_DSN` (client), `SENTRY_DSN` (functions), `SENTRY_AUTH_TOKEN` (build-time source map upload) | All optional. Monitoring code is a complete no-op with no DSN set, and the build skips source map upload (and map generation entirely) with no auth token set. Confirmed present in the local `.env` as of September 2026; deployed builds need the same three set in Netlify's own site environment settings, since a local `.env` file has no bearing on what's live. |
+| Category  | Variables                                                                                                    | Notes                                                                                                                                                                                                                                                                                                                                                                   |
+| --------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Supabase  | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`                                   | The anon key is public and governed by RLS. The service-role key bypasses RLS entirely and must only ever live server-side.                                                                                                                                                                                                                                             |
+| Stripe    | `STRIPE_SECRET_KEY`, `VITE_STRIPE_PUBLISHABLE_KEY`, four `STRIPE_*_PRICE_ID` values, `STRIPE_WEBHOOK_SECRET` | The four price IDs must match the amounts advertised on the landing page and login screen, or checkout will not honor what was promised.                                                                                                                                                                                                                                |
+| Email     | `RESEND_API_KEY`, optional `PLATFORM_MAIL_DOMAIN`                                                            | Domain defaults to steadwerk.com if unset; this default matters, since a missing variable must never silently send a tenant's mail under the wrong brand.                                                                                                                                                                                                               |
+| AccuLynx  | `ACCULYNX_API_KEY`, `ACCULYNX_IMPORT_SECRET`                                                                 | The import secret is the only authentication on the machine-to-machine import endpoint, which has no user session.                                                                                                                                                                                                                                                      |
+| Anthropic | `ANTHROPIC_API_KEY`                                                                                          | Powers `chat.js`.                                                                                                                                                                                                                                                                                                                                                       |
+| APNs      | `APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID`, `APNS_PRODUCTION`                               | All five required before `_shared/apns.js` will send anything; see [Section 12](#12-integrations). Not documented in `.env.example` until this pass — added there alongside this table.                                                                                                                                                                                 |
+| App URL   | `PUBLIC_APP_URL`                                                                                             | Only needed for local dev; Netlify sets `URL` automatically on deployed sites.                                                                                                                                                                                                                                                                                          |
+| Sentry    | `VITE_SENTRY_DSN` (client), `SENTRY_DSN` (functions), `SENTRY_AUTH_TOKEN` (build-time source map upload)     | All optional. Monitoring code is a complete no-op with no DSN set, and the build skips source map upload (and map generation entirely) with no auth token set. Confirmed present in the local `.env` as of September 2026; deployed builds need the same three set in Netlify's own site environment settings, since a local `.env` file has no bearing on what's live. |
 
 ## 17. Local development
 
@@ -390,7 +390,17 @@ npm run test:watch
 
 Tests run in a Node environment, not jsdom. The suites deliberately cover pure, high-consequence logic rather than component rendering: seat pack math, job costing, sales tax, permission resolution, schedule logic, CSV export, and a handful of Netlify function helpers (notably the AccuLynx expense-notes boundary arithmetic). A dedicated `src/test/setup.js` stubs Supabase environment variables before any module is imported, so these suites run hermetically on a fresh clone (or a CI runner) rather than silently depending on a local `.env` file that happens to exist on a developer's machine.
 
-There are currently no component-level or end-to-end browser tests. Nothing automated proves, for example, that toggling a permission actually disables the corresponding button in the UI, or that a job survives the full build-to-close pipeline in a real browser session.
+There are currently no component-level browser tests — nothing automated proves, for example, that toggling a permission actually disables the corresponding button in the UI. One end-to-end test does exist, covering the flagship flow: see below.
+
+### End-to-end (Playwright)
+
+```
+npm run test:e2e
+```
+
+`e2e/job-pipeline.spec.js` drives a real Chromium browser through login → build → approve → pull → complete → close — the one flow named in [Known gaps](#23-known-gaps-and-roadmap) — against a disposable throwaway company + two users + one stocked inventory item that `e2e/global-setup.js` creates in the same Supabase project via the service-role key (the same pattern `scripts/verify-tenant-isolation.mjs` uses), and `e2e/global-teardown.js` removes afterward. It needs `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` in the environment (or `.env` locally) — the same three `scripts/verify-*.mjs` need.
+
+Locators lean on `getByLabel`/`getByRole` against real visible text rather than `data-testid`, since `UIPrimitives.jsx`'s `Fld` already ties every form field to a real `<label>`. `playwright.config.js` runs the actual production build through `vite preview` (not the dev server), Chromium only for now, and has its own CI workflow, `e2e.yml`, kept separate from `test.yml` because it needs a live Supabase round-trip and a browser install rather than `test.yml`'s network-free ~1 minute. Not covered yet: any other flow, the MFA path, and component-level rendering.
 
 ## 19. Verification scripts
 
@@ -413,6 +423,7 @@ There is also `scripts/magic-link.mjs`, a support tool that mints a one-time sig
 - **ESLint** (flat config, `eslint.config.js`): scoped separately for browser app code, Node-run functions/scripts, and test files, since each needs different globals. React Hooks rules are hand-picked rather than using the full recommended set, since that bundle assumes a React Compiler this project does not use.
 - **Prettier**: formatting, with ESLint's own stylistic rules turned off via `eslint-config-prettier` so the two tools never disagree.
 - **Scoped TypeScript checking**: `tsconfig.money-permissions.json` turns on `checkJs` and `strict` mode for a deliberately small, hand-maintained list of files: the permission matrix, seat pack arithmetic, sales tax, job costing, the tenant/auth boundary, and the Stripe-touching Netlify functions. This is not project-wide type checking (`jsconfig.json` remains path-aliases only); turning `checkJs` on for the whole codebase would surface a large number of pre-existing warnings in unrelated view code overnight, for no proportional benefit. The chosen files are exactly the ones where a wrong type either moves money or decides who can access what.
+- **`scripts/check-money-coverage.mjs`**: a tripwire for the hand-maintained list above going stale. It scans the same money-relevant directories for any file that imports the `stripe` package and isn't in `tsconfig.money-permissions.json`'s `include` array, and fails with the file name if one is found — see [Known gaps #3](#23-known-gaps-and-roadmap) for the real gap it was written to catch.
 
 Run them with:
 
@@ -422,14 +433,16 @@ npm run lint:fix
 npm run format
 npm run format:check
 npm run typecheck:money
+npm run check:money-coverage
 ```
 
 ## 21. CI/CD
 
-**GitHub Actions** — two workflows, both at the true repo root (`.github/workflows/`, one level above this folder; see [Section 4](#4-repository-layout)):
+**GitHub Actions** — three workflows, all at the true repo root (`.github/workflows/`, one level above this folder; see [Section 4](#4-repository-layout)):
 
-- **`test.yml`** ("test") runs on every pull request and every push to main: install, lint, format check, the scoped type check, the Vitest suite, then a full production build, in that order, so the pipeline fails fast on cheap checks before spending time on slower ones. Netlify's own PR preview deploys build the site too, but never run the test suite; this is what actually gates on it.
+- **`test.yml`** ("test") runs on every pull request and every push to main: install, the Vitest suite, the money-file coverage check, the scoped type check, then a full production build and the iOS bundle build, in that order, so the pipeline fails fast on cheap checks before spending time on slower ones. Netlify's own PR preview deploys build the site too, but never run the test suite; this is what actually gates on it.
 - **`ios-build.yml`** ("iOS build") compiles the Capacitor/Xcode project, unsigned, for the Simulator, on a pinned `macos-15` runner — the only way anyone finds out the native project is actually broken, since nobody on the team owns a Mac. Path-filtered to only the things that can change the iOS build (`src/`, `ios/`, `package.json`, `.env.ios`, etc.), since macOS runner minutes bill at roughly ten times the Linux rate and a Netlify-function-only commit has no business paying that. Runs unit tests and the web build first for the same fail-fast reason as `test.yml`, then `xcodebuild ... CODE_SIGNING_ALLOWED=NO`. It needs no Apple Developer account and produces nothing installable — see [Section 13](#13-the-ios-app) for what a real TestFlight pipeline would still need on top of this.
+- **`e2e.yml`** ("e2e") runs the Playwright job-pipeline test (see [Section 18](#18-testing)) on every pull request and push to main, kept as its own workflow rather than folded into `test.yml` because it needs a live Supabase round-trip and a Chromium download that `test.yml` deliberately has neither of. Needs a `SUPABASE_SERVICE_ROLE_KEY` repository secret in addition to the `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` secrets `ios-build.yml` already uses — this workflow fails until that secret is added.
 
 A third file, `MRR Production/.github/workflows/ci.yml`, also exists in this repository but is **dead**: GitHub Actions only ever reads workflows from the true repo root's `.github/workflows/`, never from a subdirectory's, so this nested copy has not run since this folder became a subdirectory of a larger repo. It predates the split and was never cleaned up — see [Known gaps](#23-known-gaps-and-roadmap).
 
@@ -449,9 +462,9 @@ Sentry is wired into both runtimes and is a complete no-op anywhere a DSN is not
 
 Honest, current list, roughly in priority order:
 
-1. **No component-level or end-to-end tests.** The money and permission logic is unit-tested and partially type-checked, but nothing automated exercises a full user flow (login, build a job, pull it, complete it, close it) in an actual rendered browser session.
-2. **Rate limiting exists but is opt-in per function, not uniform.** `_shared/rateLimit.js` is an in-memory, best-effort, per-container throttle (not distributed — an attacker spread across enough containers isn't fully stopped by it alone) and is currently wired into `create-checkout.js`, `reset-password.js`, `chat.js`, `acculynx-import.js`, and `register-push-token.js`. Any new endpoint reachable without an established session needs to remember to add it; nothing enforces that automatically.
-3. **Scoped type checking is frozen at a specific file list.** As other files touching money or access control get written or modified, they should be added to `tsconfig.money-permissions.json` rather than left out indefinitely.
+1. **One end-to-end test exists; component-level tests still don't.** `e2e/job-pipeline.spec.js` (Playwright, its own `e2e.yml` CI workflow, kept separate from `test.yml` — see [Testing](#18-testing)) drives a real Chromium browser through login → build → approve → pull → complete → close against a disposable throwaway tenant in the same Supabase project, using real writes end to end. That is the one flagship flow, not general coverage: no component-level rendering tests (React Testing Library / jsdom) exist yet, no other flow is covered, no MFA path, and CI only runs Chromium. The money and permission logic is still unit-tested and partially type-checked, same as before.
+2. **Rate limiting exists and is now enforced by a test, not just convention.** `_shared/rateLimit.js` is an in-memory, best-effort, per-container throttle (not distributed — an attacker spread across enough containers isn't fully stopped by it alone), wired into `create-checkout.js`, `reset-password.js`, `chat.js`, `acculynx-import.js`, `register-push-token.js`, and `stripe-webhook.js` (public, signature-verified rather than session-verified, so it needed the same IP throttle as the other unauthenticated endpoints). `_shared/rateLimitEnforcement.test.js` scans every file in `netlify/functions/` and fails the build if one is added that neither calls `resolveCaller()` (session-gated) nor declares a `schedule` config (cron-only, unreachable from outside Netlify's own trigger) nor calls `checkRateLimit()` itself — so a new unauthenticated endpoint can no longer forget the throttle silently.
+3. **Scoped type checking is frozen at a specific file list, and one real gap has already been caught.** `delete-company.js` started cancelling Stripe subscriptions and deleting Stripe customers without ever being added to `tsconfig.money-permissions.json`, and got zero type checking as a result. `scripts/check-money-coverage.mjs` now scans `netlify/functions/`, `src/features/billing/`, `src/features/settings/`, `src/features/reports/`, and `src/shared/database/` for any file that imports the `stripe` package and isn't in the include list, and both it and `npm run typecheck:money` run in `test.yml` on every push. That only catches the unambiguous case — a file that moves money because it imports Stripe. Access-decision drift (a new file that should be checked because it touches a permission or tenant boundary) is still a human judgment call: nearly every Netlify function imports `_shared/tenant.js` for routine auth plumbing, so flagging every one of them would be noise, not signal. As other such files get written or modified, they should still be added to `tsconfig.money-permissions.json` by hand.
 4. **Styling has no shared component library.** Views build UI as inline style objects against a small token file rather than a set of shared, reusable components. Workable at the current size, but will not scale gracefully as more views are added.
 5. **Push notifications are code-complete but not live.** The APNs key, team ID, key ID, bundle ID, and production flag are all unset (see [Section 16](#16-environment-variables)), and the native Push Notifications capability has never been added in Xcode itself — `App.entitlements` alone does not enable it, and that step needs a Mac, which nobody on the team currently has. The oil-due notice pipeline still reaches drivers through its other three channels (realtime toast, email, chat message) in the meantime.
 6. **A dead, nested workflow file.** `MRR Production/.github/workflows/ci.yml` predates this folder becoming a subdirectory of a larger repo and no longer runs — GitHub only reads the true repo root's `.github/workflows/`, where `test.yml` and `ios-build.yml` actually live. Harmless but stale; worth deleting next time someone is in that area.
