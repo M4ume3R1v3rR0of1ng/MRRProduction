@@ -23,6 +23,7 @@
 import Stripe from "stripe";
 import { adminClient, errorMessage } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
+import { checkRateLimit, clientIp, rateLimitedResponse } from "./_shared/rateLimit.js";
 
 /** @typedef {import("./_shared/types.js").NetlifyEvent} NetlifyEvent */
 /** @typedef {import("./_shared/types.js").NetlifyResponse} NetlifyResponse */
@@ -358,6 +359,14 @@ const rawHandler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method not allowed" };
   }
+
+  // Public endpoint, auth is the signature check below — so, same as
+  // acculynx-import.js, throttle by IP before doing any of that work. Stripe's
+  // own retries/bursts from one webhook never come close to this; it exists to
+  // cap someone flooding the endpoint with garbage bodies to force signature
+  // verification (and Sentry noise) on every request.
+  const rl = checkRateLimit(`stripe-webhook:${clientIp(event)}`, { max: 120, windowMs: 60 * 1000 });
+  if (!rl.allowed) return rateLimitedResponse(rl.retryAfterSeconds, {});
 
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;

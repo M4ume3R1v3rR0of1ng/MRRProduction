@@ -35,10 +35,14 @@
 // Best-effort external cleanup (Stripe, storage, orphan accounts) never blocks the core
 // delete: failures there are collected into `warnings` and returned, because a company
 // the owner asked to delete must actually get deleted.
+// @ts-check
 
 import Stripe from "stripe";
-import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders, errorMessage } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
+
+/** @typedef {import("./_shared/types.js").NetlifyEvent} NetlifyEvent */
+/** @typedef {import("./_shared/types.js").NetlifyResponse} NetlifyResponse */
 
 // The five tenant-scoped buckets. Uploads write to <company_id>/<file> (supabase/05).
 const BUCKETS = [
@@ -49,6 +53,22 @@ const BUCKETS = [
   "inventory-attachments",
 ];
 
+// Stripe SDK errors carry `.code` (e.g. "resource_missing" for an already-gone
+// subscription/customer), but as `unknown` in a catch block there's nothing to
+// read it off of without narrowing first.
+/**
+ * @param {unknown} err
+ * @returns {string | undefined}
+ */
+const stripeErrorCode = (err) =>
+  err && typeof err === "object" && "code" in err
+    ? /** @type {{ code?: string }} */ (err).code
+    : undefined;
+
+/**
+ * @param {NetlifyEvent} event
+ * @returns {Promise<NetlifyResponse>}
+ */
 const rawHandler = async (event) => {
   const headers = corsHeaders(event.headers?.origin || event.headers?.Origin || "");
 
@@ -148,16 +168,16 @@ const rawHandler = async (event) => {
         } catch (e) {
           // Already canceled/expired subs throw resource_missing — that's the desired
           // end state, so only surface anything else.
-          if (e?.code !== "resource_missing")
-            warnings.push(`Stripe subscription not cancelled: ${e.message}`);
+          if (stripeErrorCode(e) !== "resource_missing")
+            warnings.push(`Stripe subscription not cancelled: ${errorMessage(e)}`);
         }
       }
       if (secrets.stripe_customer_id) {
         try {
           await stripe.customers.del(secrets.stripe_customer_id);
         } catch (e) {
-          if (e?.code !== "resource_missing")
-            warnings.push(`Stripe customer not removed: ${e.message}`);
+          if (stripeErrorCode(e) !== "resource_missing")
+            warnings.push(`Stripe customer not removed: ${errorMessage(e)}`);
         }
       }
     }
@@ -173,7 +193,7 @@ const rawHandler = async (event) => {
           await admin.storage.from(bucket).remove(files.map((f) => `${companyId}/${f.name}`));
         }
       } catch (e) {
-        warnings.push(`Storage '${bucket}' not fully purged: ${e.message}`);
+        warnings.push(`Storage '${bucket}' not fully purged: ${errorMessage(e)}`);
       }
     }
 
@@ -211,7 +231,7 @@ const rawHandler = async (event) => {
         if (authErr) warnings.push(`Login for a former member not removed: ${authErr.message}`);
         else accountsDeleted += 1;
       } catch (e) {
-        warnings.push(`Orphan-account cleanup skipped a user: ${e.message}`);
+        warnings.push(`Orphan-account cleanup skipped a user: ${errorMessage(e)}`);
       }
     }
 
@@ -224,7 +244,7 @@ const rawHandler = async (event) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ ok: false, error: err.message, warnings }),
+      body: JSON.stringify({ ok: false, error: errorMessage(err), warnings }),
     };
   }
 };
