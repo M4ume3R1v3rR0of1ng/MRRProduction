@@ -19,7 +19,17 @@ import { C } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
 import { useStickySort } from "@/shared/hooks/useStickySort";
 import { detectChronicIssues, detectFleetTrends } from "@/features/fleet/patterns";
-import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, PhotoUpload } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Bdg,
+  Fld,
+  Inp,
+  Sel,
+  TA,
+  Modal,
+  PhotoUpload,
+  EmptyState,
+} from "@/shared/components/UIPrimitives";
 import { notifyMaintFiled, notifyMaintStatus } from "@/shared/utils/maintenanceNotifications";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
@@ -637,18 +647,11 @@ export default function MaintenanceRequestsView({
           {/* Cards Stream Canvas */}
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
             {filtered.length === 0 ? (
-              <div
-                style={{
-                  background: "var(--c-surface)",
-                  padding: 32,
-                  borderRadius: "var(--radius-xl)",
-                  textAlign: "center",
-                  color: "var(--c-sub)",
-                  border: "1px solid var(--c-line)",
-                }}
-              >
-                {t.maintNoneFound}
-              </div>
+              <EmptyState
+                message={t.maintNoneFound}
+                messageStyle={{ fontSize: "inherit", fontWeight: "inherit" }}
+                style={{ border: "1px solid var(--c-line)", boxShadow: "none" }}
+              />
             ) : (
               filtered.map((r) => {
                 const isUrgent = r.urgency === "urgent";

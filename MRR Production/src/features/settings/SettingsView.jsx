@@ -26,7 +26,7 @@ import {
   ROLE_COLS,
   DEFAULT_ROLE_PERMS,
 } from "@/shared/database/permissions";
-import { Btn, Fld, Inp, Sel, Toggle, StatusDot } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Sel, Toggle, StatusDot, CardGrid } from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 import { useNotify } from "@/shared/context/NotificationContext";
 // ── IMPORT ADDED ──────────────────────────────────────────────────────────
@@ -1064,15 +1064,7 @@ export default function SettingsView({
         <Card>
           <SectionTitle icon={Building2} title={t.stCompanyDetails} subtitle={t.stCompanyDetailsDesc} />
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-              gap: "var(--space-4)",
-              paddingTop: 12,
-              marginBottom: 8,
-            }}
-          >
+          <CardGrid minWidth={200} fit gap="var(--space-4)" style={{ paddingTop: 12, marginBottom: 8 }}>
             <Fld label={t.stCompanyName} hint={t.stCompanyNameHint}>
               <Inp
                 value={brandForm.displayName}
@@ -1165,7 +1157,7 @@ export default function SettingsView({
                 disabled={savingBrand}
               />
             </Fld>
-          </div>
+          </CardGrid>
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
             <Btn v="primary" onClick={saveBranding} disabled={savingBrand}>
               {savingBrand ? "Saving…" : "Save Company Details"}
@@ -1389,13 +1381,7 @@ export default function SettingsView({
         <Card>
           <SectionTitle icon={Info} title={t.stSystemInfo} />
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-              gap: "var(--space-5)",
-            }}
-          >
+          <CardGrid minWidth={220}>
             {[
               { label: "Version", value: "WMS v5.0" },
               { label: "Storage", value: "Supabase (row-level security)" },
@@ -1442,7 +1428,7 @@ export default function SettingsView({
                 </div>
               </div>
             ))}
-          </div>
+          </CardGrid>
         </Card>
       )}
     </div>

@@ -21,7 +21,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { C, displayName } from "@/shared/utils/helpers";
-import { Bdg, Btn, Modal } from "@/shared/components/UIPrimitives";
+import { Bdg, Btn, Modal, CardGrid } from "@/shared/components/UIPrimitives";
 import TeamChatBox from "./TeamChatBox";
 import WeatherCard from "./WeatherCard";
 import ScheduleCard from "./ScheduleCard";
@@ -685,14 +685,7 @@ export default function DashboardView({
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         {/* The three status cards that used to head this section now sit in the
             KPI strip at the top of the page. */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "var(--space-6)",
-            alignItems: "start",
-          }}
-        >
+        <CardGrid minWidth={320} fit gap="var(--space-6)" style={{ alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
             <div
               style={{
@@ -827,7 +820,7 @@ export default function DashboardView({
             onMarkRead={onMarkChatRead}
             lang={lang}
           />
-        </div>
+        </CardGrid>
       </div>
     );
   };
@@ -837,14 +830,7 @@ export default function DashboardView({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
         {/* Status cards for this role live in the KPI strip at the top now. */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "var(--space-6)",
-            alignItems: "start",
-          }}
-        >
+        <CardGrid minWidth={320} fit gap="var(--space-6)" style={{ alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
             <div
               style={{
@@ -1002,7 +988,7 @@ export default function DashboardView({
             onMarkRead={onMarkChatRead}
             lang={lang}
           />
-        </div>
+        </CardGrid>
       </div>
     );
   };
@@ -1022,14 +1008,7 @@ export default function DashboardView({
           lang={lang}
         />
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "var(--space-6)",
-            alignItems: "start",
-          }}
-        >
+        <CardGrid minWidth={320} fit gap="var(--space-6)" style={{ alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
             <div
               style={{
@@ -1161,7 +1140,7 @@ export default function DashboardView({
             onMarkRead={onMarkChatRead}
             lang={lang}
           />
-        </div>
+        </CardGrid>
       </div>
     );
   };
@@ -1245,14 +1224,7 @@ export default function DashboardView({
 
           The two kinds still read as different questions, because the labels ask
           different questions: "Active Projects" now, "Completed This Week" lately. */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "var(--space-3)",
-          marginBottom: 16,
-        }}
-      >
+      <CardGrid minWidth={200} fit gap="var(--space-3)" style={{ marginBottom: 16 }}>
         {dashboardKind === "manager" && (
           <>
             <SC
@@ -1358,7 +1330,7 @@ export default function DashboardView({
             onClick={perms.reports_view ? () => onNav("reports") : undefined}
           />
         )}
-      </div>
+      </CardGrid>
 
       {/* Dynamic Security & Alert Banners */}
       {user.role === "field" && newJobs.length > 0 && (
@@ -1449,15 +1421,7 @@ export default function DashboardView({
           of content and was being stretched across the whole screen on its own; the
           action tiles are a 2×2 block of roughly the same height beside it. Both
           halves fall back to full width below 320px of column. */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: "var(--space-4)",
-          alignItems: "start",
-          marginBottom: 20,
-        }}
-      >
+      <CardGrid minWidth={320} fit gap="var(--space-4)" style={{ alignItems: "start", marginBottom: 20 }}>
         <div
           style={{
             display: "grid",
@@ -1497,7 +1461,7 @@ export default function DashboardView({
 
         {/* Warehouse weather — relevant to scheduling roof work; shown for all roles */}
         <WeatherCard lang={lang} />
-      </div>
+      </CardGrid>
 
       {/* Core Evaluation Router Branch — dashboardKind is resolved at the top of
           the component, because the KPI strip needs the same answer. */}

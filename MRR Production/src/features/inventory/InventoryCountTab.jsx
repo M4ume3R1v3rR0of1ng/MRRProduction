@@ -617,7 +617,7 @@ export default function InventoryCountTab({
           className="mrr-table"
           style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
         >
-          <thead style={{ position: "sticky", top: 0, zIndex: 1, background: C.lg }}>
+          <thead className="mrr-thead-sticky">
             <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
               {[
                 t.cntColItem,
@@ -629,19 +629,7 @@ export default function InventoryCountTab({
                 t.cntColVariance,
                 ...(canSeeMoney ? [t.cntColValue] : []),
               ].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "10px",
-                    textAlign: "left",
-                    color: C.sub,
-                    fontWeight: "var(--weight-bold)",
-                    fontSize: "var(--text-2xs)",
-                    textTransform: "uppercase",
-                    background: C.lg,
-                    whiteSpace: "nowrap",
-                  }}
-                >
+                <th key={h} style={{ padding: "10px", fontSize: "var(--text-2xs)" }}>
                   {h}
                 </th>
               ))}

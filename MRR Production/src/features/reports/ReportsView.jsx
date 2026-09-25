@@ -4,7 +4,17 @@ import { TrendingUp, Factory, Truck, Lock, AlertTriangle, Trash2, Download } fro
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
-import { Btn, Sel, Bdg, Inp, Modal, SkeletonTable } from "@/shared/components/UIPrimitives"; // Added Modal wrapper primitives
+import {
+  Btn,
+  Sel,
+  Bdg,
+  Inp,
+  Modal,
+  SkeletonTable,
+  PageHeader,
+  StatTile,
+  CardGrid,
+} from "@/shared/components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "@/shared/context/NotificationContext";
 // One CSV writer for the app. The local copy this replaced wrapped every field
 // in quotes and escaped none of them, so an item like 9" Roller Covers shifted
@@ -221,7 +231,7 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
           style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}
         >
           <thead>
-            <tr style={{ background: C.lg }}>
+            <tr>
               {[
                 t.rptColPO,
                 t.rptColProject,
@@ -232,17 +242,7 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
                   : []),
                 t.rptColPrimaryMaterial,
               ].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "left",
-                    color: C.sub,
-                    fontWeight: "var(--weight-bold)",
-                  }}
-                >
-                  {h}
-                </th>
+                <th key={h}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -539,7 +539,7 @@ function InventoryCostTrendsReport({ inv, t }) {
           style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}
         >
           <thead>
-            <tr style={{ background: C.lg }}>
+            <tr>
               {[
                 t.rptColMaterialProfile,
                 t.rptColCategoryGroup,
@@ -549,17 +549,7 @@ function InventoryCostTrendsReport({ inv, t }) {
                 t.rptColPriceVector,
                 t.rptColFifoAsset,
               ].map((h) => (
-                <th
-                  key={h}
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "left",
-                    color: C.sub,
-                    fontWeight: "var(--weight-bold)",
-                  }}
-                >
-                  {h}
-                </th>
+                <th key={h}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -719,13 +709,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
       {/* UPPER REVENUE METER LEVEL */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: "var(--space-7)",
-        }}
-      >
+      <CardGrid minWidth={320} fit gap="var(--space-7)">
         {/* PANEL A */}
         <div
           style={{
@@ -872,7 +856,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
             )}
           </div>
         </div>
-      </div>
+      </CardGrid>
 
       {/* DETAILED LEDGER GRID */}
       <div
@@ -911,7 +895,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
             style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}
           >
             <thead>
-              <tr style={{ background: C.lg }}>
+              <tr>
                 {[
                   t.rptColVehicleId,
                   t.rptColAssetClass,
@@ -920,17 +904,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                   t.rptColCumulativeCost,
                   t.rptColWarningIndex,
                 ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "10px 12px",
-                      textAlign: "left",
-                      color: C.sub,
-                      fontWeight: "var(--weight-bold)",
-                    }}
-                  >
-                    {h}
-                  </th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1355,26 +1329,15 @@ function AuditTrailReport({ t, companyId }) {
             className="mrr-table"
             style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
           >
-            <thead>
-              <tr style={{ background: C.lg, position: "sticky", top: 0, zIndex: 1 }}>
+            <thead className="mrr-thead-sticky">
+              <tr>
                 {[
                   t.rptColTimestamp,
                   t.rptColUserEmail,
                   t.rptColActionCode,
                   t.rptColAuditNarrative,
                 ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "10px 12px",
-                      textAlign: "left",
-                      color: C.sub,
-                      fontWeight: "var(--weight-bold)",
-                      background: C.lg,
-                    }}
-                  >
-                    {h}
-                  </th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -1440,67 +1403,23 @@ export default function Reports({
 
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: "var(--text-2xl)",
-            fontWeight: "var(--weight-black)",
-            color: C.navy,
-          }}
-        >
-          {t.rptTitle}
-        </h1>
-        <p style={{ margin: "3px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-          {t.rptSubtitle}
-        </p>
-      </div>
+      <PageHeader title={t.rptTitle} subtitle={t.rptSubtitle} />
 
       <div style={{ display: "flex", gap: "var(--space-5)", flexWrap: "wrap", marginBottom: 20 }}>
-        <div
-          style={{
-            background: C.w,
-            borderRadius: "var(--radius-xl)",
-            padding: 14,
-            borderLeft: `5px solid ${C.blue}`,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            flex: 1,
-            minWidth: 160,
-          }}
-        >
-          <div
-            style={{
-              fontSize: "var(--text-3xl)",
-              fontWeight: "var(--weight-black)",
-              color: C.blue,
-            }}
-          >
-            {jobs.length}
-          </div>
-          <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>
-            {t.rptTotalPipelines}
-          </div>
-        </div>
-        <div
-          style={{
-            background: C.w,
-            borderRadius: "var(--radius-xl)",
-            padding: 14,
-            borderLeft: `5px solid ${C.gr}`,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            flex: 1,
-            minWidth: 160,
-          }}
-        >
-          <div
-            style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color: C.gr }}
-          >
-            {completedJobs.length}
-          </div>
-          <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>
-            {t.rptFinalizedProjects}
-          </div>
-        </div>
+        <StatTile
+          variant="borderLeft"
+          color={C.blue}
+          value={jobs.length}
+          label={t.rptTotalPipelines}
+          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+        />
+        <StatTile
+          variant="borderLeft"
+          color={C.gr}
+          value={completedJobs.length}
+          label={t.rptFinalizedProjects}
+          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+        />
         {perms.inv_pricing_view && (
           <div
             style={{

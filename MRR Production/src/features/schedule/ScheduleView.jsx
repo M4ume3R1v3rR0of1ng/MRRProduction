@@ -12,7 +12,7 @@ import { useMemo, useState } from "react";
 import { Calendar, Truck, Wrench, AlertTriangle } from "lucide-react";
 import { C, parseDay, todayLocal } from "@/shared/utils/helpers";
 import { buildSchedule, monthGrid, monthNames, weekdayShort } from "@/shared/utils/schedule";
-import { Btn, Bdg, Modal } from "@/shared/components/UIPrimitives";
+import { Btn, Bdg, Modal, PageHeader } from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 
 export default function ScheduleView({
@@ -73,31 +73,11 @@ export default function ScheduleView({
   return (
     <div>
       {/* ── header ── */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: 9,
-              fontSize: "var(--text-2xl)",
-              fontWeight: "var(--weight-black)",
-              color: C.navy,
-            }}
-          >
-            <Calendar size={22} aria-hidden="true" /> {t.schedule || "Schedule"}
-          </h1>
-          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
+      <PageHeader
+        icon={Calendar}
+        title={t.schedule || "Schedule"}
+        subtitle={
+          <>
             {monthTotals.jobs} {monthTotals.jobs === 1 ? t.schJob : t.schJobs} · {monthTotals.maint}{" "}
             {t.schInShop}
             {monthTotals.conflicts > 0 && (
@@ -107,34 +87,36 @@ export default function ScheduleView({
                 {monthTotals.conflicts > 1 ? t.schConflicts : t.schConflict}
               </span>
             )}
-          </p>
-        </div>
-        <div className="sw-wrap" style={{ alignItems: "center", gap: "var(--space-3)" }}>
-          <Btn v="ghost" sz="sm" onClick={() => step(-1)} aria-label={t.schPrevMonth}>
-            ←
-          </Btn>
-          <span
-            style={{
-              minWidth: 148,
-              textAlign: "center",
-              fontFamily: "var(--font-display)",
-              fontWeight: "var(--weight-extrabold)",
-              fontSize: "var(--text-lg)",
-              color: C.navy,
-            }}
-          >
-            {MONTH_NAMES[cursor.month]} {cursor.year}
-          </span>
-          <Btn v="ghost" sz="sm" onClick={() => step(1)} aria-label={t.schNextMonth}>
-            →
-          </Btn>
-          {!isCurrentMonth && (
-            <Btn v="outline" sz="sm" onClick={goToday}>
-              {t.schToday}
+          </>
+        }
+        actions={
+          <>
+            <Btn v="ghost" sz="sm" onClick={() => step(-1)} aria-label={t.schPrevMonth}>
+              ←
             </Btn>
-          )}
-        </div>
-      </div>
+            <span
+              style={{
+                minWidth: 148,
+                textAlign: "center",
+                fontFamily: "var(--font-display)",
+                fontWeight: "var(--weight-extrabold)",
+                fontSize: "var(--text-lg)",
+                color: C.navy,
+              }}
+            >
+              {MONTH_NAMES[cursor.month]} {cursor.year}
+            </span>
+            <Btn v="ghost" sz="sm" onClick={() => step(1)} aria-label={t.schNextMonth}>
+              →
+            </Btn>
+            {!isCurrentMonth && (
+              <Btn v="outline" sz="sm" onClick={goToday}>
+                {t.schToday}
+              </Btn>
+            )}
+          </>
+        }
+      />
 
       {/* ── legend ── */}
       <div

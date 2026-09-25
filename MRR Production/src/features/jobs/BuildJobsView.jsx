@@ -35,7 +35,20 @@ import JobHandoff from "./JobHandoff";
 import SearchBar from "@/shared/components/SearchBar";
 import { translations } from "@/shared/utils/translations";
 import { useStickySort } from "@/shared/hooks/useStickySort";
-import { Btn, Bdg, Fld, Inp, Sel, TA, Modal, StatusDot } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Bdg,
+  Fld,
+  Inp,
+  Sel,
+  TA,
+  Modal,
+  StatusDot,
+  PageHeader,
+  CardGrid,
+  FilterPill,
+  EmptyState,
+} from "@/shared/components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "@/shared/utils/email";
 import { shouldNotifyJobMove, notifyJobMove } from "./jobNotifications";
 import { supabase, getAccessToken, updateRowStrict } from "@/shared/utils/supabase";
@@ -790,97 +803,75 @@ export default function BuildJobs({
   return (
     <div>
       {/* ── CORE APP ACTIONS MENU NAVIGATION ── */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "var(--text-2xl)",
-              fontWeight: "var(--weight-black)",
-              color: C.navy,
-            }}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
-              <HardHat size={22} aria-hidden="true" /> Build Jobs
-            </span>
-          </h1>
-          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-            {t.bjSubtitle}
-          </p>
-        </div>
-
-        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
-          <div
-            style={{
-              display: "flex",
-              background: C.lg,
-              padding: 4,
-              borderRadius: "var(--radius-md)",
-              marginRight: 8,
-            }}
-          >
-            <button
-              onClick={() => setSubView("list")}
+      <PageHeader
+        icon={HardHat}
+        title="Build Jobs"
+        subtitle={t.bjSubtitle}
+        actions={
+          <>
+            <div
               style={{
-                padding: "6px 12px",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "var(--text-sm)",
-                fontWeight: "var(--weight-bold)",
-                cursor: "pointer",
-                background: subView === "list" ? C.w : "transparent",
-                color: subView === "list" ? C.navy : C.sub,
-                boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
                 display: "flex",
-                alignItems: "center",
-                gap: 6,
+                background: C.lg,
+                padding: 4,
+                borderRadius: "var(--radius-md)",
+                marginRight: 8,
               }}
             >
-              <ClipboardList size={13} aria-hidden="true" /> Pipeline List
-            </button>
-            <button
-              onClick={() => setSubView("calendar")}
-              style={{
-                padding: "6px 12px",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "var(--text-sm)",
-                fontWeight: "var(--weight-bold)",
-                cursor: "pointer",
-                background: subView === "calendar" ? C.w : "transparent",
-                color: subView === "calendar" ? C.navy : C.sub,
-                boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <Calendar size={13} aria-hidden="true" /> Shift Timeline
-            </button>
-          </div>
+              <button
+                onClick={() => setSubView("list")}
+                style={{
+                  padding: "6px 12px",
+                  border: "none",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "var(--text-sm)",
+                  fontWeight: "var(--weight-bold)",
+                  cursor: "pointer",
+                  background: subView === "list" ? C.w : "transparent",
+                  color: subView === "list" ? C.navy : C.sub,
+                  boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <ClipboardList size={13} aria-hidden="true" /> Pipeline List
+              </button>
+              <button
+                onClick={() => setSubView("calendar")}
+                style={{
+                  padding: "6px 12px",
+                  border: "none",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "var(--text-sm)",
+                  fontWeight: "var(--weight-bold)",
+                  cursor: "pointer",
+                  background: subView === "calendar" ? C.w : "transparent",
+                  color: subView === "calendar" ? C.navy : C.sub,
+                  boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <Calendar size={13} aria-hidden="true" /> Shift Timeline
+              </button>
+            </div>
 
-          {perms.jobs_build && (
-            <Btn
-              v="primary"
-              onClick={() => {
-                resetWiz();
-                setModal("new");
-              }}
-            >
-              + New Job
-            </Btn>
-          )}
-        </div>
-      </div>
+            {perms.jobs_build && (
+              <Btn
+                v="primary"
+                onClick={() => {
+                  resetWiz();
+                  setModal("new");
+                }}
+              >
+                + New Job
+              </Btn>
+            )}
+          </>
+        }
+      />
 
       {subView === "calendar" ? (
         <CrewCalendar
@@ -935,24 +926,13 @@ export default function BuildJobs({
               ["completed", "Completed"],
               ["closed", "Closed"],
             ].map(([k, l]) => (
-              <Btn key={k} v={filt === k ? "primary" : "ghost"} sz="sm" onClick={() => setFilt(k)}>
-                {l}
-                {counts[k] > 0 && (
-                  <span
-                    style={{
-                      marginLeft: 4,
-                      background: filt === k ? "rgba(255,255,255,0.3)" : C.lg,
-                      color: filt === k ? C.onAccent : C.sub,
-                      borderRadius: 20,
-                      fontSize: "var(--text-2xs)",
-                      padding: "1px 6px",
-                      fontWeight: "var(--weight-extrabold)",
-                    }}
-                  >
-                    {counts[k]}
-                  </span>
-                )}
-              </Btn>
+              <FilterPill
+                key={k}
+                label={l}
+                count={counts[k]}
+                active={filt === k}
+                onClick={() => setFilt(k)}
+              />
             ))}
           </div>
 
@@ -964,13 +944,7 @@ export default function BuildJobs({
               scrolling. Columns are 340px minimum and stretch to fill, so the
               layout is three-up on a desktop, two-up on a tablet, and collapses
               to the old single column on a phone without a media query. */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-              gap: "var(--space-4)",
-            }}
-          >
+          <CardGrid minWidth={340} gap="var(--space-4)">
             {/* One grid for the whole list, with the day headers spanning every
                 column, rather than a separate grid per day: a day holding a single
                 job would stretch that card the full width of the screen, which is
@@ -1289,23 +1263,17 @@ export default function BuildJobs({
             {shown.length === 0 && (
               /* Spans every column: in a grid the empty state would otherwise sit
                  in a lone 340px box at the far left of the screen. */
-              <div
-                style={{
-                  gridColumn: "1 / -1",
-                  background: C.w,
-                  borderRadius: "var(--radius-xl)",
-                  padding: 30,
-                  textAlign: "center",
-                  color: C.sub,
-                  fontSize: "var(--text-base)",
-                  boxShadow: "var(--shadow-sm)",
-                }}
-              >
-                No {filt === "all" ? "" : filt + " "}jobs.{" "}
-                {perms.jobs_build && filt === "all" && ' Click "+ New Job" to get started.'}
-              </div>
+              <EmptyState
+                spanGrid
+                message={
+                  <>
+                    No {filt === "all" ? "" : filt + " "}jobs.{" "}
+                    {perms.jobs_build && filt === "all" && ' Click "+ New Job" to get started.'}
+                  </>
+                }
+              />
             )}
-          </div>
+          </CardGrid>
         </>
       )}
 

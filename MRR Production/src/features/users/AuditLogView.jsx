@@ -574,7 +574,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                 textAlign: "left",
               }}
             >
-              <thead style={{ position: "sticky", top: 0, zIndex: 1, background: C.lg }}>
+              <thead className="mrr-thead-sticky">
                 <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
                   {[
                     "Timestamp",
@@ -584,18 +584,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                     "Activity Log narrative",
                     "Inspect",
                   ].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "12px 10px",
-                        color: C.sub,
-                        fontWeight: "var(--weight-bold)",
-                        fontSize: "var(--text-xs)",
-                        textTransform: "uppercase",
-                      }}
-                    >
-                      {h}
-                    </th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>

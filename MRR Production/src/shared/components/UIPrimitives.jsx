@@ -154,6 +154,257 @@ export function SkeletonCards({ count = 6, height = 132, cols = 3, label = "Load
   );
 }
 
+// The title row nearly every view opens with: an optional icon, an h1, an
+// optional subtitle, and an actions slot pinned to the right. 8+ views had
+// this exact row — same style values, copy-pasted — before it moved here.
+export function PageHeader({ icon: Icon, title, subtitle, actions, style }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 16,
+        flexWrap: "wrap",
+        gap: "var(--space-4)",
+        ...style,
+      }}
+    >
+      <div>
+        <h1
+          style={{
+            margin: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
+            fontSize: "var(--text-2xl)",
+            fontWeight: "var(--weight-black)",
+            color: C.navy,
+          }}
+        >
+          {Icon && <Icon size={22} aria-hidden="true" />} {title}
+        </h1>
+        {subtitle && (
+          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>{subtitle}</p>
+        )}
+      </div>
+      {actions && (
+        <div
+          style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}
+        >
+          {actions}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// The responsive card-tiling grid every card-based list view rebuilt with its
+// own minmax() value (130-340px, scattered per file for no reason tied to the
+// content). One utility, one knob — plus `fit`, because auto-fit and
+// auto-fill genuinely disagree whenever a row doesn't fill: auto-fill leaves
+// a phantom empty track (cards stay their minmax width), auto-fit collapses
+// it (cards stretch to fill the row). That's a real layout difference, not a
+// style preference, so it has to survive the move into this component.
+export function CardGrid({ minWidth = 260, gap = "var(--space-5)", fit = false, children, style }) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${fit ? "auto-fit" : "auto-fill"}, minmax(${minWidth}px, 1fr))`,
+        gap,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// A metric/KPI tile. Two looks, because two already existed and both are used
+// enough to keep: "icon" (a tinted icon swatch beside the figure — Dashboard's
+// original) and "borderLeft" (a flat color bar — Reports' original). Pick per
+// call site with `variant`; don't invent a third look for a ninth screen.
+export function StatTile({
+  label,
+  value,
+  color,
+  icon: Icon,
+  onClick,
+  sub,
+  variant = "icon",
+  style,
+}) {
+  if (variant === "borderLeft") {
+    return (
+      <div
+        onClick={onClick}
+        className={onClick ? "mrr-card mrr-card-click" : "mrr-card"}
+        style={{
+          background: C.w,
+          borderRadius: "var(--radius-xl)",
+          padding: 14,
+          borderLeft: `5px solid ${color}`,
+          boxShadow: "var(--shadow-sm)",
+          flex: 1,
+          minWidth: 160,
+          ...style,
+        }}
+      >
+        <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color }}>
+          {value}
+        </div>
+        <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>{label}</div>
+        {sub && (
+          <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 4 }}>{sub}</div>
+        )}
+      </div>
+    );
+  }
+  return (
+    <div
+      onClick={onClick}
+      className={onClick ? "mrr-card mrr-card-click" : "mrr-card"}
+      style={{
+        background: C.w,
+        borderRadius: "var(--radius-xl)",
+        padding: 14,
+        border: `1px solid ${C.bd}`,
+        minWidth: 0,
+        ...style,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", minWidth: 0 }}>
+        {Icon && (
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: "var(--radius-lg)",
+              background: `color-mix(in srgb, ${color} 8%, transparent)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Icon size={18} color={color} aria-hidden="true" />
+          </div>
+        )}
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: "var(--text-2xl)",
+              fontWeight: "var(--weight-extrabold)",
+              color,
+              lineHeight: 1.1,
+              fontVariantNumeric: "tabular-nums",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {value}
+          </div>
+          <div
+            style={{
+              fontSize: "var(--text-xs)",
+              color: C.sub,
+              marginTop: 2,
+              fontWeight: "var(--weight-semibold)",
+            }}
+          >
+            {label}
+          </div>
+        </div>
+      </div>
+      {sub && <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+}
+
+// The "nothing here" block a list shows when it's got zero rows — whether
+// that's genuinely empty, or a filter/search hiding everything that exists.
+// `spanGrid` is for use inside a CardGrid, where the block needs to bridge
+// every column instead of occupying just one cell. `well` is the sunken,
+// no-shadow look a couple of modals use for a smaller inline list instead of
+// a whole page.
+export function EmptyState({
+  icon: Icon,
+  iconSize = 30,
+  message,
+  messageStyle,
+  actions,
+  spanGrid,
+  well,
+  style,
+}) {
+  return (
+    <div
+      style={{
+        ...(spanGrid ? { gridColumn: "1 / -1" } : {}),
+        background: well ? C.lg : C.w,
+        padding: well ? 24 : 32,
+        borderRadius: well ? "var(--radius-md)" : "var(--radius-xl)",
+        textAlign: "center",
+        color: C.sub,
+        boxShadow: well ? "none" : "var(--shadow-sm)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "var(--space-3)",
+        ...style,
+      }}
+    >
+      {Icon && <Icon size={iconSize} strokeWidth={1.5} aria-hidden="true" />}
+      <span
+        style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", ...messageStyle }}
+      >
+        {message}
+      </span>
+      {actions && (
+        <div
+          style={{
+            display: "flex",
+            gap: "var(--space-2)",
+            justifyContent: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          {actions}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A status-filter toggle with a count badge — verbatim duplicated between
+// Build Jobs and Pull Inventory before this. `count` of 0 hides the badge
+// rather than showing "0", which would read as a dead filter worth clicking.
+export function FilterPill({ label, count, active, onClick, title }) {
+  return (
+    <Btn v={active ? "primary" : "ghost"} sz="sm" onClick={onClick} aria-pressed={active} title={title}>
+      {label}
+      {count > 0 && (
+        <span
+          style={{
+            marginLeft: 4,
+            background: active ? "rgba(255,255,255,0.3)" : C.lg,
+            color: active ? C.onAccent : C.sub,
+            borderRadius: 20,
+            fontSize: "var(--text-2xs)",
+            padding: "1px 6px",
+            fontWeight: "var(--weight-extrabold)",
+          }}
+        >
+          {count}
+        </span>
+      )}
+    </Btn>
+  );
+}
+
 export function Modal({ title, onClose, children, wide, extraWide, disableCloseButton }) {
   return (
     <div

@@ -5,7 +5,17 @@ import { supabase, getAccessToken } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { validatePassword, PASSWORD_HINT } from "@/features/auth/passwordPolicy";
 import { PERM_DEFS, PERM_GROUPS, ROLES } from "@/shared/database/permissions";
-import { Btn, Bdg, RoleBdg, Toggle, Modal, Fld, Sel, Inp } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Bdg,
+  RoleBdg,
+  Toggle,
+  Modal,
+  Fld,
+  Sel,
+  Inp,
+  PageHeader,
+} from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -313,38 +323,22 @@ export default function Users({
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-        }}
-      >
-        <h1
-          style={{
-            margin: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
-            fontSize: "var(--text-2xl)",
-            fontWeight: "var(--weight-black)",
-            color: C.navy,
-          }}
-        >
-          <UsersIcon size={22} aria-hidden="true" /> User Management
-        </h1>
-        <Btn
-          v="primary"
-          onClick={() => {
-            setForm({ role: "field" });
-            setEditing(null);
-            setModal("user");
-          }}
-        >
-          + Add User
-        </Btn>
-      </div>
+      <PageHeader
+        icon={UsersIcon}
+        title="User Management"
+        actions={
+          <Btn
+            v="primary"
+            onClick={() => {
+              setForm({ role: "field" });
+              setEditing(null);
+              setModal("user");
+            }}
+          >
+            + Add User
+          </Btn>
+        }
+      />
 
       <div
         style={{
@@ -377,21 +371,9 @@ export default function Users({
             style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}
           >
             <thead>
-              <tr style={{ background: C.lg }}>
+              <tr>
                 {["Name", "Email", "Role", "Status", ""].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "12px 14px",
-                      textAlign: "left",
-                      color: C.sub,
-                      fontWeight: "var(--weight-bold)",
-                      fontSize: "var(--text-xs)",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    {h}
-                  </th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -650,47 +632,11 @@ export default function Users({
               className="mrr-table"
               style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
             >
-              <thead>
-                <tr style={{ background: C.lg }}>
-                  <th
-                    style={{
-                      padding: "10px 14px",
-                      textAlign: "left",
-                      color: C.sub,
-                      fontWeight: "var(--weight-bold)",
-                      fontSize: "var(--text-xs)",
-                      textTransform: "uppercase",
-                      minWidth: 220,
-                    }}
-                  >
-                    {t.umColPermission}
-                  </th>
-                  <th
-                    style={{
-                      padding: "10px 14px",
-                      textAlign: "center",
-                      color: C.sub,
-                      fontWeight: "var(--weight-bold)",
-                      fontSize: "var(--text-xs)",
-                      textTransform: "uppercase",
-                      width: 110,
-                    }}
-                  >
-                    {t.umColRoleDefault}
-                  </th>
-                  <th
-                    style={{
-                      padding: "10px 14px",
-                      textAlign: "center",
-                      color: C.sub,
-                      fontWeight: "var(--weight-bold)",
-                      fontSize: "var(--text-xs)",
-                      textTransform: "uppercase",
-                      width: 110,
-                    }}
-                  >
-                    {t.umColThisUser}
-                  </th>
+              <thead className="mrr-thead-sticky">
+                <tr>
+                  <th style={{ minWidth: 220 }}>{t.umColPermission}</th>
+                  <th style={{ textAlign: "center", width: 110 }}>{t.umColRoleDefault}</th>
+                  <th style={{ textAlign: "center", width: 110 }}>{t.umColThisUser}</th>
                 </tr>
               </thead>
               {PERM_GROUPS.map(([groupName, keys]) => (

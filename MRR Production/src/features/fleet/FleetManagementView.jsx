@@ -16,7 +16,19 @@ import {
   Save,
 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
-import { Btn, Bdg, Fld, Inp, Sel, Modal, TA, PhotoUpload } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Bdg,
+  Fld,
+  Inp,
+  Sel,
+  Modal,
+  TA,
+  PhotoUpload,
+  PageHeader,
+  CardGrid,
+  FilterPill,
+} from "@/shared/components/UIPrimitives";
 import { C, todayLocal } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
 import { useStickySort } from "@/shared/hooks/useStickySort";
@@ -580,122 +592,92 @@ export default function FleetManagementView({
       }}
     >
       {/* HEADER SECTION TIER (flexShrink: 0 keeps it locked in view) */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-          flexShrink: 0,
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "var(--text-2xl)",
-              fontWeight: "var(--weight-black)",
-              color: C.navy,
-            }}
-          >
-            {t.fleetTitle}
-          </h1>
-          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
+      <PageHeader
+        title={t.fleetTitle}
+        subtitle={
+          <>
             {vehs.filter((v) => v.type === "truck").length} {t.trucks} ·{" "}
             {vehs.filter((v) => v.type === "trailer").length} {t.trailers}
-          </p>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "var(--space-3)",
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          {perms.fleet_edit && (
-            <Btn
-              v="primary"
-              sz="sm"
-              onClick={() => setIsAddVehicleOpen(true)}
-              style={{ fontWeight: "var(--weight-extrabold)" }}
-            >
-              {t.flAddVehicle}
-            </Btn>
-          )}
-          {/* ── THE LOG INSPECTION TOGGLE ACTION BUTTON ── */}
-          {perms.fleet_log_inspection && (
-            <Btn
-              v="gold"
-              sz="sm"
-              onClick={() => setIsInspectOpen(true)}
-              style={{ fontWeight: "var(--weight-extrabold)" }}
-            >
-              {t.flLogInspection}
-            </Btn>
-          )}
-          {perms.maint_submit && (
-            <Btn
-              v="purple"
-              sz="sm"
-              onClick={() => {
-                setReqVid("");
-                setReqModal(true);
-              }}
-            >
-              {t.requestMaintBtn}
-            </Btn>
-          )}
-          {subView === "list" && (
-            <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+          </>
+        }
+        style={{ flexShrink: 0 }}
+        actions={
+          <>
+            {perms.fleet_edit && (
+              <Btn
+                v="primary"
+                sz="sm"
+                onClick={() => setIsAddVehicleOpen(true)}
+                style={{ fontWeight: "var(--weight-extrabold)" }}
+              >
+                {t.flAddVehicle}
+              </Btn>
+            )}
+            {/* ── THE LOG INSPECTION TOGGLE ACTION BUTTON ── */}
+            {perms.fleet_log_inspection && (
+              <Btn
+                v="gold"
+                sz="sm"
+                onClick={() => setIsInspectOpen(true)}
+                style={{ fontWeight: "var(--weight-extrabold)" }}
+              >
+                {t.flLogInspection}
+              </Btn>
+            )}
+            {perms.maint_submit && (
+              <Btn
+                v="purple"
+                sz="sm"
+                onClick={() => {
+                  setReqVid("");
+                  setReqModal(true);
+                }}
+              >
+                {t.requestMaintBtn}
+              </Btn>
+            )}
+            {subView === "list" && (
+              <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+                {[
+                  ["all", t.flFilterAll],
+                  ["truck", t.flFilterTrucks],
+                  ["trailer", t.flFilterTrailers],
+                ].map(([f, label]) => (
+                  <FilterPill key={f} label={label} active={filt === f} onClick={() => setFilt(f)} />
+                ))}
+                <Sel
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  aria-label={t.flSortAria}
+                  style={{ width: "auto" }}
+                >
+                  <option value="name_az">{t.flSortNameAZ}</option>
+                  <option value="name_za">{t.flSortNameZA}</option>
+                  <option value="year_new">{t.flSortYearNew}</option>
+                  <option value="year_old">{t.flSortYearOld}</option>
+                  <option value="mi_high">{t.flSortMiHigh}</option>
+                  <option value="mi_low">{t.flSortMiLow}</option>
+                </Sel>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 5 }}>
               {[
-                ["all", t.flFilterAll],
-                ["truck", t.flFilterTrucks],
-                ["trailer", t.flFilterTrailers],
-              ].map(([f, label]) => (
+                ["list", t.flViewList],
+                ["calendar", t.flViewTrailerCal],
+              ].map(([v, label]) => (
                 <Btn
-                  key={f}
-                  v={filt === f ? "primary" : "ghost"}
+                  key={v}
+                  v={subView === v ? "primary" : "ghost"}
                   sz="sm"
-                  onClick={() => setFilt(f)}
+                  onClick={() => setSubView(v)}
                 >
                   {label}
                 </Btn>
               ))}
-              <Sel
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                aria-label={t.flSortAria}
-                style={{ width: "auto" }}
-              >
-                <option value="name_az">{t.flSortNameAZ}</option>
-                <option value="name_za">{t.flSortNameZA}</option>
-                <option value="year_new">{t.flSortYearNew}</option>
-                <option value="year_old">{t.flSortYearOld}</option>
-                <option value="mi_high">{t.flSortMiHigh}</option>
-                <option value="mi_low">{t.flSortMiLow}</option>
-              </Sel>
             </div>
-          )}
-          <div style={{ display: "flex", gap: 5 }}>
-            {[
-              ["list", t.flViewList],
-              ["calendar", t.flViewTrailerCal],
-            ].map(([v, label]) => (
-              <Btn
-                key={v}
-                v={subView === v ? "primary" : "ghost"}
-                sz="sm"
-                onClick={() => setSubView(v)}
-              >
-                {label}
-              </Btn>
-            ))}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* List only. The trailer calendar is a different shape of question — "who
           has this trailer next week" — and a name filter over it would hide the
@@ -739,13 +721,7 @@ export default function FleetManagementView({
             }}
           >
             {/* Fleet Grid Tracker */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(265px, 1fr))",
-                gap: "var(--space-6)",
-              }}
-            >
+            <CardGrid minWidth={265} gap="var(--space-6)">
               {filtered.map((v) => {
                 const os = oilSt(v);
                 const ds = detSt(v);
@@ -1037,7 +1013,7 @@ export default function FleetManagementView({
                   </div>
                 );
               })}
-            </div>
+            </CardGrid>
           </div>
         </>
       )}
@@ -1292,14 +1268,7 @@ export default function FleetManagementView({
             </Fld>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))",
-              gap: "var(--space-3)",
-              marginBottom: 16,
-            }}
-          >
+          <CardGrid minWidth={130} gap="var(--space-3)" style={{ marginBottom: 16 }}>
             {[
               ["Plate", sel.plate],
               ["Assigned To", users.find((u) => u.id === sel.assignedTo)?.name || "Unassigned"],
@@ -1338,7 +1307,7 @@ export default function FleetManagementView({
                 </div>
               </div>
             ))}
-          </div>
+          </CardGrid>
 
           {predictedServices.length > 0 && (
             <div style={{ marginBottom: 16 }}>

@@ -612,12 +612,31 @@ button:disabled {
   }
 }
 
-/* ── Data tables ── */
+/* ── Data tables ──
+   Header look (padding, uppercase label, muted color, subtle fill) used to be
+   redone as an inline style object on every <tr>/<th> in every table — 14+
+   files, all copying the same six properties. It lives here now: give the
+   table `className="mrr-table"` and the header row needs no styling of its
+   own. `.mrr-thead-sticky` is opt-in for the couple of screens (audit log,
+   inventory count) whose sheet is long enough to want a pinned header — the
+   background has to live on the <th> itself, not the <tr>, or content
+   scrolling underneath a sticky cell shows through it. */
 .mrr-table thead th {
+  padding: 12px 14px;
+  text-align: left;
+  color: var(--c-sub);
+  font-weight: var(--weight-bold);
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.4px;
   white-space: nowrap;
+  background: var(--c-subtle);
+}
+
+.mrr-thead-sticky th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .mrr-table tbody tr {

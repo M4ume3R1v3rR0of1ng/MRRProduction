@@ -43,6 +43,10 @@ import {
   Sel,
   PhotoUpload,
   StatusDot,
+  PageHeader,
+  CardGrid,
+  FilterPill,
+  EmptyState,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { supabase, updateRowStrict, isTransportError } from "@/shared/utils/supabase";
@@ -851,34 +855,11 @@ export default function PullInventory({
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-          marginBottom: 16,
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "var(--text-2xl)",
-              fontWeight: "var(--weight-black)",
-              color: C.navy,
-            }}
-          >
-            <span style={{ display: "flex", alignItems: "center", gap: 9 }}>
-              <ClipboardList size={22} aria-hidden="true" /> {t.pull}
-            </span>
-          </h1>
-          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-            {isField ? t.pullYourJobs : t.pullAllJobs}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={ClipboardList}
+        title={t.pull}
+        subtitle={isField ? t.pullYourJobs : t.pullAllJobs}
+      />
 
       <SearchBar
         value={srch}
@@ -934,101 +915,62 @@ export default function PullInventory({
             full: t.pullFilterActive,
             count: statusCounts.active,
           },
-        ].map((f) => {
-          const on = statusFilt === f.id;
-          return (
-            <Btn
-              key={f.id}
-              v={on ? "primary" : "ghost"}
-              sz="sm"
-              onClick={() => setStatusFilt(f.id)}
-              aria-pressed={on}
-              title={f.full}
-            >
-              {f.label}
-              {f.count > 0 && (
-                <span
-                  style={{
-                    marginLeft: 4,
-                    background: on ? "rgba(255,255,255,0.3)" : C.lg,
-                    color: on ? C.onAccent : C.sub,
-                    borderRadius: 20,
-                    fontSize: "var(--text-2xs)",
-                    padding: "1px 6px",
-                    fontWeight: "var(--weight-extrabold)",
-                  }}
-                >
-                  {f.count}
-                </span>
-              )}
-            </Btn>
-          );
-        })}
+        ].map((f) => (
+          <FilterPill
+            key={f.id}
+            label={f.label}
+            count={f.count}
+            active={statusFilt === f.id}
+            onClick={() => setStatusFilt(f.id)}
+            title={f.full}
+          />
+        ))}
       </div>
 
       {/* The Build Jobs layout: a tiling grid of cards under creation-date
           headers, one grid for the whole list with the headers spanning every
           column. A day holding a single job would otherwise stretch that card the
           full width of the screen. */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-          gap: "var(--space-4)",
-        }}
-      >
+      <CardGrid minWidth={340} gap="var(--space-4)">
         {myJobs.length === 0 && (
-          <div
-            style={{
-              gridColumn: "1 / -1",
-              background: C.w,
-              padding: 32,
-              borderRadius: "var(--radius-xl)",
-              textAlign: "center",
-              color: C.sub,
-              boxShadow: "var(--shadow-sm)",
-            }}
-          >
-            {/* "All caught up" is only true when nothing is hidden. With a filter
-                on and jobs behind it, that message sends someone hunting for a
-                bug that is really a dropdown two feet above their cursor. */}
-            {/* Three different empty states, because they need three different
-                fixes: nothing to do, a filter hiding things, or a search that
-                matched nothing. Telling someone "all caught up" while their own
-                search term is hiding six jobs sends them hunting for a bug. */}
-            {openJobs.length === 0
-              ? t.pullAllCaughtUp
-              : srch
-                ? t.pullNoneMatchSearch.replace("{query}", srch)
-                : t.pullNoneMatchFilter}
-            {openJobs.length > 0 && (
-              <div
-                style={{
-                  marginTop: 12,
-                  display: "flex",
-                  gap: "var(--space-2)",
-                  justifyContent: "center",
-                  flexWrap: "wrap",
-                }}
-              >
-                {srch && (
-                  <Btn v="ghost" sz="sm" onClick={() => setSrch("")}>
-                    <X size={13} aria-hidden="true" /> {t.pullClearSearch}
+          /* "All caught up" is only true when nothing is hidden. With a filter
+             on and jobs behind it, that message sends someone hunting for a
+             bug that is really a dropdown two feet above their cursor. */
+          /* Three different empty states, because they need three different
+             fixes: nothing to do, a filter hiding things, or a search that
+             matched nothing. Telling someone "all caught up" while their own
+             search term is hiding six jobs sends them hunting for a bug. */
+          <EmptyState
+            spanGrid
+            message={
+              openJobs.length === 0
+                ? t.pullAllCaughtUp
+                : srch
+                  ? t.pullNoneMatchSearch.replace("{query}", srch)
+                  : t.pullNoneMatchFilter
+            }
+            actions={
+              openJobs.length > 0 && (
+                <>
+                  {srch && (
+                    <Btn v="ghost" sz="sm" onClick={() => setSrch("")}>
+                      <X size={13} aria-hidden="true" /> {t.pullClearSearch}
+                    </Btn>
+                  )}
+                  <Btn
+                    v="ghost"
+                    sz="sm"
+                    onClick={() => {
+                      setStatusFilt("all");
+                      setSrch("");
+                    }}
+                  >
+                    {t.pullShowAllJobs} ({statusCounts.all})
                   </Btn>
-                )}
-                <Btn
-                  v="ghost"
-                  sz="sm"
-                  onClick={() => {
-                    setStatusFilt("all");
-                    setSrch("");
-                  }}
-                >
-                  {t.pullShowAllJobs} ({statusCounts.all})
-                </Btn>
-              </div>
-            )}
-          </div>
+                </>
+              )
+            }
+          />
         )}
         {dayGroups.map(([day, dayJobs]) => (
           <Fragment key={day || "undated"}>
@@ -1348,7 +1290,7 @@ export default function PullInventory({
             })}
           </Fragment>
         ))}
-      </div>
+      </CardGrid>
 
       {modal === "pull" && sel && (
         <Modal

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm, tot, newestPrice } from "@/shared/utils/helpers";
-import { Btn, Inp, Sel, StatusDot } from "@/shared/components/UIPrimitives";
+import { Btn, Inp, Sel, StatusDot, PageHeader, CardGrid } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { translations } from "@/shared/utils/translations";
@@ -201,59 +201,37 @@ export default function InventoryView({
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-        }}
-      >
-        <div>
-          <h1
+      <PageHeader
+        icon={Package}
+        title={t.inventory || "Inventory"}
+        subtitle={`${inv.length} ${t.invCatalogPositions} · ${t.invRealtimeStock}`}
+        actions={
+          <div
             style={{
-              margin: 0,
               display: "flex",
-              alignItems: "center",
-              gap: 9,
-              fontSize: "var(--text-2xl)",
-              fontWeight: "var(--weight-black)",
-              color: C.navy,
+              gap: "var(--space-3)",
+              flexWrap: "wrap",
+              visibility: tab === "catalog" ? "visible" : "hidden",
             }}
           >
-            <Package size={22} aria-hidden="true" /> {t.inventory || "Inventory"}
-          </h1>
-          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
-            {inv.length} {t.invCatalogPositions} · {t.invRealtimeStock}
-          </p>
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "var(--space-3)",
-            flexWrap: "wrap",
-            visibility: tab === "catalog" ? "visible" : "hidden",
-          }}
-        >
-          {perms.inv_bulk_receive && (
-            <Btn v="gold" onClick={() => setModal("bulk")}>
-              <Package size={14} aria-hidden="true" /> {t.invReceiveBulk}
-            </Btn>
-          )}
-          {perms.inv_edit && (
-            <Btn v="outline" onClick={() => setModal("tpl")}>
-              <LayoutTemplate size={14} aria-hidden="true" /> {t.invTemplates}
-            </Btn>
-          )}
-          {perms.inv_edit && (
-            <Btn v="primary" onClick={() => setModal("add")}>
-              <Plus size={14} aria-hidden="true" /> {t.invAddItem}
-            </Btn>
-          )}
-        </div>
-      </div>
+            {perms.inv_bulk_receive && (
+              <Btn v="gold" onClick={() => setModal("bulk")}>
+                <Package size={14} aria-hidden="true" /> {t.invReceiveBulk}
+              </Btn>
+            )}
+            {perms.inv_edit && (
+              <Btn v="outline" onClick={() => setModal("tpl")}>
+                <LayoutTemplate size={14} aria-hidden="true" /> {t.invTemplates}
+              </Btn>
+            )}
+            {perms.inv_edit && (
+              <Btn v="primary" onClick={() => setModal("add")}>
+                <Plus size={14} aria-hidden="true" /> {t.invAddItem}
+              </Btn>
+            )}
+          </div>
+        }
+      />
 
       {/* The count tab is hidden entirely without inv_count, rather than shown
           disabled. A greyed tab advertises a feature and invites a request; this
@@ -357,13 +335,7 @@ export default function InventoryView({
             </Sel>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))",
-              gap: "var(--space-5)",
-            }}
-          >
+          <CardGrid minWidth={260}>
             {filtered.map((item) => {
               const stock = tot(item);
               const photo = item.photo_url;
@@ -648,7 +620,7 @@ export default function InventoryView({
                 </div>
               );
             })}
-          </div>
+          </CardGrid>
         </>
       )}
 

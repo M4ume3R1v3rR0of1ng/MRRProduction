@@ -17,7 +17,7 @@ import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "./lowStockAlerts";
 import { C, uid, fm, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Fld, Inp, Modal } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, EmptyState } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -370,18 +370,11 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
               </div>
             ))}
             {selectable.length === 0 && (
-              <div
-                style={{
-                  padding: 20,
-                  textAlign: "center",
-                  color: C.sub,
-                  fontSize: "var(--text-sm)",
-                  background: C.lg,
-                  borderRadius: "var(--radius-md)",
-                }}
-              >
-                {rows.length > 0 ? "All items matched ✓" : "No matching inventory items found"}
-              </div>
+              <EmptyState
+                well
+                message={rows.length > 0 ? "All items matched ✓" : "No matching inventory items found"}
+                style={{ padding: 20 }}
+              />
             )}
           </div>
         </div>
@@ -424,24 +417,12 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
           </div>
 
           {rows.length === 0 ? (
-            <div
-              style={{
-                height: 200,
-                background: C.lg,
-                borderRadius: "var(--radius-md)",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                color: C.sub,
-                gap: "var(--space-3)",
-              }}
-            >
-              <ClipboardList size={30} strokeWidth={1.5} aria-hidden="true" />
-              <span style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-bold)" }}>
-                Manifest queue is empty
-              </span>
-            </div>
+            <EmptyState
+              well
+              icon={ClipboardList}
+              message="Manifest queue is empty"
+              style={{ height: 200 }}
+            />
           ) : (
             <>
               <div
