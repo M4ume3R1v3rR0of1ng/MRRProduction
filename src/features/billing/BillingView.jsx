@@ -12,6 +12,7 @@ import { supabase, getAccessToken } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { BRAND, TrussMark } from "@/shared/components/SteadwerkMark";
 import { useNotify } from "@/shared/context/NotificationContext";
+import { Card } from "@/shared/components/UIPrimitives";
 
 const BASE_PRICE = 99;
 const BASE_SEATS = 10;
@@ -219,13 +220,6 @@ export default function BillingView({ user, lang = "en" }) {
     }
   };
 
-  const card = {
-    background: C.w,
-    border: `1px solid ${C.bd}`,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-  };
   const atLimit = capacity != null && used >= capacity;
 
   return (
@@ -250,7 +244,7 @@ export default function BillingView({ user, lang = "en" }) {
       ) : (
         <>
           {/* Plan */}
-          <div style={card}>
+          <Card variant="flat" pad="var(--space-8)" style={{ marginBottom: 16 }}>
             <div
               style={{
                 fontSize: 11,
@@ -332,13 +326,13 @@ export default function BillingView({ user, lang = "en" }) {
                 </button>
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Billing contact — who to address on receipts, invoices, and any custom
               email sent about this account. Stripe only ever knows the company
               name, not a person; this is the one place that person's name lives.
               See supabase/47. */}
-          <div style={card}>
+          <Card variant="flat" pad="var(--space-8)" style={{ marginBottom: 16 }}>
             <div
               style={{
                 fontSize: 11,
@@ -392,10 +386,10 @@ export default function BillingView({ user, lang = "en" }) {
                 {t.blSaveContact}
               </button>
             </div>
-          </div>
+          </Card>
 
           {/* Seats */}
-          <div style={card}>
+          <Card variant="flat" pad="var(--space-8)" style={{ marginBottom: 16 }}>
             <div
               style={{
                 fontSize: 11,
@@ -468,7 +462,7 @@ export default function BillingView({ user, lang = "en" }) {
                 <div style={{ fontSize: 12, color: C.sub, marginTop: 8 }}>{t.blProrationNote}</div>
               </>
             )}
-          </div>
+          </Card>
 
           {/* Manage
               A comped company has no Stripe customer at all — admin_create_company
@@ -479,7 +473,7 @@ export default function BillingView({ user, lang = "en" }) {
               Stripe-billed companies carry a numeric ceiling. The card above
               already says "Complimentary" off the same signal, so offering a
               payment portal underneath it was the screen contradicting itself. */}
-          <div style={card}>
+          <Card variant="flat" pad="var(--space-8)" style={{ marginBottom: 16 }}>
             <div
               style={{
                 fontSize: 11,
@@ -537,7 +531,7 @@ export default function BillingView({ user, lang = "en" }) {
                 </button>
               </>
             )}
-          </div>
+          </Card>
         </>
       )}
     </div>

@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
 import { Shield, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
-import { Btn, Inp, Fld } from "@/shared/components/UIPrimitives";
+import { Btn, Inp, Fld, Card } from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 
 export default function MfaPanel({ user, lang = "en" }) {
@@ -120,15 +120,8 @@ export default function MfaPanel({ user, lang = "en" }) {
     await loadFactors();
   };
 
-  const card = {
-    background: C.w,
-    borderRadius: "var(--radius-xl)",
-    padding: 24,
-    boxShadow: "var(--shadow-sm)",
-  };
-
   return (
-    <div style={card}>
+    <Card variant="raised" pad="lg">
       <h2
         style={{
           margin: "0 0 6px",
@@ -332,6 +325,6 @@ export default function MfaPanel({ user, lang = "en" }) {
           )}
         </>
       )}
-    </div>
+    </Card>
   );
 }

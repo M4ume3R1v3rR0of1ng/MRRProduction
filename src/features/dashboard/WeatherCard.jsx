@@ -21,7 +21,7 @@ import {
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
 import { getAccessToken } from "@/shared/utils/supabase";
-import { Spinner } from "@/shared/components/UIPrimitives";
+import { Spinner, Card } from "@/shared/components/UIPrimitives";
 
 // WMO weather code -> { icon, label }.
 function describeWeather(code) {
@@ -40,14 +40,6 @@ function describeWeather(code) {
 }
 
 const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-const cardStyle = {
-  background: C.w,
-  borderRadius: "var(--radius-lg)",
-  padding: 10,
-  border: `1px solid ${C.bd}`,
-  boxShadow: "var(--shadow-xs)",
-};
 
 export default function WeatherCard({ lang = "en" }) {
   const t = translations[lang] || translations.en;
@@ -106,7 +98,7 @@ export default function WeatherCard({ lang = "en" }) {
 
   if (state.loading) {
     return (
-      <div style={cardStyle}>
+      <Card pad="var(--space-4)" style={{ borderRadius: "var(--radius-lg)" }}>
         {header}
         <div
           style={{
@@ -121,18 +113,18 @@ export default function WeatherCard({ lang = "en" }) {
         >
           <Spinner size={13} /> {t.wcLoading}
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (state.error || !state.data?.current || !state.data?.daily) {
     return (
-      <div style={cardStyle}>
+      <Card pad="var(--space-4)" style={{ borderRadius: "var(--radius-lg)" }}>
         {header}
         <div style={{ color: C.sub, fontSize: "var(--text-xs)", padding: "4px 0" }}>
           {t.wcUnavailable}
         </div>
-      </div>
+      </Card>
     );
   }
 
@@ -154,7 +146,7 @@ export default function WeatherCard({ lang = "en" }) {
         : null;
 
   return (
-    <div style={cardStyle}>
+    <Card pad="var(--space-4)" style={{ borderRadius: "var(--radius-lg)" }}>
       {header}
 
       {/* Current conditions — single compact row */}
@@ -256,6 +248,6 @@ export default function WeatherCard({ lang = "en" }) {
           );
         })}
       </div>
-    </div>
+    </Card>
   );
 }

@@ -7,6 +7,10 @@ import { compressImg } from "../utils/helpers";
 import { useNotify } from "../context/NotificationContext";
 import { HAS_NATIVE_CAMERA, capturePhoto } from "../utils/photoCapture";
 
+// Card, Stack, Row, Eyebrow, SectionTitle, Muted, Table — kept in their own file
+// so this one stops growing, but re-exported so views have one import path.
+export { Card, Stack, Row, Eyebrow, SectionTitle, Muted, Table } from "./LayoutPrimitives";
+
 // A plain colored severity dot — used wherever a status is conveyed by color
 // alone (jobStatusMeta in helpers.js), rather than reaching for an icon shape
 // that would just be decoration.

@@ -639,6 +639,21 @@ button:disabled {
   z-index: 1;
 }
 
+/* Set by the <Table> primitive only. Cell padding was repeated inline on every
+   <td> ("8px 10px" in most files); this is that value on the scale. Opt-in so
+   the tables that still pad their own cells don't shift. .mrr-table-sticky is
+   .mrr-thead-sticky applied from the table, so <Table stickyHead> needs no
+   class on its <thead>. */
+.mrr-table-pad tbody td {
+  padding: var(--space-3) var(--space-4);
+}
+
+.mrr-table-sticky thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .mrr-table tbody tr {
   transition: background 0.12s ease;
 }

@@ -1,0 +1,110 @@
+// src/shared/components/LayoutPrimitives.test.js
+//
+// Pins the contracts views rely on when they swap a hand-built div for one of
+// these: which classes land (the hover lift and sticky header are CSS, so a
+// dropped class is a silent visual regression), that a clickable Card is a real
+// keyboard control, and that spacing stays on the --space-* scale.
+// renderToString, same as views.render.test.js — no DOM needed for any of it.
+import { describe, it, expect, vi } from "vitest";
+import { createElement as h } from "react";
+import { renderToString } from "react-dom/server";
+
+import {
+  Card,
+  Stack,
+  Row,
+  Eyebrow,
+  SectionTitle,
+  Muted,
+  Table,
+} from "@/shared/components/UIPrimitives";
+
+describe("Card", () => {
+  it("is a plain surface by default", () => {
+    const html = renderToString(h(Card, null, "body"));
+    expect(html).toContain('class="mrr-card"');
+    expect(html).not.toContain('role="button"');
+    expect(html).toContain("padding:var(--space-7)");
+  });
+
+  it("becomes a focusable button with the hover lift when clickable", () => {
+    const html = renderToString(h(Card, { onClick: () => {} }, "body"));
+    expect(html).toContain('class="mrr-card mrr-card-click"');
+    expect(html).toContain('role="button"');
+    expect(html).toContain('tabindex="0"');
+  });
+
+  it("activates on Enter and Space but not from a nested control", () => {
+    const onClick = vi.fn();
+    const el = Card({ onClick, children: "x" });
+    const self = {};
+    const key = (k, target = self) => ({
+      key: k,
+      target,
+      currentTarget: self,
+      preventDefault() {},
+    });
+    el.props.onKeyDown(key("Enter"));
+    el.props.onKeyDown(key(" "));
+    el.props.onKeyDown(key("a"));
+    el.props.onKeyDown(key("Enter", {})); // e.g. Enter inside an <input> in the card
+    expect(onClick).toHaveBeenCalledTimes(2);
+  });
+
+  it("gets the lift without the button semantics when only `hover` is set", () => {
+    const html = renderToString(h(Card, { hover: true }, "body"));
+    expect(html).toContain('class="mrr-card mrr-card-hover"');
+    expect(html).not.toContain('role="button"');
+  });
+
+  it("lets style override one property without losing the variant", () => {
+    const html = renderToString(h(Card, { variant: "flat", style: { marginBottom: 16 } }, "body"));
+    expect(html).toContain("box-shadow:none");
+    expect(html).toContain("margin-bottom:16px");
+  });
+});
+
+describe("Stack / Row", () => {
+  it("maps a numeric gap onto the spacing scale and passes strings through", () => {
+    expect(renderToString(h(Stack, { gap: 6 }))).toContain("gap:var(--space-6)");
+    expect(renderToString(h(Row, { gap: "3px" }))).toContain("gap:3px");
+  });
+
+  it("only wraps a Row when asked", () => {
+    expect(renderToString(h(Row))).not.toContain("flex-wrap");
+    expect(renderToString(h(Row, { wrap: true }))).toContain("flex-wrap:wrap");
+  });
+});
+
+describe("text", () => {
+  it("renders the eyebrow as the majority label style", () => {
+    const html = renderToString(h(Eyebrow, null, "Status"));
+    expect(html).toContain("text-transform:uppercase");
+    expect(html).toContain("font-size:var(--text-xs)");
+  });
+
+  it("puts SectionTitle actions on the same row as the heading", () => {
+    const html = renderToString(h(SectionTitle, { actions: h("button", null, "Add") }, "Crew"));
+    expect(html).toMatch(/<h2[^>]*>Crew<\/h2>/);
+    expect(html).toContain("justify-content:space-between");
+    expect(html).toContain("<button>Add</button>");
+  });
+
+  it("sizes Muted from the text scale", () => {
+    expect(renderToString(h(Muted, { size: "sm" }, "x"))).toContain("font-size:var(--text-sm)");
+  });
+});
+
+describe("Table", () => {
+  it("wraps in the scroll container with cell padding opted in", () => {
+    const html = renderToString(h(Table, null, h("tbody")));
+    expect(html).toContain('class="sw-table-scroll"');
+    expect(html).toContain('class="mrr-table mrr-table-pad"');
+  });
+
+  it("pins the header when stickyHead is set", () => {
+    const html = renderToString(h(Table, { stickyHead: true, maxHeight: 400 }, h("tbody")));
+    expect(html).toContain("mrr-table-sticky");
+    expect(html).toContain("max-height:400px");
+  });
+});

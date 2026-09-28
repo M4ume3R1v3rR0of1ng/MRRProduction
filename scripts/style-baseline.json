@@ -1,0 +1,222 @@
+{
+  "src/App.jsx": {
+    "inline": 26,
+    "hex": 3
+  },
+  "src/features/auth/LoginScreen.jsx": {
+    "inline": 40,
+    "hex": 0
+  },
+  "src/features/auth/MfaPanel.jsx": {
+    "inline": 15,
+    "hex": 0
+  },
+  "src/features/auth/ProfileView.jsx": {
+    "inline": 22,
+    "hex": 0
+  },
+  "src/features/auth/ResetPasswordScreen.jsx": {
+    "inline": 9,
+    "hex": 0
+  },
+  "src/features/billing/BillingView.jsx": {
+    "inline": 34,
+    "hex": 0
+  },
+  "src/features/dashboard/DashboardView.jsx": {
+    "inline": 103,
+    "hex": 0
+  },
+  "src/features/dashboard/ScheduleCard.jsx": {
+    "inline": 20,
+    "hex": 0
+  },
+  "src/features/dashboard/TeamChatBox.jsx": {
+    "inline": 32,
+    "hex": 0
+  },
+  "src/features/dashboard/WeatherCard.jsx": {
+    "inline": 17,
+    "hex": 0
+  },
+  "src/features/fleet/AddVehicleModal.jsx": {
+    "inline": 4,
+    "hex": 0
+  },
+  "src/features/fleet/FleetManagementView.jsx": {
+    "inline": 73,
+    "hex": 1
+  },
+  "src/features/fleet/InspectionModal.jsx": {
+    "inline": 8,
+    "hex": 1
+  },
+  "src/features/fleet/MaintenanceRequestModal.jsx": {
+    "inline": 6,
+    "hex": 0
+  },
+  "src/features/fleet/TrailerCalendar.jsx": {
+    "inline": 25,
+    "hex": 0
+  },
+  "src/features/inventory/AdjustStockModal.jsx": {
+    "inline": 3,
+    "hex": 0
+  },
+  "src/features/inventory/BatchCorrectionModal.jsx": {
+    "inline": 16,
+    "hex": 0
+  },
+  "src/features/inventory/BulkReceiveModal.jsx": {
+    "inline": 32,
+    "hex": 0
+  },
+  "src/features/inventory/InventoryCountTab.jsx": {
+    "inline": 44,
+    "hex": 0
+  },
+  "src/features/inventory/InventoryView.jsx": {
+    "inline": 28,
+    "hex": 0
+  },
+  "src/features/inventory/ItemDetailModal.jsx": {
+    "inline": 20,
+    "hex": 0
+  },
+  "src/features/inventory/ItemFormModal.jsx": {
+    "inline": 3,
+    "hex": 0
+  },
+  "src/features/inventory/JobTemplatesModal.jsx": {
+    "inline": 28,
+    "hex": 0
+  },
+  "src/features/inventory/ReceiveBatchModal.jsx": {
+    "inline": 4,
+    "hex": 0
+  },
+  "src/features/jobs/BuildJobsView.jsx": {
+    "inline": 98,
+    "hex": 0
+  },
+  "src/features/jobs/CorrectReturnModal.jsx": {
+    "inline": 12,
+    "hex": 0
+  },
+  "src/features/jobs/CrewCalendar.jsx": {
+    "inline": 30,
+    "hex": 0
+  },
+  "src/features/jobs/EditJobModal.jsx": {
+    "inline": 21,
+    "hex": 0
+  },
+  "src/features/jobs/JobHandoff.jsx": {
+    "inline": 11,
+    "hex": 0
+  },
+  "src/features/jobs/PullAddedMaterialsModal.jsx": {
+    "inline": 11,
+    "hex": 0
+  },
+  "src/features/jobs/PullInventoryView.jsx": {
+    "inline": 98,
+    "hex": 0
+  },
+  "src/features/maintenance/CompleteServiceModal.jsx": {
+    "inline": 7,
+    "hex": 0
+  },
+  "src/features/maintenance/MaintenanceCalendar.jsx": {
+    "inline": 30,
+    "hex": 0
+  },
+  "src/features/maintenance/MaintenanceRequestsView.jsx": {
+    "inline": 51,
+    "hex": 0
+  },
+  "src/features/reports/ReportsView.jsx": {
+    "inline": 110,
+    "hex": 1
+  },
+  "src/features/schedule/ScheduleView.jsx": {
+    "inline": 33,
+    "hex": 0
+  },
+  "src/features/settings/SettingsView.jsx": {
+    "inline": 79,
+    "hex": 0
+  },
+  "src/features/training/TrainingView.jsx": {
+    "inline": 41,
+    "hex": 3
+  },
+  "src/features/users/AuditLogView.jsx": {
+    "inline": 69,
+    "hex": 0
+  },
+  "src/features/users/UserManagementView.jsx": {
+    "inline": 34,
+    "hex": 0
+  },
+  "src/platform/OwnerConsole.jsx": {
+    "inline": 155,
+    "hex": 0
+  },
+  "src/public/LandingPage.jsx": {
+    "inline": 9,
+    "hex": 2
+  },
+  "src/shared/components/ChatWidget.jsx": {
+    "inline": 32,
+    "hex": 0
+  },
+  "src/shared/components/CompanySwitcher.jsx": {
+    "inline": 1,
+    "hex": 0
+  },
+  "src/shared/components/ErrorBoundary.jsx": {
+    "inline": 7,
+    "hex": 0
+  },
+  "src/shared/components/LayoutPrimitives.jsx": {
+    "inline": 2,
+    "hex": 0
+  },
+  "src/shared/components/OmniSearch.jsx": {
+    "inline": 9,
+    "hex": 0
+  },
+  "src/shared/components/PastDueBanner.jsx": {
+    "inline": 3,
+    "hex": 0
+  },
+  "src/shared/components/SearchBar.jsx": {
+    "inline": 2,
+    "hex": 0
+  },
+  "src/shared/components/SteadwerkMark.jsx": {
+    "inline": 4,
+    "hex": 2
+  },
+  "src/shared/components/SyncIndicator.jsx": {
+    "inline": 2,
+    "hex": 0
+  },
+  "src/shared/components/UIPrimitives.jsx": {
+    "inline": 53,
+    "hex": 1
+  },
+  "src/shared/components/VisitingBanner.jsx": {
+    "inline": 3,
+    "hex": 0
+  },
+  "src/shared/context/NotificationContext.jsx": {
+    "inline": 15,
+    "hex": 9
+  },
+  "src/shared/layouts/Sidebar.jsx": {
+    "inline": 28,
+    "hex": 0
+  }
+}

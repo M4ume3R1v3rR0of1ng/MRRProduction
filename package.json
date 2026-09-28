@@ -15,6 +15,7 @@
     "lint:fix": "eslint . --fix",
     "typecheck:money": "tsc -p tsconfig.money-permissions.json",
     "check:money-coverage": "node scripts/check-money-coverage.mjs",
+    "check:styles": "node scripts/check-style-drift.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

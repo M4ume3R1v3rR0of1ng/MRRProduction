@@ -71,6 +71,12 @@ jobs:
       - name: Money/permissions type check
         run: npm run typecheck:money
 
+      # Ratchet on inline styling: no .jsx file may add style={{}} blocks or raw
+      # hex colors past scripts/style-baseline.json. New UI goes through the
+      # shared primitives; see the header of scripts/check-style-drift.mjs.
+      - name: Style drift
+        run: npm run check:styles
+
       # Tests do not import every module, so they cannot catch a syntax error or a
       # bad import in a file nothing covers. The build does, and it is the same
       # command Netlify runs, so a green build here means a green deploy there.
