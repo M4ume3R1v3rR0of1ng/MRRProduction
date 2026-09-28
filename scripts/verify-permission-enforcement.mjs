@@ -25,6 +25,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
+import { ROLE_PERMS } from "../src/test/fixtures/rolePerms.js";
 
 // ── config ───────────────────────────────────────────────────────────────────
 const env = Object.fromEntries(
@@ -75,32 +76,8 @@ function check(name, ok, detail = "") {
 }
 
 // Mirrors production's role_permissions exactly, including the MISSING keys — those
-// are the interesting ones. `field`/`warehouse` have no jobs_close stored, so the
-// answer comes from default_job_perms(); if that default were wrong they'd silently
-// gain the ability to close jobs.
-const ROLE_PERMS = {
-  coordinator: {
-    jobs_build: true,
-    jobs_approve: true,
-    jobs_pull: true,
-    jobs_complete: true,
-    jobs_close: false,
-  },
-  bookkeeper: {
-    jobs_build: false,
-    jobs_approve: false,
-    jobs_pull: false,
-    jobs_complete: false,
-    jobs_close: true,
-  },
-  field: {
-    jobs_build: false,
-    jobs_approve: false,
-    jobs_pull: true,
-    jobs_complete: true /* jobs_close absent */,
-  },
-  employee: { fleet_view: true, maint_submit: true /* every job key absent */ },
-};
+// are the interesting ones. Shared with the UI permission matrix test so the two
+// halves can't drift; see src/test/fixtures/rolePerms.js.
 
 let testCompanyId = null;
 const users = {}; // role -> { uid, email, client }

@@ -186,6 +186,10 @@ export default defineConfig({
     // Node, not jsdom: these suites cover the money and permission logic, which is
     // pure. The one place that touches a browser global (pdfGenerator calls
     // window.open) stubs it itself, so jsdom would cost startup time and buy nothing.
+    //
+    // The exception is a component test that has to click something. Those are
+    // .test.jsx files that opt in per file with `// @vitest-environment jsdom`, so
+    // the node suites never pay jsdom's startup. See src/test/permissionMatrix.test.jsx.
     environment: "node",
     // Stubs the Supabase env vars before any module is imported. Without it the
     // nine suites that reach utils/supabase.js throw on import, and they only
@@ -195,6 +199,6 @@ export default defineConfig({
     // Netlify functions are covered too. The AccuLynx expense-notes cap is exactly
     // the fiddly boundary arithmetic that belongs under test, and it lives in
     // netlify/functions/_shared rather than src.
-    include: ["src/**/*.test.js", "netlify/**/*.test.js"],
+    include: ["src/**/*.test.{js,jsx}", "netlify/**/*.test.js"],
   },
 });

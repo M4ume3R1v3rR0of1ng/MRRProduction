@@ -3,14 +3,7 @@
 // these two must agree, or a button appears that the server then rejects.
 import { describe, it, expect } from "vitest";
 import { getEffectivePerms } from "./permissions";
-
-const ROLE_PERMS = {
-  // Jerry's real production config: pull and complete yes, close NO.
-  coordinator: { jobs_pull: true, jobs_complete: true, jobs_close: false, jobs_build: true },
-  bookkeeper: { jobs_pull: false, jobs_complete: false, jobs_close: true },
-  // field's stored row has no jobs_close key at all — mirrors production.
-  field: { jobs_pull: true, jobs_complete: true },
-};
+import { ROLE_PERMS } from "@/test/fixtures/rolePerms";
 
 describe("getEffectivePerms", () => {
   it("gives an admin everything without consulting the role table", () => {
