@@ -5,10 +5,12 @@
 # despite real source changes in both. The push succeeded, the site silently
 # stayed on the old bundle, and each deploy had to be forced by hand.
 #
-# The likely trigger is this site's base directory, "MRR Production": the repo
-# root is one level up, and the base path contains a space, which git quotes in
-# changed-path output. If Netlify's skip-check can't match those paths against
-# the base, it concludes nothing changed and cancels.
+# The likely trigger was this site's old base directory, "MRR Production": the
+# repo root used to be one level up, and the base path contains a space, which
+# git quotes in changed-path output. If Netlify's skip-check can't match those
+# paths against the base, it concludes nothing changed and cancels. The repo
+# root is now this folder and the base directory is empty, so the cause should
+# be gone; this stays until a few deploys prove it.
 #
 # `ignore` is the documented override: exit 0 means "skip this build", non-zero
 # means "build it". /bin/false always exits 1, so every push deploys. The cost

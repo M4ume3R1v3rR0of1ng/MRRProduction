@@ -9,38 +9,52 @@
 # one happened to hold only VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, both
 # public by design and both shipped in the client bundle anyway, so nothing
 # leaked. The next one would not be so lucky. Anything committed here is in the
-# history on two GitHub remotes and has to be treated as burned.
+# history on GitHub and has to be treated as burned.
 .env
 .env.*
 !.env.example
 # .env.ios holds no secrets: one line, VITE_APP_PLATFORM=ios. It has to be
 # committed or the App Store build is not reproducible from a clean checkout,
-# which is exactly what a CI macOS runner starts from. See src/utils/platform.js.
+# which is exactly what a CI macOS runner starts from.
 !.env.ios
-
-# Local Netlify folder
-.netlify
-
-# Dependencies — never commit installed packages
-node_modules/
-
-# Personal projects living in Documents that should stay out of this repo
-vuln-scanner/
-# Anchored with a leading slash on purpose. As a bare "App" this matched a
-# directory of that name at ANY depth, which silently swallowed
-# "MRR Production/ios/App" — the entire generated Xcode project, including
-# project.pbxproj, Info.plist and AppDelegate.swift. Nothing warns you: the files
-# sit on disk, `git add -A` skips them, and a CI macOS runner clones a repo with
-# no iOS project in it. The leading slash confines this to Documents/App.
-/App
-Baseline/
-Home-SOC-Project/
-Internship/
-Keylogger/
-NoteTaker/
-phishing-url-detector/
-Trucking/
-Vitaal/
 
 # Archives
 *.zip
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# vite-plugin-pwa's DEV service worker, regenerated on every `npm run dev`.
+# Three files and ~135 KB of Workbox were committed here before this rule
+# existed. It is generated, it is never deployed (the real worker is emitted
+# into dist/ by the production build), and a stale copy in the repo is one more
+# thing that can disagree with the code that made it.
+dev-dist/
+
+# Netlify Dev's local state.
+.netlify/
+
+# Netlify Dev writes this when it boots its Deno edge runtime, even though this
+# project has no edge functions at all: every function under netlify/functions
+# is a normal Node one. It is a byproduct of running the dev server, not a
+# dependency of anything we ship. Delete it freely if it reappears.
+deno.lock
+
+.DS_Store
+
+# Playwright E2E: its HTML report, raw run artifacts, and the throwaway-tenant
+# state file global-setup.js hands off to the test file (real ids/passwords for
+# a disposable test company — never meant to be committed).
+playwright-report/
+test-results/
+e2e/.e2e-state.json
+
+# Claude Code's own local session state — per-machine settings and a lock file
+# it writes for scheduled/background tasks. .claude/skills/ stays tracked;
+# these two do not belong in history, they were only ever staged by accident.
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

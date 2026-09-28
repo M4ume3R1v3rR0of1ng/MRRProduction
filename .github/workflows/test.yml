@@ -13,9 +13,6 @@
 #
 # So: no path filters here on purpose. This runs on every push. It is Linux, it
 # is about a minute, and the whole point is that nothing slips past it.
-#
-# NOTE ON PATHS: the git repo root is one level ABOVE the app. Everything lives in
-# "MRR Production/", space included.
 
 name: test
 
@@ -37,10 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    defaults:
-      run:
-        working-directory: 'MRR Production'
-
     steps:
       - uses: actions/checkout@v4
 
@@ -48,7 +41,6 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: 'MRR Production/package-lock.json'
 
       # ci, not install: fails loudly if package-lock.json and package.json have
       # drifted, rather than quietly resolving something different from local.

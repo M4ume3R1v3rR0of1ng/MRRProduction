@@ -15,9 +15,6 @@
 # VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY secrets ios-build.yml already
 # uses — global-setup.js needs it to create and tear down the test tenant.
 # This workflow fails until that secret is added.
-#
-# NOTE ON PATHS: the git repo root is one level ABOVE the app, same as every
-# other workflow here — see test.yml's header comment.
 
 name: e2e
 
@@ -37,10 +34,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    defaults:
-      run:
-        working-directory: 'MRR Production'
-
     steps:
       - uses: actions/checkout@v4
 
@@ -48,7 +41,6 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: 'MRR Production/package-lock.json'
 
       - name: Install dependencies
         run: npm ci
@@ -68,5 +60,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: 'MRR Production/playwright-report/'
+          path: playwright-report/
           retention-days: 14

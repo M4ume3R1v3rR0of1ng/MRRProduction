@@ -9,10 +9,6 @@
 # WHAT IT DOES NOT DO: produce anything installable on a real iPhone or uploadable
 # to TestFlight. Both need a paid Apple Developer account and signing assets. See
 # the block at the bottom of this file for what to add once enrollment completes.
-#
-# NOTE ON PATHS: the git repo root is one level ABOVE the app. Everything lives in
-# "MRR Production/", space included, which is why every path here is prefixed and
-# quoted.
 
 name: iOS build
 
@@ -23,15 +19,15 @@ on:
     # (netlify functions, supabase migrations, the landing page) do not need a
     # macOS runner, and macOS minutes bill at ten times the Linux rate.
     paths:
-      - 'MRR Production/src/**'
-      - 'MRR Production/ios/**'
-      - 'MRR Production/public/**'
-      - 'MRR Production/index.html'
-      - 'MRR Production/package.json'
-      - 'MRR Production/package-lock.json'
-      - 'MRR Production/capacitor.config.json'
-      - 'MRR Production/vite.config.js'
-      - 'MRR Production/.env.ios'
+      - 'src/**'
+      - 'ios/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.json'
+      - 'vite.config.js'
+      - '.env.ios'
       - '.github/workflows/ios-build.yml'
   # Lets you run it by hand from the Actions tab without pushing anything.
   workflow_dispatch:
@@ -46,10 +42,6 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
 
-    defaults:
-      run:
-        working-directory: 'MRR Production'
-
     steps:
       - uses: actions/checkout@v4
 
@@ -57,7 +49,6 @@ jobs:
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: 'MRR Production/package-lock.json'
 
       # ci, not install: fails loudly if package-lock.json and package.json have
       # drifted, rather than quietly resolving something different from local.
