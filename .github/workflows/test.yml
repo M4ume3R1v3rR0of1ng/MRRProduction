@@ -58,6 +58,18 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      # tsconfig.money-permissions.json type-checks a hand-picked list of files —
+      # everywhere a wrong type moves money or an access decision — rather than
+      # the whole app, since project-wide checkJs would light up hundreds of
+      # pre-existing errors in unrelated JSX views. That list only stays honest
+      # if something catches a new money-moving file that never got added to it,
+      # which is exactly what happened to delete-company.js before this existed.
+      - name: Money/permissions file coverage
+        run: npm run check:money-coverage
+
+      - name: Money/permissions type check
+        run: npm run typecheck:money
+
       # Tests do not import every module, so they cannot catch a syntax error or a
       # bad import in a file nothing covers. The build does, and it is the same
       # command Netlify runs, so a green build here means a green deploy there.

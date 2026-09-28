@@ -1,0 +1,72 @@
+# The one real-browser test: login -> build -> approve -> pull -> complete ->
+# close, against a disposable throwaway tenant in the same Supabase project
+# test.yml's build already talks to (see e2e/global-setup.js). See the README
+# known-gaps entry this closes: nothing else in CI ever renders a component or
+# writes through Supabase for real.
+#
+# SEPARATE FROM test.yml ON PURPOSE. test.yml is fast (~1 min) and touches no
+# external network at all — that is deliberate, see its own header comment.
+# This job needs a live Supabase round-trip, a Chromium download, and a full
+# production build+preview, so it earns its own workflow rather than slowing
+# down the cheap check that runs on everything. Same reasoning that split
+# ios-build.yml out originally.
+#
+# REQUIRES a SUPABASE_SERVICE_ROLE_KEY repository secret in addition to the
+# VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY secrets ios-build.yml already
+# uses — global-setup.js needs it to create and tear down the test tenant.
+# This workflow fails until that secret is added.
+#
+# NOTE ON PATHS: the git repo root is one level ABOVE the app, same as every
+# other workflow here — see test.yml's header comment.
+
+name: e2e
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Job pipeline (real browser)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: 'MRR Production'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: 'MRR Production/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright's Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run job pipeline E2E test
+        run: npm run test:e2e
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: 'MRR Production/playwright-report/'
+          retention-days: 14
