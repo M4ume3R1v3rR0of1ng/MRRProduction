@@ -39,13 +39,22 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
 
       # ci, not install: fails loudly if package-lock.json and package.json have
       # drifted, rather than quietly resolving something different from local.
       - name: Install dependencies
         run: npm ci
+
+      # Both ran only when someone remembered to, and 50 files had drifted out
+      # of Prettier's style before this step existed. Lint fails on errors only;
+      # its warnings (mostly hook dependency arrays) are reported, not gating.
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
 
       - name: Unit tests
         run: npm test
