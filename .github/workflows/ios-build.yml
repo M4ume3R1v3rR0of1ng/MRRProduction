@@ -19,16 +19,16 @@ on:
     # (netlify functions, supabase migrations, the landing page) do not need a
     # macOS runner, and macOS minutes bill at ten times the Linux rate.
     paths:
-      - 'src/**'
-      - 'ios/**'
-      - 'public/**'
-      - 'index.html'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'capacitor.config.json'
-      - 'vite.config.js'
-      - '.env.ios'
-      - '.github/workflows/ios-build.yml'
+      - "src/**"
+      - "ios/**"
+      - "public/**"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "capacitor.config.json"
+      - "vite.config.js"
+      - ".env.ios"
+      - ".github/workflows/ios-build.yml"
   # Lets you run it by hand from the Actions tab without pushing anything.
   workflow_dispatch:
 
@@ -47,7 +47,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
 
       # ci, not install: fails loudly if package-lock.json and package.json have

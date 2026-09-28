@@ -185,8 +185,8 @@ export default function BatchCorrectionModal({
         {/* Third copy of the same broken lookup. See utils/people. */}
         {resolveBatchPerson(users, batch)}
         <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
-          Quantities aren't editable here — use <Wrench size={10} aria-hidden="true" /> Adjust
-          Stock for those.
+          Quantities aren't editable here — use <Wrench size={10} aria-hidden="true" /> Adjust Stock
+          for those.
         </div>
       </div>
 

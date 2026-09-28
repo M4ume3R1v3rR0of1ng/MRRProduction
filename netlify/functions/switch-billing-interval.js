@@ -107,15 +107,14 @@ const rawHandler = async (event) => {
 
     const monthlyPack = process.env.STRIPE_SEAT_PACK_PRICE_ID;
     const annualPack = process.env.STRIPE_SEAT_PACK_ANNUAL_PRICE_ID;
-    const packItem = items.find(
-      (it) => monthlyPack && it.price?.id === monthlyPack,
-    );
+    const packItem = items.find((it) => monthlyPack && it.price?.id === monthlyPack);
 
     const updateItems = [{ id: baseItem.id, price: annualBase }];
     if (packItem) {
       if (!annualPack) {
         return json(500, headers, {
-          error: "Annual crew packs are not configured yet (missing STRIPE_SEAT_PACK_ANNUAL_PRICE_ID).",
+          error:
+            "Annual crew packs are not configured yet (missing STRIPE_SEAT_PACK_ANNUAL_PRICE_ID).",
         });
       }
       updateItems.push({ id: packItem.id, price: annualPack });

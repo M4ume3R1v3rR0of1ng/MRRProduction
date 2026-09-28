@@ -133,7 +133,8 @@ export const translations = {
     blSeatLimit: "You're at your seat limit. Add a pack to invite more users.",
     blSeatsNearLimit: "You're close to your seat limit. Add a pack before you run out.",
     blSwitchAnnual: "Switch to annual billing",
-    blSwitchAnnualBlurb: "Prepay for the year and save {pct}% — ${price}/year instead of paying monthly.",
+    blSwitchAnnualBlurb:
+      "Prepay for the year and save {pct}% — ${price}/year instead of paying monthly.",
     blSwitchAnnualConfirm:
       "Switch to annual billing? You'll be charged today for the annual plan, prorated for what's left on your current cycle.",
     blSwitchAnnualDone: "Switched to annual billing.",
@@ -684,7 +685,8 @@ export const translations = {
     maintResolutionNotesLabel: "Resolution Notes:",
     maintClosedOn: "Closed on:",
     maintDownloadPdf: "Download PDF",
-    maintPdfPopupBlocked: "Your browser blocked the report popup. Allow popups for this site and try again.",
+    maintPdfPopupBlocked:
+      "Your browser blocked the report popup. Allow popups for this site and try again.",
     maintReported: "reported",
     maintInLast60: "in the last 60 days",
     maintTrendingUp: "requests trending up fleet-wide",
@@ -744,8 +746,7 @@ export const translations = {
     pullSortNameAZ: "Job Name — A to Z",
     pullSortNameZA: "Job Name — Z to A",
     pullSortPO: "PO Number",
-    pullAllCaughtUp:
-      "All caught up — no open jobs right now. Completed jobs live in Build Jobs.",
+    pullAllCaughtUp: "All caught up — no open jobs right now. Completed jobs live in Build Jobs.",
     pullNew: "NEW",
     pullNoPoHash: "No PO #",
     pullSyncFailed: "Sync Failed",
@@ -1230,7 +1231,8 @@ export const translations = {
       "Build Jobs is where a job gets created, staffed, and closed out. Pull Inventory is where a crew pulls the materials a specific job needs. Inventory is the full stock view — levels, batches, and what's running low — across everything in the yard.",
     trFaqQ2: "What does the Fleet view show?",
     trFaqA2Lead: "Every vehicle, in one place.",
-    trFaqA2Rest: "Assignments, oil and service due dates, and which trucks are currently out of service.",
+    trFaqA2Rest:
+      "Assignments, oil and service due dates, and which trucks are currently out of service.",
     trFaqQ3: "What's the Maintenance screen for?",
     trFaqA3Lead: "Reporting and tracking vehicle issues.",
     trFaqA3Rest:
@@ -1472,8 +1474,7 @@ export const translations = {
     blComplimentary: "Cortesía — usuarios ilimitados",
     blUsers: "Usuarios",
     blSeatLimit: "Alcanzó su límite de usuarios. Agregue un paquete para invitar a más.",
-    blSeatsNearLimit:
-      "Está cerca de su límite de usuarios. Agregue un paquete antes de agotarlo.",
+    blSeatsNearLimit: "Está cerca de su límite de usuarios. Agregue un paquete antes de agotarlo.",
     blSwitchAnnual: "Cambiar a facturación anual",
     blSwitchAnnualBlurb:
       "Pague el año por adelantado y ahorre {pct}% — ${price}/año en vez de pagar mensualmente.",
@@ -2034,7 +2035,8 @@ export const translations = {
     maintResolutionNotesLabel: "Notas de Resolución:",
     maintClosedOn: "Cerrado el:",
     maintDownloadPdf: "Descargar PDF",
-    maintPdfPopupBlocked: "Su navegador bloqueó la ventana emergente del informe. Permita ventanas emergentes para este sitio e intente de nuevo.",
+    maintPdfPopupBlocked:
+      "Su navegador bloqueó la ventana emergente del informe. Permita ventanas emergentes para este sitio e intente de nuevo.",
     maintReported: "reportado",
     maintInLast60: "en los últimos 60 días",
     maintTrendingUp: "solicitudes en aumento en toda la flota",

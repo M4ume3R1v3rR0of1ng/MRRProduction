@@ -354,242 +354,242 @@ export default function TrainingView({
         {items.map((clip) => {
           const isEditing = editingId === clip.id;
           return (
-          <div
-            key={clip.id}
-            style={{
-              background: C.w,
-              borderRadius: "var(--radius-xl)",
-              boxShadow: "var(--shadow-sm)",
-              overflow: "hidden",
-            }}
-          >
-            <div style={{ padding: "var(--space-5) var(--space-5) var(--space-4)" }}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  justifyContent: "space-between",
-                  gap: "var(--space-4)",
-                }}
-              >
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: "var(--text-2xs)",
-                      letterSpacing: ".14em",
-                      textTransform: "uppercase",
-                      fontWeight: "var(--weight-extrabold)",
-                      color: C.am,
-                      marginBottom: 6,
-                    }}
-                  >
-                    {/* Uploads carry no eyebrow. Falling back to who added it is more
-                        use than an empty strip of whitespace above the title. */}
-                    {clip.eyebrow ||
-                      (clip.created_by_name
-                        ? `${t.trAddedBy} ${clip.created_by_name}`
-                        : t.trYourLibrary)}
-                  </div>
-                  {isEditing ? (
-                    <Inp
-                      value={editForm.title}
-                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                      disabled={savingEdit}
-                    />
-                  ) : (
+            <div
+              key={clip.id}
+              style={{
+                background: C.w,
+                borderRadius: "var(--radius-xl)",
+                boxShadow: "var(--shadow-sm)",
+                overflow: "hidden",
+              }}
+            >
+              <div style={{ padding: "var(--space-5) var(--space-5) var(--space-4)" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: "var(--space-4)",
+                  }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
-                        fontSize: "var(--text-lg)",
+                        fontSize: "var(--text-2xs)",
+                        letterSpacing: ".14em",
+                        textTransform: "uppercase",
                         fontWeight: "var(--weight-extrabold)",
-                        color: C.navy,
+                        color: C.am,
+                        marginBottom: 6,
                       }}
                     >
-                      {clip.title}
+                      {/* Uploads carry no eyebrow. Falling back to who added it is more
+                        use than an empty strip of whitespace above the title. */}
+                      {clip.eyebrow ||
+                        (clip.created_by_name
+                          ? `${t.trAddedBy} ${clip.created_by_name}`
+                          : t.trYourLibrary)}
                     </div>
-                  )}
-                </div>
-                {/* Bundled clips ship in the build and belong to Steadwerk, so there is
+                    {isEditing ? (
+                      <Inp
+                        value={editForm.title}
+                        onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                        disabled={savingEdit}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          fontSize: "var(--text-lg)",
+                          fontWeight: "var(--weight-extrabold)",
+                          color: C.navy,
+                        }}
+                      >
+                        {clip.title}
+                      </div>
+                    )}
+                  </div>
+                  {/* Bundled clips ship in the build and belong to Steadwerk, so there is
                     nothing a tenant admin could edit or delete even if the button were
                     here — "The Full Tour" included, since supabase/44 made it a real
                     row. Beyond that: a platform admin (Owner) can edit anything; a
                     company Admin can only edit their own company's clips, never a
                     global one Steadwerk added — the row-write RLS policy refuses that
                     regardless of whether this button is shown. */}
-                {!clip.bundled && (isPlatformAdmin || (isCompanyAdmin && !clip.is_global)) && (
-                  <Btn
-                    v="ghost"
-                    sz="sm"
-                    onClick={() => (isEditing ? cancelEdit() : startEdit(clip))}
+                  {!clip.bundled && (isPlatformAdmin || (isCompanyAdmin && !clip.is_global)) && (
+                    <Btn
+                      v="ghost"
+                      sz="sm"
+                      onClick={() => (isEditing ? cancelEdit() : startEdit(clip))}
+                    >
+                      {isEditing ? (
+                        t.trCancel
+                      ) : (
+                        <>
+                          <Pencil size={13} aria-hidden="true" /> {t.trEdit}
+                        </>
+                      )}
+                    </Btn>
+                  )}
+                </div>
+                {isEditing ? (
+                  <div style={{ marginTop: "var(--space-3)" }}>
+                    <Fld label={t.trBlurb} hint={t.trBlurbHint}>
+                      <TA
+                        value={editForm.blurb}
+                        onChange={(e) => setEditForm({ ...editForm, blurb: e.target.value })}
+                        disabled={savingEdit}
+                      />
+                    </Fld>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <Btn v="primary" sz="sm" onClick={() => saveEdit(clip)} disabled={savingEdit}>
+                        {savingEdit ? t.trUploading : t.trSaveChanges}
+                      </Btn>
+                      <Btn
+                        v="danger"
+                        sz="sm"
+                        onClick={() => removeMedia(clip)}
+                        disabled={savingEdit}
+                      >
+                        <Trash2 size={13} aria-hidden="true" /> {t.trRemove}
+                      </Btn>
+                    </div>
+                  </div>
+                ) : (
+                  <p
+                    style={{
+                      color: C.sub,
+                      fontSize: "var(--text-sm)",
+                      margin: "6px 0 0",
+                      maxWidth: "72ch",
+                    }}
                   >
-                    {isEditing ? (
-                      t.trCancel
-                    ) : (
-                      <>
-                        <Pencil size={13} aria-hidden="true" /> {t.trEdit}
-                      </>
-                    )}
-                  </Btn>
+                    {clip.blurb}
+                  </p>
                 )}
               </div>
-              {isEditing ? (
-                <div style={{ marginTop: "var(--space-3)" }}>
-                  <Fld label={t.trBlurb} hint={t.trBlurbHint}>
-                    <TA
-                      value={editForm.blurb}
-                      onChange={(e) => setEditForm({ ...editForm, blurb: e.target.value })}
-                      disabled={savingEdit}
-                    />
-                  </Fld>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <Btn v="primary" sz="sm" onClick={() => saveEdit(clip)} disabled={savingEdit}>
-                      {savingEdit ? t.trUploading : t.trSaveChanges}
-                    </Btn>
-                    <Btn
-                      v="danger"
-                      sz="sm"
-                      onClick={() => removeMedia(clip)}
-                      disabled={savingEdit}
-                    >
-                      <Trash2 size={13} aria-hidden="true" /> {t.trRemove}
-                    </Btn>
-                  </div>
-                </div>
-              ) : (
-                <p
-                  style={{
-                    color: C.sub,
-                    fontSize: "var(--text-sm)",
-                    margin: "6px 0 0",
-                    maxWidth: "72ch",
-                  }}
-                >
-                  {clip.blurb}
-                </p>
-              )}
-            </div>
 
-            {/* The poster is a real button so it is focusable and keyboard
+              {/* The poster is a real button so it is focusable and keyboard
                 operable. Once play starts it drops away and the video's native
                 controls own everything after that — no custom transport to
                 maintain or to get wrong on mobile. */}
-            {/* sw-video-half caps this at half width on desktop. The poster
+              {/* sw-video-half caps this at half width on desktop. The poster
                 button below is inset:0 against THIS element, so the cap has to
                 live here rather than on the <video>, or the overlay would keep
                 the old full-width footprint and sit off the frame. */}
-            {/* Rounded and inset now that it no longer bleeds to the card edge.
+              {/* Rounded and inset now that it no longer bleeds to the card edge.
                 At full width it borrowed the card's own bottom corners; centered
                 with gutters either side it needs its own, or it reads as a black
                 block someone forgot to finish. */}
-            <div
-              className="sw-video-half"
-              style={{
-                position: "relative",
-                background: "#000",
-                borderRadius: "var(--radius-lg)",
-                overflow: "hidden",
-                marginBottom: "var(--space-5)",
-              }}
-            >
-              {/* Bundled clips carry `src` (a path under public/); uploads carry `url`
+              <div
+                className="sw-video-half"
+                style={{
+                  position: "relative",
+                  background: "#000",
+                  borderRadius: "var(--radius-lg)",
+                  overflow: "hidden",
+                  marginBottom: "var(--space-5)",
+                }}
+              >
+                {/* Bundled clips carry `src` (a path under public/); uploads carry `url`
                   (a Supabase CDN link, which is why public/_headers now names that
                   origin under media-src). */}
-              {clip.kind === "photo" ? (
-                <img
-                  src={clip.url || clip.src}
-                  alt={clip.title}
-                  loading="lazy"
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    aspectRatio: "16 / 9",
-                    objectFit: "contain",
-                    background: "#000",
-                  }}
-                />
-              ) : (
-                <video
-                  ref={(el) => {
-                    refs.current[clip.id] = el;
-                  }}
-                  controls
-                  preload="metadata"
-                  playsInline
-                  poster={clip.poster || undefined}
-                  onPlay={() => setStarted((p) => ({ ...p, [clip.id]: true }))}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    aspectRatio: "16 / 9",
-                    objectFit: "contain",
-                    background: "#000",
-                  }}
-                >
-                  <source src={clip.src || clip.url} />
-                  {t.trainingNoVideo}{" "}
-                  <a href={clip.src || clip.url} style={{ color: C.am }}>
-                    {t.trainingDownload}
-                  </a>
-                </video>
-              )}
+                {clip.kind === "photo" ? (
+                  <img
+                    src={clip.url || clip.src}
+                    alt={clip.title}
+                    loading="lazy"
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      aspectRatio: "16 / 9",
+                      objectFit: "contain",
+                      background: "#000",
+                    }}
+                  />
+                ) : (
+                  <video
+                    ref={(el) => {
+                      refs.current[clip.id] = el;
+                    }}
+                    controls
+                    preload="metadata"
+                    playsInline
+                    poster={clip.poster || undefined}
+                    onPlay={() => setStarted((p) => ({ ...p, [clip.id]: true }))}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      aspectRatio: "16 / 9",
+                      objectFit: "contain",
+                      background: "#000",
+                    }}
+                  >
+                    <source src={clip.src || clip.url} />
+                    {t.trainingNoVideo}{" "}
+                    <a href={clip.src || clip.url} style={{ color: C.am }}>
+                      {t.trainingDownload}
+                    </a>
+                  </video>
+                )}
 
-              {clip.kind !== "photo" && !started[clip.id] && (
-                <button
-                  type="button"
-                  onClick={start(clip.id)}
-                  aria-label={`${t.trainingPlay}: ${clip.title}`}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    border: 0,
-                    padding: 0,
-                    cursor: "pointer",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 14,
-                    font: "inherit",
-                    // shellInk, not a literal: this poster is the same "stays dark
-                    // in both themes" chrome as the sidebar, and the palette audit
-                    // in utils/palette.test.js rejects hardcoded light ink for
-                    // exactly the reason it would break here if the gradient ever
-                    // stopped being dark.
-                    color: C.shellInk,
-                    background:
-                      "repeating-linear-gradient(115deg, transparent 0 46px, rgba(201,123,45,.07) 46px 48px), radial-gradient(ellipse at 50% 34%, #2F353C 0%, #23282D 55%, #171B1F 100%)",
-                  }}
-                >
-                  <span
-                    aria-hidden="true"
+                {clip.kind !== "photo" && !started[clip.id] && (
+                  <button
+                    type="button"
+                    onClick={start(clip.id)}
+                    aria-label={`${t.trainingPlay}: ${clip.title}`}
                     style={{
-                      width: 68,
-                      height: 68,
-                      borderRadius: "50%",
-                      display: "grid",
-                      placeItems: "center",
-                      background: C.am,
-                      color: C.onAccent,
-                      fontSize: 21,
-                      paddingLeft: 5,
-                      boxShadow: "0 10px 34px rgba(0,0,0,.42)",
+                      position: "absolute",
+                      inset: 0,
+                      border: 0,
+                      padding: 0,
+                      cursor: "pointer",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 14,
+                      font: "inherit",
+                      // shellInk, not a literal: this poster is the same "stays dark
+                      // in both themes" chrome as the sidebar, and the palette audit
+                      // in utils/palette.test.js rejects hardcoded light ink for
+                      // exactly the reason it would break here if the gradient ever
+                      // stopped being dark.
+                      color: C.shellInk,
+                      background:
+                        "repeating-linear-gradient(115deg, transparent 0 46px, rgba(201,123,45,.07) 46px 48px), radial-gradient(ellipse at 50% 34%, #2F353C 0%, #23282D 55%, #171B1F 100%)",
                     }}
                   >
-                    ▶
-                  </span>
-                  <span
-                    style={{
-                      fontWeight: "var(--weight-extrabold)",
-                      fontSize: "var(--text-md)",
-                      padding: "0 20px",
-                      textAlign: "center",
-                    }}
-                  >
-                    {clip.title}
-                  </span>
-                </button>
-              )}
+                    <span
+                      aria-hidden="true"
+                      style={{
+                        width: 68,
+                        height: 68,
+                        borderRadius: "50%",
+                        display: "grid",
+                        placeItems: "center",
+                        background: C.am,
+                        color: C.onAccent,
+                        fontSize: 21,
+                        paddingLeft: 5,
+                        boxShadow: "0 10px 34px rgba(0,0,0,.42)",
+                      }}
+                    >
+                      ▶
+                    </span>
+                    <span
+                      style={{
+                        fontWeight: "var(--weight-extrabold)",
+                        fontSize: "var(--text-md)",
+                        padding: "0 20px",
+                        textAlign: "center",
+                      }}
+                    >
+                      {clip.title}
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
           );
         })}
       </div>

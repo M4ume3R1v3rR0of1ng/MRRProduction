@@ -541,7 +541,13 @@ export default function FleetManagementView({
             marginTop: 10,
           }}
         >
-          <Truck size={44} color="var(--c-slate)" strokeWidth={1.5} style={{ marginBottom: 16 }} aria-hidden="true" />
+          <Truck
+            size={44}
+            color="var(--c-slate)"
+            strokeWidth={1.5}
+            style={{ marginBottom: 16 }}
+            aria-hidden="true"
+          />
           <h3
             style={{
               margin: "0 0 8px 0",
@@ -643,7 +649,12 @@ export default function FleetManagementView({
                   ["truck", t.flFilterTrucks],
                   ["trailer", t.flFilterTrailers],
                 ].map(([f, label]) => (
-                  <FilterPill key={f} label={label} active={filt === f} onClick={() => setFilt(f)} />
+                  <FilterPill
+                    key={f}
+                    label={label}
+                    active={filt === f}
+                    onClick={() => setFilt(f)}
+                  />
                 ))}
                 <Sel
                   value={sortBy}
@@ -737,7 +748,8 @@ export default function FleetManagementView({
                 //
                 // Declared up here because fleetStatus below reads it.
                 const blockingReq = reqs.find(
-                  (r) => r.vid === v.id && r.status === "scheduled" && isServiceDue(r, todayLocal()),
+                  (r) =>
+                    r.vid === v.id && r.status === "scheduled" && isServiceDue(r, todayLocal()),
                 );
                 const isBlocked = !!blockingReq;
                 // Precedence lives in features/fleet/fleetStatus so it can be tested without the
@@ -1132,7 +1144,8 @@ export default function FleetManagementView({
             {perms.fleet_edit &&
               (isGrounded(sel) ? (
                 <Btn v="green" sz="sm" disabled={grounding} onClick={() => setServiceStatus(false)}>
-                  <CheckCircle2 size={14} aria-hidden="true" /> {grounding ? "…" : t.flReturnToService}
+                  <CheckCircle2 size={14} aria-hidden="true" />{" "}
+                  {grounding ? "…" : t.flReturnToService}
                 </Btn>
               ) : (
                 <Btn

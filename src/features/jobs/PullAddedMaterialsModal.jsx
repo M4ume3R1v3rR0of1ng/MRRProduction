@@ -243,7 +243,13 @@ export default function PullAddedMaterialsModal({
                       }}
                     >
                       {avail} {item.unit || ""}
-                      {short && <AlertTriangle size={11} style={{ marginLeft: 4, verticalAlign: -1 }} aria-hidden="true" />}
+                      {short && (
+                        <AlertTriangle
+                          size={11}
+                          style={{ marginLeft: 4, verticalAlign: -1 }}
+                          aria-hidden="true"
+                        />
+                      )}
                     </td>
                     <td style={{ padding: "8px 10px" }}>
                       <Inp

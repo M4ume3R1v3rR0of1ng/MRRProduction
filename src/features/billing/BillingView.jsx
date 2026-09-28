@@ -105,8 +105,7 @@ export default function BillingView({ user, lang = "en" }) {
   const recurring = Math.max(0, (packs ?? 0) - grandfathered);
   const monthly = capacity == null ? null : BASE_PRICE + PACK_PRICE * recurring;
   const removable = maxRemovablePacks({ recurringPacks: recurring, capacity, used });
-  const nearingLimit =
-    capacity != null && used < capacity && used / capacity >= SEAT_WARNING_RATIO;
+  const nearingLimit = capacity != null && used < capacity && used / capacity >= SEAT_WARNING_RATIO;
 
   // Expired or expiring this month/next — a difference in total months, so it's
   // correct across a December→January boundary without any date-library math.
@@ -372,7 +371,9 @@ export default function BillingView({ user, lang = "en" }) {
               />
               <button
                 onClick={saveContactName}
-                disabled={contactBusy || !contactName.trim() || contactName.trim() === savedContactName}
+                disabled={
+                  contactBusy || !contactName.trim() || contactName.trim() === savedContactName
+                }
                 style={{
                   padding: "10px 16px",
                   background: C.gold,

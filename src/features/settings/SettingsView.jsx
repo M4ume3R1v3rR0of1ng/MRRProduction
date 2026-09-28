@@ -1062,9 +1062,18 @@ export default function SettingsView({
       {/* ── PANEL: Branding ────────────────────────────────────────────── */}
       {currentTab === "Branding" && (
         <Card>
-          <SectionTitle icon={Building2} title={t.stCompanyDetails} subtitle={t.stCompanyDetailsDesc} />
+          <SectionTitle
+            icon={Building2}
+            title={t.stCompanyDetails}
+            subtitle={t.stCompanyDetailsDesc}
+          />
 
-          <CardGrid minWidth={200} fit gap="var(--space-4)" style={{ paddingTop: 12, marginBottom: 8 }}>
+          <CardGrid
+            minWidth={200}
+            fit
+            gap="var(--space-4)"
+            style={{ paddingTop: 12, marginBottom: 8 }}
+          >
             <Fld label={t.stCompanyName} hint={t.stCompanyNameHint}>
               <Inp
                 value={brandForm.displayName}

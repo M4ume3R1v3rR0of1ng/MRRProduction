@@ -1,16 +1,7 @@
 // src/features/jobs/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
 import { useState, useEffect, useRef, Fragment } from "react";
-import {
-  ClipboardList,
-  X,
-  Sparkles,
-  Bell,
-  User,
-  Truck,
-  AlertTriangle,
-  Pencil,
-} from "lucide-react";
+import { ClipboardList, X, Sparkles, Bell, User, Truck, AlertTriangle, Pencil } from "lucide-react";
 import {
   C,
   fd,

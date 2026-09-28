@@ -387,8 +387,10 @@ export default function DashboardView({
   const totalInventoryCost = inv.reduce(
     (sum, item) =>
       sum +
-      (item.batches?.reduce((s, b) => s + (parseFloat(b.rem) || 0) * (parseFloat(b.price) || 0), 0) ||
-        0),
+      (item.batches?.reduce(
+        (s, b) => s + (parseFloat(b.rem) || 0) * (parseFloat(b.price) || 0),
+        0,
+      ) || 0),
     0,
   );
 
@@ -1421,7 +1423,12 @@ export default function DashboardView({
           of content and was being stretched across the whole screen on its own; the
           action tiles are a 2×2 block of roughly the same height beside it. Both
           halves fall back to full width below 320px of column. */}
-      <CardGrid minWidth={320} fit gap="var(--space-4)" style={{ alignItems: "start", marginBottom: 20 }}>
+      <CardGrid
+        minWidth={320}
+        fit
+        gap="var(--space-4)"
+        style={{ alignItems: "start", marginBottom: 20 }}
+      >
         <div
           style={{
             display: "grid",

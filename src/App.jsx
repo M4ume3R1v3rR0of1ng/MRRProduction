@@ -685,7 +685,11 @@ export default function App() {
                 alignItems: "center",
               }}
             >
-              {mobileMenuOpen ? <X size={26} aria-hidden="true" /> : <Menu size={26} aria-hidden="true" />}
+              {mobileMenuOpen ? (
+                <X size={26} aria-hidden="true" />
+              ) : (
+                <Menu size={26} aria-hidden="true" />
+              )}
             </button>
           </div>
         )}
@@ -774,7 +778,11 @@ export default function App() {
               }}
             >
               <span style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
-                <AlertTriangle size={15} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
+                <AlertTriangle
+                  size={15}
+                  style={{ marginTop: 2, flexShrink: 0 }}
+                  aria-hidden="true"
+                />
                 <span>
                   Live data failed to load: {app.loadErrors.join(", ")}. Those sections are shown
                   empty rather than with possibly-wrong data — don't make changes until this clears.

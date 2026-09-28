@@ -372,7 +372,9 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
             {selectable.length === 0 && (
               <EmptyState
                 well
-                message={rows.length > 0 ? "All items matched ✓" : "No matching inventory items found"}
+                message={
+                  rows.length > 0 ? "All items matched ✓" : "No matching inventory items found"
+                }
                 style={{ padding: 20 }}
               />
             )}

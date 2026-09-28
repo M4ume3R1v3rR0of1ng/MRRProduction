@@ -346,7 +346,8 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
               border: `1.5px solid ${C.bd}`,
             }}
           >
-            <Mail size={14} aria-hidden="true" /> {user?.email || "No email associated with this profile"}
+            <Mail size={14} aria-hidden="true" />{" "}
+            {user?.email || "No email associated with this profile"}
           </div>
         </div>
 

@@ -10,9 +10,8 @@ vi.mock("@/shared/utils/supabase", () => ({
   getAccessToken: vi.fn(),
 }));
 
-const { generateMaintenancePdf, buildMaintenanceReportModel, pdfFileNameFor } = await import(
-  "./maintenancePdf"
-);
+const { generateMaintenancePdf, buildMaintenanceReportModel, pdfFileNameFor } =
+  await import("./maintenancePdf");
 
 // generateMaintenancePdf writes into a popup. Capture the HTML instead of opening one.
 let html = "";

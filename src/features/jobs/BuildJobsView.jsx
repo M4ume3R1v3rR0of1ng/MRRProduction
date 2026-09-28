@@ -1116,8 +1116,8 @@ export default function BuildJobs({
                         }}
                       >
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                          <Package size={11} aria-hidden="true" /> {Math.max(currentItems.length, 0)}{" "}
-                          items
+                          <Package size={11} aria-hidden="true" />{" "}
+                          {Math.max(currentItems.length, 0)} items
                         </span>
                         {sup ? (
                           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -1232,7 +1232,8 @@ export default function BuildJobs({
                                 if (go) closeJob(job);
                               }}
                             >
-                              <Lock size={13} aria-hidden="true" /> {closing ? t.bjClosing : "Close"}
+                              <Lock size={13} aria-hidden="true" />{" "}
+                              {closing ? t.bjClosing : "Close"}
                             </Btn>
                           )}
                           {perms.jobs_approve && (

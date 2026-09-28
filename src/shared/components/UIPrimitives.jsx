@@ -359,7 +359,11 @@ export function EmptyState({
     >
       {Icon && <Icon size={iconSize} strokeWidth={1.5} aria-hidden="true" />}
       <span
-        style={{ fontSize: "var(--text-sm)", fontWeight: "var(--weight-semibold)", ...messageStyle }}
+        style={{
+          fontSize: "var(--text-sm)",
+          fontWeight: "var(--weight-semibold)",
+          ...messageStyle,
+        }}
       >
         {message}
       </span>
@@ -384,7 +388,13 @@ export function EmptyState({
 // rather than showing "0", which would read as a dead filter worth clicking.
 export function FilterPill({ label, count, active, onClick, title }) {
   return (
-    <Btn v={active ? "primary" : "ghost"} sz="sm" onClick={onClick} aria-pressed={active} title={title}>
+    <Btn
+      v={active ? "primary" : "ghost"}
+      sz="sm"
+      onClick={onClick}
+      aria-pressed={active}
+      title={title}
+    >
       {label}
       {count > 0 && (
         <span

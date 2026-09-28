@@ -617,8 +617,7 @@ export function useAppData() {
 
         const unread = trainingMedia.filter(
           (m) =>
-            m.created_by !== curUser.id &&
-            new Date(m.created_at) > new Date(readRow.last_read_at),
+            m.created_by !== curUser.id && new Date(m.created_at) > new Date(readRow.last_read_at),
         ).length;
         if (!cancelled) setTrainingUnread(unread);
       } catch (err) {

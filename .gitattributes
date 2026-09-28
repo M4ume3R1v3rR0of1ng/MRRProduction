@@ -1,0 +1,14 @@
+# LF everywhere, including Windows checkouts.
+#
+# Git for Windows ships core.autocrlf=true, which checks text files out with
+# CRLF. Prettier writes LF, so on a Windows machine `npm run format:check`
+# flagged ~50 files that differed only in line endings, while CI (Linux, LF)
+# saw a handful. Pinning eol=lf makes the working tree match the repo and
+# Prettier on every OS, so a local format check means what CI's means.
+* text=auto eol=lf
+
+# Vendored Claude Code skill data, not ours, committed with CRLF. Leave these
+# byte-for-byte as shipped rather than churning them to LF.
+.claude/skills/ui-ux-pro-max/data/stacks/laravel.csv -text
+.claude/skills/ui-ux-pro-max/data/stacks/svelte.csv -text
+.claude/skills/ui-ux-pro-max/data/stacks/vue.csv -text

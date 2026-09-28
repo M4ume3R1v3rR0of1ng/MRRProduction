@@ -249,9 +249,7 @@ export default function InventoryView({
       >
         {[
           ["catalog", Grid3x3, t.invTabCatalog, t.invTabCatalogHint],
-          ...(perms.inv_count
-            ? [["count", Calculator, t.invTabCount, t.invTabCountHint]]
-            : []),
+          ...(perms.inv_count ? [["count", Calculator, t.invTabCount, t.invTabCountHint]] : []),
         ].map(([k, Icon, label, hint]) => (
           <button
             key={k}

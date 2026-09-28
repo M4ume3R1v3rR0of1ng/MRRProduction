@@ -273,7 +273,12 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                 <Search
                   size={13}
                   color={C.sub}
-                  style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
+                  style={{
+                    position: "absolute",
+                    left: 9,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                  }}
                   aria-hidden="true"
                 />
                 <Inp
