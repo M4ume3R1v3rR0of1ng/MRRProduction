@@ -72,6 +72,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
         style={{
           background: C.pB,
           border: `1.5px solid ${C.pu}`,
+          borderRadius: "var(--radius-md)",
           padding: "10px 14px",
           marginBottom: 14,
           fontSize: "var(--text-sm)",

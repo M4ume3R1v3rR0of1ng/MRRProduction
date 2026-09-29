@@ -138,6 +138,7 @@ export default function AdjustStockModal({
         style={{
           background: C.lg,
           border: "none",
+          borderRadius: "var(--radius-md)",
           padding: "8px 12px",
           marginBottom: 14,
           fontSize: "var(--text-sm)",

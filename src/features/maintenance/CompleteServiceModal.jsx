@@ -122,6 +122,8 @@ export default function CompleteServiceModal({
             pad="none"
             style={{
               background: C.lg,
+              border: "none",
+              borderRadius: "var(--radius-md)",
               padding: 10,
               fontSize: "var(--text-sm)",
             }}
@@ -136,6 +138,7 @@ export default function CompleteServiceModal({
             style={{
               background: C.pB,
               border: `1.5px solid ${C.pu}`,
+              borderRadius: "var(--radius-md)",
               padding: "10px 14px",
               fontSize: "var(--text-sm)",
               color: C.pu,

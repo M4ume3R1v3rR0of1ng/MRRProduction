@@ -193,6 +193,7 @@ export default function ReceiveBatchModal({
           style={{
             background: C.aB,
             border: `1px solid ${C.am}`,
+            borderRadius: "var(--radius-md)",
             padding: "8px 12px",
             marginBottom: 12,
             fontSize: "var(--text-sm)",
