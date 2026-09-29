@@ -14,7 +14,7 @@
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { C, todayLocal } from "@/shared/utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, TA } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, Sel, TA, Card, Row, Stack } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
 
 const SERVICE_TYPES = [
@@ -109,31 +109,33 @@ export default function CompleteServiceModal({
   return (
     <Modal
       title={
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Row gap={3}>
           <CheckCircle2 size={17} aria-hidden="true" /> Complete Service — {req.vname}
-        </span>
+        </Row>
       }
       onClose={onClose}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+      <Stack gap={4}>
         {req.wh_notes && (
-          <div
+          <Card
+            variant="flat"
+            pad="none"
             style={{
               background: C.lg,
               padding: 10,
-              borderRadius: "var(--radius-md)",
               fontSize: "var(--text-sm)",
             }}
           >
             <strong>Scheduling notes:</strong> {req.wh_notes}
-          </div>
+          </Card>
         )}
         {req.replacement_vehicle_id && (
-          <div
+          <Card
+            variant="flat"
+            pad="none"
             style={{
               background: C.pB,
               border: `1.5px solid ${C.pu}`,
-              borderRadius: "var(--radius-md)",
               padding: "10px 14px",
               fontSize: "var(--text-sm)",
               color: C.pu,
@@ -142,7 +144,7 @@ export default function CompleteServiceModal({
           >
             A spare was lent while this truck was in for service. Completing it returns the original
             driver automatically — pick a driver below only if that's not what you want.
-          </div>
+          </Card>
         )}
 
         <div className="sw-grid-2" style={{ gap: "var(--space-4)" }}>
@@ -237,7 +239,7 @@ export default function CompleteServiceModal({
           </Sel>
         </Fld>
 
-        <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 4 }}>
+        <Row gap={4} style={{ marginTop: 4 }}>
           <Btn
             v="ghost"
             onClick={onClose}
@@ -260,8 +262,8 @@ export default function CompleteServiceModal({
               </>
             )}
           </Btn>
-        </div>
-      </div>
+        </Row>
+      </Stack>
     </Modal>
   );
 }

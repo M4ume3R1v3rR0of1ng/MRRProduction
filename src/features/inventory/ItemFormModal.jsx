@@ -11,7 +11,7 @@ import { useState } from "react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, uid, fm, newestPrice, todayLocal } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Fld, Inp, Modal, Sel } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, Sel, Row } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -262,7 +262,7 @@ export default function ItemFormModal({
           </div>
         </Fld>
       )}
-      <div style={{ display: "flex", gap: "var(--space-4)" }}>
+      <Row gap={4}>
         <Btn
           v="ghost"
           onClick={close}
@@ -285,7 +285,7 @@ export default function ItemFormModal({
               ? "Save Changes"
               : "Add Position"}
         </Btn>
-      </div>
+      </Row>
     </Modal>
   );
 }

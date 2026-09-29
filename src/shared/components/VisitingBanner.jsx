@@ -13,6 +13,7 @@ import { Eye } from "lucide-react";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
+import { Btn, Row } from "./UIPrimitives";
 
 export default function VisitingBanner({ user, onLogout, lang = "en" }) {
   const t = translations[lang] || translations.en;
@@ -49,7 +50,10 @@ export default function VisitingBanner({ user, onLogout, lang = "en" }) {
   };
 
   return (
-    <div
+    <Row
+      justify="center"
+      gap={6}
+      wrap
       style={{
         position: "fixed",
         left: 0,
@@ -62,21 +66,16 @@ export default function VisitingBanner({ user, onLogout, lang = "en" }) {
         // banner's own rust background still runs to the physical screen edge.
         // --safe-bottom is 0px everywhere else.
         padding: "9px 16px calc(9px + var(--safe-bottom))",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 14,
-        flexWrap: "wrap",
         fontSize: "var(--text-base)",
         fontWeight: "var(--weight-bold)",
         boxShadow: "0 -2px 12px rgba(0,0,0,0.28)",
       }}
     >
-      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <Row gap={3}>
         <Eye size={16} aria-hidden="true" />{" "}
         {t.visitingBanner.replace("{name}", user.companyName || t.visitingUnknownCompany)}
-      </span>
-      <button
+      </Row>
+      <Btn
         onClick={leave}
         disabled={leaving}
         style={{
@@ -91,7 +90,7 @@ export default function VisitingBanner({ user, onLogout, lang = "en" }) {
         }}
       >
         {leaving ? t.visitingLeaving : t.visitingLeave}
-      </button>
-    </div>
+      </Btn>
+    </Row>
   );
 }

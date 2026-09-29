@@ -8,8 +8,7 @@
 // The result count only appears once something has been typed. Showing "12
 // results" over an unfiltered list states the obvious and competes with the
 // counts on the status filters, which mean something quite different.
-import { Inp, Btn } from "./UIPrimitives";
-import { C } from "../utils/helpers";
+import { Inp, Btn, Row, Muted } from "./UIPrimitives";
 import { translations } from "../utils/translations";
 
 export default function SearchBar({
@@ -26,15 +25,7 @@ export default function SearchBar({
   const t = translations[lang] || translations.en;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: "var(--space-4)",
-        marginBottom: 10,
-        flexWrap: "wrap",
-        alignItems: "center",
-      }}
-    >
+    <Row gap={4} wrap style={{ marginBottom: 10 }}>
       <Inp
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -49,18 +40,12 @@ export default function SearchBar({
           <Btn v="ghost" sz="sm" onClick={() => onChange("")}>
             ✕ {t.searchClear}
           </Btn>
-          <span
-            style={{
-              fontSize: "var(--text-sm)",
-              color: C.sub,
-              fontWeight: "var(--weight-semibold)",
-            }}
-          >
+          <Muted size="sm" style={{ fontWeight: "var(--weight-semibold)" }}>
             {resultCount === 1 ? t.searchOneResult : t.searchNResults.replace("{n}", resultCount)}
-          </span>
+          </Muted>
         </>
       )}
-    </div>
+    </Row>
   );
 }
 

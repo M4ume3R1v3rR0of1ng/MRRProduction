@@ -10,7 +10,7 @@ import { updateRowStrict } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "./lowStockAlerts";
 import { C, uid, tot, newestPrice } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Fld, Inp, Modal } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, Card, Row } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -187,11 +187,12 @@ export default function ReceiveBatchModal({
           </div>
         </Fld>
       ) : (
-        <div
+        <Card
+          variant="flat"
+          pad="none"
           style={{
             background: C.aB,
             border: `1px solid ${C.am}`,
-            borderRadius: "var(--radius-md)",
             padding: "8px 12px",
             marginBottom: 12,
             fontSize: "var(--text-sm)",
@@ -200,9 +201,9 @@ export default function ReceiveBatchModal({
         >
           Pricing is lock-restricted. Last batch unit valuations will automatically cycle carry
           over.
-        </div>
+        </Card>
       )}
-      <div style={{ display: "flex", gap: "var(--space-4)" }}>
+      <Row gap={4}>
         <Btn
           v="ghost"
           onClick={close}
@@ -219,7 +220,7 @@ export default function ReceiveBatchModal({
         >
           {saving ? "Processing..." : "Receive Batch"}
         </Btn>
-      </div>
+      </Row>
     </Modal>
   );
 }

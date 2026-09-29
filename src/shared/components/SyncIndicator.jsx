@@ -12,7 +12,7 @@
 import { useState, useEffect } from "react";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
-import { StatusDot } from "./UIPrimitives";
+import { StatusDot, Row } from "./UIPrimitives";
 
 export default function SyncIndicator({ lang = "en" }) {
   const t = translations[lang] || translations.en;
@@ -34,27 +34,16 @@ export default function SyncIndicator({ lang = "en" }) {
 
   if (isOnline) {
     return (
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "var(--space-2)",
-          fontSize: "12px",
-          fontWeight: "var(--weight-bold)",
-          color: C.gr,
-        }}
-      >
+      <Row gap={2} style={{ fontSize: "12px", fontWeight: "var(--weight-bold)", color: C.gr }}>
         <StatusDot color={C.gr} /> {t.chromeConnected}
-      </span>
+      </Row>
     );
   }
 
   return (
-    <span
+    <Row
+      gap={2}
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "var(--space-2)",
         fontSize: "12px",
         fontWeight: "var(--weight-bold)",
         color: C.am,
@@ -65,6 +54,6 @@ export default function SyncIndicator({ lang = "en" }) {
       title={t.chromeOfflineHint}
     >
       <StatusDot color={C.am} /> {t.chromeOffline}. {t.chromeOfflineWarning}
-    </span>
+    </Row>
   );
 }

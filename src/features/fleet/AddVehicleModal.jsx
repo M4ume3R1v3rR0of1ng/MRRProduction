@@ -12,7 +12,7 @@ import { useState } from "react";
 import { Truck, Loader2, Plus } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { uid, todayLocal } from "@/shared/utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, Sel, Row } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -102,9 +102,9 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
   return (
     <Modal
       title={
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Row gap={3}>
           <Truck size={17} aria-hidden="true" /> Register New Fleet Vehicle
-        </span>
+        </Row>
       }
       onClose={close}
     >
@@ -185,7 +185,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
           disabled={submitting}
         />
       </Fld>
-      <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
+      <Row gap={4} style={{ marginTop: 8 }}>
         <Btn
           v="ghost"
           onClick={close}
@@ -215,7 +215,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
             </>
           )}
         </Btn>
-      </div>
+      </Row>
     </Modal>
   );
 }

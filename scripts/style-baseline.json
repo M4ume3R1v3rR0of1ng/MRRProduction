@@ -40,7 +40,7 @@
     "hex": 0
   },
   "src/features/fleet/AddVehicleModal.jsx": {
-    "inline": 4,
+    "inline": 2,
     "hex": 0
   },
   "src/features/fleet/FleetManagementView.jsx": {
@@ -52,7 +52,7 @@
     "hex": 1
   },
   "src/features/fleet/MaintenanceRequestModal.jsx": {
-    "inline": 6,
+    "inline": 2,
     "hex": 0
   },
   "src/features/fleet/TrailerCalendar.jsx": {
@@ -60,7 +60,7 @@
     "hex": 0
   },
   "src/features/inventory/AdjustStockModal.jsx": {
-    "inline": 3,
+    "inline": 1,
     "hex": 0
   },
   "src/features/inventory/BatchCorrectionModal.jsx": {
@@ -84,7 +84,7 @@
     "hex": 0
   },
   "src/features/inventory/ItemFormModal.jsx": {
-    "inline": 3,
+    "inline": 2,
     "hex": 0
   },
   "src/features/inventory/JobTemplatesModal.jsx": {
@@ -92,7 +92,7 @@
     "hex": 0
   },
   "src/features/inventory/ReceiveBatchModal.jsx": {
-    "inline": 4,
+    "inline": 2,
     "hex": 0
   },
   "src/features/jobs/BuildJobsView.jsx": {
@@ -124,7 +124,7 @@
     "hex": 0
   },
   "src/features/maintenance/CompleteServiceModal.jsx": {
-    "inline": 7,
+    "inline": 2,
     "hex": 0
   },
   "src/features/maintenance/MaintenanceCalendar.jsx": {
@@ -171,10 +171,6 @@
     "inline": 32,
     "hex": 0
   },
-  "src/shared/components/CompanySwitcher.jsx": {
-    "inline": 1,
-    "hex": 0
-  },
   "src/shared/components/ErrorBoundary.jsx": {
     "inline": 7,
     "hex": 0
@@ -187,29 +183,13 @@
     "inline": 9,
     "hex": 0
   },
-  "src/shared/components/PastDueBanner.jsx": {
-    "inline": 3,
-    "hex": 0
-  },
-  "src/shared/components/SearchBar.jsx": {
-    "inline": 2,
-    "hex": 0
-  },
   "src/shared/components/SteadwerkMark.jsx": {
     "inline": 4,
     "hex": 2
   },
-  "src/shared/components/SyncIndicator.jsx": {
-    "inline": 2,
-    "hex": 0
-  },
   "src/shared/components/UIPrimitives.jsx": {
     "inline": 53,
     "hex": 1
-  },
-  "src/shared/components/VisitingBanner.jsx": {
-    "inline": 3,
-    "hex": 0
   },
   "src/shared/context/NotificationContext.jsx": {
     "inline": 15,

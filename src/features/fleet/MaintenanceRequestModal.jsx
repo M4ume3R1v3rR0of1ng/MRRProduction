@@ -14,7 +14,7 @@
 import { useState } from "react";
 import { Wrench, Bell } from "lucide-react";
 import { C } from "@/shared/utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, TA } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, Sel, TA, Card, Row } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
 
 export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClose, preVid }) {
@@ -60,17 +60,18 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
   return (
     <Modal
       title={
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Row gap={3}>
           <Wrench size={17} aria-hidden="true" /> Submit Maintenance Request
-        </span>
+        </Row>
       }
       onClose={onClose}
     >
-      <div
+      <Card
+        variant="flat"
+        pad="none"
         style={{
           background: C.pB,
           border: `1.5px solid ${C.pu}`,
-          borderRadius: "var(--radius-md)",
           padding: "10px 14px",
           marginBottom: 14,
           fontSize: "var(--text-sm)",
@@ -79,7 +80,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
         }}
       >
         Your request goes to the maintenance queue for scheduling.
-      </div>
+      </Card>
       <Fld label="Vehicle *">
         <Sel
           value={form.vid}
@@ -133,12 +134,11 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
               ).map((t) => {
                 const isChecked = Array.isArray(form.type) && form.type.includes(t);
                 return (
-                  <label
+                  <Row
+                    as="label"
                     key={t}
+                    gap={3}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "var(--space-3)",
                       fontSize: "var(--text-base)",
                       fontWeight: "var(--weight-semibold)",
                       color: C.navy,
@@ -158,7 +158,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
                       }}
                     />
                     {t}
-                  </label>
+                  </Row>
                 );
               })}
             </div>
@@ -192,14 +192,14 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
           </Fld>
         </>
       )}
-      <div style={{ display: "flex", gap: "var(--space-4)" }}>
+      <Row gap={4}>
         <Btn v="ghost" onClick={onClose} style={{ flex: 1, justifyContent: "center" }}>
           Cancel
         </Btn>
         <Btn v="purple" onClick={submit} style={{ flex: 1, justifyContent: "center" }}>
           Submit Request <Bell size={14} aria-hidden="true" />
         </Btn>
-      </div>
+      </Row>
     </Modal>
   );
 }

@@ -23,9 +23,9 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { supabase } from "../utils/supabase";
-import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { IS_IOS_APP } from "../../core/platform";
+import { Btn, Row } from "./UIPrimitives";
 
 export default function PastDueBanner({ user, lang = "en" }) {
   const t = translations[lang] || translations.en;
@@ -55,42 +55,36 @@ export default function PastDueBanner({ user, lang = "en" }) {
   if (!pastDue || IS_IOS_APP || location.pathname === "/billing") return null;
 
   return (
-    <div
+    <Row
+      justify="space-between"
+      gap={5}
+      wrap
       style={{
         background: "var(--c-rust-wash)",
         borderBottom: "2px solid var(--c-rust)",
         color: "var(--c-rust)",
         padding: "10px 20px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: 12,
-        flexWrap: "wrap",
         flexShrink: 0,
         fontSize: "var(--text-sm)",
         fontWeight: "var(--weight-bold)",
       }}
     >
-      <span style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
+      <Row align="flex-start" gap="7px">
         <AlertTriangle size={15} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
         <span>{t.pastDueBanner}</span>
-      </span>
-      <button
+      </Row>
+      <Btn
+        v="danger"
         onClick={() => navigate("/billing")}
         style={{
-          background: C.rust,
-          color: "var(--c-on-accent)",
-          border: "none",
           borderRadius: "var(--radius-md)",
           padding: "6px 14px",
-          cursor: "pointer",
-          fontWeight: "var(--weight-bold)",
           fontSize: "var(--text-sm)",
           flexShrink: 0,
         }}
       >
         {t.pastDueBannerAction}
-      </button>
-    </div>
+      </Btn>
+    </Row>
   );
 }

@@ -11,7 +11,7 @@ import { updateRowStrict } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "./lowStockAlerts";
 import { C, uid, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Fld, Inp, Modal, TA } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, TA, Card, Row } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -132,10 +132,12 @@ export default function AdjustStockModal({
 
   return (
     <Modal title={`Adjust Stock: ${item.name}`} onClose={close}>
-      <div
+      <Card
+        variant="flat"
+        pad="none"
         style={{
           background: C.lg,
-          borderRadius: "var(--radius-md)",
+          border: "none",
           padding: "8px 12px",
           marginBottom: 14,
           fontSize: "var(--text-sm)",
@@ -146,7 +148,7 @@ export default function AdjustStockModal({
         <strong style={{ color: C.navy }}>
           {tot(item)} {item.unit}
         </strong>
-      </div>
+      </Card>
       <Fld label={`Corrected Quantity (${item.unit})`}>
         <Inp
           type="number"
@@ -163,7 +165,7 @@ export default function AdjustStockModal({
           disabled={saving}
         />
       </Fld>
-      <div style={{ display: "flex", gap: "var(--space-4)" }}>
+      <Row gap={4}>
         <Btn
           v="ghost"
           onClick={close}
@@ -180,7 +182,7 @@ export default function AdjustStockModal({
         >
           {saving ? "Saving..." : "Save Correction"}
         </Btn>
-      </div>
+      </Row>
     </Modal>
   );
 }

@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { translations } from "../utils/translations";
 import { supabase } from "../utils/supabase";
 import { C } from "../utils/helpers";
+import { Sel } from "./UIPrimitives";
 
 export default function CompanySwitcher({ user, lang = "en" }) {
   const t = translations[lang] || translations.en;
@@ -45,16 +46,15 @@ export default function CompanySwitcher({ user, lang = "en" }) {
   };
 
   return (
-    <select
+    <Sel
       value={user.companyId || ""}
       onChange={(e) => switchTo(e.target.value)}
       disabled={switching}
       title={t.csSwitchCompany}
       style={{
+        width: "auto",
         background: "var(--c-surface)",
         color: C.navy,
-        border: `1.5px solid ${C.bd}`,
-        borderRadius: "var(--radius-md)",
         padding: "6px 10px",
         fontSize: "var(--text-2xs)",
         fontWeight: "var(--weight-bold)",
@@ -67,6 +67,6 @@ export default function CompanySwitcher({ user, lang = "en" }) {
           {m.companies?.name || "Company"}
         </option>
       ))}
-    </select>
+    </Sel>
   );
 }
