@@ -4,7 +4,8 @@
 // global-setup.js). supabase.auth.signInWithPassword hands back a live aal1
 // session even for these accounts, so LoginScreen.jsx's gateOnMfa is the only
 // thing between "password accepted" and "you're in" — these tests prove it holds
-// that line in a real browser: the code prompt appears, backing out of it ends
+// that line in a real browser: the code prompt appears (and survives a reload),
+// backing out of it ends
 // the session rather than leaving the aal1 one in place, a wrong code is refused,
 // and the right one lands on the dashboard with a session upgraded to aal2 (the
 // level supabase/29_mfa_enforcement.sql checks).
@@ -42,9 +43,17 @@ test("MFA login: the code prompt stops sign-in, and cancelling it signs out", as
   await expect(page.getByText(PROMPT)).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
 
+  // The aal1 session is already in storage at this point. Reloading (or going
+  // straight to a portal page) must bring the prompt back, not restore the app
+  // from that session — useAppData used to do exactly that.
+  await page.goto("/dashboard");
+  await expect(page.getByText(PROMPT)).toBeVisible();
+  await expect(page).toHaveURL(/\/login/);
+
   await page.getByRole("button", { name: "Cancel" }).click();
   await expect(page.getByRole("button", { name: "Sign In →" })).toBeVisible();
-  expect(await sessionAal(page)).toBeNull();
+  // cancelMfa hides the prompt before its signOut() resolves, so wait for it.
+  await expect.poll(() => sessionAal(page)).toBeNull();
 
   // Nothing to fall back into: the protected app sends this browser to login.
   await page.goto("/dashboard");

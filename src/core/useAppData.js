@@ -79,6 +79,24 @@ export function useAppData() {
       const { data: { session } = {} } = await supabase.auth.getSession();
       loadedAuthIdRef.current = session?.user?.id || null;
 
+      // A session that still owes its second factor is not signed in yet.
+      // signInWithPassword hands back a live aal1 session even for an account with
+      // a verified TOTP factor, and SIGNED_IN fires the moment the password is
+      // accepted — so building curUser from it here put the dashboard on screen
+      // before LoginScreen could show the code prompt, and a reload walked straight
+      // past it from the stored session. Leave curUser unset (App sends a live
+      // session without one to /login, where gateOnMfa asks for the code) and load
+      // again on MFA_CHALLENGE_VERIFIED below.
+      let owesSecondFactor = false;
+      if (session?.user) {
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        owesSecondFactor = aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2";
+        if (owesSecondFactor) {
+          loadedAuthIdRef.current = null;
+          setCurUser(null);
+        }
+      }
+
       // ── Restore the signed-in user from the persisted session ──
       // Supabase keeps the session alive across reloads, but curUser was never
       // rehydrated from it — so a refresh dumped you back on the login screen even
@@ -92,7 +110,7 @@ export function useAppData() {
       // company, which pours all tenants' jobs, inventory, and users onto one
       // dashboard. Platform-wide oversight lives in the Owner Console instead.
       let activeCompanyId = null;
-      if (session?.user) {
+      if (session?.user && !owesSecondFactor) {
         const { data: prof } = await supabase
           .from("profiles")
           .select("full_name, active, active_company_id, is_platform_admin")
@@ -528,6 +546,18 @@ export function useAppData() {
         return;
       }
       if (event === "SIGNED_IN" && session?.user && session.user.id !== loadedAuthIdRef.current) {
+        loadedAuthIdRef.current = session.user.id;
+        load();
+      }
+      // The second factor was just verified at login: the aal1 load held this user
+      // back (leaving the ref null), so this is the load that signs them in. The id
+      // guard skips enrolment in MfaPanel, which verifies from a session that is
+      // already fully loaded.
+      if (
+        event === "MFA_CHALLENGE_VERIFIED" &&
+        session?.user &&
+        session.user.id !== loadedAuthIdRef.current
+      ) {
         loadedAuthIdRef.current = session.user.id;
         load();
       }
