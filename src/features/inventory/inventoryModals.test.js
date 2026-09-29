@@ -138,6 +138,11 @@ describe("missingReceiveFields", () => {
   it("reports only what is actually missing", () => {
     expect(missingReceiveFields({ qty: "5", date: "2026-07-01" })).toEqual(["price"]);
   });
+
+  it("does not require a price from someone who cannot see the field", () => {
+    expect(missingReceiveFields({}, { canPrice: false })).toEqual(["quantity", "received date"]);
+    expect(missingReceiveFields({ qty: "5", date: "2026-07-01" }, { canPrice: false })).toEqual([]);
+  });
 });
 
 describe("applyStockCorrection", () => {

@@ -16,10 +16,15 @@ import { useNotify } from "@/shared/context/NotificationContext";
 
 // Which required fields are blank. Returned as a list so the toast can name them
 // all at once, rather than the user fixing one and being told about the next.
-export const missingReceiveFields = (form = {}) => {
+//
+// Price is only required of someone who can see the field. Without
+// inv_pricing_edit it isn't rendered at all, so requiring it anyway meant those
+// receivers could never receive anything; their batch carries the newest price
+// over instead, as the notice in its place says.
+export const missingReceiveFields = (form = {}, { canPrice = true } = {}) => {
   const missing = [];
   if (!form.qty) missing.push("quantity");
-  if (!form.price) missing.push("price");
+  if (canPrice && !form.price) missing.push("price");
   if (!form.date) missing.push("received date");
   return missing;
 };
@@ -45,13 +50,14 @@ export default function ReceiveBatchModal({
   const receive = async () => {
     // Do not fail silently: a blank field otherwise looks like it "saved", since
     // the modal simply never closes.
-    const missing = missingReceiveFields(form);
+    const canPrice = !!perms.inv_pricing_edit;
+    const missing = missingReceiveFields(form, { canPrice });
     if (missing.length) {
       showToast(`Nothing was received — please fill in the ${missing.join(", ")}.`, "warning");
       return;
     }
     const qty = parseFloat(form.qty);
-    const price = parseFloat(form.price);
+    const price = canPrice ? parseFloat(form.price) : newestPrice(item);
     // Negative qty and price are allowed on purpose: they are temporary
     // corrections ahead of a later batch that zeroes them back out. Only
     // non-numeric input is rejected.
