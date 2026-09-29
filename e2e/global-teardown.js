@@ -1,10 +1,11 @@
 // e2e/global-teardown.js
 //
 // Mirrors the cleanup() half of scripts/verify-tenant-isolation.mjs: delete
-// the two auth users, then the company (memberships, profile rows, and the
-// inventory row all cascade from either the user or the company per
-// supabase/02_tenancy_tables.sql). Runs even if the test itself failed, so a
-// broken run doesn't leave a permanent "ZZ E2E Test Co" tenant behind.
+// every auth user global-setup.js created, then the company (memberships,
+// profile rows, MFA factors, inventory, vehicles and maintenance requests all
+// cascade from either the user or the company per supabase/02_tenancy_tables.sql).
+// Runs even if a test itself failed, so a broken run doesn't leave a permanent
+// "ZZ E2E Test Co" tenant behind.
 import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 import { loadSupabaseEnv } from "./env.js";
@@ -17,9 +18,9 @@ export default async function globalTeardown() {
   const { url, serviceKey } = loadSupabaseEnv();
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
 
-  for (const userId of [state.adminUserId, state.supervisorUserId]) {
+  for (const userId of state.userIds || []) {
     try {
-      if (userId) await admin.auth.admin.deleteUser(userId);
+      await admin.auth.admin.deleteUser(userId);
     } catch {}
   }
   try {

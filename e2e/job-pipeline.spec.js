@@ -11,10 +11,7 @@
 // <label>, and every button here renders literal (non-translated) English
 // text, so there was nothing to add just to make this test possible.
 import { test, expect } from "@playwright/test";
-import fs from "node:fs";
-import { STATE_FILE } from "./global-setup.js";
-
-const state = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+import { state, login } from "./helpers.js";
 
 // Two different things can leave a full-page ".mrr-backdrop" overlay open
 // after an action commits, and they can be stacked at once: the JobHandoff
@@ -55,11 +52,7 @@ test("job pipeline: build -> approve -> pull -> complete -> close", async ({ pag
   context.on("page", (p) => p.close().catch(() => {}));
 
   // ── Login ──────────────────────────────────────────────────────────────
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(state.adminEmail);
-  await page.getByLabel("Password").fill(state.adminPassword);
-  await page.getByRole("button", { name: "Sign In →" }).click();
-  await page.waitForURL(/\/dashboard/);
+  await login(page, state.adminEmail, state.adminPassword);
 
   // ── Build (saved as a draft, approved as its own step below) ────────────
   await page.goto("/buildjobs");
