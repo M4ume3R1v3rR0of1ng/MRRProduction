@@ -44,6 +44,11 @@ import {
   Muted,
   Table,
   Callout,
+  TextBtn,
+  Eyebrow,
+  Divider,
+  Card,
+  CheckChip,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { supabase, updateRowStrict, isTransportError } from "@/shared/utils/supabase";
@@ -975,19 +980,13 @@ export default function PullInventory({
         {dayGroups.map(([day, dayJobs]) => (
           <Fragment key={day || "undated"}>
             <Row style={{ gridColumn: "1 / -1", marginTop: 4 }}>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "var(--text-sm)",
-                  fontWeight: "var(--weight-extrabold)",
-                  color: C.navy,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.4px",
-                  whiteSpace: "nowrap",
-                }}
+              <Eyebrow
+                as="h2"
+                color={C.navy}
+                style={{ margin: 0, fontSize: "var(--text-sm)", whiteSpace: "nowrap" }}
               >
                 {day ? fd(day) : "No date recorded"}
-              </h2>
+              </Eyebrow>
               {day === todayLocal() && <Bdg color="amber">Today</Bdg>}
               <Text
                 as="span"
@@ -1000,7 +999,7 @@ export default function PullInventory({
               </Text>
               {/* Rule to the right edge, so the header reads as a divider across
                   the row and not as a stray line of text. */}
-              <div style={{ flex: 1, height: 1, background: C.bd }} />
+              <Divider style={{ flex: 1, margin: 0 }} />
             </Row>
             {dayJobs.map((job) => {
               if (!job) return null;
@@ -1034,23 +1033,21 @@ export default function PullInventory({
               const isHighlighted = highlight?.id && String(job.id) === String(highlight.id);
 
               return (
-                <div
+                <Card
                   key={job.id}
                   ref={isHighlighted ? highlightRef : null}
-                  className={`mrr-card-hover${isHighlighted ? " mrr-card-hail" : ""}`}
+                  className={isHighlighted ? "mrr-card-hail" : undefined}
+                  variant="raised"
+                  pad={6}
+                  hover
+                  containsActions
                   onClick={isHighlighted ? () => onHighlightCleared?.() : undefined}
                   style={{
-                    background: C.w,
-                    borderRadius: "var(--radius-xl)",
-                    padding: 14,
-                    boxShadow: "var(--shadow-sm)",
                     border: `2px solid ${isHighlighted ? C.gold : isNew ? C.tl : statusMeta.color}`,
-                    cursor: isHighlighted ? "pointer" : undefined,
                     // Column, so the action row can be pushed to the bottom edge
                     // and line up with its neighbours across a row of cards.
                     display: "flex",
                     flexDirection: "column",
-                    minWidth: 0,
                   }}
                 >
                   <Row gap="7px" wrap style={{ marginBottom: 6 }}>
@@ -1065,7 +1062,9 @@ export default function PullInventory({
                       }}
                     >
                       <StatusDot color={statusMeta.color} />
-                      <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
+                      <Text as="span" style={{ textTransform: "uppercase" }}>
+                        {statusMeta.label}
+                      </Text>
                     </Row>
                     <Text as="span" size="sm" weight="semibold" color={C.sub}>
                       · {job.po || t.pullNoPoHash}
@@ -1089,19 +1088,14 @@ export default function PullInventory({
                   {/* Clamped to one line: an address is worth reading in full, but
                       a job title that wraps just shoves every card in the row
                       taller. The full title heads the pull and return dialogs. */}
-                  <div
-                    style={{
-                      fontWeight: "var(--weight-extrabold)",
-                      color: C.navy,
-                      fontSize: 15,
-                      marginBottom: 2,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
+                  <Text
+                    weight="extrabold"
+                    color={C.navy}
+                    truncate
+                    style={{ fontSize: 15, marginBottom: 2 }}
                   >
                     {job.title || job.name}
-                  </div>
+                  </Text>
                   <Muted size="sm" style={{ marginBottom: 4 }}>
                     {job.addr || job.address}
                   </Muted>
@@ -1126,29 +1120,21 @@ export default function PullInventory({
                   {/* The material strip scrolls sideways inside the card. In a
                       340px column six chips no longer fit, which is what the
                       overflow was always there for. */}
-                  <div
-                    style={{
-                      marginTop: 10,
-                      borderTop: `1px solid ${C.lg}`,
-                      paddingTop: 10,
-                      display: "flex",
-                      gap: "var(--space-3)",
-                      overflowX: "auto",
-                      paddingBottom: 4,
-                    }}
+                  <Divider style={{ margin: "10px 0 0", borderTopColor: C.lg }} />
+                  <Row
+                    gap={3}
+                    align="stretch"
+                    style={{ paddingTop: 10, overflowX: "auto", paddingBottom: 4 }}
                   >
                     {currentItems.slice(0, 6).map((item) => {
                       if (!item) return null;
                       return (
-                        <div
+                        <Callout
                           key={item.iid || item.id}
-                          style={{
-                            background: item.pulled > 0 ? C.gB : C.lg,
-                            borderRadius: 7,
-                            padding: "5px 10px",
-                            flexShrink: 0,
-                            border: item.pulled > 0 ? `1px solid ${C.gr}` : "none",
-                          }}
+                          tone={item.pulled > 0 ? "success" : "neutral"}
+                          bordered={item.pulled > 0}
+                          pad="5px 10px"
+                          style={{ flexShrink: 0, borderRadius: 7, borderWidth: 1 }}
                         >
                           <Text
                             size="2xs"
@@ -1163,26 +1149,20 @@ export default function PullInventory({
                               ? `${(item.pulled || 0) - (item.returned || 0)} ${t.pullUsed}`
                               : `${item.planned || item.qty || 0} ${item.unit || ""} ${t.pullPlanned}`}
                           </Muted>
-                        </div>
+                        </Callout>
                       );
                     })}
                     {currentItems.length > 6 && (
-                      <div
-                        style={{
-                          background: C.lg,
-                          borderRadius: 7,
-                          padding: "5px 10px",
-                          flexShrink: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          fontSize: "var(--text-2xs)",
-                          color: C.sub,
-                        }}
+                      <Callout
+                        pad="5px 10px"
+                        size="2xs"
+                        color={C.sub}
+                        style={{ flexShrink: 0, borderRadius: 7, alignSelf: "center" }}
                       >
                         +{currentItems.length - 6} {t.pullMore}
-                      </div>
+                      </Callout>
                     )}
-                  </div>
+                  </Row>
 
                   {/* Actions sat in a right-hand column beside the text, which in a
                       340px card left them a strip too narrow to hold "Pull
@@ -1243,7 +1223,7 @@ export default function PullInventory({
                       </Btn>
                     )}
                   </Row>
-                </div>
+                </Card>
               );
             })}
           </Fragment>
@@ -1252,6 +1232,35 @@ export default function PullInventory({
 
       {modal === "pull" && sel && (
         <Modal
+          footer={
+            <>
+              <Btn
+                v="ghost"
+                onClick={() => {
+                  setModal(null);
+                  setSel(null);
+                  setPullQtys({});
+                }}
+                style={{ flex: 1, justifyContent: "center" }}
+                disabled={pulling}
+              >
+                {t.cancel}
+              </Btn>
+              {/* Wrapped, not passed by reference: onClick hands the click event
+                through as the first argument, and an event object is truthy — so
+                `onClick={confirmPull}` would arrive as force=true and skip the
+                shortfall confirmation entirely. */}
+              <Btn
+                v="teal"
+                sz="lg"
+                onClick={() => confirmPull()}
+                style={{ flex: 2, justifyContent: "center" }}
+                disabled={pulling}
+              >
+                {pulling ? t.pullInProgress : t.pullConfirm}
+              </Btn>
+            </>
+          }
           title={`${t.pullPullMaterials} — ${sel.title || sel.name}`}
           onClose={() => {
             if (!pulling) {
@@ -1329,47 +1338,6 @@ export default function PullInventory({
               </tbody>
             </Table>
           </div>
-          {/* Sticky for the same reason as the return modal below: this is the
-              last child of a scrolling body, and the confirm button should never
-              be something you have to discover by scrolling. */}
-          <div
-            style={{
-              display: "flex",
-              gap: "var(--space-4)",
-              position: "sticky",
-              bottom: 0,
-              margin: "0 calc(var(--space-8) * -1) calc(var(--space-8) * -1)",
-              padding: "var(--space-4) var(--space-8) var(--space-8)",
-              background: C.w,
-              borderTop: `1px solid ${C.lg}`,
-            }}
-          >
-            <Btn
-              v="ghost"
-              onClick={() => {
-                setModal(null);
-                setSel(null);
-                setPullQtys({});
-              }}
-              style={{ flex: 1, justifyContent: "center" }}
-              disabled={pulling}
-            >
-              {t.cancel}
-            </Btn>
-            {/* Wrapped, not passed by reference: onClick hands the click event
-                through as the first argument, and an event object is truthy — so
-                `onClick={confirmPull}` would arrive as force=true and skip the
-                shortfall confirmation entirely. */}
-            <Btn
-              v="teal"
-              sz="lg"
-              onClick={() => confirmPull()}
-              style={{ flex: 2, justifyContent: "center" }}
-              disabled={pulling}
-            >
-              {pulling ? t.pullInProgress : t.pullConfirm}
-            </Btn>
-          </div>
         </Modal>
       )}
 
@@ -1386,11 +1354,9 @@ export default function PullInventory({
           }}
         >
           <Callout tone="danger" bordered pad="12px 14px" style={{ marginBottom: 14 }}>
-            <div
+            <Row
+              gap={2}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
                 fontWeight: "var(--weight-bold)",
                 color: C.rd,
                 marginBottom: 4,
@@ -1398,7 +1364,7 @@ export default function PullInventory({
               }}
             >
               <AlertTriangle size={14} aria-hidden="true" /> {t.pullShortHeading}
-            </div>
+            </Row>
             <Text size="sm" color={C.navy} style={{ lineHeight: 1.45 }}>
               {t.pullShortBody}
             </Text>
@@ -1459,6 +1425,30 @@ export default function PullInventory({
 
       {modal === "return" && sel && (
         <Modal
+          footer={
+            <>
+              <Btn
+                v="ghost"
+                onClick={() => {
+                  setModal(null);
+                  setRetQtys({});
+                }}
+                style={{ flex: 1, justifyContent: "center" }}
+                disabled={returning}
+              >
+                {t.cancel}
+              </Btn>
+              <Btn
+                v="green"
+                sz="lg"
+                onClick={confirmReturn}
+                style={{ flex: 2, justifyContent: "center" }}
+                disabled={returning}
+              >
+                {returning ? t.pullCompiling : t.pullCompleteJob}
+              </Btn>
+            </>
+          }
           title={`${t.pullReturnUnused} — ${sel.title || sel.name}`}
           onClose={() => {
             if (!returning) {
@@ -1548,45 +1538,6 @@ export default function PullInventory({
               )}
             </Table>
           </div>
-          {/* Sticky. Modal is maxHeight:92vh with overflowY:auto, and this row is
-              the LAST child of a padded body — so on a phone, a job with seven
-              items pushes "Complete Job" below the fold with nothing on screen
-              suggesting it is there. The table just runs off the bottom and the
-              modal reads as finished. Nothing errors because nothing is pressed.
-              Negative margins let the bar span the modal edge to edge. */}
-          <div
-            style={{
-              display: "flex",
-              gap: "var(--space-4)",
-              position: "sticky",
-              bottom: 0,
-              margin: "0 calc(var(--space-8) * -1) calc(var(--space-8) * -1)",
-              padding: "var(--space-4) var(--space-8) var(--space-8)",
-              background: C.w,
-              borderTop: `1px solid ${C.lg}`,
-            }}
-          >
-            <Btn
-              v="ghost"
-              onClick={() => {
-                setModal(null);
-                setRetQtys({});
-              }}
-              style={{ flex: 1, justifyContent: "center" }}
-              disabled={returning}
-            >
-              {t.cancel}
-            </Btn>
-            <Btn
-              v="green"
-              sz="lg"
-              onClick={confirmReturn}
-              style={{ flex: 2, justifyContent: "center" }}
-              disabled={returning}
-            >
-              {returning ? t.pullCompiling : t.pullCompleteJob}
-            </Btn>
-          </div>
         </Modal>
       )}
 
@@ -1660,31 +1611,14 @@ export default function PullInventory({
                       (jt) => jt.job_id === sel.id && jt.trailer_id === v.id,
                     );
                     return (
-                      <label
+                      <CheckChip
                         key={v.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
-                          background: checked ? C.tB : C.lg,
-                          border: `1px solid ${checked ? C.tl : C.bd}`,
-                          borderRadius: "var(--radius-pill)",
-                          padding: "5px 12px",
-                          fontSize: "var(--text-sm)",
-                          fontWeight: "var(--weight-semibold)",
-                          color: checked ? C.tl : C.navy,
-                          cursor: "pointer",
-                        }}
+                        checked={checked}
+                        onChange={() => toggleJobTrailer(sel.id, v.id)}
+                        disabled={savingEdit}
                       >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleJobTrailer(sel.id, v.id)}
-                          disabled={savingEdit}
-                          style={{ margin: 0 }}
-                        />
                         {v.name}
-                      </label>
+                      </CheckChip>
                     );
                   })}
               </Row>
@@ -1711,7 +1645,7 @@ export default function PullInventory({
                   key={item.iid}
                   style={{ background: C.lg, borderRadius: 7, padding: "7px 10px" }}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
                     <Text size="sm" weight="bold" color={C.navy}>
                       {item.iname}
                     </Text>
@@ -1721,7 +1655,7 @@ export default function PullInventory({
                         {t.pullAlreadyPulled}
                       </Row>
                     )}
-                  </div>
+                  </Stack>
                   <Inp
                     type="number"
                     min="0"
@@ -1730,23 +1664,19 @@ export default function PullInventory({
                     style={{ width: 70, padding: "4px 8px" }}
                     disabled={savingEdit}
                   />
-                  <span style={{ fontSize: "var(--text-xs)", color: C.sub, width: 50 }}>
+                  <Muted as="span" style={{ width: 50 }}>
                     {item.unit}
-                  </span>
-                  <button
+                  </Muted>
+                  <TextBtn
                     onClick={() => removeEditItem(item)}
                     disabled={savingEdit}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: C.rd,
-                      fontSize: "var(--text-lg)",
-                      lineHeight: 1,
-                    }}
+                    color={C.rd}
+                    weight="normal"
+                    size="lg"
+                    style={{ lineHeight: 1, padding: "1px 6px" }}
                   >
                     ×
-                  </button>
+                  </TextBtn>
                 </Row>
               ))
             )}
@@ -1761,9 +1691,11 @@ export default function PullInventory({
             />
           </Fld>
           {editItemSearch.trim() && (
-            <div
+            <Card
+              variant="flat"
+              pad="none"
               style={{
-                border: `1.5px solid ${C.bd}`,
+                borderWidth: 1.5,
                 borderRadius: "var(--radius-md)",
                 maxHeight: 160,
                 overflowY: "auto",
@@ -1771,16 +1703,9 @@ export default function PullInventory({
               }}
             >
               {editFiltInv.length === 0 ? (
-                <div
-                  style={{
-                    padding: 10,
-                    fontSize: "var(--text-sm)",
-                    color: C.sub,
-                    textAlign: "center",
-                  }}
-                >
+                <Muted size="sm" style={{ padding: 10, textAlign: "center" }}>
                   {t.pullNoMatchingInv}
-                </div>
+                </Muted>
               ) : (
                 editFiltInv.map((item) => (
                   <Row
@@ -1805,7 +1730,7 @@ export default function PullInventory({
                   </Row>
                 ))
               )}
-            </div>
+            </Card>
           )}
 
           <Row gap={4} align="stretch">
@@ -1842,47 +1767,38 @@ export default function PullInventory({
               </Btn>
             </Row>
           )}
-          <div style={{ marginTop: 18, borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
-            <Text
-              as="h3"
-              size="base"
-              weight="extrabold"
-              color={C.navy}
-              style={{ margin: "0 0 12px 0" }}
-            >
-              {t.pullVisualMedia}
-            </Text>
-            <Row gap={6} align="stretch" wrap>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <Text size="xs" weight="bold" color={C.sub} style={{ marginBottom: 4 }}>
-                  {t.pullBeforePhoto}
-                </Text>
-                <PhotoUpload
-                  current={currentJobPhotos.before}
-                  onUpload={(base64) => handleStagePhoto("before", base64)}
-                />
-              </div>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <Text size="xs" weight="bold" color={C.sub} style={{ marginBottom: 4 }}>
-                  {t.pullAfterPhoto}
-                </Text>
-                <PhotoUpload
-                  current={currentJobPhotos.after}
-                  onUpload={(base64) => handleStagePhoto("after", base64)}
-                />
-              </div>
-            </Row>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(130px,1fr))",
-              gap: "var(--space-3)",
-              marginBottom: 14,
-              marginTop: 14,
-            }}
+          <Divider style={{ margin: "18px 0 14px", borderTopColor: C.lg }} />
+          <Text
+            as="h3"
+            size="base"
+            weight="extrabold"
+            color={C.navy}
+            style={{ margin: "0 0 12px 0" }}
           >
+            {t.pullVisualMedia}
+          </Text>
+          <Row gap={6} align="stretch" wrap>
+            <Stack gap={0} style={{ flex: 1, minWidth: 200 }}>
+              <Text size="xs" weight="bold" color={C.sub} style={{ marginBottom: 4 }}>
+                {t.pullBeforePhoto}
+              </Text>
+              <PhotoUpload
+                current={currentJobPhotos.before}
+                onUpload={(base64) => handleStagePhoto("before", base64)}
+              />
+            </Stack>
+            <Stack gap={0} style={{ flex: 1, minWidth: 200 }}>
+              <Text size="xs" weight="bold" color={C.sub} style={{ marginBottom: 4 }}>
+                {t.pullAfterPhoto}
+              </Text>
+              <PhotoUpload
+                current={currentJobPhotos.after}
+                onUpload={(base64) => handleStagePhoto("after", base64)}
+              />
+            </Stack>
+          </Row>
+
+          <CardGrid minWidth={130} gap="var(--space-3)" style={{ marginBottom: 14, marginTop: 14 }}>
             {[
               // Not itself a list item — a value in a [label, value] tuple, rendered
               // inside the keyed <div> below.
@@ -1918,7 +1834,7 @@ export default function PullInventory({
                 </Text>
               </Callout>
             ))}
-          </div>
+          </CardGrid>
           <div className="sw-table-scroll">
             <Table pad="md">
               <thead>

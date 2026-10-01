@@ -27,6 +27,8 @@ import {
   Stack,
   Text,
   Muted,
+  Grid,
+  TextBtn,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -172,7 +174,7 @@ export default function EditJobModal({
 
   return (
     <Modal title={`Edit Job — ${job.po}`} onClose={close} wide>
-      <div className="sw-grid-2" style={{ gap: "var(--space-4)" }}>
+      <Grid gap={4}>
         <Fld label="Job PO Number *">
           <Inp
             value={form.po}
@@ -187,7 +189,7 @@ export default function EditJobModal({
             disabled={saving}
           />
         </Fld>
-      </div>
+      </Grid>
       <Fld label="Job Address">
         <Inp
           value={form.addr}
@@ -195,7 +197,7 @@ export default function EditJobModal({
           disabled={saving}
         />
       </Fld>
-      <div className="sw-grid-2" style={{ gap: "var(--space-4)" }}>
+      <Grid gap={4}>
         <Fld label="Production Schedule Start Date">
           <Inp
             type="date"
@@ -219,35 +221,22 @@ export default function EditJobModal({
             ))}
           </Sel>
         </Fld>
-      </div>
+      </Grid>
       {perms.jobs_revenue && (
         <Fld
           label="Contract Value"
           hint="What the customer is paying. Leave blank if not known yet — blank keeps the job out of margin reporting rather than counting it as a loss."
         >
-          <div style={{ position: "relative" }}>
-            <span
-              style={{
-                position: "absolute",
-                left: 10,
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: C.sub,
-              }}
-            >
-              $
-            </span>
-            <Inp
-              type="number"
-              step="0.01"
-              min="0"
-              value={form.contractValue}
-              onChange={(e) => setForm({ ...form, contractValue: e.target.value })}
-              placeholder="e.g. 14500.00"
-              style={{ paddingLeft: 22 }}
-              disabled={saving}
-            />
-          </div>
+          <Inp
+            prefix="$"
+            type="number"
+            step="0.01"
+            min="0"
+            value={form.contractValue}
+            onChange={(e) => setForm({ ...form, contractValue: e.target.value })}
+            placeholder="e.g. 14500.00"
+            disabled={saving}
+          />
         </Fld>
       )}
 
@@ -309,41 +298,29 @@ export default function EditJobModal({
               <span style={{ fontSize: "var(--text-xs)", color: C.sub, width: 50 }}>
                 {item.unit}
               </span>
-              <button
+              <TextBtn
                 onClick={() => removeItem(item)}
                 disabled={saving}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: C.rd,
-                  fontSize: "var(--text-lg)",
-                  lineHeight: 1,
-                }}
+                color={C.rd}
+                weight="normal"
+                size="lg"
+                style={{ lineHeight: 1, padding: "1px 6px" }}
               >
                 ×
-              </button>
+              </TextBtn>
             </Row>
           ))
         )}
       </Stack>
 
       <Fld label="Add Material">
-        <div style={{ position: "relative" }}>
-          <Search
-            size={13}
-            color={C.sub}
-            style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
-            aria-hidden="true"
-          />
-          <Inp
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search inventory..."
-            style={{ paddingLeft: 28 }}
-            disabled={saving}
-          />
-        </div>
+        <Inp
+          prefix={<Search size={13} />}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search inventory..."
+          disabled={saving}
+        />
       </Fld>
       {search.trim() && (
         <div

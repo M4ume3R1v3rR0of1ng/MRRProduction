@@ -28,6 +28,7 @@ import {
   Eyebrow,
   Text,
   Muted,
+  TextBtn,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -375,19 +376,14 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
               Manifest Queue {rows.length > 0 && `(${rows.length})`}
             </Eyebrow>
             {rows.length > 0 && (
-              <button
+              <TextBtn
                 onClick={() => setRows([])}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: C.rd,
-                  fontSize: "var(--text-xs)",
-                  fontWeight: "var(--weight-bold)",
-                }}
+                color={C.rd}
+                size="xs"
+                style={{ padding: "1px 6px" }}
               >
                 Clear All
-              </button>
+              </TextBtn>
             )}
           </Row>
 
@@ -417,19 +413,15 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                         <Text as="span" size="sm" weight="bold" color={C.navy}>
                           {b.iname}
                         </Text>
-                        <button
+                        <TextBtn
                           onClick={() => removeRow(b.iid)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            color: C.rd,
-                            fontSize: "var(--text-xl)",
-                            lineHeight: 1,
-                          }}
+                          color={C.rd}
+                          weight="normal"
+                          size="xl"
+                          style={{ lineHeight: 1, padding: "1px 6px" }}
                         >
                           ×
-                        </button>
+                        </TextBtn>
                       </Row>
 
                       <div className="sw-grid-2-auto">

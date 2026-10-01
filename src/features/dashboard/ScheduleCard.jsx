@@ -13,7 +13,7 @@
 import { Calendar, AlertTriangle, Truck, Wrench } from "lucide-react";
 import { C, parseDay, todayLocal } from "@/shared/utils/helpers";
 import { buildSchedule } from "@/shared/utils/schedule";
-import { Row, Text, Eyebrow, Muted } from "@/shared/components/UIPrimitives";
+import { Row, Text, Eyebrow, Muted, TextBtn } from "@/shared/components/UIPrimitives";
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -57,22 +57,9 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
           </Text>
           {/* The way through to the full month view, where the past lives. This
               card only ever shows the next seven days. */}
-          <button
-            onClick={() => onNav?.("schedule")}
-            style={{
-              background: "none",
-              border: "none",
-              padding: 0,
-              cursor: "pointer",
-              font: "inherit",
-              fontSize: "var(--text-2xs)",
-              fontWeight: "var(--weight-bold)",
-              color: C.blue,
-              whiteSpace: "nowrap",
-            }}
-          >
+          <TextBtn onClick={() => onNav?.("schedule")} size="2xs" style={{ whiteSpace: "nowrap" }}>
             {es ? "Ver calendario completo →" : "Full calendar →"}
-          </button>
+          </TextBtn>
         </Row>
       </Row>
 

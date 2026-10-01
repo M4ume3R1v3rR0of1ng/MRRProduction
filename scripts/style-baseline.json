@@ -4,7 +4,7 @@
     "hex": 3
   },
   "src/features/auth/LoginScreen.jsx": {
-    "inline": 27,
+    "inline": 3,
     "hex": 0
   },
   "src/features/auth/MfaPanel.jsx": {
@@ -28,23 +28,19 @@
     "hex": 0
   },
   "src/features/dashboard/ScheduleCard.jsx": {
-    "inline": 9,
+    "inline": 8,
     "hex": 0
   },
   "src/features/dashboard/TeamChatBox.jsx": {
-    "inline": 25,
+    "inline": 21,
     "hex": 0
   },
   "src/features/dashboard/WeatherCard.jsx": {
     "inline": 3,
     "hex": 0
   },
-  "src/features/fleet/AddVehicleModal.jsx": {
-    "inline": 2,
-    "hex": 0
-  },
   "src/features/fleet/FleetManagementView.jsx": {
-    "inline": 29,
+    "inline": 5,
     "hex": 1
   },
   "src/features/fleet/InspectionModal.jsx": {
@@ -64,7 +60,7 @@
     "hex": 0
   },
   "src/features/inventory/BulkReceiveModal.jsx": {
-    "inline": 16,
+    "inline": 14,
     "hex": 0
   },
   "src/features/inventory/InventoryCountTab.jsx": {
@@ -76,19 +72,11 @@
     "hex": 0
   },
   "src/features/inventory/ItemDetailModal.jsx": {
-    "inline": 2,
-    "hex": 0
-  },
-  "src/features/inventory/ItemFormModal.jsx": {
-    "inline": 2,
+    "inline": 1,
     "hex": 0
   },
   "src/features/inventory/JobTemplatesModal.jsx": {
-    "inline": 7,
-    "hex": 0
-  },
-  "src/features/inventory/ReceiveBatchModal.jsx": {
-    "inline": 2,
+    "inline": 6,
     "hex": 0
   },
   "src/features/jobs/CorrectReturnModal.jsx": {
@@ -100,7 +88,7 @@
     "hex": 0
   },
   "src/features/jobs/EditJobModal.jsx": {
-    "inline": 10,
+    "inline": 4,
     "hex": 0
   },
   "src/features/jobs/JobHandoff.jsx": {
@@ -112,10 +100,6 @@
     "hex": 0
   },
   "src/features/jobs/PullInventoryView.jsx": {
-    "inline": 24,
-    "hex": 0
-  },
-  "src/features/maintenance/CompleteServiceModal.jsx": {
     "inline": 2,
     "hex": 0
   },
@@ -136,7 +120,7 @@
     "hex": 0
   },
   "src/features/settings/SettingsView.jsx": {
-    "inline": 4,
+    "inline": 3,
     "hex": 0
   },
   "src/features/training/TrainingView.jsx": {
@@ -144,7 +128,7 @@
     "hex": 3
   },
   "src/features/users/AuditLogView.jsx": {
-    "inline": 24,
+    "inline": 23,
     "hex": 0
   },
   "src/features/users/UserManagementView.jsx": {
@@ -160,7 +144,7 @@
     "hex": 2
   },
   "src/shared/components/ChatWidget.jsx": {
-    "inline": 23,
+    "inline": 18,
     "hex": 0
   },
   "src/shared/components/ErrorBoundary.jsx": {

@@ -4,7 +4,7 @@ import { Bot, X, AlertTriangle, Camera } from "lucide-react";
 import { translations } from "../utils/translations";
 import { supabase } from "../utils/supabase";
 import { C, compressImg } from "../utils/helpers";
-import { LoadingState, Modal, Row, Stack, Muted, Callout } from "./UIPrimitives";
+import { LoadingState, Modal, Row, Stack, Muted, Callout, TextBtn } from "./UIPrimitives";
 
 // data:image/jpeg;base64,XXXX -> { media_type: "image/jpeg", data: "XXXX" }
 function parseDataUrl(dataUrl) {
@@ -340,19 +340,15 @@ export default function ChatWidget({ user, lang = "en" }) {
             >
               <Bot size={17} aria-hidden="true" /> Steadwerk Assistant
             </Row>
-            <button
+            <TextBtn
               onClick={() => setOpen(false)}
-              style={{
-                background: "none",
-                border: "none",
-                color: C.shellInk,
-                cursor: "pointer",
-                fontSize: "var(--text-xl)",
-                lineHeight: 1,
-              }}
+              color={C.shellInk}
+              weight="normal"
+              size="xl"
+              style={{ lineHeight: 1, padding: "1px 6px" }}
             >
               ×
-            </button>
+            </TextBtn>
           </Row>
 
           <div
@@ -437,68 +433,34 @@ export default function ChatWidget({ user, lang = "en" }) {
                         }}
                       />
                       <Row align="stretch" justify="flex-end">
-                        <button
+                        <TextBtn
                           onClick={cancelEdit}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: C.sub,
-                            cursor: "pointer",
-                            fontSize: "var(--text-xs)",
-                            fontWeight: "var(--weight-bold)",
-                          }}
+                          color={C.sub}
+                          size="xs"
+                          style={{ padding: "1px 6px" }}
                         >
                           {t.chCancel}
-                        </button>
-                        <button
-                          onClick={saveEdit}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: C.blue,
-                            cursor: "pointer",
-                            fontSize: "var(--text-xs)",
-                            fontWeight: "var(--weight-bold)",
-                          }}
-                        >
+                        </TextBtn>
+                        <TextBtn onClick={saveEdit} size="xs" style={{ padding: "1px 6px" }}>
                           {t.chSaveResend}
-                        </button>
+                        </TextBtn>
                       </Row>
                     </Stack>
                   )}
 
                   {mine && !isEditing && (
                     <Row align="stretch" justify="flex-end" style={{ marginTop: 2 }}>
-                      <button
-                        onClick={() => startEdit(i)}
-                        disabled={sending}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: C.blue,
-                          cursor: "pointer",
-                          fontSize: 10,
-                          fontWeight: "var(--weight-bold)",
-                          padding: 0,
-                        }}
-                      >
+                      <TextBtn onClick={() => startEdit(i)} disabled={sending} size="2xs">
                         {t.chEdit}
-                      </button>
-                      <button
+                      </TextBtn>
+                      <TextBtn
                         onClick={() => deleteMessage(i)}
                         disabled={sending}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: C.rd,
-                          cursor: "pointer",
-                          fontSize: 10,
-                          fontWeight: "var(--weight-bold)",
-                          padding: 0,
-                        }}
+                        color={C.rd}
+                        size="2xs"
                       >
                         {t.chDelete}
-                      </button>
+                      </TextBtn>
                     </Row>
                   )}
                 </div>

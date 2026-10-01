@@ -33,6 +33,10 @@ import {
   Text,
   Muted,
   Callout,
+  Card,
+  Meter,
+  Grid,
+  StatusDot,
 } from "@/shared/components/UIPrimitives";
 import { C, todayLocal } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
@@ -95,17 +99,7 @@ export default function FleetManagementView({
   // token rather than sharing the destructive colour and the "Out of Service" wording.
   // A solid dot in the status color, except in_shop which gets the wrench glyph
   // instead — that state is "being worked on", not a plain severity level.
-  const Dot = ({ color }) => (
-    <span
-      style={{
-        display: "inline-block",
-        width: 8,
-        height: 8,
-        borderRadius: "50%",
-        background: color,
-      }}
-    />
-  );
+  const Dot = StatusDot;
   const STATUS_DISPLAY = {
     grounded: { dot: <Dot color={C.rd} />, label: t.flStatusOutOfService, color: C.rd },
     in_shop: {
@@ -532,47 +526,34 @@ export default function FleetManagementView({
   if (vehs.length === 0) {
     return (
       <>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "60px 20px",
-            background: "var(--c-surface)",
-            borderRadius: "12px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-            textAlign: "center",
-            marginTop: 10,
-          }}
-        >
-          <Truck
-            size={44}
-            color="var(--c-slate)"
-            strokeWidth={1.5}
-            style={{ marginBottom: 16 }}
-            aria-hidden="true"
-          />
-          <Text as="h3" weight="extrabold" color="var(--c-slate)" style={{ margin: "0 0 8px 0" }}>
-            {t.flRegistryEmpty}
-          </Text>
-          <p
-            style={{
-              margin: "0 0 20px 0",
-              color: "var(--c-sub)",
-              fontSize: "var(--text-base)",
-              maxWidth: "340px",
-            }}
-          >
-            No company vehicles are currently configured for tracking at the Saint Joe Road
-            Warehouse.
-          </p>
-          {perms.fleet_edit && (
-            <Btn v="gold" onClick={() => setIsAddVehicleOpen(true)}>
-              + Register First Fleet Vehicle
-            </Btn>
-          )}
-        </div>
+        <Card variant="raised" pad="60px 20px" style={{ marginTop: 10 }}>
+          <Stack gap={0} align="center" style={{ textAlign: "center" }}>
+            <Truck
+              size={44}
+              color="var(--c-slate)"
+              strokeWidth={1.5}
+              style={{ marginBottom: 16 }}
+              aria-hidden="true"
+            />
+            <Text as="h3" weight="extrabold" color="var(--c-slate)" style={{ margin: "0 0 8px 0" }}>
+              {t.flRegistryEmpty}
+            </Text>
+            <Text
+              as="p"
+              size="base"
+              color={C.sub}
+              style={{ margin: "0 0 20px 0", maxWidth: "340px" }}
+            >
+              No company vehicles are currently configured for tracking at the Saint Joe Road
+              Warehouse.
+            </Text>
+            {perms.fleet_edit && (
+              <Btn v="gold" onClick={() => setIsAddVehicleOpen(true)}>
+                + Register First Fleet Vehicle
+              </Btn>
+            )}
+          </Stack>
+        </Card>
         {isAddVehicleOpen && (
           <AddVehicleModal
             user={user}
@@ -586,16 +567,8 @@ export default function FleetManagementView({
 
   return (
     // ── WRAP ENTIRE VIEW TO FILL WIDTH AND LOCK SCREEN ELEMENT OVERFLOW ──
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "calc(100vh - 96px)", // Dynamic compensation boundary calculation subtracting parent layout bars
-        width: "100%",
-        maxWidth: "100%",
-        overflow: "hidden",
-      }}
-    >
+    // Fixed to the viewport (less the app bars) so only the card grid scrolls.
+    <Stack gap={0} style={{ height: "calc(100vh - 96px)", width: "100%", overflow: "hidden" }}>
       {/* HEADER SECTION TIER (flexShrink: 0 keeps it locked in view) */}
       <PageHeader
         title={t.fleetTitle}
@@ -776,16 +749,14 @@ export default function FleetManagementView({
                 const asgn = users.find((u) => u.id === v.assignedTo);
                 const photo = v.photo_url;
                 return (
-                  <div
+                  <Card
                     key={v.id}
-                    className="mrr-card-click"
+                    variant="raised"
+                    pad="none"
+                    containsActions
                     onClick={() => setSel(v)}
                     style={{
-                      background: C.w,
-                      borderRadius: "var(--radius-xl)",
                       overflow: "hidden",
-                      cursor: "pointer",
-                      boxShadow: "var(--shadow-sm)",
                       border: `2px solid ${isBlocked ? C.pu : bc}`,
                       // Dimmed, not hidden. The truck still exists and people need to
                       // see when it is due back, so the card stays clickable and the
@@ -795,12 +766,11 @@ export default function FleetManagementView({
                       opacity: isBlocked ? 0.72 : 1,
                     }}
                   >
-                    <div
+                    <Row
+                      inline
+                      gap={1}
                       style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "var(--space-1)",
-                        fontSize: "11px",
+                        fontSize: "var(--text-xs)",
                         fontWeight: "var(--weight-extrabold)",
                         color: fleetStatus.color,
                         padding: "8px 12px 4px",
@@ -811,11 +781,11 @@ export default function FleetManagementView({
                       {/* The date lives on the status line, not on the photo: the
                       photo is desaturated when blocked and would drain it. */}
                       {isBlocked && blockingReq.scheduled_date && (
-                        <span style={{ fontWeight: "var(--weight-bold)", opacity: 0.8 }}>
+                        <Text as="span" weight="bold" style={{ opacity: 0.8 }}>
                           · {fd(blockingReq.scheduled_date)}
-                        </span>
+                        </Text>
                       )}
-                    </div>
+                    </Row>
                     <div
                       style={{
                         height: 130,
@@ -840,31 +810,29 @@ export default function FleetManagementView({
                             objectFit: "cover",
                           }}
                         />
+                      ) : v.type === "truck" ? (
+                        <Truck size={48} strokeWidth={1.5} opacity={0.25} aria-hidden="true" />
                       ) : (
-                        <span style={{ opacity: 0.25 }}>
-                          {v.type === "truck" ? (
-                            <Truck size={48} strokeWidth={1.5} aria-hidden="true" />
-                          ) : (
-                            <Tractor size={48} strokeWidth={1.5} aria-hidden="true" />
-                          )}
-                        </span>
+                        <Tractor size={48} strokeWidth={1.5} opacity={0.25} aria-hidden="true" />
                       )}
-                      <div style={{ position: "absolute", top: 8, left: 8 }}>
-                        {vOpenReqs.length > 0 && (
-                          <span
-                            style={{
-                              background: C.pu,
-                              color: C.onAccent,
-                              borderRadius: 20,
-                              fontSize: "var(--text-2xs)",
-                              padding: "2px 8px",
-                              fontWeight: "var(--weight-extrabold)",
-                            }}
-                          >
-                            {vOpenReqs.length} req
-                          </span>
-                        )}
-                      </div>
+                      {vOpenReqs.length > 0 && (
+                        <Text
+                          as="span"
+                          size="2xs"
+                          weight="extrabold"
+                          color={C.onAccent}
+                          style={{
+                            position: "absolute",
+                            top: 8,
+                            left: 8,
+                            background: C.pu,
+                            borderRadius: 20,
+                            padding: "2px 8px",
+                          }}
+                        >
+                          {vOpenReqs.length} req
+                        </Text>
+                      )}
                       <div
                         style={{
                           position: "absolute",
@@ -883,13 +851,11 @@ export default function FleetManagementView({
                         </Text>
                       </div>
                     </div>
-                    <div style={{ padding: 12 }}>
+                    <Stack gap={0} style={{ padding: 12 }}>
                       {asgn && (
-                        <div
+                        <Row
+                          gap={1}
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
                             fontSize: "var(--text-2xs)",
                             color: C.blue,
                             fontWeight: "var(--weight-bold)",
@@ -897,7 +863,7 @@ export default function FleetManagementView({
                           }}
                         >
                           <User size={11} aria-hidden="true" /> {asgn.name}
-                        </div>
+                        </Row>
                       )}
                       {/* Offered at the moment of need, on the card of the truck that
                       just went out of service, rather than buried in the detail
@@ -918,11 +884,9 @@ export default function FleetManagementView({
                         </Btn>
                       )}
                       {isBlocked && blockingReq.replacement_vehicle_id && (
-                        <div
+                        <Row
+                          gap={1}
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
                             fontSize: "var(--text-2xs)",
                             color: C.pu,
                             fontWeight: "var(--weight-bold)",
@@ -932,10 +896,10 @@ export default function FleetManagementView({
                           <KeyRound size={11} aria-hidden="true" /> {t.flSpareOut}{" "}
                           {vehs.find((x) => x.id === blockingReq.replacement_vehicle_id)?.name ||
                             blockingReq.replacement_vehicle_id}
-                        </div>
+                        </Row>
                       )}
                       {v.type === "truck" && (
-                        <div style={{ marginBottom: 8 }}>
+                        <Stack gap={0} style={{ marginBottom: 8 }}>
                           <Row
                             gap={0}
                             align="stretch"
@@ -949,23 +913,12 @@ export default function FleetManagementView({
                               {v.mi.toLocaleString()} mi
                             </Text>
                           </Row>
-                          <div
-                            style={{
-                              height: 4,
-                              background: C.lg,
-                              borderRadius: 3,
-                              marginBottom: 3,
-                            }}
-                          >
-                            <div
-                              style={{
-                                height: "100%",
-                                borderRadius: 3,
-                                background: os === "overdue" ? C.rd : os === "soon" ? C.am : C.gr,
-                                width: `${Math.max(0, Math.min(100, (1 - oLeft / v.oii) * 100))}%`,
-                              }}
-                            />
-                          </div>
+                          <Meter
+                            value={1 - oLeft / v.oii}
+                            color={os === "overdue" ? C.rd : os === "soon" ? C.am : C.gr}
+                            height={4}
+                            style={{ marginBottom: 3 }}
+                          />
                           <Row
                             gap={1}
                             style={{
@@ -987,7 +940,7 @@ export default function FleetManagementView({
                               </Text>
                             )}
                           </Row>
-                        </div>
+                        </Stack>
                       )}
                       <Row gap="5px" align="stretch" wrap>
                         {v.type === "truck" && (
@@ -1007,8 +960,8 @@ export default function FleetManagementView({
                               : "Detail OK"}
                         </Bdg>
                       </Row>
-                    </div>
-                  </div>
+                    </Stack>
+                  </Card>
                 );
               })}
             </CardGrid>
@@ -1153,24 +1106,17 @@ export default function FleetManagementView({
           </Row>
 
           {isGrounded(sel) && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: C.rB,
-                border: `1.5px solid ${C.rd}`,
-                borderRadius: "var(--radius-md)",
-                padding: "10px 14px",
-                marginBottom: 14,
-                fontSize: "var(--text-sm)",
-                color: C.rd,
-                fontWeight: "var(--weight-semibold)",
-              }}
+            <Callout
+              tone="danger"
+              bordered
+              icon={Ban}
+              size="sm"
+              weight="semibold"
+              color={C.rd}
+              style={{ marginBottom: 14 }}
             >
-              <Ban size={14} aria-hidden="true" /> {t.flGroundedBadge}{" "}
-              {sel.oos_reason || t.flStatusOutOfService}
-            </div>
+              {t.flGroundedBadge} {sel.oos_reason || t.flStatusOutOfService}
+            </Callout>
           )}
 
           {isEditingInfo && (
@@ -1185,7 +1131,7 @@ export default function FleetManagementView({
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                 />
               </Fld>
-              <div className="sw-grid-3" style={{ gap: "var(--space-3)" }}>
+              <Grid cols={3} gap={3}>
                 <Fld label={t.flYear}>
                   <Inp
                     type="number"
@@ -1205,8 +1151,8 @@ export default function FleetManagementView({
                     onChange={(e) => setForm({ ...form, model: e.target.value })}
                   />
                 </Fld>
-              </div>
-              <div className="sw-grid-2" style={{ gap: "var(--space-3)" }}>
+              </Grid>
+              <Grid gap={3}>
                 <Fld label={t.flLicensePlate}>
                   <Inp
                     value={form.plate || ""}
@@ -1222,7 +1168,7 @@ export default function FleetManagementView({
                     <option value="trailer">{t.flTrailer}</option>
                   </Sel>
                 </Fld>
-              </div>
+              </Grid>
               <Btn v="green" sz="sm" onClick={saveVehicleInfo} disabled={savingVehicleInfo}>
                 {savingVehicleInfo ? (
                   <>
@@ -1242,19 +1188,17 @@ export default function FleetManagementView({
             </Callout>
           )}
 
-          <div style={{ marginBottom: 16 }}>
-            <Fld label={t.flVehiclePhoto}>
-              <PhotoUpload
-                current={sel.photo_url || null}
-                onUpload={(data) => setPhoto(sel.id, data)}
-                canRemove={!!perms.fleet_photo_delete}
-                label={t.flUploadPhoto}
-                maxDim={600}
-                quality={0.75}
-                previewHeight={200}
-              />
-            </Fld>
-          </div>
+          <Fld label={t.flVehiclePhoto} style={{ marginBottom: 16 }}>
+            <PhotoUpload
+              current={sel.photo_url || null}
+              onUpload={(data) => setPhoto(sel.id, data)}
+              canRemove={!!perms.fleet_photo_delete}
+              label={t.flUploadPhoto}
+              maxDim={600}
+              quality={0.75}
+              previewHeight={200}
+            />
+          </Fld>
 
           <CardGrid minWidth={130} gap="var(--space-3)" style={{ marginBottom: 16 }}>
             {[
@@ -1281,20 +1225,19 @@ export default function FleetManagementView({
           </CardGrid>
 
           {predictedServices.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              <h4
+            <Stack gap={0} style={{ marginBottom: 16 }}>
+              <Row
+                as="h4"
+                gap={2}
                 style={{
                   margin: "0 0 8px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
                   color: C.navy,
                   fontSize: "var(--text-sm)",
                   textTransform: "uppercase",
                 }}
               >
                 <Wrench size={13} aria-hidden="true" /> Predicted Next Service
-              </h4>
+              </Row>
               <Stack gap={2}>
                 {predictedServices.map((p) => (
                   <Callout key={p.type} tone="plum" bordered pad="sm" size="sm">
@@ -1312,7 +1255,7 @@ export default function FleetManagementView({
                   </Callout>
                 ))}
               </Stack>
-            </div>
+            </Stack>
           )}
 
           <Text
@@ -1591,45 +1534,42 @@ export default function FleetManagementView({
           ) : (
             <Stack gap={3}>
               {availableSpares(swapReq).map((x) => (
-                <button
+                <Card
+                  as="button"
+                  type="button"
                   key={x.id}
                   disabled={swapping}
                   onClick={() => confirmSwap(x.id)}
-                  className="mrr-card-click"
+                  pad="sm"
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-lg)",
                     border: `2px solid ${C.lg}`,
-                    background: C.w,
-                    cursor: swapping ? "wait" : "pointer",
+                    borderRadius: "var(--radius-lg)",
                     textAlign: "left",
                     width: "100%",
                   }}
                 >
-                  <span>
-                    <Row
-                      inline
-                      as="span"
-                      gap="5px"
-                      style={{ fontWeight: "var(--weight-extrabold)", color: C.navy }}
-                    >
-                      {x.type === "truck" ? (
-                        <Truck size={13} aria-hidden="true" />
-                      ) : (
-                        <Tractor size={13} aria-hidden="true" />
-                      )}{" "}
-                      {x.name}
-                    </Row>
-                    <span style={{ display: "block", fontSize: "var(--text-2xs)", color: C.sub }}>
-                      {x.yr} {x.make} {x.model} · #{x.plate}
+                  <Row gap={5} justify="space-between">
+                    <span>
+                      <Row
+                        inline
+                        as="span"
+                        gap="5px"
+                        style={{ fontWeight: "var(--weight-extrabold)", color: C.navy }}
+                      >
+                        {x.type === "truck" ? (
+                          <Truck size={13} aria-hidden="true" />
+                        ) : (
+                          <Tractor size={13} aria-hidden="true" />
+                        )}{" "}
+                        {x.name}
+                      </Row>
+                      <Muted as="span" size="2xs" style={{ display: "block" }}>
+                        {x.yr} {x.make} {x.model} · #{x.plate}
+                      </Muted>
                     </span>
-                  </span>
-                  <Bdg color="green">{t.flUnassigned}</Bdg>
-                </button>
+                    <Bdg color="green">{t.flUnassigned}</Bdg>
+                  </Row>
+                </Card>
               ))}
             </Stack>
           )}
@@ -1641,6 +1581,6 @@ export default function FleetManagementView({
           </Row>
         </Modal>
       )}
-    </div>
+    </Stack>
   );
 }

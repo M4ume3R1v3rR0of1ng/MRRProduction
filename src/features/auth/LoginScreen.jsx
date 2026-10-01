@@ -20,7 +20,19 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/shared/utils/supabase";
 import { IS_IOS_APP } from "@/core/platform";
 import { C } from "@/shared/utils/helpers";
-import { Fld, Row, Stack, Text, Muted, Callout } from "@/shared/components/UIPrimitives";
+import {
+  Fld,
+  Row,
+  Stack,
+  Text,
+  Muted,
+  Callout,
+  TextBtn,
+  Btn,
+  Inp,
+  Card,
+  Divider,
+} from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";
 import { SteadwerkLockup, BRAND } from "@/shared/components/SteadwerkMark";
@@ -409,14 +421,9 @@ export default function LoginScreen({
     }
   };
 
-  const inputStyle = {
-    width: "100%",
-    padding: "12px 14px",
-    border: `1.5px solid ${C.bd}`,
-    borderRadius: "var(--radius-md)",
-    fontSize: 15,
-    boxSizing: "border-box",
-  };
+  // The sign-in fields run a size up from the app's own inputs: this is the
+  // front door, read at arm's length on a phone in a truck.
+  const bigInput = { padding: "12px 14px", fontSize: 15 };
 
   return (
     // Barnwood ground with a faint truss lattice — the timber frame, repeated.
@@ -458,36 +465,28 @@ export default function LoginScreen({
         {/* Back to the public landing page. Hidden during the company picker, where
             "back" would be ambiguous. */}
         {onBack && !choices && (
-          <button
+          <TextBtn
             type="button"
             onClick={onBack}
-            style={{
-              background: "none",
-              border: "none",
-              color: C.sub,
-              fontWeight: 600,
-              cursor: "pointer",
-              padding: 0,
-              marginBottom: 20,
-              fontSize: "var(--text-base)",
-            }}
+            color={C.sub}
+            weight="semibold"
+            size="base"
+            style={{ marginBottom: 20 }}
           >
             ← Back to home
-          </button>
+          </TextBtn>
         )}
 
         {/* PLATFORM branding, not tenant branding. The login page is rendered before
             anyone authenticates, so it cannot know whose portal you're headed for —
             and it must not, since a company list here would be public. Steadwerk owns
             this screen; the company's own logo appears once you're inside. */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ marginBottom: 16 }}>
-            <SteadwerkLockup size={76} />
-          </div>
-          <Text size="base" color={C.sub} style={{ marginTop: 4 }}>
+        <Stack gap={8} align="center" style={{ textAlign: "center", marginBottom: 32 }}>
+          <SteadwerkLockup size={76} />
+          <Text size="base" color={C.sub}>
             {choices ? t.lgChooseCompany : mode === "signup" ? t.lgStartCompany : t.loginSubtitle}
           </Text>
-        </div>
+        </Stack>
 
         {notice && (
           <Callout
@@ -509,22 +508,16 @@ export default function LoginScreen({
             ].map((langObj) => {
               const active = lang === langObj.id;
               return (
-                <button
+                <Btn
                   key={langObj.id}
+                  v={active ? "gold" : "ghost"}
+                  sz="sm"
+                  aria-pressed={active}
                   onClick={() => setLang(langObj.id)}
-                  style={{
-                    background: active ? C.gold : "transparent",
-                    color: active ? C.navy : C.sub,
-                    border: `1px solid ${active ? C.gold : C.bd}`,
-                    borderRadius: "var(--radius-xl)",
-                    padding: "3px 10px",
-                    fontSize: "var(--text-2xs)",
-                    fontWeight: "var(--weight-black)",
-                    cursor: "pointer",
-                  }}
+                  style={{ padding: "3px 10px", fontSize: "var(--text-2xs)" }}
                 >
                   {langObj.label}
-                </button>
+                </Btn>
               );
             })}
           </Row>
@@ -541,20 +534,16 @@ export default function LoginScreen({
             for someone whose identity is already fully established. */}
         {mfaStep ? (
           <form onSubmit={submitMfaCode}>
-            <p
-              style={{
-                margin: "0 0 16px",
-                color: C.navy,
-                fontSize: "var(--text-base)",
-                lineHeight: 1.6,
-                textAlign: "center",
-              }}
+            <Text
+              as="p"
+              size="base"
+              color={C.navy}
+              style={{ margin: "0 0 16px", lineHeight: 1.6, textAlign: "center" }}
             >
               {t.mfaChallengePrompt}
-            </p>
+            </Text>
             <Fld label={t.mfaCodeLabel}>
-              <input
-                className="mrr-input"
+              <Inp
                 value={mfaCode}
                 onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="123456"
@@ -563,7 +552,7 @@ export default function LoginScreen({
                 autoFocus
                 disabled={submitting}
                 style={{
-                  ...inputStyle,
+                  ...bigInput,
                   fontFamily: "var(--font-mono)",
                   fontSize: 22,
                   letterSpacing: 6,
@@ -571,48 +560,33 @@ export default function LoginScreen({
                 }}
               />
             </Fld>
-            <button
-              className="mrr-btn"
+            <Btn
+              v="gold"
+              sz="xl"
+              block
               type="submit"
               disabled={submitting || mfaCode.length < 6}
-              style={{
-                width: "100%",
-                padding: "14px",
-                background: submitting || mfaCode.length < 6 ? C.bd : C.gold,
-                color: C.navy,
-                border: "none",
-                borderRadius: "var(--radius-md)",
-                fontSize: "var(--text-lg)",
-                fontWeight: "var(--weight-extrabold)",
-                cursor: submitting || mfaCode.length < 6 ? "not-allowed" : "pointer",
-                marginBottom: 12,
-              }}
+              style={{ marginBottom: 12 }}
             >
               {submitting ? t.mfaVerifying : t.mfaVerify}
-            </button>
-            <button
+            </Btn>
+            <TextBtn
               type="button"
               onClick={cancelMfa}
-              style={{
-                width: "100%",
-                background: "none",
-                border: "none",
-                color: C.sub,
-                fontWeight: 700,
-                cursor: "pointer",
-                padding: 6,
-                fontSize: "var(--text-2xs)",
-              }}
+              color={C.sub}
+              size="2xs"
+              style={{ width: "100%", padding: 6 }}
             >
               {t.cancel}
-            </button>
+            </TextBtn>
           </form>
         ) : choices ? (
           <Stack gap={4}>
             {choices.map((m) => (
-              <button
+              <Card
+                as="button"
                 key={m.company_id}
-                className="mrr-btn"
+                variant="flat"
                 onClick={() => {
                   setSubmitting(true);
                   enterCompany(pendingUser, m);
@@ -620,22 +594,18 @@ export default function LoginScreen({
                 disabled={submitting}
                 style={{
                   width: "100%",
-                  padding: "16px",
-                  background: "var(--c-surface)",
-                  color: C.navy,
-                  border: `1.5px solid ${C.bd}`,
-                  borderRadius: "var(--radius-md)",
-                  fontSize: "var(--text-lg)",
-                  fontWeight: "var(--weight-bold)",
-                  cursor: submitting ? "not-allowed" : "pointer",
                   textAlign: "left",
+                  borderWidth: 1.5,
+                  borderRadius: "var(--radius-md)",
                 }}
               >
-                {m.companies?.name || "Company"}
+                <Text size="lg" weight="bold" color={C.navy}>
+                  {m.companies?.name || "Company"}
+                </Text>
                 <Text size="2xs" weight="semibold" color={C.sub} style={{ marginTop: 2 }}>
                   {m.role}
                 </Text>
-              </button>
+              </Card>
             ))}
           </Stack>
         ) : (
@@ -644,24 +614,22 @@ export default function LoginScreen({
             {mode === "signup" && (
               <>
                 <Fld label={t.lgCompanyName}>
-                  <input
-                    className="mrr-input"
+                  <Inp
                     type="text"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder={t.lgCompanyPlaceholder}
-                    style={inputStyle}
+                    style={bigInput}
                     disabled={submitting}
                   />
                 </Fld>
                 <Fld label={t.lgYourName}>
-                  <input
-                    className="mrr-input"
+                  <Inp
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder={t.lgYourNamePlaceholder}
-                    style={inputStyle}
+                    style={bigInput}
                     disabled={submitting}
                   />
                 </Fld>
@@ -669,19 +637,17 @@ export default function LoginScreen({
             )}
 
             <Fld label={t.email}>
-              <input
-                className="mrr-input"
+              <Inp
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t.lgEmailPlaceholder}
-                style={inputStyle}
+                style={bigInput}
                 disabled={submitting}
               />
             </Fld>
             <Fld label={t.password}>
-              <input
-                className="mrr-input"
+              <Inp
                 type="password"
                 value={pass}
                 onChange={(e) => setPass(e.target.value)}
@@ -689,18 +655,16 @@ export default function LoginScreen({
                   e.key === "Enter" && !submitting && (mode === "signup" ? trySignup() : tryLogin())
                 }
                 placeholder={mode === "signup" ? t.lgPasswordPlaceholder : t.password}
-                style={inputStyle}
+                style={bigInput}
                 disabled={submitting}
               />
             </Fld>
 
             {mode === "login" && (
               <Row gap={0} justify="space-between" style={{ marginBottom: 16, marginTop: -4 }}>
-                <label
+                <Row
+                  as="label"
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-3)",
                     fontSize: "var(--text-base)",
                     color: C.navy,
                     fontWeight: "var(--weight-bold)",
@@ -715,23 +679,16 @@ export default function LoginScreen({
                     disabled={submitting}
                   />
                   {t.rememberMe}
-                </label>
-                <button
+                </Row>
+                <TextBtn
                   type="button"
                   onClick={forgotPassword}
                   disabled={submitting}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: BRAND.amberDeep,
-                    fontWeight: 700,
-                    cursor: submitting ? "not-allowed" : "pointer",
-                    padding: 0,
-                    fontSize: "var(--text-base)",
-                  }}
+                  color={BRAND.amberDeep}
+                  size="base"
                 >
                   {t.lgForgotPassword}
-                </button>
+                </TextBtn>
               </Row>
             )}
 
@@ -748,21 +705,23 @@ export default function LoginScreen({
                   ].map((opt) => {
                     const active = billingInterval === opt.id;
                     return (
-                      <button
-                        key={opt.id}
+                      <Card
+                        as="button"
                         type="button"
+                        key={opt.id}
+                        variant="flat"
+                        pad="sm"
+                        aria-pressed={active}
                         onClick={() => setBillingInterval(opt.id)}
                         disabled={submitting}
                         style={{
                           flex: 1,
-                          padding: "10px 12px",
+                          textAlign: "left",
                           borderRadius: "var(--radius-md)",
                           border: `2px solid ${active ? C.gold : C.bd}`,
-                          background: active
-                            ? "color-mix(in srgb, var(--c-amber) 10%, transparent)"
-                            : "var(--c-surface)",
-                          cursor: submitting ? "not-allowed" : "pointer",
-                          textAlign: "left",
+                          ...(active && {
+                            background: "color-mix(in srgb, var(--c-amber) 10%, transparent)",
+                          }),
                         }}
                       >
                         <Text weight="extrabold" color={C.navy} style={{ fontSize: 15 }}>
@@ -775,7 +734,7 @@ export default function LoginScreen({
                         >
                           {opt.note}
                         </Text>
-                      </button>
+                      </Card>
                     );
                   })}
                 </Row>
@@ -783,11 +742,10 @@ export default function LoginScreen({
             )}
 
             {mode === "signup" && (
-              <label
+              <Row
+                as="label"
+                align="flex-start"
                 style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "var(--space-3)",
                   marginBottom: 16,
                   fontSize: "var(--text-2xs)",
                   color: C.sub,
@@ -811,66 +769,23 @@ export default function LoginScreen({
                 />
                 <span>
                   {t.lgAgreeToTerms}{" "}
-                  <button
-                    type="button"
-                    onClick={onShowTerms}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      color: BRAND.amberDeep,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontSize: "inherit",
-                      fontFamily: "inherit",
-                      textDecoration: "underline",
-                      textUnderlineOffset: 2,
-                    }}
-                  >
+                  <TextBtn type="button" onClick={onShowTerms} color={BRAND.amberDeep} underline>
                     {t.lgTerms}
-                  </button>{" "}
+                  </TextBtn>{" "}
                   {t.lgAgreeToTermsAnd}{" "}
-                  <button
-                    type="button"
-                    onClick={onShowPrivacy}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: 0,
-                      color: BRAND.amberDeep,
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      fontSize: "inherit",
-                      fontFamily: "inherit",
-                      textDecoration: "underline",
-                      textUnderlineOffset: 2,
-                    }}
-                  >
+                  <TextBtn type="button" onClick={onShowPrivacy} color={BRAND.amberDeep} underline>
                     {t.lgPrivacy}
-                  </button>
+                  </TextBtn>
                 </span>
-              </label>
+              </Row>
             )}
 
-            <button
-              className="mrr-btn"
+            <Btn
+              v="gold"
+              sz="xl"
+              block
               onClick={mode === "signup" ? trySignup : tryLogin}
-              style={{
-                width: "100%",
-                padding: "14px",
-                background: submitting || (mode === "signup" && !agreedToTerms) ? C.bd : C.gold,
-                color: C.navy,
-                border: "none",
-                borderRadius: "var(--radius-md)",
-                fontSize: "var(--text-lg)",
-                fontWeight: "var(--weight-extrabold)",
-                cursor:
-                  submitting || (mode === "signup" && !agreedToTerms) ? "not-allowed" : "pointer",
-                marginTop: mode === "signup" ? 8 : 0,
-                marginBottom: 16,
-                opacity: submitting || (mode === "signup" && !agreedToTerms) ? 0.7 : 1,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-              }}
+              style={{ marginTop: mode === "signup" ? 8 : 0, marginBottom: 16 }}
               disabled={submitting || (mode === "signup" && !agreedToTerms)}
             >
               {submitting
@@ -880,58 +795,24 @@ export default function LoginScreen({
                 : mode === "signup"
                   ? t.lgContinuePayment
                   : t.signIn}
-            </button>
+            </Btn>
 
             {mode === "login" && (
-              <p
-                style={{
-                  fontSize: "var(--text-2xs)",
-                  color: C.sub,
-                  textAlign: "center",
-                  lineHeight: 1.6,
-                  margin: "0 0 16px",
-                }}
+              <Muted
+                as="p"
+                size="2xs"
+                style={{ textAlign: "center", lineHeight: 1.6, margin: "0 0 16px" }}
               >
                 By logging in, you agree to the{" "}
-                <button
-                  type="button"
-                  onClick={onShowTerms}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    color: BRAND.amberDeep,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    fontSize: "inherit",
-                    fontFamily: "inherit",
-                    textDecoration: "underline",
-                    textUnderlineOffset: 2,
-                  }}
-                >
+                <TextBtn type="button" onClick={onShowTerms} color={BRAND.amberDeep} underline>
                   {t.lgTerms}
-                </button>{" "}
+                </TextBtn>{" "}
                 and our{" "}
-                <button
-                  type="button"
-                  onClick={onShowPrivacy}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    padding: 0,
-                    color: BRAND.amberDeep,
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    fontSize: "inherit",
-                    fontFamily: "inherit",
-                    textDecoration: "underline",
-                    textUnderlineOffset: 2,
-                  }}
-                >
+                <TextBtn type="button" onClick={onShowPrivacy} color={BRAND.amberDeep} underline>
                   {t.lgPrivacy}
-                </button>
+                </TextBtn>
                 .
-              </p>
+              </Muted>
             )}
 
             {/* On iOS this whole block goes. "Start your own company" is the door
@@ -945,48 +826,38 @@ export default function LoginScreen({
               <Muted size="2xs" style={{ textAlign: "center", lineHeight: 1.6 }}>
                 {t.lgNeedAccess}
                 <br />
-                <button
+                <TextBtn
                   onClick={() => {
                     setMode("signup");
                     setErr("");
                     setNotice("");
                   }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: BRAND.amberDeep,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    padding: "6px 0 0",
-                    fontSize: "var(--text-base)",
-                  }}
+                  color={BRAND.amberDeep}
+                  weight="extrabold"
+                  size="base"
+                  style={{ padding: "6px 0 0" }}
                 >
                   {t.lgStartOwn}
-                </button>
+                </TextBtn>
               </Muted>
             ) : (
               <Muted size="2xs" style={{ textAlign: "center", lineHeight: 1.6 }}>
                 You'll enter payment details on the next screen. Your portal goes live the moment
                 payment clears.
                 <br />
-                <button
+                <TextBtn
                   onClick={() => {
                     setMode("login");
                     setErr("");
                     setNotice("");
                   }}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: BRAND.amberDeep,
-                    fontWeight: 800,
-                    cursor: "pointer",
-                    padding: "6px 0 0",
-                    fontSize: "var(--text-base)",
-                  }}
+                  color={BRAND.amberDeep}
+                  weight="extrabold"
+                  size="base"
+                  style={{ padding: "6px 0 0" }}
                 >
                   ← Back to sign in
-                </button>
+                </TextBtn>
               </Muted>
             )}
           </>
@@ -998,54 +869,22 @@ export default function LoginScreen({
             someone mid-MFA-challenge, or looking at the company picker, had no
             way to open either document at all. This is deliberately outside
             that conditional. */}
-        <div
-          style={{
-            marginTop: 24,
-            paddingTop: 16,
-            borderTop: "1px solid var(--c-line)",
-            textAlign: "center",
-            fontSize: "var(--text-2xs)",
-            color: C.sub,
-          }}
-        >
-          <button
-            type="button"
-            onClick={onShowTerms}
-            style={{
-              background: "none",
-              border: "none",
-              padding: 0,
-              color: "inherit",
-              fontWeight: 600,
-              cursor: "pointer",
-              fontSize: "inherit",
-              fontFamily: "inherit",
-              textDecoration: "underline",
-              textUnderlineOffset: 2,
-            }}
-          >
+        <Divider style={{ margin: "24px 0 16px" }} />
+        <Muted size="2xs" style={{ textAlign: "center" }}>
+          <TextBtn type="button" onClick={onShowTerms} color="inherit" weight="semibold" underline>
             {t.lgTerms}
-          </button>
+          </TextBtn>
           <span> · </span>
-          <button
+          <TextBtn
             type="button"
             onClick={onShowPrivacy}
-            style={{
-              background: "none",
-              border: "none",
-              padding: 0,
-              color: "inherit",
-              fontWeight: 600,
-              cursor: "pointer",
-              fontSize: "inherit",
-              fontFamily: "inherit",
-              textDecoration: "underline",
-              textUnderlineOffset: 2,
-            }}
+            color="inherit"
+            weight="semibold"
+            underline
           >
             {t.lgPrivacy}
-          </button>
-        </div>
+          </TextBtn>
+        </Muted>
       </div>
     </Row>
   );

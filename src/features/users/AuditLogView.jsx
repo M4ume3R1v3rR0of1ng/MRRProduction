@@ -15,6 +15,7 @@ import {
   Table,
   Callout,
   Card,
+  TextBtn,
 } from "@/shared/components/UIPrimitives";
 
 import { translations } from "@/shared/utils/translations";
@@ -581,20 +582,14 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                             item list, the quantities, the job — was recorded and
                             then permanently invisible. */}
                       {l.metadata && Object.keys(l.metadata).length > 0 ? (
-                        <button
+                        <TextBtn
                           onClick={() => setActivePayload(l.metadata)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: C.blue,
-                            fontWeight: "var(--weight-bold)",
-                            cursor: "pointer",
-                            fontSize: "var(--text-sm)",
-                            textDecoration: "underline",
-                          }}
+                          size="sm"
+                          underline
+                          style={{ padding: "1px 6px" }}
                         >
                           {t.alViewDetail}
-                        </button>
+                        </TextBtn>
                       ) : (
                         <Text as="span" color={C.sub}>
                           —

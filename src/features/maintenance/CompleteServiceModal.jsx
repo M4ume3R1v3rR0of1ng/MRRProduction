@@ -14,7 +14,18 @@
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { C, todayLocal } from "@/shared/utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, TA, Card, Row, Stack } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Fld,
+  Inp,
+  Modal,
+  Sel,
+  TA,
+  Card,
+  Row,
+  Stack,
+  Grid,
+} from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
 
 const SERVICE_TYPES = [
@@ -150,7 +161,7 @@ export default function CompleteServiceModal({
           </Card>
         )}
 
-        <div className="sw-grid-2" style={{ gap: "var(--space-4)" }}>
+        <Grid gap={4}>
           <Fld label="Service Performed *">
             <Sel
               value={form.serviceType}
@@ -171,9 +182,9 @@ export default function CompleteServiceModal({
               onChange={(e) => setForm({ ...form, serviceDate: e.target.value })}
             />
           </Fld>
-        </div>
+        </Grid>
 
-        <div className="sw-grid-2" style={{ gap: "var(--space-4)" }}>
+        <Grid gap={4}>
           <Fld label="Performed By *">
             <Inp
               value={form.performedBy}
@@ -191,7 +202,7 @@ export default function CompleteServiceModal({
               placeholder="0.00"
             />
           </Fld>
-        </div>
+        </Grid>
 
         {veh && veh.type === "truck" && (
           <Fld

@@ -19,6 +19,7 @@ import {
   Eyebrow,
   Text,
   Muted,
+  Grid,
 } from "@/shared/components/UIPrimitives";
 
 // Oldest first: the batch FIFO will draw from next is the first one with stock
@@ -55,7 +56,7 @@ export default function ItemDetailModal({
 
   return (
     <Modal title={item.name} onClose={onClose} wide>
-      <div className="sw-grid-2" style={{ gap: "var(--space-7)", marginBottom: 16 }}>
+      <Grid gap={7} style={{ marginBottom: 16 }}>
         <div>
           <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)", marginBottom: 8 }}>
             Product Photo
@@ -117,7 +118,7 @@ export default function ItemDetailModal({
             )}
           </Row>
         </div>
-      </div>
+      </Grid>
 
       <Text
         as="h4"

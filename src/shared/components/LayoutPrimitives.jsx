@@ -80,6 +80,9 @@ export function Card({
   const cls = ["mrr-card", onClick ? "mrr-card-click" : hover ? "mrr-card-hover" : null, className]
     .filter(Boolean)
     .join(" ");
+  // A Card rendered as a real <button> already has the semantics and keyboard
+  // activation; adding them again would fire onClick twice on Enter.
+  const native = Tag === "button" || Tag === "a";
   return (
     <Tag
       className={cls}
@@ -91,7 +94,7 @@ export function Card({
         ...CARD_VARIANT[variant],
         ...style,
       }}
-      {...clickable(onClick, containsActions)}
+      {...clickable(onClick, containsActions || native)}
       {...rest}
     >
       {children}
@@ -245,6 +248,17 @@ export function Meter({ value, color, track = C.subtle, height = 6, style }) {
         }}
       />
     </div>
+  );
+}
+
+// The responsive column grid (.sw-grid-2/3/4: columns step down at the tablet
+// and phone breakpoints) with its gap on the spacing scale. Before this, each
+// call site paired the class with an inline style just to change the gap.
+export function Grid({ cols = 2, gap = 6, as: Tag = "div", style, children, ...rest }) {
+  return (
+    <Tag className={`sw-grid-${cols}`} style={{ gap: space(gap), ...style }} {...rest}>
+      {children}
+    </Tag>
   );
 }
 

@@ -40,6 +40,7 @@ import {
   Text,
   Muted,
   Callout,
+  Grid,
 } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -176,7 +177,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
               />
             </Fld>
           </div>
-          <div className="sw-grid-2" style={{ gap: "var(--space-5)" }}>
+          <Grid gap={5}>
             <div>
               <Row
                 as="h4"
@@ -310,7 +311,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                   ))}
               </Stack>
             </div>
-          </div>
+          </Grid>
           <Row gap={4} align="stretch" style={{ marginTop: 14 }}>
             <Btn
               v="ghost"

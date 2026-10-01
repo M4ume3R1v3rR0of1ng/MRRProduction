@@ -24,6 +24,7 @@ export {
   Divider,
   Meter,
   PickRow,
+  Grid,
 } from "./LayoutPrimitives";
 
 // A plain colored severity dot — used wherever a status is conveyed by color
@@ -455,7 +456,12 @@ export function Tabs({ tabs, value, onChange, style }) {
   );
 }
 
-export function Modal({ title, onClose, children, wide, extraWide, disableCloseButton }) {
+// `footer` is a sticky action bar pinned to the bottom of the scrolling panel.
+// Use it when the confirm button is the last thing in a body that can outgrow
+// a phone screen: without it the table runs off the bottom, nothing on screen
+// says there is more, and the modal reads as finished with the button below
+// the fold.
+export function Modal({ title, onClose, children, footer, wide, extraWide, disableCloseButton }) {
   return (
     <div
       className="mrr-backdrop"
@@ -517,7 +523,24 @@ export function Modal({ title, onClose, children, wide, extraWide, disableCloseB
             </button>
           )}
         </div>
-        <div style={{ padding: "var(--space-8)" }}>{children}</div>
+        <div style={{ padding: footer ? "var(--space-8) var(--space-8) 0" : "var(--space-8)" }}>
+          {children}
+        </div>
+        {footer && (
+          <Row
+            gap={4}
+            align="stretch"
+            style={{
+              position: "sticky",
+              bottom: 0,
+              padding: "var(--space-4) var(--space-8) var(--space-8)",
+              background: C.w,
+              borderTop: `1px solid ${C.lg}`,
+            }}
+          >
+            {footer}
+          </Row>
+        )}
       </div>
     </div>
   );
@@ -650,7 +673,9 @@ export function Sel({ children, ...p }) {
 
 // `tone` recolors the outline variant (text + border) for the destructive or
 // secondary outlined actions that used to hand-roll their own button for it.
-export function Btn({ children, v = "primary", sz = "md", tone, ...p }) {
+// `block` stretches it across its container with the label centred — the
+// width/justifyContent pair that full-width form buttons kept restating.
+export function Btn({ children, v = "primary", sz = "md", tone, block, ...p }) {
   // Every filled variant takes C.onAccent, not C.surface. They used to read C.w,
   // which was literally white and worked by accident; now that surface inverts to
   // near-black in dark mode, C.w on a filled button would be dark ink on a dark
@@ -678,6 +703,8 @@ export function Btn({ children, v = "primary", sz = "md", tone, ...p }) {
     sm: { padding: "5px 11px", fontSize: "var(--text-sm)" },
     md: { padding: "9px 16px", fontSize: "var(--text-base)" },
     lg: { padding: "12px 22px", fontSize: "var(--text-md)" },
+    // The one primary action on a screen with nothing else to do (sign in).
+    xl: { padding: "14px 22px", fontSize: "var(--text-lg)" },
   };
   return (
     <button
@@ -692,6 +719,7 @@ export function Btn({ children, v = "primary", sz = "md", tone, ...p }) {
         display: "inline-flex",
         alignItems: "center",
         gap: "var(--space-2)",
+        ...(block ? { width: "100%", justifyContent: "center" } : {}),
         ...p.style,
       }}
     >

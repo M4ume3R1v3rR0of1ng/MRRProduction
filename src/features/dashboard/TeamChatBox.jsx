@@ -4,7 +4,15 @@ import { MessageSquare, RefreshCw, AlertTriangle, Camera, X } from "lucide-react
 import { translations } from "@/shared/utils/translations";
 import { supabase } from "@/shared/utils/supabase";
 import { C, ft, compressImg } from "@/shared/utils/helpers";
-import { Modal, LoadingState, Row, Stack, Text, Muted } from "@/shared/components/UIPrimitives";
+import {
+  Modal,
+  LoadingState,
+  Row,
+  Stack,
+  Text,
+  Muted,
+  TextBtn,
+} from "@/shared/components/UIPrimitives";
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -359,32 +367,17 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
                       }}
                     />
                     <Row align="stretch" justify="flex-end">
-                      <button
+                      <TextBtn
                         onClick={cancelEdit}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: C.sub,
-                          cursor: "pointer",
-                          fontSize: "var(--text-xs)",
-                          fontWeight: "var(--weight-bold)",
-                        }}
+                        color={C.sub}
+                        size="xs"
+                        style={{ padding: "1px 6px" }}
                       >
                         {t.chCancel}
-                      </button>
-                      <button
-                        onClick={saveEdit}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: C.blue,
-                          cursor: "pointer",
-                          fontSize: "var(--text-xs)",
-                          fontWeight: "var(--weight-bold)",
-                        }}
-                      >
+                      </TextBtn>
+                      <TextBtn onClick={saveEdit} size="xs" style={{ padding: "1px 6px" }}>
                         {t.chSave}
-                      </button>
+                      </TextBtn>
                     </Row>
                   </Stack>
                 ) : (
@@ -432,34 +425,12 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
                     </Muted>
                     {mine && (
                       <>
-                        <button
-                          onClick={() => startEdit(m)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: C.blue,
-                            cursor: "pointer",
-                            fontSize: "var(--text-2xs)",
-                            fontWeight: "var(--weight-bold)",
-                            padding: 0,
-                          }}
-                        >
+                        <TextBtn onClick={() => startEdit(m)} size="2xs">
                           {t.chEdit}
-                        </button>
-                        <button
-                          onClick={() => deleteMessage(m)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: C.rd,
-                            cursor: "pointer",
-                            fontSize: "var(--text-2xs)",
-                            fontWeight: "var(--weight-bold)",
-                            padding: 0,
-                          }}
-                        >
+                        </TextBtn>
+                        <TextBtn onClick={() => deleteMessage(m)} color={C.rd} size="2xs">
                           {t.chDelete}
-                        </button>
+                        </TextBtn>
                       </>
                     )}
                   </Row>

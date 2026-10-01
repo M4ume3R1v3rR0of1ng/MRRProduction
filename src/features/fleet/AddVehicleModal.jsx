@@ -12,7 +12,7 @@ import { useState } from "react";
 import { Truck, Loader2, Plus } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { uid, todayLocal } from "@/shared/utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, Row } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, Sel, Row, Grid } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -126,7 +126,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
           <option value="trailer">Trailer</option>
         </Sel>
       </Fld>
-      <div className="sw-grid-3" style={{ gap: "var(--space-3)" }}>
+      <Grid cols={3} gap={3}>
         <Fld label="Year">
           <Inp
             type="number"
@@ -149,7 +149,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
             disabled={submitting}
           />
         </Fld>
-      </div>
+      </Grid>
       <Fld label="License Plate *">
         <Inp
           value={form.plate}
@@ -158,7 +158,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
         />
       </Fld>
       {form.type === "truck" && (
-        <div className="sw-grid-2" style={{ gap: "var(--space-3)" }}>
+        <Grid gap={3}>
           <Fld label="Starting Mileage">
             <Inp
               type="number"
@@ -175,7 +175,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
               disabled={submitting}
             />
           </Fld>
-        </div>
+        </Grid>
       )}
       <Fld label="Detail Interval (days)">
         <Inp

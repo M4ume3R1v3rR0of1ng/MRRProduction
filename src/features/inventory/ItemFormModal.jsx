@@ -9,7 +9,7 @@
 // from a previous dialog could ride along into a save.
 import { useState } from "react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
-import { C, uid, fm, newestPrice, todayLocal } from "@/shared/utils/helpers";
+import { uid, fm, newestPrice, todayLocal } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
 import { Btn, Fld, Inp, Modal, Sel, Row } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
@@ -239,27 +239,14 @@ export default function ItemFormModal({
       </Fld>
       {isEdit && perms.inv_pricing_edit && (
         <Fld label="Current Price Per Unit">
-          <div style={{ position: "relative" }}>
-            <span
-              style={{
-                position: "absolute",
-                left: 10,
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: C.sub,
-              }}
-            >
-              $
-            </span>
-            <Inp
-              type="number"
-              step="0.01"
-              value={form.price}
-              onChange={(e) => set({ price: e.target.value })}
-              style={{ paddingLeft: 22 }}
-              disabled={saving}
-            />
-          </div>
+          <Inp
+            prefix="$"
+            type="number"
+            step="0.01"
+            value={form.price}
+            onChange={(e) => set({ price: e.target.value })}
+            disabled={saving}
+          />
         </Fld>
       )}
       <Row gap={4}>

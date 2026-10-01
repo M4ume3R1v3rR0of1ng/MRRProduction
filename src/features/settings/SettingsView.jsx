@@ -45,6 +45,7 @@ import {
   Divider,
   TextBtn,
   Tabs,
+  Grid,
 } from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -724,7 +725,7 @@ export default function SettingsView({
           </Alert>
 
           <form onSubmit={handleSaveAccuLynx}>
-            <div className="sw-grid-2" style={{ gap: "var(--space-7)", marginBottom: 20 }}>
+            <Grid gap={7} style={{ marginBottom: 20 }}>
               <Fld label={t.stApiToken}>
                 <Inp
                   type="password"
@@ -741,7 +742,7 @@ export default function SettingsView({
                   placeholder="/.netlify/functions/acculynx-sync"
                 />
               </Fld>
-            </div>
+            </Grid>
 
             <Callout
               bordered
