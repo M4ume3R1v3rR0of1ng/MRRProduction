@@ -22,7 +22,7 @@ import { AlertTriangle } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C, tot, doFifo, todayLocal } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Modal, Inp, Row, Text } from "@/shared/components/UIPrimitives";
+import { Btn, Modal, Inp, Row, Text, Table } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { sendLowStockAlerts } from "@/features/inventory/lowStockAlerts";
@@ -193,24 +193,11 @@ export default function PullAddedMaterialsModal({
         </Text>
       ) : (
         <div className="sw-table-scroll">
-          <table
-            className="mrr-table"
-            style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
-          >
+          <Table pad="md">
             <thead>
-              <tr style={{ background: C.lg }}>
+              <tr>
                 {[t.colItem, t.colPlanned, t.colAvailable, t.colActualPull].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "7px 10px",
-                      textAlign: "left",
-                      color: C.sub,
-                      fontWeight: "var(--weight-bold)",
-                    }}
-                  >
-                    {h}
-                  </th>
+                  <th key={h}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -220,32 +207,14 @@ export default function PullAddedMaterialsModal({
                 const qty = parseFloat(qtys[item.iid]) || 0;
                 const short = qty > avail;
                 return (
-                  <tr
-                    key={item.iid}
-                    style={{
-                      borderTop: `1px solid ${C.lg}`,
-                      background: short ? C.rB : "transparent",
-                    }}
-                  >
-                    <td
-                      style={{
-                        padding: "8px 10px",
-                        fontWeight: "var(--weight-bold)",
-                        color: C.navy,
-                      }}
-                    >
+                  <tr key={item.iid} style={{ background: short ? C.rB : "transparent" }}>
+                    <Text as="td" weight="bold" color={C.navy}>
                       {item.iname || item.name}
-                    </td>
-                    <td style={{ padding: "8px 10px" }}>
+                    </Text>
+                    <td>
                       {item.planned || item.qty || 0} {item.unit || ""}
                     </td>
-                    <td
-                      style={{
-                        padding: "8px 10px",
-                        color: short ? C.rd : C.gr,
-                        fontWeight: "var(--weight-bold)",
-                      }}
-                    >
+                    <Text as="td" weight="bold" color={short ? C.rd : C.gr}>
                       {avail} {item.unit || ""}
                       {short && (
                         <AlertTriangle
@@ -254,8 +223,8 @@ export default function PullAddedMaterialsModal({
                           aria-hidden="true"
                         />
                       )}
-                    </td>
-                    <td style={{ padding: "8px 10px" }}>
+                    </Text>
+                    <td>
                       <Inp
                         type="number"
                         min="0"
@@ -269,7 +238,7 @@ export default function PullAddedMaterialsModal({
                 );
               })}
             </tbody>
-          </table>
+          </Table>
         </div>
       )}
 

@@ -440,13 +440,13 @@ button:disabled {
   box-shadow: var(--shadow-xs);
 }
 
-.mrr-btn:hover {
+.mrr-btn:hover:not(:disabled) {
   filter: brightness(1.07);
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
 
-.mrr-btn:active {
+.mrr-btn:active:not(:disabled) {
   transform: translateY(0) scale(0.98);
   filter: brightness(0.97);
   box-shadow: var(--shadow-xs);
@@ -640,12 +640,25 @@ button:disabled {
 }
 
 /* Set by the <Table> primitive only. Cell padding was repeated inline on every
-   <td> ("8px 10px" in most files); this is that value on the scale. Opt-in so
-   the tables that still pad their own cells don't shift. .mrr-table-sticky is
-   .mrr-thead-sticky applied from the table, so <Table stickyHead> needs no
-   class on its <thead>. */
-.mrr-table-pad tbody td {
-  padding: var(--space-3) var(--space-4);
+   <td> ("8px 10px" in most files); --cell-pad is the step <Table pad> picked.
+   The header takes the same padding as the body so a column's text lines up
+   down the whole table. Opt-in so the tables that still pad their own cells
+   don't shift. .mrr-table-sticky is .mrr-thead-sticky applied from the table,
+   so <Table stickyHead> needs no class on its <thead>. */
+.mrr-table-pad thead th,
+.mrr-table-pad tbody td,
+.mrr-table-pad tfoot td {
+  padding: var(--cell-pad, var(--space-3) var(--space-4));
+}
+
+.mrr-table-ruled tbody tr {
+  border-top: 1px solid var(--c-line);
+}
+
+/* Totals row. Was rgba(15, 23, 42, 0.05) inline, which is a light-mode-only
+   tint that vanishes on the dark surface. */
+.mrr-table tfoot tr {
+  background: var(--c-subtle);
 }
 
 .mrr-table-sticky thead th {

@@ -18,6 +18,7 @@ import {
   Row,
   Text,
   Muted,
+  Table,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";
@@ -369,10 +370,7 @@ export default function Users({
         }}
       >
         <div className="sw-table-scroll">
-          <table
-            className="mrr-table"
-            style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}
-          >
+          <Table pad="xl" size="base">
             <thead>
               <tr>
                 {["Name", "Email", "Role", "Status", ""].map((h) => (
@@ -389,25 +387,21 @@ export default function Users({
                     ...(u.active ? {} : { background: "var(--c-subtle)" }),
                   }}
                 >
-                  <td
-                    style={{
-                      padding: "14px 14px",
-                      fontWeight: "var(--weight-bold)",
-                      color: C.navy,
-                    }}
-                  >
+                  <Text as="td" weight="bold" color={C.navy}>
                     {u.full_name || u.name || "—"}
-                  </td>
-                  <td style={{ padding: "14px 14px", color: C.sub }}>{u.email || "—"}</td>
-                  <td style={{ padding: "14px 14px" }}>
+                  </Text>
+                  <Text as="td" color={C.sub}>
+                    {u.email || "—"}
+                  </Text>
+                  <td>
                     <RoleBdg role={u.role} lang={lang} />
                   </td>
-                  <td style={{ padding: "14px 14px" }}>
+                  <td>
                     <Bdg color={u.active ? "green" : "gray"}>
                       {u.active ? "Active" : "Inactive"}
                     </Bdg>
                   </td>
-                  <td style={{ padding: "14px 14px", textAlign: "right" }}>
+                  <td style={{ textAlign: "right" }}>
                     <Row gap={2} justify="flex-end">
                       <Btn
                         v="ghost"
@@ -433,7 +427,7 @@ export default function Users({
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </div>
       </div>
 
@@ -610,86 +604,78 @@ export default function Users({
               </Btn>
             </Row>
           )}
-          <div style={{ overflowX: "auto", maxHeight: "380px" }}>
-            <table
-              className="mrr-table"
-              style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
-            >
-              <thead className="mrr-thead-sticky">
+
+          <Table pad="lg" maxHeight={"380px"}>
+            <thead className="mrr-thead-sticky">
+              <tr>
+                <th style={{ minWidth: 220 }}>{t.umColPermission}</th>
+                <th style={{ textAlign: "center", width: 110 }}>{t.umColRoleDefault}</th>
+                <th style={{ textAlign: "center", width: 110 }}>{t.umColThisUser}</th>
+              </tr>
+            </thead>
+            {PERM_GROUPS.map(([groupName, keys]) => (
+              <tbody key={groupName}>
                 <tr>
-                  <th style={{ minWidth: 220 }}>{t.umColPermission}</th>
-                  <th style={{ textAlign: "center", width: 110 }}>{t.umColRoleDefault}</th>
-                  <th style={{ textAlign: "center", width: 110 }}>{t.umColThisUser}</th>
+                  <td
+                    colSpan={3}
+                    style={{
+                      fontWeight: "var(--weight-black)",
+                      color: C.shellInk,
+                      background: C.shell,
+                      fontSize: "var(--text-sm)",
+                    }}
+                  >
+                    {groupName}
+                  </td>
                 </tr>
-              </thead>
-              {PERM_GROUPS.map(([groupName, keys]) => (
-                <tbody key={groupName}>
-                  <tr>
-                    <td
-                      colSpan={3}
-                      style={{
-                        padding: "8px 14px",
-                        fontWeight: "var(--weight-black)",
-                        color: C.shellInk,
-                        background: C.shell,
-                        fontSize: "var(--text-sm)",
-                      }}
+                {keys.map((key) => {
+                  const baseVal = (rolePerms[permUser.role] || {})[key] || false;
+                  const ovVal = (userOverrides[permUser.id] || {})[key];
+                  const effective = ovVal !== undefined ? ovVal : baseVal;
+                  const hasOverride = ovVal !== undefined;
+                  return (
+                    <tr
+                      key={key}
+                      style={{ background: hasOverride ? "rgba(217,119,6,0.07)" : "transparent" }}
                     >
-                      {groupName}
-                    </td>
-                  </tr>
-                  {keys.map((key) => {
-                    const baseVal = (rolePerms[permUser.role] || {})[key] || false;
-                    const ovVal = (userOverrides[permUser.id] || {})[key];
-                    const effective = ovVal !== undefined ? ovVal : baseVal;
-                    const hasOverride = ovVal !== undefined;
-                    return (
-                      <tr
-                        key={key}
-                        style={{
-                          borderTop: `1px solid ${C.lg}`,
-                          background: hasOverride ? "rgba(217,119,6,0.07)" : "transparent",
-                        }}
-                      >
-                        <td style={{ padding: "10px 14px" }}>
-                          <Text size="sm" weight="bold" color={C.navy}>
-                            {PERM_DEFS[key]?.label || key}
-                            {hasOverride && (
-                              <Text
-                                as="span"
-                                size="2xs"
-                                weight="bold"
-                                color={C.am}
-                                style={{ marginLeft: 6 }}
-                              >
-                                {t.umOverridden}
-                              </Text>
-                            )}
-                          </Text>
-                          <Muted size="2xs" style={{ marginTop: 2 }}>
-                            {PERM_DEFS[key]?.desc || ""}
-                          </Muted>
-                        </td>
-                        <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                          <Row gap={0} align="stretch" justify="center">
-                            <Toggle on={baseVal} disabled={true} />
-                          </Row>
-                        </td>
-                        <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                          <Row gap={0} align="stretch" justify="center">
-                            <Toggle
-                              on={effective}
-                              onChange={() => toggleOverride(permUser.id, key, baseVal)}
-                            />
-                          </Row>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              ))}
-            </table>
-          </div>
+                      <td>
+                        <Text size="sm" weight="bold" color={C.navy}>
+                          {PERM_DEFS[key]?.label || key}
+                          {hasOverride && (
+                            <Text
+                              as="span"
+                              size="2xs"
+                              weight="bold"
+                              color={C.am}
+                              style={{ marginLeft: 6 }}
+                            >
+                              {t.umOverridden}
+                            </Text>
+                          )}
+                        </Text>
+                        <Muted size="2xs" style={{ marginTop: 2 }}>
+                          {PERM_DEFS[key]?.desc || ""}
+                        </Muted>
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <Row gap={0} align="stretch" justify="center">
+                          <Toggle on={baseVal} disabled={true} />
+                        </Row>
+                      </td>
+                      <td style={{ textAlign: "center" }}>
+                        <Row gap={0} align="stretch" justify="center">
+                          <Toggle
+                            on={effective}
+                            onChange={() => toggleOverride(permUser.id, key, baseVal)}
+                          />
+                        </Row>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            ))}
+          </Table>
         </Modal>
       )}
     </div>

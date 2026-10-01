@@ -18,6 +18,8 @@ import {
   Muted,
   Text,
   Table,
+  Callout,
+  Btn,
 } from "@/shared/components/UIPrimitives";
 
 describe("Card", () => {
@@ -56,6 +58,10 @@ describe("Card", () => {
     const html = renderToString(h(Card, { hover: true }, "body"));
     expect(html).toContain('class="mrr-card mrr-card-hover"');
     expect(html).not.toContain('role="button"');
+  });
+
+  it("reads a numeric pad as a --space-* step", () => {
+    expect(renderToString(h(Card, { pad: 8 }, "body"))).toContain("padding:var(--space-8)");
   });
 
   it("lets style override one property without losing the variant", () => {
@@ -114,15 +120,62 @@ describe("text", () => {
 });
 
 describe("Table", () => {
-  it("wraps in the scroll container with cell padding opted in", () => {
+  it("wraps in the scroll container with cell padding and row rules opted in", () => {
     const html = renderToString(h(Table, null, h("tbody")));
     expect(html).toContain('class="sw-table-scroll"');
-    expect(html).toContain('class="mrr-table mrr-table-pad"');
+    expect(html).toContain('class="mrr-table mrr-table-pad mrr-table-ruled"');
+  });
+
+  it("sets every cell's padding from one pad step", () => {
+    const html = renderToString(h(Table, { pad: "lg", size: "base", minWidth: 560 }, h("tbody")));
+    expect(html).toContain("--cell-pad:var(--space-4) var(--space-5)");
+    expect(html).toContain("font-size:var(--text-base)");
+    expect(html).toContain("min-width:560px");
+  });
+
+  it("leaves padding and rules to the cells when asked", () => {
+    const html = renderToString(h(Table, { pad: "none", ruled: false }, h("tbody")));
+    expect(html).toContain('class="mrr-table"');
   });
 
   it("pins the header when stickyHead is set", () => {
     const html = renderToString(h(Table, { stickyHead: true, maxHeight: 400 }, h("tbody")));
     expect(html).toContain("mrr-table-sticky");
     expect(html).toContain("max-height:400px");
+  });
+});
+
+describe("Callout", () => {
+  it("is a neutral well with inherited text by default", () => {
+    const html = renderToString(h(Callout, null, "note"));
+    expect(html).toContain("background:var(--c-subtle)");
+    expect(html).not.toContain("border:");
+    expect(html).not.toMatch(/[;"]color:/);
+  });
+
+  it("borders in the tone's own color", () => {
+    const html = renderToString(h(Callout, { tone: "danger", bordered: true }, "x"));
+    expect(html).toContain("background:var(--c-rust-wash)");
+    expect(html).toContain("border:1.5px solid var(--c-rust)");
+  });
+
+  it("lays an icon beside the content, top-aligned", () => {
+    const Icon = (p) => h("svg", p);
+    const html = renderToString(h(Callout, { icon: Icon }, "wrapped message"));
+    expect(html).toContain("align-items:flex-start");
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain("wrapped message");
+  });
+});
+
+describe("Btn", () => {
+  it("recolors an outline button with tone", () => {
+    const html = renderToString(h(Btn, { v: "outline", tone: "red" }, "Delete"));
+    expect(html).toContain("color:red");
+    expect(html).toContain("border:2px solid red");
+  });
+
+  it("shows a not-allowed cursor while disabled", () => {
+    expect(renderToString(h(Btn, { disabled: true }, "x"))).toContain("cursor:not-allowed");
   });
 });

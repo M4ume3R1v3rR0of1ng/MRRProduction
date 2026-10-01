@@ -42,6 +42,7 @@ import {
   Stack,
   Text,
   Muted,
+  Table,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { supabase, updateRowStrict, isTransportError } from "@/shared/utils/supabase";
@@ -1275,30 +1276,11 @@ export default function PullInventory({
             {t.pullAdjustInfo}
           </div>
           <div className="sw-table-scroll">
-            <table
-              className="mrr-table"
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                marginBottom: 14,
-                fontSize: "var(--text-base)",
-              }}
-            >
+            <Table pad="md" size="base" tableStyle={{ marginBottom: 14 }}>
               <thead>
-                <tr style={{ background: C.lg }}>
+                <tr>
                   {[t.colItem, t.colPlanned, t.colActualPull, t.colAvailable].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "8px 10px",
-                        textAlign: "left",
-                        color: C.sub,
-                        fontWeight: "var(--weight-bold)",
-                        fontSize: "var(--text-xs)",
-                      }}
-                    >
-                      {h}
-                    </th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1312,26 +1294,14 @@ export default function PullInventory({
                     : parsedActual;
                   const short = actual > avail;
                   return (
-                    <tr
-                      key={item.iid}
-                      style={{
-                        borderTop: `1px solid ${C.lg}`,
-                        background: short ? C.rB : "transparent",
-                      }}
-                    >
-                      <td
-                        style={{
-                          padding: "9px 10px",
-                          fontWeight: "var(--weight-bold)",
-                          color: C.navy,
-                        }}
-                      >
+                    <tr key={item.iid} style={{ background: short ? C.rB : "transparent" }}>
+                      <Text as="td" weight="bold" color={C.navy}>
                         {item.iname || item.name}
-                      </td>
-                      <td style={{ padding: "9px 10px" }}>
+                      </Text>
+                      <td>
                         {item.planned || item.qty || 0} {item.unit || ""}
                       </td>
-                      <td style={{ padding: "9px 10px" }}>
+                      <td>
                         <Inp
                           type="number"
                           value={pullQtys[item.iid] ?? (item.planned || item.qty || 0)}
@@ -1346,13 +1316,7 @@ export default function PullInventory({
                           disabled={pulling}
                         />
                       </td>
-                      <td
-                        style={{
-                          padding: "9px 10px",
-                          color: short ? C.rd : C.gr,
-                          fontWeight: "var(--weight-bold)",
-                        }}
-                      >
+                      <Text as="td" weight="bold" color={short ? C.rd : C.gr}>
                         {avail} {item.unit || ""}
                         {short && (
                           <AlertTriangle
@@ -1361,12 +1325,12 @@ export default function PullInventory({
                             aria-hidden="true"
                           />
                         )}
-                      </td>
+                      </Text>
                     </tr>
                   );
                 })}
               </tbody>
-            </table>
+            </Table>
           </div>
           {/* Sticky for the same reason as the return modal below: this is the
               last child of a scrolling body, and the confirm button should never
@@ -1452,64 +1416,33 @@ export default function PullInventory({
           </div>
 
           <div className="sw-table-scroll">
-            <table
-              className="mrr-table"
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                marginBottom: 14,
-                fontSize: "var(--text-base)",
-              }}
-            >
+            <Table pad="md" size="base" tableStyle={{ marginBottom: 14 }}>
               <thead>
-                <tr style={{ background: C.lg }}>
+                <tr>
                   {[t.colItem, t.colOnHand, t.colActualPull, t.colShortBy].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "8px 10px",
-                        textAlign: "left",
-                        color: C.sub,
-                        fontWeight: "var(--weight-bold)",
-                        fontSize: "var(--text-xs)",
-                      }}
-                    >
-                      {h}
-                    </th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {shortWarn.map((r) => (
-                  <tr key={r.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
-                    <td
-                      style={{
-                        padding: "9px 10px",
-                        fontWeight: "var(--weight-bold)",
-                        color: C.navy,
-                      }}
-                    >
+                  <tr key={r.iid}>
+                    <Text as="td" weight="bold" color={C.navy}>
                       {r.name}
-                    </td>
-                    <td style={{ padding: "9px 10px" }}>
+                    </Text>
+                    <td>
                       {r.available} {r.unit}
                     </td>
-                    <td style={{ padding: "9px 10px" }}>
+                    <td>
                       {r.requested} {r.unit}
                     </td>
-                    <td
-                      style={{
-                        padding: "9px 10px",
-                        fontWeight: "var(--weight-black)",
-                        color: C.rd,
-                      }}
-                    >
+                    <Text as="td" weight="black" color={C.rd}>
                       −{r.short} {r.unit}
-                    </td>
+                    </Text>
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </Table>
           </div>
 
           <Muted style={{ marginBottom: 14, lineHeight: 1.45 }}>{t.pullShortFootnote}</Muted>
@@ -1561,30 +1494,11 @@ export default function PullInventory({
             {t.pullReturnInfo}
           </div>
           <div className="sw-table-scroll">
-            <table
-              className="mrr-table"
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                marginBottom: 14,
-                fontSize: "var(--text-base)",
-              }}
-            >
+            <Table pad="md" size="base" tableStyle={{ marginBottom: 14 }}>
               <thead>
-                <tr style={{ background: C.lg }}>
+                <tr>
                   {[t.colItem, t.colPulled, t.colReturning, t.colWillUse].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "8px 10px",
-                        textAlign: "left",
-                        color: C.sub,
-                        fontWeight: "var(--weight-bold)",
-                        fontSize: "var(--text-xs)",
-                      }}
-                    >
-                      {h}
-                    </th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1595,20 +1509,14 @@ export default function PullInventory({
                     const ret = Math.min(parseFloat(retQtys[item.iid]) || 0, item.pulled || 0);
                     const used = (item.pulled || 0) - ret;
                     return (
-                      <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
-                        <td
-                          style={{
-                            padding: "9px 10px",
-                            fontWeight: "var(--weight-bold)",
-                            color: C.navy,
-                          }}
-                        >
+                      <tr key={item.iid}>
+                        <Text as="td" weight="bold" color={C.navy}>
                           {item.iname || item.name}
-                        </td>
-                        <td style={{ padding: "9px 10px" }}>
+                        </Text>
+                        <td>
                           {item.pulled} {item.unit || ""}
                         </td>
-                        <td style={{ padding: "9px 10px" }}>
+                        <td>
                           <Inp
                             type="number"
                             value={retQtys[item.iid] ?? 0}
@@ -1627,15 +1535,9 @@ export default function PullInventory({
                             disabled={returning}
                           />
                         </td>
-                        <td
-                          style={{
-                            padding: "9px 10px",
-                            fontWeight: "var(--weight-extrabold)",
-                            color: used > 0 ? C.navy : C.sub,
-                          }}
-                        >
+                        <Text as="td" weight="extrabold" color={used > 0 ? C.navy : C.sub}>
                           {used} {item.unit || ""}
-                        </td>
+                        </Text>
                       </tr>
                     );
                   })}
@@ -1643,24 +1545,10 @@ export default function PullInventory({
               {perms.inv_pricing_view && (
                 <tfoot>
                   <tr style={{ borderTop: `2px solid ${C.navy}` }}>
-                    <td
-                      colSpan={3}
-                      style={{
-                        padding: "9px 10px",
-                        fontWeight: "var(--weight-bold)",
-                        color: C.navy,
-                      }}
-                    >
+                    <Text colSpan={3} as="td" weight="bold" color={C.navy}>
                       {t.pullEstCost}
-                    </td>
-                    <td
-                      style={{
-                        padding: "9px 10px",
-                        fontWeight: "var(--weight-black)",
-                        color: C.gr,
-                        fontSize: 15,
-                      }}
-                    >
+                    </Text>
+                    <Text as="td" weight="black" color={C.gr} style={{ fontSize: 15 }}>
                       {fm(
                         (Array.isArray(sel.items) ? sel.items : sel.materials || [])
                           .filter((i) => i && (i.pulled || 0) > 0)
@@ -1669,11 +1557,11 @@ export default function PullInventory({
                             return s + ((i.pulled || 0) - ret) * (i.priceAtPull || 0);
                           }, 0),
                       )}
-                    </td>
+                    </Text>
                   </tr>
                 </tfoot>
               )}
-            </table>
+            </Table>
           </div>
           {/* Sticky. Modal is maxHeight:92vh with overflowY:auto, and this row is
               the LAST child of a padded body — so on a phone, a job with seven
@@ -2050,12 +1938,9 @@ export default function PullInventory({
             ))}
           </div>
           <div className="sw-table-scroll">
-            <table
-              className="mrr-table"
-              style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
-            >
+            <Table pad="md">
               <thead>
-                <tr style={{ background: C.lg }}>
+                <tr>
                   {[
                     t.colItem,
                     t.colPlanned,
@@ -2064,17 +1949,7 @@ export default function PullInventory({
                     t.colUsed,
                     ...(perms.inv_pricing_view ? [t.colCost] : []),
                   ].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "7px 10px",
-                        textAlign: "left",
-                        color: C.sub,
-                        fontWeight: "var(--weight-bold)",
-                      }}
-                    >
-                      {h}
-                    </th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -2084,42 +1959,30 @@ export default function PullInventory({
                   const pQty = item.pulled || 0;
                   const rQty = item.returned || 0;
                   return (
-                    <tr key={item.iid || item.id} style={{ borderTop: `1px solid ${C.lg}` }}>
-                      <td
-                        style={{
-                          padding: "8px 10px",
-                          fontWeight: "var(--weight-bold)",
-                          color: C.navy,
-                        }}
-                      >
+                    <tr key={item.iid || item.id}>
+                      <Text as="td" weight="bold" color={C.navy}>
                         {item.iname || item.name}
-                      </td>
-                      <td style={{ padding: "8px 10px" }}>{item.planned || item.qty || 0}</td>
-                      <td style={{ padding: "8px 10px", color: pQty > 0 ? C.gr : C.sub }}>
+                      </Text>
+                      <td>{item.planned || item.qty || 0}</td>
+                      <Text as="td" color={pQty > 0 ? C.gr : C.sub}>
                         {pQty}
-                      </td>
-                      <td style={{ padding: "8px 10px", color: rQty > 0 ? C.am : C.sub }}>
+                      </Text>
+                      <Text as="td" color={rQty > 0 ? C.am : C.sub}>
                         {rQty}
-                      </td>
-                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>
+                      </Text>
+                      <Text as="td" weight="bold">
                         {pQty - rQty}
-                      </td>
+                      </Text>
                       {perms.inv_pricing_view && (
-                        <td
-                          style={{
-                            padding: "8px 10px",
-                            color: C.blue,
-                            fontWeight: "var(--weight-bold)",
-                          }}
-                        >
+                        <Text as="td" weight="bold" color={C.blue}>
                           {item.pullCost > 0 ? fm((pQty - rQty) * (item.priceAtPull || 0)) : "—"}
-                        </td>
+                        </Text>
                       )}
                     </tr>
                   );
                 })}
               </tbody>
-            </table>
+            </Table>
           </div>
         </Modal>
       )}

@@ -14,7 +14,23 @@ import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
 import { BASE_SEATS } from "@/features/billing/seatPacks";
 import { downloadCSV } from "@/shared/utils/csvExport";
-import { Row, Stack, Text, Eyebrow, Muted } from "@/shared/components/UIPrimitives";
+import {
+  Row,
+  Stack,
+  Text,
+  Eyebrow,
+  Muted,
+  Card,
+  CardGrid,
+  Table,
+  Bdg,
+  Btn,
+  Fld,
+  Inp,
+  Modal,
+  EmptyState,
+  LoadingState,
+} from "@/shared/components/UIPrimitives";
 
 // Same duplication note as the pricing block atop LandingPage.jsx and the pricing
 // constants in supabase/30_platform_revenue.sql: these dollar figures must match
@@ -25,12 +41,14 @@ import { Row, Stack, Text, Eyebrow, Muted } from "@/shared/components/UIPrimitiv
 const BASE_PRICE_MONTHLY = 99;
 const BASE_PRICE_ANNUAL = 990;
 
+// Bdg colors: the same pasture/slate/warn/subtle/rust washes this table used
+// to spell out by hand.
 const STATUS_STYLE = {
-  active: { bg: "var(--c-pasture-wash)", fg: BRAND.pasture, label: "Active" },
-  trialing: { bg: "var(--c-slate-wash)", fg: "var(--c-slate)", label: "Trial" },
-  past_due: { bg: "var(--c-warn-wash)", fg: BRAND.amberDeep, label: "Past due" },
-  canceled: { bg: "var(--c-subtle)", fg: BRAND.plowshare, label: "Canceled" },
-  suspended: { bg: "var(--c-rust-wash)", fg: BRAND.rust, label: "Suspended" },
+  active: { color: "green", label: "Active" },
+  trialing: { color: "sky", label: "Trial" },
+  past_due: { color: "amber", label: "Past due" },
+  canceled: { color: "gray", label: "Canceled" },
+  suspended: { color: "red", label: "Suspended" },
 };
 
 function fmtDate(d) {
@@ -209,7 +227,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
   // Belt-and-suspenders: the DB already refuses non-owners, but don't even render
   // the console to one.
   if (!user?.isPlatformAdmin) {
-    return <div style={{ padding: 40, textAlign: "center", color: C.sub }}>{t.ocRestricted}</div>;
+    return <EmptyState message={t.ocRestricted} style={{ margin: 40 }} />;
   }
 
   const setStatus = async (company, status) => {
@@ -404,17 +422,15 @@ export default function OwnerConsole({ user, lang = "en" }) {
     <div style={{ padding: "24px 28px", maxWidth: 1100, margin: "0 auto" }}>
       <Row gap={5} style={{ marginBottom: 4 }}>
         <TrussMark size={26} />
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 26,
-            fontWeight: 900,
-            color: C.navy,
-            margin: 0,
-          }}
+        <Text
+          as="h1"
+          weight="black"
+          color={C.navy}
+          font="display"
+          style={{ fontSize: 26, margin: 0 }}
         >
           {t.ocTitle}
-        </h1>
+        </Text>
       </Row>
       <Text as="p" size="md" color={C.sub} style={{ marginBottom: 18 }}>
         {companies.length} companies · {totalActive} active · {fmtBytes(totalBytes)} stored across
@@ -427,14 +443,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
           because it is separately measured. Trials sit beside them rather than
           inside them: nothing has been charged yet, so folding them into revenue
           would report money that does not exist. */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
+      <CardGrid minWidth={150} fit style={{ marginBottom: 24 }}>
         {[
           { label: "Monthly recurring", value: fmtMoney(totalMrr), tone: BRAND.pasture, big: true },
           { label: "Annual run rate", value: fmtMoney(totalMrr * 12), tone: C.navy },
@@ -445,426 +454,281 @@ export default function OwnerConsole({ user, lang = "en" }) {
             tone: trialCount > 0 ? BRAND.amberDeep : C.sub,
           },
         ].map((s) => (
-          <div
-            key={s.label}
-            style={{
-              background: C.w,
-              border: `1px solid ${C.bd}`,
-              borderRadius: 12,
-              padding: "14px 16px",
-            }}
-          >
+          <Card key={s.label} pad="var(--space-6) var(--space-7)">
             <Eyebrow style={{ marginBottom: 4 }}>{s.label}</Eyebrow>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: s.big ? 28 : 22,
-                fontWeight: 900,
-                color: s.tone,
-                lineHeight: 1.1,
-              }}
+            <Text
+              weight="black"
+              color={s.tone}
+              font="display"
+              style={{ fontSize: s.big ? 28 : 22, lineHeight: 1.1 }}
             >
               {s.value}
-            </div>
-          </div>
+            </Text>
+          </Card>
         ))}
-      </div>
+      </CardGrid>
 
       {/* Create company */}
-      <form
-        onSubmit={createCompany}
-        style={{
-          display: "flex",
-          gap: 10,
-          flexWrap: "wrap",
-          alignItems: "flex-end",
-          background: C.w,
-          border: `1px solid ${C.bd}`,
-          borderRadius: 12,
-          padding: 16,
-          marginBottom: 24,
-        }}
-      >
-        <div style={{ flex: "1 1 220px" }}>
-          <Eyebrow as="label">{t.ocNewCompany}</Eyebrow>
-          <input
-            value={form.name}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                name: e.target.value,
-                slug: f.slug || slugify(e.target.value),
-              }))
-            }
-            placeholder={t.ocNamePlaceholder}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              border: `1.5px solid ${C.bd}`,
-              borderRadius: 8,
-              fontSize: 14,
-              boxSizing: "border-box",
-            }}
-          />
-        </div>
-        <div style={{ flex: "1 1 180px" }}>
-          <Eyebrow as="label">{t.ocSlug}</Eyebrow>
-          <input
-            value={form.slug}
-            onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-            placeholder={t.ocSlugPlaceholder}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              border: `1.5px solid ${C.bd}`,
-              borderRadius: 8,
-              fontSize: 14,
-              fontFamily: "var(--font-mono)",
-              boxSizing: "border-box",
-            }}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={creating}
-          style={{
-            padding: "10px 20px",
-            background: C.gold,
-            color: C.navy,
-            border: "none",
-            borderRadius: 8,
-            fontWeight: 800,
-            fontSize: 14,
-            cursor: creating ? "wait" : "pointer",
-          }}
-        >
-          {creating ? "Creating…" : "Create company"}
-        </button>
-      </form>
+      <Card as="form" onSubmit={createCompany} style={{ marginBottom: 24 }}>
+        <Row gap={4} align="flex-end" wrap>
+          <Fld label={t.ocNewCompany} style={{ flex: "1 1 220px", marginBottom: 0 }}>
+            <Inp
+              value={form.name}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  name: e.target.value,
+                  slug: f.slug || slugify(e.target.value),
+                }))
+              }
+              placeholder={t.ocNamePlaceholder}
+            />
+          </Fld>
+          <Fld label={t.ocSlug} style={{ flex: "1 1 180px", marginBottom: 0 }}>
+            <Inp
+              value={form.slug}
+              onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
+              placeholder={t.ocSlugPlaceholder}
+              style={{ fontFamily: "var(--font-mono)" }}
+            />
+          </Fld>
+          <Btn v="gold" type="submit" disabled={creating}>
+            {creating ? "Creating…" : "Create company"}
+          </Btn>
+        </Row>
+      </Card>
 
       {/* Company table */}
-      <Row gap={0} align="stretch" justify="flex-end" style={{ marginBottom: 10 }}>
-        <button
-          onClick={exportCompaniesCsv}
-          disabled={companies.length === 0}
-          style={{
-            padding: "8px 14px",
-            background: "transparent",
-            color: companies.length === 0 ? C.sub : C.navy,
-            border: `1.5px solid ${C.bd}`,
-            borderRadius: 8,
-            fontWeight: 700,
-            fontSize: 13,
-            cursor: companies.length === 0 ? "not-allowed" : "pointer",
-          }}
-        >
+      <Row justify="flex-end" style={{ marginBottom: 10 }}>
+        <Btn v="ghost" onClick={exportCompaniesCsv} disabled={companies.length === 0}>
           {t.ocExportCsv}
-        </button>
+        </Btn>
       </Row>
-      <div
-        style={{
-          background: C.w,
-          border: `1px solid ${C.bd}`,
-          borderRadius: 12,
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: 820 }}>
-            <thead>
-              <tr style={{ background: C.lg, textAlign: "left" }}>
-                {[
-                  "Company",
-                  "Status",
-                  "MRR",
-                  "Users",
-                  "Storage",
-                  "Created",
-                  "Last activity",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "12px 14px",
-                      fontSize: 11,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                      color: C.sub,
-                      fontWeight: 800,
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
+      <Card pad="none" style={{ overflow: "hidden" }}>
+        <Table pad="xl" size="md" minWidth={820}>
+          <thead>
+            <tr>
+              {[
+                "Company",
+                "Status",
+                "MRR",
+                "Users",
+                "Storage",
+                "Created",
+                "Last activity",
+                "Actions",
+              ].map((h) => (
+                <th key={h}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <Text
+                  as="td"
+                  colSpan={8}
+                  color={C.sub}
+                  style={{ padding: 24, textAlign: "center" }}
+                >
+                  {t.ocLoading}
+                </Text>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={8} style={{ padding: 24, textAlign: "center", color: C.sub }}>
-                    {t.ocLoading}
-                  </td>
-                </tr>
-              ) : companies.length === 0 ? (
-                <tr>
-                  <td colSpan={8} style={{ padding: 24, textAlign: "center", color: C.sub }}>
-                    {t.ocNoCompanies}
-                  </td>
-                </tr>
-              ) : (
-                companies.map((co) => {
-                  const st = STATUS_STYLE[co.subscription_status] || {
-                    bg: C.lg,
-                    fg: C.sub,
-                    label: co.subscription_status,
-                  };
-                  const suspended = co.subscription_status === "suspended";
-                  const rev = revenue[co.id];
-                  return (
-                    <tr key={co.id} style={{ borderTop: `1px solid ${C.bd}` }}>
-                      <td style={{ padding: "12px 14px" }}>
-                        <Text weight="bold" color={C.navy}>
-                          {co.name}
-                        </Text>
-                        <Muted style={{ fontFamily: "var(--font-mono)" }}>{co.slug}</Muted>
-                      </td>
-                      <td style={{ padding: "12px 14px" }}>
-                        <span
-                          style={{
-                            background: st.bg,
-                            color: st.fg,
-                            padding: "3px 10px",
-                            borderRadius: 20,
-                            fontSize: 12,
-                            fontWeight: 800,
-                          }}
-                        >
-                          {st.label}
-                        </span>
-                      </td>
-                      {/* Comped and trialing companies show a dash, not $0. Zero reads
+            ) : companies.length === 0 ? (
+              <tr>
+                <Text
+                  as="td"
+                  colSpan={8}
+                  color={C.sub}
+                  style={{ padding: 24, textAlign: "center" }}
+                >
+                  {t.ocNoCompanies}
+                </Text>
+              </tr>
+            ) : (
+              companies.map((co) => {
+                const st = STATUS_STYLE[co.subscription_status] || {
+                  color: "gray",
+                  label: co.subscription_status,
+                };
+                const suspended = co.subscription_status === "suspended";
+                const rev = revenue[co.id];
+                return (
+                  <tr key={co.id}>
+                    <td>
+                      <Text weight="bold" color={C.navy}>
+                        {co.name}
+                      </Text>
+                      <Muted style={{ fontFamily: "var(--font-mono)" }}>{co.slug}</Muted>
+                    </td>
+                    <td>
+                      <Bdg color={st.color}>{st.label}</Bdg>
+                    </td>
+                    {/* Comped and trialing companies show a dash, not $0. Zero reads
                         as "this customer pays nothing", which is a problem; a dash
                         reads as "not billed", which is the actual situation. */}
-                      <td style={{ padding: "12px 14px" }}>
-                        {!rev ? (
-                          <Text as="span" color={C.sub}>
-                            —
+                    <td>
+                      {!rev ? (
+                        <Text as="span" color={C.sub}>
+                          —
+                        </Text>
+                      ) : rev.is_billed ? (
+                        <>
+                          <Text as="span" weight="extrabold" color={BRAND.pasture}>
+                            {fmtMoney(rev.mrr)}
                           </Text>
-                        ) : rev.is_billed ? (
-                          <>
-                            <Text as="span" weight="extrabold" color={BRAND.pasture}>
-                              {fmtMoney(rev.mrr)}
-                            </Text>
-                            {rev.billing_interval === "annual" && (
-                              <Muted
-                                as="span"
-                                style={{ marginLeft: 5 }}
-                                title="Billed annually, shown as its monthly equivalent"
-                              >
-                                annual
-                              </Muted>
-                            )}
-                            {rev.recurring_packs > 0 && (
-                              <Muted>
-                                base + {rev.recurring_packs} pack
-                                {rev.recurring_packs === 1 ? "" : "s"}
-                              </Muted>
-                            )}
-                          </>
-                        ) : (
-                          <Text
-                            as="span"
-                            color={C.sub}
-                            title={
-                              co.subscription_status === "trialing"
-                                ? "In trial — nothing charged yet"
-                                : "No Stripe subscription (comped)"
-                            }
-                          >
-                            {co.subscription_status === "trialing" ? "trial" : "comped"}
-                          </Text>
-                        )}
-                      </td>
-                      <td style={{ padding: "12px 14px", color: C.navy }}>
-                        {co.active_user_count}
-                        {co.user_count !== co.active_user_count ? (
-                          <Text as="span" color={C.sub}>
-                            {" "}
-                            / {co.user_count}
-                          </Text>
-                        ) : null}
-                        {rev?.grandfathered_packs > 0 && (
-                          <Muted title="Seat packs bought under the old one-time pricing. They grant capacity but are never billed again.">
-                            +{rev.grandfathered_packs} grandfathered
-                          </Muted>
-                        )}
-                      </td>
-                      <td
-                        style={{ padding: "12px 14px", color: C.sub }}
-                        title={`${usage[co.id]?.object_count || 0} files`}
-                      >
-                        {fmtBytes(usage[co.id]?.total_bytes)}
-                      </td>
-                      <td style={{ padding: "12px 14px", color: C.sub }}>
-                        {fmtDate(co.created_at)}
-                      </td>
-                      <td style={{ padding: "12px 14px", color: C.sub }}>
-                        {fmtDate(co.last_activity)}
-                      </td>
-                      <td style={{ padding: "12px 14px" }}>
-                        <Row align="stretch" wrap>
-                          <button
-                            onClick={() => openCompanyView(co)}
-                            disabled={busyId === co.id}
-                            style={{
-                              padding: "6px 12px",
-                              background: "transparent",
-                              color: C.blue,
-                              border: `1.5px solid ${C.blue}`,
-                              borderRadius: 6,
-                              fontWeight: 700,
-                              fontSize: 12,
-                              cursor: "pointer",
-                            }}
-                          >
-                            {t.ocView}
-                          </button>
-                          {/* Not offered for the company you are already in — there is
-                            nowhere to go, and the button would look like a no-op. */}
-                          {co.id !== user.companyId && (
-                            <button
-                              onClick={() => enterCompany(co)}
-                              disabled={busyId === co.id}
-                              style={{
-                                padding: "6px 12px",
-                                background: "transparent",
-                                color: C.plum,
-                                border: `1.5px solid ${C.plum}`,
-                                borderRadius: 6,
-                                fontWeight: 700,
-                                fontSize: 12,
-                                cursor: "pointer",
-                              }}
+                          {rev.billing_interval === "annual" && (
+                            <Muted
+                              as="span"
+                              style={{ marginLeft: 5 }}
+                              title="Billed annually, shown as its monthly equivalent"
                             >
-                              {t.ocEnter}
-                            </button>
+                              annual
+                            </Muted>
                           )}
-                          {/* Only offered where BillingView would otherwise show "comped":
+                          {rev.recurring_packs > 0 && (
+                            <Muted>
+                              base + {rev.recurring_packs} pack
+                              {rev.recurring_packs === 1 ? "" : "s"}
+                            </Muted>
+                          )}
+                        </>
+                      ) : (
+                        <Text
+                          as="span"
+                          color={C.sub}
+                          title={
+                            co.subscription_status === "trialing"
+                              ? "In trial — nothing charged yet"
+                              : "No Stripe subscription (comped)"
+                          }
+                        >
+                          {co.subscription_status === "trialing" ? "trial" : "comped"}
+                        </Text>
+                      )}
+                    </td>
+                    <Text as="td" color={C.navy}>
+                      {co.active_user_count}
+                      {co.user_count !== co.active_user_count ? (
+                        <Text as="span" color={C.sub}>
+                          {" "}
+                          / {co.user_count}
+                        </Text>
+                      ) : null}
+                      {rev?.grandfathered_packs > 0 && (
+                        <Muted title="Seat packs bought under the old one-time pricing. They grant capacity but are never billed again.">
+                          +{rev.grandfathered_packs} grandfathered
+                        </Muted>
+                      )}
+                    </Text>
+                    <Text as="td" color={C.sub} title={`${usage[co.id]?.object_count || 0} files`}>
+                      {fmtBytes(usage[co.id]?.total_bytes)}
+                    </Text>
+                    <Text as="td" color={C.sub}>
+                      {fmtDate(co.created_at)}
+                    </Text>
+                    <Text as="td" color={C.sub}>
+                      {fmtDate(co.last_activity)}
+                    </Text>
+                    <td>
+                      <Row align="stretch" wrap>
+                        <Btn
+                          v="outline"
+                          tone={C.blue}
+                          sz="sm"
+                          onClick={() => openCompanyView(co)}
+                          disabled={busyId === co.id}
+                        >
+                          {t.ocView}
+                        </Btn>
+                        {/* Not offered for the company you are already in — there is
+                            nowhere to go, and the button would look like a no-op. */}
+                        {co.id !== user.companyId && (
+                          <Btn
+                            v="outline"
+                            tone={C.plum}
+                            sz="sm"
+                            onClick={() => enterCompany(co)}
+                            disabled={busyId === co.id}
+                          >
+                            {t.ocEnter}
+                          </Btn>
+                        )}
+                        {/* Only offered where BillingView would otherwise show "comped":
                             not already billed, not mid-trial (Stripe already owns that
                             clock), not suspended, and never on Steadwerk's own tenant —
                             the platform operator has no reason to bill itself. slug is
                             what supabase/32 keys is_platform_company off of; that flag
                             itself isn't in admin_list_companies()'s column list, so the
                             slug is the cheapest correct check without widening it. */}
-                          {rev &&
-                            !rev.is_billed &&
-                            co.subscription_status !== "trialing" &&
-                            co.slug !== "steadwerk" &&
-                            !suspended && (
-                              <button
-                                onClick={() => {
-                                  setBillingTarget(co);
-                                  setBillingEmail("");
-                                  setBillingInterval("monthly");
-                                }}
-                                disabled={busyId === co.id}
-                                style={{
-                                  padding: "6px 12px",
-                                  background: BRAND.pasture,
-                                  color: "var(--c-on-accent)",
-                                  border: "none",
-                                  borderRadius: 6,
-                                  fontWeight: 700,
-                                  fontSize: 12,
-                                  cursor: "pointer",
-                                }}
-                              >
-                                {t.ocStartBilling}
-                              </button>
-                            )}
-                          {suspended ? (
-                            <>
-                              <button
-                                onClick={() => setStatus(co, "active")}
-                                disabled={busyId === co.id}
-                                style={{
-                                  padding: "6px 12px",
-                                  background: BRAND.pasture,
-                                  color: "var(--c-on-accent)",
-                                  border: "none",
-                                  borderRadius: 6,
-                                  fontWeight: 700,
-                                  fontSize: 12,
-                                  cursor: "pointer",
-                                }}
-                              >
-                                {t.ocReactivate}
-                              </button>
-                              {/* Delete is offered ONLY on suspended rows — suspend-then-delete is the
-                                deliberate two-step that keeps a live company one click from safety. */}
-                              <button
-                                onClick={() => {
-                                  setDeleteTarget(co);
-                                  setConfirmText("");
-                                }}
-                                disabled={busyId === co.id}
-                                style={{
-                                  padding: "6px 12px",
-                                  background: BRAND.rust,
-                                  color: "var(--c-on-accent)",
-                                  border: "none",
-                                  borderRadius: 6,
-                                  fontWeight: 700,
-                                  fontSize: 12,
-                                  cursor: "pointer",
-                                }}
-                              >
-                                {t.ocDelete}
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => setStatus(co, "suspended")}
-                              disabled={busyId === co.id}
-                              style={{
-                                padding: "6px 12px",
-                                background: "transparent",
-                                color: BRAND.rust,
-                                border: `1.5px solid ${BRAND.rust}`,
-                                borderRadius: 6,
-                                fontWeight: 700,
-                                fontSize: 12,
-                                cursor: "pointer",
+                        {rev &&
+                          !rev.is_billed &&
+                          co.subscription_status !== "trialing" &&
+                          co.slug !== "steadwerk" &&
+                          !suspended && (
+                            <Btn
+                              v="green"
+                              sz="sm"
+                              onClick={() => {
+                                setBillingTarget(co);
+                                setBillingEmail("");
+                                setBillingInterval("monthly");
                               }}
+                              disabled={busyId === co.id}
                             >
-                              {t.ocSuspend}
-                            </button>
+                              {t.ocStartBilling}
+                            </Btn>
                           )}
-                        </Row>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                        {suspended ? (
+                          <>
+                            <Btn
+                              v="green"
+                              sz="sm"
+                              onClick={() => setStatus(co, "active")}
+                              disabled={busyId === co.id}
+                            >
+                              {t.ocReactivate}
+                            </Btn>
+                            {/* Delete is offered ONLY on suspended rows — suspend-then-delete is the
+                                deliberate two-step that keeps a live company one click from safety. */}
+                            <Btn
+                              v="danger"
+                              sz="sm"
+                              onClick={() => {
+                                setDeleteTarget(co);
+                                setConfirmText("");
+                              }}
+                              disabled={busyId === co.id}
+                            >
+                              {t.ocDelete}
+                            </Btn>
+                          </>
+                        ) : (
+                          <Btn
+                            v="outline"
+                            tone={BRAND.rust}
+                            sz="sm"
+                            onClick={() => setStatus(co, "suspended")}
+                            disabled={busyId === co.id}
+                          >
+                            {t.ocSuspend}
+                          </Btn>
+                        )}
+                      </Row>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </Table>
+      </Card>
 
       {/* ── Platform administrators ──
           Only a platform admin can grant/revoke this role (enforced by the RPC),
           and the last one can never be removed. This is how the capability spreads —
           by an existing owner's hand, never self-assigned. */}
-      <div
-        style={{
-          background: C.w,
-          border: `1px solid ${C.bd}`,
-          borderRadius: 12,
-          padding: 20,
-          marginTop: 24,
-        }}
-      >
+      <Card pad="var(--space-8)" style={{ marginTop: 24 }}>
         <Eyebrow style={{ marginBottom: 4 }}>{t.ocPlatformAdmins}</Eyebrow>
         <Muted size="sm" style={{ marginBottom: 14 }}>
           {t.ocPlatformAdminsDesc}
@@ -897,62 +761,34 @@ export default function OwnerConsole({ user, lang = "en" }) {
                   </Text>
                 )}
               </div>
-              <button
+              <Btn
+                v="outline"
+                sz="sm"
+                tone={BRAND.rust}
                 onClick={() => revokeAdmin(a.email)}
                 disabled={padmins.length === 1}
                 title={padmins.length === 1 ? "Can't remove the last platform admin" : "Revoke"}
-                style={{
-                  padding: "4px 10px",
-                  background: "transparent",
-                  color: padmins.length === 1 ? C.sub : BRAND.rust,
-                  border: `1.5px solid ${padmins.length === 1 ? C.bd : BRAND.rust}`,
-                  borderRadius: 6,
-                  fontWeight: 700,
-                  fontSize: 12,
-                  cursor: padmins.length === 1 ? "not-allowed" : "pointer",
-                }}
               >
                 {t.ocRevoke}
-              </button>
+              </Btn>
             </Row>
           ))}
         </Stack>
 
         <Row onSubmit={grantAdmin} as="form" align="stretch" wrap>
-          <input
+          <Inp
             value={adminEmail}
             onChange={(e) => setAdminEmail(e.target.value)}
             placeholder={t.ocPromotePlaceholder}
-            style={{
-              flex: "1 1 240px",
-              padding: "10px 12px",
-              border: `1.5px solid ${C.bd}`,
-              borderRadius: 8,
-              fontSize: 14,
-              boxSizing: "border-box",
-            }}
+            style={{ flex: "1 1 240px", width: "auto" }}
           />
-          <button
-            type="submit"
-            style={{
-              padding: "10px 18px",
-              background: C.shell,
-              color: "var(--c-shell-ink)",
-              border: "none",
-              borderRadius: 8,
-              fontWeight: 800,
-              fontSize: 14,
-              cursor: "pointer",
-            }}
-          >
-            {t.ocGrantAdmin}
-          </button>
+          <Btn type="submit">{t.ocGrantAdmin}</Btn>
         </Row>
         <Muted style={{ marginTop: 8 }}>
           The person must already have a Steadwerk login. Granting doesn't add them to any company —
           it's platform-wide oversight only.
         </Muted>
-      </div>
+      </Card>
 
       {/* ── Start-billing confirmation ──
           Collects the two things Checkout needs that a comped company never had a
@@ -961,50 +797,26 @@ export default function OwnerConsole({ user, lang = "en" }) {
           start-company-billing.js, same as create-checkout.js decides them for a
           brand-new signup. */}
       {billingTarget && (
-        <div
-          onClick={() => !startingBilling && setBillingTarget(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(23,27,31,0.55)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-            zIndex: 1000,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: C.w,
-              borderRadius: 14,
-              padding: 28,
-              maxWidth: 440,
-              width: "100%",
-              boxShadow: "0 24px 60px rgba(0,0,0,0.4)",
-            }}
-          >
-            <Text
-              size="2xl"
-              weight="black"
-              color={BRAND.pasture}
-              style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}
-            >
+        <Modal
+          title={
+            <Text as="span" color={BRAND.pasture}>
               {t.ocStartBillingTitle.replace("{name}", billingTarget.name)}
             </Text>
-            <Text as="p" size="base" color={C.navy} style={{ lineHeight: 1.6, margin: "0 0 16px" }}>
-              {t.ocStartBillingDesc
-                .replace(
-                  "{price}",
-                  billingInterval === "annual"
-                    ? t.ocAnnualRate.replace("{price}", `$${BASE_PRICE_ANNUAL}`)
-                    : t.ocMonthlyRate.replace("{price}", `$${BASE_PRICE_MONTHLY}`),
-                )
-                .replace("{seats}", BASE_SEATS)}
-            </Text>
-            <Eyebrow as="label">{t.ocBillingEmail}</Eyebrow>
-            <input
+          }
+          onClose={() => !startingBilling && setBillingTarget(null)}
+        >
+          <Text as="p" size="base" color={C.navy} style={{ lineHeight: 1.6, margin: "0 0 16px" }}>
+            {t.ocStartBillingDesc
+              .replace(
+                "{price}",
+                billingInterval === "annual"
+                  ? t.ocAnnualRate.replace("{price}", `$${BASE_PRICE_ANNUAL}`)
+                  : t.ocMonthlyRate.replace("{price}", `$${BASE_PRICE_MONTHLY}`),
+              )
+              .replace("{seats}", BASE_SEATS)}
+          </Text>
+          <Fld label={t.ocBillingEmail}>
+            <Inp
               autoFocus
               type="email"
               value={billingEmail}
@@ -1012,596 +824,390 @@ export default function OwnerConsole({ user, lang = "en" }) {
               onKeyDown={(e) => e.key === "Enter" && startBilling()}
               placeholder={t.ocBillingEmailPlaceholder}
               disabled={startingBilling}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: `1.5px solid ${C.bd}`,
-                borderRadius: 8,
-                fontSize: 14,
-                boxSizing: "border-box",
-                marginTop: 6,
-                marginBottom: 16,
-              }}
             />
-            <Eyebrow as="label">{t.ocBillingCadence}</Eyebrow>
-            <Row align="stretch" style={{ marginTop: 6 }}>
+          </Fld>
+          <Fld label={t.ocBillingCadence}>
+            <Row align="stretch">
               {["monthly", "annual"].map((iv) => (
-                <button
+                <Btn
                   key={iv}
                   type="button"
+                  v={billingInterval === iv ? "green" : "ghost"}
+                  aria-pressed={billingInterval === iv}
                   onClick={() => setBillingInterval(iv)}
                   disabled={startingBilling}
-                  style={{
-                    flex: 1,
-                    padding: "9px 12px",
-                    borderRadius: 8,
-                    fontWeight: 700,
-                    fontSize: 13,
-                    cursor: startingBilling ? "not-allowed" : "pointer",
-                    border: `1.5px solid ${billingInterval === iv ? BRAND.pasture : C.bd}`,
-                    background: billingInterval === iv ? "var(--c-pasture-wash)" : "transparent",
-                    color: billingInterval === iv ? BRAND.pasture : C.navy,
-                  }}
+                  style={{ flex: 1, justifyContent: "center" }}
                 >
                   {iv === "monthly" ? t.ocMonthly : t.ocAnnual}
-                </button>
+                </Btn>
               ))}
             </Row>
-            <Row gap={4} align="stretch" justify="flex-end" style={{ marginTop: 22 }}>
-              <button
-                onClick={() => setBillingTarget(null)}
-                disabled={startingBilling}
-                style={{
-                  padding: "9px 16px",
-                  background: "transparent",
-                  color: C.sub,
-                  border: `1.5px solid ${C.bd}`,
-                  borderRadius: 8,
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: startingBilling ? "not-allowed" : "pointer",
-                }}
-              >
-                {t.ocCancel}
-              </button>
-              <button
-                onClick={startBilling}
-                disabled={startingBilling || !billingEmail.trim()}
-                style={{
-                  padding: "9px 18px",
-                  background: billingEmail.trim() ? BRAND.pasture : C.bd,
-                  color: C.onAccent,
-                  border: "none",
-                  borderRadius: 8,
-                  fontWeight: 800,
-                  fontSize: 13,
-                  cursor: startingBilling || !billingEmail.trim() ? "not-allowed" : "pointer",
-                }}
-              >
-                {startingBilling ? t.ocOpeningCheckout : t.ocOpenCheckout}
-              </button>
-            </Row>
-          </div>
-        </div>
+          </Fld>
+          <Row gap={4} justify="flex-end" style={{ marginTop: 22 }}>
+            <Btn v="ghost" onClick={() => setBillingTarget(null)} disabled={startingBilling}>
+              {t.ocCancel}
+            </Btn>
+            <Btn
+              v="green"
+              onClick={startBilling}
+              disabled={startingBilling || !billingEmail.trim()}
+            >
+              {startingBilling ? t.ocOpeningCheckout : t.ocOpenCheckout}
+            </Btn>
+          </Row>
+        </Modal>
       )}
 
       {/* ── Hard-delete confirmation ──
           Irreversible, so it demands the exact company name typed back before the
           button arms. The server re-checks every guard; this is the human gate. */}
       {deleteTarget && (
-        <div
-          onClick={() => !deleting && setDeleteTarget(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(23,27,31,0.55)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 24,
-            zIndex: 1000,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: C.w,
-              borderRadius: 14,
-              padding: 28,
-              maxWidth: 460,
-              width: "100%",
-              boxShadow: "0 24px 60px rgba(0,0,0,0.4)",
-            }}
-          >
-            <Text
-              size="2xl"
-              weight="black"
-              color={BRAND.rust}
-              style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}
-            >
+        <Modal
+          title={
+            <Text as="span" color={BRAND.rust}>
               {t.ocDeleteTitle.replace("{name}", deleteTarget.name)}
             </Text>
-            <Text as="p" size="base" color={C.navy} style={{ lineHeight: 1.6, margin: "0 0 14px" }}>
-              {t.ocDeleteWarning} <strong>{t.ocDeleteWarningBold}</strong> {t.ocDeleteWarningRest}
-            </Text>
-            <Eyebrow as="label">
-              {t.ocTypeToConfirm}{" "}
-              <Text as="span" color={C.navy} style={{ fontFamily: "var(--font-mono)" }}>
-                {deleteTarget.name}
-              </Text>{" "}
-              {t.ocToConfirm}
-            </Eyebrow>
-            <input
+          }
+          onClose={() => !deleting && setDeleteTarget(null)}
+        >
+          <Text as="p" size="base" color={C.navy} style={{ lineHeight: 1.6, margin: "0 0 14px" }}>
+            {t.ocDeleteWarning} <strong>{t.ocDeleteWarningBold}</strong> {t.ocDeleteWarningRest}
+          </Text>
+          <Fld
+            label={
+              <>
+                {t.ocTypeToConfirm}{" "}
+                <Text as="span" font="mono" style={{ textTransform: "none" }}>
+                  {deleteTarget.name}
+                </Text>{" "}
+                {t.ocToConfirm}
+              </>
+            }
+          >
+            <Inp
               autoFocus
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && deleteCompany()}
               placeholder={deleteTarget.name}
               disabled={deleting}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: `1.5px solid ${C.bd}`,
-                borderRadius: 8,
-                fontSize: 14,
-                boxSizing: "border-box",
-                marginTop: 6,
-              }}
             />
-            <Row gap={4} align="stretch" justify="flex-end" style={{ marginTop: 20 }}>
-              <button
-                onClick={() => setDeleteTarget(null)}
-                disabled={deleting}
-                style={{
-                  padding: "9px 16px",
-                  background: "transparent",
-                  color: C.sub,
-                  border: `1.5px solid ${C.bd}`,
-                  borderRadius: 8,
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: deleting ? "not-allowed" : "pointer",
-                }}
-              >
-                {t.ocCancel}
-              </button>
-              <button
-                onClick={deleteCompany}
-                disabled={deleting || confirmText.trim() !== deleteTarget.name}
-                style={{
-                  padding: "9px 18px",
-                  background: confirmText.trim() === deleteTarget.name ? BRAND.rust : C.bd,
-                  color: C.onAccent,
-                  border: "none",
-                  borderRadius: 8,
-                  fontWeight: 800,
-                  fontSize: 13,
-                  cursor:
-                    deleting || confirmText.trim() !== deleteTarget.name
-                      ? "not-allowed"
-                      : "pointer",
-                }}
-              >
-                {deleting ? "Deleting…" : "Delete forever"}
-              </button>
-            </Row>
-          </div>
-        </div>
+          </Fld>
+          <Row gap={4} justify="flex-end" style={{ marginTop: 20 }}>
+            <Btn v="ghost" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              {t.ocCancel}
+            </Btn>
+            <Btn
+              v="danger"
+              onClick={deleteCompany}
+              disabled={deleting || confirmText.trim() !== deleteTarget.name}
+            >
+              {deleting ? "Deleting…" : "Delete forever"}
+            </Btn>
+          </Row>
+        </Modal>
       )}
 
       {/* ── Read-only company drill-in ──
           Platform-admin oversight: inspect a tenant's live jobs, inventory, and team
           without leaving your own company. Read-only — nothing here writes. */}
       {viewCompany && (
-        <div
-          onClick={() => setViewCompany(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(23,27,31,0.55)",
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "center",
-            padding: 24,
-            zIndex: 1000,
-            overflowY: "auto",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: C.w,
-              borderRadius: 14,
-              padding: 24,
-              maxWidth: 880,
-              width: "100%",
-              boxShadow: "0 24px 60px rgba(0,0,0,0.4)",
-              margin: "20px 0",
-            }}
-          >
-            <Row gap={0} justify="space-between" style={{ marginBottom: 4 }}>
-              <Text
-                size="2xl"
-                weight="black"
-                color={C.navy}
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                {viewCompany.name}
-              </Text>
-              <button
-                onClick={() => setViewCompany(null)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  fontSize: 22,
-                  color: C.sub,
-                  cursor: "pointer",
-                  lineHeight: 1,
-                }}
-              >
-                ×
-              </button>
-            </Row>
-            <Text size="sm" weight="bold" color={C.sub} style={{ marginBottom: 16 }}>
-              {t.ocReadOnly}
-            </Text>
+        <Modal extraWide title={viewCompany.name} onClose={() => setViewCompany(null)}>
+          <Text size="sm" weight="bold" color={C.sub} style={{ marginBottom: 16 }}>
+            {t.ocReadOnly}
+          </Text>
 
-            {viewLoading || !viewData ? (
-              <div style={{ padding: 32, textAlign: "center", color: C.sub }}>{t.ocLoading}</div>
-            ) : (
-              <Stack gap="22px">
-                {/* Billing — Stripe's own numbers, not the modelled MRR from
+          {viewLoading || !viewData ? (
+            <LoadingState label={t.ocLoading} />
+          ) : (
+            <Stack gap="22px">
+              {/* Billing — Stripe's own numbers, not the modelled MRR from
                     supabase/30. When these two disagree, the price constants in
                     that migration are the thing that is wrong. */}
-                <div>
-                  <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>Billing</Eyebrow>
-                  {!viewBilling ? (
-                    <Text size="base" color={C.sub}>
-                      {t.ocLoading}
-                    </Text>
-                  ) : viewBilling.error ? (
-                    <Text size="base" color={BRAND.rust}>
-                      {viewBilling.error}
-                    </Text>
-                  ) : !viewBilling.billed ? (
-                    <Text size="base" color={C.sub}>
-                      {t.ocNotBilled}
-                    </Text>
-                  ) : (
-                    <>
-                      <Row gap={8} align="stretch" wrap style={{ marginBottom: 12, fontSize: 13 }}>
-                        <div>
-                          <Text
-                            size="xs"
-                            weight="extrabold"
-                            color={C.sub}
-                            style={{ textTransform: "uppercase" }}
-                          >
-                            Charging
-                          </Text>
-                          <Text weight="extrabold" color={C.navy}>
-                            {fmtMoney(viewBilling.subscription?.total)}
-                            <Text as="span" weight="semibold" color={C.sub}>
-                              {viewBilling.subscription?.items?.[0]?.interval === "year"
-                                ? " / year"
-                                : " / month"}
-                            </Text>
-                          </Text>
-                        </div>
-                        <div>
-                          <Text
-                            size="xs"
-                            weight="extrabold"
-                            color={C.sub}
-                            style={{ textTransform: "uppercase" }}
-                          >
-                            Renews
-                          </Text>
-                          <Text color={C.navy}>
-                            {fmtDate(viewBilling.subscription?.currentPeriodEnd)}
-                          </Text>
-                        </div>
-                        <div>
-                          <Text
-                            size="xs"
-                            weight="extrabold"
-                            color={C.sub}
-                            style={{ textTransform: "uppercase" }}
-                          >
-                            Card
-                          </Text>
-                          <Text color={C.navy}>
-                            {viewBilling.card
-                              ? `${viewBilling.card.brand} ···· ${viewBilling.card.last4}`
-                              : "—"}
-                          </Text>
-                        </div>
-                        {viewBilling.subscription?.cancelAtPeriodEnd && (
-                          <div style={{ color: BRAND.rust, fontWeight: 800, alignSelf: "center" }}>
-                            {t.ocCancelsAtPeriodEnd}
-                          </div>
-                        )}
-                      </Row>
-
-                      {viewBilling.invoices.length === 0 ? (
-                        <Text size="base" color={C.sub}>
-                          {t.ocNoInvoices}
+              <div>
+                <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>Billing</Eyebrow>
+                {!viewBilling ? (
+                  <Text size="base" color={C.sub}>
+                    {t.ocLoading}
+                  </Text>
+                ) : viewBilling.error ? (
+                  <Text size="base" color={BRAND.rust}>
+                    {viewBilling.error}
+                  </Text>
+                ) : !viewBilling.billed ? (
+                  <Text size="base" color={C.sub}>
+                    {t.ocNotBilled}
+                  </Text>
+                ) : (
+                  <>
+                    <Row gap={8} align="stretch" wrap style={{ marginBottom: 12, fontSize: 13 }}>
+                      <div>
+                        <Text
+                          size="xs"
+                          weight="extrabold"
+                          color={C.sub}
+                          style={{ textTransform: "uppercase" }}
+                        >
+                          Charging
                         </Text>
-                      ) : (
-                        <div
-                          style={{
-                            overflowX: "auto",
-                            border: `1px solid ${C.bd}`,
-                            borderRadius: 8,
-                          }}
+                        <Text weight="extrabold" color={C.navy}>
+                          {fmtMoney(viewBilling.subscription?.total)}
+                          <Text as="span" weight="semibold" color={C.sub}>
+                            {viewBilling.subscription?.items?.[0]?.interval === "year"
+                              ? " / year"
+                              : " / month"}
+                          </Text>
+                        </Text>
+                      </div>
+                      <div>
+                        <Text
+                          size="xs"
+                          weight="extrabold"
+                          color={C.sub}
+                          style={{ textTransform: "uppercase" }}
                         >
-                          <table
-                            style={{
-                              width: "100%",
-                              borderCollapse: "collapse",
-                              fontSize: 13,
-                              minWidth: 460,
-                            }}
-                          >
-                            <thead>
-                              <tr style={{ background: C.lg, textAlign: "left" }}>
-                                {["Invoice", "Date", "Amount", "Status", ""].map((h) => (
-                                  <th
-                                    key={h}
-                                    style={{
-                                      padding: "8px 10px",
-                                      fontSize: 11,
-                                      textTransform: "uppercase",
-                                      color: C.sub,
-                                      fontWeight: 800,
-                                    }}
-                                  >
-                                    {h}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {viewBilling.invoices.map((inv) => (
-                                <tr key={inv.id} style={{ borderTop: `1px solid ${C.bd}` }}>
-                                  <td
-                                    style={{
-                                      padding: "7px 10px",
-                                      fontFamily: "var(--font-mono)",
-                                      fontSize: 12,
-                                      color: C.sub,
-                                    }}
-                                  >
-                                    {inv.number || inv.id}
-                                  </td>
-                                  <td style={{ padding: "7px 10px", color: C.sub }}>
-                                    {fmtDate(inv.created)}
-                                  </td>
-                                  <td
-                                    style={{ padding: "7px 10px", fontWeight: 700, color: C.navy }}
-                                  >
-                                    {fmtMoney(inv.amountDue)}
-                                  </td>
-                                  <td style={{ padding: "7px 10px" }}>
-                                    <Text
-                                      as="span"
-                                      weight="bold"
-                                      color={
-                                        inv.status === "paid"
-                                          ? BRAND.pasture
-                                          : inv.status === "open"
-                                            ? BRAND.amberDeep
-                                            : C.sub
-                                      }
-                                      style={{ textTransform: "capitalize" }}
-                                    >
-                                      {inv.status}
-                                    </Text>
-                                  </td>
-                                  <td style={{ padding: "7px 10px" }}>
-                                    {inv.hostedUrl && (
-                                      <Text
-                                        href={inv.hostedUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        as="a"
-                                        size="sm"
-                                        weight="bold"
-                                        color={C.blue}
-                                      >
-                                        View
-                                      </Text>
-                                    )}
-                                    {inv.pdfUrl && (
-                                      <Text
-                                        href={inv.pdfUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        as="a"
-                                        size="sm"
-                                        weight="bold"
-                                        color={C.blue}
-                                        style={{ marginLeft: 10 }}
-                                      >
-                                        PDF
-                                      </Text>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                          Renews
+                        </Text>
+                        <Text color={C.navy}>
+                          {fmtDate(viewBilling.subscription?.currentPeriodEnd)}
+                        </Text>
+                      </div>
+                      <div>
+                        <Text
+                          size="xs"
+                          weight="extrabold"
+                          color={C.sub}
+                          style={{ textTransform: "uppercase" }}
+                        >
+                          Card
+                        </Text>
+                        <Text color={C.navy}>
+                          {viewBilling.card
+                            ? `${viewBilling.card.brand} ···· ${viewBilling.card.last4}`
+                            : "—"}
+                        </Text>
+                      </div>
+                      {viewBilling.subscription?.cancelAtPeriodEnd && (
+                        <Text weight="extrabold" color={BRAND.rust} style={{ alignSelf: "center" }}>
+                          {t.ocCancelsAtPeriodEnd}
+                        </Text>
                       )}
-                    </>
-                  )}
-                </div>
+                    </Row>
 
-                {/* Jobs */}
-                <div>
-                  <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>
-                    Jobs ({viewData.jobs.length})
-                  </Eyebrow>
-                  {viewData.jobs.length === 0 ? (
-                    <Text size="base" color={C.sub}>
-                      {t.ocNoJobs}
-                    </Text>
-                  ) : (
-                    <div
-                      style={{ overflowX: "auto", border: `1px solid ${C.bd}`, borderRadius: 8 }}
-                    >
-                      <table
-                        style={{
-                          width: "100%",
-                          borderCollapse: "collapse",
-                          fontSize: 13,
-                          minWidth: 560,
-                        }}
+                    {viewBilling.invoices.length === 0 ? (
+                      <Text size="base" color={C.sub}>
+                        {t.ocNoInvoices}
+                      </Text>
+                    ) : (
+                      <Table
+                        pad="sm"
+                        size="base"
+                        minWidth={460}
+                        style={{ border: `1px solid ${C.bd}`, borderRadius: 8 }}
                       >
                         <thead>
-                          <tr style={{ background: C.lg, textAlign: "left" }}>
-                            {["Status", "PO", "Name", "Assigned", "Created"].map((h) => (
-                              <th
-                                key={h}
-                                style={{
-                                  padding: "8px 10px",
-                                  fontSize: 11,
-                                  textTransform: "uppercase",
-                                  color: C.sub,
-                                  fontWeight: 800,
-                                }}
-                              >
-                                {h}
-                              </th>
+                          <tr>
+                            {["Invoice", "Date", "Amount", "Status", ""].map((h) => (
+                              <th key={h}>{h}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {viewData.jobs.slice(0, 100).map((j) => {
-                            const sup = viewData.members.find(
-                              (m) => m.id === (j.assignedto || j.assignedTo),
-                            );
-                            return (
-                              <tr key={j.id} style={{ borderTop: `1px solid ${C.bd}` }}>
-                                <td style={{ padding: "7px 10px", textTransform: "capitalize" }}>
-                                  {j.status || "—"}
-                                </td>
-                                <td style={{ padding: "7px 10px", color: C.sub }}>{j.po || "—"}</td>
-                                <td style={{ padding: "7px 10px", fontWeight: 600, color: C.navy }}>
-                                  {j.title || j.name || "—"}
-                                </td>
-                                <td style={{ padding: "7px 10px", color: C.sub }}>
-                                  {sup?.full_name || sup?.name || "—"}
-                                </td>
-                                <td style={{ padding: "7px 10px", color: C.sub }}>
-                                  {fmtDate(j.created || j.createdAt)}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-
-                {/* Inventory */}
-                <div>
-                  <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>
-                    Inventory ({viewData.inventory.length})
-                  </Eyebrow>
-                  {viewData.inventory.length === 0 ? (
-                    <Text size="base" color={C.sub}>
-                      {t.ocNoInventory}
-                    </Text>
-                  ) : (
-                    <div
-                      style={{ overflowX: "auto", border: `1px solid ${C.bd}`, borderRadius: 8 }}
-                    >
-                      <table
-                        style={{
-                          width: "100%",
-                          borderCollapse: "collapse",
-                          fontSize: 13,
-                          minWidth: 520,
-                        }}
-                      >
-                        <thead>
-                          <tr style={{ background: C.lg, textAlign: "left" }}>
-                            {["Item", "Category", "On hand", "Status"].map((h) => (
-                              <th
-                                key={h}
-                                style={{
-                                  padding: "8px 10px",
-                                  fontSize: 11,
-                                  textTransform: "uppercase",
-                                  color: C.sub,
-                                  fontWeight: 800,
-                                }}
+                          {viewBilling.invoices.map((inv) => (
+                            <tr key={inv.id}>
+                              <Text
+                                as="td"
+                                size="sm"
+                                color={C.sub}
+                                style={{ fontFamily: "var(--font-mono)" }}
                               >
-                                {h}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {viewData.inventory.slice(0, 100).map((i) => {
-                            const onHand = tot(i);
-                            const low = onHand <= (i.alrt || 0);
-                            return (
-                              <tr key={i.id} style={{ borderTop: `1px solid ${C.bd}` }}>
-                                <td style={{ padding: "7px 10px", fontWeight: 600, color: C.navy }}>
-                                  {i.name}
-                                </td>
-                                <td style={{ padding: "7px 10px", color: C.sub }}>
-                                  {i.cat || "—"}
-                                </td>
-                                <td style={{ padding: "7px 10px" }}>
-                                  {onHand} {i.unit || ""}
-                                </td>
-                                <td style={{ padding: "7px 10px" }}>
+                                {inv.number || inv.id}
+                              </Text>
+                              <Text as="td" color={C.sub}>
+                                {fmtDate(inv.created)}
+                              </Text>
+                              <Text as="td" weight="bold" color={C.navy}>
+                                {fmtMoney(inv.amountDue)}
+                              </Text>
+                              <td>
+                                <Text
+                                  as="span"
+                                  weight="bold"
+                                  color={
+                                    inv.status === "paid"
+                                      ? BRAND.pasture
+                                      : inv.status === "open"
+                                        ? BRAND.amberDeep
+                                        : C.sub
+                                  }
+                                  style={{ textTransform: "capitalize" }}
+                                >
+                                  {inv.status}
+                                </Text>
+                              </td>
+                              <td>
+                                {inv.hostedUrl && (
                                   <Text
-                                    as="span"
+                                    href={inv.hostedUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    as="a"
+                                    size="sm"
                                     weight="bold"
-                                    color={low ? BRAND.rust : BRAND.pasture}
+                                    color={C.blue}
                                   >
-                                    {low ? "Low" : "OK"}
+                                    View
                                   </Text>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                                )}
+                                {inv.pdfUrl && (
+                                  <Text
+                                    href={inv.pdfUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    as="a"
+                                    size="sm"
+                                    weight="bold"
+                                    color={C.blue}
+                                    style={{ marginLeft: 10 }}
+                                  >
+                                    PDF
+                                  </Text>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
+                      </Table>
+                    )}
+                  </>
+                )}
+              </div>
 
-                {/* Team */}
-                <div>
-                  <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>
-                    Team ({viewData.members.length})
-                  </Eyebrow>
-                  {viewData.members.length === 0 ? (
-                    <Text size="base" color={C.sub}>
-                      {t.ocNoMembers}
-                    </Text>
-                  ) : (
-                    <Stack gap={2}>
-                      {viewData.members.map((m) => (
-                        <div
-                          key={m.id}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 10,
-                            padding: "7px 10px",
-                            background: C.lg,
-                            borderRadius: 8,
-                            fontSize: 13,
-                          }}
-                        >
+              {/* Jobs */}
+              <div>
+                <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>
+                  Jobs ({viewData.jobs.length})
+                </Eyebrow>
+                {viewData.jobs.length === 0 ? (
+                  <Text size="base" color={C.sub}>
+                    {t.ocNoJobs}
+                  </Text>
+                ) : (
+                  <Table
+                    pad="sm"
+                    size="base"
+                    minWidth={560}
+                    style={{ border: `1px solid ${C.bd}`, borderRadius: 8 }}
+                  >
+                    <thead>
+                      <tr>
+                        {["Status", "PO", "Name", "Assigned", "Created"].map((h) => (
+                          <th key={h}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewData.jobs.slice(0, 100).map((j) => {
+                        const sup = viewData.members.find(
+                          (m) => m.id === (j.assignedto || j.assignedTo),
+                        );
+                        return (
+                          <tr key={j.id}>
+                            <td style={{ textTransform: "capitalize" }}>{j.status || "—"}</td>
+                            <Text as="td" color={C.sub}>
+                              {j.po || "—"}
+                            </Text>
+                            <Text as="td" weight="semibold" color={C.navy}>
+                              {j.title || j.name || "—"}
+                            </Text>
+                            <Text as="td" color={C.sub}>
+                              {sup?.full_name || sup?.name || "—"}
+                            </Text>
+                            <Text as="td" color={C.sub}>
+                              {fmtDate(j.created || j.createdAt)}
+                            </Text>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                )}
+              </div>
+
+              {/* Inventory */}
+              <div>
+                <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>
+                  Inventory ({viewData.inventory.length})
+                </Eyebrow>
+                {viewData.inventory.length === 0 ? (
+                  <Text size="base" color={C.sub}>
+                    {t.ocNoInventory}
+                  </Text>
+                ) : (
+                  <Table
+                    pad="sm"
+                    size="base"
+                    minWidth={520}
+                    style={{ border: `1px solid ${C.bd}`, borderRadius: 8 }}
+                  >
+                    <thead>
+                      <tr>
+                        {["Item", "Category", "On hand", "Status"].map((h) => (
+                          <th key={h}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewData.inventory.slice(0, 100).map((i) => {
+                        const onHand = tot(i);
+                        const low = onHand <= (i.alrt || 0);
+                        return (
+                          <tr key={i.id}>
+                            <Text as="td" weight="semibold" color={C.navy}>
+                              {i.name}
+                            </Text>
+                            <Text as="td" color={C.sub}>
+                              {i.cat || "—"}
+                            </Text>
+                            <td>
+                              {onHand} {i.unit || ""}
+                            </td>
+                            <td>
+                              <Text
+                                as="span"
+                                weight="bold"
+                                color={low ? BRAND.rust : BRAND.pasture}
+                              >
+                                {low ? "Low" : "OK"}
+                              </Text>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </Table>
+                )}
+              </div>
+
+              {/* Team */}
+              <div>
+                <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>
+                  Team ({viewData.members.length})
+                </Eyebrow>
+                {viewData.members.length === 0 ? (
+                  <Text size="base" color={C.sub}>
+                    {t.ocNoMembers}
+                  </Text>
+                ) : (
+                  <Stack gap={2}>
+                    {viewData.members.map((m) => (
+                      <Card
+                        key={m.id}
+                        variant="flat"
+                        pad="7px 10px"
+                        style={{ background: C.lg, border: "none", fontSize: 13 }}
+                      >
+                        <Row gap={4} justify="space-between">
                           <span>
                             <Text as="span" weight="bold" color={C.navy}>
                               {m.full_name || m.name || m.email}
@@ -1619,33 +1225,19 @@ export default function OwnerConsole({ user, lang = "en" }) {
                             {m.role || "—"}
                             {m.active === false ? " (inactive)" : ""}
                           </Text>
-                        </div>
-                      ))}
-                    </Stack>
-                  )}
-                </div>
-              </Stack>
-            )}
+                        </Row>
+                      </Card>
+                    ))}
+                  </Stack>
+                )}
+              </div>
+            </Stack>
+          )}
 
-            <Row gap={0} align="stretch" justify="flex-end" style={{ marginTop: 20 }}>
-              <button
-                onClick={() => setViewCompany(null)}
-                style={{
-                  padding: "9px 18px",
-                  background: C.shell,
-                  color: "var(--c-shell-ink)",
-                  border: "none",
-                  borderRadius: 8,
-                  fontWeight: 800,
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-              >
-                {t.ocClose}
-              </button>
-            </Row>
-          </div>
-        </div>
+          <Row justify="flex-end" style={{ marginTop: 20 }}>
+            <Btn onClick={() => setViewCompany(null)}>{t.ocClose}</Btn>
+          </Row>
+        </Modal>
       )}
     </div>
   );

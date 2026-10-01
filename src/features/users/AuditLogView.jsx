@@ -12,6 +12,7 @@ import {
   Row,
   Text,
   Muted,
+  Table,
 } from "@/shared/components/UIPrimitives";
 
 import { translations } from "@/shared/utils/translations";
@@ -365,11 +366,9 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
           </div>
 
           <div style={{ overflowX: "auto" }}>
-            <table
-              style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-xs)" }}
-            >
+            <Table pad="md" size="xs">
               <thead>
-                <tr style={{ textAlign: "left", color: C.sub, textTransform: "uppercase" }}>
+                <tr>
                   {[
                     "Date",
                     "Item",
@@ -380,16 +379,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                     t.alColRef,
                     "Supplier",
                   ].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "8px 10px",
-                        fontSize: "var(--text-2xs)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {h}
-                    </th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -408,23 +398,11 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                   // whoever PULLED past the shelf, not whoever received stock.
                   const person = personOf(r.by, r.byName);
                   return (
-                    <tr
-                      key={r.key}
-                      style={{
-                        borderTop: `1px solid ${C.lg}`,
-                        background: isShort ? C.rB : "transparent",
-                      }}
-                    >
-                      <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: C.sub }}>
+                    <tr key={r.key} style={{ background: isShort ? C.rB : "transparent" }}>
+                      <Text as="td" color={C.sub} style={{ whiteSpace: "nowrap" }}>
                         {r.rcvd}
-                      </td>
-                      <td
-                        style={{
-                          padding: "8px 10px",
-                          fontWeight: "var(--weight-bold)",
-                          color: C.navy,
-                        }}
-                      >
+                      </Text>
+                      <Text as="td" weight="bold" color={C.navy}>
                         {r.itemName}
                         {tag && (
                           <Text as="span" weight="normal" color={tag[1]}>
@@ -432,28 +410,24 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                             · {tag[0]}
                           </Text>
                         )}
-                      </td>
-                      <td style={{ padding: "8px 10px" }}>
+                      </Text>
+                      <td>
                         {r.qty} {r.unit}
                       </td>
-                      <td
-                        style={{
-                          padding: "8px 10px",
-                          color: r.rem === 0 ? C.sub : r.rem < 0 ? C.rd : C.gr,
-                          fontWeight: "var(--weight-bold)",
-                        }}
+                      <Text
+                        as="td"
+                        weight="bold"
+                        color={r.rem === 0 ? C.sub : r.rem < 0 ? C.rd : C.gr}
                       >
                         {r.rem}
-                      </td>
+                      </Text>
                       {perms?.inv_pricing_view && (
                         <>
-                          <td
-                            style={{
-                              padding: "8px 10px",
-                              color: unpriced ? C.rd : C.blue,
-                              fontWeight: "var(--weight-bold)",
-                              whiteSpace: "nowrap",
-                            }}
+                          <Text
+                            as="td"
+                            weight="bold"
+                            color={unpriced ? C.rd : C.blue}
+                            style={{ whiteSpace: "nowrap" }}
                           >
                             ${r.price.toFixed(2)}
                             {unpriced && (
@@ -463,49 +437,40 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                                 aria-hidden="true"
                               />
                             )}
-                          </td>
-                          <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
-                            ${(r.rem * r.price).toFixed(2)}
-                          </td>
+                          </Text>
+                          <td style={{ whiteSpace: "nowrap" }}>${(r.rem * r.price).toFixed(2)}</td>
                         </>
                       )}
-                      <td
+                      <Text
+                        as="td"
+                        color={person.tone}
                         style={{
-                          padding: "8px 10px",
                           whiteSpace: "nowrap",
-                          color: person.tone,
                           fontStyle: person.muted ? "italic" : "normal",
                         }}
                         title={person.title || undefined}
                       >
                         {isShort ? `${t.alPulledBy} ${person.label}` : person.label}
-                      </td>
+                      </Text>
                       {/* Only a real delivery owes a PO/vendor — everything else has none by nature.
                           A shortfall now carries the job it was pulled for, which is
                           the whole point: the audit_logs entry naming that job is
                           deleted at 30 days, and this row is not. */}
-                      <td
-                        style={{
-                          padding: "8px 10px",
-                          fontFamily: "monospace",
-                          color: r.ref ? (isShort ? C.rd : C.navy) : isReceipt ? C.rd : C.sub,
-                        }}
+                      <Text
+                        as="td"
+                        color={r.ref ? (isShort ? C.rd : C.navy) : isReceipt ? C.rd : C.sub}
+                        style={{ fontFamily: "monospace" }}
                       >
                         {r.ref || (isReceipt ? t.alMissing : isShort ? t.alJobNotRecorded : "—")}
-                      </td>
-                      <td
-                        style={{
-                          padding: "8px 10px",
-                          color: r.vendor ? C.navy : isReceipt ? C.rd : C.sub,
-                        }}
-                      >
+                      </Text>
+                      <Text as="td" color={r.vendor ? C.navy : isReceipt ? C.rd : C.sub}>
                         {r.vendor || (isReceipt ? t.alMissing : "—")}
-                      </td>
+                      </Text>
                     </tr>
                   );
                 })}
               </tbody>
-            </table>
+            </Table>
             {filteredLedger.length === 0 && (
               <p style={{ color: C.sub, fontSize: "var(--text-sm)", padding: "16px 0" }}>
                 {t.alNoReceipts}
@@ -551,140 +516,128 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
       ) : (
         <>
           {/* ── COMPACT INNER SCROLLBAR CONTAINER ────────────────────────── */}
-          <div
-            style={{
-              overflowX: "auto",
-              maxHeight: "850px",
-              overflowY: "auto",
-              border: `1px solid ${C.lg}`,
-              borderRadius: "8px",
-              marginBottom: "16px",
-            }}
+
+          <Table
+            pad="md"
+            size="base"
+            tableStyle={{ textAlign: "left" }}
+            maxHeight={"850px"}
+            style={{ border: `1px solid ${C.lg}`, borderRadius: "8px", marginBottom: "16px" }}
           >
-            <table
-              className="mrr-table"
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: "var(--text-base)",
-                textAlign: "left",
-              }}
-            >
-              <thead className="mrr-thead-sticky">
-                <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
-                  {[
-                    "Timestamp",
-                    "Operator",
-                    "Action Type",
-                    t.alColWhere,
-                    "Activity Log narrative",
-                    "Inspect",
-                  ].map((h) => (
-                    <th key={h}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedLogs.length > 0 ? (
-                  paginatedLogs.map((l) => (
-                    <tr key={l.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                      <td style={{ padding: "12px 10px", whiteSpace: "nowrap", color: C.sub }}>
-                        {formatFullTimestamp(l.created_at)}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px 10px",
-                          fontWeight: "var(--weight-bold)",
-                          color: C.navy,
-                        }}
+            <thead className="mrr-thead-sticky">
+              <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
+                {[
+                  "Timestamp",
+                  "Operator",
+                  "Action Type",
+                  t.alColWhere,
+                  "Activity Log narrative",
+                  "Inspect",
+                ].map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedLogs.length > 0 ? (
+                paginatedLogs.map((l) => (
+                  <tr key={l.id}>
+                    <td style={{ padding: "12px 10px", whiteSpace: "nowrap", color: C.sub }}>
+                      {formatFullTimestamp(l.created_at)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                        fontWeight: "var(--weight-bold)",
+                        color: C.navy,
+                      }}
+                    >
+                      {l.user_email}
+                    </td>
+                    <td style={{ padding: "12px 10px" }}>
+                      <Bdg
+                        color={
+                          l.action_type === "PERM_CHANGE"
+                            ? "purple"
+                            : l.action_type === "INV_MUTATION" ||
+                                l.action_type === "INVENTORY_ADJUST"
+                              ? "amber"
+                              : l.action_type === "JOB_BUILD_CREATE"
+                                ? "blue"
+                                : l.action_type === "FLEET_STATUS_CHANGE" ||
+                                    l.action_type === "MAINTENANCE_REQUEST_CREATE"
+                                  ? "rose"
+                                  : "teal"
+                        }
                       >
-                        {l.user_email}
-                      </td>
-                      <td style={{ padding: "12px 10px" }}>
-                        <Bdg
-                          color={
-                            l.action_type === "PERM_CHANGE"
-                              ? "purple"
-                              : l.action_type === "INV_MUTATION" ||
-                                  l.action_type === "INVENTORY_ADJUST"
-                                ? "amber"
-                                : l.action_type === "JOB_BUILD_CREATE"
-                                  ? "blue"
-                                  : l.action_type === "FLEET_STATUS_CHANGE" ||
-                                      l.action_type === "MAINTENANCE_REQUEST_CREATE"
-                                    ? "rose"
-                                    : "teal"
-                          }
-                        >
-                          {l.action_type}
-                        </Bdg>
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px 10px",
-                          fontWeight: "var(--weight-semibold)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {whereOf(l)}
-                      </td>
-                      <td
-                        style={{
-                          padding: "12px 10px",
-                          color: "var(--c-barnwood)",
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        {l.description}
-                      </td>
-                      <td style={{ padding: "12px 10px" }}>
-                        {/* `metadata`, not `payload`. logger.js has always written
+                        {l.action_type}
+                      </Bdg>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                        fontWeight: "var(--weight-semibold)",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {whereOf(l)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px 10px",
+                        color: "var(--c-barnwood)",
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {l.description}
+                    </td>
+                    <td style={{ padding: "12px 10px" }}>
+                      {/* `metadata`, not `payload`. logger.js has always written
                             this column as metadata; this button read `payload`,
                             which nothing writes, so it rendered "—" on every row
                             ever logged and the detail behind each action — the
                             item list, the quantities, the job — was recorded and
                             then permanently invisible. */}
-                        {l.metadata && Object.keys(l.metadata).length > 0 ? (
-                          <button
-                            onClick={() => setActivePayload(l.metadata)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              color: C.blue,
-                              fontWeight: "var(--weight-bold)",
-                              cursor: "pointer",
-                              fontSize: "var(--text-sm)",
-                              textDecoration: "underline",
-                            }}
-                          >
-                            {t.alViewDetail}
-                          </button>
-                        ) : (
-                          <Text as="span" color={C.sub}>
-                            —
-                          </Text>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      style={{
-                        textAlign: "center",
-                        padding: "32px 0",
-                        color: C.sub,
-                        fontStyle: "italic",
-                      }}
-                    >
-                      {t.alNoLogs}
+                      {l.metadata && Object.keys(l.metadata).length > 0 ? (
+                        <button
+                          onClick={() => setActivePayload(l.metadata)}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: C.blue,
+                            fontWeight: "var(--weight-bold)",
+                            cursor: "pointer",
+                            fontSize: "var(--text-sm)",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          {t.alViewDetail}
+                        </button>
+                      ) : (
+                        <Text as="span" color={C.sub}>
+                          —
+                        </Text>
+                      )}
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={6}
+                    style={{
+                      textAlign: "center",
+                      padding: "32px 0",
+                      color: C.sub,
+                      fontStyle: "italic",
+                    }}
+                  >
+                    {t.alNoLogs}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
 
           {/* ── PAGINATION CONTROLS BOTTOM BAR ─────────────────────────── */}
           <Row gap={5} justify="space-between" wrap style={{ paddingTop: 8 }}>

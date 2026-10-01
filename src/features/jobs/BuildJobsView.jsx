@@ -52,6 +52,7 @@ import {
   Stack,
   Text,
   Muted,
+  Table,
 } from "@/shared/components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "@/shared/utils/email";
 import { shouldNotifyJobMove, notifyJobMove } from "./jobNotifications";
@@ -1436,12 +1437,9 @@ export default function BuildJobs({
             </div>
           )}
           <div className="sw-table-scroll">
-            <table
-              className="mrr-table"
-              style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
-            >
+            <Table pad="md">
               <thead>
-                <tr style={{ background: C.lg }}>
+                <tr>
                   {[
                     "Item",
                     "Category",
@@ -1450,17 +1448,7 @@ export default function BuildJobs({
                     "Used",
                     ...(perms.inv_pricing_view ? ["Cost"] : []),
                   ].map((h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "7px 10px",
-                        textAlign: "left",
-                        color: C.sub,
-                        fontWeight: "var(--weight-bold)",
-                      }}
-                    >
-                      {h}
-                    </th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -1480,47 +1468,32 @@ export default function BuildJobs({
                     (item.pulled || 0) > 0 && Number.isFinite(snapshot) ? snapshot : livePrice;
                   const usedCost = used * unitPrice;
                   return (
-                    <tr
-                      key={item.iid || item.id || Math.random()}
-                      style={{ borderTop: `1px solid ${C.lg}` }}
-                    >
-                      <td
-                        style={{
-                          padding: "8px 10px",
-                          fontWeight: "var(--weight-bold)",
-                          color: C.navy,
-                        }}
-                      >
+                    <tr key={item.iid || item.id || Math.random()}>
+                      <Text as="td" weight="bold" color={C.navy}>
                         {item.iname || item.name || "—"}
-                      </td>
-                      <td style={{ padding: "8px 10px", color: C.sub }}>
+                      </Text>
+                      <Text as="td" color={C.sub}>
                         {item.icat || item.cat || "—"}
-                      </td>
-                      <td style={{ padding: "8px 10px" }}>
+                      </Text>
+                      <td>
                         {item.planned || item.qty || 0} {item.unit || ""}
                       </td>
-                      <td style={{ padding: "8px 10px", color: item.pulled > 0 ? C.gr : C.sub }}>
+                      <Text as="td" color={item.pulled > 0 ? C.gr : C.sub}>
                         {item.pulled || 0}
-                      </td>
-                      <td style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)" }}>
+                      </Text>
+                      <Text as="td" weight="bold">
                         {used}
-                      </td>
+                      </Text>
                       {perms.inv_pricing_view && (
-                        <td
-                          style={{
-                            padding: "8px 10px",
-                            fontWeight: "var(--weight-bold)",
-                            color: C.blue,
-                          }}
-                        >
+                        <Text as="td" weight="bold" color={C.blue}>
                           {(item.pulled || 0) > 0 ? fm(usedCost) : "—"}
-                        </td>
+                        </Text>
                       )}
                     </tr>
                   );
                 })}
               </tbody>
-            </table>
+            </Table>
           </div>
         </Modal>
       )}

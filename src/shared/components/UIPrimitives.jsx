@@ -8,9 +8,19 @@ import { useNotify } from "../context/NotificationContext";
 import { HAS_NATIVE_CAMERA, capturePhoto } from "../utils/photoCapture";
 import { Stack, Row, Text, Muted } from "./LayoutPrimitives";
 
-// Card, Stack, Row, Eyebrow, SectionTitle, Muted, Table — kept in their own file
+// Card, Stack, Row, Eyebrow, SectionTitle, Muted, Text, Table, Callout — kept in their own file
 // so this one stops growing, but re-exported so views have one import path.
-export { Card, Stack, Row, Eyebrow, SectionTitle, Muted, Text, Table } from "./LayoutPrimitives";
+export {
+  Card,
+  Stack,
+  Row,
+  Eyebrow,
+  SectionTitle,
+  Muted,
+  Text,
+  Table,
+  Callout,
+} from "./LayoutPrimitives";
 
 // A plain colored severity dot — used wherever a status is conveyed by color
 // alone (jobStatusMeta in helpers.js), rather than reaching for an icon shape
@@ -460,7 +470,7 @@ export function Modal({ title, onClose, children, wide, extraWide, disableCloseB
   );
 }
 
-export function Fld({ label, children, hint }) {
+export function Fld({ label, children, hint, style }) {
   // {children} used to render as the <label>'s sibling, not inside it — so the
   // label text and the actual input had no association at all, implicit or
   // explicit. A screen reader focusing the input never announced what it was,
@@ -472,7 +482,7 @@ export function Fld({ label, children, hint }) {
   // app — a plain <input>, a <select>, or a non-input control group (like the
   // billing-interval toggle in LoginScreen) that simply ignores it.
   return (
-    <div style={{ marginBottom: "var(--space-5)" }}>
+    <div style={{ marginBottom: "var(--space-5)", ...style }}>
       <label style={{ display: "block" }}>
         <span
           style={{
@@ -560,7 +570,9 @@ export function Sel({ children, ...p }) {
   );
 }
 
-export function Btn({ children, v = "primary", sz = "md", ...p }) {
+// `tone` recolors the outline variant (text + border) for the destructive or
+// secondary outlined actions that used to hand-roll their own button for it.
+export function Btn({ children, v = "primary", sz = "md", tone, ...p }) {
   // Every filled variant takes C.onAccent, not C.surface. They used to read C.w,
   // which was literally white and worked by accident; now that surface inverts to
   // near-black in dark mode, C.w on a filled button would be dark ink on a dark
@@ -572,7 +584,11 @@ export function Btn({ children, v = "primary", sz = "md", ...p }) {
       color: "var(--brand-accent-ink, var(--c-shell))",
       border: "none",
     },
-    outline: { background: "transparent", color: C.leather, border: `2px solid ${C.leather}` },
+    outline: {
+      background: "transparent",
+      color: tone || C.leather,
+      border: `2px solid ${tone || C.leather}`,
+    },
     ghost: { background: C.subtle, color: C.barnwood, border: "none" },
     danger: { background: C.rust, color: C.onAccent, border: "none" },
     purple: { background: C.plum, color: C.onAccent, border: "none" },
@@ -593,7 +609,7 @@ export function Btn({ children, v = "primary", sz = "md", ...p }) {
         ...vs[v],
         ...ss[sz],
         borderRadius: "var(--radius-lg)",
-        cursor: "pointer",
+        cursor: p.disabled ? "not-allowed" : "pointer",
         fontWeight: "var(--weight-bold)",
         display: "inline-flex",
         alignItems: "center",

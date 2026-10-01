@@ -16,6 +16,8 @@ import { C } from "../utils/helpers";
 // 0 means no gap (there is no --space-0), for a Row that only wants the flex.
 const space = (g) => (g === 0 ? 0 : typeof g === "number" ? `var(--space-${g})` : g);
 
+// Named steps for the common cases; a number is a single --space-* step all
+// round (pad={8} = 20px), same as Stack/Row gap.
 const CARD_PAD = {
   none: 0,
   sm: "var(--space-4) var(--space-5)",
@@ -71,7 +73,7 @@ export function Card({
       style={{
         background: C.surface,
         borderRadius: "var(--radius-xl)",
-        padding: CARD_PAD[pad] ?? pad,
+        padding: CARD_PAD[pad] ?? space(pad),
         minWidth: 0,
         ...CARD_VARIANT[variant],
         ...style,
@@ -80,6 +82,68 @@ export function Card({
       {...rest}
     >
       {children}
+    </Tag>
+  );
+}
+
+// A tinted box: the inline notice, the warning above a form, the sunken well a
+// list of small rows sits in. ~110 of these were hand-built, each picking its
+// own wash, border weight and padding. `tone` picks the wash (and the border
+// color when `bordered`); text color is left to inherit unless `color` is set,
+// because the copies split about evenly between body ink and tone-colored text.
+// `icon` lays a leading icon beside the content, top-aligned so it stays with
+// the first line when the message wraps.
+const CALLOUT_TONE = {
+  neutral: { bg: C.subtle, line: C.line },
+  warn: { bg: C.aB, line: C.warn },
+  danger: { bg: C.rB, line: C.rust },
+  success: { bg: C.gB, line: C.pasture },
+  info: { bg: C.sB, line: C.slate },
+  teal: { bg: C.tB, line: C.teal },
+  plum: { bg: C.pB, line: C.plum },
+  gold: { bg: C.gL, line: C.amber },
+};
+const CALLOUT_PAD = {
+  sm: "var(--space-3) var(--space-5)",
+  md: "var(--space-4) var(--space-6)",
+};
+export function Callout({
+  tone = "neutral",
+  bordered,
+  icon: Icon,
+  color,
+  size,
+  weight,
+  pad = "md",
+  as: Tag = "div",
+  style,
+  children,
+  ...rest
+}) {
+  const t = CALLOUT_TONE[tone];
+  return (
+    <Tag
+      style={{
+        background: t.bg,
+        border: bordered ? `1.5px solid ${t.line}` : undefined,
+        borderRadius: "var(--radius-md)",
+        padding: CALLOUT_PAD[pad] ?? space(pad),
+        color,
+        fontSize: size && `var(--text-${size})`,
+        fontWeight: weight && `var(--weight-${weight})`,
+        ...(Icon ? { display: "flex", alignItems: "flex-start", gap: "var(--space-2)" } : {}),
+        ...style,
+      }}
+      {...rest}
+    >
+      {Icon ? (
+        <>
+          <Icon size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
+          <Text style={{ minWidth: 0 }}>{children}</Text>
+        </>
+      ) : (
+        children
+      )}
     </Tag>
   );
 }
@@ -204,10 +268,13 @@ export function Muted({ size = "xs", as: Tag = "div", style, children, ...rest }
 // weight take the token name ("sm", "bold") so a call site can't wander off the
 // scale; anything left unset inherits, exactly like a bare <span>. Unlike Muted
 // it leaves margins alone, so <Text as="p"> keeps a paragraph's spacing.
-export function Text({ size, weight, color, as: Tag = "div", style, children, ...rest }) {
+// `font` picks a --font-* family: "display" for headline figures, "mono" for
+// slugs, ids and amounts that should read as exact.
+export function Text({ size, weight, color, font, as: Tag = "div", style, children, ...rest }) {
   return (
     <Tag
       style={{
+        fontFamily: font && `var(--font-${font})`,
         fontSize: size && `var(--text-${size})`,
         fontWeight: weight && (weight === "normal" ? "normal" : `var(--weight-${weight})`),
         color,
@@ -221,11 +288,39 @@ export function Text({ size, weight, color, as: Tag = "div", style, children, ..
 }
 
 // A data table: the horizontal-scroll wrapper, .mrr-table's header styling,
-// and default cell padding (.mrr-table-pad — opt-in, so the 25 existing tables
-// that pad their own cells inline are unaffected). `stickyHead` pins the
-// header; it needs `maxHeight` to have a scroll container to stick within.
-// Children are the usual <thead>/<tbody>.
-export function Table({ stickyHead, maxHeight, style, tableStyle, children }) {
+// and cell padding. `pad` sets the padding of every header and body cell at
+// once — before this, each <td> carried its own copy ("7px 10px", "8px 10px",
+// "9px 10px"...) and headers padded differently from the cells under them, so
+// columns didn't line up. pad="none" leaves cells to pad themselves.
+// `size` is the --text-* step for the table body. `stickyHead` pins the header;
+// it needs `maxHeight` to have a scroll container to stick within. Children are
+// the usual <thead>/<tbody>. Body rows get a hairline divider unless
+// ruled={false}; a per-<tr> border was the other thing every table hand-rolled.
+const CELL_PAD = {
+  sm: "var(--space-2) var(--space-4)",
+  md: "var(--space-3) var(--space-4)",
+  lg: "var(--space-4) var(--space-5)",
+  xl: "var(--space-5) var(--space-6)",
+};
+export function Table({
+  pad = "md",
+  size = "sm",
+  minWidth,
+  ruled = true,
+  stickyHead,
+  maxHeight,
+  style,
+  tableStyle,
+  children,
+}) {
+  const cls = [
+    "mrr-table",
+    pad !== "none" && "mrr-table-pad",
+    ruled && "mrr-table-ruled",
+    stickyHead && "mrr-table-sticky",
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
     <div
       className="sw-table-scroll"
@@ -235,11 +330,13 @@ export function Table({ stickyHead, maxHeight, style, tableStyle, children }) {
       }}
     >
       <table
-        className={`mrr-table mrr-table-pad${stickyHead ? " mrr-table-sticky" : ""}`}
+        className={cls}
         style={{
           width: "100%",
           borderCollapse: "collapse",
-          fontSize: "var(--text-sm)",
+          fontSize: `var(--text-${size})`,
+          minWidth,
+          "--cell-pad": CELL_PAD[pad],
           ...tableStyle,
         }}
       >

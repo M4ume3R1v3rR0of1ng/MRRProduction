@@ -22,7 +22,7 @@ import { Save } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Modal, Row, Text } from "@/shared/components/UIPrimitives";
+import { Btn, Modal, Row, Text, Table } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -104,44 +104,29 @@ export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClos
         </Text>
       ) : (
         <div className="sw-table-scroll">
-          <table
-            className="mrr-table"
-            style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
-          >
+          <Table pad="md">
             <thead>
-              <tr style={{ background: C.lg }}>
+              <tr>
                 {[t.colItem, t.colPulled, t.colCurrentlyReturned, t.colCorrectedReturned].map(
                   (h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "7px 10px",
-                        textAlign: "left",
-                        color: C.sub,
-                        fontWeight: "var(--weight-bold)",
-                      }}
-                    >
-                      {h}
-                    </th>
+                    <th key={h}>{h}</th>
                   ),
                 )}
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
-                <tr key={item.iid} style={{ borderTop: `1px solid ${C.lg}` }}>
-                  <td
-                    style={{ padding: "8px 10px", fontWeight: "var(--weight-bold)", color: C.navy }}
-                  >
+                <tr key={item.iid}>
+                  <Text as="td" weight="bold" color={C.navy}>
                     {item.iname}
-                  </td>
-                  <td style={{ padding: "8px 10px" }}>
+                  </Text>
+                  <td>
                     {item.pulled || 0} {item.unit || ""}
                   </td>
-                  <td style={{ padding: "8px 10px" }}>
+                  <td>
                     {item.returned || 0} {item.unit || ""}
                   </td>
-                  <td style={{ padding: "8px 10px" }}>
+                  <td>
                     <input
                       type="number"
                       min="0"
@@ -155,7 +140,7 @@ export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClos
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
         </div>
       )}
 

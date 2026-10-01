@@ -68,7 +68,7 @@
     "hex": 0
   },
   "src/features/inventory/InventoryCountTab.jsx": {
-    "inline": 25,
+    "inline": 15,
     "hex": 0
   },
   "src/features/inventory/InventoryView.jsx": {
@@ -92,11 +92,11 @@
     "hex": 0
   },
   "src/features/jobs/BuildJobsView.jsx": {
-    "inline": 58,
+    "inline": 48,
     "hex": 0
   },
   "src/features/jobs/CorrectReturnModal.jsx": {
-    "inline": 9,
+    "inline": 1,
     "hex": 0
   },
   "src/features/jobs/CrewCalendar.jsx": {
@@ -112,11 +112,11 @@
     "hex": 0
   },
   "src/features/jobs/PullAddedMaterialsModal.jsx": {
-    "inline": 8,
+    "inline": 1,
     "hex": 0
   },
   "src/features/jobs/PullInventoryView.jsx": {
-    "inline": 66,
+    "inline": 31,
     "hex": 0
   },
   "src/features/maintenance/CompleteServiceModal.jsx": {
@@ -132,7 +132,7 @@
     "hex": 0
   },
   "src/features/reports/ReportsView.jsx": {
-    "inline": 68,
+    "inline": 27,
     "hex": 1
   },
   "src/features/schedule/ScheduleView.jsx": {
@@ -148,15 +148,15 @@
     "hex": 3
   },
   "src/features/users/AuditLogView.jsx": {
-    "inline": 43,
+    "inline": 29,
     "hex": 0
   },
   "src/features/users/UserManagementView.jsx": {
-    "inline": 22,
+    "inline": 14,
     "hex": 0
   },
   "src/platform/OwnerConsole.jsx": {
-    "inline": 87,
+    "inline": 2,
     "hex": 0
   },
   "src/public/LandingPage.jsx": {

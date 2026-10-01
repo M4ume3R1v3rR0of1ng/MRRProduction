@@ -18,6 +18,7 @@ import {
   Stack,
   Text,
   Muted,
+  Table,
 } from "@/shared/components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "@/shared/context/NotificationContext";
 // One CSV writer for the app. The local copy this replaced wrapped every field
@@ -153,7 +154,6 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
     downloadCSV("mrr-job-profitability-" + todayLocal() + ".csv", headers, rows);
   };
 
-  const cell = { padding: "10px 12px" };
   const notSet = (
     <Text as="span" color={C.sub} style={{ fontStyle: "italic" }}>
       {t.rptNotSet}
@@ -217,194 +217,176 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
         </div>
       )}
 
-      <div style={{ overflowX: "auto" }}>
-        <table
-          className="mrr-table"
-          style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}
-        >
-          <thead>
-            <tr>
-              {[
-                t.rptColPO,
-                t.rptColProject,
-                t.rptColRealizedCost,
-                t.rptColMaterialsVsPlan,
-                ...(canSeeRevenue
-                  ? [t.rptColContractValue, t.rptColGrossProfit, t.rptColGrossMargin]
-                  : []),
-                t.rptColPrimaryMaterial,
-              ].map((h) => (
-                <th key={h}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {completedJobs.map((job) => {
-              const variance = materialsVariancePct(job);
-              const revenue = contractValue(job);
-              const profit = grossProfit(job);
-              const margin = grossMarginPct(job);
-              return (
-                <tr key={job.id} style={{ borderBottom: "1px solid " + C.lg }}>
-                  <td style={{ ...cell, fontWeight: "var(--weight-bold)" }}>{job.po}</td>
-                  <td style={cell}>{job.title || job.name}</td>
-                  <td style={{ ...cell, color: C.navy }}>{fm(actualMaterialCost(job))}</td>
-                  <td style={cell}>
-                    {variance === null ? (
-                      notSet
-                    ) : (
-                      <Bdg color={variance > 10 ? "red" : variance > 0 ? "amber" : "green"}>
-                        {variance > 0 ? "+" : ""}
-                        {variance.toFixed(1)}%
-                      </Bdg>
-                    )}
-                  </td>
-                  {canSeeRevenue && (
-                    <>
-                      <td style={{ ...cell, color: C.sub }}>
-                        {editingId === job.id ? (
-                          <Row gap={2}>
-                            <Inp
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              autoFocus
-                              value={draftValue}
-                              onChange={(e) => setDraftValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") saveValue(job);
-                                if (e.key === "Escape") setEditingId(null);
-                              }}
-                              style={{ width: 110, padding: "4px 8px" }}
-                              disabled={savingId === job.id}
-                            />
-                            <Btn
-                              v="primary"
-                              sz="sm"
-                              onClick={() => saveValue(job)}
-                              disabled={savingId === job.id}
-                            >
-                              {savingId === job.id ? "..." : "✓"}
-                            </Btn>
-                            <Btn
-                              v="ghost"
-                              sz="sm"
-                              onClick={() => setEditingId(null)}
-                              disabled={savingId === job.id}
-                            >
-                              ✕
-                            </Btn>
-                          </Row>
-                        ) : (
-                          <button
-                            onClick={() => beginEdit(job)}
-                            title={t.rptSetContractValue}
-                            style={{
-                              background: "none",
-                              border: revenue === null ? `1px dashed ${C.am}` : "none",
-                              borderRadius: "var(--radius-sm)",
-                              padding: revenue === null ? "2px 8px" : 0,
-                              cursor: "pointer",
-                              font: "inherit",
-                              color: revenue === null ? C.am : C.navy,
-                            }}
-                          >
-                            {revenue === null ? `+ ${t.rptNotSet}` : fm(revenue)}
-                          </button>
-                        )}
-                      </td>
-                      <td
-                        style={{
-                          ...cell,
-                          color: profit === null ? C.sub : profit < 0 ? C.rd : C.gr,
-                          fontWeight: "var(--weight-bold)",
-                        }}
-                      >
-                        {profit === null ? notSet : fm(profit)}
-                      </td>
-                      <td style={cell}>
-                        {margin === null ? (
-                          notSet
-                        ) : (
-                          <Bdg color={margin < 0 ? "red" : margin < 40 ? "amber" : "green"}>
-                            {margin.toFixed(1)}%
-                          </Bdg>
-                        )}
-                      </td>
-                    </>
-                  )}
-                  <td
-                    style={{
-                      ...cell,
-                      fontSize: "var(--text-sm)",
-                      color: C.blue,
-                      fontWeight: "var(--weight-semibold)",
-                    }}
-                  >
-                    {topMaterial(job)}
-                  </td>
-                </tr>
-              );
-            })}
-            {completedJobs.length === 0 && (
-              <tr>
-                <td
-                  colSpan={canSeeRevenue ? 8 : 5}
-                  style={{ padding: 24, textAlign: "center", color: C.sub }}
-                >
-                  {t.rptNoCompletedLines}
-                </td>
-              </tr>
-            )}
-          </tbody>
-          {completedJobs.length > 0 && (
-            <tfoot>
-              <tr style={{ background: "rgba(15, 23, 42, 0.05)" }}>
-                <td
-                  colSpan={2}
-                  style={{ ...cell, fontWeight: "var(--weight-extrabold)", color: C.navy }}
-                >
-                  {t.rptTotalsAcross.replace(
-                    "{n}",
-                    canSeeRevenue ? summary.pricedCount : summary.jobCount,
+      <Table pad="lg" size="base">
+        <thead>
+          <tr>
+            {[
+              t.rptColPO,
+              t.rptColProject,
+              t.rptColRealizedCost,
+              t.rptColMaterialsVsPlan,
+              ...(canSeeRevenue
+                ? [t.rptColContractValue, t.rptColGrossProfit, t.rptColGrossMargin]
+                : []),
+              t.rptColPrimaryMaterial,
+            ].map((h) => (
+              <th key={h}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {completedJobs.map((job) => {
+            const variance = materialsVariancePct(job);
+            const revenue = contractValue(job);
+            const profit = grossProfit(job);
+            const margin = grossMarginPct(job);
+            return (
+              <tr key={job.id}>
+                <Text as="td" weight="bold">
+                  {job.po}
+                </Text>
+                <td>{job.title || job.name}</td>
+                <Text as="td" color={C.navy}>
+                  {fm(actualMaterialCost(job))}
+                </Text>
+                <td>
+                  {variance === null ? (
+                    notSet
+                  ) : (
+                    <Bdg color={variance > 10 ? "red" : variance > 0 ? "amber" : "green"}>
+                      {variance > 0 ? "+" : ""}
+                      {variance.toFixed(1)}%
+                    </Bdg>
                   )}
                 </td>
-                <td style={{ ...cell, fontWeight: "var(--weight-bold)" }}>
-                  {fm(canSeeRevenue ? summary.materialCostOfPriced : summary.materialCost)}
-                </td>
-                <td style={cell} />
                 {canSeeRevenue && (
                   <>
-                    <td style={{ ...cell, fontWeight: "var(--weight-bold)" }}>
-                      {fm(summary.revenue)}
-                    </td>
-                    <td
-                      style={{
-                        ...cell,
-                        fontWeight: "var(--weight-black)",
-                        color:
-                          summary.grossProfit === null
-                            ? C.sub
-                            : summary.grossProfit < 0
-                              ? C.rd
-                              : C.gr,
-                      }}
+                    <Text as="td" color={C.sub}>
+                      {editingId === job.id ? (
+                        <Row gap={2}>
+                          <Inp
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            autoFocus
+                            value={draftValue}
+                            onChange={(e) => setDraftValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveValue(job);
+                              if (e.key === "Escape") setEditingId(null);
+                            }}
+                            style={{ width: 110, padding: "4px 8px" }}
+                            disabled={savingId === job.id}
+                          />
+                          <Btn
+                            v="primary"
+                            sz="sm"
+                            onClick={() => saveValue(job)}
+                            disabled={savingId === job.id}
+                          >
+                            {savingId === job.id ? "..." : "✓"}
+                          </Btn>
+                          <Btn
+                            v="ghost"
+                            sz="sm"
+                            onClick={() => setEditingId(null)}
+                            disabled={savingId === job.id}
+                          >
+                            ✕
+                          </Btn>
+                        </Row>
+                      ) : (
+                        <button
+                          onClick={() => beginEdit(job)}
+                          title={t.rptSetContractValue}
+                          style={{
+                            background: "none",
+                            border: revenue === null ? `1px dashed ${C.am}` : "none",
+                            borderRadius: "var(--radius-sm)",
+                            padding: revenue === null ? "2px 8px" : 0,
+                            cursor: "pointer",
+                            font: "inherit",
+                            color: revenue === null ? C.am : C.navy,
+                          }}
+                        >
+                          {revenue === null ? `+ ${t.rptNotSet}` : fm(revenue)}
+                        </button>
+                      )}
+                    </Text>
+                    <Text
+                      as="td"
+                      weight="bold"
+                      color={profit === null ? C.sub : profit < 0 ? C.rd : C.gr}
                     >
-                      {summary.grossProfit === null ? notSet : fm(summary.grossProfit)}
-                    </td>
-                    <td style={{ ...cell, fontWeight: "var(--weight-bold)" }}>
-                      {summary.grossMarginPct === null
-                        ? notSet
-                        : summary.grossMarginPct.toFixed(1) + "%"}
+                      {profit === null ? notSet : fm(profit)}
+                    </Text>
+                    <td>
+                      {margin === null ? (
+                        notSet
+                      ) : (
+                        <Bdg color={margin < 0 ? "red" : margin < 40 ? "amber" : "green"}>
+                          {margin.toFixed(1)}%
+                        </Bdg>
+                      )}
                     </td>
                   </>
                 )}
-                <td style={cell} />
+                <Text as="td" size="sm" weight="semibold" color={C.blue}>
+                  {topMaterial(job)}
+                </Text>
               </tr>
-            </tfoot>
+            );
+          })}
+          {completedJobs.length === 0 && (
+            <tr>
+              <td
+                colSpan={canSeeRevenue ? 8 : 5}
+                style={{ padding: 24, textAlign: "center", color: C.sub }}
+              >
+                {t.rptNoCompletedLines}
+              </td>
+            </tr>
           )}
-        </table>
-      </div>
+        </tbody>
+        {completedJobs.length > 0 && (
+          <tfoot>
+            <tr>
+              <Text colSpan={2} as="td" weight="extrabold" color={C.navy}>
+                {t.rptTotalsAcross.replace(
+                  "{n}",
+                  canSeeRevenue ? summary.pricedCount : summary.jobCount,
+                )}
+              </Text>
+              <Text as="td" weight="bold">
+                {fm(canSeeRevenue ? summary.materialCostOfPriced : summary.materialCost)}
+              </Text>
+              <td />
+              {canSeeRevenue && (
+                <>
+                  <Text as="td" weight="bold">
+                    {fm(summary.revenue)}
+                  </Text>
+                  <Text
+                    as="td"
+                    weight="black"
+                    color={
+                      summary.grossProfit === null ? C.sub : summary.grossProfit < 0 ? C.rd : C.gr
+                    }
+                  >
+                    {summary.grossProfit === null ? notSet : fm(summary.grossProfit)}
+                  </Text>
+                  <Text as="td" weight="bold">
+                    {summary.grossMarginPct === null
+                      ? notSet
+                      : summary.grossMarginPct.toFixed(1) + "%"}
+                  </Text>
+                </>
+              )}
+              <td />
+            </tr>
+          </tfoot>
+        )}
+      </Table>
     </div>
   );
 }
@@ -509,65 +491,55 @@ function InventoryCostTrendsReport({ inv, t }) {
           <Download size={13} aria-hidden="true" /> {t.rptExportCostTrends}
         </Btn>
       </Row>
-      <div style={{ overflowX: "auto" }}>
-        <table
-          className="mrr-table"
-          style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}
-        >
-          <thead>
-            <tr>
-              {[
-                t.rptColMaterialProfile,
-                t.rptColCategoryGroup,
-                t.rptColStockAvailable,
-                t.rptColHistoricalMean,
-                t.rptColRecentInvoice,
-                t.rptColPriceVector,
-                t.rptColFifoAsset,
-              ].map((h) => (
-                <th key={h}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTrends.map((item) => (
-              <tr key={item.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                <td
-                  style={{
-                    padding: "10px 12px",
-                    fontWeight: "var(--weight-semibold)",
-                    color: C.navy,
-                  }}
-                >
-                  {item.name}
-                </td>
-                <td style={{ padding: "10px 12px", color: C.sub }}>{item.cat}</td>
-                <td style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)" }}>
-                  {item.totalQtyOnHand} {item.unit}
-                </td>
-                <td style={{ padding: "10px 12px" }}>{fm(item.averageBatchCost)}</td>
-                <td style={{ padding: "10px 12px", fontWeight: "var(--weight-semibold)" }}>
-                  {fm(item.currentPrice)}
-                </td>
-                <td style={{ padding: "10px 12px" }}>
-                  <Bdg color={item.trendColor}>
-                    {{
-                      Stable: t.rptStable,
-                      "Inflationary 📈": t.rptInflationary,
-                      "Deflationary 📉": t.rptDeflationary,
-                    }[item.trendDirection] || item.trendDirection}
-                  </Bdg>
-                </td>
-                <td
-                  style={{ padding: "10px 12px", fontWeight: "var(--weight-bold)", color: C.blue }}
-                >
-                  {fm(item.warehouseAssetCapital)}
-                </td>
-              </tr>
+
+      <Table pad="lg" size="base">
+        <thead>
+          <tr>
+            {[
+              t.rptColMaterialProfile,
+              t.rptColCategoryGroup,
+              t.rptColStockAvailable,
+              t.rptColHistoricalMean,
+              t.rptColRecentInvoice,
+              t.rptColPriceVector,
+              t.rptColFifoAsset,
+            ].map((h) => (
+              <th key={h}>{h}</th>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredTrends.map((item) => (
+            <tr key={item.id}>
+              <Text as="td" weight="semibold" color={C.navy}>
+                {item.name}
+              </Text>
+              <Text as="td" color={C.sub}>
+                {item.cat}
+              </Text>
+              <Text as="td" weight="bold">
+                {item.totalQtyOnHand} {item.unit}
+              </Text>
+              <td>{fm(item.averageBatchCost)}</td>
+              <Text as="td" weight="semibold">
+                {fm(item.currentPrice)}
+              </Text>
+              <td>
+                <Bdg color={item.trendColor}>
+                  {{
+                    Stable: t.rptStable,
+                    "Inflationary 📈": t.rptInflationary,
+                    "Deflationary 📉": t.rptDeflationary,
+                  }[item.trendDirection] || item.trendDirection}
+                </Bdg>
+              </td>
+              <Text as="td" weight="bold" color={C.blue}>
+                {fm(item.warehouseAssetCapital)}
+              </Text>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
     </div>
   );
 }
@@ -820,91 +792,64 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
             <Download size={13} aria-hidden="true" /> {t.rptExportFleet}
           </Btn>
         </Row>
-        <div style={{ overflowX: "auto" }}>
-          <table
-            className="mrr-table"
-            style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-base)" }}
-          >
-            <thead>
-              <tr>
-                {[
-                  t.rptColVehicleId,
-                  t.rptColAssetClass,
-                  t.rptColPlateId,
-                  t.rptColResolvedRequests,
-                  t.rptColCumulativeCost,
-                  t.rptColWarningIndex,
-                ].map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {fleetMetrics.map((v) => (
-                <tr key={v.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                  <td
-                    style={{
-                      padding: "10px 12px",
-                      fontWeight: "var(--weight-bold)",
-                      color: C.navy,
-                    }}
-                  >
-                    {v.name || t.rptFleetTruck}{" "}
-                    <Text as="span" size="xs" weight="normal" color={C.sub}>
-                      {v.yr} {v.make}
-                    </Text>
-                  </td>
-                  <td style={{ padding: "10px 12px", textTransform: "capitalize" }}>{v.type}</td>
-                  <td style={{ padding: "10px 12px", fontFamily: "monospace", color: C.sub }}>
-                    {v.plates || v.plate || "—"}
-                  </td>
-                  <td style={{ padding: "10px 12px" }}>
-                    {v.serviceLogsCount} {t.rptResolvedRepairs}
-                  </td>
-                  <td
-                    style={{
-                      padding: "10px 12px",
-                      fontWeight: "var(--weight-bold)",
-                      color: v.totalRepairInvestment > 0 ? C.navy : C.sub,
-                    }}
-                  >
-                    {v.totalRepairInvestment > 0 ? fm(v.totalRepairInvestment) : "—"}
-                  </td>
-                  <td style={{ padding: "10px 12px" }}>
-                    <Bdg color={v.riskColor}>
-                      {{
-                        "Optimal Operating Level": t.rptOptimal,
-                        "High Cost Center 🚨": t.rptHighCost,
-                        "Elevated Lifecycle Wear ⚠️": t.rptElevatedWear,
-                      }[v.vehicleRiskLevel] || v.vehicleRiskLevel}
-                    </Bdg>
-                  </td>
-                </tr>
+
+        <Table pad="lg" size="base">
+          <thead>
+            <tr>
+              {[
+                t.rptColVehicleId,
+                t.rptColAssetClass,
+                t.rptColPlateId,
+                t.rptColResolvedRequests,
+                t.rptColCumulativeCost,
+                t.rptColWarningIndex,
+              ].map((h) => (
+                <th key={h}>{h}</th>
               ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ background: "rgba(15, 23, 42, 0.05)" }}>
-                <td
-                  colSpan={4}
-                  style={{ padding: "12px", fontWeight: "var(--weight-extrabold)", color: C.navy }}
-                >
-                  {t.rptSumTotalFleet}
+            </tr>
+          </thead>
+          <tbody>
+            {fleetMetrics.map((v) => (
+              <tr key={v.id}>
+                <Text as="td" weight="bold" color={C.navy}>
+                  {v.name || t.rptFleetTruck}{" "}
+                  <Text as="span" size="xs" weight="normal" color={C.sub}>
+                    {v.yr} {v.make}
+                  </Text>
+                </Text>
+                <td style={{ textTransform: "capitalize" }}>{v.type}</td>
+                <Text as="td" color={C.sub} style={{ fontFamily: "monospace" }}>
+                  {v.plates || v.plate || "—"}
+                </Text>
+                <td>
+                  {v.serviceLogsCount} {t.rptResolvedRepairs}
                 </td>
-                <td
-                  colSpan={2}
-                  style={{
-                    padding: "12px",
-                    fontWeight: "var(--weight-black)",
-                    color: C.navy,
-                    fontSize: 15,
-                  }}
-                >
-                  {fm(cumulativeFleetExpenditures)}
+                <Text as="td" weight="bold" color={v.totalRepairInvestment > 0 ? C.navy : C.sub}>
+                  {v.totalRepairInvestment > 0 ? fm(v.totalRepairInvestment) : "—"}
+                </Text>
+                <td>
+                  <Bdg color={v.riskColor}>
+                    {{
+                      "Optimal Operating Level": t.rptOptimal,
+                      "High Cost Center 🚨": t.rptHighCost,
+                      "Elevated Lifecycle Wear ⚠️": t.rptElevatedWear,
+                    }[v.vehicleRiskLevel] || v.vehicleRiskLevel}
+                  </Bdg>
                 </td>
               </tr>
-            </tfoot>
-          </table>
-        </div>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <Text colSpan={4} as="td" weight="extrabold" color={C.navy}>
+                {t.rptSumTotalFleet}
+              </Text>
+              <Text colSpan={2} as="td" weight="black" color={C.navy} style={{ fontSize: 15 }}>
+                {fm(cumulativeFleetExpenditures)}
+              </Text>
+            </tr>
+          </tfoot>
+        </Table>
       </div>
 
       {/* ── HISTORICAL VEHICLE INSPECTION LOOPS LIST CANVA PIPELINE ── */}
@@ -1212,43 +1157,40 @@ function AuditTrailReport({ t, companyId }) {
           </Btn>
         </div>
       ) : (
-        <div style={{ overflowX: "auto", maxHeight: 400, overflowY: "auto" }}>
-          <table
-            className="mrr-table"
-            style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
-          >
-            <thead className="mrr-thead-sticky">
-              <tr>
-                {[
-                  t.rptColTimestamp,
-                  t.rptColUserEmail,
-                  t.rptColActionCode,
-                  t.rptColAuditNarrative,
-                ].map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log) => (
-                <tr key={log.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                  <td style={{ padding: "8px 12px", whiteSpace: "nowrap", color: C.sub }}>
-                    {formatFullTimestamp(log.created_at)}
-                  </td>
-                  <td style={{ padding: "8px 12px", fontWeight: "var(--weight-semibold)" }}>
-                    {log.user_email}
-                  </td>
-                  <td>
-                    <Bdg color={log.action_type === "PERM_CHANGE" ? "purple" : "teal"}>
-                      {log.action_type}
-                    </Bdg>
-                  </td>
-                  <td style={{ padding: "8px 12px", color: C.navy }}>{log.description}</td>
-                </tr>
+        <Table pad="md" maxHeight={400}>
+          <thead className="mrr-thead-sticky">
+            <tr>
+              {[
+                t.rptColTimestamp,
+                t.rptColUserEmail,
+                t.rptColActionCode,
+                t.rptColAuditNarrative,
+              ].map((h) => (
+                <th key={h}>{h}</th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {logs.map((log) => (
+              <tr key={log.id}>
+                <Text as="td" color={C.sub} style={{ whiteSpace: "nowrap" }}>
+                  {formatFullTimestamp(log.created_at)}
+                </Text>
+                <Text as="td" weight="semibold">
+                  {log.user_email}
+                </Text>
+                <td>
+                  <Bdg color={log.action_type === "PERM_CHANGE" ? "purple" : "teal"}>
+                    {log.action_type}
+                  </Bdg>
+                </td>
+                <Text as="td" color={C.navy}>
+                  {log.description}
+                </Text>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
       )}
     </div>
   );

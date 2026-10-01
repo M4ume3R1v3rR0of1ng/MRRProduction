@@ -25,6 +25,7 @@ import {
   Stack,
   Text,
   Muted,
+  Table,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -592,146 +593,114 @@ export default function InventoryCountTab({
         )}
       </Row>
 
-      <div
-        style={{
-          overflowX: "auto",
-          maxHeight: 640,
-          overflowY: "auto",
-          border: `1px solid ${C.lg}`,
-          borderRadius: 8,
-        }}
-      >
-        <table
-          className="mrr-table"
-          style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--text-sm)" }}
-        >
-          <thead className="mrr-thead-sticky">
-            <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
-              {[
-                t.cntColItem,
-                t.cntColOpening,
-                t.cntColReceived,
-                t.cntColUsed,
-                t.cntColExpected,
-                t.cntColCounted,
-                t.cntColVariance,
-                ...(canSeeMoney ? [t.cntColValue] : []),
-              ].map((h) => (
-                <th key={h} style={{ padding: "10px", fontSize: "var(--text-2xs)" }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {visibleLines.map((l) => {
-              const v = l.variance;
-              const off = v != null && v !== 0;
-              return (
-                <tr
-                  key={l.iid}
-                  style={{
-                    borderBottom: `1px solid ${C.lg}`,
-                    background: off ? (v < 0 ? C.rB : C.aB) : "transparent",
-                  }}
-                >
-                  <td style={{ padding: "8px 10px" }}>
-                    <Text weight="bold" color={C.navy}>
-                      {l.name}
-                    </Text>
-                    <Muted size="2xs">
-                      {l.cat}
-                      {/* An item whose book balance is already negative is not a
+      <Table pad="md" maxHeight={640} style={{ border: `1px solid ${C.lg}`, borderRadius: 8 }}>
+        <thead className="mrr-thead-sticky">
+          <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
+            {[
+              t.cntColItem,
+              t.cntColOpening,
+              t.cntColReceived,
+              t.cntColUsed,
+              t.cntColExpected,
+              t.cntColCounted,
+              t.cntColVariance,
+              ...(canSeeMoney ? [t.cntColValue] : []),
+            ].map((h) => (
+              <th key={h}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {visibleLines.map((l) => {
+            const v = l.variance;
+            const off = v != null && v !== 0;
+            return (
+              <tr key={l.iid} style={{ background: off ? (v < 0 ? C.rB : C.aB) : "transparent" }}>
+                <td>
+                  <Text weight="bold" color={C.navy}>
+                    {l.name}
+                  </Text>
+                  <Muted size="2xs">
+                    {l.cat}
+                    {/* An item whose book balance is already negative is not a
                           counting problem, it is a prior over-pull. Flag it here
                           so the counter knows before they start hunting. */}
-                      {l.onHand < 0 && (
-                        <Text as="span" weight="bold" color={C.rd}>
-                          {" "}
-                          · {t.cntNegativeBook.replace("{n}", l.onHand)}
-                        </Text>
-                      )}
-                    </Muted>
-                  </td>
-                  <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
-                    {l.opening}
-                    <Muted as="span" size="2xs">
-                      {" "}
-                      {l.openingSource === "counted" ? t.cntOpeningCounted : t.cntOpeningDerived}
-                    </Muted>
-                  </td>
-                  <td style={{ padding: "8px 10px", color: C.gr, whiteSpace: "nowrap" }}>
-                    +{l.received}
-                    {l.adjusted ? ` (${l.adjusted > 0 ? "+" : ""}${l.adjusted} adj)` : ""}
-                  </td>
-                  {/* Net of returns, so it can be negative in a month where more
-                      came back than went out. Rendering a bare "−" prefix would
-                      print "−-3" there. */}
-                  <td style={{ padding: "8px 10px", color: C.am, whiteSpace: "nowrap" }}>
-                    {l.used < 0 ? `+${Math.abs(l.used)}` : `−${l.used}`}
-                  </td>
-                  <td
-                    style={{
-                      padding: "8px 10px",
-                      fontWeight: "var(--weight-bold)",
-                      color: C.navy,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {l.expected} {l.unit}
-                  </td>
-                  <td style={{ padding: "8px 10px" }}>
-                    {canEdit && !isClosed ? (
-                      <Inp
-                        type="number"
-                        value={entries[l.iid]?.counted ?? ""}
-                        placeholder="—"
-                        onChange={(e) => setCounted(l.iid, e.target.value)}
-                        style={{ width: 84, padding: "4px 8px" }}
-                        aria-label={`${t.cntColCounted} ${l.name}`}
-                      />
-                    ) : (
-                      <Text as="span" weight="bold">
-                        {l.counted == null ? "—" : l.counted}
+                    {l.onHand < 0 && (
+                      <Text as="span" weight="bold" color={C.rd}>
+                        {" "}
+                        · {t.cntNegativeBook.replace("{n}", l.onHand)}
                       </Text>
                     )}
-                  </td>
-                  <td
-                    style={{
-                      padding: "8px 10px",
-                      fontWeight: "var(--weight-black)",
-                      whiteSpace: "nowrap",
-                      color: v == null ? C.sub : v < 0 ? C.rd : v > 0 ? C.am : C.gr,
-                    }}
-                  >
-                    {v == null ? "—" : `${v > 0 ? "+" : ""}${v}`}
-                  </td>
-                  {canSeeMoney && (
-                    <td
-                      style={{
-                        padding: "8px 10px",
-                        whiteSpace: "nowrap",
-                        color: v == null ? C.sub : v < 0 ? C.rd : C.navy,
-                      }}
-                    >
-                      {v == null ? "—" : fm(v * l.price)}
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-            {visibleLines.length === 0 && (
-              <tr>
-                <td
-                  colSpan={canSeeMoney ? 8 : 7}
-                  style={{ padding: 28, textAlign: "center", color: C.sub, fontStyle: "italic" }}
-                >
-                  {t.cntNoRows}
+                  </Muted>
                 </td>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  {l.opening}
+                  <Muted as="span" size="2xs">
+                    {" "}
+                    {l.openingSource === "counted" ? t.cntOpeningCounted : t.cntOpeningDerived}
+                  </Muted>
+                </td>
+                <Text as="td" color={C.gr} style={{ whiteSpace: "nowrap" }}>
+                  +{l.received}
+                  {l.adjusted ? ` (${l.adjusted > 0 ? "+" : ""}${l.adjusted} adj)` : ""}
+                </Text>
+                {/* Net of returns, so it can be negative in a month where more
+                      came back than went out. Rendering a bare "−" prefix would
+                      print "−-3" there. */}
+                <Text as="td" color={C.am} style={{ whiteSpace: "nowrap" }}>
+                  {l.used < 0 ? `+${Math.abs(l.used)}` : `−${l.used}`}
+                </Text>
+                <Text as="td" weight="bold" color={C.navy} style={{ whiteSpace: "nowrap" }}>
+                  {l.expected} {l.unit}
+                </Text>
+                <td>
+                  {canEdit && !isClosed ? (
+                    <Inp
+                      type="number"
+                      value={entries[l.iid]?.counted ?? ""}
+                      placeholder="—"
+                      onChange={(e) => setCounted(l.iid, e.target.value)}
+                      style={{ width: 84, padding: "4px 8px" }}
+                      aria-label={`${t.cntColCounted} ${l.name}`}
+                    />
+                  ) : (
+                    <Text as="span" weight="bold">
+                      {l.counted == null ? "—" : l.counted}
+                    </Text>
+                  )}
+                </td>
+                <Text
+                  as="td"
+                  weight="black"
+                  color={v == null ? C.sub : v < 0 ? C.rd : v > 0 ? C.am : C.gr}
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  {v == null ? "—" : `${v > 0 ? "+" : ""}${v}`}
+                </Text>
+                {canSeeMoney && (
+                  <Text
+                    as="td"
+                    color={v == null ? C.sub : v < 0 ? C.rd : C.navy}
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    {v == null ? "—" : fm(v * l.price)}
+                  </Text>
+                )}
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            );
+          })}
+          {visibleLines.length === 0 && (
+            <tr>
+              <td
+                colSpan={canSeeMoney ? 8 : 7}
+                style={{ padding: 28, textAlign: "center", color: C.sub, fontStyle: "italic" }}
+              >
+                {t.cntNoRows}
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </Table>
 
       {dirty && (
         <Text size="xs" weight="bold" color={C.am} style={{ marginTop: 10 }}>
