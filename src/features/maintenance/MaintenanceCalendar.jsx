@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback } from "react";
 import { AlertOctagon, Clock, Calendar, Truck, AlertTriangle, Inbox } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
-import { Btn, Row, Stack, Muted, Text } from "@/shared/components/UIPrimitives";
+import { Btn, Row, Stack, Muted, Text, Card } from "@/shared/components/UIPrimitives";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
@@ -240,15 +240,7 @@ export default function MaintenanceCalendar({
   };
 
   return (
-    <div
-      style={{
-        background: C.w,
-        padding: 20,
-        borderRadius: "var(--radius-xl)",
-        boxShadow: "var(--shadow-sm)",
-        marginTop: 16,
-      }}
-    >
+    <Card variant="raised" pad={8} style={{ marginTop: 16 }}>
       <Row gap={5} justify="space-between" wrap style={{ marginBottom: 20 }}>
         <div>
           <h2
@@ -492,6 +484,6 @@ export default function MaintenanceCalendar({
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }

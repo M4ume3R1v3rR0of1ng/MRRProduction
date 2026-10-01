@@ -26,6 +26,7 @@ import {
   Text,
   Muted,
   Table,
+  Callout,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -349,15 +350,12 @@ export default function InventoryCountTab({
 
   if (loadError) {
     return (
-      <div
-        style={{
-          background: "var(--c-rust-wash)",
-          border: "1.5px solid var(--c-rust)",
-          borderRadius: "var(--radius-lg)",
-          padding: 24,
-          textAlign: "center",
-          color: "var(--c-rust)",
-        }}
+      <Callout
+        tone="danger"
+        bordered
+        pad={9}
+        color="var(--c-rust)"
+        style={{ borderRadius: "var(--radius-lg)", textAlign: "center" }}
       >
         <Text weight="bold" style={{ marginBottom: 6 }}>
           {t.cntLoadFailTitle}
@@ -368,7 +366,7 @@ export default function InventoryCountTab({
         <Btn v="primary" sz="sm" onClick={() => setRetryTick((n) => n + 1)}>
           <RefreshCw size={13} aria-hidden="true" /> {t.cntRetry}
         </Btn>
-      </div>
+      </Callout>
     );
   }
 
@@ -443,19 +441,9 @@ export default function InventoryCountTab({
 
       {/* The bleed rate is a ratio of two numbers people will be asked to defend,
           so say what they are rather than making it a black box. */}
-      <div
-        style={{
-          background: C.lg,
-          borderRadius: "var(--radius-md)",
-          padding: "10px 14px",
-          marginBottom: 16,
-          fontSize: "var(--text-xs)",
-          color: C.sub,
-          lineHeight: 1.6,
-        }}
-      >
+      <Callout size="xs" color={C.sub} style={{ marginBottom: 16, lineHeight: 1.6 }}>
         {t.cntFormula}
-      </div>
+      </Callout>
 
       {isClosed ? (
         <div
@@ -504,14 +492,11 @@ export default function InventoryCountTab({
       )}
 
       {flagged.length > 0 && (
-        <div
-          style={{
-            background: C.rB,
-            border: `1.5px solid ${C.rd}`,
-            borderRadius: "var(--radius-lg)",
-            padding: 14,
-            marginBottom: 16,
-          }}
+        <Callout
+          tone="danger"
+          bordered
+          pad={6}
+          style={{ borderRadius: "var(--radius-lg)", marginBottom: 16 }}
         >
           <div
             style={{
@@ -547,7 +532,7 @@ export default function InventoryCountTab({
               </Row>
             ))}
           </Stack>
-        </div>
+        </Callout>
       )}
 
       <Row gap={4} wrap style={{ marginBottom: 14 }}>

@@ -4,7 +4,7 @@ import { Bot, X, AlertTriangle, Camera } from "lucide-react";
 import { translations } from "../utils/translations";
 import { supabase } from "../utils/supabase";
 import { C, compressImg } from "../utils/helpers";
-import { LoadingState, Modal, Row, Stack, Muted } from "./UIPrimitives";
+import { LoadingState, Modal, Row, Stack, Muted, Callout } from "./UIPrimitives";
 
 // data:image/jpeg;base64,XXXX -> { media_type: "image/jpeg", data: "XXXX" }
 function parseDataUrl(dataUrl) {
@@ -508,19 +508,18 @@ export default function ChatWidget({ user, lang = "en" }) {
           </div>
 
           {error && (
-            <div
-              style={{
-                color: C.rd,
-                background: C.rB,
-                padding: "var(--space-2) var(--space-5)",
-                fontSize: "var(--text-xs)",
-                fontWeight: "var(--weight-semibold)",
-              }}
+            <Callout
+              tone="danger"
+              pad="var(--space-2) var(--space-5)"
+              size="xs"
+              weight="semibold"
+              color={C.rd}
+              style={{ borderRadius: 0 }}
             >
               <Row as="span" gap="5px">
                 <AlertTriangle size={12} aria-hidden="true" /> {error}
               </Row>
-            </div>
+            </Callout>
           )}
 
           {pendingPhoto && editingIndex === null && (

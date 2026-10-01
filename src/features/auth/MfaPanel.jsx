@@ -12,7 +12,17 @@ import { useState, useEffect } from "react";
 import { Shield, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
-import { Btn, Inp, Fld, Card, Row, Stack, Text, Muted } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Inp,
+  Fld,
+  Card,
+  Row,
+  Stack,
+  Text,
+  Muted,
+  Callout,
+} from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 
 export default function MfaPanel({ user, lang = "en" }) {
@@ -199,20 +209,14 @@ export default function MfaPanel({ user, lang = "en" }) {
           {/* The typed fallback matters more than it looks: the QR is unscannable
               when the app is already open on the phone doing the enrolling. */}
           <Fld label={t.mfaSecretLabel} hint={t.mfaSecretHint}>
-            <div
-              style={{
-                background: C.lg,
-                padding: "10px 14px",
-                borderRadius: "var(--radius-md)",
-                fontFamily: "var(--font-mono)",
-                fontSize: "var(--text-base)",
-                color: C.navy,
-                wordBreak: "break-all",
-                border: `1.5px solid ${C.bd}`,
-              }}
+            <Callout
+              bordered
+              size="base"
+              color={C.navy}
+              style={{ fontFamily: "var(--font-mono)", wordBreak: "break-all" }}
             >
               {pending.secret}
-            </div>
+            </Callout>
           </Fld>
 
           <Fld label={t.mfaCodeLabel}>

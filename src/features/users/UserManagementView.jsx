@@ -19,6 +19,7 @@ import {
   Text,
   Muted,
   Table,
+  Callout,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";
@@ -344,22 +345,17 @@ export default function Users({
         }
       />
 
-      <div
-        style={{
-          background: C.gL,
-          border: `1px solid ${C.gold}`,
-          borderRadius: "var(--radius-md)",
-          padding: "10px 14px",
-          marginBottom: 14,
-          fontSize: "var(--text-sm)",
-          color: C.navy,
-          lineHeight: 1.7,
-        }}
+      <Callout
+        tone="gold"
+        bordered
+        size="sm"
+        color={C.navy}
+        style={{ marginBottom: 14, lineHeight: 1.7 }}
       >
         {t.umRolePermsBlurb.split("{link}")[0]}
         <strong>{t.umRolePermsLink}</strong>
         {t.umRolePermsBlurb.split("{link}")[1]}
-      </div>
+      </Callout>
 
       <div
         style={{

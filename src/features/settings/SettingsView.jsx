@@ -38,6 +38,13 @@ import {
   Stack,
   Text,
   Eyebrow,
+  Card,
+  SectionTitle as BaseSectionTitle,
+  Callout,
+  Bdg,
+  Divider,
+  TextBtn,
+  Tabs,
 } from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -87,92 +94,42 @@ const T = {
 };
 
 // ── Shared sub-components ────────────────────────────────────────────────────
-const Card = ({ children, style = {} }) => (
-  <div
-    style={{
-      background: T.white,
-      border: `1px solid ${T.border}`,
-      borderRadius: T.radiusLg,
-      padding: "24px",
-      boxShadow: T.shadow,
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
-
-const SectionTitle = ({ icon: Icon, title, subtitle }) => (
-  <div style={{ marginBottom: 20 }}>
-    <Row style={{ marginBottom: 4 }}>
-      {Icon && <Icon size={19} aria-hidden="true" />}
-      <h2
-        style={{
-          margin: 0,
-          fontSize: 17,
-          fontWeight: "var(--weight-extrabold)",
-          color: T.navy,
-          letterSpacing: "-0.3px",
-        }}
-      >
-        {title}
-      </h2>
-    </Row>
+// Thin wrappers over the shared primitives: every panel here carries the same
+// title + blurb, status pill and notice, so they keep a local name.
+const SectionTitle = ({ icon, title, subtitle }) => (
+  <Stack gap={1} style={{ marginBottom: 20 }}>
+    <BaseSectionTitle icon={icon} size="lg">
+      {title}
+    </BaseSectionTitle>
     {subtitle && (
       <Text as="p" size="base" color={T.slate} style={{ margin: 0, lineHeight: 1.6 }}>
         {subtitle}
       </Text>
     )}
-  </div>
+  </Stack>
 );
 
 const StatusPill = ({ active, labelOn = "Active", labelOff = "Offline" }) => (
-  <span
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 5,
-      padding: "3px 10px",
-      borderRadius: "var(--radius-pill)",
-      fontSize: "var(--text-sm)",
-      fontWeight: "var(--weight-bold)",
-      background: active ? T.greenBg : T.bg,
-      color: active ? T.green : T.slateL,
-      border: `1px solid ${active ? T.greenBd : T.border}`,
-    }}
-  >
-    <StatusDot color={active ? T.green : T.slateL} size={7} />
-    {active ? labelOn : labelOff}
-  </span>
+  <Bdg color={active ? "green" : "gray"}>
+    <Row inline as="span" gap="5px">
+      <StatusDot color={active ? T.green : T.slateL} size={7} />
+      {active ? labelOn : labelOff}
+    </Row>
+  </Bdg>
 );
 
-const Alert = ({ children, type = "warning" }) => {
-  const colors = {
-    warning: { bg: T.amberBg, bd: T.amberBd, text: T.amber, Icon: AlertTriangle },
-    info: { bg: T.blueSoft, bd: T.blueRing, text: T.blue, Icon: Info },
-  };
-  const c = colors[type];
-  return (
-    <div
-      style={{
-        background: c.bg,
-        border: `1px solid ${c.bd}`,
-        borderRadius: T.radius,
-        padding: "11px 14px",
-        color: c.text,
-        fontSize: "var(--text-base)",
-        fontWeight: "var(--weight-semibold)",
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-3)",
-        marginBottom: 20,
-      }}
-    >
-      <c.Icon size={16} style={{ flexShrink: 0 }} aria-hidden="true" />
-      {children}
-    </div>
-  );
-};
+const Alert = ({ children, type = "warning" }) => (
+  <Callout
+    tone={type === "info" ? "info" : "warn"}
+    icon={type === "info" ? Info : AlertTriangle}
+    size="base"
+    weight="semibold"
+    color={type === "info" ? T.blue : T.amber}
+    style={{ marginBottom: 20 }}
+  >
+    {children}
+  </Callout>
+);
 
 // ── Main component ───────────────────────────────────────────────────────────
 export default function SettingsView({
@@ -554,127 +511,78 @@ export default function SettingsView({
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div
-      style={{ fontFamily: "'Inter', system-ui, sans-serif", maxWidth: "100%", padding: "4px 0" }}
-    >
+    <div>
       {/* Tab bar */}
-      <Row
-        gap={1}
-        align="stretch"
-        wrap
-        style={{ marginBottom: 20, borderBottom: `1px solid ${T.border}`, paddingBottom: 0 }}
-      >
-        {tabs.map((tab) => {
-          const active = currentTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setCurrentTab(tab.id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-2)",
-                padding: "9px 16px",
-                border: "none",
-                borderBottom: active ? `2px solid ${T.blue}` : "2px solid transparent",
-                background: "none",
-                fontSize: "var(--text-base)",
-                fontWeight: active ? 700 : 500,
-                color: active ? T.blue : T.slate,
-                cursor: "pointer",
-                transition: "all 0.15s ease",
-                marginBottom: -1,
-              }}
-            >
-              <tab.icon size={16} aria-hidden="true" />
-              {tab.label}
-            </button>
-          );
-        })}
-      </Row>
+      <Tabs
+        tabs={tabs}
+        value={currentTab}
+        onChange={setCurrentTab}
+        style={{ marginBottom: 20, borderBottomWidth: 1 }}
+      />
 
       {/* ── PANEL: Permissions ─────────────────────────────────────────── */}
       {currentTab === "Permissions" && (
-        <Card>
+        <Card pad="lg">
           <SectionTitle icon={Lock} title={t.stRolePerms} subtitle={t.stRolePermsDesc} />
-          <div style={{ overflowX: "auto" }}>
-            <div style={{ minWidth: 860 }}>
+          <div className="sw-table-scroll">
+            <Stack gap={0} style={{ minWidth: 860 }}>
               {/* Header row */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  padding: "10px 16px",
-                  background: T.bg,
-                  borderRadius: T.radius,
-                  border: `1px solid ${T.border}`,
-                  marginBottom: 8,
-                }}
+              <Callout
+                bordered
+                pad="var(--space-4) var(--space-7)"
+                style={{ borderRadius: T.radius, marginBottom: 8 }}
               >
-                <div
-                  style={{
-                    width: "36%",
-                    fontSize: "var(--text-xs)",
-                    fontWeight: "var(--weight-bold)",
-                    color: T.slateL,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.6px",
-                  }}
-                >
-                  {t.stPermission}
-                </div>
-                <Row gap={0} align="stretch" style={{ width: "64%" }}>
-                  {/* BUG FIX #5 — guard on roleArray before destructuring */}
-                  {ROLE_COLS?.map((roleArray) => {
-                    if (!Array.isArray(roleArray)) return null;
-                    const [roleKey, roleLabel] = roleArray;
-                    return (
-                      <div key={roleKey} style={{ width: "20%", textAlign: "center" }}>
-                        <Eyebrow color={T.navy} style={{ letterSpacing: "0.4px" }}>
-                          {roleLabel}
-                        </Eyebrow>
-                        <button
-                          onClick={() => handleResetRole(roleKey)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: T.blue,
-                            fontSize: "var(--text-xs)",
-                            cursor: "pointer",
-                            marginTop: 3,
-                            fontWeight: "var(--weight-semibold)",
-                            padding: 0,
-                          }}
+                <Row gap={0}>
+                  <Eyebrow style={{ width: "36%" }}>{t.stPermission}</Eyebrow>
+                  <Row gap={0} align="stretch" style={{ width: "64%" }}>
+                    {/* BUG FIX #5 — guard on roleArray before destructuring */}
+                    {ROLE_COLS?.map((roleArray) => {
+                      if (!Array.isArray(roleArray)) return null;
+                      const [roleKey, roleLabel] = roleArray;
+                      return (
+                        <Stack
+                          key={roleKey}
+                          gap={0}
+                          align="center"
+                          style={{ width: "20%", textAlign: "center" }}
                         >
-                          ↩ Reset
-                        </button>
-                      </div>
-                    );
-                  })}
+                          <Eyebrow color={T.navy} style={{ letterSpacing: "0.4px" }}>
+                            {roleLabel}
+                          </Eyebrow>
+                          <TextBtn
+                            color={T.blue}
+                            size="xs"
+                            weight="semibold"
+                            onClick={() => handleResetRole(roleKey)}
+                            style={{ marginTop: 3 }}
+                          >
+                            ↩ Reset
+                          </TextBtn>
+                        </Stack>
+                      );
+                    })}
+                  </Row>
                 </Row>
-              </div>
+              </Callout>
 
               {/* Permission rows */}
               {PERM_GROUPS?.map(([groupTitle, groupKeys]) => (
-                <div key={groupTitle} style={{ marginBottom: 10 }}>
-                  <div
+                <Stack key={groupTitle} gap={0} style={{ marginBottom: 10 }}>
+                  <Eyebrow
+                    color={T.shellInk}
                     style={{
                       background: T.shell,
                       padding: "8px 16px",
-                      fontWeight: "var(--weight-bold)",
-                      color: T.shellInk,
-                      fontSize: "var(--text-xs)",
-                      letterSpacing: "0.7px",
-                      textTransform: "uppercase",
                       borderRadius: `${T.radius} ${T.radius} 0 0`,
                     }}
                   >
                     {groupTitle}
-                  </div>
+                  </Eyebrow>
 
-                  <div
+                  <Card
+                    variant="flat"
+                    pad="none"
                     style={{
-                      border: `1px solid ${T.border}`,
                       borderTop: "none",
                       borderRadius: `0 0 ${T.radius} ${T.radius}`,
                       overflow: "hidden",
@@ -691,14 +599,14 @@ export default function SettingsView({
                             background: T.white,
                           }}
                         >
-                          <div style={{ width: "36%", paddingRight: 16 }}>
+                          <Stack gap={0} style={{ width: "36%", paddingRight: 16 }}>
                             <Text size="base" weight="semibold" color={T.navy}>
                               {PERM_DEFS[pKey]?.label || pKey}
                             </Text>
                             <Text size="xs" color={T.slateL} style={{ marginTop: 2 }}>
                               {PERM_DEFS[pKey]?.desc || ""}
                             </Text>
-                          </div>
+                          </Stack>
                           <Row gap={0} align="stretch" style={{ width: "64%" }}>
                             {ROLE_COLS?.map((roleArray) => {
                               if (!Array.isArray(roleArray)) return null;
@@ -721,10 +629,10 @@ export default function SettingsView({
                           </Row>
                         </Row>
                       ))}
-                  </div>
-                </div>
+                  </Card>
+                </Stack>
               ))}
-            </div>
+            </Stack>
           </div>
         </Card>
       )}
@@ -733,19 +641,16 @@ export default function SettingsView({
       {currentTab === "Automations" && (
         <>
           {AUTOMATION_GROUPS.map((group) => (
-            <Card key={group.id} style={{ marginBottom: 20 }}>
+            <Card pad="lg" key={group.id} style={{ marginBottom: 20 }}>
               <SectionTitle
                 icon={group.icon}
                 title={`${group.label} ${t.stAutomationsTitle}`}
                 subtitle={group.blurb}
               />
-              <div
-                style={{
-                  border: `1px solid ${T.border}`,
-                  borderRadius: T.radius,
-                  overflow: "hidden",
-                  marginTop: 8,
-                }}
+              <Card
+                variant="flat"
+                pad="none"
+                style={{ borderRadius: T.radius, overflow: "hidden", marginTop: 8 }}
               >
                 {automationsForGroup(group.id).map((row, idx) => (
                   <Row
@@ -758,7 +663,7 @@ export default function SettingsView({
                       background: T.white,
                     }}
                   >
-                    <div style={{ minWidth: 0 }}>
+                    <Stack gap={0} style={{ minWidth: 0 }}>
                       <Text size="base" weight="bold" color={T.navy || T.slate}>
                         {row.label}
                       </Text>
@@ -772,14 +677,14 @@ export default function SettingsView({
                         <Mail size={11} aria-hidden="true" /> {t.stAutomationSendsTo}{" "}
                         <strong>{row.recipient}</strong>
                       </Row>
-                    </div>
+                    </Stack>
                     <Toggle
                       on={!!automationForm[group.id]?.[row.key]}
                       onChange={() => toggleAutomation(group.id, row.key)}
                     />
                   </Row>
                 ))}
-              </div>
+              </Card>
               <Row gap={0} align="stretch" justify="flex-end" style={{ marginTop: 16 }}>
                 <Btn
                   v="primary"
@@ -799,7 +704,7 @@ export default function SettingsView({
 
       {/* ── PANEL: CRM Integration ─────────────────────────────────────── */}
       {currentTab === "CRM" && (
-        <Card>
+        <Card pad="lg">
           <Row gap={5} align="flex-start" justify="space-between" wrap style={{ marginBottom: 20 }}>
             <SectionTitle
               icon={Link2}
@@ -838,50 +743,45 @@ export default function SettingsView({
               </Fld>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                gap: "var(--space-10)",
-                marginBottom: 24,
-                padding: "16px 20px",
-                background: T.bg,
-                borderRadius: T.radius,
-                border: `1px solid ${T.border}`,
-                flexWrap: "wrap",
-              }}
+            <Callout
+              bordered
+              pad="var(--space-7) var(--space-8)"
+              style={{ borderRadius: T.radius, marginBottom: 24 }}
             >
-              <Row as="label" gap={5} style={{ cursor: "pointer" }}>
-                <Toggle
-                  on={!!acculynxConfig?.enabled}
-                  onChange={() => setAccuLynxConfig((p) => ({ ...p, enabled: !p.enabled }))}
-                />
-                <div>
-                  <Text size="base" weight="bold" color={T.navy}>
-                    {t.stEnableIntegration}
-                  </Text>
-                  <Text size="xs" color={T.slateL} style={{ marginTop: 1 }}>
-                    {t.stEnableIntegrationDesc}
-                  </Text>
-                </div>
+              <Row gap={10} align="stretch" wrap>
+                <Row as="label" gap={5} style={{ cursor: "pointer" }}>
+                  <Toggle
+                    on={!!acculynxConfig?.enabled}
+                    onChange={() => setAccuLynxConfig((p) => ({ ...p, enabled: !p.enabled }))}
+                  />
+                  <div>
+                    <Text size="base" weight="bold" color={T.navy}>
+                      {t.stEnableIntegration}
+                    </Text>
+                    <Text size="xs" color={T.slateL} style={{ marginTop: 1 }}>
+                      {t.stEnableIntegrationDesc}
+                    </Text>
+                  </div>
+                </Row>
+                <Row as="label" gap={5} style={{ cursor: "pointer" }}>
+                  <Toggle
+                    on={!!acculynxConfig?.autoSync}
+                    onChange={() => setAccuLynxConfig((p) => ({ ...p, autoSync: !p.autoSync }))}
+                  />
+                  <div>
+                    <Text size="base" weight="bold" color={T.navy}>
+                      {t.stAutoSync}
+                    </Text>
+                    <Text size="xs" color={T.slateL} style={{ marginTop: 1 }}>
+                      {t.stAutoSyncDesc}
+                    </Text>
+                  </div>
+                </Row>
               </Row>
-              <Row as="label" gap={5} style={{ cursor: "pointer" }}>
-                <Toggle
-                  on={!!acculynxConfig?.autoSync}
-                  onChange={() => setAccuLynxConfig((p) => ({ ...p, autoSync: !p.autoSync }))}
-                />
-                <div>
-                  <Text size="base" weight="bold" color={T.navy}>
-                    {t.stAutoSync}
-                  </Text>
-                  <Text size="xs" color={T.slateL} style={{ marginTop: 1 }}>
-                    {t.stAutoSyncDesc}
-                  </Text>
-                </div>
-              </Row>
-            </div>
+            </Callout>
 
             {acculynxConfig?.enabled && (
-              <div style={{ marginBottom: 24 }}>
+              <Stack gap={0} style={{ marginBottom: 24 }}>
                 <Fld label={t.stDocFolder}>
                   <Row>
                     <Sel
@@ -936,7 +836,7 @@ export default function SettingsView({
                 <Text size="xs" color={T.slateL} style={{ marginTop: 6 }}>
                   {t.stDocFolderHint}
                 </Text>
-              </div>
+              </Stack>
             )}
 
             <Row gap={0} justify="flex-end">
@@ -960,44 +860,43 @@ export default function SettingsView({
           </form>
 
           {/* ── TEST JOB LOOKUP SECTION ADDED ───────────────────────────────── */}
-          <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
-            <Text size="base" weight="bold" color={T.navy} style={{ marginBottom: 10 }}>
-              {t.stTestLookup}
-            </Text>
-            <Row align="stretch">
-              <Inp
-                value={lookupPo}
-                onChange={(e) => setLookupPo(e.target.value)}
-                placeholder={t.stPoPlaceholder}
-              />
-              <Btn type="button" onClick={handleTestLookup} disabled={lookingUp}>
-                {lookingUp ? (
-                  <Loader2
-                    size={14}
-                    style={{ animation: "mrr-spin 0.7s linear infinite" }}
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <>
-                    <Search size={14} aria-hidden="true" /> Lookup
-                  </>
-                )}
-              </Btn>
-            </Row>
-            {lookupResult && (
-              <Alert type={lookupResult.ok ? "info" : "warning"}>
-                {lookupResult.ok
-                  ? `Found job: ${lookupResult.job?.jobNumber || lookupResult.job?.id}`
-                  : `Lookup failed: ${lookupResult.error}`}
-              </Alert>
-            )}
-          </div>
+          <Divider style={{ margin: "24px 0 20px" }} />
+          <Text size="base" weight="bold" color={T.navy} style={{ marginBottom: 10 }}>
+            {t.stTestLookup}
+          </Text>
+          <Row align="stretch">
+            <Inp
+              value={lookupPo}
+              onChange={(e) => setLookupPo(e.target.value)}
+              placeholder={t.stPoPlaceholder}
+            />
+            <Btn type="button" onClick={handleTestLookup} disabled={lookingUp}>
+              {lookingUp ? (
+                <Loader2
+                  size={14}
+                  style={{ animation: "mrr-spin 0.7s linear infinite" }}
+                  aria-hidden="true"
+                />
+              ) : (
+                <>
+                  <Search size={14} aria-hidden="true" /> Lookup
+                </>
+              )}
+            </Btn>
+          </Row>
+          {lookupResult && (
+            <Alert type={lookupResult.ok ? "info" : "warning"}>
+              {lookupResult.ok
+                ? `Found job: ${lookupResult.job?.jobNumber || lookupResult.job?.id}`
+                : `Lookup failed: ${lookupResult.error}`}
+            </Alert>
+          )}
         </Card>
       )}
 
       {/* ── PANEL: Branding ────────────────────────────────────────────── */}
       {currentTab === "Branding" && (
-        <Card>
+        <Card pad="lg">
           <SectionTitle
             icon={Building2}
             title={t.stCompanyDetails}
@@ -1048,22 +947,15 @@ export default function SettingsView({
                   {(brandForm.accent || "var(--c-amber)").toUpperCase()}
                 </Text>
                 {(brandForm.accent || "").toLowerCase() !== "var(--c-amber)" && (
-                  <button
+                  <TextBtn
                     type="button"
+                    color={T.blue}
+                    size="sm"
                     onClick={() => setBrandForm({ ...brandForm, accent: "var(--c-amber)" })}
                     disabled={savingBrand}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: T.blue,
-                      fontSize: "var(--text-sm)",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      padding: 0,
-                    }}
                   >
                     {t.stReset}
-                  </button>
+                  </TextBtn>
                 )}
               </Row>
             </Fld>
@@ -1113,21 +1005,13 @@ export default function SettingsView({
 
           <Stack gap={0} align="center" style={{ paddingTop: 12 }}>
             {logos && (
-              <div
-                style={{
-                  marginBottom: 20,
-                  padding: 12,
-                  background: T.bg,
-                  borderRadius: T.radius,
-                  border: `1px solid ${T.border}`,
-                }}
-              >
+              <Callout bordered pad={5} style={{ borderRadius: T.radius, marginBottom: 20 }}>
                 <img
                   src={logos}
                   alt={t.stCurrentLogo}
                   style={{ maxHeight: 80, maxWidth: 240, display: "block", objectFit: "contain" }}
                 />
-              </div>
+              </Callout>
             )}
 
             <label
@@ -1155,12 +1039,7 @@ export default function SettingsView({
               <Text size="sm" color={T.slateL}>
                 {t.stLogoFormats}
               </Text>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoFileChange}
-                style={{ display: "none" }}
-              />
+              <input type="file" accept="image/*" onChange={handleLogoFileChange} hidden />
             </label>
 
             {logos && (
@@ -1174,26 +1053,19 @@ export default function SettingsView({
 
       {/* ── PANEL: Warehouses ──────────────────────────────────────────── */}
       {currentTab === "Warehouses" && (
-        <Card>
+        <Card pad="lg">
           <SectionTitle icon={Factory} title={t.stWarehouses} subtitle={t.stWarehousesDesc} />
 
           {/* BUG FIX #4 — added success toast in handleAddWarehouse above */}
-          <form
+          <Callout
+            as="form"
             onSubmit={handleAddWarehouse}
-            style={{
-              display: "flex",
-              gap: "var(--space-5)",
-              alignItems: "flex-end",
-              flexWrap: "wrap",
-              marginBottom: 20,
-              padding: "16px 20px",
-              background: T.bg,
-              borderRadius: T.radius,
-              border: `1px solid ${T.border}`,
-            }}
+            bordered
+            pad="var(--space-7) var(--space-8)"
+            style={{ borderRadius: T.radius, marginBottom: 20 }}
           >
-            <div style={{ flex: 2, minWidth: 180 }}>
-              <Fld label={t.stFacilityName}>
+            <Row gap={5} align="flex-end" wrap>
+              <Fld label={t.stFacilityName} style={{ flex: 2, minWidth: 180 }}>
                 <Inp
                   value={whForm.name}
                   onChange={(e) => setWhForm({ ...whForm, name: e.target.value })}
@@ -1201,89 +1073,59 @@ export default function SettingsView({
                   required
                 />
               </Fld>
-            </div>
-            <div style={{ flex: 1, minWidth: 90 }}>
-              <Fld label={t.stCode}>
+              <Fld label={t.stCode} style={{ flex: 1, minWidth: 90 }}>
                 <Inp
                   value={whForm.code}
                   onChange={(e) => setWhForm({ ...whForm, code: e.target.value })}
                   placeholder={t.stCodePlaceholder}
                 />
               </Fld>
-            </div>
-            <div style={{ flex: 2, minWidth: 180 }}>
-              <Fld label={t.stLocation}>
+              <Fld label={t.stLocation} style={{ flex: 2, minWidth: 180 }}>
                 <Inp
                   value={whForm.location}
                   onChange={(e) => setWhForm({ ...whForm, location: e.target.value })}
                   placeholder={t.stLocationPlaceholder}
                 />
               </Fld>
-            </div>
-            <div style={{ paddingBottom: 1 }}>
-              <Btn v="primary" type="submit" style={{ height: 38 }}>
+              <Btn v="primary" type="submit" style={{ height: 38, marginBottom: 1 }}>
                 <Plus size={14} aria-hidden="true" /> Add
               </Btn>
-            </div>
-          </form>
+            </Row>
+          </Callout>
 
           <Stack gap={3}>
             {warehouses?.length > 0 ? (
               warehouses.map((w) => (
-                <div
-                  key={w.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "13px 18px",
-                    background: T.bg,
-                    borderRadius: T.radius,
-                    border: `1px solid ${T.border}`,
-                  }}
-                >
-                  <div>
-                    <Row style={{ marginBottom: 3 }}>
-                      <Text as="span" size="md" weight="bold" color={T.navy}>
-                        {w.name}
-                      </Text>
-                      {w.code && (
-                        <span
-                          style={{
-                            fontSize: "var(--text-2xs)",
-                            fontWeight: "var(--weight-extrabold)",
-                            color: T.blue,
-                            background: T.blueSoft,
-                            border: `1px solid ${T.blueRing}`,
-                            padding: "1px 7px",
-                            borderRadius: "var(--radius-pill)",
-                            letterSpacing: "0.5px",
-                          }}
-                        >
-                          {w.code}
-                        </span>
-                      )}
-                    </Row>
-                    <Row gap={1} style={{ fontSize: "var(--text-sm)", color: T.slateL }}>
-                      <MapPin size={12} aria-hidden="true" /> {w.location || "No address logged"}
-                    </Row>
-                  </div>
-                  <StatusPill active={w.active} labelOn={t.stOperational} labelOff={t.stInactive} />
-                </div>
+                <Callout key={w.id} bordered pad="13px 18px" style={{ borderRadius: T.radius }}>
+                  <Row justify="space-between">
+                    <div>
+                      <Row style={{ marginBottom: 3 }}>
+                        <Text as="span" size="md" weight="bold" color={T.navy}>
+                          {w.name}
+                        </Text>
+                        {w.code && <Bdg color="sky">{w.code}</Bdg>}
+                      </Row>
+                      <Row gap={1} style={{ fontSize: "var(--text-sm)", color: T.slateL }}>
+                        <MapPin size={12} aria-hidden="true" /> {w.location || "No address logged"}
+                      </Row>
+                    </div>
+                    <StatusPill
+                      active={w.active}
+                      labelOn={t.stOperational}
+                      labelOff={t.stInactive}
+                    />
+                  </Row>
+                </Callout>
               ))
             ) : (
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: "var(--text-base)",
-                  color: T.slateL,
-                  fontStyle: "italic",
-                  textAlign: "center",
-                  padding: "32px 0",
-                }}
+              <Text
+                as="p"
+                size="base"
+                color={T.slateL}
+                style={{ margin: 0, fontStyle: "italic", textAlign: "center", padding: "32px 0" }}
               >
                 {t.stNoWarehouses}
-              </p>
+              </Text>
             )}
           </Stack>
         </Card>
@@ -1291,7 +1133,7 @@ export default function SettingsView({
 
       {/* ── PANEL: System ──────────────────────────────────────────────── */}
       {currentTab === "System" && (
-        <Card>
+        <Card pad="lg">
           <SectionTitle icon={Info} title={t.stSystemInfo} />
 
           <CardGrid minWidth={220}>
@@ -1309,31 +1151,12 @@ export default function SettingsView({
               },
               { label: "Permissions", value: "Role-based with per-user overrides" },
             ].map(({ label, value }) => (
-              <div
-                key={label}
-                style={{
-                  padding: "14px 16px",
-                  background: T.bg,
-                  borderRadius: T.radius,
-                  border: `1px solid ${T.border}`,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "var(--text-2xs)",
-                    fontWeight: "var(--weight-bold)",
-                    color: T.slateL,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.6px",
-                    marginBottom: 5,
-                  }}
-                >
-                  {label}
-                </div>
+              <Callout key={label} bordered pad="14px 16px" style={{ borderRadius: T.radius }}>
+                <Eyebrow style={{ fontSize: "var(--text-2xs)", marginBottom: 5 }}>{label}</Eyebrow>
                 <Text size="base" weight="bold" color={T.navy}>
                   {value}
                 </Text>
-              </div>
+              </Callout>
             ))}
           </CardGrid>
         </Card>

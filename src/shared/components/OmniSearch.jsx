@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
-import { Text, Muted } from "./LayoutPrimitives";
+import { Text, Muted, Row } from "./LayoutPrimitives";
 
 // Case-insensitive match across any of the given string fields
 const match = (txt, ...fields) =>
@@ -220,9 +220,9 @@ export default function OmniSearch({
           header: t.osSecGoTo,
           items: results.pages,
           title: (p) => (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <Row inline as="span" gap={2}>
               <p.icon size={13} aria-hidden="true" /> {p.label}
-            </span>
+            </Row>
           ),
           sub: () => t.osOpenPage,
           onClick: (p) => handleSelection(p.id),

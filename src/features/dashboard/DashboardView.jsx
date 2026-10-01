@@ -30,6 +30,13 @@ import {
   Stack,
   Text,
   Muted,
+  Callout,
+  SectionTitle,
+  StatTile,
+  IconSwatch,
+  Meter,
+  Divider,
+  Card,
 } from "@/shared/components/UIPrimitives";
 import TeamChatBox from "./TeamChatBox";
 import WeatherCard from "./WeatherCard";
@@ -47,7 +54,7 @@ function LiveClock({ lang }) {
   }, []);
   const locale = lang === "es" ? "es-ES" : "en-US";
   return (
-    <div style={{ textAlign: "right", flexShrink: 0 }}>
+    <Stack gap={0} style={{ textAlign: "right", flexShrink: 0 }}>
       <Text
         size="2xl"
         weight="black"
@@ -59,7 +66,7 @@ function LiveClock({ lang }) {
       <Text size="xs" weight="bold" color={C.sub} style={{ textTransform: "capitalize" }}>
         {now.toLocaleDateString(locale, { weekday: "long" })}
       </Text>
-    </div>
+    </Stack>
   );
 }
 
@@ -225,50 +232,33 @@ function BarRow({ label, value, max, color, display, tone }) {
     <Row style={{ marginBottom: 7 }}>
       {/* title, because a long category name truncates here and the full string
           is otherwise nowhere on the card. */}
-      <div
+      <Text
         title={label}
-        style={{
-          width: 92,
-          flexShrink: 0,
-          fontSize: "var(--text-2xs)",
-          color: C.sub,
-          fontWeight: "var(--weight-bold)",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
+        size="2xs"
+        weight="bold"
+        color={C.sub}
+        truncate
+        style={{ width: 92, flexShrink: 0 }}
       >
         {label}
-      </div>
-      <div style={{ flex: 1, minWidth: 40, height: 10, background: tone || C.lg, borderRadius: 2 }}>
-        {/* Rounded at the data end, square at the baseline it grows from. A zero
-            row keeps a 3px stub so the track never reads as a missing row. */}
-        <div
-          style={{
-            width: `${(pct * 100).toFixed(1)}%`,
-            minWidth: value > 0 ? 3 : 0,
-            height: "100%",
-            background: color,
-            borderRadius: "2px 4px 4px 2px",
-          }}
-        />
-      </div>
+      </Text>
+      <Meter value={pct} color={color} track={tone} height={10} style={{ flex: 1, minWidth: 40 }} />
       {/* minWidth, not width: a seven-figure spend has to be allowed to widen the
           gutter and take the room off the bar, rather than spill out of it. */}
-      <div
+      <Text
+        size="2xs"
+        weight="extrabold"
+        color={C.navy}
         style={{
           minWidth: 58,
           flexShrink: 0,
           textAlign: "right",
           whiteSpace: "nowrap",
-          fontSize: "var(--text-2xs)",
-          fontWeight: "var(--weight-extrabold)",
-          color: C.navy,
           fontVariantNumeric: "tabular-nums",
         }}
       >
         {display ?? value}
-      </div>
+      </Text>
     </Row>
   );
 }
@@ -548,130 +538,31 @@ export default function DashboardView({
     }
   };
 
-  // Reusable Metric Card Primitive
-  //
-  // The icon used to sit in its own 38px block ABOVE the number, which cost every
-  // card roughly fifty vertical pixels to say nothing the label did not. It now
-  // sits beside the figure, so a row of these is about a third shorter and two
-  // rows of them fit where one used to.
-  const SC = ({ label, value, color, icon: Icon, onClick, sub, series, seriesLabels, format }) => (
-    <div
-      onClick={onClick}
-      className={onClick ? "mrr-card mrr-card-click" : "mrr-card"}
-      style={{
-        background: C.w,
-        borderRadius: "var(--radius-xl)",
-        padding: 14,
-        border: `1px solid ${C.bd}`,
-        minWidth: 0,
-      }}
-    >
-      <Row style={{ minWidth: 0 }}>
-        <div
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: "var(--radius-lg)",
-            background: `color-mix(in srgb, ${color} 8%, transparent)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          {Icon && <Icon size={18} color={color} aria-hidden="true" />}
-        </div>
-        <div style={{ minWidth: 0 }}>
-          {/* nowrap + ellipsis: the valuation card carries "$1,284,003" and these
-              columns are narrower now. A number that wraps mid-figure is worse
-              than one that is cut off. */}
-          <div
-            style={{
-              fontSize: "var(--text-2xl)",
-              fontWeight: "var(--weight-extrabold)",
-              color,
-              lineHeight: 1.1,
-              fontVariantNumeric: "tabular-nums",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {value}
-          </div>
-          <Text size="xs" weight="semibold" color={C.sub} style={{ marginTop: 2 }}>
-            {label}
-          </Text>
-        </div>
-      </Row>
-      {sub && (
-        <Muted size="2xs" style={{ marginTop: 4 }}>
-          {sub}
-        </Muted>
+  // A KPI tile with its twelve-week sparkline underneath.
+  const SC = ({ series, seriesLabels, format, ...tile }) => (
+    <StatTile {...tile}>
+      {series && (
+        <Sparkline data={series} labels={seriesLabels} color={tile.color} format={format} />
       )}
-      {series && <Sparkline data={series} labels={seriesLabels} color={color} format={format} />}
-    </div>
+    </StatTile>
   );
 
-  // Reusable Quick Action Card Primitive
-  const QuickActionCard = ({ title, subtitle, icon: Icon, color, onClick }) => (
-    <div
-      onClick={onClick}
-      className="mrr-card mrr-card-click"
-      style={{
-        background: C.w,
-        borderRadius: "var(--radius-xl)",
-        padding: "12px 14px",
-        border: `1px solid ${C.bd}`,
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--space-4)",
-        minWidth: 0,
-      }}
-    >
-      <div
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: "var(--radius-lg)",
-          background: `color-mix(in srgb, ${color} 9%, transparent)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <Icon size={19} color={color} aria-hidden="true" />
-      </div>
-      {/* minWidth 0 on both, or the subtitle refuses to shrink and pushes the
-          tile wider than its grid column. */}
-      <div style={{ textAlign: "left", minWidth: 0 }}>
-        <div
-          style={{
-            fontWeight: "var(--weight-bold)",
-            color: C.navy,
-            fontSize: "var(--text-sm)",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {title}
-        </div>
-        <div
-          style={{
-            color: C.sub,
-            fontSize: "var(--text-2xs)",
-            marginTop: 1,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {subtitle}
-        </div>
-      </div>
-    </div>
+  const QuickActionCard = ({ title, subtitle, icon, color, onClick }) => (
+    <Card onClick={onClick} pad="var(--space-5) var(--space-6)">
+      <Row gap={4} style={{ minWidth: 0 }}>
+        <IconSwatch icon={icon} color={color} size={38} iconSize={19} tint={9} />
+        {/* minWidth 0 on both, or the subtitle refuses to shrink and pushes the
+            tile wider than its grid column. */}
+        <Stack gap={0} style={{ textAlign: "left", minWidth: 0 }}>
+          <Text size="sm" weight="bold" color={C.navy} truncate>
+            {title}
+          </Text>
+          <Text size="2xs" color={C.sub} truncate style={{ marginTop: 1 }}>
+            {subtitle}
+          </Text>
+        </Stack>
+      </Row>
+    </Card>
   );
 
   const hour = new Date().getHours();
@@ -685,44 +576,21 @@ export default function DashboardView({
             KPI strip at the top of the page. */}
         <CardGrid minWidth={320} fit gap="var(--space-6)" style={{ alignItems: "start" }}>
           <Stack gap={6}>
-            <div
-              style={{
-                background: C.w,
-                borderRadius: "var(--radius-xl)",
-                padding: 16,
-                border: `1px solid ${C.bd}`,
-                boxShadow: "var(--shadow-xs)",
-              }}
-            >
-              <h3
-                style={{
-                  margin: "0 0 12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontSize: "var(--text-base)",
-                  fontWeight: "var(--weight-extrabold)",
-                  color: C.navy,
-                }}
-              >
-                <Calendar size={15} aria-hidden="true" /> {t.activeAgenda}
-              </h3>
+            <Card>
+              <SectionTitle as="h3" icon={Calendar} style={{ marginBottom: 12 }}>
+                {t.activeAgenda}
+              </SectionTitle>
               {myJobs.length === 0 ? (
                 <Muted as="p" size="sm" style={{ margin: 0 }}>
                   {t.noJobs}
                 </Muted>
               ) : (
                 myJobs.map((j) => (
-                  <div
+                  <Callout
                     key={j.id}
-                    style={{
-                      padding: "10px",
-                      background: C.lg,
-                      borderRadius: "var(--radius-md)",
-                      marginBottom: 6,
-                      fontSize: "var(--text-sm)",
-                      borderLeft: `3px solid ${C.tl}`,
-                    }}
+                    pad={4}
+                    size="sm"
+                    style={{ marginBottom: 6, borderLeft: `3px solid ${C.tl}` }}
                   >
                     <Text weight="bold" color={C.navy}>
                       {j.title || j.name}
@@ -733,35 +601,17 @@ export default function DashboardView({
                     >
                       <MapPin size={11} aria-hidden="true" /> {j.addr || j.address}
                     </Row>
-                  </div>
+                  </Callout>
                 ))
               )}
-            </div>
+            </Card>
 
-            <div
-              style={{
-                background: C.w,
-                borderRadius: "var(--radius-xl)",
-                padding: 16,
-                border: `1px solid ${C.bd}`,
-                boxShadow: "var(--shadow-xs)",
-              }}
-            >
-              <h3
-                style={{
-                  margin: "0 0 12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontSize: "var(--text-base)",
-                  fontWeight: "var(--weight-extrabold)",
-                  color: C.navy,
-                }}
-              >
-                <Truck size={15} aria-hidden="true" /> {t.assignedTruck}
-              </h3>
+            <Card>
+              <SectionTitle as="h3" icon={Truck} style={{ marginBottom: 12 }}>
+                {t.assignedTruck}
+              </SectionTitle>
               {myVehicle ? (
-                <div style={{ background: C.lg, padding: 16, borderRadius: "var(--radius-lg)" }}>
+                <Callout pad={7} style={{ borderRadius: "var(--radius-lg)" }}>
                   <Text
                     size="xs"
                     weight="bold"
@@ -776,20 +626,13 @@ export default function DashboardView({
                   <Text size="base" weight="bold" color={C.blue} style={{ marginTop: 2 }}>
                     Plate ID: {myVehicle.plate || "No Plate Registered"}
                   </Text>
-                </div>
+                </Callout>
               ) : (
-                <div
-                  style={{
-                    fontSize: "var(--text-base)",
-                    color: C.sub,
-                    fontStyle: "italic",
-                    padding: "12px 0",
-                  }}
-                >
+                <Text size="base" color={C.sub} style={{ fontStyle: "italic", padding: "12px 0" }}>
                   {t.noTruck}
-                </div>
+                </Text>
               )}
-            </div>
+            </Card>
           </Stack>
           <TeamChatBox
             user={user}
@@ -810,28 +653,10 @@ export default function DashboardView({
         {/* Status cards for this role live in the KPI strip at the top now. */}
         <CardGrid minWidth={320} fit gap="var(--space-6)" style={{ alignItems: "start" }}>
           <Stack gap={6}>
-            <div
-              style={{
-                background: C.w,
-                borderRadius: "var(--radius-xl)",
-                padding: 16,
-                border: `1px solid ${C.bd}`,
-                boxShadow: "var(--shadow-xs)",
-              }}
-            >
-              <h3
-                style={{
-                  margin: "0 0 12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontSize: "var(--text-base)",
-                  fontWeight: "var(--weight-extrabold)",
-                  color: C.navy,
-                }}
-              >
-                <AlertOctagon size={15} aria-hidden="true" /> {t.lowStockWatch}
-              </h3>
+            <Card>
+              <SectionTitle as="h3" icon={AlertOctagon} style={{ marginBottom: 12 }}>
+                {t.lowStockWatch}
+              </SectionTitle>
               {low.length === 0 ? (
                 <Row as="p" gap={2} style={{ color: C.gr, fontSize: "var(--text-sm)", margin: 0 }}>
                   <CheckCircle2 size={14} aria-hidden="true" /> {t.allStockSafe}
@@ -851,24 +676,21 @@ export default function DashboardView({
                   const tone = out || pct <= 0.5 ? C.rd : C.am;
                   const track = out || pct <= 0.5 ? C.rB : C.aB;
                   return (
-                    <div key={item.id} style={{ marginBottom: 10 }}>
+                    <Stack key={item.id} gap={0} style={{ marginBottom: 10 }}>
                       <Row
                         align="baseline"
                         justify="space-between"
                         style={{ marginBottom: 4, fontSize: "var(--text-sm)" }}
                       >
-                        <span
-                          style={{
-                            fontWeight: "var(--weight-bold)",
-                            color: C.navy,
-                            minWidth: 0,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
+                        <Text
+                          as="span"
+                          weight="bold"
+                          color={C.navy}
+                          truncate
+                          style={{ minWidth: 0 }}
                         >
                           {item.name}
-                        </span>
+                        </Text>
                         <Text
                           as="span"
                           size="xs"
@@ -879,70 +701,41 @@ export default function DashboardView({
                           {out ? "Out" : "Low"} · {onHand} / {limit} {item.unit}
                         </Text>
                       </Row>
-                      <div style={{ height: 8, background: track, borderRadius: 2 }}>
-                        <div
-                          style={{
-                            width: `${(pct * 100).toFixed(1)}%`,
-                            minWidth: onHand > 0 ? 3 : 0,
-                            height: "100%",
-                            background: tone,
-                            borderRadius: "2px 4px 4px 2px",
-                          }}
-                        />
-                      </div>
-                    </div>
+                      <Meter
+                        value={onHand > 0 ? Math.max(pct, 0.001) : 0}
+                        color={tone}
+                        track={track}
+                        height={8}
+                      />
+                    </Stack>
                   );
                 })
               )}
-            </div>
+            </Card>
 
-            <div
-              style={{
-                background: C.w,
-                borderRadius: "var(--radius-xl)",
-                padding: 16,
-                border: `1px solid ${C.bd}`,
-                boxShadow: "var(--shadow-xs)",
-              }}
-            >
-              <h3
-                style={{
-                  margin: "0 0 12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontSize: "var(--text-base)",
-                  fontWeight: "var(--weight-extrabold)",
-                  color: C.navy,
-                }}
-              >
-                <Package size={15} aria-hidden="true" /> {t.stagedOrders}
-              </h3>
+            <Card>
+              <SectionTitle as="h3" icon={Package} style={{ marginBottom: 12 }}>
+                {t.stagedOrders}
+              </SectionTitle>
               {pendingPulls.slice(0, 4).map((p) => (
-                <div
+                <Callout
                   key={p.id}
                   onClick={() => onNav("pull")}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "8px 10px",
-                    background: C.lg,
-                    borderRadius: 7,
-                    marginBottom: 6,
-                    fontSize: "var(--text-sm)",
-                    cursor: "pointer",
-                  }}
+                  pad="var(--space-3) var(--space-4)"
+                  size="sm"
+                  style={{ marginBottom: 6 }}
                 >
-                  <Text as="span" weight="bold" color={C.navy}>
-                    {p.title || p.name}
-                  </Text>
-                  <Bdg color={p.status === "approved" ? "blue" : "gray"}>
-                    {p.status.toUpperCase()}
-                  </Bdg>
-                </div>
+                  <Row justify="space-between">
+                    <Text as="span" weight="bold" color={C.navy}>
+                      {p.title || p.name}
+                    </Text>
+                    <Bdg color={p.status === "approved" ? "blue" : "gray"}>
+                      {p.status.toUpperCase()}
+                    </Bdg>
+                  </Row>
+                </Callout>
               ))}
-            </div>
+            </Card>
           </Stack>
           <TeamChatBox
             user={user}
@@ -973,34 +766,16 @@ export default function DashboardView({
 
         <CardGrid minWidth={320} fit gap="var(--space-6)" style={{ alignItems: "start" }}>
           <Stack gap={6}>
-            <div
-              style={{
-                background: C.w,
-                borderRadius: "var(--radius-xl)",
-                padding: 16,
-                border: `1px solid ${C.bd}`,
-                boxShadow: "var(--shadow-xs)",
-              }}
-            >
-              <h3
-                style={{
-                  margin: "0 0 12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
-                  fontSize: "var(--text-base)",
-                  fontWeight: "var(--weight-extrabold)",
-                  color: C.navy,
-                }}
-              >
-                <ClipboardList size={15} aria-hidden="true" /> {t.masterPipeline}
-              </h3>
+            <Card>
+              <SectionTitle as="h3" icon={ClipboardList} style={{ marginBottom: 12 }}>
+                {t.masterPipeline}
+              </SectionTitle>
 
               {/* The whole queue as five bars, above the four-job sample that used
                   to be the only thing here. A list of four rows out of sixty said
                   nothing about where the work is piling up. One hue for all five:
                   these are magnitudes, and the length is already the answer. */}
-              <div style={{ marginBottom: 12 }}>
+              <Stack gap={0} style={{ marginBottom: 12 }}>
                 {stageCounts.map((s) => (
                   <BarRow
                     key={s.key}
@@ -1010,8 +785,8 @@ export default function DashboardView({
                     color={C.gold}
                   />
                 ))}
-              </div>
-              <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 10 }} />
+              </Stack>
+              <Divider style={{ margin: "0 0 10px" }} />
 
               {jobs
                 .filter((j) => j.status !== "completed")
@@ -1020,60 +795,37 @@ export default function DashboardView({
                   const sup = users.find((u) => u.id === j.assignedto || u.id === j.assignedTo);
                   const st = jSC[j.status] || { c: "gray", l: j.status };
                   return (
-                    <div
+                    <Callout
                       key={j.id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "8px 10px",
-                        background: C.lg,
-                        borderRadius: 7,
-                        marginBottom: 6,
-                        fontSize: "var(--text-sm)",
-                      }}
+                      pad="var(--space-3) var(--space-4)"
+                      size="sm"
+                      style={{ marginBottom: 6 }}
                     >
-                      <div>
-                        <Text weight="bold" color={C.navy}>
-                          {j.title || j.name}
-                        </Text>
-                        <Muted size="2xs">
-                          {j.po || t.noPO}
-                          {sup ? ` · ${sup.full_name || sup.name}` : ""}
-                        </Muted>
-                      </div>
-                      <Bdg color={st.c}>{st.l}</Bdg>
-                    </div>
+                      <Row justify="space-between">
+                        <div>
+                          <Text weight="bold" color={C.navy}>
+                            {j.title || j.name}
+                          </Text>
+                          <Muted size="2xs">
+                            {j.po || t.noPO}
+                            {sup ? ` · ${sup.full_name || sup.name}` : ""}
+                          </Muted>
+                        </div>
+                        <Bdg color={st.c}>{st.l}</Bdg>
+                      </Row>
+                    </Callout>
                   );
                 })}
-            </div>
+            </Card>
 
             {/* Where the month's material money actually went. The KPI tile gives
                 the total and the trend; this says which five categories it is,
                 which is the question the total prompts and nothing answered. */}
             {perms.inv_pricing_view && (
-              <div
-                style={{
-                  background: C.w,
-                  borderRadius: "var(--radius-xl)",
-                  padding: 16,
-                  border: `1px solid ${C.bd}`,
-                  boxShadow: "var(--shadow-xs)",
-                }}
-              >
-                <h3
-                  style={{
-                    margin: "0 0 4px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    fontSize: "var(--text-base)",
-                    fontWeight: "var(--weight-extrabold)",
-                    color: C.navy,
-                  }}
-                >
-                  <DollarSign size={15} aria-hidden="true" /> {t.materialThisMonth}
-                </h3>
+              <Card>
+                <SectionTitle as="h3" icon={DollarSign} style={{ marginBottom: 4 }}>
+                  {t.materialThisMonth}
+                </SectionTitle>
                 <Muted as="p" size="2xs" style={{ margin: "0 0 12px" }}>
                   Top 5 categories by spend
                 </Muted>
@@ -1093,7 +845,7 @@ export default function DashboardView({
                     />
                   ))
                 )}
-              </div>
+              </Card>
             )}
           </Stack>
           <TeamChatBox
@@ -1129,7 +881,7 @@ export default function DashboardView({
             style={{ height: 44, maxWidth: 130, objectFit: "contain", flexShrink: 0 }}
           />
         )}
-        <div style={{ minWidth: 0, flex: "1 1 220px" }}>
+        <Stack gap={0} style={{ minWidth: 0, flex: "1 1 220px" }}>
           <Text as="h1" size="2xl" weight="black" color={C.navy} style={{ margin: 0 }}>
             {greeting}, {displayName(user)}
           </Text>
@@ -1144,7 +896,7 @@ export default function DashboardView({
               year: "numeric",
             })}
           </Muted>
-        </div>
+        </Stack>
         <LiveClock lang={lang} />
       </Row>
 
@@ -1288,75 +1040,69 @@ export default function DashboardView({
 
       {/* Dynamic Security & Alert Banners */}
       {user.role === "field" && newJobs.length > 0 && (
-        <div
+        <Callout
+          tone="teal"
+          bordered
+          containsActions
           onClick={() => onNav("pull")}
-          style={{
-            background: C.tB,
-            border: `2px solid ${C.tl}`,
-            borderRadius: "var(--radius-lg)",
-            padding: "12px 16px",
-            marginBottom: 12,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
+          pad="var(--space-5) var(--space-7)"
+          style={{ borderRadius: "var(--radius-lg)", marginBottom: 12 }}
         >
-          <Row
-            gap="7px"
-            style={{ fontWeight: "var(--weight-bold)", color: C.tl, fontSize: "var(--text-base)" }}
-          >
-            <PartyPopper size={16} aria-hidden="true" /> {newJobs.length} {t.newAssignments}
+          <Row justify="space-between">
+            <Row
+              gap="7px"
+              style={{
+                fontWeight: "var(--weight-bold)",
+                color: C.tl,
+                fontSize: "var(--text-base)",
+              }}
+            >
+              <PartyPopper size={16} aria-hidden="true" /> {newJobs.length} {t.newAssignments}
+            </Row>
+            <Btn v="teal" sz="sm">
+              {t.view} →
+            </Btn>
           </Row>
-          <Btn v="teal" sz="sm">
-            {t.view} →
-          </Btn>
-        </div>
+        </Callout>
       )}
       {perms.maint_manage && pendingReqs.length > 0 && (
-        <div
+        <Callout
+          tone="plum"
+          bordered
+          containsActions
           onClick={() => onNav("requests")}
-          style={{
-            background: C.pB,
-            border: `2px solid ${C.pu}`,
-            borderRadius: "var(--radius-lg)",
-            padding: "12px 16px",
-            marginBottom: 12,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
+          pad="var(--space-5) var(--space-7)"
+          style={{ borderRadius: "var(--radius-lg)", marginBottom: 12 }}
         >
-          <Row
-            gap="7px"
-            style={{ fontWeight: "var(--weight-bold)", color: C.pu, fontSize: "var(--text-base)" }}
-          >
-            <Bell size={15} aria-hidden="true" /> {pendingReqs.length} {t.pendingMaint}
+          <Row justify="space-between">
+            <Row
+              gap="7px"
+              style={{
+                fontWeight: "var(--weight-bold)",
+                color: C.pu,
+                fontSize: "var(--text-base)",
+              }}
+            >
+              <Bell size={15} aria-hidden="true" /> {pendingReqs.length} {t.pendingMaint}
+            </Row>
+            <Btn v="purple" sz="sm">
+              {t.view} →
+            </Btn>
           </Row>
-          <Btn v="purple" sz="sm">
-            {t.view} →
-          </Btn>
-        </div>
+        </Callout>
       )}
       {low.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: C.aB,
-            border: `1.5px solid ${C.am}`,
-            borderRadius: "var(--radius-lg)",
-            padding: "10px 14px",
-            marginBottom: 12,
-            fontSize: "var(--text-sm)",
-            color: C.am,
-            fontWeight: "var(--weight-semibold)",
-          }}
+        <Callout
+          tone="warn"
+          bordered
+          icon={AlertTriangle}
+          size="sm"
+          weight="semibold"
+          color={C.am}
+          style={{ borderRadius: "var(--radius-lg)", marginBottom: 12 }}
         >
-          <AlertTriangle size={14} aria-hidden="true" /> {low.length} {t.lowStockAlert}
-        </div>
+          {low.length} {t.lowStockAlert}
+        </Callout>
       )}
 
       {/* Quick actions and the weather share a row. The weather card is about 150px
@@ -1428,7 +1174,7 @@ export default function DashboardView({
           }
           onClose={() => acknowledgeJob(false)}
         >
-          <div style={{ textAlign: "center", padding: "8px 0" }}>
+          <Stack gap={0} style={{ textAlign: "center", padding: "8px 0" }}>
             <Row gap={0} align="stretch" justify="center" style={{ marginBottom: 10 }}>
               <HardHat size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
             </Row>
@@ -1439,50 +1185,37 @@ export default function DashboardView({
               {t.dashPoTracker} <strong>{newJobAlert.po || "—"}</strong>
             </Text>
 
-            <div
-              style={{
-                background: "var(--c-subtle)",
-                padding: 12,
-                borderRadius: "var(--radius-md)",
-                textAlign: "left",
-                fontSize: "var(--text-sm)",
-                border: `1px solid ${C.bd}`,
-                marginBottom: 16,
-              }}
-            >
+            <Callout bordered pad={5} size="sm" style={{ textAlign: "left", marginBottom: 16 }}>
               <strong>
                 <MapPin size={13} style={{ verticalAlign: -2 }} aria-hidden="true" />{" "}
                 {t.dashDispatchAddress}:
               </strong>{" "}
               {newJobAlert.addr || newJobAlert.address || t.dashNoLocation}
               {newJobAlert.notes && (
-                <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
+                <>
+                  <Divider dashed />
                   <strong>
                     <FileText size={13} style={{ verticalAlign: -2 }} aria-hidden="true" />{" "}
                     {t.dashCrewInstructions}:
                   </strong>{" "}
                   {newJobAlert.notes}
-                </div>
+                </>
               )}
-            </div>
+            </Callout>
 
             {alertTrailerNames.length > 0 && (
-              <div
-                style={{
-                  background: "var(--c-warn-wash)",
-                  padding: 12,
-                  borderRadius: "var(--radius-md)",
-                  textAlign: "left",
-                  fontSize: "var(--text-sm)",
-                  border: `1.5px solid ${C.am}`,
-                  marginBottom: 16,
-                  fontWeight: "var(--weight-bold)",
-                  color: C.am,
-                }}
+              <Callout
+                tone="warn"
+                bordered
+                pad={5}
+                size="sm"
+                weight="bold"
+                color={C.am}
+                style={{ textAlign: "left", marginBottom: 16 }}
               >
                 <Truck size={13} style={{ verticalAlign: -2 }} aria-hidden="true" />{" "}
                 {t.dashBringTrailers}: {alertTrailerNames.join(", ")}
-              </div>
+              </Callout>
             )}
 
             <Btn
@@ -1492,14 +1225,14 @@ export default function DashboardView({
             >
               {t.dashGotItMaterials}
             </Btn>
-          </div>
+          </Stack>
         </Modal>
       )}
 
       {/* New Maintenance Request Alert Overlay — only one blocking modal at a time; job alerts take priority */}
       {!newJobAlert && maintAlert && (
         <Modal title={t.dashNewMaintReq} onClose={() => acknowledgeMaint(false)}>
-          <div style={{ textAlign: "center", padding: "8px 0" }}>
+          <Stack gap={0} style={{ textAlign: "center", padding: "8px 0" }}>
             <Row gap={0} align="stretch" justify="center" style={{ marginBottom: 10 }}>
               <Wrench size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
             </Row>
@@ -1509,37 +1242,26 @@ export default function DashboardView({
             <Row gap={2} align="stretch" justify="center" wrap style={{ marginBottom: 12 }}>
               {maintAlert.urgency === "urgent" && (
                 <Bdg color="red">
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    <AlertOctagon size={11} aria-hidden="true" /> URGENT
-                  </span>
+                  <AlertOctagon size={11} style={{ verticalAlign: -1 }} aria-hidden="true" /> URGENT
                 </Bdg>
               )}
               <Bdg color="gray">{maintAlert.type}</Bdg>
             </Row>
 
-            <div
-              style={{
-                background: "var(--c-subtle)",
-                padding: 12,
-                borderRadius: "var(--radius-md)",
-                textAlign: "left",
-                fontSize: "var(--text-sm)",
-                border: `1px solid ${C.bd}`,
-                marginBottom: 16,
-              }}
-            >
+            <Callout bordered pad={5} size="sm" style={{ textAlign: "left", marginBottom: 16 }}>
               <strong>
                 <FileText size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Reported
                 Issue:
               </strong>{" "}
               {maintAlert.notes || "No description provided"}
-              <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
+              <>
+                <Divider dashed />
                 <strong>
                   <User size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Submitted By:
                 </strong>{" "}
                 {maintAlert.uname || "Unknown"}
-              </div>
-            </div>
+              </>
+            </Callout>
 
             <Btn
               v="purple"
@@ -1548,14 +1270,14 @@ export default function DashboardView({
             >
               {t.dashGotItMaint}
             </Btn>
-          </div>
+          </Stack>
         </Modal>
       )}
 
       {/* Maintenance Status Update Alert Overlay — tells the requester their ticket moved (scheduled/completed) */}
       {!newJobAlert && !maintAlert && statusAlert && (
         <Modal title={t.dashMaintUpdate} onClose={() => acknowledgeStatusUpdate(false)}>
-          <div style={{ textAlign: "center", padding: "8px 0" }}>
+          <Stack gap={0} style={{ textAlign: "center", padding: "8px 0" }}>
             <Row gap={0} align="stretch" justify="center" style={{ marginBottom: 10 }}>
               {statusAlert.status === "completed" ? (
                 <CheckCircle2 size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
@@ -1581,49 +1303,42 @@ export default function DashboardView({
               <Bdg color="gray">{statusAlert.type}</Bdg>
             </Row>
 
-            <div
-              style={{
-                background: "var(--c-subtle)",
-                padding: 12,
-                borderRadius: "var(--radius-md)",
-                textAlign: "left",
-                fontSize: "var(--text-sm)",
-                border: `1px solid ${C.bd}`,
-                marginBottom: 16,
-              }}
-            >
+            <Callout bordered pad={5} size="sm" style={{ textAlign: "left", marginBottom: 16 }}>
               <strong>
                 <Wrench size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Your
                 maintenance request is now {statusAlert.status}.
               </strong>
               {statusAlert.status === "scheduled" && statusAlert.scheduled_date && (
-                <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
+                <>
+                  <Divider dashed />
                   <strong>
                     <Calendar size={13} style={{ verticalAlign: -2 }} aria-hidden="true" />{" "}
                     Scheduled for:
                   </strong>{" "}
                   {new Date(statusAlert.scheduled_date).toLocaleDateString()}
-                </div>
+                </>
               )}
               {statusAlert.status === "completed" && statusAlert.completed_at && (
-                <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
+                <>
+                  <Divider dashed />
                   <strong>
                     <Flag size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Completed
                     on:
                   </strong>{" "}
                   {new Date(statusAlert.completed_at).toLocaleDateString()}
-                </div>
+                </>
               )}
               {statusAlert.wh_notes && (
-                <div style={{ marginTop: 8, borderTop: `1px dashed ${C.bd}`, paddingTop: 8 }}>
+                <>
+                  <Divider dashed />
                   <strong>
                     <FileText size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Shop
                     Notes:
                   </strong>{" "}
                   {statusAlert.wh_notes}
-                </div>
+                </>
               )}
-            </div>
+            </Callout>
 
             <Btn
               v="teal"
@@ -1632,7 +1347,7 @@ export default function DashboardView({
             >
               {t.dashGotItMyReq}
             </Btn>
-          </div>
+          </Stack>
         </Modal>
       )}
     </div>

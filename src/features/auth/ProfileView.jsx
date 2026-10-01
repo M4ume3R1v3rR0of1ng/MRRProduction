@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { User, Shield, Bell, Mail, KeyRound } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
-import { Fld, Inp, Btn, Stack, Row, Text, Eyebrow } from "@/shared/components/UIPrimitives";
+import { Fld, Inp, Btn, Stack, Row, Text, Eyebrow, Card } from "@/shared/components/UIPrimitives";
 import { sendEmail } from "@/shared/utils/email";
 import { translations } from "@/shared/utils/translations";
 import MfaPanel from "./MfaPanel";
@@ -178,14 +178,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
   return (
     <Stack gap={8} style={{ maxWidth: 500, margin: "20px auto" }}>
       {/* CARD 1: Identity Profile Credentials */}
-      <div
-        style={{
-          background: C.w,
-          borderRadius: "var(--radius-xl)",
-          padding: 24,
-          boxShadow: "var(--shadow-sm)",
-        }}
-      >
+      <Card variant="raised" pad="lg">
         <h1
           style={{
             margin: "0 0 6px",
@@ -262,17 +255,10 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
             {submittingProfile ? "Saving Changes..." : "Save Profile Details"}
           </Btn>
         </form>
-      </div>
+      </Card>
 
       {/* CARD 2: Low Stock Dynamic Notification Toggles */}
-      <div
-        style={{
-          background: C.w,
-          borderRadius: "var(--radius-xl)",
-          padding: 24,
-          boxShadow: "var(--shadow-sm)",
-        }}
-      >
+      <Card variant="raised" pad="lg">
         <Row gap={4} style={{ marginBottom: 6 }}>
           <Bell size={22} color={C.navy} aria-hidden="true" />
           <Text as="h3" size="xl" weight="black" color={C.navy} style={{ margin: 0 }}>
@@ -376,17 +362,10 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
         >
           {savingAlerts ? "Saving Settings..." : "Save Notification Prefs"}
         </Btn>
-      </div>
+      </Card>
 
       {/* CARD 3: Account Access Security Credentials */}
-      <div
-        style={{
-          background: C.w,
-          borderRadius: "var(--radius-xl)",
-          padding: 24,
-          boxShadow: "var(--shadow-sm)",
-        }}
-      >
+      <Card variant="raised" pad="lg">
         <h2
           style={{
             margin: "0 0 6px",
@@ -460,7 +439,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
             {submittingPass ? "Updating..." : "Update Password"}
           </Btn>
         </form>
-      </div>
+      </Card>
 
       {/* CARD 4: Two-Factor Authentication. Directly under the password card on
           purpose — it is the same subject, and it is the half that still holds

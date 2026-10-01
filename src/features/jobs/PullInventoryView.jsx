@@ -43,6 +43,7 @@ import {
   Text,
   Muted,
   Table,
+  Callout,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { supabase, updateRowStrict, isTransportError } from "@/shared/utils/supabase";
@@ -1053,11 +1054,11 @@ export default function PullInventory({
                   }}
                 >
                   <Row gap="7px" wrap style={{ marginBottom: 6 }}>
-                    <span
+                    <Row
+                      inline
+                      as="span"
+                      gap={1}
                       style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "var(--space-1)",
                         fontSize: "var(--text-xs)",
                         fontWeight: "var(--weight-extrabold)",
                         color: statusMeta.color,
@@ -1065,23 +1066,23 @@ export default function PullInventory({
                     >
                       <StatusDot color={statusMeta.color} />
                       <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
-                    </span>
+                    </Row>
                     <Text as="span" size="sm" weight="semibold" color={C.sub}>
                       · {job.po || t.pullNoPoHash}
                     </Text>
                     {isHighlighted && (
                       <Bdg color="gold">
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Row inline as="span" gap={1}>
                           <Sparkles size={11} aria-hidden="true" />{" "}
                           {highlight.label || t.pullJustBuilt}
-                        </span>
+                        </Row>
                       </Bdg>
                     )}
                     {isNew && (
                       <Bdg color="teal">
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Row inline as="span" gap={1}>
                           <Bell size={11} aria-hidden="true" /> {t.pullNew}
-                        </span>
+                        </Row>
                       </Bdg>
                     )}
                   </Row>
@@ -1261,20 +1262,16 @@ export default function PullInventory({
           }}
           wide
         >
-          <div
-            style={{
-              background: C.tB,
-              border: `1.5px solid ${C.tl}`,
-              borderRadius: "var(--radius-md)",
-              padding: "10px 14px",
-              marginBottom: 14,
-              fontSize: "var(--text-sm)",
-              color: C.tl,
-              fontWeight: "var(--weight-semibold)",
-            }}
+          <Callout
+            tone="teal"
+            bordered
+            size="sm"
+            weight="semibold"
+            color={C.tl}
+            style={{ marginBottom: 14 }}
           >
             {t.pullAdjustInfo}
-          </div>
+          </Callout>
           <div className="sw-table-scroll">
             <Table pad="md" size="base" tableStyle={{ marginBottom: 14 }}>
               <thead>
@@ -1388,15 +1385,7 @@ export default function PullInventory({
             if (!pulling) setShortWarn(null);
           }}
         >
-          <div
-            style={{
-              background: C.rB,
-              border: `1.5px solid ${C.rd}`,
-              borderRadius: "var(--radius-md)",
-              padding: "12px 14px",
-              marginBottom: 14,
-            }}
-          >
+          <Callout tone="danger" bordered pad="12px 14px" style={{ marginBottom: 14 }}>
             <div
               style={{
                 display: "flex",
@@ -1413,7 +1402,7 @@ export default function PullInventory({
             <Text size="sm" color={C.navy} style={{ lineHeight: 1.45 }}>
               {t.pullShortBody}
             </Text>
-          </div>
+          </Callout>
 
           <div className="sw-table-scroll">
             <Table pad="md" size="base" tableStyle={{ marginBottom: 14 }}>
@@ -1479,20 +1468,16 @@ export default function PullInventory({
           }}
           wide
         >
-          <div
-            style={{
-              background: C.aB,
-              border: `1.5px solid ${C.am}`,
-              borderRadius: "var(--radius-md)",
-              padding: "10px 14px",
-              marginBottom: 14,
-              fontSize: "var(--text-sm)",
-              color: C.am,
-              fontWeight: "var(--weight-semibold)",
-            }}
+          <Callout
+            tone="warn"
+            bordered
+            size="sm"
+            weight="semibold"
+            color={C.am}
+            style={{ marginBottom: 14 }}
           >
             {t.pullReturnInfo}
-          </div>
+          </Callout>
           <div className="sw-table-scroll">
             <Table pad="md" size="base" tableStyle={{ marginBottom: 14 }}>
               <thead>
@@ -1924,17 +1909,14 @@ export default function PullInventory({
               [t.pullApproved, fd(sel.approved)],
               [t.completed, fd(sel.completed || sel.completedAt)],
             ].map(([k, v]) => (
-              <div
-                key={k}
-                style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}
-              >
+              <Callout key={k} pad={4}>
                 <Text size="2xs" weight="bold" color={C.sub} style={{ textTransform: "uppercase" }}>
                   {k}
                 </Text>
                 <Text size="sm" weight="bold" color={C.navy} style={{ marginTop: 2 }}>
                   {v}
                 </Text>
-              </div>
+              </Callout>
             ))}
           </div>
           <div className="sw-table-scroll">

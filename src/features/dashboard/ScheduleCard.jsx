@@ -168,19 +168,16 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                   >
                     {j.title}
                     {j.trailers.length > 0 && (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 2,
-                          color: C.sub,
-                          fontWeight: "normal",
-                        }}
+                      <Row
+                        inline
+                        as="span"
+                        gap="2px"
+                        style={{ color: C.sub, fontWeight: "normal" }}
                       >
                         {" "}
                         <Truck size={10} aria-hidden="true" />
                         {j.trailers.length}
-                      </span>
+                      </Row>
                     )}
                   </button>
                 ))}
@@ -225,19 +222,19 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                 )}
 
                 {day.conflicts.length > 0 && (
-                  <span
+                  <Row
+                    inline
                     title={`${day.conflicts.join(", ")} booked and in the shop`}
+                    as="span"
+                    gap="3px"
                     style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 3,
                       fontSize: "var(--text-2xs)",
                       color: C.am,
                       fontWeight: "var(--weight-bold)",
                     }}
                   >
                     <AlertTriangle size={10} aria-hidden="true" /> {day.conflicts.length}
-                  </span>
+                  </Row>
                 )}
               </div>
             );

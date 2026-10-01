@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Calendar, Truck, FileText, AlertTriangle, X, FileEdit } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
-import { Btn, Row, Stack, Muted, Text } from "@/shared/components/UIPrimitives";
+import { Btn, Row, Stack, Muted, Text, Card } from "@/shared/components/UIPrimitives";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
@@ -272,9 +272,9 @@ export default function TrailerCalendar({
           justify="space-between"
           style={{ marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}
         >
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
+          <Row inline as="span" gap="3px">
             <FileText size={10} aria-hidden="true" /> {job.po}
-          </span>
+          </Row>
           <statusConfig.icon size={12} color={borderColor} aria-hidden="true" />
         </Row>
       </div>
@@ -282,15 +282,7 @@ export default function TrailerCalendar({
   };
 
   return (
-    <div
-      style={{
-        background: C.w,
-        padding: 20,
-        borderRadius: "var(--radius-xl)",
-        boxShadow: "var(--shadow-sm)",
-        marginTop: 16,
-      }}
-    >
+    <Card variant="raised" pad={8} style={{ marginTop: 16 }}>
       <Row gap={5} justify="space-between" wrap style={{ marginBottom: 20 }}>
         <div>
           <h2
@@ -492,6 +484,6 @@ export default function TrailerCalendar({
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }

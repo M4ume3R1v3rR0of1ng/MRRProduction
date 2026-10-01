@@ -54,6 +54,16 @@ describe("Card", () => {
     expect(onClick).toHaveBeenCalledTimes(2);
   });
 
+  it("stays a plain clickable region when it holds its own buttons", () => {
+    const onClick = vi.fn();
+    const html = renderToString(h(Card, { onClick, containsActions: true }, "body"));
+    expect(html).toContain("mrr-card-click");
+    expect(html).not.toContain('role="button"');
+    expect(html).not.toContain("tabindex");
+    Card({ onClick, containsActions: true, children: "x" }).props.onClick();
+    expect(onClick).toHaveBeenCalled();
+  });
+
   it("gets the lift without the button semantics when only `hover` is set", () => {
     const html = renderToString(h(Card, { hover: true }, "body"));
     expect(html).toContain('class="mrr-card mrr-card-hover"');

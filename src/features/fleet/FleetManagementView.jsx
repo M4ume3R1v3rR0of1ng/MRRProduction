@@ -32,6 +32,7 @@ import {
   Stack,
   Text,
   Muted,
+  Callout,
 } from "@/shared/components/UIPrimitives";
 import { C, todayLocal } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
@@ -552,7 +553,7 @@ export default function FleetManagementView({
             style={{ marginBottom: 16 }}
             aria-hidden="true"
           />
-          <Text as="h3" weight="extrabold" color={"var(--c-slate)"} style={{ margin: "0 0 8px 0" }}>
+          <Text as="h3" weight="extrabold" color="var(--c-slate)" style={{ margin: "0 0 8px 0" }}>
             {t.flRegistryEmpty}
           </Text>
           <p
@@ -1173,14 +1174,10 @@ export default function FleetManagementView({
           )}
 
           {isEditingInfo && (
-            <div
-              style={{
-                background: C.lg,
-                padding: 14,
-                borderRadius: "var(--radius-lg)",
-                marginBottom: 14,
-                border: `1.5px solid ${C.bd}`,
-              }}
+            <Callout
+              bordered
+              pad={6}
+              style={{ borderRadius: "var(--radius-lg)", marginBottom: 14 }}
             >
               <Fld label={t.flDisplayName}>
                 <Inp
@@ -1242,7 +1239,7 @@ export default function FleetManagementView({
                   </>
                 )}
               </Btn>
-            </div>
+            </Callout>
           )}
 
           <div style={{ marginBottom: 16 }}>
@@ -1272,17 +1269,14 @@ export default function FleetManagementView({
                 : []),
               ["Last Detail", fd(sel.ldd)],
             ].map(([k, v]) => (
-              <div
-                key={k}
-                style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}
-              >
+              <Callout key={k} pad={4}>
                 <Text size="2xs" weight="bold" color={C.sub} style={{ textTransform: "uppercase" }}>
                   {k}
                 </Text>
                 <Text size="sm" weight="extrabold" color={C.navy} style={{ marginTop: 1 }}>
                   {v}
                 </Text>
-              </div>
+              </Callout>
             ))}
           </CardGrid>
 
@@ -1303,16 +1297,7 @@ export default function FleetManagementView({
               </h4>
               <Stack gap={2}>
                 {predictedServices.map((p) => (
-                  <div
-                    key={p.type}
-                    style={{
-                      background: C.pB,
-                      border: `1px solid ${C.pu}`,
-                      borderRadius: "var(--radius-md)",
-                      padding: "8px 12px",
-                      fontSize: "var(--text-sm)",
-                    }}
-                  >
+                  <Callout key={p.type} tone="plum" bordered pad="sm" size="sm">
                     <Text weight="extrabold" color={C.pu}>
                       {p.type} — ~{fd(p.predictedNextDate)}
                       {p.predictedNextMileage !== null &&
@@ -1324,7 +1309,7 @@ export default function FleetManagementView({
                       {p.avgIntervalMiles !== null &&
                         ` / ${p.avgIntervalMiles.toLocaleString()} mi`}
                     </Muted>
-                  </div>
+                  </Callout>
                 ))}
               </Stack>
             </div>
@@ -1346,15 +1331,7 @@ export default function FleetManagementView({
             [...sel.sl]
               .sort((a, b) => new Date(b.dt) - new Date(a.dt))
               .map((s) => (
-                <div
-                  key={s.id}
-                  style={{
-                    padding: "10px 14px",
-                    background: C.lg,
-                    borderRadius: "var(--radius-md)",
-                    marginBottom: 8,
-                  }}
-                >
+                <Callout key={s.id} style={{ marginBottom: 8 }}>
                   <Row align="stretch" justify="space-between" wrap>
                     <div>
                       <Bdg color={s.type === "Oil Change" ? "blue" : "green"}>{s.type}</Bdg>
@@ -1372,7 +1349,7 @@ export default function FleetManagementView({
                       </Text>
                     )}
                   </Row>
-                </div>
+                </Callout>
               ))
           )}
         </Modal>
@@ -1414,18 +1391,9 @@ export default function FleetManagementView({
 
       {modal === "mi" && sel && (
         <Modal title={`Log Mileage — ${sel.name}`} onClose={() => setModal(null)}>
-          <div
-            style={{
-              background: C.lg,
-              borderRadius: "var(--radius-md)",
-              padding: 10,
-              marginBottom: 12,
-              fontSize: "var(--text-sm)",
-              color: C.sub,
-            }}
-          >
+          <Callout pad={4} size="sm" color={C.sub} style={{ marginBottom: 12 }}>
             {t.flCurrent} <strong>{sel.mi.toLocaleString()} mi</strong>
-          </div>
+          </Callout>
           <Fld label={t.flDate}>
             <Inp
               type="date"
@@ -1540,20 +1508,16 @@ export default function FleetManagementView({
           }
           onClose={() => setGroundModal(false)}
         >
-          <div
-            style={{
-              background: C.aB,
-              border: `1.5px solid ${C.am}`,
-              borderRadius: "var(--radius-md)",
-              padding: "10px 14px",
-              marginBottom: 14,
-              fontSize: "var(--text-sm)",
-              color: C.am,
-              fontWeight: "var(--weight-semibold)",
-            }}
+          <Callout
+            tone="warn"
+            bordered
+            size="sm"
+            weight="semibold"
+            color={C.am}
+            style={{ marginBottom: 14 }}
           >
             {sel.name} — {t.flGroundNote}
-          </div>
+          </Callout>
           <Fld label={t.flGroundReason} hint={t.flGroundReasonHint}>
             <TA
               value={groundReason}
@@ -1621,17 +1585,9 @@ export default function FleetManagementView({
             // Say why there is nothing to pick. "No vehicles available" alone sends
             // people hunting for a bug when the real answer is that every truck
             // already has a driver.
-            <div
-              style={{
-                padding: 16,
-                borderRadius: "var(--radius-lg)",
-                background: C.lg,
-                fontSize: "var(--text-sm)",
-                color: C.sub,
-              }}
-            >
+            <Callout pad={7} size="sm" color={C.sub} style={{ borderRadius: "var(--radius-lg)" }}>
               {t.flNoSparesFree}
-            </div>
+            </Callout>
           ) : (
             <Stack gap={3}>
               {availableSpares(swapReq).map((x) => (
@@ -1655,14 +1611,11 @@ export default function FleetManagementView({
                   }}
                 >
                   <span>
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 5,
-                        fontWeight: "var(--weight-extrabold)",
-                        color: C.navy,
-                      }}
+                    <Row
+                      inline
+                      as="span"
+                      gap="5px"
+                      style={{ fontWeight: "var(--weight-extrabold)", color: C.navy }}
                     >
                       {x.type === "truck" ? (
                         <Truck size={13} aria-hidden="true" />
@@ -1670,7 +1623,7 @@ export default function FleetManagementView({
                         <Tractor size={13} aria-hidden="true" />
                       )}{" "}
                       {x.name}
-                    </span>
+                    </Row>
                     <span style={{ display: "block", fontSize: "var(--text-2xs)", color: C.sub }}>
                       {x.yr} {x.make} {x.model} · #{x.plate}
                     </span>

@@ -1,4 +1,4 @@
-// src/shared/components/SteadwerkMark.jsx
+import { Row } from "./LayoutPrimitives"; // src/shared/components/SteadwerkMark.jsx
 //
 // Direction 02 — "The Raising".
 //
@@ -84,7 +84,7 @@ export function SteadwerkLockup({ onDark = false, size = 64, showTagline = true 
   const tag = onDark ? BRAND.amber : BRAND.amberDeep;
 
   return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 14 }}>
+    <Row inline gap={6}>
       <SteadwerkMark size={size} filled={!onDark} />
       <div style={{ textAlign: "left" }}>
         <div
@@ -114,7 +114,7 @@ export function SteadwerkLockup({ onDark = false, size = 64, showTagline = true 
           </div>
         )}
       </div>
-    </div>
+    </Row>
   );
 }
 

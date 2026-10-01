@@ -4,19 +4,19 @@
     "hex": 3
   },
   "src/features/auth/LoginScreen.jsx": {
-    "inline": 29,
+    "inline": 27,
     "hex": 0
   },
   "src/features/auth/MfaPanel.jsx": {
-    "inline": 6,
+    "inline": 5,
     "hex": 0
   },
   "src/features/auth/ProfileView.jsx": {
-    "inline": 14,
+    "inline": 11,
     "hex": 0
   },
   "src/features/auth/ResetPasswordScreen.jsx": {
-    "inline": 7,
+    "inline": 5,
     "hex": 0
   },
   "src/features/billing/BillingView.jsx": {
@@ -24,11 +24,11 @@
     "hex": 0
   },
   "src/features/dashboard/DashboardView.jsx": {
-    "inline": 61,
+    "inline": 7,
     "hex": 0
   },
   "src/features/dashboard/ScheduleCard.jsx": {
-    "inline": 11,
+    "inline": 9,
     "hex": 0
   },
   "src/features/dashboard/TeamChatBox.jsx": {
@@ -44,7 +44,7 @@
     "hex": 0
   },
   "src/features/fleet/FleetManagementView.jsx": {
-    "inline": 37,
+    "inline": 29,
     "hex": 1
   },
   "src/features/fleet/InspectionModal.jsx": {
@@ -56,11 +56,11 @@
     "hex": 0
   },
   "src/features/fleet/TrailerCalendar.jsx": {
-    "inline": 17,
+    "inline": 15,
     "hex": 0
   },
   "src/features/inventory/BatchCorrectionModal.jsx": {
-    "inline": 5,
+    "inline": 3,
     "hex": 0
   },
   "src/features/inventory/BulkReceiveModal.jsx": {
@@ -68,7 +68,7 @@
     "hex": 0
   },
   "src/features/inventory/InventoryCountTab.jsx": {
-    "inline": 15,
+    "inline": 12,
     "hex": 0
   },
   "src/features/inventory/InventoryView.jsx": {
@@ -84,15 +84,11 @@
     "hex": 0
   },
   "src/features/inventory/JobTemplatesModal.jsx": {
-    "inline": 10,
+    "inline": 7,
     "hex": 0
   },
   "src/features/inventory/ReceiveBatchModal.jsx": {
     "inline": 2,
-    "hex": 0
-  },
-  "src/features/jobs/BuildJobsView.jsx": {
-    "inline": 48,
     "hex": 0
   },
   "src/features/jobs/CorrectReturnModal.jsx": {
@@ -100,7 +96,7 @@
     "hex": 0
   },
   "src/features/jobs/CrewCalendar.jsx": {
-    "inline": 20,
+    "inline": 18,
     "hex": 0
   },
   "src/features/jobs/EditJobModal.jsx": {
@@ -116,7 +112,7 @@
     "hex": 0
   },
   "src/features/jobs/PullInventoryView.jsx": {
-    "inline": 31,
+    "inline": 24,
     "hex": 0
   },
   "src/features/maintenance/CompleteServiceModal.jsx": {
@@ -124,35 +120,35 @@
     "hex": 0
   },
   "src/features/maintenance/MaintenanceCalendar.jsx": {
-    "inline": 20,
-    "hex": 0
-  },
-  "src/features/maintenance/MaintenanceRequestsView.jsx": {
-    "inline": 27,
-    "hex": 0
-  },
-  "src/features/reports/ReportsView.jsx": {
-    "inline": 27,
-    "hex": 1
-  },
-  "src/features/schedule/ScheduleView.jsx": {
     "inline": 19,
     "hex": 0
   },
+  "src/features/maintenance/MaintenanceRequestsView.jsx": {
+    "inline": 23,
+    "hex": 0
+  },
+  "src/features/reports/ReportsView.jsx": {
+    "inline": 18,
+    "hex": 1
+  },
+  "src/features/schedule/ScheduleView.jsx": {
+    "inline": 17,
+    "hex": 0
+  },
   "src/features/settings/SettingsView.jsx": {
-    "inline": 40,
+    "inline": 4,
     "hex": 0
   },
   "src/features/training/TrainingView.jsx": {
-    "inline": 26,
+    "inline": 25,
     "hex": 3
   },
   "src/features/users/AuditLogView.jsx": {
-    "inline": 29,
+    "inline": 24,
     "hex": 0
   },
   "src/features/users/UserManagementView.jsx": {
-    "inline": 14,
+    "inline": 13,
     "hex": 0
   },
   "src/platform/OwnerConsole.jsx": {
@@ -164,7 +160,7 @@
     "hex": 2
   },
   "src/shared/components/ChatWidget.jsx": {
-    "inline": 24,
+    "inline": 23,
     "hex": 0
   },
   "src/shared/components/ErrorBoundary.jsx": {
@@ -172,19 +168,19 @@
     "hex": 0
   },
   "src/shared/components/LayoutPrimitives.jsx": {
-    "inline": 2,
-    "hex": 0
-  },
-  "src/shared/components/OmniSearch.jsx": {
     "inline": 7,
     "hex": 0
   },
+  "src/shared/components/OmniSearch.jsx": {
+    "inline": 6,
+    "hex": 0
+  },
   "src/shared/components/SteadwerkMark.jsx": {
-    "inline": 4,
+    "inline": 3,
     "hex": 2
   },
   "src/shared/components/UIPrimitives.jsx": {
-    "inline": 37,
+    "inline": 36,
     "hex": 1
   },
   "src/shared/context/NotificationContext.jsx": {

@@ -35,6 +35,32 @@ const CARD_VARIANT = {
   flat: { border: `1px solid ${C.line}`, boxShadow: "none" },
 };
 
+// What makes a non-button surface a real control: focusable, announced as a
+// button, and activated by Enter/Space — but not when the key press belongs to
+// a field or button nested inside it.
+//
+// `containsActions` is for a surface that holds its own buttons (a job card
+// with Approve/Delete on it). A role="button" can't contain buttons — ARIA
+// makes a button's children presentational, so screen readers would lose the
+// nested actions entirely — so that surface stays a plain clickable region and
+// keyboard users reach things through the buttons inside it.
+function clickable(onClick, containsActions) {
+  if (!onClick) return {};
+  if (containsActions) return { onClick };
+  return {
+    role: "button",
+    tabIndex: 0,
+    onClick,
+    onKeyDown: (e) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onClick(e);
+      }
+    },
+  };
+}
+
 // `onClick` makes it a real control: pointer cursor + hover lift from
 // .mrr-card-click, and keyboard activation, which none of the hand-built
 // clickable cards had. `hover` gives the lift alone, for cards whose actions
@@ -43,6 +69,7 @@ export function Card({
   variant = "outlined",
   pad = "md",
   onClick,
+  containsActions,
   hover,
   as: Tag = "div",
   className,
@@ -53,20 +80,6 @@ export function Card({
   const cls = ["mrr-card", onClick ? "mrr-card-click" : hover ? "mrr-card-hover" : null, className]
     .filter(Boolean)
     .join(" ");
-  const interactive = onClick
-    ? {
-        role: "button",
-        tabIndex: 0,
-        onClick,
-        onKeyDown: (e) => {
-          if (e.target !== e.currentTarget) return;
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onClick(e);
-          }
-        },
-      }
-    : {};
   return (
     <Tag
       className={cls}
@@ -78,7 +91,7 @@ export function Card({
         ...CARD_VARIANT[variant],
         ...style,
       }}
-      {...interactive}
+      {...clickable(onClick, containsActions)}
       {...rest}
     >
       {children}
@@ -92,7 +105,8 @@ export function Card({
 // color when `bordered`); text color is left to inherit unless `color` is set,
 // because the copies split about evenly between body ink and tone-colored text.
 // `icon` lays a leading icon beside the content, top-aligned so it stays with
-// the first line when the message wraps.
+// the first line when the message wraps. `onClick` turns it into a banner or
+// list row you can activate, with the same keyboard handling as Card.
 const CALLOUT_TONE = {
   neutral: { bg: C.subtle, line: C.line },
   warn: { bg: C.aB, line: C.warn },
@@ -115,6 +129,8 @@ export function Callout({
   size,
   weight,
   pad = "md",
+  onClick,
+  containsActions,
   as: Tag = "div",
   style,
   children,
@@ -125,15 +141,19 @@ export function Callout({
     <Tag
       style={{
         background: t.bg,
-        border: bordered ? `1.5px solid ${t.line}` : undefined,
+        // Neutral wells were drawn with a hairline, tinted notices with a
+        // heavier tone-colored edge; keeping both weights keeps both reads.
+        border: bordered ? `${tone === "neutral" ? 1 : 1.5}px solid ${t.line}` : undefined,
         borderRadius: "var(--radius-md)",
         padding: CALLOUT_PAD[pad] ?? space(pad),
         color,
         fontSize: size && `var(--text-${size})`,
         fontWeight: weight && `var(--weight-${weight})`,
         ...(Icon ? { display: "flex", alignItems: "flex-start", gap: "var(--space-2)" } : {}),
+        cursor: onClick ? "pointer" : undefined,
         ...style,
       }}
+      {...clickable(onClick, containsActions)}
       {...rest}
     >
       {Icon ? (
@@ -145,6 +165,86 @@ export function Callout({
         children
       )}
     </Tag>
+  );
+}
+
+// The tinted square an icon sits in beside a stat or an action title. The
+// tint is the icon's own color at a low mix, so it themes with whatever color
+// the caller passes rather than needing a matching wash token.
+export function IconSwatch({ icon: Icon, color, size = 34, iconSize = 18, tint = 8 }) {
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "var(--radius-lg)",
+        background: `color-mix(in srgb, ${color} ${tint}%, transparent)`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      {Icon && <Icon size={iconSize} color={color} aria-hidden="true" />}
+    </span>
+  );
+}
+
+// One pickable row in a list of results (a search hit, a lookup match). The
+// hover/focus wash lives in CSS (.mrr-pick-row) — three screens did it with
+// onMouseEnter/onMouseLeave rewriting style.background, which never showed for
+// keyboard focus and left the row stuck highlighted if the list re-rendered
+// under the pointer.
+export function PickRow({ onClick, style, children, ...rest }) {
+  return (
+    <div
+      className="mrr-pick-row"
+      style={{
+        padding: "10px 14px",
+        cursor: "pointer",
+        borderBottom: `1px solid ${C.subtle}`,
+        ...style,
+      }}
+      {...clickable(onClick)}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+}
+
+// A horizontal rule between two parts of one surface. `space` is the --space-*
+// step above and below it.
+export function Divider({ dashed, space: s = 3, style }) {
+  return (
+    <hr
+      style={{
+        border: 0,
+        borderTop: `1px ${dashed ? "dashed" : "solid"} ${C.line}`,
+        margin: `${space(s)} 0`,
+        ...style,
+      }}
+    />
+  );
+}
+
+// A horizontal magnitude bar: a track and a fill at `value` (0-1) of it.
+// Rounded at the data end, square at the baseline it grows from, and a nonzero
+// value keeps a 3px stub so a small amount never reads as nothing.
+export function Meter({ value, color, track = C.subtle, height = 6, style }) {
+  const pct = Math.min(1, Math.max(0, value || 0));
+  return (
+    <div style={{ height, background: track, borderRadius: 2, ...style }}>
+      <div
+        style={{
+          width: `${(pct * 100).toFixed(1)}%`,
+          minWidth: pct > 0 ? 3 : 0,
+          height: "100%",
+          background: color,
+          borderRadius: "2px 4px 4px 2px",
+        }}
+      />
+    </div>
   );
 }
 
@@ -167,12 +267,14 @@ export function Stack({ gap = 5, align, as: Tag = "div", style, children, ...res
 }
 
 // Horizontal flex, vertically centered by default. `wrap` for toolbars and
-// chip rows that have to survive a phone-width screen.
+// chip rows that have to survive a phone-width screen. `inline` for an icon +
+// label pair that sits in a line of text or inside a badge.
 export function Row({
   gap = 3,
   align = "center",
   justify,
   wrap,
+  inline,
   as: Tag = "div",
   style,
   children,
@@ -181,7 +283,7 @@ export function Row({
   return (
     <Tag
       style={{
-        display: "flex",
+        display: inline ? "inline-flex" : "flex",
         alignItems: align,
         justifyContent: justify,
         flexWrap: wrap ? "wrap" : undefined,
@@ -269,11 +371,25 @@ export function Muted({ size = "xs", as: Tag = "div", style, children, ...rest }
 // scale; anything left unset inherits, exactly like a bare <span>. Unlike Muted
 // it leaves margins alone, so <Text as="p"> keeps a paragraph's spacing.
 // `font` picks a --font-* family: "display" for headline figures, "mono" for
-// slugs, ids and amounts that should read as exact.
-export function Text({ size, weight, color, font, as: Tag = "div", style, children, ...rest }) {
+// slugs, ids and amounts that should read as exact. `truncate` holds the text
+// to one line with an ellipsis — the three-property combo every narrow card
+// column spelled out by hand (it also needs minWidth: 0 on a flex parent).
+const TRUNCATE = { whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" };
+export function Text({
+  size,
+  weight,
+  color,
+  font,
+  truncate,
+  as: Tag = "div",
+  style,
+  children,
+  ...rest
+}) {
   return (
     <Tag
       style={{
+        ...(truncate ? TRUNCATE : {}),
         fontFamily: font && `var(--font-${font})`,
         fontSize: size && `var(--text-${size})`,
         fontWeight: weight && (weight === "normal" ? "normal" : `var(--weight-${weight})`),

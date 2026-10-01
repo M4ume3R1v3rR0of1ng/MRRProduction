@@ -16,7 +16,7 @@ import { Wrench, CheckCircle2, Save, Loader2 } from "lucide-react";
 import { updateRowStrict } from "@/shared/utils/supabase";
 import { C, fd, fm, recostLine } from "@/shared/utils/helpers";
 import { resolveBatchPerson } from "@/shared/utils/people";
-import { Btn, Fld, Inp, Modal, Row, Text, Muted } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, Row, Text, Muted, Callout } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -171,16 +171,7 @@ export default function BatchCorrectionModal({
 
   return (
     <Modal title={`Correct Batch — ${fd(batch.rcvd)}`} onClose={close}>
-      <div
-        style={{
-          background: C.lg,
-          borderRadius: "var(--radius-md)",
-          padding: "10px 12px",
-          marginBottom: "var(--space-4)",
-          fontSize: "var(--text-xs)",
-          color: C.sub,
-        }}
-      >
+      <Callout pad="10px 12px" size="xs" color={C.sub} style={{ marginBottom: "var(--space-4)" }}>
         Received {fd(batch.rcvd)} · {batch.qty} {item.unit} · {batch.rem} remaining · by{" "}
         {/* Third copy of the same broken lookup. See utils/people. */}
         {resolveBatchPerson(users, batch)}
@@ -188,7 +179,7 @@ export default function BatchCorrectionModal({
           Quantities aren't editable here — use <Wrench size={10} aria-hidden="true" /> Adjust Stock
           for those.
         </Row>
-      </div>
+      </Callout>
 
       {recalc ? (
         <div>
@@ -285,15 +276,11 @@ export default function BatchCorrectionModal({
           </div>
 
           {recalc.blended.length > 0 && (
-            <div
-              style={{
-                background: C.lg,
-                borderRadius: "var(--radius-md)",
-                padding: "10px 12px",
-                marginBottom: "var(--space-4)",
-                fontSize: "var(--text-xs)",
-                color: C.sub,
-              }}
+            <Callout
+              pad="10px 12px"
+              size="xs"
+              color={C.sub}
+              style={{ marginBottom: "var(--space-4)" }}
             >
               <Text as="strong" color={C.navy}>
                 {recalc.blended.length} other job{recalc.blended.length > 1 ? "s" : ""} won't be
@@ -302,7 +289,7 @@ export default function BatchCorrectionModal({
               They pulled {item.name} across several batches, so their cost is a blend this
               correction can't safely re-derive:{" "}
               {recalc.blended.map((j) => j.title || j.name || j.id).join(", ")}.
-            </div>
+            </Callout>
           )}
 
           <Row align="stretch">

@@ -13,6 +13,8 @@ import {
   Text,
   Muted,
   Table,
+  Callout,
+  Card,
 } from "@/shared/components/UIPrimitives";
 
 import { translations } from "@/shared/utils/translations";
@@ -208,14 +210,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
   };
 
   return (
-    <div
-      style={{
-        background: C.w,
-        borderRadius: "var(--radius-xl)",
-        padding: 24,
-        boxShadow: "var(--shadow-sm)",
-      }}
-    >
+    <Card variant="raised" pad="lg">
       <div>
         <Text as="h2" size="xl" weight="black" color={C.navy} style={{ margin: 0 }}>
           {t.alHeading}
@@ -323,17 +318,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               it and they mean opposite things — a "shortfall" is material leaving
               on a job, sitting in the same table as material arriving from a
               supplier. Saying so up front is cheaper than the support call. */}
-          <div
-            style={{
-              background: C.lg,
-              borderRadius: "var(--radius-md)",
-              padding: "10px 14px",
-              marginBottom: 14,
-              fontSize: "var(--text-xs)",
-              color: C.sub,
-              lineHeight: 1.6,
-            }}
-          >
+          <Callout size="xs" color={C.sub} style={{ marginBottom: 14, lineHeight: 1.6 }}>
             <Text as="strong" color={C.navy}>
               {t.alLegendTitle}
             </Text>
@@ -363,7 +348,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               </Text>{" "}
               {t.alLegendShort}
             </div>
-          </div>
+          </Callout>
 
           <div style={{ overflowX: "auto" }}>
             <Table pad="md" size="xs">
@@ -485,15 +470,12 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
           label={t.alLoadingHistory}
         />
       ) : loadError ? (
-        <div
-          style={{
-            background: "var(--c-rust-wash)",
-            border: "1.5px solid var(--c-rust)",
-            borderRadius: "var(--radius-lg)",
-            padding: "24px",
-            textAlign: "center",
-            color: "var(--c-rust)",
-          }}
+        <Callout
+          tone="danger"
+          bordered
+          pad={9}
+          color="var(--c-rust)"
+          style={{ borderRadius: "var(--radius-lg)", textAlign: "center" }}
         >
           <Row
             gap="7px"
@@ -512,7 +494,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
           <Btn v="primary" sz="sm" onClick={() => setRetryTick((t) => t + 1)}>
             <RefreshCw size={13} aria-hidden="true" /> Retry
           </Btn>
-        </div>
+        </Callout>
       ) : (
         <>
           {/* ── COMPACT INNER SCROLLBAR CONTAINER ────────────────────────── */}
@@ -715,20 +697,12 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                 short", so answer those in plain rows and keep the JSON below for
                 anything this does not know how to render. */}
             {activePayload.job_name && (
-              <div
-                style={{
-                  background: C.lg,
-                  borderRadius: "var(--radius-md)",
-                  padding: "10px 12px",
-                  marginBottom: 12,
-                  fontSize: "var(--text-sm)",
-                }}
-              >
+              <Callout pad="10px 12px" size="sm" style={{ marginBottom: 12 }}>
                 <Text weight="bold" color={C.navy}>
                   {activePayload.po ? `PO ${activePayload.po} · ` : ""}
                   {activePayload.job_name}
                 </Text>
-              </div>
+              </Callout>
             )}
 
             {Array.isArray(activePayload.lines) && activePayload.lines.length > 0 && (
@@ -770,15 +744,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
             )}
 
             {Array.isArray(activePayload.short) && activePayload.short.length > 0 && (
-              <div
-                style={{
-                  background: C.rB,
-                  border: `1.5px solid ${C.rd}`,
-                  borderRadius: "var(--radius-md)",
-                  padding: "10px 12px",
-                  marginBottom: 12,
-                }}
-              >
+              <Callout tone="danger" bordered pad="10px 12px" style={{ marginBottom: 12 }}>
                 <div
                   style={{
                     display: "flex",
@@ -797,7 +763,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                     {s.item}: {t.alDetailShortBy} {s.short} {s.unit}
                   </Text>
                 ))}
-              </div>
+              </Callout>
             )}
 
             <div
@@ -840,6 +806,6 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

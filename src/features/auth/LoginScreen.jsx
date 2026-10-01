@@ -20,7 +20,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/shared/utils/supabase";
 import { IS_IOS_APP } from "@/core/platform";
 import { C } from "@/shared/utils/helpers";
-import { Fld, Row, Stack, Text, Muted } from "@/shared/components/UIPrimitives";
+import { Fld, Row, Stack, Text, Muted, Callout } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";
 import { SteadwerkLockup, BRAND } from "@/shared/components/SteadwerkMark";
@@ -490,19 +490,15 @@ export default function LoginScreen({
         </div>
 
         {notice && (
-          <div
-            style={{
-              background: "var(--c-pasture-wash)",
-              color: BRAND.pasture,
-              padding: "10px 14px",
-              borderRadius: "var(--radius-md)",
-              fontSize: "var(--text-base)",
-              marginBottom: 16,
-              fontWeight: "var(--weight-semibold)",
-            }}
+          <Callout
+            tone="success"
+            size="base"
+            weight="semibold"
+            color={BRAND.pasture}
+            style={{ marginBottom: 16 }}
           >
             {notice}
-          </div>
+          </Callout>
         )}
 
         {setLang && !choices && (
@@ -535,18 +531,9 @@ export default function LoginScreen({
         )}
 
         {err && (
-          <div
-            style={{
-              background: C.rB,
-              color: C.rd,
-              padding: "10px 14px",
-              borderRadius: "var(--radius-md)",
-              fontSize: "var(--text-base)",
-              marginBottom: 16,
-            }}
-          >
+          <Callout tone="danger" size="base" color={C.rd} style={{ marginBottom: 16 }}>
             {err}
-          </div>
+          </Callout>
         )}
 
         {/* ── Second factor ──

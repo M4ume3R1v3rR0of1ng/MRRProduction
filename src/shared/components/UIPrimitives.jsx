@@ -6,7 +6,7 @@ import { translations } from "../utils/translations";
 import { compressImg } from "../utils/helpers";
 import { useNotify } from "../context/NotificationContext";
 import { HAS_NATIVE_CAMERA, capturePhoto } from "../utils/photoCapture";
-import { Stack, Row, Text, Muted } from "./LayoutPrimitives";
+import { Stack, Row, Text, Muted, Card, IconSwatch } from "./LayoutPrimitives";
 
 // Card, Stack, Row, Eyebrow, SectionTitle, Muted, Text, Table, Callout — kept in their own file
 // so this one stops growing, but re-exported so views have one import path.
@@ -20,6 +20,10 @@ export {
   Text,
   Table,
   Callout,
+  IconSwatch,
+  Divider,
+  Meter,
+  PickRow,
 } from "./LayoutPrimitives";
 
 // A plain colored severity dot — used wherever a status is conveyed by color
@@ -224,27 +228,20 @@ export function StatTile({
   label,
   value,
   color,
-  icon: Icon,
+  icon,
   onClick,
   sub,
   variant = "icon",
   style,
+  children,
 }) {
   if (variant === "borderLeft") {
     return (
-      <div
+      <Card
+        variant="raised"
+        pad={6}
         onClick={onClick}
-        className={onClick ? "mrr-card mrr-card-click" : "mrr-card"}
-        style={{
-          background: C.w,
-          borderRadius: "var(--radius-xl)",
-          padding: 14,
-          borderLeft: `5px solid ${color}`,
-          boxShadow: "var(--shadow-sm)",
-          flex: 1,
-          minWidth: 160,
-          ...style,
-        }}
+        style={{ borderLeft: `5px solid ${color}`, flex: 1, minWidth: 160, ...style }}
       >
         <Text size="3xl" weight="black" color={color}>
           {value}
@@ -255,65 +252,39 @@ export function StatTile({
             {sub}
           </Muted>
         )}
-      </div>
+        {children}
+      </Card>
     );
   }
   return (
-    <div
-      onClick={onClick}
-      className={onClick ? "mrr-card mrr-card-click" : "mrr-card"}
-      style={{
-        background: C.w,
-        borderRadius: "var(--radius-xl)",
-        padding: 14,
-        border: `1px solid ${C.bd}`,
-        minWidth: 0,
-        ...style,
-      }}
-    >
+    <Card pad={6} onClick={onClick} style={style}>
       <Row style={{ minWidth: 0 }}>
-        {Icon && (
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: "var(--radius-lg)",
-              background: `color-mix(in srgb, ${color} 8%, transparent)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <Icon size={18} color={color} aria-hidden="true" />
-          </div>
-        )}
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: "var(--text-2xl)",
-              fontWeight: "var(--weight-extrabold)",
-              color,
-              lineHeight: 1.1,
-              fontVariantNumeric: "tabular-nums",
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-            }}
+        {icon && <IconSwatch icon={icon} color={color} />}
+        <Stack gap={0} style={{ minWidth: 0 }}>
+          {/* nowrap + ellipsis: a valuation reads "$1,284,003" in a narrow
+              column, and a number that wraps mid-figure is worse than one that
+              is cut off. */}
+          <Text
+            size="2xl"
+            weight="extrabold"
+            color={color}
+            truncate
+            style={{ lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}
           >
             {value}
-          </div>
+          </Text>
           <Text size="xs" weight="semibold" color={C.sub} style={{ marginTop: 2 }}>
             {label}
           </Text>
-        </div>
+        </Stack>
       </Row>
       {sub && (
         <Muted size="2xs" style={{ marginTop: 4 }}>
           {sub}
         </Muted>
       )}
-    </div>
+      {children}
+    </Card>
   );
 }
 
@@ -399,6 +370,88 @@ export function FilterPill({ label, count, active, onClick, title }) {
         </span>
       )}
     </Btn>
+  );
+}
+
+// A two-or-three-way view switch (list / calendar) on a sunken track — the
+// one control Build Jobs and Maintenance each hand-rolled as a pair of raw
+// buttons. aria-pressed says which side is showing.
+export function Segmented({ options, value, onChange, style }) {
+  return (
+    <Row
+      gap={0}
+      role="group"
+      style={{ background: C.lg, padding: 4, borderRadius: "var(--radius-md)", ...style }}
+    >
+      {options.map(({ value: v, label, icon: Icon }) => {
+        const on = v === value;
+        return (
+          <Row
+            as="button"
+            type="button"
+            key={v}
+            gap={2}
+            aria-pressed={on}
+            onClick={() => onChange(v)}
+            style={{
+              padding: "6px 12px",
+              border: "none",
+              borderRadius: "var(--radius-sm)",
+              fontSize: "var(--text-sm)",
+              fontWeight: "var(--weight-bold)",
+              cursor: "pointer",
+              background: on ? C.w : "transparent",
+              color: on ? C.navy : C.sub,
+              boxShadow: on ? "var(--shadow-xs)" : "none",
+            }}
+          >
+            {Icon && <Icon size={13} aria-hidden="true" />} {label}
+          </Row>
+        );
+      })}
+    </Row>
+  );
+}
+
+// Underline tabs across the top of a view. aria-selected marks the open one.
+export function Tabs({ tabs, value, onChange, style }) {
+  return (
+    <Row
+      gap={2}
+      align="stretch"
+      wrap
+      role="tablist"
+      style={{ marginBottom: 16, borderBottom: `2px solid ${C.bd}`, ...style }}
+    >
+      {tabs.map(({ id, label, icon: Icon, title }) => {
+        const on = id === value;
+        return (
+          <Row
+            as="button"
+            type="button"
+            key={id}
+            gap={2}
+            role="tab"
+            aria-selected={on}
+            title={title}
+            onClick={() => onChange(id)}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: "8px 14px",
+              fontSize: "var(--text-sm)",
+              fontWeight: "var(--weight-extrabold)",
+              color: on ? C.navy : C.sub,
+              borderBottom: `3px solid ${on ? C.gold : "transparent"}`,
+              marginBottom: -2,
+            }}
+          >
+            {Icon && <Icon size={14} aria-hidden="true" />} {label}
+          </Row>
+        );
+      })}
+    </Row>
   );
 }
 
@@ -508,8 +561,12 @@ export function Fld({ label, children, hint, style }) {
   );
 }
 
-export function Inp(p) {
-  return (
+// `prefix` puts a fixed mark inside the left edge of the box — "$" on a money
+// field, a search icon on a filter. Nine screens built this by hand as a
+// relative wrapper plus an absolutely positioned span; the padding that keeps
+// typed text clear of the mark is the part they each guessed differently.
+export function Inp({ prefix, ...p }) {
+  const input = (
     <input
       {...p}
       className={`mrr-input ${p.className || ""}`}
@@ -521,9 +578,30 @@ export function Inp(p) {
         fontSize: "var(--text-md)",
         boxSizing: "border-box",
         background: C.w,
+        ...(prefix ? { paddingLeft: typeof prefix === "string" ? 22 : 28 } : {}),
         ...p.style,
       }}
     />
+  );
+  if (!prefix) return input;
+  return (
+    <span style={{ position: "relative", display: "block" }}>
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: typeof prefix === "string" ? 10 : 9,
+          top: "50%",
+          transform: "translateY(-50%)",
+          color: C.sub,
+          display: "flex",
+          pointerEvents: "none",
+        }}
+      >
+        {prefix}
+      </span>
+      {input}
+    </span>
   );
 }
 
@@ -619,6 +697,70 @@ export function Btn({ children, v = "primary", sz = "md", tone, ...p }) {
     >
       {children}
     </button>
+  );
+}
+
+// A text-only action: "Edit", "Remove", the × on a list row, a link inside a
+// sentence. Btn is wrong for these — its fill, shadow and hover lift make a
+// one-word action shout. `underline` for one that sits in running text and
+// would otherwise not read as clickable.
+export function TextBtn({
+  color = C.blue,
+  size,
+  weight = "bold",
+  underline,
+  style,
+  children,
+  ...p
+}) {
+  return (
+    <button
+      {...p}
+      style={{
+        background: "none",
+        border: "none",
+        padding: 0,
+        font: "inherit",
+        cursor: p.disabled ? "not-allowed" : "pointer",
+        fontSize: size && `var(--text-${size})`,
+        fontWeight: `var(--weight-${weight})`,
+        color,
+        ...(underline ? { textDecoration: "underline", textUnderlineOffset: 2 } : {}),
+        ...style,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// A checkbox drawn as a toggleable pill, for picking several of a short list
+// (the trailers on a job). The whole pill is the label, so it's one big target.
+export function CheckChip({ checked, onChange, disabled, children }) {
+  return (
+    <Row
+      as="label"
+      gap="5px"
+      style={{
+        background: checked ? C.tB : C.lg,
+        border: `1px solid ${checked ? C.tl : C.bd}`,
+        borderRadius: "var(--radius-pill)",
+        padding: "5px 12px",
+        fontSize: "var(--text-sm)",
+        fontWeight: "var(--weight-semibold)",
+        color: checked ? C.tl : C.navy,
+        cursor: disabled ? "not-allowed" : "pointer",
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        disabled={disabled}
+        style={{ margin: 0 }}
+      />
+      {children}
+    </Row>
   );
 }
 

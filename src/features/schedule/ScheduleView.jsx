@@ -235,19 +235,16 @@ export default function ScheduleView({
                       {d.getDate()}
                     </Text>
                     {day.trailerCount > 0 && (
-                      <span
+                      <Row
+                        inline
                         title={`${day.trailerCount} trailer(s) out`}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 2,
-                          fontSize: "var(--text-2xs)",
-                          color: C.sub,
-                        }}
+                        as="span"
+                        gap="2px"
+                        style={{ fontSize: "var(--text-2xs)", color: C.sub }}
                       >
                         <Truck size={10} aria-hidden="true" />
                         {day.trailerCount}
-                      </span>
+                      </Row>
                     )}
                   </Row>
 
@@ -308,18 +305,18 @@ export default function ScheduleView({
                   )}
 
                   {day.conflicts.length > 0 && (
-                    <span
+                    <Row
+                      inline
+                      as="span"
+                      gap="3px"
                       style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 3,
                         fontSize: "var(--text-2xs)",
                         color: C.am,
                         fontWeight: "var(--weight-bold)",
                       }}
                     >
                       <AlertTriangle size={10} aria-hidden="true" /> {day.conflicts.length}
-                    </span>
+                    </Row>
                   )}
                 </button>
               );

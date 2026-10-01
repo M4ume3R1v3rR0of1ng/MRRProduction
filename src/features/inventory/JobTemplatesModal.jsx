@@ -30,7 +30,17 @@ import {
   saveJobTemplates,
   resolveDefaultTemplates,
 } from "@/features/jobs/jobTemplates";
-import { Btn, Fld, Inp, Modal, Row, Stack, Text, Muted } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Fld,
+  Inp,
+  Modal,
+  Row,
+  Stack,
+  Text,
+  Muted,
+  Callout,
+} from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
 
 // Replace in place if the id is already known, otherwise append. Pulled out as a
@@ -184,23 +194,13 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                   {editing.items.map((t, idx) => {
                     const inCatalog = t.iid && inv.find((i) => i && i.id === t.iid);
                     return (
-                      <div
-                        key={t.iid || `x_${idx}`}
-                        style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}
-                      >
+                      <Callout key={t.iid || `x_${idx}`} pad="7px 9px" style={{ borderRadius: 7 }}>
                         <Text size="xs" weight="bold" color={C.navy} style={{ marginBottom: 4 }}>
                           {t.iname}{" "}
                           {!inCatalog && (
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 3,
-                                color: C.am,
-                              }}
-                            >
+                            <Row inline as="span" gap="3px" style={{ color: C.am }}>
                               <AlertTriangle size={10} aria-hidden="true" /> not in catalog
-                            </span>
+                            </Row>
                           )}
                         </Text>
                         <Row gap="5px">
@@ -242,7 +242,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                             ×
                           </button>
                         </Row>
-                      </div>
+                      </Callout>
                     );
                   })}
                 </Stack>
@@ -363,10 +363,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
           )}
           <Stack gap={3} style={{ maxHeight: 320, overflowY: "auto" }}>
             {tpls.map((tpl) => (
-              <div
-                key={tpl.id}
-                style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px" }}
-              >
+              <Callout key={tpl.id} pad="10px 12px">
                 <Row gap={2} justify="space-between" style={{ marginBottom: 4 }}>
                   <Text size="sm" weight="extrabold" color={C.navy}>
                     {tpl.icon} {tpl.name}
@@ -393,7 +390,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                     .map((t) => t.iname + (t.qty > 1 ? ` ×${t.qty}` : ""))
                     .join(" · ") || "No materials"}
                 </Muted>
-              </div>
+              </Callout>
             ))}
           </Stack>
           <Row gap={4} align="stretch" style={{ marginTop: 14 }}>

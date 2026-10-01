@@ -17,7 +17,7 @@ import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { validatePassword, PASSWORD_HINT } from "./passwordPolicy";
 import { translations } from "@/shared/utils/translations";
-import { Fld, Row, Text } from "@/shared/components/UIPrimitives";
+import { Fld, Row, Text, Callout } from "@/shared/components/UIPrimitives";
 import { SteadwerkLockup, BRAND } from "@/shared/components/SteadwerkMark";
 
 export default function ResetPasswordScreen({ onDone, lang = "en" }) {
@@ -110,19 +110,15 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
 
         {done ? (
           <>
-            <div
-              style={{
-                background: "var(--c-pasture-wash)",
-                color: BRAND.pasture,
-                padding: "10px 14px",
-                borderRadius: "var(--radius-md)",
-                fontSize: "var(--text-base)",
-                marginBottom: 20,
-                fontWeight: "var(--weight-semibold)",
-              }}
+            <Callout
+              tone="success"
+              size="base"
+              weight="semibold"
+              color={BRAND.pasture}
+              style={{ marginBottom: 20 }}
             >
               {t.rpChanged}
-            </div>
+            </Callout>
             <button
               className="mrr-btn"
               onClick={onDone}
@@ -145,18 +141,9 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
         ) : (
           <>
             {err && (
-              <div
-                style={{
-                  background: C.rB,
-                  color: C.rd,
-                  padding: "10px 14px",
-                  borderRadius: "var(--radius-md)",
-                  fontSize: "var(--text-base)",
-                  marginBottom: 16,
-                }}
-              >
+              <Callout tone="danger" size="base" color={C.rd} style={{ marginBottom: 16 }}>
                 {err}
-              </div>
+              </Callout>
             )}
 
             <Fld label={t.rpNewPassword} hint={PASSWORD_HINT}>

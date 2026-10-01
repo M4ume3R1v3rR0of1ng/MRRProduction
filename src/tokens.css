@@ -612,6 +612,16 @@ button:disabled {
   }
 }
 
+/* PickRow: a result row whose hover and keyboard focus share one wash. */
+.mrr-pick-row {
+  background: var(--c-surface);
+}
+
+.mrr-pick-row:hover,
+.mrr-pick-row:focus-visible {
+  background: var(--c-subtle);
+}
+
 /* ── Data tables ──
    Header look (padding, uppercase label, muted color, subtle fill) used to be
    redone as an inline style object on every <tr>/<th> in every table — 14+

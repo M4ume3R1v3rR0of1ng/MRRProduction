@@ -23,7 +23,17 @@ import { TRAINING_VIDEOS } from "@/shared/data/trainingVideos";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
-import { Btn, Fld, Inp, TA, Row, Stack, Text, Muted } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Fld,
+  Inp,
+  TA,
+  Row,
+  Stack,
+  Text,
+  Muted,
+  Callout,
+} from "@/shared/components/UIPrimitives";
 import { uploadFileToBucket, removeFromBucket } from "@/shared/utils/storageBucketUpload";
 import {
   orderedMedia,
@@ -560,18 +570,15 @@ export default function TrainingView({
         })}
       </Stack>
 
-      <p
-        style={{
-          marginTop: "var(--space-6)",
-          padding: "var(--space-5)",
-          borderRadius: "var(--radius-xl)",
-          background: C.lg,
-          color: C.sub,
-          fontSize: "var(--text-sm)",
-        }}
+      <Callout
+        as="p"
+        pad="var(--space-5)"
+        size="sm"
+        color={C.sub}
+        style={{ marginTop: "var(--space-6)", borderRadius: "var(--radius-xl)" }}
       >
         {t.trainingMoreComing}
-      </p>
+      </Callout>
 
       {/* Native <details>/<summary>: no accordion library to ship, keyboard-operable
           for free, and stays open to Ctrl+F. Same pattern as the FAQ on the public

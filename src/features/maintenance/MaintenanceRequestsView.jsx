@@ -33,6 +33,7 @@ import {
   Stack,
   Text,
   Muted,
+  Callout,
 } from "@/shared/components/UIPrimitives";
 import { notifyMaintFiled, notifyMaintStatus } from "@/shared/utils/maintenanceNotifications";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -677,9 +678,9 @@ export default function MaintenanceRequestsView({
                         </Bdg>
                         {isUrgent && (
                           <Bdg color="red">
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <Row inline as="span" gap={1}>
                               <AlertOctagon size={11} aria-hidden="true" /> {t.maintUrgent}
-                            </span>
+                            </Row>
                           </Bdg>
                         )}
                         <Bdg color="gray">{r.type}</Bdg>
@@ -687,7 +688,7 @@ export default function MaintenanceRequestsView({
                       <Text
                         as="h3"
                         weight="extrabold"
-                        color={"var(--c-barnwood)"}
+                        color="var(--c-barnwood)"
                         style={{ margin: "0 0 4px 0", fontSize: 15 }}
                       >
                         {r.vname}
@@ -695,7 +696,7 @@ export default function MaintenanceRequestsView({
                       <Text
                         as="p"
                         size="base"
-                        color={"var(--c-barnwood)"}
+                        color="var(--c-barnwood)"
                         style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
                       >
                         {r.notes}
@@ -704,11 +705,11 @@ export default function MaintenanceRequestsView({
                         {t.maintBy} {r.uname} •{" "}
                         {r.at ? new Date(r.at).toLocaleDateString() : "Recent"}
                         {r.scheduled_date && (
-                          <span
+                          <Row
+                            inline
+                            as="span"
+                            gap={1}
                             style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
                               marginLeft: 8,
                               color: "var(--c-slate)",
                               fontWeight: "var(--weight-bold)",
@@ -716,7 +717,7 @@ export default function MaintenanceRequestsView({
                           >
                             <Calendar size={11} aria-hidden="true" /> {t.scheduled}:{" "}
                             {new Date(r.scheduled_date).toLocaleDateString()}
-                          </span>
+                          </Row>
                         )}
                       </Muted>
                     </div>
@@ -797,16 +798,7 @@ export default function MaintenanceRequestsView({
             </Fld>
 
             <Fld label={`${t.maintIssueClassification} *`}>
-              <div
-                className="sw-grid-2"
-                style={{
-                  gap: "10px",
-                  background: "var(--c-subtle)",
-                  padding: 12,
-                  borderRadius: "var(--radius-md)",
-                  border: "1px solid var(--c-line)",
-                }}
-              >
+              <Callout className="sw-grid-2" bordered pad={5} style={{ gap: "10px" }}>
                 {[
                   "Routine Oil Change",
                   "Brake System Service",
@@ -845,7 +837,7 @@ export default function MaintenanceRequestsView({
                     </Row>
                   );
                 })}
-              </div>
+              </Callout>
             </Fld>
 
             <Fld label={t.urgency}>
@@ -934,17 +926,9 @@ export default function MaintenanceRequestsView({
             </div>
             <div>
               <strong>{t.maintNotesLabel}</strong>
-              <div
-                style={{
-                  background: C.lg,
-                  padding: 12,
-                  borderRadius: "var(--radius-md)",
-                  marginTop: 4,
-                  fontStyle: "italic",
-                }}
-              >
+              <Callout pad={5} style={{ marginTop: 4, fontStyle: "italic" }}>
                 "{sel.notes}"
-              </div>
+              </Callout>
               {(() => {
                 const lastCompleted = reqs
                   .filter((r) => r.vid === sel.vid && r.status === "completed" && r.id !== sel.id)
@@ -971,7 +955,7 @@ export default function MaintenanceRequestsView({
                     >
                       <History size={12} aria-hidden="true" /> {t.maintLastCompleted} — {sel.vname}
                     </Row>
-                    <Text size="sm" color={"var(--c-pasture)"} style={{ marginTop: 4 }}>
+                    <Text size="sm" color="var(--c-pasture)" style={{ marginTop: 4 }}>
                       {lastCompleted.wh_notes || t.maintNoResolutionNotes}
                     </Text>
                     {lastCompleted.completed_at && (
@@ -1068,7 +1052,7 @@ export default function MaintenanceRequestsView({
                 }}
               >
                 <Row align="flex-start" justify="space-between">
-                  <Text as="strong" color={"var(--c-pasture)"}>
+                  <Text as="strong" color="var(--c-pasture)">
                     {t.maintRequestClosed}
                   </Text>
                   <Btn v="ghost" sz="sm" onClick={() => downloadServiceReport(sel)}>

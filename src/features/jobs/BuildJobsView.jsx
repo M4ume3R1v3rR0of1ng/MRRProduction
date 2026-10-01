@@ -53,6 +53,15 @@ import {
   Text,
   Muted,
   Table,
+  Callout,
+  Segmented,
+  Eyebrow,
+  Divider,
+  Card,
+  Meter,
+  CheckChip,
+  PickRow,
+  TextBtn,
 } from "@/shared/components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "@/shared/utils/email";
 import { shouldNotifyJobMove, notifyJobMove } from "./jobNotifications";
@@ -814,54 +823,15 @@ export default function BuildJobs({
         subtitle={t.bjSubtitle}
         actions={
           <>
-            <div
-              style={{
-                display: "flex",
-                background: C.lg,
-                padding: 4,
-                borderRadius: "var(--radius-md)",
-                marginRight: 8,
-              }}
-            >
-              <button
-                onClick={() => setSubView("list")}
-                style={{
-                  padding: "6px 12px",
-                  border: "none",
-                  borderRadius: "var(--radius-sm)",
-                  fontSize: "var(--text-sm)",
-                  fontWeight: "var(--weight-bold)",
-                  cursor: "pointer",
-                  background: subView === "list" ? C.w : "transparent",
-                  color: subView === "list" ? C.navy : C.sub,
-                  boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <ClipboardList size={13} aria-hidden="true" /> Pipeline List
-              </button>
-              <button
-                onClick={() => setSubView("calendar")}
-                style={{
-                  padding: "6px 12px",
-                  border: "none",
-                  borderRadius: "var(--radius-sm)",
-                  fontSize: "var(--text-sm)",
-                  fontWeight: "var(--weight-bold)",
-                  cursor: "pointer",
-                  background: subView === "calendar" ? C.w : "transparent",
-                  color: subView === "calendar" ? C.navy : C.sub,
-                  boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <Calendar size={13} aria-hidden="true" /> Shift Timeline
-              </button>
-            </div>
+            <Segmented
+              value={subView}
+              onChange={setSubView}
+              style={{ marginRight: 8 }}
+              options={[
+                { value: "list", label: "Pipeline List", icon: ClipboardList },
+                { value: "calendar", label: "Shift Timeline", icon: Calendar },
+              ]}
+            />
 
             {perms.jobs_build && (
               <Btn
@@ -956,19 +926,13 @@ export default function BuildJobs({
             {dayGroups.map(([day, dayJobs]) => (
               <Fragment key={day || "undated"}>
                 <Row style={{ gridColumn: "1 / -1", marginTop: 4 }}>
-                  <h2
-                    style={{
-                      margin: 0,
-                      fontSize: "var(--text-sm)",
-                      fontWeight: "var(--weight-extrabold)",
-                      color: C.navy,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.4px",
-                      whiteSpace: "nowrap",
-                    }}
+                  <Eyebrow
+                    as="h2"
+                    color={C.navy}
+                    style={{ margin: 0, fontSize: "var(--text-sm)", whiteSpace: "nowrap" }}
                   >
                     {day ? fd(day) : "No date recorded"}
-                  </h2>
+                  </Eyebrow>
                   {day === todayLocal() && <Bdg color="amber">Today</Bdg>}
                   <Text
                     as="span"
@@ -981,7 +945,7 @@ export default function BuildJobs({
                   </Text>
                   {/* Rule to the right edge, so the header reads as a divider
                       across the row and not as a stray line of text. */}
-                  <div style={{ flex: 1, height: 1, background: C.bd }} />
+                  <Divider style={{ flex: 1, margin: 0 }} />
                 </Row>
                 {dayJobs.map((job) => {
                   const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
@@ -1007,51 +971,50 @@ export default function BuildJobs({
                     showProgress || perms.jobs_approve || job.status === "completed";
 
                   return (
-                    <div
+                    <Card
                       key={job.id}
                       ref={isHighlighted ? highlightRef : null}
-                      className={`mrr-card-click${isHighlighted ? " mrr-card-hail" : ""}`}
+                      className={isHighlighted ? "mrr-card-hail" : undefined}
+                      variant="raised"
+                      pad={6}
+                      containsActions
                       onClick={() => {
                         if (isHighlighted) onHighlightCleared?.();
                         setSel(job);
                         setModal("detail");
                       }}
                       style={{
-                        background: C.w,
-                        borderRadius: "var(--radius-xl)",
-                        padding: 14,
-                        cursor: "pointer",
-                        boxShadow: "var(--shadow-sm)",
                         border: `2px solid ${isHighlighted ? C.gold : statusMeta.color}`,
                         // Column, so the footer can be pushed to the bottom edge and
                         // line up with its neighbours across a row of unequal cards.
                         display: "flex",
                         flexDirection: "column",
-                        minWidth: 0,
                       }}
                     >
                       <Row gap="7px" wrap style={{ marginBottom: 6 }}>
-                        <span
+                        <Row
+                          inline
+                          as="span"
+                          gap={1}
                           style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "var(--space-1)",
                             fontSize: "var(--text-xs)",
                             fontWeight: "var(--weight-extrabold)",
                             color: statusMeta.color,
                           }}
                         >
                           <StatusDot color={statusMeta.color} />
-                          <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
-                        </span>
+                          <Text as="span" style={{ textTransform: "uppercase" }}>
+                            {statusMeta.label}
+                          </Text>
+                        </Row>
                         <Text as="span" size="sm" weight="semibold" color={C.sub}>
                           · {job.po}
                         </Text>
                         {isHighlighted && (
                           <Bdg color="gold">
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            <Row inline as="span" gap={1}>
                               <Sparkles size={11} aria-hidden="true" /> {highlight.label}
-                            </span>
+                            </Row>
                           </Bdg>
                         )}
                         {(syncStatusOf(job) === "synced" || reportUploadedAtOf(job)) && (
@@ -1067,60 +1030,48 @@ export default function BuildJobs({
                       {/* Clamped to one line: an address that wraps is worth reading in
                           full, but a job title that wraps just shoves every card in the
                           row taller. The full title is the modal's heading. */}
-                      <div
-                        style={{
-                          fontWeight: "var(--weight-extrabold)",
-                          color: C.navy,
-                          fontSize: 15,
-                          marginBottom: 2,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
+                      <Text
+                        weight="extrabold"
+                        color={C.navy}
+                        truncate
+                        style={{ fontSize: 15, marginBottom: 2 }}
                       >
                         {job.title || job.name}
-                      </div>
+                      </Text>
                       <Muted size="sm" style={{ marginBottom: 8 }}>
                         {job.addr}
                       </Muted>
                       {/* Row gap as well as column gap — this wraps to two lines in a
                           narrow column, and the old single `gap: space-6` left the
                           wrapped line sitting on top of the one above it. */}
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "2px var(--space-4)",
-                          fontSize: "var(--text-xs)",
-                          color: C.sub,
-                          flexWrap: "wrap",
-                        }}
+                      <Row
+                        gap="2px var(--space-4)"
+                        align="stretch"
+                        wrap
+                        style={{ fontSize: "var(--text-xs)", color: C.sub }}
                       >
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Row inline as="span" gap={1}>
                           <Package size={11} aria-hidden="true" />{" "}
                           {Math.max(currentItems.length, 0)} items
-                        </span>
+                        </Row>
                         {sup ? (
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <Row inline as="span" gap={1}>
                             <User size={11} aria-hidden="true" /> {sup.name}
-                          </span>
+                          </Row>
                         ) : (
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: 4,
-                              color: C.am,
-                            }}
-                          >
+                          <Row inline as="span" gap={1} style={{ color: C.am }}>
                             <AlertTriangle size={11} aria-hidden="true" /> Unassigned
-                          </span>
+                          </Row>
                         )}
                         {/* No "Created …" line: the day header above every card
                             now says it, on every sort. */}
-                      </div>
+                      </Row>
 
                       {hasFooter && (
-                        <div
+                        <Row
+                          gap={2}
+                          justify="flex-end"
+                          wrap
                           style={{
                             // Pinned to the bottom of the card, so the buttons sit on
                             // one line across a row instead of stepping up and down
@@ -1129,39 +1080,22 @@ export default function BuildJobs({
                             paddingTop: 10,
                             marginBottom: -2,
                             borderTop: `1px solid ${C.lg}`,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "flex-end",
-                            gap: "var(--space-2)",
-                            flexWrap: "wrap",
                           }}
                         >
                           {showProgress && (
-                            <div style={{ marginRight: "auto", minWidth: 90 }}>
+                            <Stack gap={0} style={{ marginRight: "auto", minWidth: 90 }}>
                               <Muted size="2xs" style={{ marginBottom: 3 }}>
                                 {pulledCount}/{currentItems.length} pulled
                               </Muted>
-                              {/* The fill had no background and was therefore invisible:
-                                  every job showed an empty track whatever it had pulled. */}
-                              <div
-                                style={{
-                                  height: 5,
-                                  width: 90,
-                                  background: C.lg,
-                                  borderRadius: 3,
-                                  overflow: "hidden",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    height: "100%",
-                                    borderRadius: 3,
-                                    background: statusMeta.color,
-                                    width: `${currentItems.length > 0 ? (pulledCount / currentItems.length) * 100 : 0}%`,
-                                  }}
-                                />
-                              </div>
-                            </div>
+                              <Meter
+                                value={
+                                  currentItems.length > 0 ? pulledCount / currentItems.length : 0
+                                }
+                                color={statusMeta.color}
+                                height={5}
+                                style={{ width: 90 }}
+                              />
+                            </Stack>
                           )}
                           {perms.jobs_approve && job.status === "draft" && (
                             <Btn
@@ -1228,9 +1162,9 @@ export default function BuildJobs({
                               <Trash2 size={13} aria-hidden="true" /> Delete
                             </Btn>
                           )}
-                        </div>
+                        </Row>
                       )}
-                    </div>
+                    </Card>
                   );
                 })}
               </Fragment>
@@ -1336,14 +1270,7 @@ export default function BuildJobs({
               </Btn>
             )}
           </Row>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))",
-              gap: "var(--space-3)",
-              marginBottom: 16,
-            }}
-          >
+          <CardGrid minWidth={140} gap="var(--space-3)" style={{ marginBottom: 16 }}>
             {[
               // Not itself a list item — a value in a [label, value] tuple, rendered
               // inside the keyed <div> below.
@@ -1370,26 +1297,21 @@ export default function BuildJobs({
                   .join(", ") || "None assigned",
               ],
             ].map(([k, v]) => (
-              <div
-                key={k}
-                style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}
-              >
+              <Callout key={k} pad={4}>
                 <Text size="2xs" weight="bold" color={C.sub} style={{ textTransform: "uppercase" }}>
                   {k}
                 </Text>
                 <Text size="sm" weight="bold" color={C.navy} style={{ marginTop: 2 }}>
                   {v}
                 </Text>
-              </div>
+              </Callout>
             ))}
-          </div>
+          </CardGrid>
           {perms.jobs_build && vehs.some((v) => v.type === "trailer") && (
-            <div style={{ marginBottom: 16 }}>
-              <div
+            <Stack gap={0} style={{ marginBottom: 16 }}>
+              <Row
+                gap="5px"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
                   fontSize: "var(--text-2xs)",
                   color: C.sub,
                   fontWeight: "var(--weight-bold)",
@@ -1398,7 +1320,7 @@ export default function BuildJobs({
                 }}
               >
                 <Truck size={11} aria-hidden="true" /> Assign Trailers
-              </div>
+              </Row>
               <Row gap={2} align="stretch" wrap>
                 {vehs
                   .filter((v) => v.type === "trailer")
@@ -1407,34 +1329,17 @@ export default function BuildJobs({
                       (jt) => jt.job_id === sel.id && jt.trailer_id === v.id,
                     );
                     return (
-                      <label
+                      <CheckChip
                         key={v.id}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
-                          background: checked ? C.tB : C.lg,
-                          border: `1px solid ${checked ? C.tl : C.bd}`,
-                          borderRadius: "var(--radius-pill)",
-                          padding: "5px 12px",
-                          fontSize: "var(--text-sm)",
-                          fontWeight: "var(--weight-semibold)",
-                          color: checked ? C.tl : C.navy,
-                          cursor: "pointer",
-                        }}
+                        checked={checked}
+                        onChange={() => toggleJobTrailer(sel.id, v.id)}
                       >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleJobTrailer(sel.id, v.id)}
-                          style={{ margin: 0 }}
-                        />
                         {v.name}
-                      </label>
+                      </CheckChip>
                     );
                   })}
               </Row>
-            </div>
+            </Stack>
           )}
           <div className="sw-table-scroll">
             <Table pad="md">
@@ -1560,36 +1465,24 @@ export default function BuildJobs({
 
       {modal === "approve" && sel && (
         <Modal title={`Approve: ${sel.title || sel.name}`} onClose={() => setModal(null)}>
-          <div
-            style={{
-              background: C.tB,
-              border: `1.5px solid ${C.tl}`,
-              borderRadius: "var(--radius-md)",
-              padding: "10px 14px",
-              marginBottom: 14,
-              fontSize: "var(--text-sm)",
-              color: C.tl,
-              fontWeight: "var(--weight-semibold)",
-            }}
+          <Callout
+            tone="teal"
+            bordered
+            size="sm"
+            weight="semibold"
+            color={C.tl}
+            style={{ marginBottom: 14 }}
           >
             {t.bjApproveNotice}
-          </div>
-          <div
-            style={{
-              background: C.lg,
-              borderRadius: "var(--radius-md)",
-              padding: "10px 14px",
-              marginBottom: 14,
-              fontSize: "var(--text-sm)",
-            }}
-          >
+          </Callout>
+          <Callout size="sm" style={{ marginBottom: 14 }}>
             <Text as="strong" color={C.navy}>
               {sel.po} — {sel.title || sel.name}
             </Text>
             <Text color={C.sub} style={{ marginTop: 2 }}>
               {Math.max((sel.items || sel.materials || []).length, 0)} items planned
             </Text>
-          </div>
+          </Callout>
           <Fld label={t.bjAssignSupervisorReq}>
             <Sel
               value={apAssign}
@@ -1650,10 +1543,10 @@ export default function BuildJobs({
           }}
           wide
         >
-          <div
+          <Row
+            gap={0}
+            align="stretch"
             style={{
-              display: "flex",
-              gap: 0,
               marginBottom: 18,
               background: C.lg,
               borderRadius: "var(--radius-md)",
@@ -1661,23 +1554,24 @@ export default function BuildJobs({
             }}
           >
             {["1. Find Job", "2. Add Inventory", "3. Assign & Save"].map((s, i) => (
-              <div
+              <Text
                 key={s}
+                size="xs"
+                weight="bold"
+                color={wStep === i + 1 ? C.onAccent : wStep > i + 1 ? C.gr : C.sub}
+                aria-current={wStep === i + 1 ? "step" : undefined}
                 style={{
                   flex: 1,
                   padding: "9px 6px",
                   textAlign: "center",
-                  fontSize: "var(--text-xs)",
-                  fontWeight: "var(--weight-bold)",
                   background: wStep === i + 1 ? C.blue : wStep > i + 1 ? C.gB : "transparent",
-                  color: wStep === i + 1 ? C.w : wStep > i + 1 ? C.gr : C.sub,
                 }}
               >
                 {wStep > i + 1 ? "✓ " : ""}
                 {s}
-              </div>
+              </Text>
             ))}
-          </div>
+          </Row>
 
           {wStep === 1 && (
             <div>
@@ -1701,7 +1595,9 @@ export default function BuildJobs({
                 </Btn>
               </Row>
               {axR.length > 0 && (
-                <div
+                <Card
+                  variant="flat"
+                  pad="none"
                   style={{
                     border: `1.5px solid ${C.bd}`,
                     borderRadius: "var(--radius-md)",
@@ -1710,7 +1606,7 @@ export default function BuildJobs({
                   }}
                 >
                   {axR.map((j) => (
-                    <div
+                    <PickRow
                       key={j.po}
                       onClick={() => {
                         setWPO({
@@ -1723,14 +1619,6 @@ export default function BuildJobs({
                         });
                         setAxR([]);
                       }}
-                      style={{
-                        padding: "10px 14px",
-                        cursor: "pointer",
-                        borderBottom: `1px solid ${C.lg}`,
-                        background: C.w,
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = C.lg)}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = C.w)}
                     >
                       <Text weight="bold" color={C.navy}>
                         {j.name}
@@ -1738,11 +1626,11 @@ export default function BuildJobs({
                       <Muted>
                         {j.po} · {j.addr}
                       </Muted>
-                    </div>
+                    </PickRow>
                   ))}
-                </div>
+                </Card>
               )}
-              <div style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
+              <Stack gap={0} style={{ borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
                 <Fld label={t.bjJobPo}>
                   <Inp
                     value={wPO.po}
@@ -1771,28 +1659,15 @@ export default function BuildJobs({
                     reporting, a guess quietly corrupts it. */}
                 {perms.jobs_revenue && (
                   <Fld label={t.bjContractValue} hint={t.bjContractValueHint}>
-                    <div style={{ position: "relative" }}>
-                      <span
-                        style={{
-                          position: "absolute",
-                          left: 10,
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          color: C.sub,
-                        }}
-                      >
-                        $
-                      </span>
-                      <Inp
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={wPO.contractValue || ""}
-                        onChange={(e) => setWPO({ ...wPO, contractValue: e.target.value })}
-                        placeholder="e.g. 14500.00"
-                        style={{ paddingLeft: 22 }}
-                      />
-                    </div>
+                    <Inp
+                      prefix="$"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={wPO.contractValue || ""}
+                      onChange={(e) => setWPO({ ...wPO, contractValue: e.target.value })}
+                      placeholder="e.g. 14500.00"
+                    />
                   </Fld>
                 )}
                 <Fld label={t.bjSchedStart}>
@@ -1803,7 +1678,7 @@ export default function BuildJobs({
                     onChange={(e) => setWPO({ ...wPO, scheduledDate: e.target.value })}
                   />
                 </Fld>
-              </div>
+              </Stack>
               <Btn
                 v="primary"
                 sz="lg"
@@ -1823,34 +1698,32 @@ export default function BuildJobs({
 
           {wStep === 2 && (
             <div>
-              <div
-                style={{
-                  background: C.gL,
-                  border: `1.5px solid ${C.gold}`,
-                  borderRadius: "var(--radius-md)",
-                  padding: "8px 12px",
-                  marginBottom: 12,
-                  fontSize: "var(--text-sm)",
-                  fontWeight: "var(--weight-bold)",
-                  color: C.navy,
-                }}
+              <Callout
+                tone="gold"
+                bordered
+                pad="sm"
+                size="sm"
+                weight="bold"
+                color={C.navy}
+                style={{ marginBottom: 12 }}
               >
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Row inline as="span" gap={2}>
                   <ClipboardList size={14} aria-hidden="true" /> {wPO.po} — {wPO.name}
-                </span>
-              </div>
+                </Row>
+              </Callout>
 
               {/* ── MULTI-COLUMN INTERACTIVE SIDE PANEL LAYOUT ── */}
               <Row gap={7} align="stretch" wrap>
                 {/* Column A: Job Material Templates */}
-                <div
+                <Callout
+                  bordered
+                  pad={5}
                   style={{
                     flex: 1.2,
                     minWidth: 200,
-                    background: C.bg || "var(--c-subtle)",
-                    border: `1px solid ${C.bd}`,
+                    background: C.bg,
+                    borderWidth: 1,
                     borderRadius: "var(--radius-lg)",
-                    padding: 12,
                     maxHeight: 380,
                     overflowY: "auto",
                   }}
@@ -1873,14 +1746,11 @@ export default function BuildJobs({
                       </Muted>
                     )}
                     {jobTemplates.map((tpl) => (
-                      <div
+                      <Card
                         key={tpl.id || tpl.name}
-                        style={{
-                          background: C.w,
-                          border: `1px solid ${C.lg}`,
-                          borderRadius: "var(--radius-md)",
-                          padding: "10px 12px",
-                        }}
+                        variant="flat"
+                        pad="sm"
+                        style={{ borderColor: C.lg, borderRadius: "var(--radius-md)" }}
                       >
                         <Row gap={2} justify="space-between" style={{ marginBottom: 6 }}>
                           <Text size="sm" weight="extrabold" color={C.navy}>
@@ -1895,7 +1765,7 @@ export default function BuildJobs({
                             .map((it) => it.iname + (it.qty > 1 ? ` ×${it.qty}` : ""))
                             .join(" · ")}
                         </Muted>
-                      </div>
+                      </Card>
                     ))}
                   </Stack>
                   <Row
@@ -1905,10 +1775,10 @@ export default function BuildJobs({
                   >
                     <Pencil size={10} aria-hidden="true" /> Manage these in Inventory → Templates
                   </Row>
-                </div>
+                </Callout>
 
                 {/* Column B: Real WMS System Catalog Query Feed */}
-                <div style={{ flex: 2, minWidth: 240 }}>
+                <Stack gap={0} style={{ flex: 2, minWidth: 240 }}>
                   <Inp
                     value={iSrch}
                     onChange={(e) => setISrch(e.target.value)}
@@ -1921,51 +1791,43 @@ export default function BuildJobs({
                       const added = (wItems || []).find((i) => i && i.iid === item.id);
 
                       return (
-                        <div
+                        <Card
                           key={item.id}
+                          pad="9px 12px"
                           style={{
-                            background: C.w,
                             borderRadius: "var(--radius-md)",
-                            padding: "9px 12px",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
                             border: `1.5px solid ${added ? C.blue : "transparent"}`,
-                            boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
                           }}
                         >
-                          <div>
-                            <Text size="sm" weight="bold" color={C.navy}>
-                              {item.name}
-                            </Text>
-                            <Muted size="2xs">
-                              {tot(item)} {item.unit} available
-                            </Muted>
-                          </div>
-                          {added ? (
-                            <Bdg color="blue">{t.bjAdded}</Bdg>
-                          ) : (
-                            <Btn v="primary" sz="sm" onClick={() => addWItem(item)}>
-                              {t.bjAdd}
-                            </Btn>
-                          )}
-                        </div>
+                          <Row justify="space-between">
+                            <div>
+                              <Text size="sm" weight="bold" color={C.navy}>
+                                {item.name}
+                              </Text>
+                              <Muted size="2xs">
+                                {tot(item)} {item.unit} available
+                              </Muted>
+                            </div>
+                            {added ? (
+                              <Bdg color="blue">{t.bjAdded}</Bdg>
+                            ) : (
+                              <Btn v="primary" sz="sm" onClick={() => addWItem(item)}>
+                                {t.bjAdd}
+                              </Btn>
+                            )}
+                          </Row>
+                        </Card>
                       );
                     })}
                   </Stack>
-                </div>
+                </Stack>
 
                 {/* Column C: Current Jobs Staged Checklist Draft */}
-                <div style={{ flex: 1.5, minWidth: 190 }}>
-                  <div
-                    style={{
-                      background: C.w,
-                      borderRadius: "var(--radius-lg)",
-                      padding: 12,
-                      boxShadow: "var(--shadow-sm)",
-                      position: "sticky",
-                      top: 0,
-                    }}
+                <Stack gap={0} style={{ flex: 1.5, minWidth: 190 }}>
+                  <Card
+                    variant="raised"
+                    pad={5}
+                    style={{ borderRadius: "var(--radius-lg)", position: "sticky", top: 0 }}
                   >
                     <Row
                       as="h4"
@@ -1981,10 +1843,7 @@ export default function BuildJobs({
                     ) : (
                       <Stack gap={2}>
                         {wItems.map((i) => (
-                          <div
-                            key={i.iid}
-                            style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}
-                          >
+                          <Callout key={i.iid} pad="7px 9px" style={{ borderRadius: 7 }}>
                             <Text
                               size="xs"
                               weight="bold"
@@ -2013,27 +1872,23 @@ export default function BuildJobs({
                               <Muted as="span" size="2xs">
                                 {i.unit}
                               </Muted>
-                              <button
+                              <TextBtn
+                                color={C.rd}
+                                size="lg"
+                                weight="normal"
+                                aria-label="Remove"
                                 onClick={() => setWItems((p) => p.filter((x) => x.iid !== i.iid))}
-                                style={{
-                                  marginLeft: "auto",
-                                  background: "none",
-                                  border: "none",
-                                  cursor: "pointer",
-                                  color: C.rd,
-                                  fontSize: "var(--text-lg)",
-                                  lineHeight: 1,
-                                }}
+                                style={{ marginLeft: "auto", lineHeight: 1 }}
                               >
                                 ×
-                              </button>
+                              </TextBtn>
                             </Row>
-                          </div>
+                          </Callout>
                         ))}
                       </Stack>
                     )}
-                  </div>
-                </div>
+                  </Card>
+                </Stack>
               </Row>
               <Row gap={4} align="stretch" style={{ marginTop: 14 }}>
                 <Btn
@@ -2062,19 +1917,12 @@ export default function BuildJobs({
 
           {wStep === 3 && (
             <div>
-              <div
-                style={{
-                  background: C.lg,
-                  borderRadius: "var(--radius-md)",
-                  padding: "10px 14px",
-                  marginBottom: 14,
-                }}
-              >
+              <Callout style={{ marginBottom: 14 }}>
                 <Text weight="bold" color={C.navy}>
                   {wPO.po} — {wPO.name}
                 </Text>
                 <Muted size="sm">{wItems.length} items planned</Muted>
-              </div>
+              </Callout>
               <Fld label={t.bjNotes} hint={t.bjNotesHint}>
                 <TA
                   value={wPO.notes}
@@ -2093,33 +1941,20 @@ export default function BuildJobs({
                   ))}
                 </Sel>
               </Fld>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  background: wAssign ? C.tB : C.aB,
-                  border: `1px solid ${wAssign ? C.tl : C.am}`,
-                  borderRadius: "var(--radius-md)",
-                  padding: "8px 12px",
-                  marginBottom: 14,
-                  fontSize: "var(--text-sm)",
-                  color: wAssign ? C.tl : C.am,
-                  fontWeight: "var(--weight-semibold)",
-                }}
+              <Callout
+                tone={wAssign ? "teal" : "warn"}
+                bordered
+                pad="sm"
+                icon={wAssign ? CheckCircle2 : AlertTriangle}
+                size="sm"
+                weight="semibold"
+                color={wAssign ? C.tl : C.am}
+                style={{ marginBottom: 14 }}
               >
-                {wAssign ? (
-                  <>
-                    <CheckCircle2 size={14} aria-hidden="true" />{" "}
-                    {users.find((u) => u.id === wAssign)?.name} will be notified when you approve.
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle size={14} aria-hidden="true" /> No supervisor assigned — will
-                    save as draft.
-                  </>
-                )}
-              </div>
+                {wAssign
+                  ? `${users.find((u) => u.id === wAssign)?.name} will be notified when you approve.`
+                  : "No supervisor assigned — will save as draft."}
+              </Callout>
               {vehs.some((v) => v.type === "trailer") && (
                 <Fld label={t.bjTrailersNeeded} hint={t.bjTrailersHint}>
                   <Row gap={2} align="stretch" wrap>
@@ -2128,34 +1963,17 @@ export default function BuildJobs({
                       .map((v) => {
                         const checked = wTrailers.includes(v.id);
                         return (
-                          <label
+                          <CheckChip
                             key={v.id}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 5,
-                              background: checked ? C.tB : C.lg,
-                              border: `1px solid ${checked ? C.tl : C.bd}`,
-                              borderRadius: "var(--radius-pill)",
-                              padding: "5px 12px",
-                              fontSize: "var(--text-sm)",
-                              fontWeight: "var(--weight-semibold)",
-                              color: checked ? C.tl : C.navy,
-                              cursor: "pointer",
-                            }}
+                            checked={checked}
+                            onChange={() =>
+                              setWTrailers((p) =>
+                                p.includes(v.id) ? p.filter((id) => id !== v.id) : [...p, v.id],
+                              )
+                            }
                           >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() =>
-                                setWTrailers((p) =>
-                                  p.includes(v.id) ? p.filter((id) => id !== v.id) : [...p, v.id],
-                                )
-                              }
-                              style={{ margin: 0 }}
-                            />
                             {v.name}
-                          </label>
+                          </CheckChip>
                         );
                       })}
                   </Row>
@@ -2248,14 +2066,14 @@ export default function BuildJobs({
                   : t.bjClosedMsg
               }
               actionLabel={
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Row inline as="span" gap={2}>
                   {built ? (
                     <ClipboardList size={13} aria-hidden="true" />
                   ) : (
                     <Lock size={13} aria-hidden="true" />
                   )}{" "}
                   {built ? t.bjSeeInPull : t.bjSeeInClosed}
-                </span>
+                </Row>
               }
               onGo={() => {
                 const j = handoff.job;

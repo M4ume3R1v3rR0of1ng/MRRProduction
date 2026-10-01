@@ -19,6 +19,8 @@ import {
   Text,
   Muted,
   Table,
+  Callout,
+  Card,
 } from "@/shared/components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "@/shared/context/NotificationContext";
 // One CSV writer for the app. The local copy this replaced wrapped every field
@@ -161,14 +163,7 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
   );
 
   return (
-    <div
-      style={{
-        background: C.w,
-        padding: 20,
-        borderRadius: "var(--radius-xl)",
-        boxShadow: "var(--shadow-sm)",
-      }}
-    >
+    <Card variant="raised" pad={8}>
       <Row gap={4} justify="space-between" wrap style={{ marginBottom: 16 }}>
         <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
           {t.rptJobProfTitle}
@@ -201,20 +196,11 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
       </div>
 
       {canSeeRevenue && summary.unpricedCount > 0 && (
-        <div
-          style={{
-            background: C.lg,
-            borderRadius: "var(--radius-md)",
-            padding: "10px 14px",
-            marginBottom: 14,
-            fontSize: "var(--text-sm)",
-            color: C.sub,
-          }}
-        >
+        <Callout size="sm" color={C.sub} style={{ marginBottom: 14 }}>
           {t.rptUnpricedNote
             .replace("{n}", summary.unpricedCount)
             .replace("{total}", summary.jobCount)}
-        </div>
+        </Callout>
       )}
 
       <Table pad="lg" size="base">
@@ -387,7 +373,7 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
           </tfoot>
         )}
       </Table>
-    </div>
+    </Card>
   );
 }
 
@@ -457,14 +443,7 @@ function InventoryCostTrendsReport({ inv, t }) {
   };
 
   return (
-    <div
-      style={{
-        background: C.w,
-        padding: 20,
-        borderRadius: "var(--radius-xl)",
-        boxShadow: "var(--shadow-sm)",
-      }}
-    >
+    <Card variant="raised" pad={8}>
       <Row gap={4} justify="space-between" wrap style={{ marginBottom: 16 }}>
         <div>
           <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
@@ -540,7 +519,7 @@ function InventoryCostTrendsReport({ inv, t }) {
           ))}
         </tbody>
       </Table>
-    </div>
+    </Card>
   );
 }
 
@@ -659,14 +638,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
       {/* UPPER REVENUE METER LEVEL */}
       <CardGrid minWidth={320} fit gap="var(--space-7)">
         {/* PANEL A */}
-        <div
-          style={{
-            background: C.w,
-            borderRadius: "var(--radius-xl)",
-            padding: 20,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-          }}
-        >
+        <Card variant="raised" pad={8}>
           <Text as="h3" size="md" weight="extrabold" color={C.navy} style={{ margin: "0 0 4px 0" }}>
             {t.rptExpenseBurn}
           </Text>
@@ -713,17 +685,10 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
               );
             })}
           </Stack>
-        </div>
+        </Card>
 
         {/* PANEL B */}
-        <div
-          style={{
-            background: C.w,
-            borderRadius: "var(--radius-xl)",
-            padding: 20,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-          }}
-        >
+        <Card variant="raised" pad={8}>
           <Text as="h3" size="md" weight="extrabold" color={C.navy} style={{ margin: "0 0 4px 0" }}>
             {t.rptComplianceMonitor}
           </Text>
@@ -772,18 +737,11 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
               </div>
             )}
           </Stack>
-        </div>
+        </Card>
       </CardGrid>
 
       {/* DETAILED LEDGER GRID */}
-      <div
-        style={{
-          background: C.w,
-          padding: 20,
-          borderRadius: "var(--radius-xl)",
-          boxShadow: "var(--shadow-sm)",
-        }}
-      >
+      <Card variant="raised" pad={8}>
         <Row gap={0} justify="space-between" style={{ marginBottom: 16 }}>
           <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
             {t.rptFleetLedgerTitle}
@@ -850,7 +808,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
             </tr>
           </tfoot>
         </Table>
-      </div>
+      </Card>
 
       {/* ── HISTORICAL VEHICLE INSPECTION LOOPS LIST CANVA PIPELINE ── */}
       <div
@@ -881,18 +839,9 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
             label={t.rptStreamingMetrics}
           />
         ) : inspections.length === 0 ? (
-          <div
-            style={{
-              padding: 24,
-              textAlign: "center",
-              color: C.sub,
-              fontSize: "var(--text-base)",
-              background: C.lg,
-              borderRadius: "var(--radius-md)",
-            }}
-          >
+          <Callout pad={9} size="base" color={C.sub} style={{ textAlign: "center" }}>
             {t.rptNoInspections}
-          </div>
+          </Callout>
         ) : (
           /* ── SCROLL CONTAINER BOUNDARY CONTROLLER ── */
           <div
@@ -931,7 +880,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                   <Text
                     as="p"
                     size="base"
-                    color={"var(--c-barnwood)"}
+                    color="var(--c-barnwood)"
                     style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
                   >
                     {log.notes || (
@@ -1094,14 +1043,7 @@ function AuditTrailReport({ t, companyId }) {
   };
 
   return (
-    <div
-      style={{
-        background: C.w,
-        padding: 20,
-        borderRadius: "var(--radius-xl)",
-        boxShadow: "var(--shadow-sm)",
-      }}
-    >
+    <Card variant="raised" pad={8}>
       <Row gap={4} justify="space-between" wrap style={{ marginBottom: 16 }}>
         <div>
           <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
@@ -1136,15 +1078,12 @@ function AuditTrailReport({ t, companyId }) {
           label={t.rptLoadingAudit}
         />
       ) : loadError ? (
-        <div
-          style={{
-            background: "var(--c-rust-wash)",
-            border: "1.5px solid var(--c-rust)",
-            borderRadius: "var(--radius-lg)",
-            padding: "20px",
-            textAlign: "center",
-            color: "var(--c-rust)",
-          }}
+        <Callout
+          tone="danger"
+          bordered
+          pad={8}
+          color="var(--c-rust)"
+          style={{ borderRadius: "var(--radius-lg)", textAlign: "center" }}
         >
           <Text weight="bold" style={{ marginBottom: 6 }}>
             {t.rptAuditLoadFailTitle}
@@ -1155,7 +1094,7 @@ function AuditTrailReport({ t, companyId }) {
           <Btn v="primary" sz="sm" onClick={() => setRetryTick((prev) => prev + 1)}>
             {t.rptRetry}
           </Btn>
-        </div>
+        </Callout>
       ) : (
         <Table pad="md" maxHeight={400}>
           <thead className="mrr-thead-sticky">
@@ -1192,7 +1131,7 @@ function AuditTrailReport({ t, companyId }) {
           </tbody>
         </Table>
       )}
-    </div>
+    </Card>
   );
 }
 
