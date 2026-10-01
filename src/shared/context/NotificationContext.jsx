@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { CheckCircle2, AlertTriangle, XCircle, X } from "lucide-react";
 import { C } from "../utils/helpers";
 import { TrussMark } from "../components/SteadwerkMark";
+import { Row, Text } from "../components/LayoutPrimitives";
 
 const NotificationContext = createContext();
 
@@ -158,32 +159,21 @@ export function NotificationProvider({ children }) {
                 </div>
 
                 <div style={{ padding: "var(--space-8)" }}>
-                  <p
-                    style={{
-                      margin: 0,
-                      color: C.navy,
-                      fontSize: "var(--text-md)",
-                      lineHeight: 1.65,
-                    }}
-                  >
+                  <Text as="p" size="md" color={C.navy} style={{ margin: 0, lineHeight: 1.65 }}>
                     {o.message}
-                  </p>
+                  </Text>
                   {o.detail && (
-                    <p
-                      style={{
-                        margin: "12px 0 0",
-                        color: C.sub,
-                        fontSize: "var(--text-base)",
-                        lineHeight: 1.6,
-                      }}
+                    <Text
+                      as="p"
+                      size="base"
+                      color={C.sub}
+                      style={{ margin: "12px 0 0", lineHeight: 1.6 }}
                     >
                       {o.detail}
-                    </p>
+                    </Text>
                   )}
 
-                  <div
-                    style={{ display: "flex", gap: "var(--space-3)", marginTop: "var(--space-7)" }}
-                  >
+                  <Row align="stretch" style={{ marginTop: "var(--space-7)" }}>
                     <button
                       className="mrr-btn"
                       onClick={() => settle(false)}
@@ -221,7 +211,7 @@ export function NotificationProvider({ children }) {
                     >
                       {o.confirmLabel || "Confirm"}
                     </button>
-                  </div>
+                  </Row>
                 </div>
               </div>
             </div>
@@ -262,10 +252,10 @@ export function NotificationProvider({ children }) {
                 gap: 12,
               }}
             >
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
+              <Row gap="9px" align="flex-start">
                 <style.Icon size={17} style={{ marginTop: 1, flexShrink: 0 }} aria-hidden="true" />
                 <div>{t.message}</div>
-              </div>
+              </Row>
               <button
                 onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
                 style={{

@@ -11,7 +11,7 @@ import { updateRowStrict } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "./lowStockAlerts";
 import { C, uid, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Fld, Inp, Modal, TA, Card, Row } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, TA, Card, Row, Text } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -146,9 +146,9 @@ export default function AdjustStockModal({
         }}
       >
         Current on-hand:{" "}
-        <strong style={{ color: C.navy }}>
+        <Text as="strong" color={C.navy}>
           {tot(item)} {item.unit}
-        </strong>
+        </Text>
       </Card>
       <Fld label={`Corrected Quantity (${item.unit})`}>
         <Inp

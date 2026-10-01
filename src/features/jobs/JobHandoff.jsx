@@ -18,6 +18,7 @@
 // permitted is worse than no button.
 import { C } from "@/shared/utils/helpers";
 import { TrussMark } from "@/shared/components/SteadwerkMark";
+import { Stack, Text } from "@/shared/components/UIPrimitives";
 
 export default function JobHandoff({
   job,
@@ -58,56 +59,39 @@ export default function JobHandoff({
           textAlign: "center",
         }}
       >
-        <div
-          style={{
-            background: "var(--brand-accent, var(--c-amber))",
-            padding: "var(--space-7)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 8,
-          }}
+        <Stack
+          gap={3}
+          align="center"
+          style={{ background: "var(--brand-accent, var(--c-amber))", padding: "var(--space-7)" }}
         >
           <TrussMark size={34} color="var(--brand-accent-ink, var(--c-shell))" />
-          <div
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "var(--text-xl)",
-              fontWeight: "var(--weight-black)",
-              color: "var(--brand-accent-ink, var(--c-shell))",
-            }}
+          <Text
+            size="xl"
+            weight="black"
+            color={"var(--brand-accent-ink, var(--c-shell))"}
+            style={{ fontFamily: "var(--font-display)" }}
           >
             {title}
-          </div>
-        </div>
+          </Text>
+        </Stack>
 
         <div style={{ padding: "var(--space-8)" }}>
-          <div
-            style={{
-              fontWeight: "var(--weight-extrabold)",
-              color: C.navy,
-              fontSize: "var(--text-lg)",
-              marginBottom: 2,
-            }}
-          >
+          <Text size="lg" weight="extrabold" color={C.navy} style={{ marginBottom: 2 }}>
             {job.title || job.name}
-          </div>
-          <div style={{ color: C.sub, fontSize: "var(--text-base)", marginBottom: 4 }}>
+          </Text>
+          <Text size="base" color={C.sub} style={{ marginBottom: 4 }}>
             PO {job.po || "—"}
             {job.addr ? ` · ${job.addr}` : ""}
-          </div>
-          <div
-            style={{
-              color: C.sub,
-              fontSize: "var(--text-base)",
-              lineHeight: 1.6,
-              marginBottom: "var(--space-7)",
-            }}
+          </Text>
+          <Text
+            size="base"
+            color={C.sub}
+            style={{ lineHeight: 1.6, marginBottom: "var(--space-7)" }}
           >
             {message}
-          </div>
+          </Text>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          <Stack gap={3}>
             {onGo && actionLabel && (
               <button
                 className="mrr-btn"
@@ -143,7 +127,7 @@ export default function JobHandoff({
             >
               {closeLabel}
             </button>
-          </div>
+          </Stack>
         </div>
       </div>
     </div>

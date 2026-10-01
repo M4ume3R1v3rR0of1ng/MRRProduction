@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
 import { Shield, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
-import { Btn, Inp, Fld, Card } from "@/shared/components/UIPrimitives";
+import { Btn, Inp, Fld, Card, Row, Stack, Text, Muted } from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 
 export default function MfaPanel({ user, lang = "en" }) {
@@ -135,7 +135,9 @@ export default function MfaPanel({ user, lang = "en" }) {
       >
         <Shield size={18} aria-hidden="true" /> {t.mfaTitle}
       </h2>
-      <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>{t.mfaIntro}</p>
+      <Text as="p" size="base" color={C.sub} style={{ margin: "0 0 20px" }}>
+        {t.mfaIntro}
+      </Text>
 
       {msg.text && (
         <div
@@ -154,7 +156,9 @@ export default function MfaPanel({ user, lang = "en" }) {
       )}
 
       {loading ? (
-        <div style={{ color: C.sub, fontSize: "var(--text-base)" }}>{t.mfaLoading}</div>
+        <Text size="base" color={C.sub}>
+          {t.mfaLoading}
+        </Text>
       ) : pending ? (
         <form onSubmit={confirmEnroll}>
           <ol
@@ -171,7 +175,7 @@ export default function MfaPanel({ user, lang = "en" }) {
           </ol>
 
           {pending.qr && (
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+            <Row gap={0} align="stretch" justify="center" style={{ marginBottom: 14 }}>
               {/* Supabase returns the QR as an SVG data: URI, which the production
                   CSP allows under img-src. A hosted chart image would not load.
                   The backing stays paper-white in both themes (see --c-scan-paper):
@@ -189,7 +193,7 @@ export default function MfaPanel({ user, lang = "en" }) {
                   border: `1px solid ${C.bd}`,
                 }}
               />
-            </div>
+            </Row>
           )}
 
           {/* The typed fallback matters more than it looks: the QR is unscannable
@@ -228,7 +232,7 @@ export default function MfaPanel({ user, lang = "en" }) {
             />
           </Fld>
 
-          <div style={{ display: "flex", gap: "var(--space-3)" }}>
+          <Row align="stretch">
             <Btn
               v="ghost"
               type="button"
@@ -246,18 +250,11 @@ export default function MfaPanel({ user, lang = "en" }) {
             >
               {busy ? t.mfaVerifying : t.mfaTurnOn}
             </Btn>
-          </div>
+          </Row>
         </form>
       ) : verified.length > 0 ? (
         <>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-              marginBottom: 16,
-            }}
-          >
+          <Stack gap={3} style={{ marginBottom: 16 }}>
             {verified.map((f) => (
               <div
                 key={f.id}
@@ -273,11 +270,9 @@ export default function MfaPanel({ user, lang = "en" }) {
                 }}
               >
                 <div>
-                  <div
+                  <Row
+                    gap={2}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
                       fontWeight: "var(--weight-bold)",
                       color: C.navy,
                       fontSize: "var(--text-base)",
@@ -285,20 +280,20 @@ export default function MfaPanel({ user, lang = "en" }) {
                   >
                     <CheckCircle2 size={14} color={C.gr} aria-hidden="true" />{" "}
                     {f.friendly_name || t.mfaAuthenticator}
-                  </div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                  </Row>
+                  <Muted size="2xs">
                     {t.mfaAddedOn} {new Date(f.created_at).toLocaleDateString()}
-                  </div>
+                  </Muted>
                 </div>
                 <Btn v="danger" sz="sm" onClick={() => removeFactor(f.id)} disabled={busy}>
                   {t.mfaRemove}
                 </Btn>
               </div>
             ))}
-          </div>
-          <p style={{ margin: 0, fontSize: "var(--text-2xs)", color: C.sub, lineHeight: 1.6 }}>
+          </Stack>
+          <Muted as="p" size="2xs" style={{ margin: 0, lineHeight: 1.6 }}>
             {t.mfaLostDevice}
-          </p>
+          </Muted>
         </>
       ) : (
         <>
@@ -311,17 +306,15 @@ export default function MfaPanel({ user, lang = "en" }) {
             {busy ? t.mfaStarting : t.mfaSetUp}
           </Btn>
           {user?.isPlatformAdmin && (
-            <p
-              style={{
-                margin: "14px 0 0",
-                fontSize: "var(--text-2xs)",
-                color: C.rd,
-                fontWeight: "var(--weight-bold)",
-                lineHeight: 1.6,
-              }}
+            <Text
+              as="p"
+              size="2xs"
+              weight="bold"
+              color={C.rd}
+              style={{ margin: "14px 0 0", lineHeight: 1.6 }}
             >
               {t.mfaOwnerNudge}
-            </p>
+            </Text>
           )}
         </>
       )}

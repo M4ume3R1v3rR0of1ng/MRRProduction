@@ -6,10 +6,11 @@ import { translations } from "../utils/translations";
 import { compressImg } from "../utils/helpers";
 import { useNotify } from "../context/NotificationContext";
 import { HAS_NATIVE_CAMERA, capturePhoto } from "../utils/photoCapture";
+import { Stack, Row, Text, Muted } from "./LayoutPrimitives";
 
 // Card, Stack, Row, Eyebrow, SectionTitle, Muted, Table — kept in their own file
 // so this one stops growing, but re-exported so views have one import path.
-export { Card, Stack, Row, Eyebrow, SectionTitle, Muted, Table } from "./LayoutPrimitives";
+export { Card, Stack, Row, Eyebrow, SectionTitle, Muted, Text, Table } from "./LayoutPrimitives";
 
 // A plain colored severity dot — used wherever a status is conveyed by color
 // alone (jobStatusMeta in helpers.js), rather than reaching for an icon shape
@@ -46,23 +47,19 @@ export function Spinner({ size = 18, color }) {
 
 export function LoadingState({ label = "Loading...", compact = false }) {
   return (
-    <div
+    <Stack
+      gap={3}
+      align="center"
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
         justifyContent: "center",
-        gap: "var(--space-3)",
         padding: compact ? "var(--space-5) 0" : "var(--space-9) 0",
       }}
     >
       <Spinner size={compact ? 16 : 22} />
-      <span
-        style={{ fontSize: "var(--text-sm)", color: C.sub, fontWeight: "var(--weight-semibold)" }}
-      >
+      <Text as="span" size="sm" weight="semibold" color={C.sub}>
         {label}
-      </span>
-    </div>
+      </Text>
+    </Stack>
   );
 }
 
@@ -97,33 +94,21 @@ export function SkeletonTable({
 }) {
   return (
     <div role="status" aria-busy="true" aria-label={label} style={{ width: "100%" }}>
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-6)",
-          padding: "12px 14px",
-          borderBottom: `1.5px solid ${C.line}`,
-        }}
+      <Row
+        gap={6}
+        align="stretch"
+        style={{ padding: "12px 14px", borderBottom: `1.5px solid ${C.line}` }}
       >
         {cols.map((w, i) => (
           <Skeleton key={i} w={w} h={9} />
         ))}
-      </div>
+      </Row>
       {Array.from({ length: rows }, (_, r) => (
-        <div
-          key={r}
-          style={{
-            display: "flex",
-            gap: "var(--space-6)",
-            padding: "14px",
-            borderBottom: `1px solid ${C.line}`,
-            alignItems: "center",
-          }}
-        >
+        <Row key={r} gap={6} style={{ padding: "14px", borderBottom: `1px solid ${C.line}` }}>
           {cols.map((w, i) => (
             <Skeleton key={i} w={w} h={13} />
           ))}
-        </div>
+        </Row>
       ))}
     </div>
   );
@@ -189,16 +174,12 @@ export function PageHeader({ icon: Icon, title, subtitle, actions, style }) {
           {Icon && <Icon size={22} aria-hidden="true" />} {title}
         </h1>
         {subtitle && (
-          <p style={{ margin: "2px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>{subtitle}</p>
+          <Muted as="p" size="sm" style={{ margin: "2px 0 0" }}>
+            {subtitle}
+          </Muted>
         )}
       </div>
-      {actions && (
-        <div
-          style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", alignItems: "center" }}
-        >
-          {actions}
-        </div>
-      )}
+      {actions && <Row wrap>{actions}</Row>}
     </div>
   );
 }
@@ -255,12 +236,14 @@ export function StatTile({
           ...style,
         }}
       >
-        <div style={{ fontSize: "var(--text-3xl)", fontWeight: "var(--weight-black)", color }}>
+        <Text size="3xl" weight="black" color={color}>
           {value}
-        </div>
-        <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>{label}</div>
+        </Text>
+        <Muted style={{ marginTop: 3 }}>{label}</Muted>
         {sub && (
-          <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 4 }}>{sub}</div>
+          <Muted size="2xs" style={{ marginTop: 4 }}>
+            {sub}
+          </Muted>
         )}
       </div>
     );
@@ -278,7 +261,7 @@ export function StatTile({
         ...style,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", minWidth: 0 }}>
+      <Row style={{ minWidth: 0 }}>
         {Icon && (
           <div
             style={{
@@ -310,19 +293,16 @@ export function StatTile({
           >
             {value}
           </div>
-          <div
-            style={{
-              fontSize: "var(--text-xs)",
-              color: C.sub,
-              marginTop: 2,
-              fontWeight: "var(--weight-semibold)",
-            }}
-          >
+          <Text size="xs" weight="semibold" color={C.sub} style={{ marginTop: 2 }}>
             {label}
-          </div>
+          </Text>
         </div>
-      </div>
-      {sub && <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 4 }}>{sub}</div>}
+      </Row>
+      {sub && (
+        <Muted size="2xs" style={{ marginTop: 4 }}>
+          {sub}
+        </Muted>
+      )}
     </div>
   );
 }
@@ -372,16 +352,9 @@ export function EmptyState({
         {message}
       </span>
       {actions && (
-        <div
-          style={{
-            display: "flex",
-            gap: "var(--space-2)",
-            justifyContent: "center",
-            flexWrap: "wrap",
-          }}
-        >
+        <Row gap={2} align="stretch" justify="center" wrap>
           {actions}
-        </div>
+        </Row>
       )}
     </div>
   );
@@ -459,16 +432,9 @@ export function Modal({ title, onClose, children, wide, extraWide, disableCloseB
             zIndex: 1,
           }}
         >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "var(--text-lg)",
-              fontWeight: "var(--weight-extrabold)",
-              color: C.navy,
-            }}
-          >
+          <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
             {title}
-          </h2>
+          </Text>
           {!disableCloseButton && (
             <button
               type="button"
@@ -524,9 +490,9 @@ export function Fld({ label, children, hint }) {
         {children}
       </label>
       {hint && (
-        <p style={{ margin: "var(--space-1) 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
+        <Muted as="p" style={{ margin: "var(--space-1) 0 0" }}>
           {hint}
-        </p>
+        </Muted>
       )}
     </div>
   );
@@ -840,15 +806,9 @@ export function PhotoUpload({
           onClick={openPicker}
         >
           <Camera size={26} color={C.sub} strokeWidth={1.75} aria-hidden="true" />
-          <span
-            style={{
-              fontSize: "var(--text-sm)",
-              color: C.sub,
-              fontWeight: "var(--weight-semibold)",
-            }}
-          >
+          <Text as="span" size="sm" weight="semibold" color={C.sub}>
             {label}
-          </span>
+          </Text>
         </div>
       )}
       {/* Not rendered in the iOS build: there is no code path left that clicks

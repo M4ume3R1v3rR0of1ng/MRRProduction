@@ -17,7 +17,18 @@ import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "./lowStockAlerts";
 import { C, uid, fm, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Fld, Inp, Modal, EmptyState } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Fld,
+  Inp,
+  Modal,
+  EmptyState,
+  Row,
+  Stack,
+  Eyebrow,
+  Text,
+  Muted,
+} from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -239,9 +250,9 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
   return (
     <Modal
       title={
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Row as="span">
           <Package size={17} aria-hidden="true" /> Receive Bulk Order Manifest
-        </span>
+        </Row>
       }
       onClose={close}
       wide
@@ -302,18 +313,9 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
 
       <div className="sw-split" style={{ gap: "var(--space-6)", marginBottom: 16 }}>
         <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: "var(--text-xs)",
-              fontWeight: "var(--weight-bold)",
-              color: C.navy,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              marginBottom: 6,
-            }}
-          >
+          <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
             Select Items to Receive
-          </div>
+          </Eyebrow>
           <div style={{ position: "relative", marginBottom: 8 }}>
             <Search
               size={13}
@@ -328,15 +330,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
               style={{ paddingLeft: 28 }}
             />
           </div>
-          <div
-            style={{
-              maxHeight: 320,
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: 5,
-            }}
-          >
+          <Stack gap="5px" style={{ maxHeight: 320, overflowY: "auto" }}>
             {selectable.map((item) => (
               <div
                 key={item.id}
@@ -351,18 +345,12 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                 }}
               >
                 <div>
-                  <div
-                    style={{
-                      fontWeight: "var(--weight-bold)",
-                      color: C.navy,
-                      fontSize: "var(--text-sm)",
-                    }}
-                  >
+                  <Text size="sm" weight="bold" color={C.navy}>
                     {item.name}
-                  </div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                  </Text>
+                  <Muted size="2xs">
                     {item.cat} · {tot(item)} {item.unit} available
-                  </div>
+                  </Muted>
                 </div>
                 <Btn v="primary" sz="sm" onClick={() => addRow(item)}>
                   + Add
@@ -378,29 +366,14 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                 style={{ padding: 20 }}
               />
             )}
-          </div>
+          </Stack>
         </div>
 
         <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 6,
-            }}
-          >
-            <div
-              style={{
-                fontSize: "var(--text-xs)",
-                fontWeight: "var(--weight-bold)",
-                color: C.navy,
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-              }}
-            >
+          <Row gap={0} justify="space-between" style={{ marginBottom: 6 }}>
+            <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)" }}>
               Manifest Queue {rows.length > 0 && `(${rows.length})`}
-            </div>
+            </Eyebrow>
             {rows.length > 0 && (
               <button
                 onClick={() => setRows([])}
@@ -416,7 +389,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                 Clear All
               </button>
             )}
-          </div>
+          </Row>
 
           {rows.length === 0 ? (
             <EmptyState
@@ -427,16 +400,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
             />
           ) : (
             <>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--space-2)",
-                  maxHeight: 280,
-                  overflowY: "auto",
-                  marginBottom: 10,
-                }}
-              >
+              <Stack gap={2} style={{ maxHeight: 280, overflowY: "auto", marginBottom: 10 }}>
                 {rows.map((b) => {
                   const sub = (parseFloat(b.qty) || 0) * (parseFloat(b.price) || 0);
                   return (
@@ -449,23 +413,10 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                         padding: "10px 12px",
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: 7,
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontWeight: "var(--weight-bold)",
-                            color: C.navy,
-                            fontSize: "var(--text-sm)",
-                          }}
-                        >
+                      <Row gap={0} justify="space-between" style={{ marginBottom: 7 }}>
+                        <Text as="span" size="sm" weight="bold" color={C.navy}>
                           {b.iname}
-                        </span>
+                        </Text>
                         <button
                           onClick={() => removeRow(b.iid)}
                           style={{
@@ -479,7 +430,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                         >
                           ×
                         </button>
-                      </div>
+                      </Row>
 
                       <div className="sw-grid-2-auto">
                         <div>
@@ -562,69 +513,48 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                           >
                             Subtotal
                           </div>
-                          <div
-                            style={{
-                              fontSize: "var(--text-base)",
-                              fontWeight: "var(--weight-extrabold)",
-                              color: sub > 0 ? C.gr : C.sub,
-                            }}
-                          >
+                          <Text size="base" weight="extrabold" color={sub > 0 ? C.gr : C.sub}>
                             {fm(sub)}
-                          </div>
+                          </Text>
                         </div>
                       </div>
                     </div>
                   );
                 })}
-              </div>
+              </Stack>
 
-              <div
+              <Row
+                gap={0}
+                justify="space-between"
                 style={{
                   background: C.shell,
                   borderRadius: "var(--radius-md)",
                   padding: "12px 16px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
                 }}
               >
                 <div>
-                  <div
-                    style={{
-                      color: "rgba(255,255,255,0.55)",
-                      fontSize: "var(--text-2xs)",
-                      fontWeight: "var(--weight-bold)",
-                      textTransform: "uppercase",
-                    }}
+                  <Text
+                    size="2xs"
+                    weight="bold"
+                    color={"rgba(255,255,255,0.55)"}
+                    style={{ textTransform: "uppercase" }}
                   >
                     Manifest Valuation
-                  </div>
-                  <div
-                    style={{
-                      color: "rgba(255,255,255,0.7)",
-                      fontSize: "var(--text-xs)",
-                      marginTop: 2,
-                    }}
-                  >
+                  </Text>
+                  <Text size="xs" color={"rgba(255,255,255,0.7)"} style={{ marginTop: 2 }}>
                     {validCount} valid item positions
-                  </div>
+                  </Text>
                 </div>
-                <div
-                  style={{
-                    fontWeight: "var(--weight-black)",
-                    fontSize: "var(--text-3xl)",
-                    color: C.gold,
-                  }}
-                >
+                <Text size="3xl" weight="black" color={C.gold}>
                   {fm(total)}
-                </div>
-              </div>
+                </Text>
+              </Row>
             </>
           )}
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: "var(--space-4)" }}>
+      <Row gap={4} align="stretch">
         <Btn
           v="ghost"
           onClick={close}
@@ -655,7 +585,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
             </>
           )}
         </Btn>
-      </div>
+      </Row>
     </Modal>
   );
 }

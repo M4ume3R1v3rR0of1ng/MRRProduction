@@ -38,6 +38,10 @@ import {
   CardGrid,
   FilterPill,
   EmptyState,
+  Row,
+  Stack,
+  Text,
+  Muted,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { supabase, updateRowStrict, isTransportError } from "@/shared/utils/supabase";
@@ -882,10 +886,13 @@ export default function PullInventory({
 
           Counts still come from the unfiltered queue on purpose: the point of the
           number is to say what is behind the OTHER tabs before you press them. */}
-      <div
+      <Row
         role="group"
         aria-label={t.pullFilterAria}
-        style={{ display: "flex", gap: "var(--space-2)", marginBottom: 14, flexWrap: "wrap" }}
+        gap={2}
+        align="stretch"
+        wrap
+        style={{ marginBottom: 14 }}
       >
         {[
           {
@@ -916,7 +923,7 @@ export default function PullInventory({
             title={f.full}
           />
         ))}
-      </div>
+      </Row>
 
       {/* The Build Jobs layout: a tiling grid of cards under creation-date
           headers, one grid for the whole list with the headers spanning every
@@ -965,15 +972,7 @@ export default function PullInventory({
         )}
         {dayGroups.map(([day, dayJobs]) => (
           <Fragment key={day || "undated"}>
-            <div
-              style={{
-                gridColumn: "1 / -1",
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-3)",
-                marginTop: 4,
-              }}
-            >
+            <Row style={{ gridColumn: "1 / -1", marginTop: 4 }}>
               <h2
                 style={{
                   margin: 0,
@@ -988,20 +987,19 @@ export default function PullInventory({
                 {day ? fd(day) : "No date recorded"}
               </h2>
               {day === todayLocal() && <Bdg color="amber">Today</Bdg>}
-              <span
-                style={{
-                  fontSize: "var(--text-xs)",
-                  color: C.sub,
-                  fontWeight: "var(--weight-semibold)",
-                  whiteSpace: "nowrap",
-                }}
+              <Text
+                as="span"
+                size="xs"
+                weight="semibold"
+                color={C.sub}
+                style={{ whiteSpace: "nowrap" }}
               >
                 {dayJobs.length} job{dayJobs.length === 1 ? "" : "s"}
-              </span>
+              </Text>
               {/* Rule to the right edge, so the header reads as a divider across
                   the row and not as a stray line of text. */}
               <div style={{ flex: 1, height: 1, background: C.bd }} />
-            </div>
+            </Row>
             {dayJobs.map((job) => {
               if (!job) return null;
               const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
@@ -1053,15 +1051,7 @@ export default function PullInventory({
                     minWidth: 0,
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 7,
-                      alignItems: "center",
-                      marginBottom: 6,
-                      flexWrap: "wrap",
-                    }}
-                  >
+                  <Row gap="7px" wrap style={{ marginBottom: 6 }}>
                     <span
                       style={{
                         display: "inline-flex",
@@ -1075,15 +1065,9 @@ export default function PullInventory({
                       <StatusDot color={statusMeta.color} />
                       <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
                     </span>
-                    <span
-                      style={{
-                        fontSize: "var(--text-sm)",
-                        color: C.sub,
-                        fontWeight: "var(--weight-semibold)",
-                      }}
-                    >
+                    <Text as="span" size="sm" weight="semibold" color={C.sub}>
                       · {job.po || t.pullNoPoHash}
-                    </span>
+                    </Text>
                     {isHighlighted && (
                       <Bdg color="gold">
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -1099,7 +1083,7 @@ export default function PullInventory({
                         </span>
                       </Bdg>
                     )}
-                  </div>
+                  </Row>
                   {/* Clamped to one line: an address is worth reading in full, but
                       a job title that wraps just shoves every card in the row
                       taller. The full title heads the pull and return dialogs. */}
@@ -1116,34 +1100,25 @@ export default function PullInventory({
                   >
                     {job.title || job.name}
                   </div>
-                  <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 4 }}>
+                  <Muted size="sm" style={{ marginBottom: 4 }}>
                     {job.addr || job.address}
-                  </div>
+                  </Muted>
                   {!isField && sup && (
-                    <div
+                    <Row
+                      gap={1}
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
                         fontSize: "var(--text-xs)",
                         color: C.blue,
                         fontWeight: "var(--weight-bold)",
                       }}
                     >
                       <User size={11} aria-hidden="true" /> {sup.name}
-                    </div>
+                    </Row>
                   )}
                   {jobTrailerNames.length > 0 && (
-                    <div
-                      style={{
-                        fontSize: "var(--text-xs)",
-                        color: C.am,
-                        fontWeight: "var(--weight-bold)",
-                        marginTop: 2,
-                      }}
-                    >
+                    <Text size="xs" weight="bold" color={C.am} style={{ marginTop: 2 }}>
                       {t.pullBringTrailer} {jobTrailerNames.join(", ")}
-                    </div>
+                    </Text>
                   )}
 
                   {/* The material strip scrolls sideways inside the card. In a
@@ -1173,21 +1148,19 @@ export default function PullInventory({
                             border: item.pulled > 0 ? `1px solid ${C.gr}` : "none",
                           }}
                         >
-                          <div
-                            style={{
-                              fontSize: "var(--text-2xs)",
-                              fontWeight: "var(--weight-bold)",
-                              color: C.navy,
-                              whiteSpace: "nowrap",
-                            }}
+                          <Text
+                            size="2xs"
+                            weight="bold"
+                            color={C.navy}
+                            style={{ whiteSpace: "nowrap" }}
                           >
                             {item.iname || item.name}
-                          </div>
-                          <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                          </Text>
+                          <Muted size="2xs">
                             {item.pulled > 0
                               ? `${(item.pulled || 0) - (item.returned || 0)} ${t.pullUsed}`
                               : `${item.planned || item.qty || 0} ${item.unit || ""} ${t.pullPlanned}`}
-                          </div>
+                          </Muted>
                         </div>
                       );
                     })}
@@ -1213,29 +1186,21 @@ export default function PullInventory({
                       340px card left them a strip too narrow to hold "Pull
                       Materials". They now run along the bottom edge, pinned so
                       they line up across a row of cards of different heights. */}
-                  <div
-                    style={{
-                      marginTop: "auto",
-                      paddingTop: 10,
-                      marginBottom: -2,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "flex-end",
-                      gap: "var(--space-2)",
-                      flexWrap: "wrap",
-                    }}
+                  <Row
+                    gap={2}
+                    justify="flex-end"
+                    wrap
+                    style={{ marginTop: "auto", paddingTop: 10, marginBottom: -2 }}
                   >
                     {perms.inv_pricing_view && job.status === "completed" && totalCost > 0 && (
-                      <span
-                        style={{
-                          marginRight: "auto",
-                          fontWeight: "var(--weight-black)",
-                          fontSize: 15,
-                          color: C.gr,
-                        }}
+                      <Text
+                        as="span"
+                        weight="black"
+                        color={C.gr}
+                        style={{ marginRight: "auto", fontSize: 15 }}
                       >
                         {t.pullTotal}: {fm(totalCost)}
-                      </span>
+                      </Text>
                     )}
                     <Btn v="ghost" sz="sm" onClick={() => openJob(job)}>
                       {t.pullDetails}
@@ -1275,7 +1240,7 @@ export default function PullInventory({
                         {t.pullReturnComplete}
                       </Btn>
                     )}
-                  </div>
+                  </Row>
                 </div>
               );
             })}
@@ -1481,9 +1446,9 @@ export default function PullInventory({
             >
               <AlertTriangle size={14} aria-hidden="true" /> {t.pullShortHeading}
             </div>
-            <div style={{ fontSize: "var(--text-sm)", color: C.navy, lineHeight: 1.45 }}>
+            <Text size="sm" color={C.navy} style={{ lineHeight: 1.45 }}>
               {t.pullShortBody}
-            </div>
+            </Text>
           </div>
 
           <div className="sw-table-scroll">
@@ -1547,13 +1512,9 @@ export default function PullInventory({
             </table>
           </div>
 
-          <div
-            style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 14, lineHeight: 1.45 }}
-          >
-            {t.pullShortFootnote}
-          </div>
+          <Muted style={{ marginBottom: 14, lineHeight: 1.45 }}>{t.pullShortFootnote}</Muted>
 
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+          <Row gap={4} align="stretch">
             <Btn
               v="ghost"
               onClick={() => setShortWarn(null)}
@@ -1570,7 +1531,7 @@ export default function PullInventory({
             >
               {pulling ? t.pullInProgress : t.pullShortProceed}
             </Btn>
-          </div>
+          </Row>
         </Modal>
       )}
 
@@ -1818,7 +1779,7 @@ export default function PullInventory({
 
           {vehs.some((v) => v.type === "trailer") && (
             <Fld label={t.pullTrailersNeeded} hint={t.pullTrailerHint}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+              <Row gap={2} align="stretch" wrap>
                 {vehs
                   .filter((v) => v.type === "trailer")
                   .map((v) => {
@@ -1853,69 +1814,39 @@ export default function PullInventory({
                       </label>
                     );
                   })}
-              </div>
+              </Row>
             </Fld>
           )}
 
-          <h4
-            style={{
-              margin: "16px 0 8px",
-              color: C.navy,
-              fontSize: "var(--text-sm)",
-              textTransform: "uppercase",
-            }}
+          <Text
+            as="h4"
+            size="sm"
+            color={C.navy}
+            style={{ margin: "16px 0 8px", textTransform: "uppercase" }}
           >
             {t.pullMaterialsChecklist}
-          </h4>
+          </Text>
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-2)",
-              marginBottom: 10,
-            }}
-          >
+          <Stack gap={2} style={{ marginBottom: 10 }}>
             {editItems.length === 0 ? (
-              <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
+              <Muted as="p" size="sm" style={{ margin: 0 }}>
                 {t.pullNoMaterials}
-              </p>
+              </Muted>
             ) : (
               editItems.map((item) => (
-                <div
+                <Row
                   key={item.iid}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-3)",
-                    background: C.lg,
-                    borderRadius: 7,
-                    padding: "7px 10px",
-                  }}
+                  style={{ background: C.lg, borderRadius: 7, padding: "7px 10px" }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontWeight: "var(--weight-bold)",
-                        color: C.navy,
-                        fontSize: "var(--text-sm)",
-                      }}
-                    >
+                    <Text size="sm" weight="bold" color={C.navy}>
                       {item.iname}
-                    </div>
+                    </Text>
                     {item.pulled > 0 && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: "var(--text-2xs)",
-                          color: C.am,
-                        }}
-                      >
+                      <Row gap={1} style={{ fontSize: "var(--text-2xs)", color: C.am }}>
                         <AlertTriangle size={10} aria-hidden="true" /> {item.pulled} {item.unit}{" "}
                         {t.pullAlreadyPulled}
-                      </div>
+                      </Row>
                     )}
                   </div>
                   <Inp
@@ -1943,10 +1874,10 @@ export default function PullInventory({
                   >
                     ×
                   </button>
-                </div>
+                </Row>
               ))
             )}
-          </div>
+          </Stack>
 
           <Fld label={t.pullAddMaterial}>
             <Inp
@@ -1979,25 +1910,15 @@ export default function PullInventory({
                 </div>
               ) : (
                 editFiltInv.map((item) => (
-                  <div
+                  <Row
                     key={item.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "8px 10px",
-                      borderBottom: `1px solid ${C.lg}`,
-                    }}
+                    gap={0}
+                    justify="space-between"
+                    style={{ padding: "8px 10px", borderBottom: `1px solid ${C.lg}` }}
                   >
-                    <span
-                      style={{
-                        fontSize: "var(--text-sm)",
-                        fontWeight: "var(--weight-bold)",
-                        color: C.navy,
-                      }}
-                    >
+                    <Text as="span" size="sm" weight="bold" color={C.navy}>
                       {item.name}
-                    </span>
+                    </Text>
                     <Btn
                       v="primary"
                       sz="sm"
@@ -2008,13 +1929,13 @@ export default function PullInventory({
                     >
                       {t.pullAdd}
                     </Btn>
-                  </div>
+                  </Row>
                 ))
               )}
             </div>
           )}
 
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+          <Row gap={4} align="stretch">
             <Btn
               v="ghost"
               onClick={() => setModal(null)}
@@ -2031,7 +1952,7 @@ export default function PullInventory({
             >
               {savingEdit ? t.pullSaving : t.pullSaveChanges}
             </Btn>
-          </div>
+          </Row>
         </Modal>
       )}
 
@@ -2042,57 +1963,42 @@ export default function PullInventory({
           wide
         >
           {perms.jobs_edit_pull && (
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+            <Row gap={0} align="stretch" justify="flex-end" style={{ marginBottom: 8 }}>
               <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>
                 <Pencil size={13} aria-hidden="true" /> {t.pullEditJob}
               </Btn>
-            </div>
+            </Row>
           )}
           <div style={{ marginTop: 18, borderTop: `1px solid ${C.lg}`, paddingTop: 14 }}>
-            <h3
-              style={{
-                margin: "0 0 12px 0",
-                fontSize: "var(--text-base)",
-                fontWeight: "var(--weight-extrabold)",
-                color: C.navy,
-              }}
+            <Text
+              as="h3"
+              size="base"
+              weight="extrabold"
+              color={C.navy}
+              style={{ margin: "0 0 12px 0" }}
             >
               {t.pullVisualMedia}
-            </h3>
-            <div style={{ display: "flex", gap: "var(--space-6)", flexWrap: "wrap" }}>
+            </Text>
+            <Row gap={6} align="stretch" wrap>
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    fontWeight: "var(--weight-bold)",
-                    color: C.sub,
-                    marginBottom: 4,
-                  }}
-                >
+                <Text size="xs" weight="bold" color={C.sub} style={{ marginBottom: 4 }}>
                   {t.pullBeforePhoto}
-                </div>
+                </Text>
                 <PhotoUpload
                   current={currentJobPhotos.before}
                   onUpload={(base64) => handleStagePhoto("before", base64)}
                 />
               </div>
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    fontWeight: "var(--weight-bold)",
-                    color: C.sub,
-                    marginBottom: 4,
-                  }}
-                >
+                <Text size="xs" weight="bold" color={C.sub} style={{ marginBottom: 4 }}>
                   {t.pullAfterPhoto}
-                </div>
+                </Text>
                 <PhotoUpload
                   current={currentJobPhotos.after}
                   onUpload={(base64) => handleStagePhoto("after", base64)}
                 />
               </div>
-            </div>
+            </Row>
           </div>
 
           <div
@@ -2134,26 +2040,12 @@ export default function PullInventory({
                 key={k}
                 style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}
               >
-                <div
-                  style={{
-                    fontSize: "var(--text-2xs)",
-                    color: C.sub,
-                    fontWeight: "var(--weight-bold)",
-                    textTransform: "uppercase",
-                  }}
-                >
+                <Text size="2xs" weight="bold" color={C.sub} style={{ textTransform: "uppercase" }}>
                   {k}
-                </div>
-                <div
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: "var(--weight-bold)",
-                    color: C.navy,
-                    marginTop: 2,
-                  }}
-                >
+                </Text>
+                <Text size="sm" weight="bold" color={C.navy} style={{ marginTop: 2 }}>
                   {v}
-                </div>
+                </Text>
               </div>
             ))}
           </div>

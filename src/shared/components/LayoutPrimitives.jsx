@@ -13,7 +13,8 @@ import { C } from "../utils/helpers";
 
 // `gap` takes a --space-* step (1-10) so call sites stay on the scale; a string
 // passes through untouched for the rare case that needs something off-scale.
-const space = (g) => (typeof g === "number" ? `var(--space-${g})` : g);
+// 0 means no gap (there is no --space-0), for a Row that only wants the flex.
+const space = (g) => (g === 0 ? 0 : typeof g === "number" ? `var(--space-${g})` : g);
 
 const CARD_PAD = {
   none: 0,
@@ -194,6 +195,26 @@ const MUTED_SIZE = { "2xs": "var(--text-2xs)", xs: "var(--text-xs)", sm: "var(--
 export function Muted({ size = "xs", as: Tag = "div", style, children, ...rest }) {
   return (
     <Tag style={{ fontSize: MUTED_SIZE[size], color: C.sub, margin: 0, ...style }} {...rest}>
+      {children}
+    </Tag>
+  );
+}
+
+// Any other run of styled text: a value, a name, a bold inline label. Size and
+// weight take the token name ("sm", "bold") so a call site can't wander off the
+// scale; anything left unset inherits, exactly like a bare <span>. Unlike Muted
+// it leaves margins alone, so <Text as="p"> keeps a paragraph's spacing.
+export function Text({ size, weight, color, as: Tag = "div", style, children, ...rest }) {
+  return (
+    <Tag
+      style={{
+        fontSize: size && `var(--text-${size})`,
+        fontWeight: weight && (weight === "normal" ? "normal" : `var(--weight-${weight})`),
+        color,
+        ...style,
+      }}
+      {...rest}
+    >
       {children}
     </Tag>
   );

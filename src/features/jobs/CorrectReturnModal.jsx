@@ -22,7 +22,7 @@ import { Save } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Modal } from "@/shared/components/UIPrimitives";
+import { Btn, Modal, Row, Text } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -94,12 +94,14 @@ export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClos
 
   return (
     <Modal title={`${t.bjCorrectReturnTitle} — ${job.po}`} onClose={close} wide>
-      <p style={{ fontSize: "var(--text-sm)", color: C.sub, marginTop: 0 }}>
+      <Text as="p" size="sm" color={C.sub} style={{ marginTop: 0 }}>
         {t.bjCorrectReturnInfo}
-      </p>
+      </Text>
 
       {items.length === 0 ? (
-        <p style={{ fontSize: "var(--text-sm)" }}>—</p>
+        <Text as="p" size="sm">
+          —
+        </Text>
       ) : (
         <div className="sw-table-scroll">
           <table
@@ -157,7 +159,7 @@ export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClos
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
+      <Row gap={4} align="stretch" style={{ marginTop: 14 }}>
         <Btn
           v="ghost"
           onClick={close}
@@ -180,7 +182,7 @@ export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClos
             </>
           )}
         </Btn>
-      </div>
+      </Row>
     </Modal>
   );
 }

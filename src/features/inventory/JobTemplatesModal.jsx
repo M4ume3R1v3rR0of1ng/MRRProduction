@@ -30,7 +30,7 @@ import {
   saveJobTemplates,
   resolveDefaultTemplates,
 } from "@/features/jobs/jobTemplates";
-import { Btn, Fld, Inp, Modal } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, Row, Stack, Text, Muted } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
 
 // Replace in place if the id is already known, otherwise append. Pulled out as a
@@ -137,9 +137,9 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
   return (
     <Modal
       title={
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Row as="span">
           <LayoutTemplate size={17} aria-hidden="true" /> Job Material Templates
-        </span>
+        </Row>
       }
       onClose={requestClose}
       wide
@@ -168,32 +168,19 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
           </div>
           <div className="sw-grid-2" style={{ gap: "var(--space-5)" }}>
             <div>
-              <h4
-                style={{
-                  margin: "0 0 8px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  color: C.navy,
-                  fontSize: "var(--text-sm)",
-                }}
+              <Row
+                as="h4"
+                gap={2}
+                style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)" }}
               >
                 <Package size={13} aria-hidden="true" /> Materials ({editing.items.length})
-              </h4>
+              </Row>
               {editing.items.length === 0 ? (
-                <p style={{ color: C.sub, fontSize: "var(--text-sm)" }}>
+                <Text as="p" size="sm" color={C.sub}>
                   Add materials from the catalog on the right.
-                </p>
+                </Text>
               ) : (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "var(--space-2)",
-                    maxHeight: 260,
-                    overflowY: "auto",
-                  }}
-                >
+                <Stack gap={2} style={{ maxHeight: 260, overflowY: "auto" }}>
                   {editing.items.map((t, idx) => {
                     const inCatalog = t.iid && inv.find((i) => i && i.id === t.iid);
                     return (
@@ -201,14 +188,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                         key={t.iid || `x_${idx}`}
                         style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}
                       >
-                        <div
-                          style={{
-                            fontWeight: "var(--weight-bold)",
-                            color: C.navy,
-                            fontSize: "var(--text-xs)",
-                            marginBottom: 4,
-                          }}
-                        >
+                        <Text size="xs" weight="bold" color={C.navy} style={{ marginBottom: 4 }}>
                           {t.iname}{" "}
                           {!inCatalog && (
                             <span
@@ -222,8 +202,8 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                               <AlertTriangle size={10} aria-hidden="true" /> not in catalog
                             </span>
                           )}
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                        </Text>
+                        <Row gap="5px">
                           <Inp
                             type="number"
                             value={t.qty}
@@ -238,9 +218,9 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                             style={{ width: 55, padding: "3px 6px" }}
                             disabled={saving}
                           />
-                          <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                          <Muted as="span" size="2xs">
                             default qty
-                          </span>
+                          </Muted>
                           <button
                             onClick={() =>
                               setEditing((p) => ({
@@ -261,11 +241,11 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                           >
                             ×
                           </button>
-                        </div>
+                        </Row>
                       </div>
                     );
                   })}
-                </div>
+                </Stack>
               )}
             </div>
             <div>
@@ -289,15 +269,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                   disabled={saving}
                 />
               </div>
-              <div
-                style={{
-                  maxHeight: 260,
-                  overflowY: "auto",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 5,
-                }}
-              >
+              <Stack gap="5px" style={{ maxHeight: 260, overflowY: "auto" }}>
                 {selectableMaterials(inv, editing.items, srch)
                   .slice(0, 40)
                   .map((item) => (
@@ -314,18 +286,12 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                       }}
                     >
                       <div>
-                        <div
-                          style={{
-                            fontWeight: "var(--weight-bold)",
-                            color: C.navy,
-                            fontSize: "var(--text-xs)",
-                          }}
-                        >
+                        <Text size="xs" weight="bold" color={C.navy}>
                           {item.name}
-                        </div>
-                        <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                        </Text>
+                        <Muted size="2xs">
                           {tot(item)} {item.unit} available
-                        </div>
+                        </Muted>
                       </div>
                       <Btn
                         v="primary"
@@ -342,10 +308,10 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                       </Btn>
                     </div>
                   ))}
-              </div>
+              </Stack>
             </div>
           </div>
-          <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
+          <Row gap={4} align="stretch" style={{ marginTop: 14 }}>
             <Btn
               v="ghost"
               onClick={() => setEditing(null)}
@@ -375,14 +341,14 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                 </>
               )}
             </Btn>
-          </div>
+          </Row>
         </>
       ) : (
         <>
-          <p style={{ margin: "0 0 12px", fontSize: "var(--text-sm)", color: C.sub }}>
+          <Muted as="p" size="sm" style={{ margin: "0 0 12px" }}>
             These material packages appear in the Build Jobs wizard (Step 2) for one-click job
             lists.
-          </p>
+          </Muted>
           {tpls.length === 0 && (
             <p
               style={{
@@ -395,39 +361,17 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
               No templates yet — create your first one below.
             </p>
           )}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-              maxHeight: 320,
-              overflowY: "auto",
-            }}
-          >
+          <Stack gap={3} style={{ maxHeight: 320, overflowY: "auto" }}>
             {tpls.map((tpl) => (
               <div
                 key={tpl.id}
                 style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "10px 12px" }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 6,
-                    marginBottom: 4,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: "var(--weight-extrabold)",
-                      color: C.navy,
-                      fontSize: "var(--text-sm)",
-                    }}
-                  >
+                <Row gap={2} justify="space-between" style={{ marginBottom: 4 }}>
+                  <Text size="sm" weight="extrabold" color={C.navy}>
                     {tpl.icon} {tpl.name}
-                  </div>
-                  <div style={{ display: "flex", gap: 6 }}>
+                  </Text>
+                  <Row gap={2} align="stretch">
                     <Btn
                       v="outline"
                       sz="sm"
@@ -442,17 +386,17 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                     <Btn v="danger" sz="sm" onClick={() => deleteTpl(tpl)} disabled={saving}>
                       <Trash2 size={12} aria-hidden="true" />
                     </Btn>
-                  </div>
-                </div>
-                <div style={{ fontSize: "var(--text-2xs)", color: C.sub, lineHeight: 1.7 }}>
+                  </Row>
+                </Row>
+                <Muted size="2xs" style={{ lineHeight: 1.7 }}>
                   {(tpl.items || [])
                     .map((t) => t.iname + (t.qty > 1 ? ` ×${t.qty}` : ""))
                     .join(" · ") || "No materials"}
-                </div>
+                </Muted>
               </div>
             ))}
-          </div>
-          <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
+          </Stack>
+          <Row gap={4} align="stretch" style={{ marginTop: 14 }}>
             <Btn
               v="ghost"
               onClick={requestClose}
@@ -472,7 +416,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
             >
               + New Template
             </Btn>
-          </div>
+          </Row>
         </>
       )}
     </Modal>

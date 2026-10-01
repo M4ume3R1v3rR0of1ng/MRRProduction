@@ -4,7 +4,7 @@ import { Bot, X, AlertTriangle, Camera } from "lucide-react";
 import { translations } from "../utils/translations";
 import { supabase } from "../utils/supabase";
 import { C, compressImg } from "../utils/helpers";
-import { LoadingState, Modal } from "./UIPrimitives";
+import { LoadingState, Modal, Row, Stack, Muted } from "./UIPrimitives";
 
 // data:image/jpeg;base64,XXXX -> { media_type: "image/jpeg", data: "XXXX" }
 function parseDataUrl(dataUrl) {
@@ -325,27 +325,21 @@ export default function ChatWidget({ user, lang = "en" }) {
             border: `1px solid ${C.bd}`,
           }}
         >
-          <div
+          <Row
+            gap={0}
+            justify="space-between"
             style={{
               background: C.shell,
               color: C.shellInk,
               padding: "var(--space-5) var(--space-6)",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-                fontWeight: "var(--weight-extrabold)",
-                fontSize: "var(--text-md)",
-              }}
+            <Row
+              gap="7px"
+              style={{ fontWeight: "var(--weight-extrabold)", fontSize: "var(--text-md)" }}
             >
               <Bot size={17} aria-hidden="true" /> Steadwerk Assistant
-            </div>
+            </Row>
             <button
               onClick={() => setOpen(false)}
               style={{
@@ -359,7 +353,7 @@ export default function ChatWidget({ user, lang = "en" }) {
             >
               ×
             </button>
-          </div>
+          </Row>
 
           <div
             ref={scrollRef}
@@ -374,16 +368,9 @@ export default function ChatWidget({ user, lang = "en" }) {
             }}
           >
             {messages.length === 0 && (
-              <p
-                style={{
-                  color: C.sub,
-                  fontSize: "var(--text-sm)",
-                  textAlign: "center",
-                  margin: "var(--space-8) 0",
-                }}
-              >
+              <Muted as="p" size="sm" style={{ textAlign: "center", margin: "var(--space-8) 0" }}>
                 {t.cwIntro}
-              </p>
+              </Muted>
             )}
             {messages.map((m, i) => {
               const mine = m.role === "user";
@@ -428,9 +415,7 @@ export default function ChatWidget({ user, lang = "en" }) {
                   )}
 
                   {isEditing && (
-                    <div
-                      style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
-                    >
+                    <Stack gap={2}>
                       {pendingPhoto && (
                         <img
                           src={pendingPhoto}
@@ -451,13 +436,7 @@ export default function ChatWidget({ user, lang = "en" }) {
                           boxSizing: "border-box",
                         }}
                       />
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "var(--space-3)",
-                          justifyContent: "flex-end",
-                        }}
-                      >
+                      <Row align="stretch" justify="flex-end">
                         <button
                           onClick={cancelEdit}
                           style={{
@@ -484,19 +463,12 @@ export default function ChatWidget({ user, lang = "en" }) {
                         >
                           {t.chSaveResend}
                         </button>
-                      </div>
-                    </div>
+                      </Row>
+                    </Stack>
                   )}
 
                   {mine && !isEditing && (
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "var(--space-3)",
-                        marginTop: 2,
-                        justifyContent: "flex-end",
-                      }}
-                    >
+                    <Row align="stretch" justify="flex-end" style={{ marginTop: 2 }}>
                       <button
                         onClick={() => startEdit(i)}
                         disabled={sending}
@@ -527,7 +499,7 @@ export default function ChatWidget({ user, lang = "en" }) {
                       >
                         {t.chDelete}
                       </button>
-                    </div>
+                    </Row>
                   )}
                 </div>
               );
@@ -545,9 +517,9 @@ export default function ChatWidget({ user, lang = "en" }) {
                 fontWeight: "var(--weight-semibold)",
               }}
             >
-              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <Row as="span" gap="5px">
                 <AlertTriangle size={12} aria-hidden="true" /> {error}
-              </span>
+              </Row>
             </div>
           )}
 
@@ -594,13 +566,10 @@ export default function ChatWidget({ user, lang = "en" }) {
             </div>
           )}
 
-          <div
-            style={{
-              display: "flex",
-              gap: "var(--space-2)",
-              padding: "var(--space-4)",
-              borderTop: `1px solid ${C.lg}`,
-            }}
+          <Row
+            gap={2}
+            align="stretch"
+            style={{ padding: "var(--space-4)", borderTop: `1px solid ${C.lg}` }}
           >
             <input
               ref={fileInputRef}
@@ -657,7 +626,7 @@ export default function ChatWidget({ user, lang = "en" }) {
             >
               {t.chSend}
             </button>
-          </div>
+          </Row>
         </div>
       )}
 

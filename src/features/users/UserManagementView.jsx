@@ -15,6 +15,9 @@ import {
   Sel,
   Inp,
   PageHeader,
+  Row,
+  Text,
+  Muted,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";
@@ -405,14 +408,7 @@ export default function Users({
                     </Bdg>
                   </td>
                   <td style={{ padding: "14px 14px", textAlign: "right" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "var(--space-2)",
-                        justifyContent: "flex-end",
-                        alignItems: "center",
-                      }}
-                    >
+                    <Row gap={2} justify="flex-end">
                       <Btn
                         v="ghost"
                         sz="sm"
@@ -432,7 +428,7 @@ export default function Users({
                       >
                         <Trash2 size={13} aria-hidden="true" /> Remove
                       </Btn>
-                    </div>
+                    </Row>
                   </td>
                 </tr>
               ))}
@@ -499,33 +495,20 @@ export default function Users({
                   onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                 />
               </Fld>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-4)",
-                  marginTop: 4,
-                }}
-              >
+              <Row gap={4} style={{ marginTop: 4 }}>
                 <Toggle on={sendInvite} onChange={() => setSendInvite((v) => !v)} />
                 <div>
-                  <div
-                    style={{
-                      fontWeight: "var(--weight-bold)",
-                      color: C.navy,
-                      fontSize: "var(--text-sm)",
-                    }}
-                  >
+                  <Text size="sm" weight="bold" color={C.navy}>
                     {t.umEmailInvite}
-                  </div>
-                  <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 1 }}>
+                  </Text>
+                  <Muted style={{ marginTop: 1 }}>
                     {sendInvite ? t.umInviteOn : t.umInviteOff}
-                  </div>
+                  </Muted>
                 </div>
-              </div>
+              </Row>
             </>
           )}
-          <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
+          <Row gap={4} align="stretch" style={{ marginTop: 14 }}>
             <Btn
               v="ghost"
               onClick={() => {
@@ -541,7 +524,7 @@ export default function Users({
             <Btn v="primary" onClick={save} style={{ flex: 1, justifyContent: "center" }}>
               {editing ? t.umSaveChanges : t.umAddUser}
             </Btn>
-          </div>
+          </Row>
 
           {editing && (
             <div style={{ marginTop: 22, paddingTop: 18, borderTop: `1px solid ${C.lg}` }}>
@@ -558,10 +541,10 @@ export default function Users({
               >
                 <KeyRound size={13} aria-hidden="true" /> Reset Password
               </div>
-              <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 10 }}>
+              <Muted style={{ marginBottom: 10 }}>
                 Forgot their password? Set a new temporary one here. Share it with them directly and
                 they will be prompted to change it on next login.
-              </div>
+              </Muted>
               <Fld label={t.umNewTempPassword} hint={PASSWORD_HINT}>
                 <Inp
                   type="password"
@@ -621,11 +604,11 @@ export default function Users({
             </span>
           </div>
           {userOverrides[permUser.id] && Object.keys(userOverrides[permUser.id]).length > 0 && (
-            <div style={{ marginBottom: 10, display: "flex", justifyContent: "flex-end" }}>
+            <Row gap={0} align="stretch" justify="flex-end" style={{ marginBottom: 10 }}>
               <Btn v="danger" sz="sm" onClick={() => clearOverrides(permUser.id)}>
                 {t.umClearOverrides}
               </Btn>
-            </div>
+            </Row>
           )}
           <div style={{ overflowX: "auto", maxHeight: "380px" }}>
             <table
@@ -669,43 +652,36 @@ export default function Users({
                         }}
                       >
                         <td style={{ padding: "10px 14px" }}>
-                          <div
-                            style={{
-                              fontWeight: "var(--weight-bold)",
-                              color: C.navy,
-                              fontSize: "var(--text-sm)",
-                            }}
-                          >
+                          <Text size="sm" weight="bold" color={C.navy}>
                             {PERM_DEFS[key]?.label || key}
                             {hasOverride && (
-                              <span
-                                style={{
-                                  marginLeft: 6,
-                                  fontSize: "var(--text-2xs)",
-                                  color: C.am,
-                                  fontWeight: "var(--weight-bold)",
-                                }}
+                              <Text
+                                as="span"
+                                size="2xs"
+                                weight="bold"
+                                color={C.am}
+                                style={{ marginLeft: 6 }}
                               >
                                 {t.umOverridden}
-                              </span>
+                              </Text>
                             )}
-                          </div>
-                          <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>
+                          </Text>
+                          <Muted size="2xs" style={{ marginTop: 2 }}>
                             {PERM_DEFS[key]?.desc || ""}
-                          </div>
+                          </Muted>
                         </td>
                         <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                          <div style={{ display: "flex", justifyContent: "center" }}>
+                          <Row gap={0} align="stretch" justify="center">
                             <Toggle on={baseVal} disabled={true} />
-                          </div>
+                          </Row>
                         </td>
                         <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                          <div style={{ display: "flex", justifyContent: "center" }}>
+                          <Row gap={0} align="stretch" justify="center">
                             <Toggle
                               on={effective}
                               onChange={() => toggleOverride(permUser.id, key, baseVal)}
                             />
-                          </div>
+                          </Row>
                         </td>
                       </tr>
                     );

@@ -16,7 +16,7 @@ import { Wrench, CheckCircle2, Save, Loader2 } from "lucide-react";
 import { updateRowStrict } from "@/shared/utils/supabase";
 import { C, fd, fm, recostLine } from "@/shared/utils/helpers";
 import { resolveBatchPerson } from "@/shared/utils/people";
-import { Btn, Fld, Inp, Modal } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, Modal, Row, Text, Muted } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -184,10 +184,10 @@ export default function BatchCorrectionModal({
         Received {fd(batch.rcvd)} · {batch.qty} {item.unit} · {batch.rem} remaining · by{" "}
         {/* Third copy of the same broken lookup. See utils/people. */}
         {resolveBatchPerson(users, batch)}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
+        <Row gap={1} style={{ marginTop: 4 }}>
           Quantities aren't editable here — use <Wrench size={10} aria-hidden="true" /> Adjust Stock
           for those.
-        </div>
+        </Row>
       </div>
 
       {recalc ? (
@@ -201,14 +201,14 @@ export default function BatchCorrectionModal({
               marginBottom: "var(--space-4)",
             }}
           >
-            <div style={{ fontWeight: "var(--weight-extrabold)", color: C.navy, marginBottom: 6 }}>
+            <Text weight="extrabold" color={C.navy} style={{ marginBottom: 6 }}>
               This changes {recalc.exact.length} finished job{recalc.exact.length > 1 ? "s" : ""}
-            </div>
-            <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 10 }}>
+            </Text>
+            <Muted style={{ marginBottom: 10 }}>
               These jobs recorded {item.name} at {fm(recalc.oldPrice)} — the price you're
               correcting. Their cost will be re-derived at {fm(recalc.newPrice)}. Nothing is typed
               in by hand.
-            </div>
+            </Muted>
             {recalc.exact.map((j) => {
               const line = lineFor(j, item.id);
               const used = usedOf(j, item.id);
@@ -217,31 +217,35 @@ export default function BatchCorrectionModal({
               const before = used * (parseFloat(line.priceAtPull) || 0);
               const after = used * (recostLine(line, batch.id, recalc.newPrice).priceAtPull || 0);
               return (
-                <div
+                <Row
                   key={j.id}
+                  align="stretch"
+                  justify="space-between"
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "var(--space-3)",
                     fontSize: "var(--text-xs)",
                     padding: "4px 0",
                     borderTop: `1px solid ${C.bd}`,
                   }}
                 >
-                  <span style={{ color: C.navy, fontWeight: "var(--weight-bold)" }}>
+                  <Text as="span" weight="bold" color={C.navy}>
                     {j.title || j.name || j.id}{" "}
-                    <span style={{ color: C.sub, fontWeight: "normal" }}>({j.status})</span>
+                    <Text as="span" weight="normal" color={C.sub}>
+                      ({j.status})
+                    </Text>
                     {hasSplit(line) && line.consumed.length > 1 && (
-                      <span style={{ color: C.sub, fontWeight: "normal" }}>
+                      <Text as="span" weight="normal" color={C.sub}>
                         {" "}
                         · {line.consumed.length} batches
-                      </span>
+                      </Text>
                     )}
-                  </span>
+                  </Text>
                   <span style={{ whiteSpace: "nowrap" }}>
-                    {used} × · {fm(before)} → <strong style={{ color: C.gr }}>{fm(after)}</strong>
+                    {used} × · {fm(before)} →{" "}
+                    <Text as="strong" color={C.gr}>
+                      {fm(after)}
+                    </Text>
                   </span>
-                </div>
+                </Row>
               );
             })}
             <div
@@ -291,17 +295,17 @@ export default function BatchCorrectionModal({
                 color: C.sub,
               }}
             >
-              <strong style={{ color: C.navy }}>
+              <Text as="strong" color={C.navy}>
                 {recalc.blended.length} other job{recalc.blended.length > 1 ? "s" : ""} won't be
                 touched.
-              </strong>{" "}
+              </Text>{" "}
               They pulled {item.name} across several batches, so their cost is a blend this
               correction can't safely re-derive:{" "}
               {recalc.blended.map((j) => j.title || j.name || j.id).join(", ")}.
             </div>
           )}
 
-          <div style={{ display: "flex", gap: "var(--space-3)" }}>
+          <Row align="stretch">
             <Btn
               v="ghost"
               onClick={() => setRecalc(null)}
@@ -332,7 +336,7 @@ export default function BatchCorrectionModal({
                 </>
               )}
             </Btn>
-          </div>
+          </Row>
         </div>
       ) : (
         <div>
@@ -364,7 +368,7 @@ export default function BatchCorrectionModal({
               disabled={saving}
             />
           </Fld>
-          <div style={{ display: "flex", gap: "var(--space-3)", marginTop: "var(--space-5)" }}>
+          <Row align="stretch" style={{ marginTop: "var(--space-5)" }}>
             <Btn
               v="ghost"
               onClick={close}
@@ -394,7 +398,7 @@ export default function BatchCorrectionModal({
                 </>
               )}
             </Btn>
-          </div>
+          </Row>
         </div>
       )}
     </Modal>

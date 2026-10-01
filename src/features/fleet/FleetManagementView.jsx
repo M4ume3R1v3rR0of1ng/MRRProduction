@@ -28,6 +28,10 @@ import {
   PageHeader,
   CardGrid,
   FilterPill,
+  Row,
+  Stack,
+  Text,
+  Muted,
 } from "@/shared/components/UIPrimitives";
 import { C, todayLocal } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
@@ -548,15 +552,9 @@ export default function FleetManagementView({
             style={{ marginBottom: 16 }}
             aria-hidden="true"
           />
-          <h3
-            style={{
-              margin: "0 0 8px 0",
-              color: "var(--c-slate)",
-              fontWeight: "var(--weight-extrabold)",
-            }}
-          >
+          <Text as="h3" weight="extrabold" color={"var(--c-slate)"} style={{ margin: "0 0 8px 0" }}>
             {t.flRegistryEmpty}
-          </h3>
+          </Text>
           <p
             style={{
               margin: "0 0 20px 0",
@@ -643,7 +641,7 @@ export default function FleetManagementView({
               </Btn>
             )}
             {subView === "list" && (
-              <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+              <Row gap="5px">
                 {[
                   ["all", t.flFilterAll],
                   ["truck", t.flFilterTrucks],
@@ -669,9 +667,9 @@ export default function FleetManagementView({
                   <option value="mi_high">{t.flSortMiHigh}</option>
                   <option value="mi_low">{t.flSortMiLow}</option>
                 </Sel>
-              </div>
+              </Row>
             )}
-            <div style={{ display: "flex", gap: 5 }}>
+            <Row gap="5px" align="stretch">
               {[
                 ["list", t.flViewList],
                 ["calendar", t.flViewTrailerCal],
@@ -685,7 +683,7 @@ export default function FleetManagementView({
                   {label}
                 </Btn>
               ))}
-            </div>
+            </Row>
           </>
         }
       />
@@ -876,23 +874,12 @@ export default function FleetManagementView({
                           padding: "8px 10px 6px",
                         }}
                       >
-                        <div
-                          style={{
-                            fontWeight: "var(--weight-extrabold)",
-                            color: photo ? C.w : C.navy,
-                            fontSize: "var(--text-md)",
-                          }}
-                        >
+                        <Text size="md" weight="extrabold" color={photo ? C.w : C.navy}>
                           {v.name}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "var(--text-2xs)",
-                            color: photo ? "rgba(255,255,255,0.8)" : C.sub,
-                          }}
-                        >
+                        </Text>
+                        <Text size="2xs" color={photo ? "rgba(255,255,255,0.8)" : C.sub}>
                           {v.yr} {v.make} {v.model} · #{v.plate}
-                        </div>
+                        </Text>
                       </div>
                     </div>
                     <div style={{ padding: 12 }}>
@@ -948,19 +935,19 @@ export default function FleetManagementView({
                       )}
                       {v.type === "truck" && (
                         <div style={{ marginBottom: 8 }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              fontSize: "var(--text-xs)",
-                              marginBottom: 3,
-                            }}
+                          <Row
+                            gap={0}
+                            align="stretch"
+                            justify="space-between"
+                            style={{ fontSize: "var(--text-xs)", marginBottom: 3 }}
                           >
-                            <span style={{ color: C.sub }}>{t.mileage}</span>
-                            <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                            <Text as="span" color={C.sub}>
+                              {t.mileage}
+                            </Text>
+                            <Text as="span" weight="bold" color={C.navy}>
                               {v.mi.toLocaleString()} mi
-                            </span>
-                          </div>
+                            </Text>
+                          </Row>
                           <div
                             style={{
                               height: 4,
@@ -978,11 +965,9 @@ export default function FleetManagementView({
                               }}
                             />
                           </div>
-                          <div
+                          <Row
+                            gap={1}
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 4,
                               fontSize: "var(--text-2xs)",
                               color: oLeft <= 0 ? C.rd : C.sub,
                             }}
@@ -995,15 +980,15 @@ export default function FleetManagementView({
                               `${Math.max(0, oLeft)} mi until oil change`
                             )}
                             {pd !== null && (
-                              <span style={{ color: C.blue }}>
+                              <Text as="span" color={C.blue}>
                                 {" "}
                                 · ~{pd === 0 ? "overdue" : `${pd}d`}
-                              </span>
+                              </Text>
                             )}
-                          </div>
+                          </Row>
                         </div>
                       )}
-                      <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                      <Row gap="5px" align="stretch" wrap>
                         {v.type === "truck" && (
                           <Bdg color={os === "overdue" ? "red" : os === "soon" ? "amber" : "green"}>
                             {os === "overdue"
@@ -1020,7 +1005,7 @@ export default function FleetManagementView({
                               ? "Detail Soon"
                               : "Detail OK"}
                         </Bdg>
-                      </div>
+                      </Row>
                     </div>
                   </div>
                 );
@@ -1035,28 +1020,28 @@ export default function FleetManagementView({
           title={calSel.title || calSel.name || t.flJobDetails}
           onClose={() => setCalSel(null)}
         >
-          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}>
+          <Muted as="p" size="sm" style={{ margin: "0 0 8px" }}>
             <strong>{t.flPoLabel}</strong> {calSel.po}
-          </p>
-          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}>
+          </Muted>
+          <Muted as="p" size="sm" style={{ margin: "0 0 8px" }}>
             <strong>{t.flAddressLabel}</strong> {calSel.addr || "N/A"}
-          </p>
-          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}>
+          </Muted>
+          <Muted as="p" size="sm" style={{ margin: "0 0 8px" }}>
             <strong>{t.flScheduledLabel}</strong> {calSel.scheduledDate || "N/A"}
-          </p>
-          <p style={{ margin: "0 0 8px", fontSize: "var(--text-sm)", color: C.sub }}>
+          </Muted>
+          <Muted as="p" size="sm" style={{ margin: "0 0 8px" }}>
             <strong>{t.flSupervisorLabel}</strong>{" "}
             {users.find((u) => u.id === (calSel.assignedto || calSel.assignedTo))?.name ||
               t.flUnassigned}
-          </p>
-          <p style={{ margin: 0, fontSize: "var(--text-sm)", color: C.sub }}>
+          </Muted>
+          <Muted as="p" size="sm" style={{ margin: 0 }}>
             <strong>{t.flTrailersLabel}</strong>{" "}
             {jobTrailers
               .filter((jt) => jt.job_id === calSel.id)
               .map((jt) => vehs.find((v) => v.id === jt.trailer_id)?.name)
               .filter(Boolean)
               .join(", ") || t.flNoneAssigned}
-          </p>
+          </Muted>
         </Modal>
       )}
 
@@ -1070,14 +1055,7 @@ export default function FleetManagementView({
           }}
           wide
         >
-          <div
-            style={{
-              display: "flex",
-              gap: "var(--space-3)",
-              marginBottom: 14,
-              flexWrap: "wrap",
-            }}
-          >
+          <Row align="stretch" wrap style={{ marginBottom: 14 }}>
             {perms.fleet_log_mi && sel.type === "truck" && (
               <Btn
                 v="primary"
@@ -1171,7 +1149,7 @@ export default function FleetManagementView({
                 <Trash2 size={14} aria-hidden="true" /> Decommission Asset
               </Btn>
             )}
-          </div>
+          </Row>
 
           {isGrounded(sel) && (
             <div
@@ -1298,26 +1276,12 @@ export default function FleetManagementView({
                 key={k}
                 style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}
               >
-                <div
-                  style={{
-                    fontSize: "var(--text-2xs)",
-                    color: C.sub,
-                    fontWeight: "var(--weight-bold)",
-                    textTransform: "uppercase",
-                  }}
-                >
+                <Text size="2xs" weight="bold" color={C.sub} style={{ textTransform: "uppercase" }}>
                   {k}
-                </div>
-                <div
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: "var(--weight-extrabold)",
-                    color: C.navy,
-                    marginTop: 1,
-                  }}
-                >
+                </Text>
+                <Text size="sm" weight="extrabold" color={C.navy} style={{ marginTop: 1 }}>
                   {v}
-                </div>
+                </Text>
               </div>
             ))}
           </CardGrid>
@@ -1337,7 +1301,7 @@ export default function FleetManagementView({
               >
                 <Wrench size={13} aria-hidden="true" /> Predicted Next Service
               </h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <Stack gap={2}>
                 {predictedServices.map((p) => (
                   <div
                     key={p.type}
@@ -1349,37 +1313,35 @@ export default function FleetManagementView({
                       fontSize: "var(--text-sm)",
                     }}
                   >
-                    <div style={{ fontWeight: "var(--weight-extrabold)", color: C.pu }}>
+                    <Text weight="extrabold" color={C.pu}>
                       {p.type} — ~{fd(p.predictedNextDate)}
                       {p.predictedNextMileage !== null &&
                         ` · ${p.predictedNextMileage.toLocaleString()} mi`}
-                    </div>
-                    <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                    </Text>
+                    <Muted size="2xs">
                       Based on {p.sampleSize} past service{p.sampleSize === 1 ? "" : "s"} · every ~
                       {p.avgIntervalDays}d
                       {p.avgIntervalMiles !== null &&
                         ` / ${p.avgIntervalMiles.toLocaleString()} mi`}
-                    </div>
+                    </Muted>
                   </div>
                 ))}
-              </div>
+              </Stack>
             </div>
           )}
 
-          <h4
-            style={{
-              margin: "0 0 8px",
-              color: C.navy,
-              fontSize: "var(--text-sm)",
-              textTransform: "uppercase",
-            }}
+          <Text
+            as="h4"
+            size="sm"
+            color={C.navy}
+            style={{ margin: "0 0 8px", textTransform: "uppercase" }}
           >
             {t.flServiceHistory}
-          </h4>
+          </Text>
           {sel.sl.length === 0 ? (
-            <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
+            <Muted as="p" size="sm" style={{ margin: 0 }}>
               {t.flNoServiceRecords}
-            </p>
+            </Muted>
           ) : (
             [...sel.sl]
               .sort((a, b) => new Date(b.dt) - new Date(a.dt))
@@ -1393,37 +1355,23 @@ export default function FleetManagementView({
                     marginBottom: 8,
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      flexWrap: "wrap",
-                      gap: "var(--space-3)",
-                    }}
-                  >
+                  <Row align="stretch" justify="space-between" wrap>
                     <div>
                       <Bdg color={s.type === "Oil Change" ? "blue" : "green"}>{s.type}</Bdg>
-                      <div
-                        style={{
-                          fontWeight: "var(--weight-bold)",
-                          color: C.navy,
-                          marginTop: 4,
-                          fontSize: "var(--text-base)",
-                        }}
-                      >
+                      <Text size="base" weight="bold" color={C.navy} style={{ marginTop: 4 }}>
                         {fd(s.dt)}
-                      </div>
-                      <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>
+                      </Text>
+                      <Muted>
                         {s.by}
                         {s.mi ? ` · ${s.mi.toLocaleString()} mi` : ""}
-                      </div>
+                      </Muted>
                     </div>
                     {s.cost > 0 && (
-                      <div style={{ fontWeight: "var(--weight-extrabold)", color: C.blue }}>
+                      <Text weight="extrabold" color={C.blue}>
                         {fm(s.cost)}
-                      </div>
+                      </Text>
                     )}
-                  </div>
+                  </Row>
                 </div>
               ))
           )}
@@ -1449,7 +1397,7 @@ export default function FleetManagementView({
                 ))}
             </Sel>
           </Fld>
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+          <Row gap={4} align="stretch">
             <Btn
               v="ghost"
               onClick={() => setModal(null)}
@@ -1460,7 +1408,7 @@ export default function FleetManagementView({
             <Btn v="primary" onClick={assignUser} style={{ flex: 1, justifyContent: "center" }}>
               {t.flSave}
             </Btn>
-          </div>
+          </Row>
         </Modal>
       )}
 
@@ -1492,7 +1440,7 @@ export default function FleetManagementView({
               onChange={(e) => setForm({ ...form, mi: e.target.value })}
             />
           </Fld>
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+          <Row gap={4} align="stretch">
             <Btn
               v="ghost"
               onClick={() => setModal(null)}
@@ -1503,7 +1451,7 @@ export default function FleetManagementView({
             <Btn v="primary" onClick={logMi} style={{ flex: 1, justifyContent: "center" }}>
               {t.flSave}
             </Btn>
-          </div>
+          </Row>
         </Modal>
       )}
 
@@ -1568,7 +1516,7 @@ export default function FleetManagementView({
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
             />
           </Fld>
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+          <Row gap={4} align="stretch">
             <Btn
               v="ghost"
               onClick={() => setModal(null)}
@@ -1579,16 +1527,16 @@ export default function FleetManagementView({
             <Btn v="primary" onClick={logSvc} style={{ flex: 1, justifyContent: "center" }}>
               {t.flSave}
             </Btn>
-          </div>
+          </Row>
         </Modal>
       )}
 
       {groundModal && sel && perms.fleet_edit && (
         <Modal
           title={
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Row as="span">
               <Ban size={16} aria-hidden="true" /> {t.flGroundTitle}
-            </span>
+            </Row>
           }
           onClose={() => setGroundModal(false)}
         >
@@ -1613,7 +1561,7 @@ export default function FleetManagementView({
               placeholder="e.g. Blown transmission, waiting on parts"
             />
           </Fld>
-          <div style={{ display: "flex", gap: "var(--space-4)" }}>
+          <Row gap={4} align="stretch">
             <Btn
               v="ghost"
               onClick={() => setGroundModal(false)}
@@ -1629,7 +1577,7 @@ export default function FleetManagementView({
             >
               {grounding ? "Saving…" : t.flGroundVehicle}
             </Btn>
-          </div>
+          </Row>
         </Modal>
       )}
 
@@ -1665,9 +1613,9 @@ export default function FleetManagementView({
             if (!swapping) setSwapReq(null);
           }}
         >
-          <p style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 14 }}>
+          <Text as="p" size="sm" color={C.sub} style={{ marginBottom: 14 }}>
             {t.flLendSpareHelp}
-          </p>
+          </Text>
 
           {availableSpares(swapReq).length === 0 ? (
             // Say why there is nothing to pick. "No vehicles available" alone sends
@@ -1685,7 +1633,7 @@ export default function FleetManagementView({
               {t.flNoSparesFree}
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Stack gap={3}>
               {availableSpares(swapReq).map((x) => (
                 <button
                   key={x.id}
@@ -1730,14 +1678,14 @@ export default function FleetManagementView({
                   <Bdg color="green">{t.flUnassigned}</Bdg>
                 </button>
               ))}
-            </div>
+            </Stack>
           )}
 
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+          <Row gap={0} align="stretch" justify="flex-end" style={{ marginTop: 16 }}>
             <Btn v="ghost" onClick={() => setSwapReq(null)} disabled={swapping}>
               {t.cancel}
             </Btn>
-          </div>
+          </Row>
         </Modal>
       )}
     </div>

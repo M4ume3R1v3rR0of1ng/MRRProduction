@@ -14,6 +14,7 @@ import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
 import { BASE_SEATS } from "@/features/billing/seatPacks";
 import { downloadCSV } from "@/shared/utils/csvExport";
+import { Row, Stack, Text, Eyebrow, Muted } from "@/shared/components/UIPrimitives";
 
 // Same duplication note as the pricing block atop LandingPage.jsx and the pricing
 // constants in supabase/30_platform_revenue.sql: these dollar figures must match
@@ -401,7 +402,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
 
   return (
     <div style={{ padding: "24px 28px", maxWidth: 1100, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+      <Row gap={5} style={{ marginBottom: 4 }}>
         <TrussMark size={26} />
         <h1
           style={{
@@ -414,11 +415,11 @@ export default function OwnerConsole({ user, lang = "en" }) {
         >
           {t.ocTitle}
         </h1>
-      </div>
-      <p style={{ color: C.sub, fontSize: 14, marginBottom: 18 }}>
+      </Row>
+      <Text as="p" size="md" color={C.sub} style={{ marginBottom: 18 }}>
         {companies.length} companies · {totalActive} active · {fmtBytes(totalBytes)} stored across
         the platform · signed in as {user.email}
-      </p>
+      </Text>
 
       {/* ── The business, in one line ──
           MRR leads because it is the number that decides everything else. ARR is
@@ -453,18 +454,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
               padding: "14px 16px",
             }}
           >
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: C.sub,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                marginBottom: 4,
-              }}
-            >
-              {s.label}
-            </div>
+            <Eyebrow style={{ marginBottom: 4 }}>{s.label}</Eyebrow>
             <div
               style={{
                 fontFamily: "var(--font-display)",
@@ -496,17 +486,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
         }}
       >
         <div style={{ flex: "1 1 220px" }}>
-          <label
-            style={{
-              fontSize: 11,
-              fontWeight: 800,
-              color: C.sub,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-            }}
-          >
-            {t.ocNewCompany}
-          </label>
+          <Eyebrow as="label">{t.ocNewCompany}</Eyebrow>
           <input
             value={form.name}
             onChange={(e) =>
@@ -528,17 +508,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
           />
         </div>
         <div style={{ flex: "1 1 180px" }}>
-          <label
-            style={{
-              fontSize: 11,
-              fontWeight: 800,
-              color: C.sub,
-              textTransform: "uppercase",
-              letterSpacing: 0.5,
-            }}
-          >
-            {t.ocSlug}
-          </label>
+          <Eyebrow as="label">{t.ocSlug}</Eyebrow>
           <input
             value={form.slug}
             onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
@@ -573,7 +543,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
       </form>
 
       {/* Company table */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+      <Row gap={0} align="stretch" justify="flex-end" style={{ marginBottom: 10 }}>
         <button
           onClick={exportCompaniesCsv}
           disabled={companies.length === 0}
@@ -590,7 +560,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
         >
           {t.ocExportCsv}
         </button>
-      </div>
+      </Row>
       <div
         style={{
           background: C.w,
@@ -654,10 +624,10 @@ export default function OwnerConsole({ user, lang = "en" }) {
                   return (
                     <tr key={co.id} style={{ borderTop: `1px solid ${C.bd}` }}>
                       <td style={{ padding: "12px 14px" }}>
-                        <div style={{ fontWeight: 700, color: C.navy }}>{co.name}</div>
-                        <div style={{ fontSize: 11, color: C.sub, fontFamily: "var(--font-mono)" }}>
-                          {co.slug}
-                        </div>
+                        <Text weight="bold" color={C.navy}>
+                          {co.name}
+                        </Text>
+                        <Muted style={{ fontFamily: "var(--font-mono)" }}>{co.slug}</Muted>
                       </td>
                       <td style={{ padding: "12px 14px" }}>
                         <span
@@ -678,30 +648,34 @@ export default function OwnerConsole({ user, lang = "en" }) {
                         reads as "not billed", which is the actual situation. */}
                       <td style={{ padding: "12px 14px" }}>
                         {!rev ? (
-                          <span style={{ color: C.sub }}>—</span>
+                          <Text as="span" color={C.sub}>
+                            —
+                          </Text>
                         ) : rev.is_billed ? (
                           <>
-                            <span style={{ fontWeight: 800, color: BRAND.pasture }}>
+                            <Text as="span" weight="extrabold" color={BRAND.pasture}>
                               {fmtMoney(rev.mrr)}
-                            </span>
+                            </Text>
                             {rev.billing_interval === "annual" && (
-                              <span
-                                style={{ fontSize: 11, color: C.sub, marginLeft: 5 }}
+                              <Muted
+                                as="span"
+                                style={{ marginLeft: 5 }}
                                 title="Billed annually, shown as its monthly equivalent"
                               >
                                 annual
-                              </span>
+                              </Muted>
                             )}
                             {rev.recurring_packs > 0 && (
-                              <div style={{ fontSize: 11, color: C.sub }}>
+                              <Muted>
                                 base + {rev.recurring_packs} pack
                                 {rev.recurring_packs === 1 ? "" : "s"}
-                              </div>
+                              </Muted>
                             )}
                           </>
                         ) : (
-                          <span
-                            style={{ color: C.sub }}
+                          <Text
+                            as="span"
+                            color={C.sub}
                             title={
                               co.subscription_status === "trialing"
                                 ? "In trial — nothing charged yet"
@@ -709,21 +683,21 @@ export default function OwnerConsole({ user, lang = "en" }) {
                             }
                           >
                             {co.subscription_status === "trialing" ? "trial" : "comped"}
-                          </span>
+                          </Text>
                         )}
                       </td>
                       <td style={{ padding: "12px 14px", color: C.navy }}>
                         {co.active_user_count}
                         {co.user_count !== co.active_user_count ? (
-                          <span style={{ color: C.sub }}> / {co.user_count}</span>
+                          <Text as="span" color={C.sub}>
+                            {" "}
+                            / {co.user_count}
+                          </Text>
                         ) : null}
                         {rev?.grandfathered_packs > 0 && (
-                          <div
-                            style={{ fontSize: 11, color: C.sub }}
-                            title="Seat packs bought under the old one-time pricing. They grant capacity but are never billed again."
-                          >
+                          <Muted title="Seat packs bought under the old one-time pricing. They grant capacity but are never billed again.">
                             +{rev.grandfathered_packs} grandfathered
-                          </div>
+                          </Muted>
                         )}
                       </td>
                       <td
@@ -739,7 +713,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
                         {fmtDate(co.last_activity)}
                       </td>
                       <td style={{ padding: "12px 14px" }}>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <Row align="stretch" wrap>
                           <button
                             onClick={() => openCompanyView(co)}
                             disabled={busyId === co.id}
@@ -867,7 +841,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
                               {t.ocSuspend}
                             </button>
                           )}
-                        </div>
+                        </Row>
                       </td>
                     </tr>
                   );
@@ -891,43 +865,36 @@ export default function OwnerConsole({ user, lang = "en" }) {
           marginTop: 24,
         }}
       >
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 800,
-            color: C.sub,
-            textTransform: "uppercase",
-            letterSpacing: 0.5,
-            marginBottom: 4,
-          }}
-        >
-          {t.ocPlatformAdmins}
-        </div>
-        <div style={{ fontSize: 12, color: C.sub, marginBottom: 14 }}>{t.ocPlatformAdminsDesc}</div>
+        <Eyebrow style={{ marginBottom: 4 }}>{t.ocPlatformAdmins}</Eyebrow>
+        <Muted size="sm" style={{ marginBottom: 14 }}>
+          {t.ocPlatformAdminsDesc}
+        </Muted>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+        <Stack gap={3} style={{ marginBottom: 16 }}>
           {padmins.map((a) => (
-            <div
+            <Row
               key={a.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 10,
-                padding: "8px 12px",
-                background: C.lg,
-                borderRadius: 8,
-              }}
+              gap={4}
+              justify="space-between"
+              style={{ padding: "8px 12px", background: C.lg, borderRadius: 8 }}
             >
               <div>
-                <span style={{ fontWeight: 700, color: C.navy }}>{a.full_name || a.email}</span>
-                <span style={{ color: C.sub, fontSize: 12, marginLeft: 8 }}>{a.email}</span>
+                <Text as="span" weight="bold" color={C.navy}>
+                  {a.full_name || a.email}
+                </Text>
+                <Muted as="span" size="sm" style={{ marginLeft: 8 }}>
+                  {a.email}
+                </Muted>
                 {a.email === user.email && (
-                  <span
-                    style={{ color: BRAND.pasture, fontSize: 11, fontWeight: 800, marginLeft: 8 }}
+                  <Text
+                    as="span"
+                    size="xs"
+                    weight="extrabold"
+                    color={BRAND.pasture}
+                    style={{ marginLeft: 8 }}
                   >
                     you
-                  </span>
+                  </Text>
                 )}
               </div>
               <button
@@ -947,11 +914,11 @@ export default function OwnerConsole({ user, lang = "en" }) {
               >
                 {t.ocRevoke}
               </button>
-            </div>
+            </Row>
           ))}
-        </div>
+        </Stack>
 
-        <form onSubmit={grantAdmin} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Row onSubmit={grantAdmin} as="form" align="stretch" wrap>
           <input
             value={adminEmail}
             onChange={(e) => setAdminEmail(e.target.value)}
@@ -980,11 +947,11 @@ export default function OwnerConsole({ user, lang = "en" }) {
           >
             {t.ocGrantAdmin}
           </button>
-        </form>
-        <div style={{ fontSize: 11, color: C.sub, marginTop: 8 }}>
+        </Row>
+        <Muted style={{ marginTop: 8 }}>
           The person must already have a Steadwerk login. Granting doesn't add them to any company —
           it's platform-wide oversight only.
-        </div>
+        </Muted>
       </div>
 
       {/* ── Start-billing confirmation ──
@@ -1018,18 +985,15 @@ export default function OwnerConsole({ user, lang = "en" }) {
               boxShadow: "0 24px 60px rgba(0,0,0,0.4)",
             }}
           >
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 20,
-                fontWeight: 900,
-                color: BRAND.pasture,
-                marginBottom: 8,
-              }}
+            <Text
+              size="2xl"
+              weight="black"
+              color={BRAND.pasture}
+              style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}
             >
               {t.ocStartBillingTitle.replace("{name}", billingTarget.name)}
-            </div>
-            <p style={{ fontSize: 13, color: C.navy, lineHeight: 1.6, margin: "0 0 16px" }}>
+            </Text>
+            <Text as="p" size="base" color={C.navy} style={{ lineHeight: 1.6, margin: "0 0 16px" }}>
               {t.ocStartBillingDesc
                 .replace(
                   "{price}",
@@ -1038,18 +1002,8 @@ export default function OwnerConsole({ user, lang = "en" }) {
                     : t.ocMonthlyRate.replace("{price}", `$${BASE_PRICE_MONTHLY}`),
                 )
                 .replace("{seats}", BASE_SEATS)}
-            </p>
-            <label
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: C.sub,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-              }}
-            >
-              {t.ocBillingEmail}
-            </label>
+            </Text>
+            <Eyebrow as="label">{t.ocBillingEmail}</Eyebrow>
             <input
               autoFocus
               type="email"
@@ -1069,18 +1023,8 @@ export default function OwnerConsole({ user, lang = "en" }) {
                 marginBottom: 16,
               }}
             />
-            <label
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: C.sub,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-              }}
-            >
-              {t.ocBillingCadence}
-            </label>
-            <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            <Eyebrow as="label">{t.ocBillingCadence}</Eyebrow>
+            <Row align="stretch" style={{ marginTop: 6 }}>
               {["monthly", "annual"].map((iv) => (
                 <button
                   key={iv}
@@ -1102,8 +1046,8 @@ export default function OwnerConsole({ user, lang = "en" }) {
                   {iv === "monthly" ? t.ocMonthly : t.ocAnnual}
                 </button>
               ))}
-            </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 22 }}>
+            </Row>
+            <Row gap={4} align="stretch" justify="flex-end" style={{ marginTop: 22 }}>
               <button
                 onClick={() => setBillingTarget(null)}
                 disabled={startingBilling}
@@ -1136,7 +1080,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
               >
                 {startingBilling ? t.ocOpeningCheckout : t.ocOpenCheckout}
               </button>
-            </div>
+            </Row>
           </div>
         </div>
       )}
@@ -1169,35 +1113,24 @@ export default function OwnerConsole({ user, lang = "en" }) {
               boxShadow: "0 24px 60px rgba(0,0,0,0.4)",
             }}
           >
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 20,
-                fontWeight: 900,
-                color: BRAND.rust,
-                marginBottom: 8,
-              }}
+            <Text
+              size="2xl"
+              weight="black"
+              color={BRAND.rust}
+              style={{ fontFamily: "var(--font-display)", marginBottom: 8 }}
             >
               {t.ocDeleteTitle.replace("{name}", deleteTarget.name)}
-            </div>
-            <p style={{ fontSize: 13, color: C.navy, lineHeight: 1.6, margin: "0 0 14px" }}>
+            </Text>
+            <Text as="p" size="base" color={C.navy} style={{ lineHeight: 1.6, margin: "0 0 14px" }}>
               {t.ocDeleteWarning} <strong>{t.ocDeleteWarningBold}</strong> {t.ocDeleteWarningRest}
-            </p>
-            <label
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: C.sub,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-              }}
-            >
+            </Text>
+            <Eyebrow as="label">
               {t.ocTypeToConfirm}{" "}
-              <span style={{ fontFamily: "var(--font-mono)", color: C.navy }}>
+              <Text as="span" color={C.navy} style={{ fontFamily: "var(--font-mono)" }}>
                 {deleteTarget.name}
-              </span>{" "}
+              </Text>{" "}
               {t.ocToConfirm}
-            </label>
+            </Eyebrow>
             <input
               autoFocus
               value={confirmText}
@@ -1215,7 +1148,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
                 marginTop: 6,
               }}
             />
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
+            <Row gap={4} align="stretch" justify="flex-end" style={{ marginTop: 20 }}>
               <button
                 onClick={() => setDeleteTarget(null)}
                 disabled={deleting}
@@ -1251,7 +1184,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
               >
                 {deleting ? "Deleting…" : "Delete forever"}
               </button>
-            </div>
+            </Row>
           </div>
         </div>
       )}
@@ -1286,24 +1219,15 @@ export default function OwnerConsole({ user, lang = "en" }) {
               margin: "20px 0",
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 4,
-              }}
-            >
-              <div
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: 20,
-                  fontWeight: 900,
-                  color: C.navy,
-                }}
+            <Row gap={0} justify="space-between" style={{ marginBottom: 4 }}>
+              <Text
+                size="2xl"
+                weight="black"
+                color={C.navy}
+                style={{ fontFamily: "var(--font-display)" }}
               >
                 {viewCompany.name}
-              </div>
+              </Text>
               <button
                 onClick={() => setViewCompany(null)}
                 style={{
@@ -1317,109 +1241,92 @@ export default function OwnerConsole({ user, lang = "en" }) {
               >
                 ×
               </button>
-            </div>
-            <div style={{ fontSize: 12, color: C.sub, fontWeight: 700, marginBottom: 16 }}>
+            </Row>
+            <Text size="sm" weight="bold" color={C.sub} style={{ marginBottom: 16 }}>
               {t.ocReadOnly}
-            </div>
+            </Text>
 
             {viewLoading || !viewData ? (
               <div style={{ padding: 32, textAlign: "center", color: C.sub }}>{t.ocLoading}</div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+              <Stack gap="22px">
                 {/* Billing — Stripe's own numbers, not the modelled MRR from
                     supabase/30. When these two disagree, the price constants in
                     that migration are the thing that is wrong. */}
                 <div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: C.sub,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                      marginBottom: 8,
-                    }}
-                  >
-                    Billing
-                  </div>
+                  <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>Billing</Eyebrow>
                   {!viewBilling ? (
-                    <div style={{ fontSize: 13, color: C.sub }}>{t.ocLoading}</div>
+                    <Text size="base" color={C.sub}>
+                      {t.ocLoading}
+                    </Text>
                   ) : viewBilling.error ? (
-                    <div style={{ fontSize: 13, color: BRAND.rust }}>{viewBilling.error}</div>
+                    <Text size="base" color={BRAND.rust}>
+                      {viewBilling.error}
+                    </Text>
                   ) : !viewBilling.billed ? (
-                    <div style={{ fontSize: 13, color: C.sub }}>{t.ocNotBilled}</div>
+                    <Text size="base" color={C.sub}>
+                      {t.ocNotBilled}
+                    </Text>
                   ) : (
                     <>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 20,
-                          flexWrap: "wrap",
-                          marginBottom: 12,
-                          fontSize: 13,
-                        }}
-                      >
+                      <Row gap={8} align="stretch" wrap style={{ marginBottom: 12, fontSize: 13 }}>
                         <div>
-                          <div
-                            style={{
-                              color: C.sub,
-                              fontSize: 11,
-                              fontWeight: 800,
-                              textTransform: "uppercase",
-                            }}
+                          <Text
+                            size="xs"
+                            weight="extrabold"
+                            color={C.sub}
+                            style={{ textTransform: "uppercase" }}
                           >
                             Charging
-                          </div>
-                          <div style={{ fontWeight: 800, color: C.navy }}>
+                          </Text>
+                          <Text weight="extrabold" color={C.navy}>
                             {fmtMoney(viewBilling.subscription?.total)}
-                            <span style={{ color: C.sub, fontWeight: 600 }}>
+                            <Text as="span" weight="semibold" color={C.sub}>
                               {viewBilling.subscription?.items?.[0]?.interval === "year"
                                 ? " / year"
                                 : " / month"}
-                            </span>
-                          </div>
+                            </Text>
+                          </Text>
                         </div>
                         <div>
-                          <div
-                            style={{
-                              color: C.sub,
-                              fontSize: 11,
-                              fontWeight: 800,
-                              textTransform: "uppercase",
-                            }}
+                          <Text
+                            size="xs"
+                            weight="extrabold"
+                            color={C.sub}
+                            style={{ textTransform: "uppercase" }}
                           >
                             Renews
-                          </div>
-                          <div style={{ color: C.navy }}>
+                          </Text>
+                          <Text color={C.navy}>
                             {fmtDate(viewBilling.subscription?.currentPeriodEnd)}
-                          </div>
+                          </Text>
                         </div>
                         <div>
-                          <div
-                            style={{
-                              color: C.sub,
-                              fontSize: 11,
-                              fontWeight: 800,
-                              textTransform: "uppercase",
-                            }}
+                          <Text
+                            size="xs"
+                            weight="extrabold"
+                            color={C.sub}
+                            style={{ textTransform: "uppercase" }}
                           >
                             Card
-                          </div>
-                          <div style={{ color: C.navy }}>
+                          </Text>
+                          <Text color={C.navy}>
                             {viewBilling.card
                               ? `${viewBilling.card.brand} ···· ${viewBilling.card.last4}`
                               : "—"}
-                          </div>
+                          </Text>
                         </div>
                         {viewBilling.subscription?.cancelAtPeriodEnd && (
                           <div style={{ color: BRAND.rust, fontWeight: 800, alignSelf: "center" }}>
                             {t.ocCancelsAtPeriodEnd}
                           </div>
                         )}
-                      </div>
+                      </Row>
 
                       {viewBilling.invoices.length === 0 ? (
-                        <div style={{ fontSize: 13, color: C.sub }}>{t.ocNoInvoices}</div>
+                        <Text size="base" color={C.sub}>
+                          {t.ocNoInvoices}
+                        </Text>
                       ) : (
                         <div
                           style={{
@@ -1476,46 +1383,48 @@ export default function OwnerConsole({ user, lang = "en" }) {
                                     {fmtMoney(inv.amountDue)}
                                   </td>
                                   <td style={{ padding: "7px 10px" }}>
-                                    <span
-                                      style={{
-                                        color:
-                                          inv.status === "paid"
-                                            ? BRAND.pasture
-                                            : inv.status === "open"
-                                              ? BRAND.amberDeep
-                                              : C.sub,
-                                        fontWeight: 700,
-                                        textTransform: "capitalize",
-                                      }}
+                                    <Text
+                                      as="span"
+                                      weight="bold"
+                                      color={
+                                        inv.status === "paid"
+                                          ? BRAND.pasture
+                                          : inv.status === "open"
+                                            ? BRAND.amberDeep
+                                            : C.sub
+                                      }
+                                      style={{ textTransform: "capitalize" }}
                                     >
                                       {inv.status}
-                                    </span>
+                                    </Text>
                                   </td>
                                   <td style={{ padding: "7px 10px" }}>
                                     {inv.hostedUrl && (
-                                      <a
+                                      <Text
                                         href={inv.hostedUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        style={{ color: C.blue, fontWeight: 700, fontSize: 12 }}
+                                        as="a"
+                                        size="sm"
+                                        weight="bold"
+                                        color={C.blue}
                                       >
                                         View
-                                      </a>
+                                      </Text>
                                     )}
                                     {inv.pdfUrl && (
-                                      <a
+                                      <Text
                                         href={inv.pdfUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        style={{
-                                          color: C.blue,
-                                          fontWeight: 700,
-                                          fontSize: 12,
-                                          marginLeft: 10,
-                                        }}
+                                        as="a"
+                                        size="sm"
+                                        weight="bold"
+                                        color={C.blue}
+                                        style={{ marginLeft: 10 }}
                                       >
                                         PDF
-                                      </a>
+                                      </Text>
                                     )}
                                   </td>
                                 </tr>
@@ -1530,20 +1439,13 @@ export default function OwnerConsole({ user, lang = "en" }) {
 
                 {/* Jobs */}
                 <div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: C.sub,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                      marginBottom: 8,
-                    }}
-                  >
+                  <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>
                     Jobs ({viewData.jobs.length})
-                  </div>
+                  </Eyebrow>
                   {viewData.jobs.length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.sub }}>{t.ocNoJobs}</div>
+                    <Text size="base" color={C.sub}>
+                      {t.ocNoJobs}
+                    </Text>
                   ) : (
                     <div
                       style={{ overflowX: "auto", border: `1px solid ${C.bd}`, borderRadius: 8 }}
@@ -1605,20 +1507,13 @@ export default function OwnerConsole({ user, lang = "en" }) {
 
                 {/* Inventory */}
                 <div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: C.sub,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                      marginBottom: 8,
-                    }}
-                  >
+                  <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>
                     Inventory ({viewData.inventory.length})
-                  </div>
+                  </Eyebrow>
                   {viewData.inventory.length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.sub }}>{t.ocNoInventory}</div>
+                    <Text size="base" color={C.sub}>
+                      {t.ocNoInventory}
+                    </Text>
                   ) : (
                     <div
                       style={{ overflowX: "auto", border: `1px solid ${C.bd}`, borderRadius: 8 }}
@@ -1665,14 +1560,13 @@ export default function OwnerConsole({ user, lang = "en" }) {
                                   {onHand} {i.unit || ""}
                                 </td>
                                 <td style={{ padding: "7px 10px" }}>
-                                  <span
-                                    style={{
-                                      color: low ? BRAND.rust : BRAND.pasture,
-                                      fontWeight: 700,
-                                    }}
+                                  <Text
+                                    as="span"
+                                    weight="bold"
+                                    color={low ? BRAND.rust : BRAND.pasture}
                                   >
                                     {low ? "Low" : "OK"}
-                                  </span>
+                                  </Text>
                                 </td>
                               </tr>
                             );
@@ -1685,22 +1579,15 @@ export default function OwnerConsole({ user, lang = "en" }) {
 
                 {/* Team */}
                 <div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: C.sub,
-                      textTransform: "uppercase",
-                      letterSpacing: 0.5,
-                      marginBottom: 8,
-                    }}
-                  >
+                  <Eyebrow style={{ fontSize: 12, marginBottom: 8 }}>
                     Team ({viewData.members.length})
-                  </div>
+                  </Eyebrow>
                   {viewData.members.length === 0 ? (
-                    <div style={{ fontSize: 13, color: C.sub }}>{t.ocNoMembers}</div>
+                    <Text size="base" color={C.sub}>
+                      {t.ocNoMembers}
+                    </Text>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <Stack gap={2}>
                       {viewData.members.map((m) => (
                         <div
                           key={m.id}
@@ -1716,26 +1603,31 @@ export default function OwnerConsole({ user, lang = "en" }) {
                           }}
                         >
                           <span>
-                            <span style={{ fontWeight: 700, color: C.navy }}>
+                            <Text as="span" weight="bold" color={C.navy}>
                               {m.full_name || m.name || m.email}
-                            </span>{" "}
-                            <span style={{ color: C.sub, marginLeft: 6 }}>{m.email}</span>
+                            </Text>{" "}
+                            <Text as="span" color={C.sub} style={{ marginLeft: 6 }}>
+                              {m.email}
+                            </Text>
                           </span>
-                          <span
-                            style={{ color: C.sub, fontWeight: 700, textTransform: "capitalize" }}
+                          <Text
+                            as="span"
+                            weight="bold"
+                            color={C.sub}
+                            style={{ textTransform: "capitalize" }}
                           >
                             {m.role || "—"}
                             {m.active === false ? " (inactive)" : ""}
-                          </span>
+                          </Text>
                         </div>
                       ))}
-                    </div>
+                    </Stack>
                   )}
                 </div>
-              </div>
+              </Stack>
             )}
 
-            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
+            <Row gap={0} align="stretch" justify="flex-end" style={{ marginTop: 20 }}>
               <button
                 onClick={() => setViewCompany(null)}
                 style={{
@@ -1751,7 +1643,7 @@ export default function OwnerConsole({ user, lang = "en" }) {
               >
                 {t.ocClose}
               </button>
-            </div>
+            </Row>
           </div>
         </div>
       )}

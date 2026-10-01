@@ -12,7 +12,7 @@ import { supabase, getAccessToken } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { BRAND, TrussMark } from "@/shared/components/SteadwerkMark";
 import { useNotify } from "@/shared/context/NotificationContext";
-import { Card } from "@/shared/components/UIPrimitives";
+import { Card, Row, Text, Eyebrow, Muted } from "@/shared/components/UIPrimitives";
 
 const BASE_PRICE = 99;
 const BASE_SEATS = 10;
@@ -224,7 +224,7 @@ export default function BillingView({ user, lang = "en" }) {
 
   return (
     <div style={{ padding: "24px 28px", maxWidth: 640, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+      <Row gap={4} style={{ marginBottom: 20 }}>
         <TrussMark size={24} />
         <h1
           style={{
@@ -237,44 +237,35 @@ export default function BillingView({ user, lang = "en" }) {
         >
           {t.blTitle}
         </h1>
-      </div>
+      </Row>
 
       {loading ? (
-        <div style={{ color: C.sub }}>{t.blLoading}</div>
+        <Text color={C.sub}>{t.blLoading}</Text>
       ) : (
         <>
           {/* Plan */}
           <Card variant="flat" pad="var(--space-8)" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: C.sub,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                marginBottom: 8,
-              }}
-            >
-              {t.blPlan}
-            </div>
+            <Eyebrow style={{ marginBottom: 8 }}>{t.blPlan}</Eyebrow>
             {capacity == null ? (
-              <div style={{ fontSize: 18, fontWeight: 800, color: C.navy }}>
+              <Text size="xl" weight="extrabold" color={C.navy}>
                 {t.blComplimentary}
-              </div>
+              </Text>
             ) : (
               <>
-                <div style={{ fontSize: 22, fontWeight: 900, color: C.navy }}>
+                <Text size="3xl" weight="black" color={C.navy}>
                   ${monthly}
-                  <span style={{ fontSize: 14, color: C.sub, fontWeight: 600 }}>/month</span>
-                </div>
-                <div style={{ fontSize: 13, color: C.sub, marginTop: 4 }}>
+                  <Text as="span" size="md" weight="semibold" color={C.sub}>
+                    /month
+                  </Text>
+                </Text>
+                <Text size="base" color={C.sub} style={{ marginTop: 4 }}>
                   ${BASE_PRICE} base ({BASE_SEATS} users)
                   {recurring > 0 &&
                     ` · ${recurring} crew pack${recurring > 1 ? "s" : ""} at $${PACK_PRICE}/mo (${recurring * PACK_SEATS} seats)`}
                   {/* Called out separately so it is obvious these are not on the bill. */}
                   {grandfathered > 0 &&
                     ` · ${grandfathered} pack${grandfathered > 1 ? "s" : ""} already paid for (${grandfathered * PACK_SEATS} seats, no charge)`}
-                </div>
+                </Text>
               </>
             )}
             {status && status !== "active" && (
@@ -303,11 +294,11 @@ export default function BillingView({ user, lang = "en" }) {
                   borderTop: `1px solid ${C.bd}`,
                 }}
               >
-                <div style={{ fontSize: 13, color: C.sub, marginBottom: 10 }}>
+                <Text size="base" color={C.sub} style={{ marginBottom: 10 }}>
                   {t.blSwitchAnnualBlurb
                     .replace("{price}", ANNUAL_PRICE)
                     .replace("{pct}", ANNUAL_SAVINGS_PCT)}
-                </div>
+                </Text>
                 <button
                   onClick={switchToAnnual}
                   disabled={annualBusy}
@@ -333,22 +324,11 @@ export default function BillingView({ user, lang = "en" }) {
               name, not a person; this is the one place that person's name lives.
               See supabase/47. */}
           <Card variant="flat" pad="var(--space-8)" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: C.sub,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                marginBottom: 8,
-              }}
-            >
-              {t.blBillingContact}
-            </div>
-            <div style={{ fontSize: 13, color: C.sub, marginBottom: 12 }}>
+            <Eyebrow style={{ marginBottom: 8 }}>{t.blBillingContact}</Eyebrow>
+            <Text size="base" color={C.sub} style={{ marginBottom: 12 }}>
               {t.blBillingContactBlurb}
-            </div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            </Text>
+            <Row gap={4} align="stretch" wrap>
               <input
                 type="text"
                 value={contactName}
@@ -385,44 +365,41 @@ export default function BillingView({ user, lang = "en" }) {
               >
                 {t.blSaveContact}
               </button>
-            </div>
+            </Row>
           </Card>
 
           {/* Seats */}
           <Card variant="flat" pad="var(--space-8)" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: C.sub,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                marginBottom: 8,
-              }}
-            >
-              {t.blUsers}
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: atLimit ? BRAND.rust : C.navy }}>
+            <Eyebrow style={{ marginBottom: 8 }}>{t.blUsers}</Eyebrow>
+            <Text size="3xl" weight="black" color={atLimit ? BRAND.rust : C.navy}>
               {used}
               {capacity != null ? (
-                <span style={{ color: C.sub, fontWeight: 600 }}> / {capacity}</span>
+                <Text as="span" weight="semibold" color={C.sub}>
+                  {" "}
+                  / {capacity}
+                </Text>
               ) : (
-                <span style={{ fontSize: 14, color: C.sub, fontWeight: 600 }}> (unlimited)</span>
+                <Text as="span" size="md" weight="semibold" color={C.sub}>
+                  {" "}
+                  (unlimited)
+                </Text>
               )}
-            </div>
+            </Text>
             {atLimit && (
-              <div style={{ fontSize: 13, color: BRAND.rust, marginTop: 6 }}>{t.blSeatLimit}</div>
+              <Text size="base" color={BRAND.rust} style={{ marginTop: 6 }}>
+                {t.blSeatLimit}
+              </Text>
             )}
             {/* A quiet nudge before atLimit actually blocks anything — so an admin
                 can add a pack ahead of it stopping someone mid-invite. */}
             {!atLimit && nearingLimit && (
-              <div style={{ fontSize: 13, color: BRAND.amberDeep, marginTop: 6 }}>
+              <Text size="base" color={BRAND.amberDeep} style={{ marginTop: 6 }}>
                 {t.blSeatsNearLimit}
-              </div>
+              </Text>
             )}
             {capacity != null && (
               <>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+                <Row gap={4} align="stretch" wrap style={{ marginTop: 12 }}>
                   <button
                     onClick={() => changePacks(1)}
                     disabled={busy}
@@ -458,8 +435,10 @@ export default function BillingView({ user, lang = "en" }) {
                   >
                     − Remove {PACK_SEATS} seats
                   </button>
-                </div>
-                <div style={{ fontSize: 12, color: C.sub, marginTop: 8 }}>{t.blProrationNote}</div>
+                </Row>
+                <Muted size="sm" style={{ marginTop: 8 }}>
+                  {t.blProrationNote}
+                </Muted>
               </>
             )}
           </Card>
@@ -474,22 +453,11 @@ export default function BillingView({ user, lang = "en" }) {
               already says "Complimentary" off the same signal, so offering a
               payment portal underneath it was the screen contradicting itself. */}
           <Card variant="flat" pad="var(--space-8)" style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: C.sub,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                marginBottom: 8,
-              }}
-            >
-              {t.blPaymentInvoices}
-            </div>
+            <Eyebrow style={{ marginBottom: 8 }}>{t.blPaymentInvoices}</Eyebrow>
             {capacity == null ? (
-              <div style={{ fontSize: 13, color: C.sub, lineHeight: 1.6 }}>
+              <Text size="base" color={C.sub} style={{ lineHeight: 1.6 }}>
                 {t.blNoBillingAccount}
-              </div>
+              </Text>
             ) : (
               <>
                 {(cardExpired || cardExpiringSoon) && (
@@ -510,9 +478,9 @@ export default function BillingView({ user, lang = "en" }) {
                       .replace("{year}", cardInfo.expYear)}
                   </div>
                 )}
-                <div style={{ fontSize: 13, color: C.sub, marginBottom: 12 }}>
+                <Text size="base" color={C.sub} style={{ marginBottom: 12 }}>
                   {t.blPortalBlurb}
-                </div>
+                </Text>
                 <button
                   onClick={openPortal}
                   disabled={busy}

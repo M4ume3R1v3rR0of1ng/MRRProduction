@@ -21,7 +21,16 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { C, displayName } from "@/shared/utils/helpers";
-import { Bdg, Btn, Modal, CardGrid } from "@/shared/components/UIPrimitives";
+import {
+  Bdg,
+  Btn,
+  Modal,
+  CardGrid,
+  Row,
+  Stack,
+  Text,
+  Muted,
+} from "@/shared/components/UIPrimitives";
 import TeamChatBox from "./TeamChatBox";
 import WeatherCard from "./WeatherCard";
 import ScheduleCard from "./ScheduleCard";
@@ -39,27 +48,17 @@ function LiveClock({ lang }) {
   const locale = lang === "es" ? "es-ES" : "en-US";
   return (
     <div style={{ textAlign: "right", flexShrink: 0 }}>
-      <div
-        style={{
-          fontSize: "var(--text-2xl)",
-          fontWeight: "var(--weight-black)",
-          color: C.navy,
-          fontVariantNumeric: "tabular-nums",
-          lineHeight: 1.1,
-        }}
+      <Text
+        size="2xl"
+        weight="black"
+        color={C.navy}
+        style={{ fontVariantNumeric: "tabular-nums", lineHeight: 1.1 }}
       >
         {now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-      </div>
-      <div
-        style={{
-          fontSize: "var(--text-xs)",
-          color: C.sub,
-          fontWeight: "var(--weight-bold)",
-          textTransform: "capitalize",
-        }}
-      >
+      </Text>
+      <Text size="xs" weight="bold" color={C.sub} style={{ textTransform: "capitalize" }}>
         {now.toLocaleDateString(locale, { weekday: "long" })}
-      </div>
+      </Text>
     </div>
   );
 }
@@ -223,7 +222,7 @@ function Sparkline({ data, labels = [], color, format = (v) => String(v), h = 44
 function BarRow({ label, value, max, color, display, tone }) {
   const pct = max > 0 ? Math.min(1, Math.max(0, value) / max) : 0;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 7 }}>
+    <Row style={{ marginBottom: 7 }}>
       {/* title, because a long category name truncates here and the full string
           is otherwise nowhere on the card. */}
       <div
@@ -270,7 +269,7 @@ function BarRow({ label, value, max, color, display, tone }) {
       >
         {display ?? value}
       </div>
-    </div>
+    </Row>
   );
 }
 
@@ -567,7 +566,7 @@ export default function DashboardView({
         minWidth: 0,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", minWidth: 0 }}>
+      <Row style={{ minWidth: 0 }}>
         <div
           style={{
             width: 34,
@@ -600,19 +599,16 @@ export default function DashboardView({
           >
             {value}
           </div>
-          <div
-            style={{
-              fontSize: "var(--text-xs)",
-              color: C.sub,
-              marginTop: 2,
-              fontWeight: "var(--weight-semibold)",
-            }}
-          >
+          <Text size="xs" weight="semibold" color={C.sub} style={{ marginTop: 2 }}>
             {label}
-          </div>
+          </Text>
         </div>
-      </div>
-      {sub && <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 4 }}>{sub}</div>}
+      </Row>
+      {sub && (
+        <Muted size="2xs" style={{ marginTop: 4 }}>
+          {sub}
+        </Muted>
+      )}
       {series && <Sparkline data={series} labels={seriesLabels} color={color} format={format} />}
     </div>
   );
@@ -684,11 +680,11 @@ export default function DashboardView({
   // ── LAYOUT 1: FIELD WORKER PORTAL ──
   const renderFieldDashboard = () => {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <Stack gap={6}>
         {/* The three status cards that used to head this section now sit in the
             KPI strip at the top of the page. */}
         <CardGrid minWidth={320} fit gap="var(--space-6)" style={{ alignItems: "start" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+          <Stack gap={6}>
             <div
               style={{
                 background: C.w,
@@ -712,7 +708,9 @@ export default function DashboardView({
                 <Calendar size={15} aria-hidden="true" /> {t.activeAgenda}
               </h3>
               {myJobs.length === 0 ? (
-                <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>{t.noJobs}</p>
+                <Muted as="p" size="sm" style={{ margin: 0 }}>
+                  {t.noJobs}
+                </Muted>
               ) : (
                 myJobs.map((j) => (
                   <div
@@ -726,21 +724,15 @@ export default function DashboardView({
                       borderLeft: `3px solid ${C.tl}`,
                     }}
                   >
-                    <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                    <Text weight="bold" color={C.navy}>
                       {j.title || j.name}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        color: C.sub,
-                        fontSize: "var(--text-2xs)",
-                        marginTop: 2,
-                      }}
+                    </Text>
+                    <Row
+                      gap={1}
+                      style={{ color: C.sub, fontSize: "var(--text-2xs)", marginTop: 2 }}
                     >
                       <MapPin size={11} aria-hidden="true" /> {j.addr || j.address}
-                    </div>
+                    </Row>
                   </div>
                 ))
               )}
@@ -770,36 +762,20 @@ export default function DashboardView({
               </h3>
               {myVehicle ? (
                 <div style={{ background: C.lg, padding: 16, borderRadius: "var(--radius-lg)" }}>
-                  <div
-                    style={{
-                      fontSize: "var(--text-xs)",
-                      fontWeight: "var(--weight-bold)",
-                      color: C.sub,
-                      textTransform: "uppercase",
-                      marginBottom: 4,
-                    }}
+                  <Text
+                    size="xs"
+                    weight="bold"
+                    color={C.sub}
+                    style={{ textTransform: "uppercase", marginBottom: 4 }}
                   >
                     {t.assignedTruck}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "var(--text-lg)",
-                      fontWeight: "var(--weight-extrabold)",
-                      color: C.navy,
-                    }}
-                  >
+                  </Text>
+                  <Text size="lg" weight="extrabold" color={C.navy}>
                     {myVehicle.name} — {myVehicle.make} {myVehicle.model}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: "var(--text-base)",
-                      color: C.blue,
-                      fontWeight: "var(--weight-bold)",
-                      marginTop: 2,
-                    }}
-                  >
+                  </Text>
+                  <Text size="base" weight="bold" color={C.blue} style={{ marginTop: 2 }}>
                     Plate ID: {myVehicle.plate || "No Plate Registered"}
-                  </div>
+                  </Text>
                 </div>
               ) : (
                 <div
@@ -814,7 +790,7 @@ export default function DashboardView({
                 </div>
               )}
             </div>
-          </div>
+          </Stack>
           <TeamChatBox
             user={user}
             users={users}
@@ -823,17 +799,17 @@ export default function DashboardView({
             lang={lang}
           />
         </CardGrid>
-      </div>
+      </Stack>
     );
   };
 
   // ── LAYOUT 2: WAREHOUSE FULFILLMENT HUB ──
   const renderWarehouseDashboard = () => {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <Stack gap={6}>
         {/* Status cards for this role live in the KPI strip at the top now. */}
         <CardGrid minWidth={320} fit gap="var(--space-6)" style={{ alignItems: "start" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+          <Stack gap={6}>
             <div
               style={{
                 background: C.w,
@@ -857,18 +833,9 @@ export default function DashboardView({
                 <AlertOctagon size={15} aria-hidden="true" /> {t.lowStockWatch}
               </h3>
               {low.length === 0 ? (
-                <p
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    color: C.gr,
-                    fontSize: "var(--text-sm)",
-                    margin: 0,
-                  }}
-                >
+                <Row as="p" gap={2} style={{ color: C.gr, fontSize: "var(--text-sm)", margin: 0 }}>
                   <CheckCircle2 size={14} aria-hidden="true" /> {t.allStockSafe}
-                </p>
+                </Row>
               ) : (
                 /* A meter each, on-hand against that item's own alert level, rather
                    than a number you have to hold the threshold in your head to
@@ -885,15 +852,10 @@ export default function DashboardView({
                   const track = out || pct <= 0.5 ? C.rB : C.aB;
                   return (
                     <div key={item.id} style={{ marginBottom: 10 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "baseline",
-                          gap: "var(--space-3)",
-                          marginBottom: 4,
-                          fontSize: "var(--text-sm)",
-                        }}
+                      <Row
+                        align="baseline"
+                        justify="space-between"
+                        style={{ marginBottom: 4, fontSize: "var(--text-sm)" }}
                       >
                         <span
                           style={{
@@ -907,17 +869,16 @@ export default function DashboardView({
                         >
                           {item.name}
                         </span>
-                        <span
-                          style={{
-                            color: tone,
-                            fontWeight: "var(--weight-extrabold)",
-                            whiteSpace: "nowrap",
-                            fontSize: "var(--text-xs)",
-                          }}
+                        <Text
+                          as="span"
+                          size="xs"
+                          weight="extrabold"
+                          color={tone}
+                          style={{ whiteSpace: "nowrap" }}
                         >
                           {out ? "Out" : "Low"} · {onHand} / {limit} {item.unit}
-                        </span>
-                      </div>
+                        </Text>
+                      </Row>
                       <div style={{ height: 8, background: track, borderRadius: 2 }}>
                         <div
                           style={{
@@ -973,16 +934,16 @@ export default function DashboardView({
                     cursor: "pointer",
                   }}
                 >
-                  <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                  <Text as="span" weight="bold" color={C.navy}>
                     {p.title || p.name}
-                  </span>
+                  </Text>
                   <Bdg color={p.status === "approved" ? "blue" : "gray"}>
                     {p.status.toUpperCase()}
                   </Bdg>
                 </div>
               ))}
             </div>
-          </div>
+          </Stack>
           <TeamChatBox
             user={user}
             users={users}
@@ -991,14 +952,14 @@ export default function DashboardView({
             lang={lang}
           />
         </CardGrid>
-      </div>
+      </Stack>
     );
   };
 
   // ── LAYOUT 3: MANAGEMENT COMMAND CENTRE ──
   const renderManagerDashboard = () => {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <Stack gap={6}>
         {/* Status cards for this role live in the KPI strip at the top now. */}
         <ScheduleCard
           jobs={jobs}
@@ -1011,7 +972,7 @@ export default function DashboardView({
         />
 
         <CardGrid minWidth={320} fit gap="var(--space-6)" style={{ alignItems: "start" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+          <Stack gap={6}>
             <div
               style={{
                 background: C.w,
@@ -1073,13 +1034,13 @@ export default function DashboardView({
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                        <Text weight="bold" color={C.navy}>
                           {j.title || j.name}
-                        </div>
-                        <div style={{ color: C.sub, fontSize: "var(--text-2xs)" }}>
+                        </Text>
+                        <Muted size="2xs">
                           {j.po || t.noPO}
                           {sup ? ` · ${sup.full_name || sup.name}` : ""}
-                        </div>
+                        </Muted>
                       </div>
                       <Bdg color={st.c}>{st.l}</Bdg>
                     </div>
@@ -1113,13 +1074,13 @@ export default function DashboardView({
                 >
                   <DollarSign size={15} aria-hidden="true" /> {t.materialThisMonth}
                 </h3>
-                <p style={{ margin: "0 0 12px", fontSize: "var(--text-2xs)", color: C.sub }}>
+                <Muted as="p" size="2xs" style={{ margin: "0 0 12px" }}>
                   Top 5 categories by spend
-                </p>
+                </Muted>
                 {costByCategory.length === 0 ? (
-                  <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
+                  <Muted as="p" size="sm" style={{ margin: 0 }}>
                     No material consumed yet this month.
-                  </p>
+                  </Muted>
                 ) : (
                   costByCategory.map(([cat, spend]) => (
                     <BarRow
@@ -1134,7 +1095,7 @@ export default function DashboardView({
                 )}
               </div>
             )}
-          </div>
+          </Stack>
           <TeamChatBox
             user={user}
             users={users}
@@ -1143,7 +1104,7 @@ export default function DashboardView({
             lang={lang}
           />
         </CardGrid>
-      </div>
+      </Stack>
     );
   };
 
@@ -1152,15 +1113,13 @@ export default function DashboardView({
       {/* Upper Welcome Context Row — company-branded + live clock. The accent stripe
           picks up each company's brand color; the subtitle is the company's own name
           + tagline (was a hardcoded "Saint Joe Road Warehouse" shown for every tenant). */}
-      <div
+      <Row
+        gap={6}
+        wrap
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
           marginBottom: 14,
           borderLeft: "4px solid var(--brand-accent, var(--c-amber))",
           paddingLeft: 14,
-          flexWrap: "wrap",
         }}
       >
         {activeLogo && (
@@ -1171,17 +1130,10 @@ export default function DashboardView({
           />
         )}
         <div style={{ minWidth: 0, flex: "1 1 220px" }}>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "var(--text-2xl)",
-              fontWeight: "var(--weight-black)",
-              color: C.navy,
-            }}
-          >
+          <Text as="h1" size="2xl" weight="black" color={C.navy} style={{ margin: 0 }}>
             {greeting}, {displayName(user)}
-          </h1>
-          <p style={{ margin: "3px 0 0", color: C.sub, fontSize: "var(--text-sm)" }}>
+          </Text>
+          <Muted as="p" size="sm" style={{ margin: "3px 0 0" }}>
             {company?.branding?.displayName || company?.name || "Steadwerk"}
             {company?.branding?.tagline ? ` · ${company.branding.tagline}` : ""}
             {" · "}
@@ -1191,15 +1143,15 @@ export default function DashboardView({
               day: "numeric",
               year: "numeric",
             })}
-          </p>
+          </Muted>
         </div>
         <LiveClock lang={lang} />
-      </div>
+      </Row>
 
       {/* Quick actions — start the common daily tasks in one click. Each is gated by
           the permission that makes it meaningful; the row hides if none apply. */}
       {(perms.jobs_build || perms.jobs_pull || perms.maint_submit || perms.maint_manage) && (
-        <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap", marginBottom: 16 }}>
+        <Row align="stretch" wrap style={{ marginBottom: 16 }}>
           {perms.jobs_build && (
             <Btn v="gold" onClick={() => onNav("buildjobs")}>
               <Plus size={14} aria-hidden="true" /> {t.quickNewJob}
@@ -1215,7 +1167,7 @@ export default function DashboardView({
               <Wrench size={14} aria-hidden="true" /> {t.quickMaint}
             </Btn>
           )}
-        </div>
+        </Row>
       )}
 
       {/* One KPI strip: this role's current-status cards, then the recent-output
@@ -1350,18 +1302,12 @@ export default function DashboardView({
             cursor: "pointer",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              fontWeight: "var(--weight-bold)",
-              color: C.tl,
-              fontSize: "var(--text-base)",
-            }}
+          <Row
+            gap="7px"
+            style={{ fontWeight: "var(--weight-bold)", color: C.tl, fontSize: "var(--text-base)" }}
           >
             <PartyPopper size={16} aria-hidden="true" /> {newJobs.length} {t.newAssignments}
-          </div>
+          </Row>
           <Btn v="teal" sz="sm">
             {t.view} →
           </Btn>
@@ -1382,18 +1328,12 @@ export default function DashboardView({
             cursor: "pointer",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              fontWeight: "var(--weight-bold)",
-              color: C.pu,
-              fontSize: "var(--text-base)",
-            }}
+          <Row
+            gap="7px"
+            style={{ fontWeight: "var(--weight-bold)", color: C.pu, fontSize: "var(--text-base)" }}
           >
             <Bell size={15} aria-hidden="true" /> {pendingReqs.length} {t.pendingMaint}
-          </div>
+          </Row>
           <Btn v="purple" sz="sm">
             {t.view} →
           </Btn>
@@ -1482,29 +1422,22 @@ export default function DashboardView({
       {newJobAlert && (
         <Modal
           title={
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Row as="span">
               <AlertOctagon size={17} aria-hidden="true" /> {t.newAssignments}
-            </span>
+            </Row>
           }
           onClose={() => acknowledgeJob(false)}
         >
           <div style={{ textAlign: "center", padding: "8px 0" }}>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+            <Row gap={0} align="stretch" justify="center" style={{ marginBottom: 10 }}>
               <HardHat size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
-            </div>
-            <h3
-              style={{
-                margin: "0 0 6px 0",
-                color: C.navy,
-                fontWeight: "var(--weight-black)",
-                fontSize: "var(--text-lg)",
-              }}
-            >
+            </Row>
+            <Text as="h3" size="lg" weight="black" color={C.navy} style={{ margin: "0 0 6px 0" }}>
               {newJobAlert.title || newJobAlert.name || t.dashUntitledContract}
-            </h3>
-            <p style={{ margin: "0 0 14px 0", color: C.sub, fontSize: "var(--text-base)" }}>
+            </Text>
+            <Text as="p" size="base" color={C.sub} style={{ margin: "0 0 14px 0" }}>
               {t.dashPoTracker} <strong>{newJobAlert.po || "—"}</strong>
-            </p>
+            </Text>
 
             <div
               style={{
@@ -1567,28 +1500,13 @@ export default function DashboardView({
       {!newJobAlert && maintAlert && (
         <Modal title={t.dashNewMaintReq} onClose={() => acknowledgeMaint(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+            <Row gap={0} align="stretch" justify="center" style={{ marginBottom: 10 }}>
               <Wrench size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
-            </div>
-            <h3
-              style={{
-                margin: "0 0 6px 0",
-                color: C.navy,
-                fontWeight: "var(--weight-black)",
-                fontSize: "var(--text-lg)",
-              }}
-            >
+            </Row>
+            <Text as="h3" size="lg" weight="black" color={C.navy} style={{ margin: "0 0 6px 0" }}>
               {maintAlert.vname || "Unknown Vehicle"}
-            </h3>
-            <div
-              style={{
-                display: "flex",
-                gap: 6,
-                justifyContent: "center",
-                marginBottom: 12,
-                flexWrap: "wrap",
-              }}
-            >
+            </Text>
+            <Row gap={2} align="stretch" justify="center" wrap style={{ marginBottom: 12 }}>
               {maintAlert.urgency === "urgent" && (
                 <Bdg color="red">
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -1597,7 +1515,7 @@ export default function DashboardView({
                 </Bdg>
               )}
               <Bdg color="gray">{maintAlert.type}</Bdg>
-            </div>
+            </Row>
 
             <div
               style={{
@@ -1638,32 +1556,17 @@ export default function DashboardView({
       {!newJobAlert && !maintAlert && statusAlert && (
         <Modal title={t.dashMaintUpdate} onClose={() => acknowledgeStatusUpdate(false)}>
           <div style={{ textAlign: "center", padding: "8px 0" }}>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+            <Row gap={0} align="stretch" justify="center" style={{ marginBottom: 10 }}>
               {statusAlert.status === "completed" ? (
                 <CheckCircle2 size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
               ) : (
                 <Calendar size={38} color={C.navy} strokeWidth={1.5} aria-hidden="true" />
               )}
-            </div>
-            <h3
-              style={{
-                margin: "0 0 6px 0",
-                color: C.navy,
-                fontWeight: "var(--weight-black)",
-                fontSize: "var(--text-lg)",
-              }}
-            >
+            </Row>
+            <Text as="h3" size="lg" weight="black" color={C.navy} style={{ margin: "0 0 6px 0" }}>
               {statusAlert.vname || "Unknown Vehicle"}
-            </h3>
-            <div
-              style={{
-                display: "flex",
-                gap: 6,
-                justifyContent: "center",
-                marginBottom: 12,
-                flexWrap: "wrap",
-              }}
-            >
+            </Text>
+            <Row gap={2} align="stretch" justify="center" wrap style={{ marginBottom: 12 }}>
               <Bdg
                 color={
                   statusAlert.status === "pending"
@@ -1676,7 +1579,7 @@ export default function DashboardView({
                 {(statusAlert.status || "updated").toUpperCase()}
               </Bdg>
               <Bdg color="gray">{statusAlert.type}</Bdg>
-            </div>
+            </Row>
 
             <div
               style={{

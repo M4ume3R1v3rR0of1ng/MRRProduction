@@ -25,7 +25,14 @@ import { supabase } from "./shared/utils/supabase";
 import { useAppData } from "./core/useAppData";
 import OmniSearch from "./shared/components/OmniSearch";
 import SyncIndicator from "./shared/components/SyncIndicator";
-import { RoleBdg, SkeletonCards, LoadingState } from "./shared/components/UIPrimitives";
+import {
+  RoleBdg,
+  SkeletonCards,
+  LoadingState,
+  Row,
+  Stack,
+  Text,
+} from "./shared/components/UIPrimitives";
 import IdleTimeoutWrapper from "./shared/components/IdleTimeoutWrapper";
 
 // Centralized Stateless Calculation & Helper Utilities
@@ -115,18 +122,17 @@ const VIEW_TITLES = {
 // than left blank so a slow connection does not flash white between routes.
 function ChunkFallback({ full = false }) {
   return (
-    <div
+    <Row
+      gap={0}
+      justify="center"
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         minHeight: full ? "100vh" : 240,
         width: "100%",
         background: full ? C.bg : "transparent",
       }}
     >
       <LoadingState label="Loading..." />
-    </div>
+    </Row>
   );
 }
 
@@ -446,16 +452,7 @@ export default function App() {
           <SteadwerkMark size={88} filled />
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "var(--space-3)",
-            width: "100%",
-            maxWidth: "240px",
-          }}
-        >
+        <Stack gap={3} align="center" style={{ width: "100%", maxWidth: "240px" }}>
           {/* External Track Container */}
           <div
             style={{
@@ -478,18 +475,15 @@ export default function App() {
             />
           </div>
 
-          <div
-            style={{
-              color: C.navy,
-              fontWeight: "var(--weight-bold)",
-              fontSize: "var(--text-base)",
-              letterSpacing: "0.5px",
-              marginTop: 4,
-            }}
+          <Text
+            size="base"
+            weight="bold"
+            color={C.navy}
+            style={{ letterSpacing: "0.5px", marginTop: 4 }}
           >
             Syncing your yard... {app.loadingProgress}%
-          </div>
-        </div>
+          </Text>
+        </Stack>
 
         {/* A skeleton of the dashboard sitting under the progress bar. The bar
             alone leaves the screen empty for the whole load; showing the shape
@@ -777,7 +771,7 @@ export default function App() {
                 fontWeight: "var(--weight-bold)",
               }}
             >
-              <span style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
+              <Row as="span" gap="7px" align="flex-start">
                 <AlertTriangle
                   size={15}
                   style={{ marginTop: 2, flexShrink: 0 }}
@@ -787,7 +781,7 @@ export default function App() {
                   Live data failed to load: {app.loadErrors.join(", ")}. Those sections are shown
                   empty rather than with possibly-wrong data — don't make changes until this clears.
                 </span>
-              </span>
+              </Row>
               <button
                 onClick={() => app.reload()}
                 style={{
@@ -830,14 +824,11 @@ export default function App() {
                 {app.warehouses?.[0]?.name ? ` · ${app.warehouses[0].name}` : ""}
               </div>
 
-              <div
-                style={{
-                  flex: 1,
-                  maxWidth: "400px",
-                  display: "flex",
-                  justifyContent: "flex-start",
-                  paddingRight: "40px",
-                }}
+              <Row
+                gap={0}
+                align="stretch"
+                justify="flex-start"
+                style={{ flex: 1, maxWidth: "400px", paddingRight: "40px" }}
               >
                 <OmniSearch
                   jobs={app.jobs}
@@ -851,17 +842,9 @@ export default function App() {
                   onInventorySearch={setInventorySearchQuery}
                   lang={lang}
                 />
-              </div>
+              </Row>
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-5)",
-                  flexShrink: 0,
-                  marginLeft: 24,
-                }}
-              >
+              <Row gap={5} style={{ flexShrink: 0, marginLeft: 24 }}>
                 <SyncIndicator lang={lang} />
                 {app.newJobsForMe > 0 && (
                   <div
@@ -944,7 +927,7 @@ export default function App() {
                 )}
                 <CompanySwitcher user={app.curUser} lang={lang} />
                 <RoleBdg role={app.curUser.role} lang={lang} />
-              </div>
+              </Row>
             </div>
           )}
 

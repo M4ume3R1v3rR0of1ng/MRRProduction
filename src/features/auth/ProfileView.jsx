@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { User, Shield, Bell, Mail, KeyRound } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
-import { Fld, Inp, Btn } from "@/shared/components/UIPrimitives";
+import { Fld, Inp, Btn, Stack, Row, Text, Eyebrow } from "@/shared/components/UIPrimitives";
 import { sendEmail } from "@/shared/utils/email";
 import { translations } from "@/shared/utils/translations";
 import MfaPanel from "./MfaPanel";
@@ -176,15 +176,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--space-8)",
-        maxWidth: 500,
-        margin: "20px auto",
-      }}
-    >
+    <Stack gap={8} style={{ maxWidth: 500, margin: "20px auto" }}>
       {/* CARD 1: Identity Profile Credentials */}
       <div
         style={{
@@ -207,9 +199,9 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
         >
           <User size={22} aria-hidden="true" /> Personal Profile
         </h1>
-        <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>
+        <Text as="p" size="base" color={C.sub} style={{ margin: "0 0 20px" }}>
           {t.profIdentity}
-        </p>
+        </Text>
 
         <form onSubmit={handleProfileUpdate}>
           <Fld label={t.profFullName}>
@@ -281,29 +273,15 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
           boxShadow: "var(--shadow-sm)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--space-4)",
-            marginBottom: 6,
-          }}
-        >
+        <Row gap={4} style={{ marginBottom: 6 }}>
           <Bell size={22} color={C.navy} aria-hidden="true" />
-          <h3
-            style={{
-              margin: 0,
-              fontSize: "var(--text-xl)",
-              fontWeight: "var(--weight-black)",
-              color: C.navy,
-            }}
-          >
+          <Text as="h3" size="xl" weight="black" color={C.navy} style={{ margin: 0 }}>
             {t.profAlertPrefs}
-          </h3>
-        </div>
-        <p style={{ margin: "0 0 20px 0", color: C.sub, fontSize: "var(--text-base)" }}>
+          </Text>
+        </Row>
+        <Text as="p" size="base" color={C.sub} style={{ margin: "0 0 20px 0" }}>
           Choose how you want to be notified when items hit low-stock thresholds.
-        </p>
+        </Text>
 
         {/* The number is kept even though nothing texts it: OmniSearch matches
             on phone_number, so this is how you look a teammate up by their
@@ -320,18 +298,9 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
 
         {/* ── NEW DYNAMIC READ-ONLY EMAIL ROUTING LABEL ── */}
         <div style={{ marginBottom: 16 }}>
-          <div
-            style={{
-              fontSize: "var(--text-xs)",
-              fontWeight: "var(--weight-bold)",
-              color: C.navy,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              marginBottom: 6,
-            }}
-          >
+          <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
             {t.profAlertEmail}
-          </div>
+          </Eyebrow>
           <div
             style={{
               display: "flex",
@@ -352,14 +321,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
         </div>
 
         {/* ── NOTIFICATION ROUTING TOGGLES ── */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--space-5)",
-            marginBottom: 20,
-          }}
-        >
+        <Stack style={{ marginBottom: 20 }}>
           {/* The "text me alerts" toggle was removed here, deliberately.
               Nothing in the app has ever sent an SMS: dispatchSMSAlert was never
               called from anywhere, and the Supabase Edge Function it targeted
@@ -388,7 +350,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
             />
             {t.profEnableEmail}
           </label>
-        </div>
+        </Stack>
 
         {alertMsg.text && (
           <div
@@ -438,9 +400,9 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
         >
           <KeyRound size={18} aria-hidden="true" /> Access Credentials
         </h2>
-        <p style={{ margin: "0 0 20px", color: C.sub, fontSize: "var(--text-base)" }}>
+        <Text as="p" size="base" color={C.sub} style={{ margin: "0 0 20px" }}>
           {t.profSecurity}
-        </p>
+        </Text>
 
         <form onSubmit={handlePasswordChange}>
           <Fld label={t.profCurrentPw}>
@@ -504,6 +466,6 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
           purpose — it is the same subject, and it is the half that still holds
           when the password is the part that leaks. */}
       <MfaPanel user={user} lang={lang} />
-    </div>
+    </Stack>
   );
 }

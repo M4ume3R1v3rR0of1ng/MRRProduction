@@ -4,7 +4,7 @@ import { MessageSquare, RefreshCw, AlertTriangle, Camera, X } from "lucide-react
 import { translations } from "@/shared/utils/translations";
 import { supabase } from "@/shared/utils/supabase";
 import { C, ft, compressImg } from "@/shared/utils/helpers";
-import { Modal, LoadingState } from "@/shared/components/UIPrimitives";
+import { Modal, LoadingState, Row, Stack, Text, Muted } from "@/shared/components/UIPrimitives";
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -264,14 +264,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
         height: 420,
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
+      <Row gap={0} justify="space-between" style={{ marginBottom: 12 }}>
         <h3
           style={{
             margin: 0,
@@ -301,7 +294,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
         >
           <RefreshCw size={13} aria-hidden="true" /> Refresh
         </button>
-      </div>
+      </Row>
 
       <div
         ref={scrollRef}
@@ -341,20 +334,17 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
                 key={m.id}
                 style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "80%" }}
               >
-                <div
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: C.sub,
-                    fontWeight: "var(--weight-bold)",
-                    marginBottom: 2,
-                    textAlign: mine ? "right" : "left",
-                  }}
+                <Text
+                  size="xs"
+                  weight="bold"
+                  color={C.sub}
+                  style={{ marginBottom: 2, textAlign: mine ? "right" : "left" }}
                 >
                   {m.user_name || "Teammate"}
-                </div>
+                </Text>
 
                 {isEditing ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+                  <Stack gap={2}>
                     <input
                       autoFocus
                       value={editDraft}
@@ -368,9 +358,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
                         boxSizing: "border-box",
                       }}
                     />
-                    <div
-                      style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}
-                    >
+                    <Row align="stretch" justify="flex-end">
                       <button
                         onClick={cancelEdit}
                         style={{
@@ -397,8 +385,8 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
                       >
                         {t.chSave}
                       </button>
-                    </div>
-                  </div>
+                    </Row>
+                  </Stack>
                 ) : (
                   <div
                     style={{
@@ -433,18 +421,15 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
                 )}
 
                 {!isEditing && (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "var(--space-3)",
-                      marginTop: 2,
-                      justifyContent: mine ? "flex-end" : "flex-start",
-                    }}
+                  <Row
+                    align="stretch"
+                    justify={mine ? "flex-end" : "flex-start"}
+                    style={{ marginTop: 2 }}
                   >
-                    <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                    <Muted as="span" size="2xs">
                       {ft(m.created_at)}
                       {m.edited_at ? " · edited" : ""}
-                    </span>
+                    </Muted>
                     {mine && (
                       <>
                         <button
@@ -477,7 +462,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
                         </button>
                       </>
                     )}
-                  </div>
+                  </Row>
                 )}
               </div>
             );
@@ -571,7 +556,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "var(--space-3)" }}>
+      <Row align="stretch">
         <input
           ref={fileInputRef}
           type="file"
@@ -625,7 +610,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
         >
           {t.chSend}
         </button>
-      </div>
+      </Row>
 
       {lightboxPhoto && (
         <Modal title={t.chAttachmentLabel} onClose={() => setLightboxPhoto(null)}>

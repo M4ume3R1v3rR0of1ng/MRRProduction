@@ -26,7 +26,19 @@ import {
   ROLE_COLS,
   DEFAULT_ROLE_PERMS,
 } from "@/shared/database/permissions";
-import { Btn, Fld, Inp, Sel, Toggle, StatusDot, CardGrid } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Fld,
+  Inp,
+  Sel,
+  Toggle,
+  StatusDot,
+  CardGrid,
+  Row,
+  Stack,
+  Text,
+  Eyebrow,
+} from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 import { useNotify } from "@/shared/context/NotificationContext";
 // ── IMPORT ADDED ──────────────────────────────────────────────────────────
@@ -92,7 +104,7 @@ const Card = ({ children, style = {} }) => (
 
 const SectionTitle = ({ icon: Icon, title, subtitle }) => (
   <div style={{ marginBottom: 20 }}>
-    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 4 }}>
+    <Row style={{ marginBottom: 4 }}>
       {Icon && <Icon size={19} aria-hidden="true" />}
       <h2
         style={{
@@ -105,11 +117,11 @@ const SectionTitle = ({ icon: Icon, title, subtitle }) => (
       >
         {title}
       </h2>
-    </div>
+    </Row>
     {subtitle && (
-      <p style={{ margin: 0, fontSize: "var(--text-base)", color: T.slate, lineHeight: 1.6 }}>
+      <Text as="p" size="base" color={T.slate} style={{ margin: 0, lineHeight: 1.6 }}>
         {subtitle}
-      </p>
+      </Text>
     )}
   </div>
 );
@@ -546,15 +558,11 @@ export default function SettingsView({
       style={{ fontFamily: "'Inter', system-ui, sans-serif", maxWidth: "100%", padding: "4px 0" }}
     >
       {/* Tab bar */}
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-1)",
-          marginBottom: 20,
-          borderBottom: `1px solid ${T.border}`,
-          paddingBottom: 0,
-          flexWrap: "wrap",
-        }}
+      <Row
+        gap={1}
+        align="stretch"
+        wrap
+        style={{ marginBottom: 20, borderBottom: `1px solid ${T.border}`, paddingBottom: 0 }}
       >
         {tabs.map((tab) => {
           const active = currentTab === tab.id;
@@ -583,7 +591,7 @@ export default function SettingsView({
             </button>
           );
         })}
-      </div>
+      </Row>
 
       {/* ── PANEL: Permissions ─────────────────────────────────────────── */}
       {currentTab === "Permissions" && (
@@ -615,24 +623,16 @@ export default function SettingsView({
                 >
                   {t.stPermission}
                 </div>
-                <div style={{ width: "64%", display: "flex" }}>
+                <Row gap={0} align="stretch" style={{ width: "64%" }}>
                   {/* BUG FIX #5 — guard on roleArray before destructuring */}
                   {ROLE_COLS?.map((roleArray) => {
                     if (!Array.isArray(roleArray)) return null;
                     const [roleKey, roleLabel] = roleArray;
                     return (
                       <div key={roleKey} style={{ width: "20%", textAlign: "center" }}>
-                        <div
-                          style={{
-                            fontSize: "var(--text-xs)",
-                            fontWeight: "var(--weight-extrabold)",
-                            color: T.navy,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.4px",
-                          }}
-                        >
+                        <Eyebrow color={T.navy} style={{ letterSpacing: "0.4px" }}>
                           {roleLabel}
-                        </div>
+                        </Eyebrow>
                         <button
                           onClick={() => handleResetRole(roleKey)}
                           style={{
@@ -651,7 +651,7 @@ export default function SettingsView({
                       </div>
                     );
                   })}
-                </div>
+                </Row>
               </div>
 
               {/* Permission rows */}
@@ -682,54 +682,44 @@ export default function SettingsView({
                   >
                     {Array.isArray(groupKeys) &&
                       groupKeys.map((pKey, idx) => (
-                        <div
+                        <Row
                           key={pKey}
+                          gap={0}
                           style={{
-                            display: "flex",
-                            alignItems: "center",
                             padding: "13px 16px",
                             borderTop: idx === 0 ? "none" : `1px solid ${T.border}`,
                             background: T.white,
                           }}
                         >
                           <div style={{ width: "36%", paddingRight: 16 }}>
-                            <div
-                              style={{
-                                fontWeight: "var(--weight-semibold)",
-                                color: T.navy,
-                                fontSize: "var(--text-base)",
-                              }}
-                            >
+                            <Text size="base" weight="semibold" color={T.navy}>
                               {PERM_DEFS[pKey]?.label || pKey}
-                            </div>
-                            <div
-                              style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 2 }}
-                            >
+                            </Text>
+                            <Text size="xs" color={T.slateL} style={{ marginTop: 2 }}>
                               {PERM_DEFS[pKey]?.desc || ""}
-                            </div>
+                            </Text>
                           </div>
-                          <div style={{ width: "64%", display: "flex" }}>
+                          <Row gap={0} align="stretch" style={{ width: "64%" }}>
                             {ROLE_COLS?.map((roleArray) => {
                               if (!Array.isArray(roleArray)) return null;
                               const [roleKey] = roleArray;
                               return (
-                                <div
+                                <Row
                                   key={roleKey}
-                                  style={{
-                                    width: "20%",
-                                    display: "flex",
-                                    justifyContent: "center",
-                                  }}
+                                  gap={0}
+                                  align="stretch"
+                                  justify="center"
+                                  style={{ width: "20%" }}
                                 >
                                   <Toggle
                                     on={!!rolePerms?.[roleKey]?.[pKey]}
                                     onChange={() => handleTogglePerm(roleKey, pKey)}
                                   />
-                                </div>
+                                </Row>
                               );
                             })}
-                          </div>
-                        </div>
+                          </Row>
+                        </Row>
                       ))}
                   </div>
                 </div>
@@ -758,51 +748,39 @@ export default function SettingsView({
                 }}
               >
                 {automationsForGroup(group.id).map((row, idx) => (
-                  <div
+                  <Row
                     key={row.key}
+                    gap={4}
+                    justify="space-between"
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: "var(--space-4)",
                       padding: "14px 16px",
                       borderTop: idx === 0 ? "none" : `1px solid ${T.border}`,
                       background: T.white,
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: "var(--weight-bold)",
-                          color: T.navy || T.slate,
-                          fontSize: "var(--text-base)",
-                        }}
-                      >
+                      <Text size="base" weight="bold" color={T.navy || T.slate}>
                         {row.label}
-                      </div>
-                      <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{row.desc}</div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: "var(--text-xs)",
-                          color: T.slateL,
-                          marginTop: 4,
-                        }}
+                      </Text>
+                      <Text size="sm" color={T.slateL}>
+                        {row.desc}
+                      </Text>
+                      <Row
+                        gap={1}
+                        style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 4 }}
                       >
                         <Mail size={11} aria-hidden="true" /> {t.stAutomationSendsTo}{" "}
                         <strong>{row.recipient}</strong>
-                      </div>
+                      </Row>
                     </div>
                     <Toggle
                       on={!!automationForm[group.id]?.[row.key]}
                       onChange={() => toggleAutomation(group.id, row.key)}
                     />
-                  </div>
+                  </Row>
                 ))}
               </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 16 }}>
+              <Row gap={0} align="stretch" justify="flex-end" style={{ marginTop: 16 }}>
                 <Btn
                   v="primary"
                   onClick={() => saveAutomations(group)}
@@ -810,28 +788,19 @@ export default function SettingsView({
                 >
                   {savingGroup === group.id ? "Saving…" : t.stSaveAutomations}
                 </Btn>
-              </div>
+              </Row>
             </Card>
           ))}
-          <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 4 }}>
+          <Text size="xs" color={T.slateL} style={{ marginTop: 4 }}>
             {t.stAutomationsFootnote}
-          </div>
+          </Text>
         </>
       )}
 
       {/* ── PANEL: CRM Integration ─────────────────────────────────────── */}
       {currentTab === "CRM" && (
         <Card>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              marginBottom: 20,
-              flexWrap: "wrap",
-              gap: "var(--space-5)",
-            }}
-          >
+          <Row gap={5} align="flex-start" justify="space-between" wrap style={{ marginBottom: 20 }}>
             <SectionTitle
               icon={Link2}
               title={t.stAxIntegration}
@@ -843,7 +812,7 @@ export default function SettingsView({
               labelOn={t.stConnected}
               labelOff={t.stNotConfigured}
             />
-          </div>
+          </Row>
 
           <Alert type="warning">
             API tokens are sent through your proxy server — never directly from the browser.
@@ -881,66 +850,40 @@ export default function SettingsView({
                 flexWrap: "wrap",
               }}
             >
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-5)",
-                  cursor: "pointer",
-                }}
-              >
+              <Row as="label" gap={5} style={{ cursor: "pointer" }}>
                 <Toggle
                   on={!!acculynxConfig?.enabled}
                   onChange={() => setAccuLynxConfig((p) => ({ ...p, enabled: !p.enabled }))}
                 />
                 <div>
-                  <div
-                    style={{
-                      fontWeight: "var(--weight-bold)",
-                      color: T.navy,
-                      fontSize: "var(--text-base)",
-                    }}
-                  >
+                  <Text size="base" weight="bold" color={T.navy}>
                     {t.stEnableIntegration}
-                  </div>
-                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>
+                  </Text>
+                  <Text size="xs" color={T.slateL} style={{ marginTop: 1 }}>
                     {t.stEnableIntegrationDesc}
-                  </div>
+                  </Text>
                 </div>
-              </label>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-5)",
-                  cursor: "pointer",
-                }}
-              >
+              </Row>
+              <Row as="label" gap={5} style={{ cursor: "pointer" }}>
                 <Toggle
                   on={!!acculynxConfig?.autoSync}
                   onChange={() => setAccuLynxConfig((p) => ({ ...p, autoSync: !p.autoSync }))}
                 />
                 <div>
-                  <div
-                    style={{
-                      fontWeight: "var(--weight-bold)",
-                      color: T.navy,
-                      fontSize: "var(--text-base)",
-                    }}
-                  >
+                  <Text size="base" weight="bold" color={T.navy}>
                     {t.stAutoSync}
-                  </div>
-                  <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 1 }}>
+                  </Text>
+                  <Text size="xs" color={T.slateL} style={{ marginTop: 1 }}>
                     {t.stAutoSyncDesc}
-                  </div>
+                  </Text>
                 </div>
-              </label>
+              </Row>
             </div>
 
             {acculynxConfig?.enabled && (
               <div style={{ marginBottom: 24 }}>
                 <Fld label={t.stDocFolder}>
-                  <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
+                  <Row>
                     <Sel
                       value={acculynxConfig?.documentFolderId || ""}
                       onChange={(e) => {
@@ -988,15 +931,15 @@ export default function SettingsView({
                         </>
                       )}
                     </Btn>
-                  </div>
+                  </Row>
                 </Fld>
-                <div style={{ fontSize: "var(--text-xs)", color: T.slateL, marginTop: 6 }}>
+                <Text size="xs" color={T.slateL} style={{ marginTop: 6 }}>
                   {t.stDocFolderHint}
-                </div>
+                </Text>
               </div>
             )}
 
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+            <Row gap={0} justify="flex-end">
               <Btn v="primary" type="submit" disabled={savingAx}>
                 {savingAx ? (
                   <>
@@ -1013,22 +956,15 @@ export default function SettingsView({
                   </>
                 )}
               </Btn>
-            </div>
+            </Row>
           </form>
 
           {/* ── TEST JOB LOOKUP SECTION ADDED ───────────────────────────────── */}
           <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${T.border}` }}>
-            <div
-              style={{
-                fontWeight: "var(--weight-bold)",
-                color: T.navy,
-                fontSize: "var(--text-base)",
-                marginBottom: 10,
-              }}
-            >
+            <Text size="base" weight="bold" color={T.navy} style={{ marginBottom: 10 }}>
               {t.stTestLookup}
-            </div>
-            <div style={{ display: "flex", gap: "var(--space-3)" }}>
+            </Text>
+            <Row align="stretch">
               <Inp
                 value={lookupPo}
                 onChange={(e) => setLookupPo(e.target.value)}
@@ -1047,7 +983,7 @@ export default function SettingsView({
                   </>
                 )}
               </Btn>
-            </div>
+            </Row>
             {lookupResult && (
               <Alert type={lookupResult.ok ? "info" : "warning"}>
                 {lookupResult.ok
@@ -1091,7 +1027,7 @@ export default function SettingsView({
               />
             </Fld>
             <Fld label={t.stAccentColor} hint={t.stAccentColorHint}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Row gap={4}>
                 <input
                   type="color"
                   value={brandForm.accent || "var(--c-amber)"}
@@ -1108,9 +1044,9 @@ export default function SettingsView({
                     padding: 2,
                   }}
                 />
-                <code style={{ fontSize: "var(--text-sm)", color: T.slateL }}>
+                <Text as="code" size="sm" color={T.slateL}>
                   {(brandForm.accent || "var(--c-amber)").toUpperCase()}
-                </code>
+                </Text>
                 {(brandForm.accent || "").toLowerCase() !== "var(--c-amber)" && (
                   <button
                     type="button"
@@ -1129,7 +1065,7 @@ export default function SettingsView({
                     {t.stReset}
                   </button>
                 )}
-              </div>
+              </Row>
             </Fld>
             <Fld label={t.stState} hint={t.stStateHint}>
               <Sel
@@ -1167,22 +1103,15 @@ export default function SettingsView({
               />
             </Fld>
           </CardGrid>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
+          <Row gap={0} align="stretch" justify="flex-end" style={{ marginBottom: 24 }}>
             <Btn v="primary" onClick={saveBranding} disabled={savingBrand}>
               {savingBrand ? "Saving…" : "Save Company Details"}
             </Btn>
-          </div>
+          </Row>
 
           <SectionTitle icon={ImageIcon} title={t.stCompanyLogo} subtitle={t.stCompanyLogoDesc} />
 
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              paddingTop: 12,
-            }}
-          >
+          <Stack gap={0} align="center" style={{ paddingTop: 12 }}>
             {logos && (
               <div
                 style={{
@@ -1220,16 +1149,12 @@ export default function SettingsView({
               }}
             >
               <ImageIcon size={26} color={T.blue} strokeWidth={1.5} aria-hidden="true" />
-              <div
-                style={{
-                  fontWeight: "var(--weight-bold)",
-                  color: T.blue,
-                  fontSize: "var(--text-md)",
-                }}
-              >
+              <Text size="md" weight="bold" color={T.blue}>
                 {logos ? "Replace logo" : "Upload logo"}
-              </div>
-              <div style={{ fontSize: "var(--text-sm)", color: T.slateL }}>{t.stLogoFormats}</div>
+              </Text>
+              <Text size="sm" color={T.slateL}>
+                {t.stLogoFormats}
+              </Text>
               <input
                 type="file"
                 accept="image/*"
@@ -1243,7 +1168,7 @@ export default function SettingsView({
                 <Trash2 size={13} aria-hidden="true" /> Remove logo
               </Btn>
             )}
-          </div>
+          </Stack>
         </Card>
       )}
 
@@ -1302,7 +1227,7 @@ export default function SettingsView({
             </div>
           </form>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          <Stack gap={3}>
             {warehouses?.length > 0 ? (
               warehouses.map((w) => (
                 <div
@@ -1318,23 +1243,10 @@ export default function SettingsView({
                   }}
                 >
                   <div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "var(--space-3)",
-                        marginBottom: 3,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontWeight: "var(--weight-bold)",
-                          color: T.navy,
-                          fontSize: "var(--text-md)",
-                        }}
-                      >
+                    <Row style={{ marginBottom: 3 }}>
+                      <Text as="span" size="md" weight="bold" color={T.navy}>
                         {w.name}
-                      </span>
+                      </Text>
                       {w.code && (
                         <span
                           style={{
@@ -1351,18 +1263,10 @@ export default function SettingsView({
                           {w.code}
                         </span>
                       )}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        fontSize: "var(--text-sm)",
-                        color: T.slateL,
-                      }}
-                    >
+                    </Row>
+                    <Row gap={1} style={{ fontSize: "var(--text-sm)", color: T.slateL }}>
                       <MapPin size={12} aria-hidden="true" /> {w.location || "No address logged"}
-                    </div>
+                    </Row>
                   </div>
                   <StatusPill active={w.active} labelOn={t.stOperational} labelOff={t.stInactive} />
                 </div>
@@ -1381,7 +1285,7 @@ export default function SettingsView({
                 {t.stNoWarehouses}
               </p>
             )}
-          </div>
+          </Stack>
         </Card>
       )}
 
@@ -1426,15 +1330,9 @@ export default function SettingsView({
                 >
                   {label}
                 </div>
-                <div
-                  style={{
-                    fontSize: "var(--text-base)",
-                    fontWeight: "var(--weight-bold)",
-                    color: T.navy,
-                  }}
-                >
+                <Text size="base" weight="bold" color={T.navy}>
                   {value}
-                </div>
+                </Text>
               </div>
             ))}
           </CardGrid>

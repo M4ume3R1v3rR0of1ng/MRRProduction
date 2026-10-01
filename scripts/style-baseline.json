@@ -1,42 +1,42 @@
 {
   "src/App.jsx": {
-    "inline": 26,
+    "inline": 20,
     "hex": 3
   },
   "src/features/auth/LoginScreen.jsx": {
-    "inline": 40,
+    "inline": 29,
     "hex": 0
   },
   "src/features/auth/MfaPanel.jsx": {
-    "inline": 15,
+    "inline": 6,
     "hex": 0
   },
   "src/features/auth/ProfileView.jsx": {
-    "inline": 22,
+    "inline": 14,
     "hex": 0
   },
   "src/features/auth/ResetPasswordScreen.jsx": {
-    "inline": 9,
+    "inline": 7,
     "hex": 0
   },
   "src/features/billing/BillingView.jsx": {
-    "inline": 34,
+    "inline": 12,
     "hex": 0
   },
   "src/features/dashboard/DashboardView.jsx": {
-    "inline": 103,
+    "inline": 61,
     "hex": 0
   },
   "src/features/dashboard/ScheduleCard.jsx": {
-    "inline": 20,
+    "inline": 11,
     "hex": 0
   },
   "src/features/dashboard/TeamChatBox.jsx": {
-    "inline": 32,
+    "inline": 25,
     "hex": 0
   },
   "src/features/dashboard/WeatherCard.jsx": {
-    "inline": 17,
+    "inline": 3,
     "hex": 0
   },
   "src/features/fleet/AddVehicleModal.jsx": {
@@ -44,11 +44,11 @@
     "hex": 0
   },
   "src/features/fleet/FleetManagementView.jsx": {
-    "inline": 73,
+    "inline": 37,
     "hex": 1
   },
   "src/features/fleet/InspectionModal.jsx": {
-    "inline": 8,
+    "inline": 3,
     "hex": 1
   },
   "src/features/fleet/MaintenanceRequestModal.jsx": {
@@ -56,31 +56,27 @@
     "hex": 0
   },
   "src/features/fleet/TrailerCalendar.jsx": {
-    "inline": 25,
-    "hex": 0
-  },
-  "src/features/inventory/AdjustStockModal.jsx": {
-    "inline": 1,
+    "inline": 17,
     "hex": 0
   },
   "src/features/inventory/BatchCorrectionModal.jsx": {
-    "inline": 16,
+    "inline": 5,
     "hex": 0
   },
   "src/features/inventory/BulkReceiveModal.jsx": {
-    "inline": 32,
+    "inline": 16,
     "hex": 0
   },
   "src/features/inventory/InventoryCountTab.jsx": {
-    "inline": 44,
+    "inline": 25,
     "hex": 0
   },
   "src/features/inventory/InventoryView.jsx": {
-    "inline": 28,
+    "inline": 16,
     "hex": 0
   },
   "src/features/inventory/ItemDetailModal.jsx": {
-    "inline": 20,
+    "inline": 2,
     "hex": 0
   },
   "src/features/inventory/ItemFormModal.jsx": {
@@ -88,7 +84,7 @@
     "hex": 0
   },
   "src/features/inventory/JobTemplatesModal.jsx": {
-    "inline": 28,
+    "inline": 10,
     "hex": 0
   },
   "src/features/inventory/ReceiveBatchModal.jsx": {
@@ -96,31 +92,31 @@
     "hex": 0
   },
   "src/features/jobs/BuildJobsView.jsx": {
-    "inline": 98,
+    "inline": 58,
     "hex": 0
   },
   "src/features/jobs/CorrectReturnModal.jsx": {
-    "inline": 12,
+    "inline": 9,
     "hex": 0
   },
   "src/features/jobs/CrewCalendar.jsx": {
-    "inline": 30,
+    "inline": 20,
     "hex": 0
   },
   "src/features/jobs/EditJobModal.jsx": {
-    "inline": 21,
+    "inline": 10,
     "hex": 0
   },
   "src/features/jobs/JobHandoff.jsx": {
-    "inline": 11,
+    "inline": 5,
     "hex": 0
   },
   "src/features/jobs/PullAddedMaterialsModal.jsx": {
-    "inline": 11,
+    "inline": 8,
     "hex": 0
   },
   "src/features/jobs/PullInventoryView.jsx": {
-    "inline": 98,
+    "inline": 66,
     "hex": 0
   },
   "src/features/maintenance/CompleteServiceModal.jsx": {
@@ -128,47 +124,47 @@
     "hex": 0
   },
   "src/features/maintenance/MaintenanceCalendar.jsx": {
-    "inline": 30,
+    "inline": 20,
     "hex": 0
   },
   "src/features/maintenance/MaintenanceRequestsView.jsx": {
-    "inline": 51,
+    "inline": 27,
     "hex": 0
   },
   "src/features/reports/ReportsView.jsx": {
-    "inline": 110,
+    "inline": 68,
     "hex": 1
   },
   "src/features/schedule/ScheduleView.jsx": {
-    "inline": 33,
+    "inline": 19,
     "hex": 0
   },
   "src/features/settings/SettingsView.jsx": {
-    "inline": 79,
+    "inline": 40,
     "hex": 0
   },
   "src/features/training/TrainingView.jsx": {
-    "inline": 41,
+    "inline": 26,
     "hex": 3
   },
   "src/features/users/AuditLogView.jsx": {
-    "inline": 69,
+    "inline": 43,
     "hex": 0
   },
   "src/features/users/UserManagementView.jsx": {
-    "inline": 34,
+    "inline": 22,
     "hex": 0
   },
   "src/platform/OwnerConsole.jsx": {
-    "inline": 155,
+    "inline": 87,
     "hex": 0
   },
   "src/public/LandingPage.jsx": {
-    "inline": 9,
+    "inline": 7,
     "hex": 2
   },
   "src/shared/components/ChatWidget.jsx": {
-    "inline": 32,
+    "inline": 24,
     "hex": 0
   },
   "src/shared/components/ErrorBoundary.jsx": {
@@ -180,7 +176,7 @@
     "hex": 0
   },
   "src/shared/components/OmniSearch.jsx": {
-    "inline": 9,
+    "inline": 7,
     "hex": 0
   },
   "src/shared/components/SteadwerkMark.jsx": {
@@ -188,15 +184,15 @@
     "hex": 2
   },
   "src/shared/components/UIPrimitives.jsx": {
-    "inline": 53,
+    "inline": 37,
     "hex": 1
   },
   "src/shared/context/NotificationContext.jsx": {
-    "inline": 15,
+    "inline": 11,
     "hex": 9
   },
   "src/shared/layouts/Sidebar.jsx": {
-    "inline": 28,
+    "inline": 22,
     "hex": 0
   }
 }

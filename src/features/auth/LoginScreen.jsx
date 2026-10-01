@@ -20,7 +20,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/shared/utils/supabase";
 import { IS_IOS_APP } from "@/core/platform";
 import { C } from "@/shared/utils/helpers";
-import { Fld } from "@/shared/components/UIPrimitives";
+import { Fld, Row, Stack, Text, Muted } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";
 import { SteadwerkLockup, BRAND } from "@/shared/components/SteadwerkMark";
@@ -425,7 +425,9 @@ export default function LoginScreen({
     // mascot and logo baked into the image. On a platform login page that every
     // company reaches, that greeted his brother's crew with your branding. The
     // platform ground has to be neutral; a tenant's identity starts after sign-in.
-    <div
+    <Row
+      gap={0}
+      justify="center"
       style={{
         minHeight: "100vh",
         background: `
@@ -438,9 +440,6 @@ export default function LoginScreen({
           ),
           radial-gradient(ellipse at 50% 0%, #2F353C 0%, ${BRAND.barnwood} 55%, #171B1F 100%)
         `,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         padding: 24,
       }}
     >
@@ -485,9 +484,9 @@ export default function LoginScreen({
           <div style={{ marginBottom: 16 }}>
             <SteadwerkLockup size={76} />
           </div>
-          <div style={{ fontSize: "var(--text-base)", color: C.sub, marginTop: 4 }}>
+          <Text size="base" color={C.sub} style={{ marginTop: 4 }}>
             {choices ? t.lgChooseCompany : mode === "signup" ? t.lgStartCompany : t.loginSubtitle}
-          </div>
+          </Text>
         </div>
 
         {notice && (
@@ -507,7 +506,7 @@ export default function LoginScreen({
         )}
 
         {setLang && !choices && (
-          <div style={{ display: "flex", justifyContent: "center", gap: 4, marginBottom: 20 }}>
+          <Row gap={1} align="stretch" justify="center" style={{ marginBottom: 20 }}>
             {[
               { id: "en", label: "EN" },
               { id: "es", label: "ES" },
@@ -532,7 +531,7 @@ export default function LoginScreen({
                 </button>
               );
             })}
-          </div>
+          </Row>
         )}
 
         {err && (
@@ -622,7 +621,7 @@ export default function LoginScreen({
             </button>
           </form>
         ) : choices ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Stack gap={4}>
             {choices.map((m) => (
               <button
                 key={m.company_id}
@@ -646,19 +645,12 @@ export default function LoginScreen({
                 }}
               >
                 {m.companies?.name || "Company"}
-                <div
-                  style={{
-                    fontSize: "var(--text-2xs)",
-                    color: C.sub,
-                    fontWeight: "var(--weight-semibold)",
-                    marginTop: 2,
-                  }}
-                >
+                <Text size="2xs" weight="semibold" color={C.sub} style={{ marginTop: 2 }}>
                   {m.role}
-                </div>
+                </Text>
               </button>
             ))}
-          </div>
+          </Stack>
         ) : (
           <>
             {/* Signup-only: the company being created + the person creating it. */}
@@ -716,15 +708,7 @@ export default function LoginScreen({
             </Fld>
 
             {mode === "login" && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 16,
-                  marginTop: -4,
-                }}
-              >
+              <Row gap={0} justify="space-between" style={{ marginBottom: 16, marginTop: -4 }}>
                 <label
                   style={{
                     display: "flex",
@@ -761,12 +745,12 @@ export default function LoginScreen({
                 >
                   {t.lgForgotPassword}
                 </button>
-              </div>
+              </Row>
             )}
 
             {mode === "signup" && (
               <Fld label={t.lgBilling}>
-                <div style={{ display: "flex", gap: 8 }}>
+                <Row align="stretch">
                   {[
                     { id: "monthly", title: `$${MONTHLY_PRICE}/mo`, note: "Billed monthly" },
                     {
@@ -794,28 +778,20 @@ export default function LoginScreen({
                           textAlign: "left",
                         }}
                       >
-                        <div
-                          style={{
-                            fontWeight: "var(--weight-extrabold)",
-                            color: C.navy,
-                            fontSize: 15,
-                          }}
-                        >
+                        <Text weight="extrabold" color={C.navy} style={{ fontSize: 15 }}>
                           {opt.title}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "var(--text-2xs)",
-                            fontWeight: "var(--weight-bold)",
-                            color: opt.id === "annual" ? BRAND.pasture : C.sub,
-                          }}
+                        </Text>
+                        <Text
+                          size="2xs"
+                          weight="bold"
+                          color={opt.id === "annual" ? BRAND.pasture : C.sub}
                         >
                           {opt.note}
-                        </div>
+                        </Text>
                       </button>
                     );
                   })}
-                </div>
+                </Row>
               </Fld>
             )}
 
@@ -979,14 +955,7 @@ export default function LoginScreen({
                 buy is itself steering. Owners sign up on the web and their crew
                 signs in here. See utils/platform.js. */}
             {IS_IOS_APP ? null : mode === "login" ? (
-              <div
-                style={{
-                  fontSize: "var(--text-2xs)",
-                  color: C.sub,
-                  textAlign: "center",
-                  lineHeight: 1.6,
-                }}
-              >
+              <Muted size="2xs" style={{ textAlign: "center", lineHeight: 1.6 }}>
                 {t.lgNeedAccess}
                 <br />
                 <button
@@ -1007,16 +976,9 @@ export default function LoginScreen({
                 >
                   {t.lgStartOwn}
                 </button>
-              </div>
+              </Muted>
             ) : (
-              <div
-                style={{
-                  fontSize: "var(--text-2xs)",
-                  color: C.sub,
-                  textAlign: "center",
-                  lineHeight: 1.6,
-                }}
-              >
+              <Muted size="2xs" style={{ textAlign: "center", lineHeight: 1.6 }}>
                 You'll enter payment details on the next screen. Your portal goes live the moment
                 payment clears.
                 <br />
@@ -1038,7 +1000,7 @@ export default function LoginScreen({
                 >
                   ← Back to sign in
                 </button>
-              </div>
+              </Muted>
             )}
           </>
         )}
@@ -1098,6 +1060,6 @@ export default function LoginScreen({
           </button>
         </div>
       </div>
-    </div>
+    </Row>
   );
 }

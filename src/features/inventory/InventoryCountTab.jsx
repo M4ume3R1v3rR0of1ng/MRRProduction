@@ -16,7 +16,16 @@ import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm } from "@/shared/utils/helpers";
 import { resolvePersonName } from "@/shared/utils/people";
 import { downloadCSV } from "@/shared/utils/csvExport";
-import { Btn, Inp, Sel, SkeletonTable } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Inp,
+  Sel,
+  SkeletonTable,
+  Row,
+  Stack,
+  Text,
+  Muted,
+} from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { translations } from "@/shared/utils/translations";
@@ -321,10 +330,10 @@ export default function InventoryCountTab({
         minWidth: 150,
       }}
     >
-      <div style={{ fontSize: "var(--text-2xl)", fontWeight: "var(--weight-black)", color: tone }}>
+      <Text size="2xl" weight="black" color={tone}>
         {value}
-      </div>
-      <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>{label}</div>
+      </Text>
+      <Muted style={{ marginTop: 3 }}>{label}</Muted>
     </div>
   );
 
@@ -349,12 +358,12 @@ export default function InventoryCountTab({
           color: "var(--c-rust)",
         }}
       >
-        <div style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
+        <Text weight="bold" style={{ marginBottom: 6 }}>
           {t.cntLoadFailTitle}
-        </div>
-        <div style={{ fontSize: "var(--text-sm)", marginBottom: 14 }}>
+        </Text>
+        <Text size="sm" style={{ marginBottom: 14 }}>
           {t.cntLoadFailBody} ({loadError})
-        </div>
+        </Text>
         <Btn v="primary" sz="sm" onClick={() => setRetryTick((n) => n + 1)}>
           <RefreshCw size={13} aria-hidden="true" /> {t.cntRetry}
         </Btn>
@@ -364,16 +373,7 @@ export default function InventoryCountTab({
 
   return (
     <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-          marginBottom: 16,
-        }}
-      >
+      <Row gap={4} align="flex-end" justify="space-between" wrap style={{ marginBottom: 16 }}>
         <div>
           <h2
             style={{
@@ -400,9 +400,7 @@ export default function InventoryCountTab({
             {t.cntSubtitle}
           </p>
         </div>
-        <div
-          style={{ display: "flex", gap: "var(--space-3)", alignItems: "center", flexWrap: "wrap" }}
-        >
+        <Row wrap>
           <Sel
             value={period}
             onChange={(e) => changePeriod(e.target.value)}
@@ -423,10 +421,10 @@ export default function InventoryCountTab({
           <Btn v="ghost" sz="sm" onClick={exportCsv}>
             <Download size={13} aria-hidden="true" /> {t.cntExport}
           </Btn>
-        </div>
-      </div>
+        </Row>
+      </Row>
 
-      <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap", marginBottom: 16 }}>
+      <Row gap={4} align="stretch" wrap style={{ marginBottom: 16 }}>
         {tile(`${summary.countedCount}/${summary.total}`, t.cntTileCounted, C.blue)}
         {tile(
           `${summary.varianceUnits > 0 ? "+" : ""}${summary.varianceUnits}`,
@@ -440,7 +438,7 @@ export default function InventoryCountTab({
         )}
         {canSeeMoney &&
           tile(fm(summary.shrinkValue), t.cntTileValue, summary.shrinkValue < 0 ? C.rd : C.gr)}
-      </div>
+      </Row>
 
       {/* The bleed rate is a ratio of two numbers people will be asked to defend,
           so say what they are rather than making it a black box. */}
@@ -528,40 +526,30 @@ export default function InventoryCountTab({
             <AlertTriangle size={14} aria-hidden="true" />{" "}
             {t.cntFlaggedTitle.replace("{n}", flagged.length)}
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <Stack gap={1}>
             {flagged.slice(0, 8).map((l) => (
-              <div
+              <Row
                 key={l.iid}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 12,
-                  fontSize: "var(--text-sm)",
-                }}
+                gap={5}
+                align="stretch"
+                justify="space-between"
+                style={{ fontSize: "var(--text-sm)" }}
               >
-                <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{l.name}</span>
-                <span
-                  style={{ color: C.rd, fontWeight: "var(--weight-bold)", whiteSpace: "nowrap" }}
-                >
+                <Text as="span" weight="bold" color={C.navy}>
+                  {l.name}
+                </Text>
+                <Text as="span" weight="bold" color={C.rd} style={{ whiteSpace: "nowrap" }}>
                   {l.variance > 0 ? "+" : ""}
                   {l.variance} {l.unit}
                   {canSeeMoney ? ` · ${fm(l.variance * l.price)}` : ""}
-                </span>
-              </div>
+                </Text>
+              </Row>
             ))}
-          </div>
+          </Stack>
         </div>
       )}
 
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-4)",
-          marginBottom: 14,
-          flexWrap: "wrap",
-          alignItems: "center",
-        }}
-      >
+      <Row gap={4} wrap style={{ marginBottom: 14 }}>
         <Inp
           placeholder={t.cntSearch}
           value={search}
@@ -602,7 +590,7 @@ export default function InventoryCountTab({
             </Btn>
           </>
         )}
-      </div>
+      </Row>
 
       <div
         style={{
@@ -648,26 +636,28 @@ export default function InventoryCountTab({
                   }}
                 >
                   <td style={{ padding: "8px 10px" }}>
-                    <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>{l.name}</div>
-                    <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                    <Text weight="bold" color={C.navy}>
+                      {l.name}
+                    </Text>
+                    <Muted size="2xs">
                       {l.cat}
                       {/* An item whose book balance is already negative is not a
                           counting problem, it is a prior over-pull. Flag it here
                           so the counter knows before they start hunting. */}
                       {l.onHand < 0 && (
-                        <span style={{ color: C.rd, fontWeight: "var(--weight-bold)" }}>
+                        <Text as="span" weight="bold" color={C.rd}>
                           {" "}
                           · {t.cntNegativeBook.replace("{n}", l.onHand)}
-                        </span>
+                        </Text>
                       )}
-                    </div>
+                    </Muted>
                   </td>
                   <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
                     {l.opening}
-                    <span style={{ color: C.sub, fontSize: "var(--text-2xs)" }}>
+                    <Muted as="span" size="2xs">
                       {" "}
                       {l.openingSource === "counted" ? t.cntOpeningCounted : t.cntOpeningDerived}
-                    </span>
+                    </Muted>
                   </td>
                   <td style={{ padding: "8px 10px", color: C.gr, whiteSpace: "nowrap" }}>
                     +{l.received}
@@ -700,9 +690,9 @@ export default function InventoryCountTab({
                         aria-label={`${t.cntColCounted} ${l.name}`}
                       />
                     ) : (
-                      <span style={{ fontWeight: "var(--weight-bold)" }}>
+                      <Text as="span" weight="bold">
                         {l.counted == null ? "—" : l.counted}
-                      </span>
+                      </Text>
                     )}
                   </td>
                   <td
@@ -744,22 +734,15 @@ export default function InventoryCountTab({
       </div>
 
       {dirty && (
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: "var(--text-xs)",
-            color: C.am,
-            fontWeight: "var(--weight-bold)",
-          }}
-        >
+        <Text size="xs" weight="bold" color={C.am} style={{ marginTop: 10 }}>
           {t.cntUnsaved}
-        </div>
+        </Text>
       )}
       {isClosed && countRow?.closed_at && (
-        <div style={{ marginTop: 10, fontSize: "var(--text-xs)", color: C.sub }}>
+        <Muted style={{ marginTop: 10 }}>
           {t.cntClosedOn} {new Date(countRow.closed_at).toLocaleDateString()} ·{" "}
           {resolvePersonName(users, countRow.closed_by, t)}
-        </div>
+        </Muted>
       )}
     </div>
   );

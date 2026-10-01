@@ -16,6 +16,7 @@ import {
   Eyebrow,
   SectionTitle,
   Muted,
+  Text,
   Table,
 } from "@/shared/components/UIPrimitives";
 
@@ -70,6 +71,12 @@ describe("Stack / Row", () => {
     expect(renderToString(h(Row, { gap: "3px" }))).toContain("gap:3px");
   });
 
+  it("treats gap={0} as no gap rather than a missing --space-0", () => {
+    const html = renderToString(h(Row, { gap: 0 }));
+    expect(html).toContain("gap:0");
+    expect(html).not.toContain("--space-0");
+  });
+
   it("only wraps a Row when asked", () => {
     expect(renderToString(h(Row))).not.toContain("flex-wrap");
     expect(renderToString(h(Row, { wrap: true }))).toContain("flex-wrap:wrap");
@@ -92,6 +99,17 @@ describe("text", () => {
 
   it("sizes Muted from the text scale", () => {
     expect(renderToString(h(Muted, { size: "sm" }, "x"))).toContain("font-size:var(--text-sm)");
+  });
+
+  it("maps Text size and weight names onto the tokens", () => {
+    const html = renderToString(h(Text, { size: "lg", weight: "black", color: "red" }, "x"));
+    expect(html).toContain("font-size:var(--text-lg)");
+    expect(html).toContain("font-weight:var(--weight-black)");
+    expect(html).toContain("color:red");
+  });
+
+  it("leaves unset Text properties to inherit, margins included", () => {
+    expect(renderToString(h(Text, { as: "p" }, "x"))).toBe("<p>x</p>");
   });
 });
 

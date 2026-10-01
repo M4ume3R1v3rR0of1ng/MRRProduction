@@ -29,6 +29,10 @@ import {
   Modal,
   PhotoUpload,
   EmptyState,
+  Row,
+  Stack,
+  Text,
+  Muted,
 } from "@/shared/components/UIPrimitives";
 import { notifyMaintFiled, notifyMaintStatus } from "@/shared/utils/maintenanceNotifications";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -415,16 +419,7 @@ export default function MaintenanceRequestsView({
   return (
     <div>
       {/* Header Bar */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: "var(--space-5)",
-        }}
-      >
+      <Row gap={5} justify="space-between" wrap style={{ marginBottom: 20 }}>
         <div>
           <h1
             style={{
@@ -440,7 +435,7 @@ export default function MaintenanceRequestsView({
             <Wrench size={26} aria-hidden="true" /> {t.maintTitle}
           </h1>
         </div>
-        <div style={{ display: "flex", gap: "var(--space-3)", alignItems: "center" }}>
+        <Row>
           {pendingCount > 0 && (
             <div
               style={{
@@ -515,11 +510,11 @@ export default function MaintenanceRequestsView({
           >
             <Plus size={14} aria-hidden="true" /> {t.maintNewRequest}
           </Btn>
-        </div>
-      </div>
+        </Row>
+      </Row>
 
       {(chronicIssues.length > 0 || trendingIssues.length > 0) && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 16 }}>
+        <Stack gap={2} style={{ marginBottom: 16 }}>
           {chronicIssues.map((c) => (
             <div
               key={`${c.vid}::${c.issueType}`}
@@ -561,7 +556,7 @@ export default function MaintenanceRequestsView({
               {!trend.isNew && ` (${trend.ratio}${t.maintBaselineRate})`}
             </div>
           ))}
-        </div>
+        </Stack>
       )}
 
       {subView === "calendar" ? (
@@ -576,15 +571,7 @@ export default function MaintenanceRequestsView({
       ) : (
         <>
           {/* Filter Tabs + Sort */}
-          <div
-            style={{
-              display: "flex",
-              gap: "var(--space-3)",
-              marginBottom: 16,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
+          <Row wrap style={{ marginBottom: 16 }}>
             <div
               style={{
                 display: "flex",
@@ -634,7 +621,7 @@ export default function MaintenanceRequestsView({
               <option value="vehicle_za">↕ {t.sortVehicleZA}</option>
               <option value="status">↕ {t.status}</option>
             </Sel>
-          </div>
+          </Row>
 
           <SearchBar
             value={srch}
@@ -645,7 +632,7 @@ export default function MaintenanceRequestsView({
           />
 
           {/* Cards Stream Canvas */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+          <Stack>
             {filtered.length === 0 ? (
               <EmptyState
                 message={t.maintNoneFound}
@@ -674,15 +661,7 @@ export default function MaintenanceRequestsView({
                   >
                     {/* Left Side Metadata Info */}
                     <div style={{ flex: 1, minWidth: 260 }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "var(--space-2)",
-                          flexWrap: "wrap",
-                          marginBottom: 6,
-                          alignItems: "center",
-                        }}
-                      >
+                      <Row gap={2} wrap style={{ marginBottom: 6 }}>
                         <Bdg
                           color={
                             r.status === "pending"
@@ -704,28 +683,24 @@ export default function MaintenanceRequestsView({
                           </Bdg>
                         )}
                         <Bdg color="gray">{r.type}</Bdg>
-                      </div>
-                      <h3
-                        style={{
-                          margin: "0 0 4px 0",
-                          fontSize: 15,
-                          fontWeight: "var(--weight-extrabold)",
-                          color: "var(--c-barnwood)",
-                        }}
+                      </Row>
+                      <Text
+                        as="h3"
+                        weight="extrabold"
+                        color={"var(--c-barnwood)"}
+                        style={{ margin: "0 0 4px 0", fontSize: 15 }}
                       >
                         {r.vname}
-                      </h3>
-                      <p
-                        style={{
-                          margin: "0 0 6px 0",
-                          fontSize: "var(--text-base)",
-                          color: "var(--c-barnwood)",
-                          lineHeight: 1.4,
-                        }}
+                      </Text>
+                      <Text
+                        as="p"
+                        size="base"
+                        color={"var(--c-barnwood)"}
+                        style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
                       >
                         {r.notes}
-                      </p>
-                      <div style={{ fontSize: "var(--text-xs)", color: "var(--c-sub)" }}>
+                      </Text>
+                      <Muted>
                         {t.maintBy} {r.uname} •{" "}
                         {r.at ? new Date(r.at).toLocaleDateString() : "Recent"}
                         {r.scheduled_date && (
@@ -743,11 +718,11 @@ export default function MaintenanceRequestsView({
                             {new Date(r.scheduled_date).toLocaleDateString()}
                           </span>
                         )}
-                      </div>
+                      </Muted>
                     </div>
 
                     {/* Right Actions Block */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+                    <Row>
                       {r.status === "pending" && perms.maint_manage && (
                         <Btn v="primary" sz="sm" onClick={() => setSel(r)}>
                           <Calendar size={13} aria-hidden="true" /> {t.maintScheduleBtn}
@@ -794,19 +769,19 @@ export default function MaintenanceRequestsView({
                           <Trash2 size={15} aria-hidden="true" />
                         </button>
                       )}
-                    </div>
+                    </Row>
                   </div>
                 );
               })
             )}
-          </div>
+          </Stack>
         </>
       )}
 
       {/* Create Modal Form Layout */}
       {isCreateOpen && (
         <Modal title={t.maintFileRequest} onClose={() => setIsCreateOpen(false)}>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+          <Stack gap={6}>
             <Fld label={t.maintSelectVehicle}>
               <Sel
                 value={newTicket.vehicleId}
@@ -842,12 +817,10 @@ export default function MaintenanceRequestsView({
                 ].map((opt) => {
                   const isChecked = Array.isArray(newTicket.type) && newTicket.type.includes(opt);
                   return (
-                    <label
+                    <Row
                       key={opt}
+                      as="label"
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "var(--space-3)",
                         fontSize: "var(--text-base)",
                         fontWeight: "var(--weight-semibold)",
                         cursor: "pointer",
@@ -869,7 +842,7 @@ export default function MaintenanceRequestsView({
                         /[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDC00-\uDFFF]/g,
                         "",
                       )}
-                    </label>
+                    </Row>
                   );
                 })}
               </div>
@@ -903,7 +876,7 @@ export default function MaintenanceRequestsView({
               />
             </Fld>
 
-            <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 10 }}>
+            <Row align="stretch" style={{ marginTop: 10 }}>
               <Btn
                 v="ghost"
                 style={{ flex: 1, justifyContent: "center" }}
@@ -918,8 +891,8 @@ export default function MaintenanceRequestsView({
               >
                 {t.maintSubmit}
               </Btn>
-            </div>
-          </div>
+            </Row>
+          </Stack>
         </Modal>
       )}
 
@@ -932,15 +905,8 @@ export default function MaintenanceRequestsView({
             setForm({});
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-6)",
-              fontSize: "var(--text-base)",
-            }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Stack gap={6} style={{ fontSize: "var(--text-base)" }}>
+            <Row gap={0} justify="space-between">
               <div>
                 <strong>{t.maintSubmittedBy}</strong> {sel.uname} {t.maintOn}{" "}
                 {new Date(sel.at).toLocaleDateString()}
@@ -962,7 +928,7 @@ export default function MaintenanceRequestsView({
                   {t.maintDeleteRequest}
                 </button>
               )}
-            </div>
+            </Row>
             <div>
               <strong>{t.maintIssueClassLabel}</strong> {sel.type}
             </div>
@@ -994,31 +960,24 @@ export default function MaintenanceRequestsView({
                       marginTop: 8,
                     }}
                   >
-                    <strong
+                    <Row
+                      as="strong"
+                      gap="5px"
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 5,
                         fontSize: "var(--text-xs)",
                         color: "var(--c-pasture)",
                         textTransform: "uppercase",
                       }}
                     >
                       <History size={12} aria-hidden="true" /> {t.maintLastCompleted} — {sel.vname}
-                    </strong>
-                    <div
-                      style={{
-                        fontSize: "var(--text-sm)",
-                        color: "var(--c-pasture)",
-                        marginTop: 4,
-                      }}
-                    >
+                    </Row>
+                    <Text size="sm" color={"var(--c-pasture)"} style={{ marginTop: 4 }}>
                       {lastCompleted.wh_notes || t.maintNoResolutionNotes}
-                    </div>
+                    </Text>
                     {lastCompleted.completed_at && (
-                      <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 4 }}>
+                      <Muted size="2xs" style={{ marginTop: 4 }}>
                         {t.completed} {new Date(lastCompleted.completed_at).toLocaleDateString()}
-                      </div>
+                      </Muted>
                     )}
                   </div>
                 );
@@ -1047,9 +1006,9 @@ export default function MaintenanceRequestsView({
 
             {sel.status === "pending" && perms.maint_manage && (
               <div style={{ borderTop: `1px solid ${C.bd}`, paddingTop: 14, marginTop: 6 }}>
-                <h3 style={{ margin: "0 0 10px 0", fontSize: "var(--text-md)", color: C.navy }}>
+                <Text as="h3" size="md" color={C.navy} style={{ margin: "0 0 10px 0" }}>
                   {t.maintMgmtActions}
-                </h3>
+                </Text>
                 <Fld label={t.maintScheduleDate}>
                   <Inp
                     type="date"
@@ -1062,7 +1021,7 @@ export default function MaintenanceRequestsView({
                     onChange={(e) => setForm({ ...form, whNotes: e.target.value })}
                   />
                 </Fld>
-                <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 10 }}>
+                <Row align="stretch" style={{ marginTop: 10 }}>
                   <Btn
                     v="primary"
                     style={{ flex: 1, justifyContent: "center" }}
@@ -1070,15 +1029,15 @@ export default function MaintenanceRequestsView({
                   >
                     {t.maintApproveSchedule}
                   </Btn>
-                </div>
+                </Row>
               </div>
             )}
 
             {sel.status === "scheduled" && perms.maint_manage && (
               <div style={{ borderTop: `1px solid ${C.bd}`, paddingTop: 14, marginTop: 6 }}>
-                <h3 style={{ margin: "0 0 10px 0", fontSize: "var(--text-md)", color: C.navy }}>
+                <Text as="h3" size="md" color={C.navy} style={{ margin: "0 0 10px 0" }}>
                   {t.maintCompleteServiceLogs}
-                </h3>
+                </Text>
                 {sel.wh_notes && (
                   <div style={{ marginBottom: 10 }}>
                     <strong>{t.maintScheduleInfo}</strong> {sel.wh_notes}
@@ -1108,32 +1067,27 @@ export default function MaintenanceRequestsView({
                   borderRadius: "var(--radius-md)",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: "var(--space-3)",
-                  }}
-                >
-                  <strong style={{ color: "var(--c-pasture)" }}>{t.maintRequestClosed}</strong>
+                <Row align="flex-start" justify="space-between">
+                  <Text as="strong" color={"var(--c-pasture)"}>
+                    {t.maintRequestClosed}
+                  </Text>
                   <Btn v="ghost" sz="sm" onClick={() => downloadServiceReport(sel)}>
                     <FileText size={13} aria-hidden="true" /> {t.maintDownloadPdf}
                   </Btn>
-                </div>
+                </Row>
                 {sel.wh_notes && (
                   <div style={{ marginTop: 4 }}>
                     <strong>{t.maintResolutionNotesLabel}</strong> {sel.wh_notes}
                   </div>
                 )}
                 {sel.completed_at && (
-                  <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 4 }}>
+                  <Muted style={{ marginTop: 4 }}>
                     {t.maintClosedOn} {new Date(sel.completed_at).toLocaleString()}
-                  </div>
+                  </Muted>
                 )}
               </div>
             )}
-          </div>
+          </Stack>
         </Modal>
       )}
 

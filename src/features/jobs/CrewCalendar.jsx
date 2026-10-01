@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback } from "react";
 import { FileEdit, FileText, Calendar, HardHat, Shield, AlertTriangle } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
-import { Btn } from "@/shared/components/UIPrimitives";
+import { Btn, Row, Stack, Muted, Text } from "@/shared/components/UIPrimitives";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -205,21 +205,16 @@ export default function CrewCalendar({
         >
           {jobLabel}
         </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginTop: 4,
-            fontSize: "var(--text-2xs)",
-            color: C.sub,
-          }}
+        <Row
+          gap={0}
+          justify="space-between"
+          style={{ marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}
         >
           <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
             <FileText size={10} aria-hidden="true" /> {job.po}
           </span>
           <statusConfig.icon size={12} color={borderColor} aria-hidden="true" />
-        </div>
+        </Row>
       </div>
     );
   };
@@ -235,16 +230,7 @@ export default function CrewCalendar({
       }}
     >
       {/* ── HEADER ── */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: "var(--space-5)",
-        }}
-      >
+      <Row gap={5} justify="space-between" wrap style={{ marginBottom: 20 }}>
         <div>
           <h2
             style={{
@@ -259,12 +245,12 @@ export default function CrewCalendar({
           >
             <Calendar size={16} aria-hidden="true" /> Weekly Production Crew & Shift Calendar
           </h2>
-          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
+          <Muted as="p" style={{ margin: "2px 0 0" }}>
             {t.ccSubtitle}
-          </p>
+          </Muted>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+        <Row>
           <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>
             {t.calPrev}
           </Btn>
@@ -287,8 +273,8 @@ export default function CrewCalendar({
               {t.calToday}
             </Btn>
           )}
-        </div>
-      </div>
+        </Row>
+      </Row>
 
       {/* ── GRID ── */}
       <div style={{ overflowX: "auto" }}>
@@ -329,7 +315,9 @@ export default function CrewCalendar({
                     }}
                   >
                     <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
-                    <div style={{ fontSize: "var(--text-md)", marginTop: 2 }}>{day.getDate()}</div>
+                    <Text size="md" style={{ marginTop: 2 }}>
+                      {day.getDate()}
+                    </Text>
                   </th>
                 );
               })}
@@ -346,15 +334,9 @@ export default function CrewCalendar({
                     borderRight: `1px solid ${C.lg}`,
                   }}
                 >
-                  <div
-                    style={{
-                      fontWeight: "var(--weight-bold)",
-                      fontSize: "var(--text-base)",
-                      color: C.navy,
-                    }}
-                  >
+                  <Text size="base" weight="bold" color={C.navy}>
                     {crewLead.name}
-                  </div>
+                  </Text>
                   <div
                     style={{
                       display: "flex",
@@ -404,9 +386,7 @@ export default function CrewCalendar({
                         height: 90,
                       }}
                     >
-                      <div
-                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
-                      >
+                      <Stack gap={2}>
                         {dayJobs.map((job) => (
                           <JobCard key={job.id} job={job} />
                         ))}
@@ -430,7 +410,7 @@ export default function CrewCalendar({
                             double-booked
                           </div>
                         )}
-                      </div>
+                      </Stack>
                     </td>
                   );
                 })}
@@ -449,21 +429,19 @@ export default function CrewCalendar({
                     borderRight: `1px solid ${C.lg}`,
                   }}
                 >
-                  <div
+                  <Row
+                    gap={2}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
                       fontWeight: "var(--weight-bold)",
                       fontSize: "var(--text-base)",
                       color: C.am,
                     }}
                   >
                     <AlertTriangle size={14} aria-hidden="true" /> Unassigned
-                  </div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>
+                  </Row>
+                  <Muted size="2xs" style={{ marginTop: 2 }}>
                     {t.ccNoSupervisor}
-                  </div>
+                  </Muted>
                 </td>
                 {weekDays.map((day) => {
                   const dayKey = toLocalDateKey(day);
@@ -497,13 +475,11 @@ export default function CrewCalendar({
                         height: 90,
                       }}
                     >
-                      <div
-                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
-                      >
+                      <Stack gap={2}>
                         {dayJobs.map((job) => (
                           <JobCard key={job.id} job={job} />
                         ))}
-                      </div>
+                      </Stack>
                     </td>
                   );
                 })}

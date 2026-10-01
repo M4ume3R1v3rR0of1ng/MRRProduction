@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback } from "react";
 import { Calendar, Truck, FileText, AlertTriangle, X, FileEdit } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
-import { Btn } from "@/shared/components/UIPrimitives";
+import { Btn, Row, Stack, Muted, Text } from "@/shared/components/UIPrimitives";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
@@ -267,21 +267,16 @@ export default function TrailerCalendar({
         >
           {jobLabel}
         </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginTop: 4,
-            fontSize: "var(--text-2xs)",
-            color: C.sub,
-          }}
+        <Row
+          gap={0}
+          justify="space-between"
+          style={{ marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}
         >
           <span style={{ display: "inline-flex", alignItems: "center", gap: 3 }}>
             <FileText size={10} aria-hidden="true" /> {job.po}
           </span>
           <statusConfig.icon size={12} color={borderColor} aria-hidden="true" />
-        </div>
+        </Row>
       </div>
     );
   };
@@ -296,16 +291,7 @@ export default function TrailerCalendar({
         marginTop: 16,
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: "var(--space-5)",
-        }}
-      >
+      <Row gap={5} justify="space-between" wrap style={{ marginBottom: 20 }}>
         <div>
           <h2
             style={{
@@ -320,14 +306,14 @@ export default function TrailerCalendar({
           >
             <Calendar size={16} aria-hidden="true" /> Weekly Trailer Booking Calendar
           </h2>
-          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
+          <Muted as="p" style={{ margin: "2px 0 0" }}>
             {canEdit
               ? "Drag a booking to a different trailer or day to reassign it."
               : "Read-only — you don't have permission to reassign trailer bookings."}
-          </p>
+          </Muted>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+        <Row>
           <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>
             {t.calPrev}
           </Btn>
@@ -350,8 +336,8 @@ export default function TrailerCalendar({
               {t.calToday}
             </Btn>
           )}
-        </div>
-      </div>
+        </Row>
+      </Row>
 
       <div style={{ overflowX: "auto" }}>
         <table
@@ -391,7 +377,9 @@ export default function TrailerCalendar({
                     }}
                   >
                     <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
-                    <div style={{ fontSize: "var(--text-md)", marginTop: 2 }}>{day.getDate()}</div>
+                    <Text size="md" style={{ marginTop: 2 }}>
+                      {day.getDate()}
+                    </Text>
                   </th>
                 );
               })}
@@ -408,18 +396,12 @@ export default function TrailerCalendar({
                     borderRight: `1px solid ${C.lg}`,
                   }}
                 >
-                  <div
-                    style={{
-                      fontWeight: "var(--weight-bold)",
-                      fontSize: "var(--text-base)",
-                      color: C.navy,
-                    }}
-                  >
+                  <Text size="base" weight="bold" color={C.navy}>
                     {trailer.name}
-                  </div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>
+                  </Text>
+                  <Muted size="2xs" style={{ marginTop: 2 }}>
                     #{trailer.plate || "—"}
-                  </div>
+                  </Muted>
                 </td>
 
                 {weekDays.map((day) => {
@@ -460,9 +442,7 @@ export default function TrailerCalendar({
                         height: 90,
                       }}
                     >
-                      <div
-                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
-                      >
+                      <Stack gap={2}>
                         {dayBookings.map((b) => (
                           <BookingCard key={b.id} booking={b} />
                         ))}
@@ -486,7 +466,7 @@ export default function TrailerCalendar({
                             — double-booked
                           </div>
                         )}
-                      </div>
+                      </Stack>
                     </td>
                   );
                 })}

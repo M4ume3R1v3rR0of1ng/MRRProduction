@@ -3,7 +3,16 @@ import { useState, useEffect, useMemo } from "react";
 import { ScrollText, Package, AlertTriangle, RefreshCw } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C, batchKind } from "@/shared/utils/helpers";
-import { Bdg, Sel, Inp, Btn, SkeletonTable } from "@/shared/components/UIPrimitives";
+import {
+  Bdg,
+  Sel,
+  Inp,
+  Btn,
+  SkeletonTable,
+  Row,
+  Text,
+  Muted,
+} from "@/shared/components/UIPrimitives";
 
 import { translations } from "@/shared/utils/translations";
 import { ACTION_TYPES } from "@/shared/utils/logger";
@@ -207,29 +216,15 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
       }}
     >
       <div>
-        <h2
-          style={{
-            margin: 0,
-            fontSize: "var(--text-xl)",
-            fontWeight: "var(--weight-black)",
-            color: C.navy,
-          }}
-        >
+        <Text as="h2" size="xl" weight="black" color={C.navy} style={{ margin: 0 }}>
           {t.alHeading}
-        </h2>
-        <p style={{ margin: "10px 0 16px", color: C.sub, fontSize: "var(--text-sm)" }}>
+        </Text>
+        <Muted as="p" size="sm" style={{ margin: "10px 0 16px" }}>
           {t.alSubtitle}
-        </p>
+        </Muted>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-2)",
-          marginBottom: 16,
-          borderBottom: `2px solid ${C.bd}`,
-        }}
-      >
+      <Row gap={2} align="stretch" style={{ marginBottom: 16, borderBottom: `2px solid ${C.bd}` }}>
         {[
           ["logs", ScrollText, "Activity Log", "Every action — last 30 days only"],
           ["batches", Package, "Batch Ledger", "Every inventory receipt, permanently"],
@@ -260,10 +255,10 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
             <Icon size={14} aria-hidden="true" /> {label}
           </button>
         ))}
-      </div>
+      </Row>
 
       {mode === "logs" && (
-        <div style={{ display: "flex", gap: "var(--space-5)", marginBottom: 16, flexWrap: "wrap" }}>
+        <Row gap={5} align="stretch" wrap style={{ marginBottom: 16 }}>
           <Inp
             value={search}
             onChange={(e) => {
@@ -291,14 +286,12 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               </option>
             ))}
           </Sel>
-        </div>
+        </Row>
       )}
 
       {mode === "batches" ? (
         <div>
-          <div
-            style={{ display: "flex", gap: "var(--space-5)", marginBottom: 16, flexWrap: "wrap" }}
-          >
+          <Row gap={5} align="stretch" wrap style={{ marginBottom: 16 }}>
             <Inp
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -317,12 +310,12 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                 </option>
               ))}
             </Sel>
-          </div>
+          </Row>
 
-          <p style={{ margin: "0 0 8px", color: C.sub, fontSize: "var(--text-xs)" }}>
+          <Muted as="p" style={{ margin: "0 0 8px" }}>
             {filteredLedger.length} of {ledger.length} rows · sourced from the batches themselves,
             so this survives the 30-day log purge.
-          </p>
+          </Muted>
 
           {/* The ledger is not a list of deliveries, which is what most people
               assume from the column headers. Five different kinds of row live in
@@ -340,31 +333,33 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               lineHeight: 1.6,
             }}
           >
-            <strong style={{ color: C.navy }}>{t.alLegendTitle}</strong>
+            <Text as="strong" color={C.navy}>
+              {t.alLegendTitle}
+            </Text>
             <div style={{ marginTop: 4 }}>
-              <span style={{ color: C.navy, fontWeight: "var(--weight-bold)" }}>
+              <Text as="span" weight="bold" color={C.navy}>
                 {t.alLegendReceiptName}
-              </span>{" "}
+              </Text>{" "}
               {t.alLegendReceipt}
               <br />
-              <span style={{ color: C.am, fontWeight: "var(--weight-bold)" }}>
+              <Text as="span" weight="bold" color={C.am}>
                 {t.alTagReturn}
-              </span>{" "}
+              </Text>{" "}
               {t.alLegendReturn}
               <br />
-              <span style={{ color: C.am, fontWeight: "var(--weight-bold)" }}>
+              <Text as="span" weight="bold" color={C.am}>
                 {t.alTagAdjust}
-              </span>{" "}
+              </Text>{" "}
               {t.alLegendAdjust}
               <br />
-              <span style={{ color: C.sub, fontWeight: "var(--weight-bold)" }}>
+              <Text as="span" weight="bold" color={C.sub}>
                 {t.alTagPrice}
-              </span>{" "}
+              </Text>{" "}
               {t.alLegendPrice}
               <br />
-              <span style={{ color: C.rd, fontWeight: "var(--weight-bold)" }}>
+              <Text as="span" weight="bold" color={C.rd}>
                 {t.alTagShort}
-              </span>{" "}
+              </Text>{" "}
               {t.alLegendShort}
             </div>
           </div>
@@ -432,7 +427,10 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                       >
                         {r.itemName}
                         {tag && (
-                          <span style={{ color: tag[1], fontWeight: "normal" }}> · {tag[0]}</span>
+                          <Text as="span" weight="normal" color={tag[1]}>
+                            {" "}
+                            · {tag[0]}
+                          </Text>
                         )}
                       </td>
                       <td style={{ padding: "8px 10px" }}>
@@ -532,22 +530,20 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
             color: "var(--c-rust)",
           }}
         >
-          <div
+          <Row
+            gap="7px"
+            justify="center"
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 7,
               fontSize: "var(--text-md)",
               fontWeight: "var(--weight-bold)",
               marginBottom: 6,
             }}
           >
             <AlertTriangle size={16} aria-hidden="true" /> Couldn't load the audit history
-          </div>
-          <div style={{ fontSize: "var(--text-sm)", marginBottom: 14 }}>
+          </Row>
+          <Text size="sm" style={{ marginBottom: 14 }}>
             The log below is NOT empty — it just couldn't be fetched. ({loadError})
-          </div>
+          </Text>
           <Btn v="primary" sz="sm" onClick={() => setRetryTick((t) => t + 1)}>
             <RefreshCw size={13} aria-hidden="true" /> Retry
           </Btn>
@@ -664,7 +660,9 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                             {t.alViewDetail}
                           </button>
                         ) : (
-                          <span style={{ color: C.sub }}>—</span>
+                          <Text as="span" color={C.sub}>
+                            —
+                          </Text>
                         )}
                       </td>
                     </tr>
@@ -689,29 +687,14 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
           </div>
 
           {/* ── PAGINATION CONTROLS BOTTOM BAR ─────────────────────────── */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              paddingTop: 8,
-              flexWrap: "wrap",
-              gap: 12,
-            }}
-          >
-            <div
-              style={{
-                fontSize: "var(--text-sm)",
-                color: C.sub,
-                fontWeight: "var(--weight-semibold)",
-              }}
-            >
+          <Row gap={5} justify="space-between" wrap style={{ paddingTop: 8 }}>
+            <Text size="sm" weight="semibold" color={C.sub}>
               Showing {filteredLogs.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0}–
               {Math.min(currentPage * ITEMS_PER_PAGE, filteredLogs.length)} of {filteredLogs.length}{" "}
               events
-            </div>
+            </Text>
 
-            <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+            <Row gap={2}>
               <Btn
                 v="ghost"
                 sz="sm"
@@ -738,8 +721,8 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               >
                 {t.alNext}
               </Btn>
-            </div>
-          </div>
+            </Row>
+          </Row>
         </>
       )}
 
@@ -770,9 +753,9 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
             }}
           >
-            <h4 style={{ margin: "0 0 12px 0", color: C.navy, fontSize: 15 }}>
+            <Text as="h4" color={C.navy} style={{ margin: "0 0 12px 0", fontSize: 15 }}>
               {t.alInspectorTitle}
-            </h4>
+            </Text>
 
             {/* A raw JSON dump is the right escape hatch and the wrong default.
                 For a pull, the questions are "what went out" and "did anything go
@@ -788,49 +771,46 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                   fontSize: "var(--text-sm)",
                 }}
               >
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                <Text weight="bold" color={C.navy}>
                   {activePayload.po ? `PO ${activePayload.po} · ` : ""}
                   {activePayload.job_name}
-                </div>
+                </Text>
               </div>
             )}
 
             {Array.isArray(activePayload.lines) && activePayload.lines.length > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <div
-                  style={{
-                    fontSize: "var(--text-2xs)",
-                    textTransform: "uppercase",
-                    color: C.sub,
-                    fontWeight: "var(--weight-bold)",
-                    marginBottom: 4,
-                  }}
+                <Text
+                  size="2xs"
+                  weight="bold"
+                  color={C.sub}
+                  style={{ textTransform: "uppercase", marginBottom: 4 }}
                 >
                   {t.alDetailMaterials}
-                </div>
+                </Text>
                 <div style={{ maxHeight: 160, overflowY: "auto" }}>
                   {activePayload.lines.map((ln, i) => (
-                    <div
+                    <Row
                       key={i}
+                      gap={5}
+                      align="stretch"
+                      justify="space-between"
                       style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: 12,
                         padding: "4px 0",
                         borderBottom: `1px solid ${C.lg}`,
                         fontSize: "var(--text-sm)",
                       }}
                     >
-                      <span style={{ color: C.navy, fontWeight: "var(--weight-semibold)" }}>
+                      <Text as="span" weight="semibold" color={C.navy}>
                         {ln.item}
-                      </span>
-                      <span style={{ color: C.sub, whiteSpace: "nowrap" }}>
+                      </Text>
+                      <Text as="span" color={C.sub} style={{ whiteSpace: "nowrap" }}>
                         {ln.qty} {ln.unit}
                         {ln.planned != null && ln.planned !== ln.qty
                           ? ` (${t.alPlannedWas} ${ln.planned})`
                           : ""}
-                      </span>
-                    </div>
+                      </Text>
+                    </Row>
                   ))}
                 </div>
               </div>
@@ -860,9 +840,9 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                   <AlertTriangle size={13} aria-hidden="true" /> {t.alDetailShort}
                 </div>
                 {activePayload.short.map((s, i) => (
-                  <div key={i} style={{ fontSize: "var(--text-sm)", color: C.navy }}>
+                  <Text key={i} size="sm" color={C.navy}>
                     {s.item}: {t.alDetailShortBy} {s.short} {s.unit}
-                  </div>
+                  </Text>
                 ))}
               </div>
             )}

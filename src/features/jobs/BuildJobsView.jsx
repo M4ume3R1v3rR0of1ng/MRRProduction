@@ -48,6 +48,10 @@ import {
   CardGrid,
   FilterPill,
   EmptyState,
+  Row,
+  Stack,
+  Text,
+  Muted,
 } from "@/shared/components/UIPrimitives";
 import { sendEmail, escapeHtml as esc } from "@/shared/utils/email";
 import { shouldNotifyJobMove, notifyJobMove } from "./jobNotifications";
@@ -912,9 +916,7 @@ export default function BuildJobs({
             </Sel>
           </SearchBar>
 
-          <div
-            style={{ display: "flex", gap: "var(--space-2)", marginBottom: 14, flexWrap: "wrap" }}
-          >
+          <Row gap={2} align="stretch" wrap style={{ marginBottom: 14 }}>
             {/* Approved and Active are gone on purpose. Once a job is approved it is
                 the crew's work, and Pull Inventory is where that work is tracked —
                 two screens listing the same live jobs meant two places to look and
@@ -934,7 +936,7 @@ export default function BuildJobs({
                 onClick={() => setFilt(k)}
               />
             ))}
-          </div>
+          </Row>
 
           {/* A tiling grid, not a single column of full-width bars.
 
@@ -952,15 +954,7 @@ export default function BuildJobs({
                 so the header and the cards stay direct children of the grid. */}
             {dayGroups.map(([day, dayJobs]) => (
               <Fragment key={day || "undated"}>
-                <div
-                  style={{
-                    gridColumn: "1 / -1",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--space-3)",
-                    marginTop: 4,
-                  }}
-                >
+                <Row style={{ gridColumn: "1 / -1", marginTop: 4 }}>
                   <h2
                     style={{
                       margin: 0,
@@ -975,20 +969,19 @@ export default function BuildJobs({
                     {day ? fd(day) : "No date recorded"}
                   </h2>
                   {day === todayLocal() && <Bdg color="amber">Today</Bdg>}
-                  <span
-                    style={{
-                      fontSize: "var(--text-xs)",
-                      color: C.sub,
-                      fontWeight: "var(--weight-semibold)",
-                      whiteSpace: "nowrap",
-                    }}
+                  <Text
+                    as="span"
+                    size="xs"
+                    weight="semibold"
+                    color={C.sub}
+                    style={{ whiteSpace: "nowrap" }}
                   >
                     {dayJobs.length} job{dayJobs.length === 1 ? "" : "s"}
-                  </span>
+                  </Text>
                   {/* Rule to the right edge, so the header reads as a divider
                       across the row and not as a stray line of text. */}
                   <div style={{ flex: 1, height: 1, background: C.bd }} />
-                </div>
+                </Row>
                 {dayJobs.map((job) => {
                   const sup = users.find((u) => u.id === job.assignedto || u.id === job.assignedTo);
                   const currentItems = Array.isArray(job.items)
@@ -1036,15 +1029,7 @@ export default function BuildJobs({
                         minWidth: 0,
                       }}
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 7,
-                          alignItems: "center",
-                          marginBottom: 6,
-                          flexWrap: "wrap",
-                        }}
-                      >
+                      <Row gap="7px" wrap style={{ marginBottom: 6 }}>
                         <span
                           style={{
                             display: "inline-flex",
@@ -1058,15 +1043,9 @@ export default function BuildJobs({
                           <StatusDot color={statusMeta.color} />
                           <span style={{ textTransform: "uppercase" }}>{statusMeta.label}</span>
                         </span>
-                        <span
-                          style={{
-                            fontSize: "var(--text-sm)",
-                            color: C.sub,
-                            fontWeight: "var(--weight-semibold)",
-                          }}
-                        >
+                        <Text as="span" size="sm" weight="semibold" color={C.sub}>
                           · {job.po}
-                        </span>
+                        </Text>
                         {isHighlighted && (
                           <Bdg color="gold">
                             <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -1083,7 +1062,7 @@ export default function BuildJobs({
                         {syncStatusOf(job) === "manual" && (
                           <Bdg color="amber">{t.pullConfigureSync}</Bdg>
                         )}
-                      </div>
+                      </Row>
                       {/* Clamped to one line: an address that wraps is worth reading in
                           full, but a job title that wraps just shoves every card in the
                           row taller. The full title is the modal's heading. */}
@@ -1100,9 +1079,9 @@ export default function BuildJobs({
                       >
                         {job.title || job.name}
                       </div>
-                      <div style={{ fontSize: "var(--text-sm)", color: C.sub, marginBottom: 8 }}>
+                      <Muted size="sm" style={{ marginBottom: 8 }}>
                         {job.addr}
-                      </div>
+                      </Muted>
                       {/* Row gap as well as column gap — this wraps to two lines in a
                           narrow column, and the old single `gap: space-6` left the
                           wrapped line sitting on top of the one above it. */}
@@ -1158,15 +1137,9 @@ export default function BuildJobs({
                         >
                           {showProgress && (
                             <div style={{ marginRight: "auto", minWidth: 90 }}>
-                              <div
-                                style={{
-                                  fontSize: "var(--text-2xs)",
-                                  color: C.sub,
-                                  marginBottom: 3,
-                                }}
-                              >
+                              <Muted size="2xs" style={{ marginBottom: 3 }}>
                                 {pulledCount}/{currentItems.length} pulled
-                              </div>
+                              </Muted>
                               {/* The fill had no background and was therefore invisible:
                                   every job showed an empty track whatever it had pulled. */}
                               <div
@@ -1288,9 +1261,7 @@ export default function BuildJobs({
           }}
           wide
         >
-          <div
-            style={{ display: "flex", gap: "var(--space-3)", marginBottom: 14, flexWrap: "wrap" }}
-          >
+          <Row align="stretch" wrap style={{ marginBottom: 14 }}>
             {perms.jobs_build && sel.status !== "closed" && (
               <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>
                 <Pencil size={13} aria-hidden="true" /> Edit Job
@@ -1363,7 +1334,7 @@ export default function BuildJobs({
                 <Trash2 size={13} aria-hidden="true" /> Delete
               </Btn>
             )}
-          </div>
+          </Row>
           <div
             style={{
               display: "grid",
@@ -1402,26 +1373,12 @@ export default function BuildJobs({
                 key={k}
                 style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: 10 }}
               >
-                <div
-                  style={{
-                    fontSize: "var(--text-2xs)",
-                    color: C.sub,
-                    fontWeight: "var(--weight-bold)",
-                    textTransform: "uppercase",
-                  }}
-                >
+                <Text size="2xs" weight="bold" color={C.sub} style={{ textTransform: "uppercase" }}>
                   {k}
-                </div>
-                <div
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: "var(--weight-bold)",
-                    color: C.navy,
-                    marginTop: 2,
-                  }}
-                >
+                </Text>
+                <Text size="sm" weight="bold" color={C.navy} style={{ marginTop: 2 }}>
                   {v}
-                </div>
+                </Text>
               </div>
             ))}
           </div>
@@ -1441,7 +1398,7 @@ export default function BuildJobs({
               >
                 <Truck size={11} aria-hidden="true" /> Assign Trailers
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+              <Row gap={2} align="stretch" wrap>
                 {vehs
                   .filter((v) => v.type === "trailer")
                   .map((v) => {
@@ -1475,7 +1432,7 @@ export default function BuildJobs({
                       </label>
                     );
                   })}
-              </div>
+              </Row>
             </div>
           )}
           <div className="sw-table-scroll">
@@ -1653,12 +1610,12 @@ export default function BuildJobs({
               fontSize: "var(--text-sm)",
             }}
           >
-            <strong style={{ color: C.navy }}>
+            <Text as="strong" color={C.navy}>
               {sel.po} — {sel.title || sel.name}
-            </strong>
-            <div style={{ color: C.sub, marginTop: 2 }}>
+            </Text>
+            <Text color={C.sub} style={{ marginTop: 2 }}>
               {Math.max((sel.items || sel.materials || []).length, 0)} items planned
-            </div>
+            </Text>
           </div>
           <Fld label={t.bjAssignSupervisorReq}>
             <Sel
@@ -1674,7 +1631,7 @@ export default function BuildJobs({
               ))}
             </Sel>
           </Fld>
-          <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
+          <Row gap={4} align="stretch" style={{ marginTop: 8 }}>
             <Btn
               v="ghost"
               onClick={() => setModal(null)}
@@ -1704,7 +1661,7 @@ export default function BuildJobs({
                 </>
               )}
             </Btn>
-          </div>
+          </Row>
         </Modal>
       )}
 
@@ -1751,7 +1708,7 @@ export default function BuildJobs({
 
           {wStep === 1 && (
             <div>
-              <div style={{ display: "flex", gap: "var(--space-3)", marginBottom: 10 }}>
+              <Row align="stretch" style={{ marginBottom: 10 }}>
                 <Inp
                   value={axQ}
                   onChange={(e) => setAxQ(e.target.value)}
@@ -1769,7 +1726,7 @@ export default function BuildJobs({
                     </>
                   )}
                 </Btn>
-              </div>
+              </Row>
               {axR.length > 0 && (
                 <div
                   style={{
@@ -1802,12 +1759,12 @@ export default function BuildJobs({
                       onMouseEnter={(e) => (e.currentTarget.style.background = C.lg)}
                       onMouseLeave={(e) => (e.currentTarget.style.background = C.w)}
                     >
-                      <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                      <Text weight="bold" color={C.navy}>
                         {j.name}
-                      </div>
-                      <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>
+                      </Text>
+                      <Muted>
                         {j.po} · {j.addr}
-                      </div>
+                      </Muted>
                     </div>
                   ))}
                 </div>
@@ -1911,7 +1868,7 @@ export default function BuildJobs({
               </div>
 
               {/* ── MULTI-COLUMN INTERACTIVE SIDE PANEL LAYOUT ── */}
-              <div style={{ display: "flex", gap: "var(--space-7)", flexWrap: "wrap" }}>
+              <Row gap={7} align="stretch" wrap>
                 {/* Column A: Job Material Templates */}
                 <div
                   style={{
@@ -1925,34 +1882,22 @@ export default function BuildJobs({
                     overflowY: "auto",
                   }}
                 >
-                  <h4
-                    style={{
-                      margin: "0 0 8px 0",
-                      color: C.navy,
-                      fontSize: "var(--text-base)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
+                  <Row
+                    as="h4"
+                    gap="5px"
+                    style={{ margin: "0 0 8px 0", color: C.navy, fontSize: "var(--text-base)" }}
                   >
                     <LayoutTemplate size={14} aria-hidden="true" /> Job Templates
-                  </h4>
-                  <p style={{ margin: "0 0 10px 0", fontSize: "var(--text-xs)", color: C.sub }}>
+                  </Row>
+                  <Muted as="p" style={{ margin: "0 0 10px 0" }}>
                     One-click material packages. Apply one, then fine-tune quantities in the Job
                     List.
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                  </Muted>
+                  <Stack gap={3}>
                     {jobTemplates.length === 0 && (
-                      <p
-                        style={{
-                          fontSize: "var(--text-xs)",
-                          color: C.sub,
-                          fontStyle: "italic",
-                          margin: 0,
-                        }}
-                      >
+                      <Muted as="p" style={{ fontStyle: "italic", margin: 0 }}>
                         {t.bjNoTemplates}
-                      </p>
+                      </Muted>
                     )}
                     {jobTemplates.map((tpl) => (
                       <div
@@ -1964,48 +1909,29 @@ export default function BuildJobs({
                           padding: "10px 12px",
                         }}
                       >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: 6,
-                            marginBottom: 6,
-                          }}
-                        >
-                          <div
-                            style={{
-                              fontWeight: "var(--weight-extrabold)",
-                              color: C.navy,
-                              fontSize: "var(--text-sm)",
-                            }}
-                          >
+                        <Row gap={2} justify="space-between" style={{ marginBottom: 6 }}>
+                          <Text size="sm" weight="extrabold" color={C.navy}>
                             {tpl.icon} {tpl.name}
-                          </div>
+                          </Text>
                           <Btn v="primary" sz="sm" onClick={() => applyTemplate(tpl)}>
                             + Apply
                           </Btn>
-                        </div>
-                        <div style={{ fontSize: "var(--text-2xs)", color: C.sub, lineHeight: 1.7 }}>
+                        </Row>
+                        <Muted size="2xs" style={{ lineHeight: 1.7 }}>
                           {(tpl.items || [])
                             .map((it) => it.iname + (it.qty > 1 ? ` ×${it.qty}` : ""))
                             .join(" · ")}
-                        </div>
+                        </Muted>
                       </div>
                     ))}
-                  </div>
-                  <p
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      margin: "10px 0 0",
-                      fontSize: "var(--text-2xs)",
-                      color: C.sub,
-                    }}
+                  </Stack>
+                  <Row
+                    as="p"
+                    gap="5px"
+                    style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: C.sub }}
                   >
                     <Pencil size={10} aria-hidden="true" /> Manage these in Inventory → Templates
-                  </p>
+                  </Row>
                 </div>
 
                 {/* Column B: Real WMS System Catalog Query Feed */}
@@ -2016,15 +1942,7 @@ export default function BuildJobs({
                     placeholder={t.bjSearchInv}
                     style={{ marginBottom: 8 }}
                   />
-                  <div
-                    style={{
-                      maxHeight: 330,
-                      overflowY: "auto",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 5,
-                    }}
-                  >
+                  <Stack gap="5px" style={{ maxHeight: 330, overflowY: "auto" }}>
                     {(filtInv || []).map((item) => {
                       if (!item) return null;
                       const added = (wItems || []).find((i) => i && i.iid === item.id);
@@ -2044,18 +1962,12 @@ export default function BuildJobs({
                           }}
                         >
                           <div>
-                            <div
-                              style={{
-                                fontWeight: "var(--weight-bold)",
-                                color: C.navy,
-                                fontSize: "var(--text-sm)",
-                              }}
-                            >
+                            <Text size="sm" weight="bold" color={C.navy}>
                               {item.name}
-                            </div>
-                            <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                            </Text>
+                            <Muted size="2xs">
                               {tot(item)} {item.unit} available
-                            </div>
+                            </Muted>
                           </div>
                           {added ? (
                             <Bdg color="blue">{t.bjAdded}</Bdg>
@@ -2067,7 +1979,7 @@ export default function BuildJobs({
                         </div>
                       );
                     })}
-                  </div>
+                  </Stack>
                 </div>
 
                 {/* Column C: Current Jobs Staged Checklist Draft */}
@@ -2082,42 +1994,33 @@ export default function BuildJobs({
                       top: 0,
                     }}
                   >
-                    <h4
-                      style={{
-                        margin: "0 0 10px",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        color: C.navy,
-                        fontSize: "var(--text-base)",
-                      }}
+                    <Row
+                      as="h4"
+                      gap={2}
+                      style={{ margin: "0 0 10px", color: C.navy, fontSize: "var(--text-base)" }}
                     >
                       <Package size={14} aria-hidden="true" /> Job List ({wItems.length})
-                    </h4>
+                    </Row>
                     {wItems.length === 0 ? (
-                      <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
+                      <Muted as="p" size="sm" style={{ margin: 0 }}>
                         {t.bjAddFromList}
-                      </p>
+                      </Muted>
                     ) : (
-                      <div
-                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
-                      >
+                      <Stack gap={2}>
                         {wItems.map((i) => (
                           <div
                             key={i.iid}
                             style={{ background: C.lg, borderRadius: 7, padding: "7px 9px" }}
                           >
-                            <div
-                              style={{
-                                fontWeight: "var(--weight-bold)",
-                                color: C.navy,
-                                fontSize: "var(--text-xs)",
-                                marginBottom: 4,
-                              }}
+                            <Text
+                              size="xs"
+                              weight="bold"
+                              color={C.navy}
+                              style={{ marginBottom: 4 }}
                             >
                               {i.iname}
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                            </Text>
+                            <Row gap="5px">
                               <Inp
                                 type="number"
                                 value={i.qty}
@@ -2134,9 +2037,9 @@ export default function BuildJobs({
                                 }
                                 style={{ width: 55, padding: "3px 6px" }}
                               />
-                              <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                              <Muted as="span" size="2xs">
                                 {i.unit}
-                              </span>
+                              </Muted>
                               <button
                                 onClick={() => setWItems((p) => p.filter((x) => x.iid !== i.iid))}
                                 style={{
@@ -2151,15 +2054,15 @@ export default function BuildJobs({
                               >
                                 ×
                               </button>
-                            </div>
+                            </Row>
                           </div>
                         ))}
-                      </div>
+                      </Stack>
                     )}
                   </div>
                 </div>
-              </div>
-              <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
+              </Row>
+              <Row gap={4} align="stretch" style={{ marginTop: 14 }}>
                 <Btn
                   v="ghost"
                   onClick={() => setWStep(1)}
@@ -2180,7 +2083,7 @@ export default function BuildJobs({
                 >
                   {t.bjContinue}
                 </Btn>
-              </div>
+              </Row>
             </div>
           )}
 
@@ -2194,12 +2097,10 @@ export default function BuildJobs({
                   marginBottom: 14,
                 }}
               >
-                <div style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+                <Text weight="bold" color={C.navy}>
                   {wPO.po} — {wPO.name}
-                </div>
-                <div style={{ fontSize: "var(--text-sm)", color: C.sub }}>
-                  {wItems.length} items planned
-                </div>
+                </Text>
+                <Muted size="sm">{wItems.length} items planned</Muted>
               </div>
               <Fld label={t.bjNotes} hint={t.bjNotesHint}>
                 <TA
@@ -2248,7 +2149,7 @@ export default function BuildJobs({
               </div>
               {vehs.some((v) => v.type === "trailer") && (
                 <Fld label={t.bjTrailersNeeded} hint={t.bjTrailersHint}>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }}>
+                  <Row gap={2} align="stretch" wrap>
                     {vehs
                       .filter((v) => v.type === "trailer")
                       .map((v) => {
@@ -2284,10 +2185,10 @@ export default function BuildJobs({
                           </label>
                         );
                       })}
-                  </div>
+                  </Row>
                 </Fld>
               )}
-              <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 8 }}>
+              <Row gap={4} align="stretch" style={{ marginTop: 8 }}>
                 <Btn
                   v="ghost"
                   onClick={() => setWStep(2)}
@@ -2338,7 +2239,7 @@ export default function BuildJobs({
                     </>
                   )}
                 </Btn>
-              </div>
+              </Row>
             </div>
           )}
         </Modal>

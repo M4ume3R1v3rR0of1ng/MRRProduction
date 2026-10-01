@@ -23,7 +23,7 @@ import { TRAINING_VIDEOS } from "@/shared/data/trainingVideos";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
-import { Btn, Fld, Inp, TA } from "@/shared/components/UIPrimitives";
+import { Btn, Fld, Inp, TA, Row, Stack, Text, Muted } from "@/shared/components/UIPrimitives";
 import { uploadFileToBucket, removeFromBucket } from "@/shared/utils/storageBucketUpload";
 import {
   orderedMedia,
@@ -221,16 +221,9 @@ export default function TrainingView({
   return (
     <div>
       <div style={{ marginBottom: "var(--space-6)" }}>
-        <h2
-          style={{
-            fontSize: "var(--text-2xl)",
-            fontWeight: "var(--weight-extrabold)",
-            color: C.navy,
-            margin: 0,
-          }}
-        >
+        <Text as="h2" size="2xl" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
           {t.trainingTitle}
-        </h2>
+        </Text>
         <p
           style={{ color: C.sub, fontSize: "var(--text-sm)", margin: "6px 0 0", maxWidth: "70ch" }}
         >
@@ -249,21 +242,11 @@ export default function TrainingView({
             border: `1px solid ${C.bd}`,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "var(--space-4)",
-              flexWrap: "wrap",
-            }}
-          >
+          <Row gap={4} justify="space-between" wrap>
             <div style={{ minWidth: 0 }}>
-              <div
+              <Row
+                gap="7px"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 7,
                   fontWeight: "var(--weight-extrabold)",
                   color: C.navy,
                   fontSize: "var(--text-md)",
@@ -271,7 +254,7 @@ export default function TrainingView({
               >
                 <Video size={15} aria-hidden="true" />{" "}
                 {isPlatformAdmin ? t.trAdminTitleGlobal : t.trAdminTitle}
-              </div>
+              </Row>
               <div
                 style={{ color: C.sub, fontSize: "var(--text-sm)", marginTop: 4, maxWidth: "70ch" }}
               >
@@ -294,7 +277,7 @@ export default function TrainingView({
                 </>
               )}
             </Btn>
-          </div>
+          </Row>
 
           {addOpen && (
             <div
@@ -333,24 +316,20 @@ export default function TrainingView({
                 />
               </Fld>
               {form.file && (
-                <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginBottom: 12 }}>
+                <Muted style={{ marginBottom: 12 }}>
                   {form.file.name} — {formatBytes(form.file.size)}
-                </div>
+                </Muted>
               )}
               <Btn v="primary" onClick={submitMedia} disabled={uploading}>
                 {uploading ? t.trUploading : t.trUpload}
               </Btn>
-              {uploading && (
-                <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 8 }}>
-                  {t.trUploadingNote}
-                </div>
-              )}
+              {uploading && <Muted style={{ marginTop: 8 }}>{t.trUploadingNote}</Muted>}
             </div>
           )}
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <Stack gap={6}>
         {items.map((clip) => {
           const isEditing = editingId === clip.id;
           return (
@@ -364,14 +343,7 @@ export default function TrainingView({
               }}
             >
               <div style={{ padding: "var(--space-5) var(--space-5) var(--space-4)" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    justifyContent: "space-between",
-                    gap: "var(--space-4)",
-                  }}
-                >
+                <Row gap={4} align="flex-start" justify="space-between">
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div
                       style={{
@@ -397,15 +369,9 @@ export default function TrainingView({
                         disabled={savingEdit}
                       />
                     ) : (
-                      <div
-                        style={{
-                          fontSize: "var(--text-lg)",
-                          fontWeight: "var(--weight-extrabold)",
-                          color: C.navy,
-                        }}
-                      >
+                      <Text size="lg" weight="extrabold" color={C.navy}>
                         {clip.title}
-                      </div>
+                      </Text>
                     )}
                   </div>
                   {/* Bundled clips ship in the build and belong to Steadwerk, so there is
@@ -430,7 +396,7 @@ export default function TrainingView({
                       )}
                     </Btn>
                   )}
-                </div>
+                </Row>
                 {isEditing ? (
                   <div style={{ marginTop: "var(--space-3)" }}>
                     <Fld label={t.trBlurb} hint={t.trBlurbHint}>
@@ -440,7 +406,7 @@ export default function TrainingView({
                         disabled={savingEdit}
                       />
                     </Fld>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <Row align="stretch" wrap>
                       <Btn v="primary" sz="sm" onClick={() => saveEdit(clip)} disabled={savingEdit}>
                         {savingEdit ? t.trUploading : t.trSaveChanges}
                       </Btn>
@@ -452,7 +418,7 @@ export default function TrainingView({
                       >
                         <Trash2 size={13} aria-hidden="true" /> {t.trRemove}
                       </Btn>
-                    </div>
+                    </Row>
                   </div>
                 ) : (
                   <p
@@ -526,9 +492,9 @@ export default function TrainingView({
                   >
                     <source src={clip.src || clip.url} />
                     {t.trainingNoVideo}{" "}
-                    <a href={clip.src || clip.url} style={{ color: C.am }}>
+                    <Text href={clip.src || clip.url} as="a" color={C.am}>
                       {t.trainingDownload}
-                    </a>
+                    </Text>
                   </video>
                 )}
 
@@ -592,7 +558,7 @@ export default function TrainingView({
             </div>
           );
         })}
-      </div>
+      </Stack>
 
       <p
         style={{
@@ -632,17 +598,15 @@ export default function TrainingView({
         >
           {t.trainingFaqEyebrow}
         </div>
-        <div
-          style={{
-            fontSize: "var(--text-lg)",
-            fontWeight: "var(--weight-extrabold)",
-            color: C.navy,
-            marginBottom: "var(--space-3)",
-          }}
+        <Text
+          size="lg"
+          weight="extrabold"
+          color={C.navy}
+          style={{ marginBottom: "var(--space-3)" }}
         >
           {t.trainingFaqHeading}
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        </Text>
+        <Stack gap="2px">
           {[
             [t.trFaqQ1, t.trFaqA1Lead, t.trFaqA1Rest],
             [t.trFaqQ2, t.trFaqA2Lead, t.trFaqA2Rest],
@@ -671,11 +635,14 @@ export default function TrainingView({
                   maxWidth: "70ch",
                 }}
               >
-                <b style={{ color: C.navy }}>{lead}</b> {rest}
+                <Text as="b" color={C.navy}>
+                  {lead}
+                </Text>{" "}
+                {rest}
               </div>
             </details>
           ))}
-        </div>
+        </Stack>
       </div>
 
       <p
@@ -687,13 +654,13 @@ export default function TrainingView({
         }}
       >
         {t.trainingHelpIntro}{" "}
-        <a href="mailto:Sam@steadwerk.com" style={{ color: C.am }}>
+        <Text href="mailto:Sam@steadwerk.com" as="a" color={C.am}>
           Sam@steadwerk.com
-        </a>{" "}
+        </Text>{" "}
         {t.trainingHelpOr}{" "}
-        <a href="tel:+12605792995" style={{ color: C.am }}>
+        <Text href="tel:+12605792995" as="a" color={C.am}>
           (260) 579-2995
-        </a>{" "}
+        </Text>{" "}
         {t.trainingHelpOutro}
       </p>
     </div>

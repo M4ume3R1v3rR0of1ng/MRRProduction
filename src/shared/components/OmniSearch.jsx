@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
+import { Text, Muted } from "./LayoutPrimitives";
 
 // Case-insensitive match across any of the given string fields
 const match = (txt, ...fields) =>
@@ -355,8 +356,8 @@ export default function OmniSearch({
                         onMouseEnter={(e) => (e.currentTarget.style.background = "var(--c-subtle)")}
                         onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
-                        <div style={{ fontWeight: "var(--weight-semibold)" }}>{s.title(item)}</div>
-                        <div style={{ fontSize: "11px", color: "var(--c-sub)" }}>{s.sub(item)}</div>
+                        <Text weight="semibold">{s.title(item)}</Text>
+                        <Muted>{s.sub(item)}</Muted>
                       </div>
                     ))}
                   </div>

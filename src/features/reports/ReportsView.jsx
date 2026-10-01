@@ -14,6 +14,10 @@ import {
   PageHeader,
   StatTile,
   CardGrid,
+  Row,
+  Stack,
+  Text,
+  Muted,
 } from "@/shared/components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "@/shared/context/NotificationContext";
 // One CSV writer for the app. The local copy this replaced wrapped every field
@@ -150,7 +154,11 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
   };
 
   const cell = { padding: "10px 12px" };
-  const notSet = <span style={{ color: C.sub, fontStyle: "italic" }}>{t.rptNotSet}</span>;
+  const notSet = (
+    <Text as="span" color={C.sub} style={{ fontStyle: "italic" }}>
+      {t.rptNotSet}
+    </Text>
+  );
 
   return (
     <div
@@ -161,30 +169,14 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
         boxShadow: "var(--shadow-sm)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-        }}
-      >
-        <h2
-          style={{
-            margin: 0,
-            fontSize: "var(--text-lg)",
-            fontWeight: "var(--weight-extrabold)",
-            color: C.navy,
-          }}
-        >
+      <Row gap={4} justify="space-between" wrap style={{ marginBottom: 16 }}>
+        <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
           {t.rptJobProfTitle}
-        </h2>
+        </Text>
         <Btn v="green" sz="sm" onClick={handleExportExcel}>
           <Download size={13} aria-hidden="true" /> {t.rptExportProfitability}
         </Btn>
-      </div>
+      </Row>
 
       {/* Two disclosures the old report needed and never carried. Neither is
           decoration: without the first, margin reads as whole-job profit; without
@@ -271,7 +263,7 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
                     <>
                       <td style={{ ...cell, color: C.sub }}>
                         {editingId === job.id ? (
-                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                          <Row gap={2}>
                             <Inp
                               type="number"
                               step="0.01"
@@ -302,7 +294,7 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
                             >
                               ✕
                             </Btn>
-                          </div>
+                          </Row>
                         ) : (
                           <button
                             onClick={() => beginEdit(job)}
@@ -491,28 +483,12 @@ function InventoryCostTrendsReport({ inv, t }) {
         boxShadow: "var(--shadow-sm)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-        }}
-      >
+      <Row gap={4} justify="space-between" wrap style={{ marginBottom: 16 }}>
         <div>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "var(--text-lg)",
-              fontWeight: "var(--weight-extrabold)",
-              color: C.navy,
-            }}
-          >
+          <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
             {t.rptInvTrendsTitle}
-          </h2>
-          <div style={{ display: "flex", gap: "var(--space-2)", marginTop: 8 }}>
+          </Text>
+          <Row gap={2} align="stretch" style={{ marginTop: 8 }}>
             {[
               ["all", t.rptAllTrends],
               ["rising", t.rptCostIncreasing],
@@ -527,12 +503,12 @@ function InventoryCostTrendsReport({ inv, t }) {
                 {l}
               </Btn>
             ))}
-          </div>
+          </Row>
         </div>
         <Btn v="green" sz="sm" onClick={handleExportInventoryCSV}>
           <Download size={13} aria-hidden="true" /> {t.rptExportCostTrends}
         </Btn>
-      </div>
+      </Row>
       <div style={{ overflowX: "auto" }}>
         <table
           className="mrr-table"
@@ -707,7 +683,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
+    <Stack gap={8}>
       {/* UPPER REVENUE METER LEVEL */}
       <CardGrid minWidth={320} fit gap="var(--space-7)">
         {/* PANEL A */}
@@ -719,39 +695,30 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
             boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
         >
-          <h3
-            style={{
-              margin: "0 0 4px 0",
-              fontSize: "var(--text-md)",
-              fontWeight: "var(--weight-extrabold)",
-              color: C.navy,
-            }}
-          >
+          <Text as="h3" size="md" weight="extrabold" color={C.navy} style={{ margin: "0 0 4px 0" }}>
             {t.rptExpenseBurn}
-          </h3>
-          <p style={{ margin: "0 0 16px 0", fontSize: "var(--text-xs)", color: C.sub }}>
+          </Text>
+          <Muted as="p" style={{ margin: "0 0 16px 0" }}>
             {t.rptExpenseBurnDesc}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+          </Muted>
+          <Stack>
             {fleetMetrics.slice(0, 5).map((v) => {
               const barPercent = Math.min(100, (v.totalRepairInvestment / 2500) * 100);
               return (
                 <div key={v.id}>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "var(--text-sm)",
-                      marginBottom: 4,
-                    }}
+                  <Row
+                    gap={0}
+                    align="stretch"
+                    justify="space-between"
+                    style={{ fontSize: "var(--text-sm)", marginBottom: 4 }}
                   >
-                    <span style={{ fontWeight: "var(--weight-semibold)", color: C.navy }}>
+                    <Text as="span" weight="semibold" color={C.navy}>
                       {v.make} {v.name}
-                    </span>
-                    <span style={{ fontWeight: "var(--weight-bold)" }}>
+                    </Text>
+                    <Text as="span" weight="bold">
                       {fm(v.totalRepairInvestment)}
-                    </span>
-                  </div>
+                    </Text>
+                  </Row>
                   <div
                     style={{
                       width: "100%",
@@ -773,7 +740,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                 </div>
               );
             })}
-          </div>
+          </Stack>
         </div>
 
         {/* PANEL B */}
@@ -785,61 +752,39 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
             boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
         >
-          <h3
-            style={{
-              margin: "0 0 4px 0",
-              fontSize: "var(--text-md)",
-              fontWeight: "var(--weight-extrabold)",
-              color: C.navy,
-            }}
-          >
+          <Text as="h3" size="md" weight="extrabold" color={C.navy} style={{ margin: "0 0 4px 0" }}>
             {t.rptComplianceMonitor}
-          </h3>
-          <p style={{ margin: "0 0 12px 0", fontSize: "var(--text-xs)", color: C.sub }}>
+          </Text>
+          <Muted as="p" style={{ margin: "0 0 12px 0" }}>
             {t.rptComplianceDesc}
-          </p>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-3)",
-              maxHeight: 180,
-              overflowY: "auto",
-            }}
-          >
+          </Muted>
+          <Stack gap={3} style={{ maxHeight: 180, overflowY: "auto" }}>
             {fleetMetrics
               .filter((v) => v.isOilOverdue || v.isDetailOverdue)
               .map((v) => (
-                <div
+                <Row
                   key={v.id}
+                  gap={0}
+                  justify="space-between"
                   style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
                     background: C.lg,
                     padding: "8px 12px",
                     borderRadius: "var(--radius-md)",
                   }}
                 >
                   <div>
-                    <div
-                      style={{
-                        fontSize: "var(--text-sm)",
-                        fontWeight: "var(--weight-bold)",
-                        color: C.navy,
-                      }}
-                    >
+                    <Text size="sm" weight="bold" color={C.navy}>
                       {v.make} {v.name}
-                    </div>
-                    <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>
+                    </Text>
+                    <Muted size="2xs" style={{ marginTop: 2 }}>
                       {t.rptOdo} {v.currentMileage.toLocaleString()} mi
-                    </div>
+                    </Muted>
                   </div>
-                  <div style={{ display: "flex", gap: "var(--space-1)" }}>
+                  <Row gap={1} align="stretch">
                     {v.isOilOverdue && <Bdg color="red">{t.rptOilOverdue}</Bdg>}
                     {v.isDetailOverdue && <Bdg color="amber">{t.rptDetailing}</Bdg>}
-                  </div>
-                </div>
+                  </Row>
+                </Row>
               ))}
             {fleetMetrics.filter((v) => v.isOilOverdue || v.isDetailOverdue).length === 0 && (
               <div
@@ -854,7 +799,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                 {t.rptAllCompliant}
               </div>
             )}
-          </div>
+          </Stack>
         </div>
       </CardGrid>
 
@@ -867,28 +812,14 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
           boxShadow: "var(--shadow-sm)",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "var(--text-lg)",
-              fontWeight: "var(--weight-extrabold)",
-              color: C.navy,
-            }}
-          >
+        <Row gap={0} justify="space-between" style={{ marginBottom: 16 }}>
+          <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
             {t.rptFleetLedgerTitle}
-          </h2>
+          </Text>
           <Btn v="green" sz="sm" onClick={handleExportFleetCSV}>
             <Download size={13} aria-hidden="true" /> {t.rptExportFleet}
           </Btn>
-        </div>
+        </Row>
         <div style={{ overflowX: "auto" }}>
           <table
             className="mrr-table"
@@ -919,15 +850,9 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                     }}
                   >
                     {v.name || t.rptFleetTruck}{" "}
-                    <span
-                      style={{
-                        fontWeight: "var(--weight-normal)",
-                        color: C.sub,
-                        fontSize: "var(--text-xs)",
-                      }}
-                    >
+                    <Text as="span" size="xs" weight="normal" color={C.sub}>
                       {v.yr} {v.make}
-                    </span>
+                    </Text>
                   </td>
                   <td style={{ padding: "10px 12px", textTransform: "capitalize" }}>{v.type}</td>
                   <td style={{ padding: "10px 12px", fontFamily: "monospace", color: C.sub }}>
@@ -992,19 +917,17 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
           border: `1px solid ${C.lg}`,
         }}
       >
-        <h3
-          style={{
-            margin: "0 0 4px 0",
-            fontSize: 15,
-            fontWeight: "var(--weight-extrabold)",
-            color: C.navy,
-          }}
+        <Text
+          as="h3"
+          weight="extrabold"
+          color={C.navy}
+          style={{ margin: "0 0 4px 0", fontSize: 15 }}
         >
           {t.rptInspLogsTitle}
-        </h3>
-        <p style={{ margin: "0 0 16px 0", fontSize: "var(--text-sm)", color: C.sub }}>
+        </Text>
+        <Muted as="p" size="sm" style={{ margin: "0 0 16px 0" }}>
           {t.rptInspLogsDesc}
-        </p>
+        </Muted>
 
         {loadingInspect ? (
           <SkeletonTable
@@ -1054,54 +977,35 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                 }}
               >
                 <div style={{ flex: 1, minWidth: 240 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "var(--space-3)",
-                      alignItems: "center",
-                      marginBottom: 4,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontWeight: "var(--weight-extrabold)",
-                        color: C.navy,
-                        fontSize: "var(--text-base)",
-                      }}
-                    >
+                  <Row wrap style={{ marginBottom: 4 }}>
+                    <Text as="span" size="base" weight="extrabold" color={C.navy}>
                       {log.vehicle_name}
-                    </span>
-                    <span style={{ fontSize: "var(--text-xs)", color: C.sub }}>
-                      · {new Date(log.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p
-                    style={{
-                      margin: "0 0 6px 0",
-                      fontSize: "var(--text-base)",
-                      color: "var(--c-barnwood)",
-                      lineHeight: 1.4,
-                    }}
+                    </Text>
+                    <Muted as="span">· {new Date(log.created_at).toLocaleDateString()}</Muted>
+                  </Row>
+                  <Text
+                    as="p"
+                    size="base"
+                    color={"var(--c-barnwood)"}
+                    style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
                   >
                     {log.notes || (
-                      <span style={{ fontStyle: "italic", color: C.sub }}>{t.rptNoNotes}</span>
+                      <Text as="span" color={C.sub} style={{ fontStyle: "italic" }}>
+                        {t.rptNoNotes}
+                      </Text>
                     )}
-                  </p>
-                  <div
-                    style={{
-                      fontSize: "var(--text-xs)",
-                      color: C.sub,
-                      fontWeight: "var(--weight-semibold)",
-                    }}
-                  >
-                    {t.rptInspector} <span style={{ color: C.navy }}>{log.inspector_name}</span>
-                  </div>
+                  </Text>
+                  <Text size="xs" weight="semibold" color={C.sub}>
+                    {t.rptInspector}{" "}
+                    <Text as="span" color={C.navy}>
+                      {log.inspector_name}
+                    </Text>
+                  </Text>
                 </div>
 
                 {/* Picture Array Thumbnails Box */}
                 {log.photos && log.photos.length > 0 && (
-                  <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+                  <Row gap={2} align="stretch" wrap>
                     {log.photos.map((pic, idx) => (
                       <img
                         key={idx}
@@ -1119,7 +1023,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                         title={t.rptExpandImage}
                       />
                     ))}
-                  </div>
+                  </Row>
                 )}
 
                 <button
@@ -1171,7 +1075,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
           </div>
         </Modal>
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -1253,27 +1157,11 @@ function AuditTrailReport({ t, companyId }) {
         boxShadow: "var(--shadow-sm)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-          gap: "var(--space-4)",
-        }}
-      >
+      <Row gap={4} justify="space-between" wrap style={{ marginBottom: 16 }}>
         <div>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "var(--text-lg)",
-              fontWeight: "var(--weight-extrabold)",
-              color: C.navy,
-            }}
-          >
+          <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
             {t.rptAuditTitle}
-          </h2>
+          </Text>
           <div style={{ marginTop: 8 }}>
             <Sel
               value={actionTypeFilter}
@@ -1295,7 +1183,7 @@ function AuditTrailReport({ t, companyId }) {
         <Btn v="green" sz="sm" onClick={handleExportAuditExcel}>
           <Download size={13} aria-hidden="true" /> {t.rptExportAudit}
         </Btn>
-      </div>
+      </Row>
       {loading ? (
         <SkeletonTable
           rows={7}
@@ -1313,12 +1201,12 @@ function AuditTrailReport({ t, companyId }) {
             color: "var(--c-rust)",
           }}
         >
-          <div style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
+          <Text weight="bold" style={{ marginBottom: 6 }}>
             {t.rptAuditLoadFailTitle}
-          </div>
-          <div style={{ fontSize: "var(--text-sm)", marginBottom: 12 }}>
+          </Text>
+          <Text size="sm" style={{ marginBottom: 12 }}>
             {t.rptAuditLoadFailDesc} ({loadError})
-          </div>
+          </Text>
           <Btn v="primary" sz="sm" onClick={() => setRetryTick((prev) => prev + 1)}>
             {t.rptRetry}
           </Btn>
@@ -1405,7 +1293,7 @@ export default function Reports({
     <div>
       <PageHeader title={t.rptTitle} subtitle={t.rptSubtitle} />
 
-      <div style={{ display: "flex", gap: "var(--space-5)", flexWrap: "wrap", marginBottom: 20 }}>
+      <Row gap={5} align="stretch" wrap style={{ marginBottom: 20 }}>
         <StatTile
           variant="borderLeft"
           color={C.blue}
@@ -1432,31 +1320,19 @@ export default function Reports({
               minWidth: 200,
             }}
           >
-            <div
-              style={{
-                fontSize: "var(--text-2xl)",
-                fontWeight: "var(--weight-black)",
-                color: C.gr,
-              }}
-            >
+            <Text size="2xl" weight="black" color={C.gr}>
               {fm(historicalTotalMaterialSpend)}
-            </div>
-            <div style={{ fontSize: "var(--text-xs)", color: C.sub, marginTop: 3 }}>
-              {t.rptTotalProcurement}
-            </div>
+            </Text>
+            <Muted style={{ marginTop: 3 }}>{t.rptTotalProcurement}</Muted>
           </div>
         )}
-      </div>
+      </Row>
 
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-4)",
-          borderBottom: `1px solid ${C.lg}`,
-          paddingBottom: 12,
-          marginBottom: 20,
-          flexWrap: "wrap",
-        }}
+      <Row
+        gap={4}
+        align="stretch"
+        wrap
+        style={{ borderBottom: `1px solid ${C.lg}`, paddingBottom: 12, marginBottom: 20 }}
       >
         {tabOptions.map((tab) => {
           const active = activeTab === tab.id;
@@ -1483,7 +1359,7 @@ export default function Reports({
             </button>
           );
         })}
-      </div>
+      </Row>
 
       <div>
         {activeTab === "Jobs" && (

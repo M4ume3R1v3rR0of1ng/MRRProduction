@@ -13,6 +13,7 @@
 import { Calendar, AlertTriangle, Truck, Wrench } from "lucide-react";
 import { C, parseDay, todayLocal } from "@/shared/utils/helpers";
 import { buildSchedule } from "@/shared/utils/schedule";
+import { Row, Text, Eyebrow, Muted } from "@/shared/components/UIPrimitives";
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -35,16 +36,7 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
         boxShadow: "var(--shadow-xs)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: "var(--space-4)",
-          marginBottom: 12,
-          flexWrap: "wrap",
-        }}
-      >
+      <Row gap={4} align="baseline" justify="space-between" wrap style={{ marginBottom: 12 }}>
         <h3
           style={{
             margin: 0,
@@ -58,13 +50,11 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
         >
           <Calendar size={15} aria-hidden="true" /> {es ? "La semana que viene" : "The week ahead"}
         </h3>
-        <div style={{ display: "flex", alignItems: "baseline", gap: "var(--space-4)" }}>
-          <span
-            style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-bold)" }}
-          >
+        <Row gap={4} align="baseline">
+          <Text as="span" size="2xs" weight="bold" color={C.sub}>
             {totalJobs} {es ? "trabajos" : totalJobs === 1 ? "job" : "jobs"} · {totalMaint}{" "}
             {es ? "en taller" : "in shop"}
-          </span>
+          </Text>
           {/* The way through to the full month view, where the past lives. This
               card only ever shows the next seven days. */}
           <button
@@ -83,8 +73,8 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
           >
             {es ? "Ver calendario completo →" : "Full calendar →"}
           </button>
-        </div>
-      </div>
+        </Row>
+      </Row>
 
       {anyConflict && (
         <div
@@ -131,35 +121,24 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                   gap: 5,
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: "var(--text-2xs)",
-                      fontWeight: "var(--weight-extrabold)",
-                      color: isToday ? C.am : C.sub,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.4px",
-                    }}
+                <Row gap={0} align="baseline" justify="space-between">
+                  <Eyebrow
+                    as="span"
+                    color={isToday ? C.am : C.sub}
+                    style={{ fontSize: "var(--text-2xs)", letterSpacing: "0.4px" }}
                   >
                     {WEEKDAY[d.getDay()]}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "var(--text-sm)",
-                      fontWeight: "var(--weight-black)",
-                      color: isToday ? C.navy : C.sub,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
+                  </Eyebrow>
+                  <Text
+                    as="span"
+                    size="sm"
+                    weight="black"
+                    color={isToday ? C.navy : C.sub}
+                    style={{ fontVariantNumeric: "tabular-nums" }}
                   >
                     {d.getDate()}
-                  </span>
-                </div>
+                  </Text>
+                </Row>
 
                 {busy === 0 && (
                   <span style={{ fontSize: "var(--text-2xs)", color: C.sub, opacity: 0.6 }}>—</span>
@@ -206,9 +185,9 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                   </button>
                 ))}
                 {day.jobs.length > 2 && (
-                  <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                  <Muted as="span" size="2xs">
                     +{day.jobs.length - 2} more
-                  </span>
+                  </Muted>
                 )}
 
                 {day.maint.slice(0, 2).map((m) => (
@@ -240,9 +219,9 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                   </button>
                 ))}
                 {day.maint.length > 2 && (
-                  <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                  <Muted as="span" size="2xs">
                     +{day.maint.length - 2} more
-                  </span>
+                  </Muted>
                 )}
 
                 {day.conflicts.length > 0 && (
@@ -267,11 +246,11 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
       </div>
 
       {totalJobs === 0 && totalMaint === 0 && (
-        <p style={{ margin: "10px 0 0", fontSize: "var(--text-2xs)", color: C.sub }}>
+        <Muted as="p" size="2xs" style={{ margin: "10px 0 0" }}>
           {es
             ? "Nada programado esta semana. Asigne fechas en Trabajos o Mantenimiento."
             : "Nothing scheduled this week. Set dates in Build Jobs or Maintenance."}
-        </p>
+        </Muted>
       )}
     </div>
   );

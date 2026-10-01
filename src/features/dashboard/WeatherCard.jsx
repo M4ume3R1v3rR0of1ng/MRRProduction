@@ -21,7 +21,7 @@ import {
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
 import { getAccessToken } from "@/shared/utils/supabase";
-import { Spinner, Card } from "@/shared/components/UIPrimitives";
+import { Spinner, Card, Row, Text } from "@/shared/components/UIPrimitives";
 
 // WMO weather code -> { icon, label }.
 function describeWeather(code) {
@@ -68,51 +68,27 @@ export default function WeatherCard({ lang = "en" }) {
   }, []);
 
   const header = (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 6,
-        flexWrap: "wrap",
-        gap: "var(--space-2)",
-      }}
-    >
-      <h3
-        style={{
-          margin: 0,
-          fontSize: "var(--text-xs)",
-          fontWeight: "var(--weight-extrabold)",
-          color: C.navy,
-        }}
-      >
+    <Row gap={2} justify="space-between" wrap style={{ marginBottom: 6 }}>
+      <Text as="h3" size="xs" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
         {t.wcTitle}
-      </h3>
-      <span
-        style={{ fontSize: "var(--text-2xs)", color: C.sub, fontWeight: "var(--weight-semibold)" }}
-      >
+      </Text>
+      <Text as="span" size="2xs" weight="semibold" color={C.sub}>
         Saint Joe Road · Fort Wayne, IN
-      </span>
-    </div>
+      </Text>
+    </Row>
   );
 
   if (state.loading) {
     return (
       <Card pad="var(--space-4)" style={{ borderRadius: "var(--radius-lg)" }}>
         {header}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "var(--space-2)",
-            padding: "6px 0",
-            color: C.sub,
-            fontSize: "var(--text-xs)",
-          }}
+        <Row
+          gap={2}
+          justify="center"
+          style={{ padding: "6px 0", color: C.sub, fontSize: "var(--text-xs)" }}
         >
           <Spinner size={13} /> {t.wcLoading}
-        </div>
+        </Row>
       </Card>
     );
   }
@@ -150,44 +126,29 @@ export default function WeatherCard({ lang = "en" }) {
       {header}
 
       {/* Current conditions — single compact row */}
-      <div
-        style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: 8 }}
-      >
+      <Row style={{ marginBottom: 8 }}>
         <cur.icon size={22} color={C.navy} strokeWidth={1.75} aria-hidden="true" />
-        <span
-          style={{
-            fontSize: "var(--text-xl)",
-            fontWeight: "var(--weight-black)",
-            color: C.navy,
-            lineHeight: 1,
-            fontVariantNumeric: "tabular-nums",
-          }}
+        <Text
+          as="span"
+          size="xl"
+          weight="black"
+          color={C.navy}
+          style={{ lineHeight: 1, fontVariantNumeric: "tabular-nums" }}
         >
           {Math.round(current.temperature_2m)}°
-        </span>
-        <span
-          style={{
-            fontSize: "var(--text-2xs)",
-            color: C.sub,
-            fontWeight: "var(--weight-semibold)",
-          }}
-        >
+        </Text>
+        <Text as="span" size="2xs" weight="semibold" color={C.sub}>
           {cur.label}
-        </span>
-        <span
-          style={{
-            marginLeft: "auto",
-            display: "flex",
-            alignItems: "center",
-            gap: 3,
-            fontSize: "var(--text-2xs)",
-            color: C.sub,
-          }}
+        </Text>
+        <Row
+          as="span"
+          gap="3px"
+          style={{ marginLeft: "auto", fontSize: "var(--text-2xs)", color: C.sub }}
         >
           <Wind size={11} aria-hidden="true" /> {Math.round(current.wind_speed_10m)} ·{" "}
           <Droplets size={11} aria-hidden="true" /> {todayRain}%
-        </span>
-      </div>
+        </Row>
+      </Row>
 
       {advisory && (
         <div
@@ -209,7 +170,7 @@ export default function WeatherCard({ lang = "en" }) {
       )}
 
       {/* 5-day outlook — one line per day */}
-      <div style={{ display: "flex", gap: "var(--space-1)", overflowX: "auto" }}>
+      <Row gap={1} align="stretch" style={{ overflowX: "auto" }}>
         {daily.time.map((iso, i) => {
           const d = describeWeather(daily.weather_code[i]);
           const date = new Date(iso + "T00:00:00");
@@ -226,28 +187,24 @@ export default function WeatherCard({ lang = "en" }) {
                 background: isToday ? C.lg : "transparent",
               }}
             >
-              <div
-                style={{
-                  fontSize: "var(--text-2xs)",
-                  fontWeight: "var(--weight-bold)",
-                  color: C.sub,
-                }}
-              >
+              <Text size="2xs" weight="bold" color={C.sub}>
                 {isToday ? "Today" : DAY[date.getDay()]}
-              </div>
-              <div style={{ display: "flex", justifyContent: "center", lineHeight: 1.2 }}>
+              </Text>
+              <Row gap={0} align="stretch" justify="center" style={{ lineHeight: 1.2 }}>
                 <d.icon size={15} color={C.navy} strokeWidth={1.75} aria-hidden="true" />
-              </div>
-              <div style={{ fontSize: "var(--text-2xs)", fontVariantNumeric: "tabular-nums" }}>
-                <span style={{ fontWeight: "var(--weight-bold)", color: C.navy }}>
+              </Row>
+              <Text size="2xs" style={{ fontVariantNumeric: "tabular-nums" }}>
+                <Text as="span" weight="bold" color={C.navy}>
                   {Math.round(daily.temperature_2m_max[i])}°
-                </span>
-                <span style={{ color: C.sub }}>/{Math.round(daily.temperature_2m_min[i])}°</span>
-              </div>
+                </Text>
+                <Text as="span" color={C.sub}>
+                  /{Math.round(daily.temperature_2m_min[i])}°
+                </Text>
+              </Text>
             </div>
           );
         })}
-      </div>
+      </Row>
     </Card>
   );
 }

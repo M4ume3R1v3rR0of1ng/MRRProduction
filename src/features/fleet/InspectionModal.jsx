@@ -8,7 +8,16 @@
 import { useState } from "react";
 import { ClipboardList, Save, Loader2, X } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
-import { Btn, Fld, Modal, PhotoUpload, Sel, TA } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Fld,
+  Modal,
+  PhotoUpload,
+  Sel,
+  TA,
+  Row,
+  Stack,
+} from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -69,16 +78,16 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
   return (
     <Modal
       title={
-        <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Row as="span">
           <ClipboardList size={17} aria-hidden="true" /> File Vehicle Condition & Inspection Report
-        </span>
+        </Row>
       }
       onClose={() => {
         if (!submitting) onClose?.();
       }}
       wide
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
+      <Stack gap={6}>
         <Fld label="Select Fleet Vehicle *">
           <Sel
             value={form.vehicleId}
@@ -104,7 +113,7 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
         </Fld>
 
         <Fld label="Upload Inspection Pictures / Condition Evidence">
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+          <Stack gap={3}>
             <PhotoUpload
               current={null}
               onUpload={(base64) =>
@@ -114,9 +123,7 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
               quality={0.8}
             />
             {form.photos.length > 0 && (
-              <div
-                style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginTop: 8 }}
-              >
+              <Row gap={2} align="stretch" wrap style={{ marginTop: 8 }}>
                 {form.photos.map((img, idx) => (
                   <div
                     key={idx}
@@ -160,12 +167,12 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
                     </button>
                   </div>
                 ))}
-              </div>
+              </Row>
             )}
-          </div>
+          </Stack>
         </Fld>
 
-        <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 12 }}>
+        <Row align="stretch" style={{ marginTop: 12 }}>
           <Btn
             v="ghost"
             style={{ flex: 1, justifyContent: "center" }}
@@ -195,8 +202,8 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
               </>
             )}
           </Btn>
-        </div>
-      </div>
+        </Row>
+      </Stack>
     </Modal>
   );
 }

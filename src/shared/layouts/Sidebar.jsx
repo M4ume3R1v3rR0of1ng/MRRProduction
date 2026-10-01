@@ -30,6 +30,7 @@ import { TrussMark, TAGLINE } from "../components/SteadwerkMark";
 import { translations } from "../utils/translations";
 import { readTheme, saveTheme, applyTheme } from "../utils/theme";
 import { IS_IOS_APP } from "@/core/platform";
+import { Row, Stack, Text } from "../components/LayoutPrimitives";
 
 export default function Sidebar({
   cur,
@@ -406,27 +407,19 @@ export default function Sidebar({
           One button cycling auto → light → dark, rather than three buttons like
           the language drum: theme is a fiddle-once setting and does not deserve
           the same footprint as the thing the crew actually switches. */}
-      <div
-        style={{
-          padding: "4px 10px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: collapsed ? "center" : "space-between",
-        }}
-      >
+      <Row gap={0} justify={collapsed ? "center" : "space-between"} style={{ padding: "4px 10px" }}>
         {!collapsed && (
-          <span
+          <Row
+            as="span"
+            gap={1}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
               fontSize: "var(--text-2xs)",
               color: "rgba(255,255,255,0.4)",
               fontWeight: "var(--weight-extrabold)",
             }}
           >
             <Palette size={12} aria-hidden="true" /> {t.theme || "Theme"}:
-          </span>
+          </Row>
         )}
         <button
           onClick={cycleTheme}
@@ -450,31 +443,26 @@ export default function Sidebar({
           <ThemeIcon size={13} aria-hidden="true" />
           {!collapsed && themeMeta.label}
         </button>
-      </div>
+      </Row>
 
       {/* ── TRANSLATION CONTROL SWITCH DRUM ── */}
-      <div
-        style={{
-          padding: "4px 10px 10px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: collapsed ? "center" : "space-between",
-          borderTop: "1px solid rgba(255,255,255,0.05)",
-        }}
+      <Row
+        gap={0}
+        justify={collapsed ? "center" : "space-between"}
+        style={{ padding: "4px 10px 10px", borderTop: "1px solid rgba(255,255,255,0.05)" }}
       >
         {!collapsed && (
-          <span
+          <Row
+            as="span"
+            gap={1}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
               fontSize: "var(--text-2xs)",
               color: "rgba(255,255,255,0.4)",
               fontWeight: "var(--weight-extrabold)",
             }}
           >
             <Globe size={12} aria-hidden="true" /> {t.language}:
-          </span>
+          </Row>
         )}
         <div
           style={{
@@ -511,7 +499,7 @@ export default function Sidebar({
             );
           })}
         </div>
-      </div>
+      </Row>
 
       {/* Footer Profile Segment */}
       <div style={{ padding: "10px 6px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
@@ -563,29 +551,19 @@ export default function Sidebar({
               >
                 {user.name || user.full_name || "Active User"}
               </div>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: rColor(user.role),
-                  textTransform: "capitalize",
-                  fontWeight: "var(--weight-semibold)",
-                }}
+              <Text
+                weight="semibold"
+                color={rColor(user.role)}
+                style={{ fontSize: 9, textTransform: "capitalize" }}
               >
                 {ROLES[user.role]?.label || user.role || "Employee"}
-              </div>
+              </Text>
             </div>
           )}
         </div>
 
         {!collapsed && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-1)",
-              padding: "0 4px",
-            }}
-          >
+          <Stack gap={1} style={{ padding: "0 4px" }}>
             <button
               onClick={handleSignOut}
               className="mrr-signout"
@@ -600,7 +578,7 @@ export default function Sidebar({
             >
               {t.signout}
             </button>
-          </div>
+          </Stack>
         )}
       </div>
     </div>

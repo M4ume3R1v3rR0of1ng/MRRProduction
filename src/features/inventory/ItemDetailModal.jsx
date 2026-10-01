@@ -10,7 +10,16 @@
 import { Pencil, Wrench, Trash2, AlertTriangle } from "lucide-react";
 import { C, fd, fm, tot, newestPrice } from "@/shared/utils/helpers";
 import { resolveBatchPerson } from "@/shared/utils/people";
-import { Btn, Modal, PhotoUpload } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Modal,
+  PhotoUpload,
+  Stack,
+  Row,
+  Eyebrow,
+  Text,
+  Muted,
+} from "@/shared/components/UIPrimitives";
 
 // Oldest first: the batch FIFO will draw from next is the first one with stock
 // left on it, which is what the ACTIVE marker points at.
@@ -48,18 +57,9 @@ export default function ItemDetailModal({
     <Modal title={item.name} onClose={onClose} wide>
       <div className="sw-grid-2" style={{ gap: "var(--space-7)", marginBottom: 16 }}>
         <div>
-          <div
-            style={{
-              fontSize: "var(--text-xs)",
-              fontWeight: "var(--weight-bold)",
-              color: C.navy,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              marginBottom: 8,
-            }}
-          >
+          <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)", marginBottom: 8 }}>
             Product Photo
-          </div>
+          </Eyebrow>
           <PhotoUpload
             current={item.photo_url || null}
             onUpload={(data) => onSetPhoto?.(item.id, data)}
@@ -68,54 +68,33 @@ export default function ItemDetailModal({
           />
         </div>
         <div>
-          <div
-            style={{
-              fontSize: "var(--text-xs)",
-              fontWeight: "var(--weight-bold)",
-              color: C.navy,
-              textTransform: "uppercase",
-              letterSpacing: "0.5px",
-              marginBottom: 8,
-            }}
-          >
+          <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)", marginBottom: 8 }}>
             Item Details
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+          </Eyebrow>
+          <Stack gap={2}>
             {specs.map(([k, v]) => (
-              <div
+              <Row
                 key={k}
-                style={{
-                  background: C.lg,
-                  borderRadius: "var(--radius-md)",
-                  padding: "8px 12px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
+                gap={0}
+                justify="space-between"
+                style={{ background: C.lg, borderRadius: "var(--radius-md)", padding: "8px 12px" }}
               >
-                <span
-                  style={{
-                    fontSize: "var(--text-xs)",
-                    color: C.sub,
-                    fontWeight: "var(--weight-bold)",
-                    textTransform: "uppercase",
-                  }}
+                <Text
+                  as="span"
+                  size="xs"
+                  weight="bold"
+                  color={C.sub}
+                  style={{ textTransform: "uppercase" }}
                 >
                   {k}
-                </span>
-                <span
-                  style={{
-                    fontSize: "var(--text-base)",
-                    fontWeight: "var(--weight-extrabold)",
-                    color: C.navy,
-                  }}
-                >
+                </Text>
+                <Text as="span" size="base" weight="extrabold" color={C.navy}>
                   {v}
-                </span>
-              </div>
+                </Text>
+              </Row>
             ))}
-          </div>
-          <div style={{ display: "flex", gap: "var(--space-3)", marginTop: 12, flexWrap: "wrap" }}>
+          </Stack>
+          <Row align="stretch" wrap style={{ marginTop: 12 }}>
             {perms.inv_edit && (
               <Btn v="outline" sz="sm" onClick={onEdit}>
                 <Pencil size={13} aria-hidden="true" /> Edit Materials
@@ -136,20 +115,18 @@ export default function ItemDetailModal({
                 <Trash2 size={13} aria-hidden="true" /> Delete Product
               </Btn>
             )}
-          </div>
+          </Row>
         </div>
       </div>
 
-      <h4
-        style={{
-          margin: "0 0 8px",
-          color: C.navy,
-          fontSize: "var(--text-sm)",
-          textTransform: "uppercase",
-        }}
+      <Text
+        as="h4"
+        size="sm"
+        color={C.navy}
+        style={{ margin: "0 0 8px", textTransform: "uppercase" }}
       >
         Batch History (FIFO)
-      </h4>
+      </Text>
       {batches.map((b, i) => {
         const isActive = i === 0 && b.rem > 0;
         const unpriced = (parseFloat(b.price) || 0) === 0;
@@ -164,60 +141,40 @@ export default function ItemDetailModal({
               marginBottom: 8,
             }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "var(--space-3)",
-              }}
-            >
+            <Row align="stretch" justify="space-between" wrap>
               <div>
-                <div
-                  style={{
-                    fontWeight: "var(--weight-bold)",
-                    color: C.navy,
-                    fontSize: "var(--text-sm)",
-                  }}
-                >
-                  {isActive && <span style={{ color: C.blue }}>▶ ACTIVE · </span>}
+                <Text size="sm" weight="bold" color={C.navy}>
+                  {isActive && (
+                    <Text as="span" color={C.blue}>
+                      ▶ ACTIVE ·{" "}
+                    </Text>
+                  )}
                   {fd(b.rcvd)}
-                  {b.vendor && <span style={{ color: C.sub }}> · {b.vendor}</span>}
-                  {b.ref && <span style={{ color: C.tl }}> · {b.ref}</span>}
-                </div>
+                  {b.vendor && (
+                    <Text as="span" color={C.sub}>
+                      {" "}
+                      · {b.vendor}
+                    </Text>
+                  )}
+                  {b.ref && (
+                    <Text as="span" color={C.tl}>
+                      {" "}
+                      · {b.ref}
+                    </Text>
+                  )}
+                </Text>
                 {/* `?.name || "Unknown"` here found the right person and threw the
                     answer away — profiles keep the name in full_name — and could
                     never resolve a pre-Auth id at all. See utils/people. */}
-                <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>
-                  By: {resolveBatchPerson(users, b)}
-                </div>
+                <Muted>By: {resolveBatchPerson(users, b)}</Muted>
               </div>
-              <div
-                style={{
-                  textAlign: "right",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--space-3)",
-                }}
-              >
+              <Row style={{ textAlign: "right" }}>
                 <div>
-                  <div
-                    style={{
-                      fontWeight: "var(--weight-extrabold)",
-                      color: b.rem === 0 ? C.sub : C.gr,
-                      fontSize: "var(--text-sm)",
-                    }}
-                  >
+                  <Text size="sm" weight="extrabold" color={b.rem === 0 ? C.sub : C.gr}>
                     {b.rem}/{b.qty} remaining
-                  </div>
+                  </Text>
                   {perms.inv_pricing_view && (
-                    <div
-                      style={{
-                        fontSize: "var(--text-xs)",
-                        color: unpriced ? C.rd : C.blue,
-                        fontWeight: "var(--weight-bold)",
-                      }}
-                    >
+                    <Text size="xs" weight="bold" color={unpriced ? C.rd : C.blue}>
                       {fm(b.price)} ea.
                       {unpriced && b.rem > 0 && (
                         <>
@@ -230,7 +187,7 @@ export default function ItemDetailModal({
                           unpriced
                         </>
                       )}
-                    </div>
+                    </Text>
                   )}
                 </div>
                 {(perms.inv_receive || perms.inv_pricing_edit) && (
@@ -243,13 +200,15 @@ export default function ItemDetailModal({
                     <Pencil size={13} aria-hidden="true" />
                   </Btn>
                 )}
-              </div>
-            </div>
+              </Row>
+            </Row>
           </div>
         );
       })}
       {batches.length === 0 && (
-        <p style={{ color: C.sub, fontSize: "var(--text-base)" }}>No receipt stacks logged yet.</p>
+        <Text as="p" size="base" color={C.sub}>
+          No receipt stacks logged yet.
+        </Text>
       )}
     </Modal>
   );

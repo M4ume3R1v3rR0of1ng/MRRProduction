@@ -10,6 +10,7 @@
 // root, so it can't fight the rest of the app.
 import { useEffect, useRef, useState } from "react";
 import { useDocumentMeta } from "@/shared/hooks/useDocumentMeta";
+import { Text } from "@/shared/components/UIPrimitives";
 
 // The published rates, in one place. These must match what Stripe actually
 // charges — BASE/PACK mirror BillingView.jsx, and TRIAL_DAYS mirrors
@@ -1170,9 +1171,9 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
                 <span className="amt">${BASE_PRICE}</span>
                 <span className="per">/ month</span>
               </div>
-              <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--good)", margin: "2px 0 6px" }}>
+              <Text weight="bold" color={"var(--good)"} style={{ fontSize: "0.85rem", margin: "2px 0 6px" }}>
                 or ${ANNUAL_PRICE}/year · save {ANNUAL_SAVINGS_PCT}%
-              </div>
+              </Text>
               <div className="what">Everything, for up to {BASE_SEATS} people.</div>
               <p>Inventory, jobs, fleet, maintenance, costed reports, and per-role access for the whole crew. This isn't a starter tier. It's the whole thing.</p>
               <div className="rate-cta">
@@ -1276,7 +1277,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
           <div className="reveal">
             <span className="eyebrow">The story</span>
             <h2>Raised the old way. Built for a smarter one.</h2>
-            <p>Steadwerk started with a kid raised in the old way. Amish roots taught that work is done right or done again, that you show up before the sun and don't complain. But he kept asking a question the old way couldn't answer: <b style={{ color: "var(--on-dark)", fontWeight: 600 }}>What if the tools worked as hard as we do?</b></p>
+            <p>Steadwerk started with a kid raised in the old way. Amish roots taught that work is done right or done again, that you show up before the sun and don't complain. But he kept asking a question the old way couldn't answer: <Text as="b" weight="semibold" color={"var(--on-dark)"}>What if the tools worked as hard as we do?</Text></p>
             <p>Not to replace the work, but to carry the part of it that steals your evenings. So Steadwerk was born in Fort Wayne, Indiana: warehouse and fleet software with a work ethic, so the work runs steady, and the people who do it get home for supper.</p>
           </div>
           <div className="reveal">

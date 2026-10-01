@@ -17,7 +17,7 @@ import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { validatePassword, PASSWORD_HINT } from "./passwordPolicy";
 import { translations } from "@/shared/utils/translations";
-import { Fld } from "@/shared/components/UIPrimitives";
+import { Fld, Row, Text } from "@/shared/components/UIPrimitives";
 import { SteadwerkLockup, BRAND } from "@/shared/components/SteadwerkMark";
 
 export default function ResetPasswordScreen({ onDone, lang = "en" }) {
@@ -69,7 +69,9 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
   };
 
   return (
-    <div
+    <Row
+      gap={0}
+      justify="center"
       style={{
         minHeight: "100vh",
         background: `
@@ -82,9 +84,6 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
           ),
           radial-gradient(ellipse at 50% 0%, #2F353C 0%, ${BRAND.barnwood} 55%, #171B1F 100%)
         `,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
         padding: 24,
       }}
     >
@@ -104,9 +103,9 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
           <div style={{ marginBottom: 14 }}>
             <SteadwerkLockup size={64} />
           </div>
-          <div style={{ fontSize: "var(--text-base)", color: C.sub, marginTop: 4 }}>
+          <Text size="base" color={C.sub} style={{ marginTop: 4 }}>
             {done ? "Password updated" : "Set a new password"}
-          </div>
+          </Text>
         </div>
 
         {done ? (
@@ -209,6 +208,6 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
           </>
         )}
       </div>
-    </div>
+    </Row>
   );
 }

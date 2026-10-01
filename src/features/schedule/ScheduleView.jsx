@@ -12,7 +12,16 @@ import { useMemo, useState } from "react";
 import { Calendar, Truck, Wrench, AlertTriangle } from "lucide-react";
 import { C, parseDay, todayLocal } from "@/shared/utils/helpers";
 import { buildSchedule, monthGrid, monthNames, weekdayShort } from "@/shared/utils/schedule";
-import { Btn, Bdg, Modal, PageHeader } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Bdg,
+  Modal,
+  PageHeader,
+  Row,
+  Stack,
+  Text,
+  Muted,
+} from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 
 export default function ScheduleView({
@@ -81,11 +90,11 @@ export default function ScheduleView({
             {monthTotals.jobs} {monthTotals.jobs === 1 ? t.schJob : t.schJobs} · {monthTotals.maint}{" "}
             {t.schInShop}
             {monthTotals.conflicts > 0 && (
-              <span style={{ color: C.am, fontWeight: "var(--weight-bold)" }}>
+              <Text as="span" weight="bold" color={C.am}>
                 {" "}
                 · {monthTotals.conflicts}{" "}
                 {monthTotals.conflicts > 1 ? t.schConflicts : t.schConflict}
-              </span>
+              </Text>
             )}
           </>
         }
@@ -155,7 +164,9 @@ export default function ScheduleView({
           {t.schLegendShop}
         </span>
         <span>{t.schLegendTrailers}</span>
-        <span style={{ color: C.am }}>{t.schLegendConflict}</span>
+        <Text as="span" color={C.am}>
+          {t.schLegendConflict}
+        </Text>
         <span style={{ opacity: 0.55 }}>{t.schLegendFaded}</span>
       </div>
 
@@ -213,23 +224,16 @@ export default function ScheduleView({
                     font: "inherit",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: "var(--text-sm)",
-                        fontWeight: isToday ? "var(--weight-black)" : "var(--weight-bold)",
-                        color: isToday ? C.am : C.navy,
-                        fontVariantNumeric: "tabular-nums",
-                      }}
+                  <Row gap={0} align="baseline" justify="space-between">
+                    <Text
+                      as="span"
+                      size="sm"
+                      weight={isToday ? "black" : "bold"}
+                      color={isToday ? C.am : C.navy}
+                      style={{ fontVariantNumeric: "tabular-nums" }}
                     >
                       {d.getDate()}
-                    </span>
+                    </Text>
                     {day.trailerCount > 0 && (
                       <span
                         title={`${day.trailerCount} trailer(s) out`}
@@ -245,7 +249,7 @@ export default function ScheduleView({
                         {day.trailerCount}
                       </span>
                     )}
-                  </div>
+                  </Row>
 
                   {day.jobs.slice(0, 3).map((j) => (
                     <span
@@ -298,9 +302,9 @@ export default function ScheduleView({
                   {busy >
                     (day.jobs.length > 3 ? 3 : day.jobs.length) +
                       (day.maint.length > 2 ? 2 : day.maint.length) && (
-                    <span style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                    <Muted as="span" size="2xs">
                       +{busy - Math.min(day.jobs.length, 3) - Math.min(day.maint.length, 2)} more
-                    </span>
+                    </Muted>
                   )}
 
                   {day.conflicts.length > 0 && (
@@ -325,9 +329,9 @@ export default function ScheduleView({
       </div>
 
       {monthTotals.jobs === 0 && monthTotals.maint === 0 && (
-        <p style={{ marginTop: 14, color: C.sub, fontSize: "var(--text-sm)", textAlign: "center" }}>
+        <Text as="p" size="sm" color={C.sub} style={{ marginTop: 14, textAlign: "center" }}>
           {t.schEmpty.replace("{month}", MONTH_NAMES[cursor.month] + " " + cursor.year)}
-        </p>
+        </Text>
       )}
 
       {/* ── one day, expanded ── */}
@@ -368,24 +372,15 @@ export default function ScheduleView({
 
           {openDay.jobs.length > 0 && (
             <>
-              <h4
-                style={{
-                  margin: "0 0 8px",
-                  color: C.navy,
-                  fontSize: "var(--text-sm)",
-                  textTransform: "uppercase",
-                }}
+              <Text
+                as="h4"
+                size="sm"
+                color={C.navy}
+                style={{ margin: "0 0 8px", textTransform: "uppercase" }}
               >
                 Jobs ({openDay.jobs.length})
-              </h4>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "var(--space-2)",
-                  marginBottom: 16,
-                }}
-              >
+              </Text>
+              <Stack gap={2} style={{ marginBottom: 16 }}>
                 {openDay.jobs.map((j) => {
                   const st = jSC[j.status] || { c: "gray", l: j.status };
                   return (
@@ -411,16 +406,10 @@ export default function ScheduleView({
                       }}
                     >
                       <div style={{ minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontWeight: "var(--weight-bold)",
-                            color: C.navy,
-                            fontSize: "var(--text-md)",
-                          }}
-                        >
+                        <Text size="md" weight="bold" color={C.navy}>
                           {j.title}
-                        </div>
-                        <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
+                        </Text>
+                        <Muted size="2xs">
                           {j.po || "No PO"}
                           {j.supervisor ? ` · ${j.supervisor}` : ""}
                           {j.trailers.length > 0 && (
@@ -434,29 +423,27 @@ export default function ScheduleView({
                               {j.trailers.join(", ")}
                             </>
                           )}
-                        </div>
+                        </Muted>
                       </div>
                       <Bdg color={st.c}>{st.l}</Bdg>
                     </button>
                   );
                 })}
-              </div>
+              </Stack>
             </>
           )}
 
           {openDay.maint.length > 0 && (
             <>
-              <h4
-                style={{
-                  margin: "0 0 8px",
-                  color: C.navy,
-                  fontSize: "var(--text-sm)",
-                  textTransform: "uppercase",
-                }}
+              <Text
+                as="h4"
+                size="sm"
+                color={C.navy}
+                style={{ margin: "0 0 8px", textTransform: "uppercase" }}
               >
                 In the shop ({openDay.maint.length})
-              </h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+              </Text>
+              <Stack gap={2}>
                 {openDay.maint.map((m) => (
                   <button
                     key={m.id}
@@ -480,19 +467,17 @@ export default function ScheduleView({
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div
+                      <Row
+                        gap="5px"
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 5,
                           fontWeight: "var(--weight-bold)",
                           color: C.navy,
                           fontSize: "var(--text-md)",
                         }}
                       >
                         <Wrench size={12} aria-hidden="true" /> {m.vehicle}
-                      </div>
-                      <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>{m.issue}</div>
+                      </Row>
+                      <Muted size="2xs">{m.issue}</Muted>
                     </div>
                     {m.finished ? (
                       <Bdg color="green">{t.schDone}</Bdg>
@@ -503,7 +488,7 @@ export default function ScheduleView({
                     )}
                   </button>
                 ))}
-              </div>
+              </Stack>
             </>
           )}
         </Modal>

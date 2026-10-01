@@ -16,7 +16,18 @@ import { useState } from "react";
 import { Truck, RefreshCw, AlertTriangle, Search, Save, Loader2 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, mkJI, mergePullTracking } from "@/shared/utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, TA } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Fld,
+  Inp,
+  Modal,
+  Sel,
+  TA,
+  Row,
+  Stack,
+  Text,
+  Muted,
+} from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -248,28 +259,12 @@ export default function EditJobModal({
         />
       </Fld>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "var(--space-2)",
-          margin: "16px 0 8px",
-        }}
-      >
-        <h4
-          style={{
-            margin: 0,
-            color: C.navy,
-            fontSize: "var(--text-sm)",
-            textTransform: "uppercase",
-          }}
-        >
+      <Row gap={2} justify="space-between" wrap style={{ margin: "16px 0 8px" }}>
+        <Text as="h4" size="sm" color={C.navy} style={{ margin: 0, textTransform: "uppercase" }}>
           Materials Checklist
-        </h4>
+        </Text>
         {(canCorrectReturn || canPullAdded) && (
-          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+          <Row gap={2} align="stretch" wrap>
             {canPullAdded && (
               <Btn v="outline" sz="sm" onClick={() => onPullAdded()} disabled={saving}>
                 <Truck size={13} aria-hidden="true" /> Pull Added Materials
@@ -280,58 +275,27 @@ export default function EditJobModal({
                 <RefreshCw size={13} aria-hidden="true" /> Correct Return
               </Btn>
             )}
-          </div>
+          </Row>
         )}
-      </div>
+      </Row>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "var(--space-2)",
-          marginBottom: 10,
-        }}
-      >
+      <Stack gap={2} style={{ marginBottom: 10 }}>
         {items.length === 0 ? (
-          <p style={{ color: C.sub, fontSize: "var(--text-sm)", margin: 0 }}>
+          <Muted as="p" size="sm" style={{ margin: 0 }}>
             No materials on this job.
-          </p>
+          </Muted>
         ) : (
           items.map((item) => (
-            <div
-              key={item.iid}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-3)",
-                background: C.lg,
-                borderRadius: 7,
-                padding: "7px 10px",
-              }}
-            >
+            <Row key={item.iid} style={{ background: C.lg, borderRadius: 7, padding: "7px 10px" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontWeight: "var(--weight-bold)",
-                    color: C.navy,
-                    fontSize: "var(--text-sm)",
-                  }}
-                >
+                <Text size="sm" weight="bold" color={C.navy}>
                   {item.iname}
-                </div>
+                </Text>
                 {item.pulled > 0 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      fontSize: "var(--text-2xs)",
-                      color: C.am,
-                    }}
-                  >
+                  <Row gap={1} style={{ fontSize: "var(--text-2xs)", color: C.am }}>
                     <AlertTriangle size={10} aria-hidden="true" /> {item.pulled} {item.unit} already
                     pulled
-                  </div>
+                  </Row>
                 )}
               </div>
               <Inp
@@ -359,10 +323,10 @@ export default function EditJobModal({
               >
                 ×
               </button>
-            </div>
+            </Row>
           ))
         )}
-      </div>
+      </Stack>
 
       <Fld label="Add Material">
         <div style={{ position: "relative" }}>
@@ -399,25 +363,15 @@ export default function EditJobModal({
             </div>
           ) : (
             addable.map((item) => (
-              <div
+              <Row
                 key={item.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "8px 10px",
-                  borderBottom: `1px solid ${C.lg}`,
-                }}
+                gap={0}
+                justify="space-between"
+                style={{ padding: "8px 10px", borderBottom: `1px solid ${C.lg}` }}
               >
-                <span
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    fontWeight: "var(--weight-bold)",
-                    color: C.navy,
-                  }}
-                >
+                <Text as="span" size="sm" weight="bold" color={C.navy}>
                   {item.name}
-                </span>
+                </Text>
                 <Btn
                   v="primary"
                   sz="sm"
@@ -428,13 +382,13 @@ export default function EditJobModal({
                 >
                   + Add
                 </Btn>
-              </div>
+              </Row>
             ))
           )}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
+      <Row gap={4} align="stretch" style={{ marginTop: 14 }}>
         <Btn
           v="ghost"
           onClick={close}
@@ -464,7 +418,7 @@ export default function EditJobModal({
             </>
           )}
         </Btn>
-      </div>
+      </Row>
     </Modal>
   );
 }

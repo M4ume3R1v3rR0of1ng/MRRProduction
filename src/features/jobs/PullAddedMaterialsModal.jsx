@@ -22,7 +22,7 @@ import { AlertTriangle } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C, tot, doFifo, todayLocal } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Modal, Inp } from "@/shared/components/UIPrimitives";
+import { Btn, Modal, Inp, Row, Text } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { sendLowStockAlerts } from "@/features/inventory/lowStockAlerts";
@@ -183,10 +183,14 @@ export default function PullAddedMaterialsModal({
 
   return (
     <Modal title={`${t.bjPullAddedTitle} — ${job.po}`} onClose={close} wide>
-      <p style={{ fontSize: "var(--text-sm)", color: C.sub, marginTop: 0 }}>{t.bjPullAddedInfo}</p>
+      <Text as="p" size="sm" color={C.sub} style={{ marginTop: 0 }}>
+        {t.bjPullAddedInfo}
+      </Text>
 
       {items.length === 0 ? (
-        <p style={{ fontSize: "var(--text-sm)" }}>—</p>
+        <Text as="p" size="sm">
+          —
+        </Text>
       ) : (
         <div className="sw-table-scroll">
           <table
@@ -269,7 +273,7 @@ export default function PullAddedMaterialsModal({
         </div>
       )}
 
-      <div style={{ display: "flex", gap: "var(--space-4)", marginTop: 14 }}>
+      <Row gap={4} align="stretch" style={{ marginTop: 14 }}>
         <Btn
           v="ghost"
           onClick={close}
@@ -286,7 +290,7 @@ export default function PullAddedMaterialsModal({
         >
           {saving ? t.bjPullAddedSaving : t.bjPullAdded}
         </Btn>
-      </div>
+      </Row>
     </Modal>
   );
 }

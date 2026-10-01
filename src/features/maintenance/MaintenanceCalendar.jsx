@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback } from "react";
 import { AlertOctagon, Clock, Calendar, Truck, AlertTriangle, Inbox } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
-import { Btn } from "@/shared/components/UIPrimitives";
+import { Btn, Row, Stack, Muted, Text } from "@/shared/components/UIPrimitives";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
@@ -213,15 +213,10 @@ export default function MaintenanceCalendar({
         >
           {req.vname}
         </div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginTop: 4,
-            fontSize: "var(--text-2xs)",
-            color: C.sub,
-          }}
+        <Row
+          gap={0}
+          justify="space-between"
+          style={{ marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}
         >
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {req.type}
@@ -239,7 +234,7 @@ export default function MaintenanceCalendar({
           >
             {meta.icon && <meta.icon size={10} aria-hidden="true" />} {meta.label}
           </span>
-        </div>
+        </Row>
       </div>
     );
   };
@@ -254,16 +249,7 @@ export default function MaintenanceCalendar({
         marginTop: 16,
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 20,
-          flexWrap: "wrap",
-          gap: "var(--space-5)",
-        }}
-      >
+      <Row gap={5} justify="space-between" wrap style={{ marginBottom: 20 }}>
         <div>
           <h2
             style={{
@@ -278,11 +264,11 @@ export default function MaintenanceCalendar({
           >
             <Calendar size={16} aria-hidden="true" /> Weekly Maintenance Schedule
           </h2>
-          <p style={{ margin: "2px 0 0", fontSize: "var(--text-xs)", color: C.sub }}>
+          <Muted as="p" style={{ margin: "2px 0 0" }}>
             {t.mcSubtitle}
-          </p>
+          </Muted>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+        <Row>
           <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>
             {t.calPrev}
           </Btn>
@@ -305,8 +291,8 @@ export default function MaintenanceCalendar({
               {t.calToday}
             </Btn>
           )}
-        </div>
-      </div>
+        </Row>
+      </Row>
 
       {/* ── Awaiting Scheduling tray (also a drop target, to unschedule) ── */}
       <div
@@ -344,17 +330,17 @@ export default function MaintenanceCalendar({
           {unscheduledReqs.length > 0 && `(${unscheduledReqs.length})`}
         </div>
         {unscheduledReqs.length === 0 ? (
-          <div style={{ fontSize: "var(--text-sm)", color: C.sub, fontStyle: "italic" }}>
+          <Muted size="sm" style={{ fontStyle: "italic" }}>
             {t.mcUnschedule}
-          </div>
+          </Muted>
         ) : (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-3)" }}>
+          <Row align="stretch" wrap>
             {unscheduledReqs.map((r) => (
               <div key={r.id} style={{ width: 180 }}>
                 <RequestCard req={r} />
               </div>
             ))}
-          </div>
+          </Row>
         )}
       </div>
 
@@ -396,7 +382,9 @@ export default function MaintenanceCalendar({
                     }}
                   >
                     <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
-                    <div style={{ fontSize: "var(--text-md)", marginTop: 2 }}>{day.getDate()}</div>
+                    <Text size="md" style={{ marginTop: 2 }}>
+                      {day.getDate()}
+                    </Text>
                   </th>
                 );
               })}
@@ -413,18 +401,12 @@ export default function MaintenanceCalendar({
                     borderRight: `1px solid ${C.lg}`,
                   }}
                 >
-                  <div
-                    style={{
-                      fontWeight: "var(--weight-bold)",
-                      fontSize: "var(--text-base)",
-                      color: C.navy,
-                    }}
-                  >
+                  <Text size="base" weight="bold" color={C.navy}>
                     {v.name}
-                  </div>
-                  <div style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 2 }}>
+                  </Text>
+                  <Muted size="2xs" style={{ marginTop: 2 }}>
                     #{v.plate || v.plates || "—"}
-                  </div>
+                  </Muted>
                 </td>
 
                 {weekDays.map((day) => {
@@ -461,9 +443,7 @@ export default function MaintenanceCalendar({
                         height: 90,
                       }}
                     >
-                      <div
-                        style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}
-                      >
+                      <Stack gap={2}>
                         {dayReqs.map((r) => (
                           <RequestCard key={r.id} req={r} />
                         ))}
@@ -486,7 +466,7 @@ export default function MaintenanceCalendar({
                             <AlertTriangle size={10} aria-hidden="true" /> {dayReqs.length} requests
                           </div>
                         )}
-                      </div>
+                      </Stack>
                     </td>
                   );
                 })}

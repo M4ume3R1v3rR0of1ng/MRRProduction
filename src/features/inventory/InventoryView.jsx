@@ -12,7 +12,17 @@ import {
 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm, tot, newestPrice } from "@/shared/utils/helpers";
-import { Btn, Inp, Sel, StatusDot, PageHeader, CardGrid } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Inp,
+  Sel,
+  StatusDot,
+  PageHeader,
+  CardGrid,
+  Row,
+  Muted,
+  Text,
+} from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { translations } from "@/shared/utils/translations";
@@ -206,13 +216,10 @@ export default function InventoryView({
         title={t.inventory || "Inventory"}
         subtitle={`${inv.length} ${t.invCatalogPositions} · ${t.invRealtimeStock}`}
         actions={
-          <div
-            style={{
-              display: "flex",
-              gap: "var(--space-3)",
-              flexWrap: "wrap",
-              visibility: tab === "catalog" ? "visible" : "hidden",
-            }}
+          <Row
+            align="stretch"
+            wrap
+            style={{ visibility: tab === "catalog" ? "visible" : "hidden" }}
           >
             {perms.inv_bulk_receive && (
               <Btn v="gold" onClick={() => setModal("bulk")}>
@@ -229,7 +236,7 @@ export default function InventoryView({
                 <Plus size={14} aria-hidden="true" /> {t.invAddItem}
               </Btn>
             )}
-          </div>
+          </Row>
         }
       />
 
@@ -239,14 +246,7 @@ export default function InventoryView({
           every permission to true (see getEffectivePerms), so it always appears
           for them. Hiding the tab is presentation only — canEdit inside the tab
           still gates the writes. */}
-      <div
-        style={{
-          display: "flex",
-          gap: "var(--space-2)",
-          marginBottom: 16,
-          borderBottom: `2px solid ${C.bd}`,
-        }}
-      >
+      <Row gap={2} align="stretch" style={{ marginBottom: 16, borderBottom: `2px solid ${C.bd}` }}>
         {[
           ["catalog", Grid3x3, t.invTabCatalog, t.invTabCatalogHint],
           ...(perms.inv_count ? [["count", Calculator, t.invTabCount, t.invTabCountHint]] : []),
@@ -273,7 +273,7 @@ export default function InventoryView({
             <Icon size={14} aria-hidden="true" /> {label}
           </button>
         ))}
-      </div>
+      </Row>
 
       {/* Checked again here, not just on the tab button. Someone whose permission
           is revoked while sitting on the count tab would otherwise keep the sheet
@@ -290,9 +290,7 @@ export default function InventoryView({
         />
       ) : (
         <>
-          <div
-            style={{ display: "flex", gap: "var(--space-4)", marginBottom: 14, flexWrap: "wrap" }}
-          >
+          <Row gap={4} align="stretch" wrap style={{ marginBottom: 14 }}>
             <div style={{ position: "relative", flex: 1, minWidth: 160, maxWidth: 300 }}>
               <Search
                 size={13}
@@ -331,7 +329,7 @@ export default function InventoryView({
                 </option>
               ))}
             </Sel>
-          </div>
+          </Row>
 
           <CardGrid minWidth={260}>
             {filtered.map((item) => {
@@ -474,13 +472,10 @@ export default function InventoryView({
                   )}
 
                   <div style={{ padding: 14 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyGroup: "space-between",
-                        alignItems: "flex-start",
-                        marginBottom: 8,
-                      }}
+                    <Row
+                      gap={0}
+                      align="flex-start"
+                      style={{ justifyGroup: "space-between", marginBottom: 8 }}
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
                         {!photo && (
@@ -511,7 +506,7 @@ export default function InventoryView({
                         >
                           {item.name}
                         </div>
-                        <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>{item.cat}</div>
+                        <Muted>{item.cat}</Muted>
                       </div>
                       {stockStatus.critical && (
                         <AlertOctagon
@@ -521,28 +516,14 @@ export default function InventoryView({
                           aria-hidden="true"
                         />
                       )}
-                    </div>
+                    </Row>
 
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
+                    <Row gap={0} justify="space-between">
                       <div>
-                        <div
-                          style={{
-                            fontSize: "var(--text-3xl)",
-                            fontWeight: "var(--weight-black)",
-                            color: stockStatus.color,
-                          }}
-                        >
+                        <Text size="3xl" weight="black" color={stockStatus.color}>
                           {stock}
-                        </div>
-                        <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>
-                          {item.unit} available
-                        </div>
+                        </Text>
+                        <Muted>{item.unit} available</Muted>
                         {/* Says what to DO about it. A red number alone gets read as
                         "we are out", and the person restocks instead of recounting
                         — which leaves the negative in place and the next job
@@ -564,25 +545,15 @@ export default function InventoryView({
                       </div>
                       {perms.inv_pricing_view ? (
                         <div style={{ textAlign: "right" }}>
-                          <div
-                            style={{
-                              fontSize: "var(--text-base)",
-                              fontWeight: "var(--weight-extrabold)",
-                              color: C.blue,
-                            }}
-                          >
+                          <Text size="base" weight="extrabold" color={C.blue}>
                             {fm(newestPrice(item))}
-                          </div>
-                          <div style={{ fontSize: "var(--text-2xs)", color: C.sub }}>
-                            per {item.unit?.replace(/s$/, "") || "unit"}
-                          </div>
+                          </Text>
+                          <Muted size="2xs">per {item.unit?.replace(/s$/, "") || "unit"}</Muted>
                         </div>
                       ) : (
-                        <div style={{ fontSize: "var(--text-xs)", color: C.sub }}>
-                          {t.invPricingRestricted}
-                        </div>
+                        <Muted>{t.invPricingRestricted}</Muted>
                       )}
-                    </div>
+                    </Row>
 
                     {!photo && (
                       <div style={{ marginTop: 8, height: 4, background: C.lg, borderRadius: 2 }}>
@@ -597,14 +568,11 @@ export default function InventoryView({
                       </div>
                     )}
 
-                    <div
-                      style={{
-                        fontSize: "var(--text-2xs)",
-                        color: C.sub,
-                        marginTop: 6,
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
+                    <Row
+                      gap={0}
+                      align="stretch"
+                      justify="space-between"
+                      style={{ fontSize: "var(--text-2xs)", color: C.sub, marginTop: 6 }}
                     >
                       <span>
                         Min Alert: {item.alrt} {item.unit}
@@ -613,7 +581,7 @@ export default function InventoryView({
                         {(item.batches || []).length} batch
                         {(item.batches || []).length !== 1 ? "es" : ""}
                       </span>
-                    </div>
+                    </Row>
                   </div>
                 </div>
               );
