@@ -22,7 +22,14 @@ export default defineConfig({
   // would mean concurrent tests fighting over the same seeded company.
   workers: 1,
   retries: process.env.CI ? 1 : 0,
-  timeout: 60_000,
+  // Every save here is several sequential round-trips to a hosted Supabase
+  // project (read live rows, write, audit log), and that project's latency
+  // swings — single calls measured anywhere from ~0.5s to 6s on a cold start.
+  // Playwright's 5s assertion default turned that into failures with the
+  // button still reading "Processing...". These are ceilings, not waits: a
+  // passing assertion returns as soon as it holds.
+  timeout: 120_000,
+  expect: { timeout: 15_000 },
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "html",
   use: {
     baseURL: "http://localhost:4173",

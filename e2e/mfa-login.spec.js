@@ -64,8 +64,9 @@ test("MFA login: the code prompt stops sign-in, and cancelling it signs out", as
 test("MFA login: a wrong code is refused, the right one reaches the dashboard at aal2", async ({
   page,
 }) => {
-  // Up to one 30-second TOTP window may be spent waiting below.
-  test.setTimeout(120_000);
+  // Up to one 30-second TOTP window may be spent waiting below, on top of the
+  // config's per-test ceiling.
+  test.setTimeout(180_000);
 
   await submitPassword(page, state.mfaEmail, state.mfaPassword);
   await expect(page.getByText(PROMPT)).toBeVisible();
