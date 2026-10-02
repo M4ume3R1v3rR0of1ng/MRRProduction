@@ -20,6 +20,8 @@ import {
   Muted,
   Table,
   Callout,
+  Card,
+  Stack,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { translations } from "@/shared/utils/translations";
@@ -357,75 +359,58 @@ export default function Users({
         {t.umRolePermsBlurb.split("{link}")[1]}
       </Callout>
 
-      <div
-        style={{
-          background: C.w,
-          borderRadius: "var(--radius-xl)",
-          overflow: "hidden",
-          boxShadow: "var(--shadow-sm)",
-        }}
-      >
-        <div className="sw-table-scroll">
-          <Table pad="xl" size="base">
-            <thead>
-              <tr>
-                {["Name", "Email", "Role", "Status", ""].map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr
-                  key={u.id}
-                  style={{
-                    borderBottom: `1px solid ${C.lg}`,
-                    ...(u.active ? {} : { background: "var(--c-subtle)" }),
-                  }}
-                >
-                  <Text as="td" weight="bold" color={C.navy}>
-                    {u.full_name || u.name || "—"}
-                  </Text>
-                  <Text as="td" color={C.sub}>
-                    {u.email || "—"}
-                  </Text>
-                  <td>
-                    <RoleBdg role={u.role} lang={lang} />
-                  </td>
-                  <td>
-                    <Bdg color={u.active ? "green" : "gray"}>
-                      {u.active ? "Active" : "Inactive"}
-                    </Bdg>
-                  </td>
-                  <td style={{ textAlign: "right" }}>
-                    <Row gap={2} justify="flex-end">
-                      <Btn
-                        v="ghost"
-                        sz="sm"
-                        onClick={() => handleOpenPermissionOverrides(u)}
-                        title={t.umPermOverridesTitle}
-                      >
-                        <Lock size={13} aria-hidden="true" /> Override
-                      </Btn>
-                      <Btn v="ghost" sz="sm" onClick={() => handleEditUser(u)}>
-                        {t.umEdit}
-                      </Btn>
-                      <Btn
-                        v="danger"
-                        sz="sm"
-                        onClick={() => handleRemoveUser(u.id)}
-                        style={{ minWidth: 95, textAlign: "center" }}
-                      >
-                        <Trash2 size={13} aria-hidden="true" /> Remove
-                      </Btn>
-                    </Row>
-                  </td>
-                </tr>
+      <Card variant="raised" pad="none" style={{ overflow: "hidden" }}>
+        <Table pad="xl" size="base">
+          <thead>
+            <tr>
+              {["Name", "Email", "Role", "Status", ""].map((h) => (
+                <th key={h}>{h}</th>
               ))}
-            </tbody>
-          </Table>
-        </div>
-      </div>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} style={{ background: u.active ? undefined : "var(--c-subtle)" }}>
+                <Text as="td" weight="bold" color={C.navy}>
+                  {u.full_name || u.name || "—"}
+                </Text>
+                <Text as="td" color={C.sub}>
+                  {u.email || "—"}
+                </Text>
+                <td>
+                  <RoleBdg role={u.role} lang={lang} />
+                </td>
+                <td>
+                  <Bdg color={u.active ? "green" : "gray"}>{u.active ? "Active" : "Inactive"}</Bdg>
+                </td>
+                <td>
+                  <Row gap={2} justify="flex-end">
+                    <Btn
+                      v="ghost"
+                      sz="sm"
+                      onClick={() => handleOpenPermissionOverrides(u)}
+                      title={t.umPermOverridesTitle}
+                    >
+                      <Lock size={13} aria-hidden="true" /> Override
+                    </Btn>
+                    <Btn v="ghost" sz="sm" onClick={() => handleEditUser(u)}>
+                      {t.umEdit}
+                    </Btn>
+                    <Btn
+                      v="danger"
+                      sz="sm"
+                      onClick={() => handleRemoveUser(u.id)}
+                      style={{ minWidth: 95, textAlign: "center" }}
+                    >
+                      <Trash2 size={13} aria-hidden="true" /> Remove
+                    </Btn>
+                  </Row>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </Card>
 
       {modal === "user" && (
         <Modal
@@ -517,12 +502,13 @@ export default function Users({
           </Row>
 
           {editing && (
-            <div style={{ marginTop: 22, paddingTop: 18, borderTop: `1px solid ${C.lg}` }}>
-              <div
+            <Stack
+              gap={0}
+              style={{ marginTop: 22, paddingTop: 18, borderTop: `1px solid ${C.lg}` }}
+            >
+              <Row
+                gap={2}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
                   fontWeight: "var(--weight-bold)",
                   color: C.navy,
                   fontSize: "var(--text-sm)",
@@ -530,7 +516,7 @@ export default function Users({
                 }}
               >
                 <KeyRound size={13} aria-hidden="true" /> Reset Password
-              </div>
+              </Row>
               <Muted style={{ marginBottom: 10 }}>
                 Forgot their password? Set a new temporary one here. Share it with them directly and
                 they will be prompted to change it on next login.
@@ -557,7 +543,7 @@ export default function Users({
               >
                 {t.umSetNewPassword}
               </Btn>
-            </div>
+            </Stack>
           )}
         </Modal>
       )}
@@ -571,28 +557,19 @@ export default function Users({
           }}
           extraWide
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 7,
-              background: C.aB,
-              border: `1.5px solid ${C.am}`,
-              borderRadius: "var(--radius-md)",
-              padding: "10px 14px",
-              marginBottom: 14,
-              fontSize: "var(--text-sm)",
-              color: C.am,
-              fontWeight: "var(--weight-semibold)",
-            }}
+          <Callout
+            tone="warn"
+            bordered
+            icon={AlertTriangle}
+            size="sm"
+            weight="semibold"
+            color={C.am}
+            style={{ marginBottom: 14 }}
           >
-            <AlertTriangle size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
-            <span>
-              Overrides apply <em>on top of</em> the{" "}
-              <strong>{ROLES[permUser.role]?.label || permUser.role}</strong> role permissions and
-              only affect <strong>{permUser.name}</strong>.
-            </span>
-          </div>
+            Overrides apply <em>on top of</em> the{" "}
+            <strong>{ROLES[permUser.role]?.label || permUser.role}</strong> role permissions and
+            only affect <strong>{permUser.name}</strong>.
+          </Callout>
           {userOverrides[permUser.id] && Object.keys(userOverrides[permUser.id]).length > 0 && (
             <Row gap={0} align="stretch" justify="flex-end" style={{ marginBottom: 10 }}>
               <Btn v="danger" sz="sm" onClick={() => clearOverrides(permUser.id)}>
@@ -612,17 +589,16 @@ export default function Users({
             {PERM_GROUPS.map(([groupName, keys]) => (
               <tbody key={groupName}>
                 <tr>
-                  <td
+                  <Text
+                    as="td"
                     colSpan={3}
-                    style={{
-                      fontWeight: "var(--weight-black)",
-                      color: C.shellInk,
-                      background: C.shell,
-                      fontSize: "var(--text-sm)",
-                    }}
+                    size="sm"
+                    weight="black"
+                    color={C.shellInk}
+                    style={{ background: C.shell }}
                   >
                     {groupName}
-                  </td>
+                  </Text>
                 </tr>
                 {keys.map((key) => {
                   const baseVal = (rolePerms[permUser.role] || {})[key] || false;
@@ -632,7 +608,11 @@ export default function Users({
                   return (
                     <tr
                       key={key}
-                      style={{ background: hasOverride ? "rgba(217,119,6,0.07)" : "transparent" }}
+                      style={{
+                        background: hasOverride
+                          ? "color-mix(in srgb, var(--c-warn) 7%, transparent)"
+                          : "transparent",
+                      }}
                     >
                       <td>
                         <Text size="sm" weight="bold" color={C.navy}>
@@ -653,12 +633,12 @@ export default function Users({
                           {PERM_DEFS[key]?.desc || ""}
                         </Muted>
                       </td>
-                      <td style={{ textAlign: "center" }}>
+                      <td>
                         <Row gap={0} align="stretch" justify="center">
                           <Toggle on={baseVal} disabled={true} />
                         </Row>
                       </td>
-                      <td style={{ textAlign: "center" }}>
+                      <td>
                         <Row gap={0} align="stretch" justify="center">
                           <Toggle
                             on={effective}

@@ -12,7 +12,7 @@
     "hex": 0
   },
   "src/features/auth/ProfileView.jsx": {
-    "inline": 11,
+    "inline": 1,
     "hex": 0
   },
   "src/features/auth/ResetPasswordScreen.jsx": {
@@ -20,7 +20,7 @@
     "hex": 0
   },
   "src/features/billing/BillingView.jsx": {
-    "inline": 12,
+    "inline": 1,
     "hex": 0
   },
   "src/features/dashboard/DashboardView.jsx": {
@@ -28,7 +28,7 @@
     "hex": 0
   },
   "src/features/dashboard/ScheduleCard.jsx": {
-    "inline": 8,
+    "inline": 7,
     "hex": 0
   },
   "src/features/dashboard/TeamChatBox.jsx": {
@@ -56,11 +56,11 @@
     "hex": 0
   },
   "src/features/inventory/BulkReceiveModal.jsx": {
-    "inline": 14,
+    "inline": 1,
     "hex": 0
   },
   "src/features/inventory/InventoryCountTab.jsx": {
-    "inline": 12,
+    "inline": 1,
     "hex": 0
   },
   "src/features/inventory/InventoryView.jsx": {
@@ -120,7 +120,7 @@
     "hex": 0
   },
   "src/features/users/UserManagementView.jsx": {
-    "inline": 13,
+    "inline": 5,
     "hex": 0
   },
   "src/platform/OwnerConsole.jsx": {

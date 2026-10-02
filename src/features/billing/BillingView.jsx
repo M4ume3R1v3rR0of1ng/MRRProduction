@@ -12,7 +12,20 @@ import { supabase, getAccessToken } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { BRAND, TrussMark } from "@/shared/components/SteadwerkMark";
 import { useNotify } from "@/shared/context/NotificationContext";
-import { Card, Row, Text, Eyebrow, Muted } from "@/shared/components/UIPrimitives";
+import {
+  Card,
+  Row,
+  Text,
+  Eyebrow,
+  Muted,
+  EmptyState,
+  Stack,
+  Bdg,
+  Divider,
+  Btn,
+  Inp,
+  Callout,
+} from "@/shared/components/UIPrimitives";
 
 const BASE_PRICE = 99;
 const BASE_SEATS = 10;
@@ -94,7 +107,7 @@ export default function BillingView({ user, lang = "en" }) {
   }, []);
 
   if (!isAdmin) {
-    return <div style={{ padding: 40, textAlign: "center", color: C.sub }}>{t.blAdminOnly}</div>;
+    return <EmptyState message={t.blAdminOnly} style={{ margin: 40 }} />;
   }
 
   const capacity = seats?.capacity; // null = unlimited (comped)
@@ -226,17 +239,15 @@ export default function BillingView({ user, lang = "en" }) {
     <div style={{ padding: "24px 28px", maxWidth: 640, margin: "0 auto" }}>
       <Row gap={4} style={{ marginBottom: 20 }}>
         <TrussMark size={24} />
-        <h1
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 24,
-            fontWeight: 900,
-            color: C.navy,
-            margin: 0,
-          }}
+        <Text
+          as="h1"
+          weight="black"
+          color={C.navy}
+          font="display"
+          style={{ fontSize: 24, margin: 0 }}
         >
           {t.blTitle}
-        </h1>
+        </Text>
       </Row>
 
       {loading ? (
@@ -269,53 +280,26 @@ export default function BillingView({ user, lang = "en" }) {
               </>
             )}
             {status && status !== "active" && (
-              <div
-                style={{
-                  marginTop: 10,
-                  display: "inline-block",
-                  background: status === "past_due" ? "var(--c-warn-wash)" : "var(--c-rust-wash)",
-                  color: status === "past_due" ? BRAND.amberDeep : BRAND.rust,
-                  padding: "3px 10px",
-                  borderRadius: 20,
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                {status === "past_due" ? "Payment past due — update your card below" : status}
-              </div>
+              <Stack gap={0} align="flex-start" style={{ marginTop: 10 }}>
+                <Bdg color={status === "past_due" ? "amber" : "red"}>
+                  {status === "past_due" ? "Payment past due — update your card below" : status}
+                </Bdg>
+              </Stack>
             )}
             {/* Only a monthly company sees this — an annual one already has it, and a
                 comped company (capacity == null) has no Stripe billing to switch. */}
             {capacity != null && billingInterval === "monthly" && (
-              <div
-                style={{
-                  marginTop: 14,
-                  paddingTop: 14,
-                  borderTop: `1px solid ${C.bd}`,
-                }}
-              >
+              <>
+                <Divider style={{ margin: "14px 0" }} />
                 <Text size="base" color={C.sub} style={{ marginBottom: 10 }}>
                   {t.blSwitchAnnualBlurb
                     .replace("{price}", ANNUAL_PRICE)
                     .replace("{pct}", ANNUAL_SAVINGS_PCT)}
                 </Text>
-                <button
-                  onClick={switchToAnnual}
-                  disabled={annualBusy}
-                  style={{
-                    padding: "9px 14px",
-                    background: "transparent",
-                    color: C.navy,
-                    border: `1.5px solid ${C.bd}`,
-                    borderRadius: 8,
-                    fontWeight: 700,
-                    fontSize: 13,
-                    cursor: annualBusy ? "wait" : "pointer",
-                  }}
-                >
+                <Btn v="ghost" onClick={switchToAnnual} disabled={annualBusy}>
                   {t.blSwitchAnnual}
-                </button>
-              </div>
+                </Btn>
+              </>
             )}
           </Card>
 
@@ -329,42 +313,22 @@ export default function BillingView({ user, lang = "en" }) {
               {t.blBillingContactBlurb}
             </Text>
             <Row gap={4} align="stretch" wrap>
-              <input
+              <Inp
                 type="text"
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
                 placeholder={t.blBillingContactPlaceholder}
-                style={{
-                  flex: "1 1 220px",
-                  padding: "10px 12px",
-                  border: `1.5px solid ${C.bd}`,
-                  borderRadius: 8,
-                  fontSize: 14,
-                  color: C.navy,
-                }}
+                style={{ flex: "1 1 220px", width: "auto", color: C.navy }}
               />
-              <button
+              <Btn
+                v="gold"
                 onClick={saveContactName}
                 disabled={
                   contactBusy || !contactName.trim() || contactName.trim() === savedContactName
                 }
-                style={{
-                  padding: "10px 16px",
-                  background: C.gold,
-                  color: C.navy,
-                  border: "none",
-                  borderRadius: 8,
-                  fontWeight: 800,
-                  fontSize: 14,
-                  cursor: contactBusy ? "wait" : "pointer",
-                  opacity:
-                    contactBusy || !contactName.trim() || contactName.trim() === savedContactName
-                      ? 0.5
-                      : 1,
-                }}
               >
                 {t.blSaveContact}
-              </button>
+              </Btn>
             </Row>
           </Card>
 
@@ -400,41 +364,19 @@ export default function BillingView({ user, lang = "en" }) {
             {capacity != null && (
               <>
                 <Row gap={4} align="stretch" wrap style={{ marginTop: 12 }}>
-                  <button
-                    onClick={() => changePacks(1)}
-                    disabled={busy}
-                    style={{
-                      padding: "10px 16px",
-                      background: C.gold,
-                      color: C.navy,
-                      border: "none",
-                      borderRadius: 8,
-                      fontWeight: 800,
-                      fontSize: 14,
-                      cursor: busy ? "wait" : "pointer",
-                    }}
-                  >
+                  <Btn v="gold" onClick={() => changePacks(1)} disabled={busy}>
                     + Add {PACK_SEATS} seats (${PACK_PRICE}/mo)
-                  </button>
+                  </Btn>
                   {/* Only ever offers to drop a pack that is actually being billed, and
                       never one that would strand users already using the seats. */}
-                  <button
+                  <Btn
+                    v="ghost"
                     onClick={() => changePacks(-1)}
                     disabled={busy || removable === 0}
                     title={removable === 0 ? t.blRemoveBlocked : undefined}
-                    style={{
-                      padding: "10px 16px",
-                      background: "transparent",
-                      color: removable === 0 ? C.sub : C.navy,
-                      border: `1.5px solid ${C.bd}`,
-                      borderRadius: 8,
-                      fontWeight: 700,
-                      fontSize: 14,
-                      cursor: busy ? "wait" : removable === 0 ? "not-allowed" : "pointer",
-                    }}
                   >
                     − Remove {PACK_SEATS} seats
-                  </button>
+                  </Btn>
                 </Row>
                 <Muted size="sm" style={{ marginTop: 8 }}>
                   {t.blProrationNote}
@@ -461,42 +403,26 @@ export default function BillingView({ user, lang = "en" }) {
             ) : (
               <>
                 {(cardExpired || cardExpiringSoon) && (
-                  <div
-                    style={{
-                      marginBottom: 12,
-                      padding: "8px 12px",
-                      borderRadius: 8,
-                      background: cardExpired ? "var(--c-rust-wash)" : "var(--c-warn-wash)",
-                      color: cardExpired ? BRAND.rust : BRAND.amberDeep,
-                      fontSize: 13,
-                      fontWeight: 700,
-                    }}
+                  <Callout
+                    tone={cardExpired ? "danger" : "warn"}
+                    pad="sm"
+                    size="base"
+                    weight="bold"
+                    color={cardExpired ? BRAND.rust : BRAND.amberDeep}
+                    style={{ marginBottom: 12 }}
                   >
                     {(cardExpired ? t.blCardExpired : t.blCardExpiringSoon)
                       .replace("{last4}", cardInfo.last4)
                       .replace("{month}", String(cardInfo.expMonth).padStart(2, "0"))
                       .replace("{year}", cardInfo.expYear)}
-                  </div>
+                  </Callout>
                 )}
                 <Text size="base" color={C.sub} style={{ marginBottom: 12 }}>
                   {t.blPortalBlurb}
                 </Text>
-                <button
-                  onClick={openPortal}
-                  disabled={busy}
-                  style={{
-                    padding: "10px 16px",
-                    background: "transparent",
-                    color: C.navy,
-                    border: `1.5px solid ${C.bd}`,
-                    borderRadius: 8,
-                    fontWeight: 700,
-                    fontSize: 14,
-                    cursor: busy ? "wait" : "pointer",
-                  }}
-                >
+                <Btn v="ghost" onClick={openPortal} disabled={busy}>
                   {t.blManagePayment}
-                </button>
+                </Btn>
               </>
             )}
           </Card>

@@ -612,6 +612,12 @@ button:disabled {
   }
 }
 
+/* An empty flex child that takes up the slack in a row, pushing what follows
+   to the far end. */
+.sw-grow {
+  flex: 1;
+}
+
 /* PickRow: a result row whose hover and keyboard focus share one wash. */
 .mrr-pick-row {
   background: var(--c-surface);

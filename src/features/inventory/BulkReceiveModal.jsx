@@ -29,6 +29,9 @@ import {
   Text,
   Muted,
   TextBtn,
+  Callout,
+  Grid,
+  Card,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -62,6 +65,10 @@ export const resolveBulkPrices = (rows, inv) =>
   });
 
 const emptyMeta = () => ({ date: todayLocal(), po: "", vendor: "" });
+
+// The tiny caps label over each field in a manifest row; smaller than the
+// app's Eyebrow because three of them share one narrow row.
+const FIELD_LABEL = { fontSize: 9, textTransform: "uppercase", marginBottom: 3 };
 
 export default function BulkReceiveModal({ inv = [], setInv, users, user, perms = {}, onClose }) {
   const [rows, setRows] = useState([]);
@@ -258,31 +265,22 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
       onClose={close}
       wide
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 7,
-          background: C.gL,
-          border: `1.5px solid ${C.gold}`,
-          borderRadius: "var(--radius-md)",
-          padding: "10px 14px",
-          marginBottom: 14,
-          fontSize: "var(--text-sm)",
-          color: C.navy,
-        }}
+      <Callout
+        tone="gold"
+        bordered
+        icon={Star}
+        size="sm"
+        color={C.navy}
+        style={{ marginBottom: 14 }}
       >
-        <Star size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
-        <span>
-          <strong>Inbound Accounting:</strong> FIFO indices update automatically. Each item maps a
-          standalone discrete batch vector tracking vendor origins.
-        </span>
-      </div>
+        <strong>Inbound Accounting:</strong> FIFO indices update automatically. Each item maps a
+        standalone discrete batch vector tracking vendor origins.
+      </Callout>
 
-      <div
-        className="sw-grid-3"
+      <Grid
+        cols={3}
+        gap={4}
         style={{
-          gap: "var(--space-4)",
           padding: 14,
           background: C.lg,
           borderRadius: "var(--radius-lg)",
@@ -310,53 +308,42 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
             placeholder="e.g. ABC Supply"
           />
         </Fld>
-      </div>
+      </Grid>
 
       <div className="sw-split" style={{ gap: "var(--space-6)", marginBottom: 16 }}>
-        <div style={{ minWidth: 0 }}>
+        <Stack gap={0} style={{ minWidth: 0 }}>
           <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
             Select Items to Receive
           </Eyebrow>
-          <div style={{ position: "relative", marginBottom: 8 }}>
-            <Search
-              size={13}
-              color={C.sub}
-              style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
-              aria-hidden="true"
-            />
-            <Inp
-              value={srch}
-              onChange={(e) => setSrch(e.target.value)}
-              placeholder="Search inventory..."
-              style={{ paddingLeft: 28 }}
-            />
-          </div>
+          <Inp
+            prefix={<Search size={13} />}
+            value={srch}
+            onChange={(e) => setSrch(e.target.value)}
+            placeholder="Search inventory..."
+            style={{ marginBottom: 8 }}
+          />
           <Stack gap="5px" style={{ maxHeight: 320, overflowY: "auto" }}>
             {selectable.map((item) => (
-              <div
+              <Card
                 key={item.id}
-                style={{
-                  background: C.w,
-                  border: `1.5px solid ${C.bd}`,
-                  borderRadius: "var(--radius-md)",
-                  padding: "9px 12px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
+                variant="flat"
+                pad="9px 12px"
+                style={{ borderWidth: 1.5, borderRadius: "var(--radius-md)" }}
               >
-                <div>
-                  <Text size="sm" weight="bold" color={C.navy}>
-                    {item.name}
-                  </Text>
-                  <Muted size="2xs">
-                    {item.cat} · {tot(item)} {item.unit} available
-                  </Muted>
-                </div>
-                <Btn v="primary" sz="sm" onClick={() => addRow(item)}>
-                  + Add
-                </Btn>
-              </div>
+                <Row gap={0} justify="space-between">
+                  <div>
+                    <Text size="sm" weight="bold" color={C.navy}>
+                      {item.name}
+                    </Text>
+                    <Muted size="2xs">
+                      {item.cat} · {tot(item)} {item.unit} available
+                    </Muted>
+                  </div>
+                  <Btn v="primary" sz="sm" onClick={() => addRow(item)}>
+                    + Add
+                  </Btn>
+                </Row>
+              </Card>
             ))}
             {selectable.length === 0 && (
               <EmptyState
@@ -368,9 +355,9 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
               />
             )}
           </Stack>
-        </div>
+        </Stack>
 
-        <div style={{ minWidth: 0 }}>
+        <Stack gap={0} style={{ minWidth: 0 }}>
           <Row gap={0} justify="space-between" style={{ marginBottom: 6 }}>
             <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)" }}>
               Manifest Queue {rows.length > 0 && `(${rows.length})`}
@@ -400,14 +387,11 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                 {rows.map((b) => {
                   const sub = (parseFloat(b.qty) || 0) * (parseFloat(b.price) || 0);
                   return (
-                    <div
+                    <Card
                       key={b.iid}
-                      style={{
-                        background: C.w,
-                        border: `1.5px solid ${C.bd}`,
-                        borderRadius: "var(--radius-md)",
-                        padding: "10px 12px",
-                      }}
+                      variant="flat"
+                      pad="sm"
+                      style={{ borderWidth: 1.5, borderRadius: "var(--radius-md)" }}
                     >
                       <Row gap={0} justify="space-between" style={{ marginBottom: 7 }}>
                         <Text as="span" size="sm" weight="bold" color={C.navy}>
@@ -426,17 +410,9 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
 
                       <div className="sw-grid-2-auto">
                         <div>
-                          <div
-                            style={{
-                              fontSize: 9,
-                              color: C.sub,
-                              fontWeight: "var(--weight-bold)",
-                              textTransform: "uppercase",
-                              marginBottom: 3,
-                            }}
-                          >
+                          <Text weight="bold" color={C.sub} style={FIELD_LABEL}>
                             Qty ({b.unit})
-                          </div>
+                          </Text>
                           <Inp
                             type="number"
                             value={b.qty}
@@ -446,71 +422,43 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                           />
                         </div>
                         <div>
-                          <div
-                            style={{
-                              fontSize: 9,
-                              color: C.sub,
-                              fontWeight: "var(--weight-bold)",
-                              textTransform: "uppercase",
-                              marginBottom: 3,
-                            }}
-                          >
+                          <Text weight="bold" color={C.sub} style={FIELD_LABEL}>
                             Unit Price
-                          </div>
-                          <div style={{ position: "relative" }}>
-                            <span
+                          </Text>
+                          {perms.inv_pricing_edit ? (
+                            <Inp
+                              prefix="$"
+                              type="number"
+                              step="0.01"
+                              value={b.price}
+                              onChange={(e) => updateRow(b.iid, "price", e.target.value)}
+                              placeholder="0.00"
+                              style={{ padding: "5px 8px", paddingLeft: 20 }}
+                            />
+                          ) : (
+                            <Inp
+                              prefix="$"
+                              value={b.price}
+                              readOnly
                               style={{
-                                position: "absolute",
-                                left: 7,
-                                top: "50%",
-                                transform: "translateY(-50%)",
+                                padding: "5px 8px",
+                                paddingLeft: 20,
                                 color: C.sub,
-                                fontSize: "var(--text-xs)",
+                                background: C.lg,
                               }}
-                            >
-                              $
-                            </span>
-                            {perms.inv_pricing_edit ? (
-                              <Inp
-                                type="number"
-                                step="0.01"
-                                value={b.price}
-                                onChange={(e) => updateRow(b.iid, "price", e.target.value)}
-                                placeholder="0.00"
-                                style={{ padding: "5px 8px", paddingLeft: 16 }}
-                              />
-                            ) : (
-                              <Inp
-                                value={b.price}
-                                readOnly
-                                style={{
-                                  padding: "5px 8px",
-                                  paddingLeft: 16,
-                                  color: C.sub,
-                                  background: C.lg,
-                                }}
-                              />
-                            )}
-                          </div>
+                            />
+                          )}
                         </div>
-                        <div style={{ paddingBottom: 2, textAlign: "right" }}>
-                          <div
-                            style={{
-                              fontSize: 9,
-                              color: C.sub,
-                              fontWeight: "var(--weight-bold)",
-                              textTransform: "uppercase",
-                              marginBottom: 3,
-                            }}
-                          >
+                        <Stack gap={0} style={{ paddingBottom: 2, textAlign: "right" }}>
+                          <Text weight="bold" color={C.sub} style={FIELD_LABEL}>
                             Subtotal
-                          </div>
+                          </Text>
                           <Text size="base" weight="extrabold" color={sub > 0 ? C.gr : C.sub}>
                             {fm(sub)}
                           </Text>
-                        </div>
+                        </Stack>
                       </div>
-                    </div>
+                    </Card>
                   );
                 })}
               </Stack>
@@ -543,7 +491,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
               </Row>
             </>
           )}
-        </div>
+        </Stack>
       </div>
 
       <Row gap={4} align="stretch">

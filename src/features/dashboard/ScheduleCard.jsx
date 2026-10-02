@@ -13,7 +13,7 @@
 import { Calendar, AlertTriangle, Truck, Wrench } from "lucide-react";
 import { C, parseDay, todayLocal } from "@/shared/utils/helpers";
 import { buildSchedule } from "@/shared/utils/schedule";
-import { Row, Text, Eyebrow, Muted, TextBtn } from "@/shared/components/UIPrimitives";
+import { Row, Text, Eyebrow, Muted, TextBtn, Callout } from "@/shared/components/UIPrimitives";
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -64,26 +64,20 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
       </Row>
 
       {anyConflict && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            background: C.aB,
-            border: `1px solid ${C.am}`,
-            borderRadius: "var(--radius-md)",
-            padding: "7px 10px",
-            marginBottom: 10,
-            fontSize: "var(--text-2xs)",
-            color: C.am,
-            fontWeight: "var(--weight-bold)",
-          }}
+        <Callout
+          tone="warn"
+          bordered
+          icon={AlertTriangle}
+          pad="7px 10px"
+          size="2xs"
+          weight="bold"
+          color={C.am}
+          style={{ marginBottom: 10 }}
         >
-          <AlertTriangle size={13} aria-hidden="true" />{" "}
           {es
             ? "Un vehículo está reservado y en el taller el mismo día."
             : "A vehicle is booked out and in the shop on the same day."}
-        </div>
+        </Callout>
       )}
 
       <div className="sw-table-scroll">

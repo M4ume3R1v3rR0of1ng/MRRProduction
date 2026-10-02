@@ -27,6 +27,7 @@ import {
   Muted,
   Table,
   Callout,
+  StatTile,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -321,22 +322,13 @@ export default function InventoryCountTab({
   }, [counts]);
 
   const tile = (value, label, tone) => (
-    <div
-      style={{
-        background: C.w,
-        borderRadius: "var(--radius-xl)",
-        padding: 14,
-        borderLeft: `5px solid ${tone}`,
-        boxShadow: "var(--shadow-sm)",
-        flex: 1,
-        minWidth: 150,
-      }}
-    >
-      <Text size="2xl" weight="black" color={tone}>
-        {value}
-      </Text>
-      <Muted style={{ marginTop: 3 }}>{label}</Muted>
-    </div>
+    <StatTile
+      variant="borderLeft"
+      color={tone}
+      value={value}
+      label={label}
+      style={{ minWidth: 150 }}
+    />
   );
 
   if (loading)
@@ -374,30 +366,20 @@ export default function InventoryCountTab({
     <div>
       <Row gap={4} align="flex-end" justify="space-between" wrap style={{ marginBottom: 16 }}>
         <div>
-          <h2
+          <Row
+            as="h2"
             style={{
               margin: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
               fontSize: "var(--text-xl)",
               fontWeight: "var(--weight-black)",
               color: C.navy,
             }}
           >
             <Calculator size={18} aria-hidden="true" /> {t.cntTitle}
-          </h2>
-          <p
-            style={{
-              margin: "4px 0 0",
-              color: C.sub,
-              fontSize: "var(--text-sm)",
-              maxWidth: 620,
-              lineHeight: 1.45,
-            }}
-          >
+          </Row>
+          <Muted as="p" size="sm" style={{ margin: "4px 0 0", maxWidth: 620, lineHeight: 1.45 }}>
             {t.cntSubtitle}
-          </p>
+          </Muted>
         </div>
         <Row wrap>
           <Sel
@@ -446,49 +428,31 @@ export default function InventoryCountTab({
       </Callout>
 
       {isClosed ? (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 7,
-            background: C.sB,
-            border: `1.5px solid ${C.sl}`,
-            borderRadius: "var(--radius-md)",
-            padding: "10px 14px",
-            marginBottom: 16,
-            fontSize: "var(--text-sm)",
-            color: C.navy,
-          }}
+        <Callout
+          tone="info"
+          bordered
+          icon={Lock}
+          size="sm"
+          color={C.navy}
+          style={{ marginBottom: 16 }}
         >
-          <Lock size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
-          <span>
-            <strong>{t.cntClosedBanner.replace("{period}", periodLabel(period))}</strong>{" "}
-            {t.cntClosedBannerBody}
-          </span>
-        </div>
+          <strong>{t.cntClosedBanner.replace("{period}", periodLabel(period))}</strong>{" "}
+          {t.cntClosedBannerBody}
+        </Callout>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 7,
-            background: C.aB,
-            border: `1.5px solid ${C.am}`,
-            borderRadius: "var(--radius-md)",
-            padding: "10px 14px",
-            marginBottom: 16,
-            fontSize: "var(--text-sm)",
-            color: C.navy,
-          }}
+        <Callout
+          tone="warn"
+          bordered
+          icon={ClipboardList}
+          size="sm"
+          color={C.navy}
+          style={{ marginBottom: 16 }}
         >
-          <ClipboardList size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
-          <span>
-            {t.cntOpenBanner}
-            {prevRow?.status === "closed"
-              ? ` ${t.cntOpeningFromCount.replace("{period}", periodLabel(prevRow.period))}`
-              : ` ${t.cntOpeningFromBook}`}
-          </span>
-        </div>
+          {t.cntOpenBanner}
+          {prevRow?.status === "closed"
+            ? ` ${t.cntOpeningFromCount.replace("{period}", periodLabel(prevRow.period))}`
+            : ` ${t.cntOpeningFromBook}`}
+        </Callout>
       )}
 
       {flagged.length > 0 && (
@@ -498,11 +462,9 @@ export default function InventoryCountTab({
           pad={6}
           style={{ borderRadius: "var(--radius-lg)", marginBottom: 16 }}
         >
-          <div
+          <Row
+            gap={2}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
               fontWeight: "var(--weight-extrabold)",
               color: C.rd,
               marginBottom: 8,
@@ -511,7 +473,7 @@ export default function InventoryCountTab({
           >
             <AlertTriangle size={14} aria-hidden="true" />{" "}
             {t.cntFlaggedTitle.replace("{n}", flagged.length)}
-          </div>
+          </Row>
           <Stack gap={1}>
             {flagged.slice(0, 8).map((l) => (
               <Row
@@ -542,11 +504,10 @@ export default function InventoryCountTab({
           onChange={(e) => setSearch(e.target.value)}
           style={{ flex: 1, minWidth: 200, maxWidth: 320 }}
         />
-        <label
+        <Row
+          as="label"
+          gap={2}
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
             fontSize: "var(--text-sm)",
             color: C.navy,
             fontWeight: "var(--weight-semibold)",
@@ -559,8 +520,9 @@ export default function InventoryCountTab({
             onChange={(e) => setOnlyVariance(e.target.checked)}
           />
           {t.cntOnlyVariance}
-        </label>
-        <div style={{ flex: 1 }} />
+        </Row>
+        {/* Pushes the save/close actions to the far end of the row. */}
+        <span aria-hidden="true" className="sw-grow" />
         {canEdit && !isClosed && (
           <>
             <Btn
@@ -580,7 +542,7 @@ export default function InventoryCountTab({
 
       <Table pad="md" maxHeight={640} style={{ border: `1px solid ${C.lg}`, borderRadius: 8 }}>
         <thead className="mrr-thead-sticky">
-          <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
+          <tr>
             {[
               t.cntColItem,
               t.cntColOpening,
@@ -618,13 +580,13 @@ export default function InventoryCountTab({
                     )}
                   </Muted>
                 </td>
-                <td style={{ whiteSpace: "nowrap" }}>
+                <Text as="td" style={{ whiteSpace: "nowrap" }}>
                   {l.opening}
                   <Muted as="span" size="2xs">
                     {" "}
                     {l.openingSource === "counted" ? t.cntOpeningCounted : t.cntOpeningDerived}
                   </Muted>
-                </td>
+                </Text>
                 <Text as="td" color={C.gr} style={{ whiteSpace: "nowrap" }}>
                   +{l.received}
                   {l.adjusted ? ` (${l.adjusted > 0 ? "+" : ""}${l.adjusted} adj)` : ""}
@@ -676,12 +638,14 @@ export default function InventoryCountTab({
           })}
           {visibleLines.length === 0 && (
             <tr>
-              <td
+              <Text
+                as="td"
                 colSpan={canSeeMoney ? 8 : 7}
-                style={{ padding: 28, textAlign: "center", color: C.sub, fontStyle: "italic" }}
+                color={C.sub}
+                style={{ padding: 28, textAlign: "center", fontStyle: "italic" }}
               >
                 {t.cntNoRows}
-              </td>
+              </Text>
             </tr>
           )}
         </tbody>

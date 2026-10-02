@@ -3,7 +3,18 @@ import { useState, useEffect } from "react";
 import { User, Shield, Bell, Mail, KeyRound } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
-import { Fld, Inp, Btn, Stack, Row, Text, Eyebrow, Card } from "@/shared/components/UIPrimitives";
+import {
+  Fld,
+  Inp,
+  Btn,
+  Stack,
+  Row,
+  Text,
+  Eyebrow,
+  Card,
+  Callout,
+  Divider,
+} from "@/shared/components/UIPrimitives";
 import { sendEmail } from "@/shared/utils/email";
 import { translations } from "@/shared/utils/translations";
 import MfaPanel from "./MfaPanel";
@@ -179,19 +190,18 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
     <Stack gap={8} style={{ maxWidth: 500, margin: "20px auto" }}>
       {/* CARD 1: Identity Profile Credentials */}
       <Card variant="raised" pad="lg">
-        <h1
+        <Row
+          as="h1"
+          gap="9px"
           style={{
             margin: "0 0 6px",
-            display: "flex",
-            alignItems: "center",
-            gap: 9,
             fontSize: "var(--text-2xl)",
             fontWeight: "var(--weight-black)",
             color: C.navy,
           }}
         >
           <User size={22} aria-hidden="true" /> Personal Profile
-        </h1>
+        </Row>
         <Text as="p" size="base" color={C.sub} style={{ margin: "0 0 20px" }}>
           {t.profIdentity}
         </Text>
@@ -213,38 +223,29 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
             />
           </Fld>
           <Fld label={t.profPermLevel}>
-            <div
-              style={{
-                background: "rgba(245,168,0,0.08)",
-                border: `1px solid ${C.gold}`,
-                color: C.navy,
-                padding: "8px 12px",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "var(--text-base)",
-                fontWeight: "var(--weight-bold)",
-                textTransform: "capitalize",
-                display: "flex",
-                alignItems: "center",
-                gap: 7,
-              }}
+            <Callout
+              tone="gold"
+              bordered
+              icon={Shield}
+              pad="sm"
+              size="base"
+              weight="bold"
+              color={C.navy}
+              style={{ borderWidth: 1, textTransform: "capitalize" }}
             >
-              <Shield size={14} aria-hidden="true" /> {user.role || "Employee"} Account
-            </div>
+              {user.role || "Employee"} Account
+            </Callout>
           </Fld>
           {profileMsg.text && (
-            <div
-              style={{
-                background: profileMsg.isError ? C.rB : C.gB,
-                color: profileMsg.isError ? C.rd : C.gr,
-                padding: "10px 14px",
-                borderRadius: "var(--radius-md)",
-                fontSize: "var(--text-base)",
-                marginBottom: 16,
-                fontWeight: "var(--weight-semibold)",
-              }}
+            <Callout
+              tone={profileMsg.isError ? "danger" : "success"}
+              size="base"
+              weight="semibold"
+              color={profileMsg.isError ? C.rd : C.gr}
+              style={{ marginBottom: 16 }}
             >
               {profileMsg.text}
-            </div>
+            </Callout>
           )}
           <Btn
             v="gold"
@@ -283,28 +284,20 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
         </Fld>
 
         {/* ── NEW DYNAMIC READ-ONLY EMAIL ROUTING LABEL ── */}
-        <div style={{ marginBottom: 16 }}>
+        <Stack gap={0} style={{ marginBottom: 16 }}>
           <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
             {t.profAlertEmail}
           </Eyebrow>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              background: C.lg,
-              padding: "10px 14px",
-              borderRadius: "var(--radius-md)",
-              fontSize: "var(--text-base)",
-              color: C.sub,
-              fontFamily: "monospace",
-              border: `1.5px solid ${C.bd}`,
-            }}
+          <Callout
+            bordered
+            icon={Mail}
+            size="base"
+            color={C.sub}
+            style={{ fontFamily: "monospace" }}
           >
-            <Mail size={14} aria-hidden="true" />{" "}
             {user?.email || "No email associated with this profile"}
-          </div>
-        </div>
+          </Callout>
+        </Stack>
 
         {/* ── NOTIFICATION ROUTING TOGGLES ── */}
         <Stack style={{ marginBottom: 20 }}>
@@ -317,11 +310,10 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
               Sending business SMS in the US also needs A2P 10DLC registration
               before the first message, so this is a project rather than a
               missing function call. Put the toggle back when that exists. */}
-          <label
+          <Row
+            as="label"
+            gap={4}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-4)",
               fontSize: "var(--text-base)",
               fontWeight: "var(--weight-semibold)",
               color: C.navy,
@@ -335,23 +327,19 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
               style={{ width: 16, height: 16 }}
             />
             {t.profEnableEmail}
-          </label>
+          </Row>
         </Stack>
 
         {alertMsg.text && (
-          <div
-            style={{
-              background: alertMsg.isError ? C.rB : C.gB,
-              color: alertMsg.isError ? C.rd : C.gr,
-              padding: "10px 14px",
-              borderRadius: "var(--radius-md)",
-              fontSize: "var(--text-base)",
-              marginBottom: 16,
-              fontWeight: "var(--weight-semibold)",
-            }}
+          <Callout
+            tone={alertMsg.isError ? "danger" : "success"}
+            size="base"
+            weight="semibold"
+            color={alertMsg.isError ? C.rd : C.gr}
+            style={{ marginBottom: 16 }}
           >
             {alertMsg.text}
-          </div>
+          </Callout>
         )}
 
         <Btn
@@ -366,19 +354,17 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
 
       {/* CARD 3: Account Access Security Credentials */}
       <Card variant="raised" pad="lg">
-        <h2
+        <Row
+          as="h2"
           style={{
             margin: "0 0 6px",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
             fontSize: "var(--text-xl)",
             fontWeight: "var(--weight-black)",
             color: C.navy,
           }}
         >
           <KeyRound size={18} aria-hidden="true" /> Access Credentials
-        </h2>
+        </Row>
         <Text as="p" size="base" color={C.sub} style={{ margin: "0 0 20px" }}>
           {t.profSecurity}
         </Text>
@@ -392,13 +378,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
               required
             />
           </Fld>
-          <hr
-            style={{
-              border: "none",
-              borderTop: `1px dashed ${C.bd}`,
-              margin: "16px 0",
-            }}
-          />
+          <Divider dashed space={7} />
           <Fld label={t.profNewPw}>
             <Inp
               type="password"
@@ -416,19 +396,15 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
             />
           </Fld>
           {passMsg.text && (
-            <div
-              style={{
-                background: passMsg.isError ? C.rB : C.gB,
-                color: passMsg.isError ? C.rd : C.gr,
-                padding: "10px 14px",
-                borderRadius: "var(--radius-md)",
-                fontSize: "var(--text-base)",
-                marginBottom: 16,
-                fontWeight: "var(--weight-semibold)",
-              }}
+            <Callout
+              tone={passMsg.isError ? "danger" : "success"}
+              size="base"
+              weight="semibold"
+              color={passMsg.isError ? C.rd : C.gr}
+              style={{ marginBottom: 16 }}
             >
               {passMsg.text}
-            </div>
+            </Callout>
           )}
           <Btn
             v="gold"
