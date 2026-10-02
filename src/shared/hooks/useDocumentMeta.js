@@ -8,11 +8,14 @@
 // in a browser tab, in history, and in search results.
 import { useEffect } from "react";
 
-const DEFAULT_DESCRIPTION = "Warehouse & fleet software — tools that work as hard as you do.";
+// Keep in step with the <meta name="description"> in index.html.
+const DEFAULT_DESCRIPTION =
+  "Warehouse & fleet software for roofing and construction companies. Inventory, fleet, jobs, and scheduling in one place — $99/mo for 10 users.";
 
 /**
- * @param {string} title - shown as "<title> · Steadwerk" in the tab. Pass just
- *   "Steadwerk" (or omit) for the bare wordmark, used on the landing page itself.
+ * @param {string} title - shown as "<title> · Steadwerk" in the tab. A title that
+ *   already starts with "Steadwerk" is used as-is, which is how the landing page
+ *   keeps its descriptive "Steadwerk | …" title rather than the bare wordmark.
  * @param {string} [description] - overrides the meta description while this page
  *   is mounted, restored to what it was before on unmount. Only worth passing on
  *   pages a crawler can actually reach — the authenticated app is not indexable
@@ -20,7 +23,8 @@ const DEFAULT_DESCRIPTION = "Warehouse & fleet software — tools that work as h
  */
 export function useDocumentMeta(title, description) {
   useEffect(() => {
-    document.title = title && title !== "Steadwerk" ? `${title} · Steadwerk` : "Steadwerk";
+    if (!title) document.title = "Steadwerk";
+    else document.title = title.startsWith("Steadwerk") ? title : `${title} · Steadwerk`;
   }, [title]);
 
   useEffect(() => {

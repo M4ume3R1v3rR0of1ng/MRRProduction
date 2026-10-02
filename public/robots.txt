@@ -1,0 +1,21 @@
+# The public pages are crawlable. Everything behind sign-in renders nothing
+# useful to a crawler (it redirects to /login), so it's kept out of the index.
+User-agent: *
+Allow: /
+Disallow: /.netlify/
+Disallow: /dashboard
+Disallow: /schedule
+Disallow: /buildjobs
+Disallow: /pull
+Disallow: /inventory
+Disallow: /fleet
+Disallow: /requests
+Disallow: /reports
+Disallow: /users
+Disallow: /logs
+Disallow: /settings
+Disallow: /billing
+Disallow: /owner
+Disallow: /profile
+
+Sitemap: https://steadwerk.com/sitemap.xml

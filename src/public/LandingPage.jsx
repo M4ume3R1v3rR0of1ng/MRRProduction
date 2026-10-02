@@ -767,8 +767,9 @@ function JobPipelineDemo() {
 }
 
 export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPrivacy, onShowTraining }) {
+  // Same title as index.html, so the tab and the search result don't change once JS runs.
   useDocumentMeta(
-    "Steadwerk",
+    "Steadwerk | Inventory & Fleet Software for Roofing Contractors",
     "Warehouse & fleet software for roofing and construction companies. Inventory, fleet, jobs, and scheduling in one place — $99/mo for 10 users.",
   );
   const [theme, setTheme] = useState(readStoredTheme); // null = follow OS preference

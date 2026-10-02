@@ -50,7 +50,8 @@ export default defineConfig({
         // and only ever load for a company that has AccuLynx report upload switched
         // on, so precaching them would make every crew on a job-site connection pay
         // for a PDF engine they never open. They still cache normally once fetched.
-        globIgnores: ["**/pdf-vendor-*.js"],
+        // og-image.png is only ever fetched by link-preview scrapers, never by the app.
+        globIgnores: ["**/pdf-vendor-*.js", "og-image.png"],
         cleanupOutdatedCaches: true,
         // SPA: serve index.html for offline navigations, but never for Netlify
         // functions — those must hit the network.
