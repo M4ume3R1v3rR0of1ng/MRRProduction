@@ -1,12 +1,21 @@
 // src/features/maintenance/MaintenanceCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
-import { AlertOctagon, Clock, Calendar, Truck, AlertTriangle, Inbox } from "lucide-react";
+import { AlertOctagon, Clock, Calendar, Truck, Inbox } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
-import { Btn, Row, Stack, Muted, Text, Card } from "@/shared/components/UIPrimitives";
+import { Row, Stack, Muted, Text, Card, Callout, Eyebrow } from "@/shared/components/UIPrimitives";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
+import {
+  WeekHeader,
+  WeekTable,
+  WeekRow,
+  DayCell,
+  EventChip,
+  ConflictNote,
+  EmptyWeekRow,
+} from "@/shared/components/WeekGrid";
 
 const toLocalDateKey = (date) => {
   const y = date.getFullYear();
@@ -179,115 +188,57 @@ export default function MaintenanceCalendar({
   const RequestCard = ({ req }) => {
     const meta = urgencyMeta(req.urgency);
     return (
-      <div
+      <EventChip
+        color={meta.color}
+        title={req.vname}
+        tooltip={`${req.vname}\nType: ${req.type}\nUrgency: ${req.urgency}\n${req.notes || ""}`}
+        dragging={draggingId === req.id}
         draggable={typeof setReqs === "function"}
-        onDragStart={(e) => {
-          e.dataTransfer.effectAllowed = "move";
-          setDraggingId(req.id);
-        }}
+        onDragStart={() => setDraggingId(req.id)}
         onDragEnd={() => {
           setDraggingId(null);
           setDragOverKey(null);
         }}
-        onClick={() => onRequestClick?.(req)}
-        style={{
-          background: C.w,
-          borderLeft: `4px solid ${meta.color}`,
-          borderRadius: "var(--radius-sm)",
-          padding: "6px 8px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-          cursor: onRequestClick ? "pointer" : "default",
-          opacity: draggingId === req.id ? 0.4 : 1,
-        }}
-        title={`${req.vname}\nType: ${req.type}\nUrgency: ${req.urgency}\n${req.notes || ""}`}
+        onClick={onRequestClick ? () => onRequestClick(req) : undefined}
       >
-        <div
+        <Text as="span" truncate>
+          {req.type}
+        </Text>
+        <Row
+          inline
+          as="span"
+          gap="3px"
           style={{
-            fontSize: "var(--text-xs)",
-            fontWeight: "var(--weight-extrabold)",
-            color: C.navy,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
+            color: meta.color,
+            fontWeight: "var(--weight-bold)",
+            flexShrink: 0,
+            marginLeft: 4,
           }}
         >
-          {req.vname}
-        </div>
-        <Row
-          gap={0}
-          justify="space-between"
-          style={{ marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}
-        >
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {req.type}
-          </span>
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 3,
-              color: meta.color,
-              fontWeight: "var(--weight-bold)",
-              flexShrink: 0,
-              marginLeft: 4,
-            }}
-          >
-            {meta.icon && <meta.icon size={10} aria-hidden="true" />} {meta.label}
-          </span>
+          {meta.icon && <meta.icon size={10} aria-hidden="true" />} {meta.label}
         </Row>
-      </div>
+      </EventChip>
     );
   };
 
+  const trayOver = dragOverKey === "__unscheduled__";
+
   return (
     <Card variant="raised" pad={8} style={{ marginTop: 16 }}>
-      <Row gap={5} justify="space-between" wrap style={{ marginBottom: 20 }}>
-        <div>
-          <h2
-            style={{
-              margin: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: "var(--text-lg)",
-              fontWeight: "var(--weight-extrabold)",
-              color: C.navy,
-            }}
-          >
-            <Calendar size={16} aria-hidden="true" /> Weekly Maintenance Schedule
-          </h2>
-          <Muted as="p" style={{ margin: "2px 0 0" }}>
-            {t.mcSubtitle}
-          </Muted>
-        </div>
-        <Row>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>
-            {t.calPrev}
-          </Btn>
-          <div
-            style={{
-              fontSize: "var(--text-base)",
-              fontWeight: "var(--weight-bold)",
-              color: C.navy,
-              minWidth: 200,
-              textAlign: "center",
-            }}
-          >
-            {weekLabel}
-          </div>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>
-            {t.calNext}
-          </Btn>
-          {!isCurrentWeek && (
-            <Btn v="primary" sz="sm" onClick={handleGoToToday}>
-              {t.calToday}
-            </Btn>
-          )}
-        </Row>
-      </Row>
+      <WeekHeader
+        icon={Calendar}
+        title="Weekly Maintenance Schedule"
+        subtitle={t.mcSubtitle}
+        weekLabel={weekLabel}
+        onShift={handleShiftWeek}
+        onToday={handleGoToToday}
+        showToday={!isCurrentWeek}
+        labels={{ prev: t.calPrev, next: t.calNext, today: t.calToday }}
+      />
 
       {/* ── Awaiting Scheduling tray (also a drop target, to unschedule) ── */}
-      <div
+      <Callout
+        pad={5}
         onDragOver={(e) => {
           e.preventDefault();
           setDragOverKey("__unscheduled__");
@@ -298,29 +249,16 @@ export default function MaintenanceCalendar({
           handleDropOnUnscheduled();
         }}
         style={{
-          border: `2px dashed ${dragOverKey === "__unscheduled__" ? C.blue : C.bd}`,
-          background:
-            dragOverKey === "__unscheduled__" ? "rgba(27, 82, 184, 0.06)" : "var(--c-subtle)",
+          border: `2px dashed ${trayOver ? C.blue : C.bd}`,
           borderRadius: "var(--radius-lg)",
-          padding: 12,
           marginBottom: 20,
+          ...(trayOver && { background: `color-mix(in srgb, ${C.blue} 6%, transparent)` }),
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: "var(--text-xs)",
-            fontWeight: "var(--weight-extrabold)",
-            color: C.sub,
-            textTransform: "uppercase",
-            marginBottom: 8,
-          }}
-        >
+        <Eyebrow as={Row} gap={2} style={{ marginBottom: 8 }}>
           <Inbox size={12} aria-hidden="true" /> Awaiting Scheduling{" "}
           {unscheduledReqs.length > 0 && `(${unscheduledReqs.length})`}
-        </div>
+        </Eyebrow>
         {unscheduledReqs.length === 0 ? (
           <Muted size="sm" style={{ fontStyle: "italic" }}>
             {t.mcUnschedule}
@@ -328,162 +266,60 @@ export default function MaintenanceCalendar({
         ) : (
           <Row align="stretch" wrap>
             {unscheduledReqs.map((r) => (
-              <div key={r.id} style={{ width: 180 }}>
+              <Stack key={r.id} gap={0} style={{ width: 180 }}>
                 <RequestCard req={r} />
-              </div>
+              </Stack>
             ))}
           </Row>
         )}
-      </div>
+      </Callout>
 
-      <div style={{ overflowX: "auto" }}>
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}
-        >
-          <thead>
-            <tr style={{ background: C.lg }}>
-              <th
-                style={{
-                  width: 170,
-                  padding: "12px 10px",
-                  textAlign: "left",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  color: C.sub,
-                  fontSize: "var(--text-xs)",
-                  fontWeight: "var(--weight-bold)",
-                  borderBottom: `2px solid ${C.bd}`,
-                }}
-              >
-                <Truck size={13} aria-hidden="true" /> Vehicle
-              </th>
-              {weekDays.map((day) => {
-                const isToday = toLocalDateKey(day) === todayString;
-                return (
-                  <th
-                    key={toLocalDateKey(day)}
-                    style={{
-                      padding: "10px",
-                      textAlign: "center",
-                      color: isToday ? C.blue : C.navy,
-                      fontWeight: "var(--weight-extrabold)",
-                      fontSize: "var(--text-sm)",
-                      borderBottom: isToday ? `3px solid ${C.blue}` : `2px solid ${C.bd}`,
-                      background: isToday ? "rgba(27, 82, 184, 0.03)" : "transparent",
-                    }}
-                  >
-                    <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
-                    <Text size="md" style={{ marginTop: 2 }}>
-                      {day.getDate()}
-                    </Text>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-
-          <tbody>
-            {vehicleRows.map((v) => (
-              <tr key={v.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                <td
-                  style={{
-                    padding: "14px 10px",
-                    verticalAlign: "middle",
-                    borderRight: `1px solid ${C.lg}`,
-                  }}
+      <WeekTable
+        days={weekDays}
+        dayKey={toLocalDateKey}
+        todayKey={todayString}
+        labelIcon={Truck}
+        label="Vehicle"
+        labelWidth={170}
+      >
+        {vehicleRows.map((v) => (
+          <WeekRow
+            key={v.id}
+            label={
+              <>
+                <Text size="base" weight="bold" color={C.navy}>
+                  {v.name}
+                </Text>
+                <Muted size="2xs" style={{ marginTop: 2 }}>
+                  #{v.plate || v.plates || "—"}
+                </Muted>
+              </>
+            }
+          >
+            {weekDays.map((day) => {
+              const dayKey = toLocalDateKey(day);
+              const dayReqs = reqsByDateAndVehicle[dayKey]?.[v.id] || [];
+              return (
+                <DayCell
+                  key={dayKey}
+                  cellKey={`${v.id}::${dayKey}`}
+                  dragOver={dragOverKey}
+                  setDragOver={setDragOverKey}
+                  isToday={dayKey === todayString}
+                  onDrop={() => handleDropOnDate(dayKey)}
                 >
-                  <Text size="base" weight="bold" color={C.navy}>
-                    {v.name}
-                  </Text>
-                  <Muted size="2xs" style={{ marginTop: 2 }}>
-                    #{v.plate || v.plates || "—"}
-                  </Muted>
-                </td>
+                  {dayReqs.map((r) => (
+                    <RequestCard key={r.id} req={r} />
+                  ))}
+                  {dayReqs.length > 1 && <ConflictNote>{dayReqs.length} requests</ConflictNote>}
+                </DayCell>
+              );
+            })}
+          </WeekRow>
+        ))}
 
-                {weekDays.map((day) => {
-                  const dayKey = toLocalDateKey(day);
-                  const isToday = dayKey === todayString;
-                  const dayReqs = reqsByDateAndVehicle[dayKey]?.[v.id] || [];
-                  const isDoubleBooked = dayReqs.length > 1;
-                  const cellKey = `${v.id}::${dayKey}`;
-                  const isDragOver = dragOverKey === cellKey;
-
-                  return (
-                    <td
-                      key={dayKey}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setDragOverKey(cellKey);
-                      }}
-                      onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        handleDropOnDate(dayKey);
-                      }}
-                      style={{
-                        padding: "6px",
-                        verticalAlign: "top",
-                        background: isDragOver
-                          ? "rgba(27, 82, 184, 0.12)"
-                          : isToday
-                            ? "rgba(27, 82, 184, 0.01)"
-                            : "transparent",
-                        outline: isDragOver ? `2px dashed ${C.blue}` : "none",
-                        outlineOffset: -2,
-                        borderRight: `1px solid ${C.lg}`,
-                        height: 90,
-                      }}
-                    >
-                      <Stack gap={2}>
-                        {dayReqs.map((r) => (
-                          <RequestCard key={r.id} req={r} />
-                        ))}
-                        {isDoubleBooked && (
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 4,
-                              fontSize: "var(--text-2xs)",
-                              fontWeight: "var(--weight-bold)",
-                              color: C.rd,
-                              background: C.rB,
-                              padding: "2px 6px",
-                              borderRadius: "var(--radius-xs)",
-                              textAlign: "center",
-                            }}
-                          >
-                            <AlertTriangle size={10} aria-hidden="true" /> {dayReqs.length} requests
-                          </div>
-                        )}
-                      </Stack>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-
-            {vehicleRows.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  style={{
-                    padding: 32,
-                    textAlign: "center",
-                    color: C.sub,
-                    fontSize: "var(--text-base)",
-                    fontStyle: "italic",
-                  }}
-                >
-                  {t.mcNoRequests}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+        {vehicleRows.length === 0 && <EmptyWeekRow>{t.mcNoRequests}</EmptyWeekRow>}
+      </WeekTable>
     </Card>
   );
 }

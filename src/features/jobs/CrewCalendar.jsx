@@ -3,9 +3,18 @@ import { useState, useMemo, useCallback } from "react";
 import { FileEdit, FileText, Calendar, HardHat, Shield, AlertTriangle } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
-import { Btn, Row, Stack, Muted, Text, Card } from "@/shared/components/UIPrimitives";
+import { Row, Muted, Text, Card } from "@/shared/components/UIPrimitives";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
+import {
+  WeekHeader,
+  WeekTable,
+  WeekRow,
+  DayCell,
+  EventChip,
+  ConflictNote,
+  EmptyWeekRow,
+} from "@/shared/components/WeekGrid";
 
 // ── Local date string helper (avoids UTC offset bug from toISOString()) ──
 const toLocalDateKey = (date) => {
@@ -168,335 +177,128 @@ export default function CrewCalendar({
     const statusConfig = jSC[job.status] || { c: "gray", icon: FileEdit, l: job.status };
     const borderColor = resolveStatusColor(statusConfig);
     const jobLabel = job.title || job.name || "Untitled Job";
-
     return (
-      <div
-        key={job.id}
+      <EventChip
+        color={borderColor}
+        title={jobLabel}
+        tooltip={`${jobLabel}\nPO: ${job.po}\nAddress: ${job.addr || "N/A"}\nStatus: ${statusConfig.l || job.status}`}
+        dragging={draggingId === job.id}
         draggable={typeof setJobs === "function"}
-        onDragStart={(e) => {
-          e.dataTransfer.effectAllowed = "move";
-          setDraggingId(job.id);
-        }}
+        onDragStart={() => setDraggingId(job.id)}
         onDragEnd={() => {
           setDraggingId(null);
           setDragOverKey(null);
         }}
-        onClick={() => onJobClick?.(job)}
-        style={{
-          background: C.w,
-          borderLeft: `4px solid ${borderColor}`,
-          borderRadius: "var(--radius-sm)",
-          padding: "6px 8px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-          cursor: onJobClick ? "pointer" : "default",
-          opacity: draggingId === job.id ? 0.4 : 1,
-        }}
-        title={`${jobLabel}\nPO: ${job.po}\nAddress: ${job.addr || "N/A"}\nStatus: ${statusConfig.l || job.status}`}
+        onClick={onJobClick ? () => onJobClick(job) : undefined}
       >
-        <div
-          style={{
-            fontSize: "var(--text-xs)",
-            fontWeight: "var(--weight-extrabold)",
-            color: C.navy,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {jobLabel}
-        </div>
-        <Row
-          gap={0}
-          justify="space-between"
-          style={{ marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}
-        >
-          <Row inline as="span" gap="3px">
-            <FileText size={10} aria-hidden="true" /> {job.po}
-          </Row>
-          <statusConfig.icon size={12} color={borderColor} aria-hidden="true" />
+        <Row inline as="span" gap="3px">
+          <FileText size={10} aria-hidden="true" /> {job.po}
         </Row>
-      </div>
+        <statusConfig.icon size={12} color={borderColor} aria-hidden="true" />
+      </EventChip>
+    );
+  };
+
+  const cell = (dayKey, ownerKey, assignTo, extra) => {
+    const dayJobs = jobsByDateAndUser[dayKey]?.[ownerKey] || [];
+    return (
+      <DayCell
+        key={dayKey}
+        cellKey={`${ownerKey}::${dayKey}`}
+        dragOver={dragOverKey}
+        setDragOver={setDragOverKey}
+        isToday={dayKey === todayString}
+        onDrop={() => handleDropOnCell(dayKey, assignTo)}
+      >
+        {dayJobs.map((job) => (
+          <JobCard key={job.id} job={job} />
+        ))}
+        {extra?.(dayJobs)}
+      </DayCell>
     );
   };
 
   return (
     <Card variant="raised" pad={8} style={{ marginTop: 16 }}>
-      {/* ── HEADER ── */}
-      <Row gap={5} justify="space-between" wrap style={{ marginBottom: 20 }}>
-        <div>
-          <h2
-            style={{
-              margin: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: "var(--text-lg)",
-              fontWeight: "var(--weight-extrabold)",
-              color: C.navy,
-            }}
-          >
-            <Calendar size={16} aria-hidden="true" /> Weekly Production Crew & Shift Calendar
-          </h2>
-          <Muted as="p" style={{ margin: "2px 0 0" }}>
-            {t.ccSubtitle}
-          </Muted>
-        </div>
+      <WeekHeader
+        icon={Calendar}
+        title="Weekly Production Crew & Shift Calendar"
+        subtitle={t.ccSubtitle}
+        weekLabel={weekLabel}
+        onShift={handleShiftWeek}
+        onToday={handleGoToToday}
+        showToday={!isCurrentWeek}
+        labels={{ prev: t.calPrev, next: t.calNext, today: t.calToday }}
+      />
 
-        <Row>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>
-            {t.calPrev}
-          </Btn>
-          <div
-            style={{
-              fontSize: "var(--text-base)",
-              fontWeight: "var(--weight-bold)",
-              color: C.navy,
-              minWidth: 200,
-              textAlign: "center",
-            }}
-          >
-            {weekLabel}
-          </div>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>
-            {t.calNext}
-          </Btn>
-          {!isCurrentWeek && (
-            <Btn v="primary" sz="sm" onClick={handleGoToToday}>
-              {t.calToday}
-            </Btn>
-          )}
-        </Row>
-      </Row>
-
-      {/* ── GRID ── */}
-      <div style={{ overflowX: "auto" }}>
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}
-        >
-          <thead>
-            <tr style={{ background: C.lg }}>
-              <th
-                style={{
-                  width: 150,
-                  padding: "12px 10px",
-                  textAlign: "left",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  color: C.sub,
-                  fontSize: "var(--text-xs)",
-                  fontWeight: "var(--weight-bold)",
-                  borderBottom: `2px solid ${C.bd}`,
-                }}
-              >
-                <HardHat size={13} aria-hidden="true" /> Assigned Crew Lead
-              </th>
-              {weekDays.map((day) => {
-                const isToday = toLocalDateKey(day) === todayString;
-                return (
-                  <th
-                    key={toLocalDateKey(day)}
-                    style={{
-                      padding: "10px",
-                      textAlign: "center",
-                      color: isToday ? C.blue : C.navy,
-                      fontWeight: "var(--weight-extrabold)",
-                      fontSize: "var(--text-sm)",
-                      borderBottom: isToday ? `3px solid ${C.blue}` : `2px solid ${C.bd}`,
-                      background: isToday ? "rgba(27, 82, 184, 0.03)" : "transparent",
-                    }}
-                  >
-                    <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
-                    <Text size="md" style={{ marginTop: 2 }}>
-                      {day.getDate()}
-                    </Text>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-
-          <tbody>
-            {fieldPersonnelList.map((crewLead) => (
-              <tr key={crewLead.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                <td
+      <WeekTable
+        days={weekDays}
+        dayKey={toLocalDateKey}
+        todayKey={todayString}
+        labelIcon={HardHat}
+        label="Assigned Crew Lead"
+        labelWidth={150}
+      >
+        {fieldPersonnelList.map((crewLead) => (
+          <WeekRow
+            key={crewLead.id}
+            label={
+              <>
+                <Text size="base" weight="bold" color={C.navy}>
+                  {crewLead.name}
+                </Text>
+                <Row
+                  gap={1}
                   style={{
-                    padding: "14px 10px",
-                    verticalAlign: "middle",
-                    borderRight: `1px solid ${C.lg}`,
-                  }}
-                >
-                  <Text size="base" weight="bold" color={C.navy}>
-                    {crewLead.name}
-                  </Text>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 4,
-                      fontSize: "var(--text-2xs)",
-                      color: C.sub,
-                      textTransform: "capitalize",
-                      marginTop: 2,
-                    }}
-                  >
-                    <Shield size={10} aria-hidden="true" /> {crewLead.role}
-                  </div>
-                </td>
-
-                {weekDays.map((day) => {
-                  const dayKey = toLocalDateKey(day);
-                  const isToday = dayKey === todayString;
-                  const dayJobs = jobsByDateAndUser[dayKey]?.[crewLead.id] || [];
-                  const isDoubleBooked = dayJobs.length > 1;
-                  const cellKey = `${crewLead.id}::${dayKey}`;
-                  const isDragOver = dragOverKey === cellKey;
-
-                  return (
-                    <td
-                      key={dayKey}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setDragOverKey(cellKey);
-                      }}
-                      onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        handleDropOnCell(dayKey, crewLead.id);
-                      }}
-                      style={{
-                        padding: "6px",
-                        verticalAlign: "top",
-                        background: isDragOver
-                          ? "rgba(27, 82, 184, 0.12)"
-                          : isToday
-                            ? "rgba(27, 82, 184, 0.01)"
-                            : "transparent",
-                        outline: isDragOver ? `2px dashed ${C.blue}` : "none",
-                        outlineOffset: -2,
-                        borderRight: `1px solid ${C.lg}`,
-                        height: 90,
-                      }}
-                    >
-                      <Stack gap={2}>
-                        {dayJobs.map((job) => (
-                          <JobCard key={job.id} job={job} />
-                        ))}
-                        {isDoubleBooked && (
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 4,
-                              fontSize: "var(--text-2xs)",
-                              fontWeight: "var(--weight-bold)",
-                              color: C.rd,
-                              background: C.rB,
-                              padding: "2px 6px",
-                              borderRadius: "var(--radius-xs)",
-                              textAlign: "center",
-                            }}
-                          >
-                            <AlertTriangle size={10} aria-hidden="true" /> {dayJobs.length} jobs —
-                            double-booked
-                          </div>
-                        )}
-                      </Stack>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-
-            {/* ── Unassigned jobs row (always rendered as a drop target for unassigning) ── */}
-            {(unassignedThisWeek.length > 0 || typeof setJobs === "function") && (
-              <tr
-                style={{ borderBottom: `1px solid ${C.lg}`, background: "rgba(251,191,36,0.04)" }}
-              >
-                <td
-                  style={{
-                    padding: "14px 10px",
-                    verticalAlign: "middle",
-                    borderRight: `1px solid ${C.lg}`,
-                  }}
-                >
-                  <Row
-                    gap={2}
-                    style={{
-                      fontWeight: "var(--weight-bold)",
-                      fontSize: "var(--text-base)",
-                      color: C.am,
-                    }}
-                  >
-                    <AlertTriangle size={14} aria-hidden="true" /> Unassigned
-                  </Row>
-                  <Muted size="2xs" style={{ marginTop: 2 }}>
-                    {t.ccNoSupervisor}
-                  </Muted>
-                </td>
-                {weekDays.map((day) => {
-                  const dayKey = toLocalDateKey(day);
-                  const isToday = dayKey === todayString;
-                  const dayJobs = jobsByDateAndUser[dayKey]?.["__unassigned__"] || [];
-                  const cellKey = `__unassigned__::${dayKey}`;
-                  const isDragOver = dragOverKey === cellKey;
-                  return (
-                    <td
-                      key={dayKey}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setDragOverKey(cellKey);
-                      }}
-                      onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        handleDropOnCell(dayKey, "");
-                      }}
-                      style={{
-                        padding: "6px",
-                        verticalAlign: "top",
-                        background: isDragOver
-                          ? "rgba(27, 82, 184, 0.12)"
-                          : isToday
-                            ? "rgba(27, 82, 184, 0.01)"
-                            : "transparent",
-                        outline: isDragOver ? `2px dashed ${C.blue}` : "none",
-                        outlineOffset: -2,
-                        borderRight: `1px solid ${C.lg}`,
-                        height: 90,
-                      }}
-                    >
-                      <Stack gap={2}>
-                        {dayJobs.map((job) => (
-                          <JobCard key={job.id} job={job} />
-                        ))}
-                      </Stack>
-                    </td>
-                  );
-                })}
-              </tr>
-            )}
-
-            {fieldPersonnelList.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  style={{
-                    padding: 32,
-                    textAlign: "center",
+                    fontSize: "var(--text-2xs)",
                     color: C.sub,
-                    fontSize: "var(--text-base)",
-                    fontStyle: "italic",
+                    textTransform: "capitalize",
+                    marginTop: 2,
                   }}
                 >
-                  {t.ccNoCrews}
-                </td>
-              </tr>
+                  <Shield size={10} aria-hidden="true" /> {crewLead.role}
+                </Row>
+              </>
+            }
+          >
+            {weekDays.map((day) =>
+              cell(toLocalDateKey(day), crewLead.id, crewLead.id, (dayJobs) =>
+                dayJobs.length > 1 ? (
+                  <ConflictNote>{dayJobs.length} jobs — double-booked</ConflictNote>
+                ) : null,
+              ),
             )}
-          </tbody>
-        </table>
-      </div>
+          </WeekRow>
+        ))}
+
+        {/* ── Unassigned jobs row (always rendered as a drop target for unassigning) ── */}
+        {(unassignedThisWeek.length > 0 || typeof setJobs === "function") && (
+          <WeekRow
+            highlight
+            label={
+              <>
+                <Row
+                  gap={2}
+                  style={{
+                    fontWeight: "var(--weight-bold)",
+                    fontSize: "var(--text-base)",
+                    color: C.am,
+                  }}
+                >
+                  <AlertTriangle size={14} aria-hidden="true" /> Unassigned
+                </Row>
+                <Muted size="2xs" style={{ marginTop: 2 }}>
+                  {t.ccNoSupervisor}
+                </Muted>
+              </>
+            }
+          >
+            {weekDays.map((day) => cell(toLocalDateKey(day), "__unassigned__", ""))}
+          </WeekRow>
+        )}
+
+        {fieldPersonnelList.length === 0 && <EmptyWeekRow>{t.ccNoCrews}</EmptyWeekRow>}
+      </WeekTable>
     </Card>
   );
 }

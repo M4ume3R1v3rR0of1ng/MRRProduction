@@ -1,12 +1,21 @@
 // src/features/fleet/TrailerCalendar.jsx
 import { useState, useMemo, useCallback } from "react";
-import { Calendar, Truck, FileText, AlertTriangle, X, FileEdit } from "lucide-react";
+import { Calendar, Truck, FileText, FileEdit } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
-import { Btn, Row, Stack, Muted, Text, Card } from "@/shared/components/UIPrimitives";
+import { Row, Muted, Text, Card } from "@/shared/components/UIPrimitives";
 import { supabase } from "@/shared/utils/supabase";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
+import {
+  WeekHeader,
+  WeekTable,
+  WeekRow,
+  DayCell,
+  EventChip,
+  ConflictNote,
+  EmptyWeekRow,
+} from "@/shared/components/WeekGrid";
 
 // ── Local date string helper (avoids UTC offset bug from toISOString()) ──
 const toLocalDateKey = (date) => {
@@ -207,283 +216,96 @@ export default function TrailerCalendar({
     const statusConfig = jSC[job.status] || { c: "gray", icon: FileEdit, l: job.status };
     const borderColor = resolveStatusColor(statusConfig);
     const jobLabel = job.title || job.name || "Untitled Job";
-
     return (
-      <div
+      <EventChip
+        color={borderColor}
+        title={jobLabel}
+        tooltip={`${jobLabel}\nPO: ${job.po}\nAddress: ${job.addr || "N/A"}\nStatus: ${statusConfig.l || job.status}`}
+        dragging={draggingId === booking.id}
         draggable={canEdit}
-        onDragStart={(e) => {
-          e.dataTransfer.effectAllowed = "move";
-          setDraggingId(booking.id);
-        }}
+        onDragStart={() => setDraggingId(booking.id)}
         onDragEnd={() => {
           setDraggingId(null);
           setDragOverKey(null);
         }}
-        onClick={() => onJobClick?.(job)}
-        style={{
-          position: "relative",
-          background: C.w,
-          borderLeft: `4px solid ${borderColor}`,
-          borderRadius: "var(--radius-sm)",
-          padding: "6px 8px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-          cursor: onJobClick ? "pointer" : "default",
-          opacity: draggingId === booking.id ? 0.4 : 1,
-        }}
-        title={`${jobLabel}\nPO: ${job.po}\nAddress: ${job.addr || "N/A"}\nStatus: ${statusConfig.l || job.status}`}
+        onClick={onJobClick ? () => onJobClick(job) : undefined}
+        onRemove={canEdit ? () => handleRemoveBooking(booking) : undefined}
+        removeLabel={t.tcRemoveBooking}
       >
-        {canEdit && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRemoveBooking(booking);
-            }}
-            title={t.tcRemoveBooking}
-            style={{
-              position: "absolute",
-              top: 2,
-              right: 2,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              color: C.sub,
-              padding: 2,
-            }}
-          >
-            <X size={11} aria-hidden="true" />
-          </button>
-        )}
-        <div
-          style={{
-            fontSize: "var(--text-xs)",
-            fontWeight: "var(--weight-extrabold)",
-            color: C.navy,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            paddingRight: 14,
-          }}
-        >
-          {jobLabel}
-        </div>
-        <Row
-          gap={0}
-          justify="space-between"
-          style={{ marginTop: 4, fontSize: "var(--text-2xs)", color: C.sub }}
-        >
-          <Row inline as="span" gap="3px">
-            <FileText size={10} aria-hidden="true" /> {job.po}
-          </Row>
-          <statusConfig.icon size={12} color={borderColor} aria-hidden="true" />
+        <Row inline as="span" gap="3px">
+          <FileText size={10} aria-hidden="true" /> {job.po}
         </Row>
-      </div>
+        <statusConfig.icon size={12} color={borderColor} aria-hidden="true" />
+      </EventChip>
     );
   };
 
   return (
     <Card variant="raised" pad={8} style={{ marginTop: 16 }}>
-      <Row gap={5} justify="space-between" wrap style={{ marginBottom: 20 }}>
-        <div>
-          <h2
-            style={{
-              margin: 0,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: "var(--text-lg)",
-              fontWeight: "var(--weight-extrabold)",
-              color: C.navy,
-            }}
+      <WeekHeader
+        icon={Calendar}
+        title="Weekly Trailer Booking Calendar"
+        subtitle={
+          canEdit
+            ? "Drag a booking to a different trailer or day to reassign it."
+            : "Read-only — you don't have permission to reassign trailer bookings."
+        }
+        weekLabel={weekLabel}
+        onShift={handleShiftWeek}
+        onToday={handleGoToToday}
+        showToday={!isCurrentWeek}
+        labels={{ prev: t.calPrev, next: t.calNext, today: t.calToday }}
+      />
+
+      <WeekTable
+        days={weekDays}
+        dayKey={toLocalDateKey}
+        todayKey={todayString}
+        labelIcon={Truck}
+        label="Trailer"
+        labelWidth={170}
+      >
+        {trailerRows.map((trailer) => (
+          <WeekRow
+            key={trailer.id}
+            label={
+              <>
+                <Text size="base" weight="bold" color={C.navy}>
+                  {trailer.name}
+                </Text>
+                <Muted size="2xs" style={{ marginTop: 2 }}>
+                  #{trailer.plate || "—"}
+                </Muted>
+              </>
+            }
           >
-            <Calendar size={16} aria-hidden="true" /> Weekly Trailer Booking Calendar
-          </h2>
-          <Muted as="p" style={{ margin: "2px 0 0" }}>
-            {canEdit
-              ? "Drag a booking to a different trailer or day to reassign it."
-              : "Read-only — you don't have permission to reassign trailer bookings."}
-          </Muted>
-        </div>
-
-        <Row>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(-1)}>
-            {t.calPrev}
-          </Btn>
-          <div
-            style={{
-              fontSize: "var(--text-base)",
-              fontWeight: "var(--weight-bold)",
-              color: C.navy,
-              minWidth: 200,
-              textAlign: "center",
-            }}
-          >
-            {weekLabel}
-          </div>
-          <Btn v="ghost" sz="sm" onClick={() => handleShiftWeek(1)}>
-            {t.calNext}
-          </Btn>
-          {!isCurrentWeek && (
-            <Btn v="primary" sz="sm" onClick={handleGoToToday}>
-              {t.calToday}
-            </Btn>
-          )}
-        </Row>
-      </Row>
-
-      <div style={{ overflowX: "auto" }}>
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", minWidth: 800, tableLayout: "fixed" }}
-        >
-          <thead>
-            <tr style={{ background: C.lg }}>
-              <th
-                style={{
-                  width: 170,
-                  padding: "12px 10px",
-                  textAlign: "left",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  color: C.sub,
-                  fontSize: "var(--text-xs)",
-                  fontWeight: "var(--weight-bold)",
-                  borderBottom: `2px solid ${C.bd}`,
-                }}
-              >
-                <Truck size={13} aria-hidden="true" /> Trailer
-              </th>
-              {weekDays.map((day) => {
-                const isToday = toLocalDateKey(day) === todayString;
-                return (
-                  <th
-                    key={toLocalDateKey(day)}
-                    style={{
-                      padding: "10px",
-                      textAlign: "center",
-                      color: isToday ? C.blue : C.navy,
-                      fontWeight: "var(--weight-extrabold)",
-                      fontSize: "var(--text-sm)",
-                      borderBottom: isToday ? `3px solid ${C.blue}` : `2px solid ${C.bd}`,
-                      background: isToday ? "rgba(27, 82, 184, 0.03)" : "transparent",
-                    }}
-                  >
-                    <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
-                    <Text size="md" style={{ marginTop: 2 }}>
-                      {day.getDate()}
-                    </Text>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-
-          <tbody>
-            {trailerRows.map((trailer) => (
-              <tr key={trailer.id} style={{ borderBottom: `1px solid ${C.lg}` }}>
-                <td
-                  style={{
-                    padding: "14px 10px",
-                    verticalAlign: "middle",
-                    borderRight: `1px solid ${C.lg}`,
-                  }}
+            {weekDays.map((day) => {
+              const dayKey = toLocalDateKey(day);
+              const dayBookings = bookingsByDateAndTrailer[dayKey]?.[trailer.id] || [];
+              return (
+                <DayCell
+                  key={dayKey}
+                  cellKey={`${trailer.id}::${dayKey}`}
+                  dragOver={dragOverKey}
+                  setDragOver={setDragOverKey}
+                  isToday={dayKey === todayString}
+                  disabled={!canEdit}
+                  onDrop={() => handleDropOnCell(dayKey, trailer.id)}
                 >
-                  <Text size="base" weight="bold" color={C.navy}>
-                    {trailer.name}
-                  </Text>
-                  <Muted size="2xs" style={{ marginTop: 2 }}>
-                    #{trailer.plate || "—"}
-                  </Muted>
-                </td>
+                  {dayBookings.map((b) => (
+                    <BookingCard key={b.id} booking={b} />
+                  ))}
+                  {dayBookings.length > 1 && (
+                    <ConflictNote>{dayBookings.length} jobs — double-booked</ConflictNote>
+                  )}
+                </DayCell>
+              );
+            })}
+          </WeekRow>
+        ))}
 
-                {weekDays.map((day) => {
-                  const dayKey = toLocalDateKey(day);
-                  const isToday = dayKey === todayString;
-                  const dayBookings = bookingsByDateAndTrailer[dayKey]?.[trailer.id] || [];
-                  const isDoubleBooked = dayBookings.length > 1;
-                  const cellKey = `${trailer.id}::${dayKey}`;
-                  const isDragOver = dragOverKey === cellKey;
-
-                  return (
-                    <td
-                      key={dayKey}
-                      onDragOver={(e) => {
-                        if (canEdit) {
-                          e.preventDefault();
-                          setDragOverKey(cellKey);
-                        }
-                      }}
-                      onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
-                      onDrop={(e) => {
-                        if (canEdit) {
-                          e.preventDefault();
-                          handleDropOnCell(dayKey, trailer.id);
-                        }
-                      }}
-                      style={{
-                        padding: "6px",
-                        verticalAlign: "top",
-                        background: isDragOver
-                          ? "rgba(27, 82, 184, 0.12)"
-                          : isToday
-                            ? "rgba(27, 82, 184, 0.01)"
-                            : "transparent",
-                        outline: isDragOver ? `2px dashed ${C.blue}` : "none",
-                        outlineOffset: -2,
-                        borderRight: `1px solid ${C.lg}`,
-                        height: 90,
-                      }}
-                    >
-                      <Stack gap={2}>
-                        {dayBookings.map((b) => (
-                          <BookingCard key={b.id} booking={b} />
-                        ))}
-                        {isDoubleBooked && (
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 4,
-                              fontSize: "var(--text-2xs)",
-                              fontWeight: "var(--weight-bold)",
-                              color: C.rd,
-                              background: C.rB,
-                              padding: "2px 6px",
-                              borderRadius: "var(--radius-xs)",
-                              textAlign: "center",
-                            }}
-                          >
-                            <AlertTriangle size={10} aria-hidden="true" /> {dayBookings.length} jobs
-                            — double-booked
-                          </div>
-                        )}
-                      </Stack>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-
-            {trailerRows.length === 0 && (
-              <tr>
-                <td
-                  colSpan={8}
-                  style={{
-                    padding: 32,
-                    textAlign: "center",
-                    color: C.sub,
-                    fontSize: "var(--text-base)",
-                    fontStyle: "italic",
-                  }}
-                >
-                  {t.tcNoTrailers}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+        {trailerRows.length === 0 && <EmptyWeekRow>{t.tcNoTrailers}</EmptyWeekRow>}
+      </WeekTable>
     </Card>
   );
 }

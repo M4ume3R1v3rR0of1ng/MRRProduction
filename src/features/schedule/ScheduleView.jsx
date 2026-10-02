@@ -21,6 +21,9 @@ import {
   Stack,
   Text,
   Muted,
+  StatusDot,
+  Eyebrow,
+  Callout,
 } from "@/shared/components/UIPrimitives";
 import { translations } from "@/shared/utils/translations";
 
@@ -103,18 +106,16 @@ export default function ScheduleView({
             <Btn v="ghost" sz="sm" onClick={() => step(-1)} aria-label={t.schPrevMonth}>
               ←
             </Btn>
-            <span
-              style={{
-                minWidth: 148,
-                textAlign: "center",
-                fontFamily: "var(--font-display)",
-                fontWeight: "var(--weight-extrabold)",
-                fontSize: "var(--text-lg)",
-                color: C.navy,
-              }}
+            <Text
+              as="span"
+              size="lg"
+              weight="extrabold"
+              color={C.navy}
+              font="display"
+              style={{ minWidth: 148, textAlign: "center" }}
             >
               {MONTH_NAMES[cursor.month]} {cursor.year}
-            </span>
+            </Text>
             <Btn v="ghost" sz="sm" onClick={() => step(1)} aria-label={t.schNextMonth}>
               →
             </Btn>
@@ -128,47 +129,23 @@ export default function ScheduleView({
       />
 
       {/* ── legend ── */}
-      <div
-        className="sw-wrap"
-        style={{
-          marginBottom: 12,
-          fontSize: "var(--text-2xs)",
-          color: C.sub,
-          alignItems: "center",
-        }}
-      >
-        <span>
-          <span
-            style={{
-              display: "inline-block",
-              width: 9,
-              height: 9,
-              borderRadius: 2,
-              background: C.gr,
-              marginRight: 5,
-            }}
-          />
+      <Muted size="2xs" className="sw-wrap" style={{ marginBottom: 12, alignItems: "center" }}>
+        <Row inline as="span" gap="5px">
+          <StatusDot color={C.gr} size={9} />
           {t.schLegendJob}
-        </span>
-        <span>
-          <span
-            style={{
-              display: "inline-block",
-              width: 9,
-              height: 9,
-              borderRadius: 2,
-              background: C.pu,
-              marginRight: 5,
-            }}
-          />
+        </Row>
+        <Row inline as="span" gap="5px">
+          <StatusDot color={C.pu} size={9} />
           {t.schLegendShop}
-        </span>
+        </Row>
         <span>{t.schLegendTrailers}</span>
         <Text as="span" color={C.am}>
           {t.schLegendConflict}
         </Text>
-        <span style={{ opacity: 0.55 }}>{t.schLegendFaded}</span>
-      </div>
+        <Text as="span" style={{ opacity: 0.55 }}>
+          {t.schLegendFaded}
+        </Text>
+      </Muted>
 
       {/* ── month grid ── */}
       <div className="sw-table-scroll">
@@ -182,20 +159,12 @@ export default function ScheduleView({
             }}
           >
             {WEEKDAY_SHORT.map((d) => (
-              <div
+              <Eyebrow
                 key={d}
-                style={{
-                  textAlign: "center",
-                  fontSize: "var(--text-2xs)",
-                  fontWeight: "var(--weight-extrabold)",
-                  color: C.sub,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                  padding: "4px 0",
-                }}
+                style={{ textAlign: "center", fontSize: "var(--text-2xs)", padding: "4px 0" }}
               >
                 {d}
-              </div>
+              </Eyebrow>
             ))}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 3 }}>
@@ -344,27 +313,19 @@ export default function ScheduleView({
           wide
         >
           {openDay.conflicts.length > 0 && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 7,
-                background: C.aB,
-                border: `1px solid ${C.am}`,
-                borderRadius: "var(--radius-md)",
-                padding: "9px 12px",
-                marginBottom: 14,
-                fontSize: "var(--text-sm)",
-                color: C.am,
-                fontWeight: "var(--weight-bold)",
-              }}
+            <Callout
+              tone="warn"
+              bordered
+              icon={AlertTriangle}
+              pad="9px 12px"
+              size="sm"
+              weight="bold"
+              color={C.am}
+              style={{ marginBottom: 14 }}
             >
-              <AlertTriangle size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
-              <span>
-                {openDay.conflicts.join(", ")} {openDay.conflicts.length > 1 ? "are" : "is"} booked
-                out and due in the shop on this day.
-              </span>
-            </div>
+              {openDay.conflicts.join(", ")} {openDay.conflicts.length > 1 ? "are" : "is"} booked
+              out and due in the shop on this day.
+            </Callout>
           )}
 
           {openDay.jobs.length > 0 && (
@@ -381,49 +342,41 @@ export default function ScheduleView({
                 {openDay.jobs.map((j) => {
                   const st = jSC[j.status] || { c: "gray", l: j.status };
                   return (
-                    <button
+                    <Callout
+                      as="button"
+                      type="button"
                       key={j.id}
                       onClick={() => {
                         setDayOpen(null);
                         onNav?.("buildjobs");
                       }}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: "var(--space-4)",
-                        background: C.lg,
-                        border: "none",
-                        borderRadius: "var(--radius-md)",
-                        padding: "10px 12px",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        font: "inherit",
-                        width: "100%",
-                      }}
+                      pad="10px 12px"
+                      style={{ width: "100%" }}
                     >
-                      <div style={{ minWidth: 0 }}>
-                        <Text size="md" weight="bold" color={C.navy}>
-                          {j.title}
-                        </Text>
-                        <Muted size="2xs">
-                          {j.po || "No PO"}
-                          {j.supervisor ? ` · ${j.supervisor}` : ""}
-                          {j.trailers.length > 0 && (
-                            <>
-                              {" · "}
-                              <Truck
-                                size={10}
-                                style={{ verticalAlign: -1 }}
-                                aria-hidden="true"
-                              />{" "}
-                              {j.trailers.join(", ")}
-                            </>
-                          )}
-                        </Muted>
-                      </div>
-                      <Bdg color={st.c}>{st.l}</Bdg>
-                    </button>
+                      <Row gap={4} justify="space-between">
+                        <Stack gap={0} style={{ minWidth: 0 }}>
+                          <Text size="md" weight="bold" color={C.navy}>
+                            {j.title}
+                          </Text>
+                          <Muted size="2xs">
+                            {j.po || "No PO"}
+                            {j.supervisor ? ` · ${j.supervisor}` : ""}
+                            {j.trailers.length > 0 && (
+                              <>
+                                {" · "}
+                                <Truck
+                                  size={10}
+                                  style={{ verticalAlign: -1 }}
+                                  aria-hidden="true"
+                                />{" "}
+                                {j.trailers.join(", ")}
+                              </>
+                            )}
+                          </Muted>
+                        </Stack>
+                        <Bdg color={st.c}>{st.l}</Bdg>
+                      </Row>
+                    </Callout>
                   );
                 })}
               </Stack>
@@ -442,48 +395,40 @@ export default function ScheduleView({
               </Text>
               <Stack gap={2}>
                 {openDay.maint.map((m) => (
-                  <button
+                  <Callout
+                    as="button"
+                    type="button"
                     key={m.id}
                     onClick={() => {
                       setDayOpen(null);
                       onNav?.("requests");
                     }}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "var(--space-4)",
-                      background: C.lg,
-                      border: "none",
-                      borderRadius: "var(--radius-md)",
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      font: "inherit",
-                      width: "100%",
-                    }}
+                    pad="10px 12px"
+                    style={{ width: "100%" }}
                   >
-                    <div style={{ minWidth: 0 }}>
-                      <Row
-                        gap="5px"
-                        style={{
-                          fontWeight: "var(--weight-bold)",
-                          color: C.navy,
-                          fontSize: "var(--text-md)",
-                        }}
-                      >
-                        <Wrench size={12} aria-hidden="true" /> {m.vehicle}
-                      </Row>
-                      <Muted size="2xs">{m.issue}</Muted>
-                    </div>
-                    {m.finished ? (
-                      <Bdg color="green">{t.schDone}</Bdg>
-                    ) : m.urgency === "high" ? (
-                      <Bdg color="red">{t.schUrgent}</Bdg>
-                    ) : (
-                      <Bdg color="gray">{t.schScheduled}</Bdg>
-                    )}
-                  </button>
+                    <Row gap={4} justify="space-between">
+                      <Stack gap={0} style={{ minWidth: 0 }}>
+                        <Row
+                          gap="5px"
+                          style={{
+                            fontWeight: "var(--weight-bold)",
+                            color: C.navy,
+                            fontSize: "var(--text-md)",
+                          }}
+                        >
+                          <Wrench size={12} aria-hidden="true" /> {m.vehicle}
+                        </Row>
+                        <Muted size="2xs">{m.issue}</Muted>
+                      </Stack>
+                      {m.finished ? (
+                        <Bdg color="green">{t.schDone}</Bdg>
+                      ) : m.urgency === "high" ? (
+                        <Bdg color="red">{t.schUrgent}</Bdg>
+                      ) : (
+                        <Bdg color="gray">{t.schScheduled}</Bdg>
+                      )}
+                    </Row>
+                  </Callout>
                 ))}
               </Stack>
             </>

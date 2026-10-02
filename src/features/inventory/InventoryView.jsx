@@ -22,6 +22,10 @@ import {
   Row,
   Muted,
   Text,
+  Tabs,
+  Stack,
+  Card,
+  Meter,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -246,34 +250,16 @@ export default function InventoryView({
           every permission to true (see getEffectivePerms), so it always appears
           for them. Hiding the tab is presentation only — canEdit inside the tab
           still gates the writes. */}
-      <Row gap={2} align="stretch" style={{ marginBottom: 16, borderBottom: `2px solid ${C.bd}` }}>
-        {[
-          ["catalog", Grid3x3, t.invTabCatalog, t.invTabCatalogHint],
-          ...(perms.inv_count ? [["count", Calculator, t.invTabCount, t.invTabCountHint]] : []),
-        ].map(([k, Icon, label, hint]) => (
-          <button
-            key={k}
-            onClick={() => setTab(k)}
-            title={hint}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "8px 14px",
-              fontSize: "var(--text-sm)",
-              fontWeight: "var(--weight-extrabold)",
-              color: tab === k ? C.navy : C.sub,
-              borderBottom: tab === k ? `3px solid ${C.gold}` : "3px solid transparent",
-              marginBottom: -2,
-            }}
-          >
-            <Icon size={14} aria-hidden="true" /> {label}
-          </button>
-        ))}
-      </Row>
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: "catalog", icon: Grid3x3, label: t.invTabCatalog, title: t.invTabCatalogHint },
+          ...(perms.inv_count
+            ? [{ id: "count", icon: Calculator, label: t.invTabCount, title: t.invTabCountHint }]
+            : []),
+        ]}
+      />
 
       {/* Checked again here, not just on the tab button. Someone whose permission
           is revoked while sitting on the count tab would otherwise keep the sheet
@@ -291,14 +277,9 @@ export default function InventoryView({
       ) : (
         <>
           <Row gap={4} align="stretch" wrap style={{ marginBottom: 14 }}>
-            <div style={{ position: "relative", flex: 1, minWidth: 160, maxWidth: 300 }}>
-              <Search
-                size={13}
-                color={C.sub}
-                style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }}
-                aria-hidden="true"
-              />
+            <Stack gap={0} style={{ flex: 1, minWidth: 160, maxWidth: 300 }}>
               <Inp
+                prefix={<Search size={13} />}
                 placeholder={t.searchInventory || "Search items..."}
                 value={srch}
                 onChange={(e) => {
@@ -307,9 +288,8 @@ export default function InventoryView({
                     setInventorySearchQuery(e.target.value);
                   }
                 }}
-                style={{ width: "100%", paddingLeft: 28 }}
               />
-            </div>
+            </Stack>
             <Sel value={cat} onChange={(e) => setCat(e.target.value)} style={{ width: "auto" }}>
               {cats.map((c) => (
                 <option key={c} value={c}>
@@ -387,20 +367,19 @@ export default function InventoryView({
               const stockStatus = getStockStatusMeta(stock, item.alrt);
 
               return (
-                <div
+                <Card
                   key={item.id}
-                  className="mrr-card-click"
+                  variant="raised"
+                  pad="none"
+                  containsActions
                   onClick={() => {
                     setSel(item);
                     setModal("detail");
                   }}
                   style={{
-                    background: C.w,
-                    borderRadius: "var(--radius-xl)",
                     overflow: "hidden",
-                    boxShadow: "var(--shadow-sm)",
-                    border: item.special ? `2px solid ${C.gold}` : `2px solid ${stockStatus.color}`, // Dynamic border accent tracking stock state
-                    cursor: "pointer",
+                    // Border tracks stock state; gold overrides it for a starred item.
+                    border: item.special ? `2px solid ${C.gold}` : `2px solid ${stockStatus.color}`,
                     position: "relative",
                   }}
                 >
@@ -471,19 +450,18 @@ export default function InventoryView({
                     <div style={{ height: 6, background: stockStatus.color }} />
                   )}
 
-                  <div style={{ padding: 14 }}>
+                  <Stack gap={0} style={{ padding: 14 }}>
                     <Row
                       gap={0}
                       align="flex-start"
-                      style={{ justifyGroup: "space-between", marginBottom: 8 }}
+                      justify="space-between"
+                      style={{ marginBottom: 8 }}
                     >
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
                         {!photo && (
-                          <div
+                          <Row
+                            gap={1}
                             style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 4,
                               fontSize: "var(--text-2xs)",
                               fontWeight: "var(--weight-extrabold)",
                               color: stockStatus.color,
@@ -492,22 +470,13 @@ export default function InventoryView({
                             }}
                           >
                             {stockStatus.dot} {stockStatus.label}
-                          </div>
+                          </Row>
                         )}
-                        <div
-                          style={{
-                            fontWeight: "var(--weight-extrabold)",
-                            color: C.navy,
-                            fontSize: "var(--text-base)",
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
+                        <Text size="base" weight="extrabold" color={C.navy} truncate>
                           {item.name}
-                        </div>
+                        </Text>
                         <Muted>{item.cat}</Muted>
-                      </div>
+                      </Stack>
                       {stockStatus.critical && (
                         <AlertOctagon
                           size={15}
@@ -529,43 +498,35 @@ export default function InventoryView({
                         — which leaves the negative in place and the next job
                         costed against stock that was never there. */}
                         {stockStatus.negative && (
-                          <div
-                            style={{
-                              fontSize: "var(--text-2xs)",
-                              color: STOCK_RED,
-                              fontWeight: "var(--weight-bold)",
-                              marginTop: 2,
-                              maxWidth: 150,
-                              lineHeight: 1.3,
-                            }}
+                          <Text
+                            size="2xs"
+                            weight="bold"
+                            color={STOCK_RED}
+                            style={{ marginTop: 2, maxWidth: 150, lineHeight: 1.3 }}
                           >
                             {t.invNegativeHint}
-                          </div>
+                          </Text>
                         )}
                       </div>
                       {perms.inv_pricing_view ? (
-                        <div style={{ textAlign: "right" }}>
+                        <Stack gap={0} style={{ textAlign: "right" }}>
                           <Text size="base" weight="extrabold" color={C.blue}>
                             {fm(newestPrice(item))}
                           </Text>
                           <Muted size="2xs">per {item.unit?.replace(/s$/, "") || "unit"}</Muted>
-                        </div>
+                        </Stack>
                       ) : (
                         <Muted>{t.invPricingRestricted}</Muted>
                       )}
                     </Row>
 
                     {!photo && (
-                      <div style={{ marginTop: 8, height: 4, background: C.lg, borderRadius: 2 }}>
-                        <div
-                          style={{
-                            height: "100%",
-                            background: stockStatus.color,
-                            borderRadius: 2,
-                            width: `${Math.min(100, (stock / (item.alrt * 3 || 1)) * 100)}%`,
-                          }}
-                        />
-                      </div>
+                      <Meter
+                        value={stock / (item.alrt * 3 || 1)}
+                        color={stockStatus.color}
+                        height={4}
+                        style={{ marginTop: 8 }}
+                      />
                     )}
 
                     <Row
@@ -582,8 +543,8 @@ export default function InventoryView({
                         {(item.batches || []).length !== 1 ? "es" : ""}
                       </span>
                     </Row>
-                  </div>
-                </div>
+                  </Stack>
+                </Card>
               );
             })}
           </CardGrid>

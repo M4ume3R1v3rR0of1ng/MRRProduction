@@ -140,13 +140,21 @@ export function Callout({
   ...rest
 }) {
   const t = CALLOUT_TONE[tone];
+  // As a real <button> (a tappable row in a list) it needs the browser's button
+  // border, font and centring taken off, and no second keyboard handler.
+  const native = Tag === "button";
   return (
     <Tag
       style={{
+        ...(native ? { font: "inherit", textAlign: "left", border: "none" } : {}),
         background: t.bg,
         // Neutral wells were drawn with a hairline, tinted notices with a
         // heavier tone-colored edge; keeping both weights keeps both reads.
-        border: bordered ? `${tone === "neutral" ? 1 : 1.5}px solid ${t.line}` : undefined,
+        border: bordered
+          ? `${tone === "neutral" ? 1 : 1.5}px solid ${t.line}`
+          : native
+            ? "none"
+            : undefined,
         borderRadius: "var(--radius-md)",
         padding: CALLOUT_PAD[pad] ?? space(pad),
         color,
@@ -156,7 +164,7 @@ export function Callout({
         cursor: onClick ? "pointer" : undefined,
         ...style,
       }}
-      {...clickable(onClick, containsActions)}
+      {...clickable(onClick, containsActions || native)}
       {...rest}
     >
       {Icon ? (

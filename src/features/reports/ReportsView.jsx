@@ -21,6 +21,9 @@ import {
   Table,
   Callout,
   Card,
+  Meter,
+  TextBtn,
+  Tabs,
 } from "@/shared/components/UIPrimitives"; // Added Modal wrapper primitives
 import { useNotify } from "@/shared/context/NotificationContext";
 // One CSV writer for the app. The local copy this replaced wrapped every field
@@ -176,24 +179,16 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
       {/* Two disclosures the old report needed and never carried. Neither is
           decoration: without the first, margin reads as whole-job profit; without
           the second, an owner assumes the total covers every job. */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 7,
-          background: C.aB,
-          border: "1.5px solid " + C.am,
-          borderRadius: "var(--radius-md)",
-          padding: "10px 14px",
-          marginBottom: 14,
-          fontSize: "var(--text-sm)",
-          color: C.navy,
-          lineHeight: 1.5,
-        }}
+      <Callout
+        tone="warn"
+        bordered
+        icon={AlertTriangle}
+        size="sm"
+        color={C.navy}
+        style={{ marginBottom: 14, lineHeight: 1.5 }}
       >
-        <AlertTriangle size={14} style={{ marginTop: 2, flexShrink: 0 }} aria-hidden="true" />
-        <span>{t.rptMaterialsOnlyNote}</span>
-      </div>
+        {t.rptMaterialsOnlyNote}
+      </Callout>
 
       {canSeeRevenue && summary.unpricedCount > 0 && (
         <Callout size="sm" color={C.sub} style={{ marginBottom: 14 }}>
@@ -325,12 +320,14 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
           })}
           {completedJobs.length === 0 && (
             <tr>
-              <td
+              <Text
+                as="td"
                 colSpan={canSeeRevenue ? 8 : 5}
-                style={{ padding: 24, textAlign: "center", color: C.sub }}
+                color={C.sub}
+                style={{ padding: 24, textAlign: "center" }}
               >
                 {t.rptNoCompletedLines}
-              </td>
+              </Text>
             </tr>
           )}
         </tbody>
@@ -663,24 +660,10 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                       {fm(v.totalRepairInvestment)}
                     </Text>
                   </Row>
-                  <div
-                    style={{
-                      width: "100%",
-                      height: 6,
-                      background: C.lg,
-                      borderRadius: 3,
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: `${barPercent}%`,
-                        height: "100%",
-                        background: v.totalRepairInvestment > 2500 ? C.rd : C.blue,
-                        borderRadius: 3,
-                      }}
-                    />
-                  </div>
+                  <Meter
+                    value={barPercent / 100}
+                    color={v.totalRepairInvestment > 2500 ? C.rd : C.blue}
+                  />
                 </div>
               );
             })}
@@ -724,17 +707,14 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                 </Row>
               ))}
             {fleetMetrics.filter((v) => v.isOilOverdue || v.isDetailOverdue).length === 0 && (
-              <div
-                style={{
-                  textAlign: "center",
-                  color: C.gr,
-                  fontSize: "var(--text-sm)",
-                  fontWeight: "var(--weight-bold)",
-                  padding: "20px 0",
-                }}
+              <Text
+                size="sm"
+                weight="bold"
+                color={C.gr}
+                style={{ textAlign: "center", padding: "20px 0" }}
               >
                 {t.rptAllCompliant}
-              </div>
+              </Text>
             )}
           </Stack>
         </Card>
@@ -811,15 +791,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
       </Card>
 
       {/* ── HISTORICAL VEHICLE INSPECTION LOOPS LIST CANVA PIPELINE ── */}
-      <div
-        style={{
-          background: C.w,
-          padding: 20,
-          borderRadius: "var(--radius-xl)",
-          boxShadow: "var(--shadow-sm)",
-          border: `1px solid ${C.lg}`,
-        }}
-      >
+      <Card variant="raised" pad={8} style={{ border: `1px solid ${C.lg}` }}>
         <Text
           as="h3"
           weight="extrabold"
@@ -844,110 +816,95 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
           </Callout>
         ) : (
           /* ── SCROLL CONTAINER BOUNDARY CONTROLLER ── */
-          <div
+          <Stack
+            gap={4}
             style={{
               maxHeight: "380px",
               overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--space-4)",
               paddingRight: 4,
               scrollbarWidth: "thin",
             }}
           >
             {inspections.map((log) => (
-              <div
+              <Callout
                 key={log.id}
+                pad={6}
                 style={{
-                  background: "var(--c-subtle)",
                   borderRadius: "var(--radius-lg)",
-                  padding: 14,
                   borderLeft: `4px solid ${log.photos?.length > 0 ? "var(--c-slate)" : "var(--c-line)"}`,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: "var(--space-7)",
-                  flexWrap: "wrap",
                 }}
               >
-                <div style={{ flex: 1, minWidth: 240 }}>
-                  <Row wrap style={{ marginBottom: 4 }}>
-                    <Text as="span" size="base" weight="extrabold" color={C.navy}>
-                      {log.vehicle_name}
-                    </Text>
-                    <Muted as="span">· {new Date(log.created_at).toLocaleDateString()}</Muted>
-                  </Row>
-                  <Text
-                    as="p"
-                    size="base"
-                    color="var(--c-barnwood)"
-                    style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
-                  >
-                    {log.notes || (
-                      <Text as="span" color={C.sub} style={{ fontStyle: "italic" }}>
-                        {t.rptNoNotes}
+                <Row gap={7} align="flex-start" justify="space-between" wrap>
+                  <Stack gap={0} style={{ flex: 1, minWidth: 240 }}>
+                    <Row wrap style={{ marginBottom: 4 }}>
+                      <Text as="span" size="base" weight="extrabold" color={C.navy}>
+                        {log.vehicle_name}
                       </Text>
-                    )}
-                  </Text>
-                  <Text size="xs" weight="semibold" color={C.sub}>
-                    {t.rptInspector}{" "}
-                    <Text as="span" color={C.navy}>
-                      {log.inspector_name}
+                      <Muted as="span">· {new Date(log.created_at).toLocaleDateString()}</Muted>
+                    </Row>
+                    <Text
+                      as="p"
+                      size="base"
+                      color="var(--c-barnwood)"
+                      style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
+                    >
+                      {log.notes || (
+                        <Text as="span" color={C.sub} style={{ fontStyle: "italic" }}>
+                          {t.rptNoNotes}
+                        </Text>
+                      )}
                     </Text>
-                  </Text>
-                </div>
+                    <Text size="xs" weight="semibold" color={C.sub}>
+                      {t.rptInspector}{" "}
+                      <Text as="span" color={C.navy}>
+                        {log.inspector_name}
+                      </Text>
+                    </Text>
+                  </Stack>
 
-                {/* Picture Array Thumbnails Box */}
-                {log.photos && log.photos.length > 0 && (
-                  <Row gap={2} align="stretch" wrap>
-                    {log.photos.map((pic, idx) => (
-                      <img
-                        key={idx}
-                        src={pic}
-                        alt={t.rptInspThumbAlt}
-                        onClick={() => setLightboxPic(pic)}
-                        style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: "var(--radius-sm)",
-                          objectFit: "cover",
-                          cursor: "pointer",
-                          border: "1px solid var(--c-line)",
-                        }}
-                        title={t.rptExpandImage}
-                      />
-                    ))}
-                  </Row>
-                )}
+                  {/* Picture Array Thumbnails Box */}
+                  {log.photos && log.photos.length > 0 && (
+                    <Row gap={2} align="stretch" wrap>
+                      {log.photos.map((pic, idx) => (
+                        <img
+                          key={idx}
+                          src={pic}
+                          alt={t.rptInspThumbAlt}
+                          onClick={() => setLightboxPic(pic)}
+                          style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: "var(--radius-sm)",
+                            objectFit: "cover",
+                            cursor: "pointer",
+                            border: "1px solid var(--c-line)",
+                          }}
+                          title={t.rptExpandImage}
+                        />
+                      ))}
+                    </Row>
+                  )}
 
-                <button
-                  onClick={() => handleDeleteInspection(log.id, log.vehicle_name)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: C.rd,
-                    cursor: "pointer",
-                    padding: "4px 8px",
-                    display: "flex",
-                    alignItems: "center",
-                    transition: "opacity 0.2s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-                  title={t.rptDeleteInspTitle}
-                >
-                  <Trash2 size={15} aria-hidden="true" />
-                </button>
-              </div>
+                  <TextBtn
+                    onClick={() => handleDeleteInspection(log.id, log.vehicle_name)}
+                    color={C.rd}
+                    title={t.rptDeleteInspTitle}
+                    aria-label={t.rptDeleteInspTitle}
+                    style={{ padding: "4px 8px", display: "flex" }}
+                  >
+                    <Trash2 size={15} aria-hidden="true" />
+                  </TextBtn>
+                </Row>
+              </Callout>
             ))}
-          </div>
+          </Stack>
         )}
-      </div>
+      </Card>
 
       {/* Lightbox Canvas Overlay Component */}
       {lightboxPic && (
         <Modal title={t.rptFullResTitle} onClose={() => setLightboxPic(null)} wide>
-          <div style={{ textAlign: "center", padding: 4 }}>
+          <Stack gap={0} align="center" style={{ padding: 4 }}>
             <img
               src={lightboxPic}
               alt={t.rptCondFullView}
@@ -966,7 +923,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
             >
               {t.rptCloseReview}
             </Btn>
-          </div>
+          </Stack>
         </Modal>
       )}
     </Stack>
@@ -1049,7 +1006,7 @@ function AuditTrailReport({ t, companyId }) {
           <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
             {t.rptAuditTitle}
           </Text>
-          <div style={{ marginTop: 8 }}>
+          <Stack gap={0} style={{ marginTop: 8 }}>
             <Sel
               value={actionTypeFilter}
               onChange={(e) => setActionTypeFilter(e.target.value)}
@@ -1065,7 +1022,7 @@ function AuditTrailReport({ t, companyId }) {
                 </option>
               ))}
             </Sel>
-          </div>
+          </Stack>
         </div>
         <Btn v="green" sz="sm" onClick={handleExportAuditExcel}>
           <Download size={13} aria-hidden="true" /> {t.rptExportAudit}
@@ -1190,57 +1147,22 @@ export default function Reports({
           style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
         />
         {perms.inv_pricing_view && (
-          <div
-            style={{
-              background: C.w,
-              borderRadius: "var(--radius-xl)",
-              padding: 14,
-              borderLeft: `5px solid ${C.gr}`,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-              flex: 1,
-              minWidth: 200,
-            }}
-          >
-            <Text size="2xl" weight="black" color={C.gr}>
-              {fm(historicalTotalMaterialSpend)}
-            </Text>
-            <Muted style={{ marginTop: 3 }}>{t.rptTotalProcurement}</Muted>
-          </div>
+          <StatTile
+            variant="borderLeft"
+            color={C.gr}
+            value={fm(historicalTotalMaterialSpend)}
+            label={t.rptTotalProcurement}
+            style={{ minWidth: 200 }}
+          />
         )}
       </Row>
 
-      <Row
-        gap={4}
-        align="stretch"
-        wrap
-        style={{ borderBottom: `1px solid ${C.lg}`, paddingBottom: 12, marginBottom: 20 }}
-      >
-        {tabOptions.map((tab) => {
-          const active = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-2)",
-                padding: "8px 16px",
-                borderRadius: 20,
-                border: "none",
-                fontSize: "var(--text-base)",
-                fontWeight: "var(--weight-bold)",
-                cursor: "pointer",
-                backgroundColor: active ? "var(--c-slate)" : "transparent",
-                color: active ? "var(--c-on-accent)" : "var(--c-barnwood)",
-                transition: "all 0.2s",
-              }}
-            >
-              <tab.icon size={15} aria-hidden="true" /> {tab.label}
-            </button>
-          );
-        })}
-      </Row>
+      <Tabs
+        tabs={tabOptions}
+        value={activeTab}
+        onChange={setActiveTab}
+        style={{ marginBottom: 20 }}
+      />
 
       <div>
         {activeTab === "Jobs" && (
