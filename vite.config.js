@@ -1,8 +1,71 @@
 import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { prerenderPublicPages } from "./scripts/prerender-public.mjs";
+
+// Writes per-route HTML for the public pages and a real 404 page after the web
+// build; see scripts/prerender-public.mjs. A plugin rather than a step in the npm
+// script so it runs whatever build command Netlify's UI is set to. Skipped for
+// the iOS build, which must never ship the landing page (it shows prices).
+let resolvedConfig;
+const prerender = {
+  name: "prerender-public-pages",
+  apply: (_config, env) => env.command === "build" && env.mode !== "ios",
+  configResolved(config) {
+    resolvedConfig = config;
+  },
+  async closeBundle() {
+    const { root, build } = resolvedConfig;
+    await prerenderPublicPages(root, resolve(root, build.outDir));
+  },
+};
+
+// Named chunks for build.rollupOptions.output.codeSplitting below.
+function chunkName(id) {
+  // Kept OUT of the main pdf-vendor chunk on purpose: jsPDF imports these
+  // lazily and only from its .html() and addSvgAsImage() renderers, which this
+  // app never calls. In their own chunk they are emitted but never fetched;
+  // folded in with jsPDF they would add ~340KB to every report upload.
+  // canvg's own dependencies are listed because with includeDependenciesRecursively
+  // off (see codeSplitting below) they aren't pulled in automatically.
+  if (
+    /node_modules[\\/](html2canvas|dompurify|canvg|raf|performance-now|rgbcolor|svg-pathdata|stackblur-canvas)[\\/]/.test(
+      id,
+    )
+  )
+    return "pdf-vendor-html";
+  // jsPDF plus its runtime dependencies, named explicitly for the same reason.
+  if (
+    /node_modules[\\/](jspdf|jspdf-autotable|core-js|@babel[\\/]runtime|fflate|fast-png|iobuffer|pako)[\\/]/.test(
+      id,
+    )
+  )
+    return "pdf-vendor";
+
+  // Every view is already lazy, so what was left in the entry chunk was
+  // almost entirely two dependencies that never change between deploys:
+  // the Supabase client (~690KB raw, auth-js alone is half of it) and
+  // React. Folded into the entry they were re-downloaded in full on every
+  // release, because the entry hash changes whenever any app code does.
+  //
+  // Split out, they keep their hash across deploys and stay in cache. Both
+  // are still static imports fetched on first paint, so this trades no
+  // startup latency for it — Vite emits modulepreload for both.
+  //
+  // iceberg-js is here because it arrives as a dependency of
+  // @supabase/storage-js, not on its own.
+  if (/node_modules[\\/](@supabase[\\/]|iceberg-js)/.test(id)) return "supabase-vendor";
+  // react-router-dom (and its react-router dependency) is imported at the
+  // very top of App.jsx/main.jsx, same as React itself — grouped with
+  // react-vendor for the same reason: it changes on its own release
+  // schedule, not on every app deploy.
+  if (/node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id))
+    return "react-vendor";
+  return null;
+}
 
 export default defineConfig({
   // '@' -> src/, so a moved file's imports don't need recalculating relative
@@ -15,6 +78,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    prerender,
     VitePWA({
       // Ship updates silently — a web app should always run the latest version
       // without asking the user to "reload to update".
@@ -51,7 +115,13 @@ export default defineConfig({
         // on, so precaching them would make every crew on a job-site connection pay
         // for a PDF engine they never open. They still cache normally once fetched.
         // og-image.png is only ever fetched by link-preview scrapers, never by the app.
-        globIgnores: ["**/pdf-vendor-*.js", "og-image.png"],
+        // The prerendered pages are only for crawlers and first visits; offline,
+        // navigateFallback serves index.html for every route anyway.
+        globIgnores: [
+          "**/pdf-vendor-*.js",
+          "og-image.png",
+          "{app,404,terms,privacy,training}.html",
+        ],
         cleanupOutdatedCaches: true,
         // SPA: serve index.html for offline navigations, but never for Netlify
         // functions — those must hit the network.
@@ -129,37 +199,16 @@ export default defineConfig({
         // can exclude them from the precache by name (see globIgnores above).
         // html2canvas/dompurify are optional jsPDF deps used only by its .html()
         // renderer, which this app never calls — they get emitted, never fetched.
-        manualChunks(id) {
-          // Kept OUT of the main pdf-vendor chunk on purpose: jsPDF imports these
-          // two lazily and only from its .html() renderer, which this app never
-          // calls. In their own chunk they are emitted but never fetched; folded in
-          // with jsPDF they would add ~230KB to every report upload.
-          if (/node_modules[\\/](html2canvas|dompurify)/.test(id)) return "pdf-vendor-html";
-          if (/node_modules[\\/](jspdf|jspdf-autotable|core-js)/.test(id)) return "pdf-vendor";
-
-          // Every view is already lazy, so what was left in the entry chunk was
-          // almost entirely two dependencies that never change between deploys:
-          // the Supabase client (~690KB raw, auth-js alone is half of it) and
-          // React. Folded into the entry they were re-downloaded in full on every
-          // release, because the entry hash changes whenever any app code does.
-          //
-          // Split out, they keep their hash across deploys and stay in cache. Both
-          // are still static imports fetched on first paint, so this trades no
-          // startup latency for it — Vite emits modulepreload for both.
-          //
-          // iceberg-js is here because it arrives as a dependency of
-          // @supabase/storage-js, not on its own.
-          if (/node_modules[\\/](@supabase[\\/]|iceberg-js)/.test(id)) return "supabase-vendor";
-          // react-router-dom (and its react-router dependency) is imported at the
-          // very top of App.jsx/main.jsx, same as React itself — grouped with
-          // react-vendor for the same reason: it changes on its own release
-          // schedule, not on every app deploy.
-          if (
-            /node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(
-              id,
-            )
-          )
-            return "react-vendor";
+        //
+        // includeDependenciesRecursively: false is load-bearing. Rolldown's default
+        // pulls every dependency of a matched module into its group, and jsPDF
+        // depends on Vite's __vitePreload helper (for its lazy html2canvas import),
+        // so the helper was swallowed into pdf-vendor. Every lazy() view import in
+        // the entry calls that helper, so the entry imported pdf-vendor statically
+        // and every landing-page visitor downloaded ~470KB of PDF engine up front.
+        codeSplitting: {
+          includeDependenciesRecursively: false,
+          groups: [{ name: chunkName }],
         },
       },
     },

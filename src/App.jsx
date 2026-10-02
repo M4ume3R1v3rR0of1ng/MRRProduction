@@ -219,7 +219,13 @@ export default function App() {
   // landing page): that page publishes the subscription rates, and an App Store
   // build that shows a price is an App Store build that owes Apple In-App
   // Purchase. See utils/platform.js.
-  const [loginMode, setLoginMode] = useState("login");
+  //
+  // /login?signup opens straight on the sign-up tab, so "Start free trial" can be
+  // a plain link (the <noscript> copy in index.html, emails, ads). LoginScreen
+  // still pins iOS to "login" whatever this says.
+  const [loginMode, setLoginMode] = useState(() =>
+    searchParams.has("signup") ? "signup" : "login",
+  );
   // Where "← Back" on the Terms page should return to, since it's reachable from
   // both the landing footer and the login disclaimer.
   const [termsReturn, setTermsReturn] = useState("login");

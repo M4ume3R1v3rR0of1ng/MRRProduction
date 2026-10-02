@@ -998,7 +998,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
             <div className="hero-rise">
               <span className="eyebrow">Warehouse &amp; Fleet · Fort Wayne, IN</span>
               <h1>Tools that work<br />as hard as <span className="amb">you do.</span></h1>
-              <p className="hero-sub">Warehouse and fleet software for the crews who run on trucks, materials, and people. Set up in an afternoon. Home by supper.</p>
+              <p className="hero-sub">Inventory and fleet software for roofing and construction crews who run on trucks, materials, and people. Set up in an afternoon. Home by supper.</p>
               <div className="hero-cta">
                 <button className="btn btn-primary btn-lg" type="button" onClick={onStart}>Start your company</button>
                 {/* Still the same recording, just no longer a band on this page.
@@ -1057,7 +1057,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
                 <span className="code">INV</span>
                 <h3>Inventory</h3>
                 <div className="lead">Every roll, every box, counted once.</div>
-                <p>FIFO batches and live low-stock signals that read from green to red across the warehouse in half a second.</p>
+                <p>Know what's in every warehouse and what each job really cost in materials. Stock goes out first-in, first-out, and low-stock signals read from green to red across the warehouse in half a second.</p>
               </div>
               <div className="mini" aria-hidden="true">
                 <div className="mini-row"><span className="mini-k">A-3</span><span className="mini-bar"><i className="ok" style={{ "--w": "84%" }} /></span><span className="mini-v tnum">142</span></div>

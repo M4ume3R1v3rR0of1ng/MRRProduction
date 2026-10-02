@@ -1,8 +1,36 @@
-# Required now that the app has real per-view URLs (react-router-dom's
-# BrowserRouter): a direct hit or a refresh on a deep path like /fleet or
-# /terms has no matching static file, so without this Netlify would 404
-# instead of serving the SPA shell and letting the router take over client-side.
+# Real per-view URLs (react-router-dom's BrowserRouter) mean a direct hit or a
+# refresh on a deep path like /fleet has no matching static file, so each route
+# has to be rewritten to an HTML file explicitly. All rewrites (200), no redirects.
 #
-# Netlify functions at /.netlify/functions/* resolve before falling through to
-# this catch-all and need no explicit exclusion here.
-/*  /index.html  200
+# The public pages get their own prerendered files (scripts/prerender-public.mjs)
+# so crawlers see the right title, canonical and text for each. Every signed-in
+# route and /login get app.html, the plain app shell. "/" needs no rule: it is
+# dist/index.html, the prerendered landing page.
+#
+# There is deliberately no "/* /index.html 200" catch-all any more. It answered
+# made-up paths with a 200 and the home page's content, which Google indexes as a
+# "soft 404". A route missing from this list now gets the 404 page, so a new
+# route in App.jsx needs a line here too.
+#
+# Netlify functions at /.netlify/functions/* resolve before these rules.
+/terms      /terms.html     200
+/privacy    /privacy.html   200
+/training   /training.html  200
+
+/login      /app.html  200
+/dashboard  /app.html  200
+/schedule   /app.html  200
+/buildjobs  /app.html  200
+/pull       /app.html  200
+/inventory  /app.html  200
+/fleet      /app.html  200
+/requests   /app.html  200
+/reports    /app.html  200
+/users      /app.html  200
+/logs       /app.html  200
+/settings   /app.html  200
+/billing    /app.html  200
+/owner      /app.html  200
+/profile    /app.html  200
+
+/*          /404.html  404
