@@ -245,6 +245,7 @@ export function Meter({ value, color, track = C.subtle, height = 6, style }) {
           height: "100%",
           background: color,
           borderRadius: "2px 4px 4px 2px",
+          transition: "width 0.2s ease",
         }}
       />
     </div>

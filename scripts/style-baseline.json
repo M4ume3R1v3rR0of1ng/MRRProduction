@@ -1,6 +1,6 @@
 {
   "src/App.jsx": {
-    "inline": 20,
+    "inline": 9,
     "hex": 3
   },
   "src/features/auth/LoginScreen.jsx": {
@@ -32,7 +32,7 @@
     "hex": 0
   },
   "src/features/dashboard/TeamChatBox.jsx": {
-    "inline": 21,
+    "inline": 2,
     "hex": 0
   },
   "src/features/dashboard/WeatherCard.jsx": {
@@ -108,7 +108,7 @@
     "hex": 0
   },
   "src/features/maintenance/MaintenanceRequestsView.jsx": {
-    "inline": 23,
+    "inline": 2,
     "hex": 0
   },
   "src/features/reports/ReportsView.jsx": {
@@ -124,11 +124,11 @@
     "hex": 0
   },
   "src/features/training/TrainingView.jsx": {
-    "inline": 25,
+    "inline": 7,
     "hex": 3
   },
   "src/features/users/AuditLogView.jsx": {
-    "inline": 23,
+    "inline": 3,
     "hex": 0
   },
   "src/features/users/UserManagementView.jsx": {
@@ -143,8 +143,12 @@
     "inline": 7,
     "hex": 2
   },
+  "src/shared/components/ChatParts.jsx": {
+    "inline": 5,
+    "hex": 0
+  },
   "src/shared/components/ChatWidget.jsx": {
-    "inline": 18,
+    "inline": 7,
     "hex": 0
   },
   "src/shared/components/ErrorBoundary.jsx": {
@@ -172,7 +176,7 @@
     "hex": 9
   },
   "src/shared/layouts/Sidebar.jsx": {
-    "inline": 22,
+    "inline": 15,
     "hex": 0
   }
 }

@@ -1,7 +1,8 @@
 // src/features/dashboard/TeamChatBox.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, RefreshCw, AlertTriangle, Camera, X } from "lucide-react";
+import { MessageSquare, RefreshCw, AlertTriangle } from "lucide-react";
 import { translations } from "@/shared/utils/translations";
+import { ChatBubble, PendingPhoto, ChatComposer } from "@/shared/components/ChatParts";
 import { supabase } from "@/shared/utils/supabase";
 import { C, ft, compressImg } from "@/shared/utils/helpers";
 import {
@@ -12,6 +13,11 @@ import {
   Text,
   Muted,
   TextBtn,
+  Card,
+  SectionTitle,
+  Inp,
+  Callout,
+  PickRow,
 } from "@/shared/components/UIPrimitives";
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -22,18 +28,21 @@ function renderWithMentions(text, names) {
   const parts = text.split(pattern);
   return parts.map((part, i) =>
     names.some((n) => part === `@${n}`) ? (
-      <span
+      <Text
+        as="span"
         key={i}
+        weight="bold"
+        color={C.blue}
         style={{
-          color: C.blue,
-          fontWeight: "var(--weight-bold)",
-          background: "rgba(27,82,184,0.1)",
+          // A wash of the mention's own color — the old rgba() was a fixed light
+          // blue that sat on the dark surface as a bright smear.
+          background: "color-mix(in srgb, var(--c-leather) 10%, transparent)",
           borderRadius: "var(--radius-xs)",
           padding: "0 3px",
         }}
       >
         {part}
-      </span>
+      </Text>
     ) : (
       part
     ),
@@ -261,48 +270,26 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
   };
 
   return (
-    <div
-      style={{
-        background: C.w,
-        borderRadius: "var(--radius-xl)",
-        padding: 20,
-        boxShadow: "var(--shadow-sm)",
-        display: "flex",
-        flexDirection: "column",
-        height: 420,
-      }}
+    <Card
+      variant="raised"
+      pad={8}
+      style={{ display: "flex", flexDirection: "column", height: 420 }}
     >
-      <Row gap={0} justify="space-between" style={{ marginBottom: 12 }}>
-        <h3
-          style={{
-            margin: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            fontSize: "var(--text-lg)",
-            fontWeight: "var(--weight-black)",
-            color: C.navy,
-          }}
-        >
-          <MessageSquare size={17} aria-hidden="true" /> Team Chat
-        </h3>
-        <button
-          onClick={fetchMessages}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 5,
-            background: "none",
-            border: "none",
-            color: C.blue,
-            cursor: "pointer",
-            fontSize: "var(--text-sm)",
-            fontWeight: "var(--weight-bold)",
-          }}
-        >
-          <RefreshCw size={13} aria-hidden="true" /> Refresh
-        </button>
-      </Row>
+      <SectionTitle
+        as="h3"
+        size="lg"
+        icon={MessageSquare}
+        style={{ marginBottom: 12 }}
+        actions={
+          <TextBtn onClick={fetchMessages} size="sm">
+            <Row inline as="span" gap="5px">
+              <RefreshCw size={13} aria-hidden="true" /> Refresh
+            </Row>
+          </TextBtn>
+        }
+      >
+        Team Chat
+      </SectionTitle>
 
       <div
         ref={scrollRef}
@@ -322,24 +309,22 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
         {loading ? (
           <LoadingState label={t.chLoadingMessages} compact />
         ) : messages.length === 0 ? (
-          <p
-            style={{
-              color: C.sub,
-              fontSize: "var(--text-base)",
-              margin: 0,
-              textAlign: "center",
-              padding: "20px 0",
-            }}
+          <Text
+            as="p"
+            size="base"
+            color={C.sub}
+            style={{ margin: 0, textAlign: "center", padding: "20px 0" }}
           >
             {t.chNoMessages}
-          </p>
+          </Text>
         ) : (
           messages.map((m) => {
             const mine = !!(m.user_id && user?.id && m.user_id === user.id);
             const isEditing = editingId === m.id;
             return (
-              <div
+              <Stack
                 key={m.id}
+                gap={0}
                 style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "80%" }}
               >
                 <Text
@@ -353,18 +338,12 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
 
                 {isEditing ? (
                   <Stack gap={2}>
-                    <input
+                    <Inp
                       autoFocus
                       value={editDraft}
                       onChange={(e) => setEditDraft(e.target.value)}
                       onKeyDown={handleEditKeyDown}
-                      style={{
-                        padding: "7px 10px",
-                        border: `1.5px solid ${C.bd}`,
-                        borderRadius: "var(--radius-md)",
-                        fontSize: "var(--text-base)",
-                        boxSizing: "border-box",
-                      }}
+                      style={{ padding: "7px 10px", fontSize: "var(--text-base)" }}
                     />
                     <Row align="stretch" justify="flex-end">
                       <TextBtn
@@ -381,36 +360,14 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
                     </Row>
                   </Stack>
                 ) : (
-                  <div
-                    style={{
-                      background: mine ? C.blue : C.lg,
-                      color: mine ? C.w : C.navy,
-                      borderRadius: "var(--radius-xl)",
-                      borderBottomRightRadius: mine ? 3 : 12,
-                      borderBottomLeftRadius: mine ? 12 : 3,
-                      padding: "8px 12px",
-                      fontSize: "var(--text-base)",
-                      lineHeight: 1.4,
-                      wordBreak: "break-word",
-                    }}
+                  <ChatBubble
+                    mine={mine}
+                    photo={m.photo}
+                    photoAlt={t.chAttachment}
+                    onPhotoClick={() => setLightboxPhoto(m.photo)}
                   >
-                    {m.photo && (
-                      <img
-                        src={m.photo}
-                        alt={t.chAttachment}
-                        onClick={() => setLightboxPhoto(m.photo)}
-                        style={{
-                          display: "block",
-                          maxWidth: "100%",
-                          maxHeight: 160,
-                          borderRadius: "var(--radius-md)",
-                          marginBottom: m.message ? 6 : 0,
-                          cursor: "pointer",
-                        }}
-                      />
-                    )}
                     {m.message && renderWithMentions(m.message, knownNames)}
-                  </div>
+                  </ChatBubble>
                 )}
 
                 {!isEditing && (
@@ -435,153 +392,73 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
                     )}
                   </Row>
                 )}
-              </div>
+              </Stack>
             );
           })
         )}
       </div>
 
       {error && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            color: C.rd,
-            background: C.rB,
-            borderRadius: "var(--radius-md)",
-            padding: "6px 10px",
-            fontSize: "var(--text-sm)",
-            fontWeight: "var(--weight-semibold)",
-            marginBottom: 8,
-          }}
+        <Callout
+          tone="danger"
+          icon={AlertTriangle}
+          pad="6px 10px"
+          size="sm"
+          weight="semibold"
+          color={C.rd}
+          style={{ marginBottom: 8 }}
         >
-          <AlertTriangle size={14} aria-hidden="true" /> {error}
-        </div>
+          {error}
+        </Callout>
       )}
 
       {mentionCandidates.length > 0 && (
-        <div
+        <Card
+          variant="flat"
+          pad="none"
           style={{
-            border: `1.5px solid ${C.bd}`,
+            borderWidth: 1.5,
             borderRadius: "var(--radius-md)",
             marginBottom: 8,
             overflow: "hidden",
-            background: C.w,
-            boxShadow: "0 4px 10px rgba(0,0,0,0.08)",
+            boxShadow: "var(--shadow-md)",
           }}
         >
           {mentionCandidates.map((u) => (
-            <div
+            <PickRow
               key={u.id}
               onClick={() => selectMention(u)}
-              style={{
-                padding: "6px 10px",
-                fontSize: "var(--text-sm)",
-                fontWeight: "var(--weight-semibold)",
-                color: C.navy,
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = C.lg)}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              style={{ padding: "6px 10px", borderBottom: "none" }}
             >
-              @{u.full_name || u.name}
-            </div>
+              <Text size="sm" weight="semibold" color={C.navy}>
+                @{u.full_name || u.name}
+              </Text>
+            </PickRow>
           ))}
-        </div>
+        </Card>
       )}
 
       {pendingPhoto && (
-        <div style={{ position: "relative", width: 60, height: 60, marginBottom: 8 }}>
-          <img
-            src={pendingPhoto}
-            alt={t.chPendingAttachment}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              borderRadius: "var(--radius-md)",
-              border: `1.5px solid ${C.bd}`,
-            }}
-          />
-          <button
-            onClick={() => setPendingPhoto(null)}
-            style={{
-              position: "absolute",
-              top: -6,
-              right: -6,
-              background: C.rd,
-              color: C.onAccent,
-              border: "none",
-              borderRadius: "50%",
-              width: 18,
-              height: 18,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-            }}
-          >
-            <X size={11} aria-hidden="true" />
-          </button>
-        </div>
+        <PendingPhoto
+          src={pendingPhoto}
+          alt={t.chPendingAttachment}
+          onRemove={() => setPendingPhoto(null)}
+          style={{ marginBottom: 8 }}
+        />
       )}
 
-      <Row align="stretch">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={attachPhoto}
-          style={{ display: "none" }}
-        />
-        <button
-          onClick={() => fileInputRef.current.click()}
-          title={t.chAttachPhoto}
-          style={{
-            background: C.lg,
-            border: "none",
-            borderRadius: "var(--radius-md)",
-            padding: "9px 12px",
-            display: "flex",
-            alignItems: "center",
-            cursor: "pointer",
-          }}
-        >
-          <Camera size={16} color={C.navy} aria-hidden="true" />
-        </button>
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={t.chTypeMessage}
-          style={{
-            flex: 1,
-            padding: "9px 11px",
-            border: `1.5px solid ${C.bd}`,
-            borderRadius: "var(--radius-md)",
-            fontSize: "var(--text-base)",
-            boxSizing: "border-box",
-          }}
-        />
-        <button
-          onClick={send}
-          disabled={(!draft.trim() && !pendingPhoto) || sending}
-          style={{
-            background: C.blue,
-            color: C.onAccent,
-            border: "none",
-            borderRadius: "var(--radius-md)",
-            padding: "9px 16px",
-            fontSize: "var(--text-base)",
-            fontWeight: "var(--weight-bold)",
-            cursor: draft.trim() || pendingPhoto ? "pointer" : "default",
-            opacity: draft.trim() || pendingPhoto ? 1 : 0.6,
-          }}
-        >
-          {t.chSend}
-        </button>
-      </Row>
+      <ChatComposer
+        fileInputRef={fileInputRef}
+        onPickFile={attachPhoto}
+        attachTitle={t.chAttachPhoto}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={t.chTypeMessage}
+        onSend={send}
+        sendDisabled={(!draft.trim() && !pendingPhoto) || sending}
+        sendLabel={t.chSend}
+      />
 
       {lightboxPhoto && (
         <Modal title={t.chAttachmentLabel} onClose={() => setLightboxPhoto(null)}>
@@ -592,6 +469,6 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
           />
         </Modal>
       )}
-    </div>
+    </Card>
   );
 }

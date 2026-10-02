@@ -33,6 +33,8 @@ import {
   Text,
   Muted,
   Callout,
+  Card,
+  Eyebrow,
 } from "@/shared/components/UIPrimitives";
 import { uploadFileToBucket, removeFromBucket } from "@/shared/utils/storageBucketUpload";
 import {
@@ -48,6 +50,10 @@ import {
 } from "./trainingMedia";
 
 const BUCKET = "training-media";
+
+// The training page's own section label: amber and wider-tracked than the
+// app's standard eyebrow, echoing the landing page it shares copy with.
+const TRAINING_EYEBROW = { fontSize: "var(--text-2xs)", letterSpacing: ".14em", marginBottom: 6 };
 
 export default function TrainingView({
   lang = "en",
@@ -230,30 +236,19 @@ export default function TrainingView({
 
   return (
     <div>
-      <div style={{ marginBottom: "var(--space-6)" }}>
+      <Stack gap={0} style={{ marginBottom: "var(--space-6)" }}>
         <Text as="h2" size="2xl" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
           {t.trainingTitle}
         </Text>
-        <p
-          style={{ color: C.sub, fontSize: "var(--text-sm)", margin: "6px 0 0", maxWidth: "70ch" }}
-        >
+        <Muted as="p" size="sm" style={{ margin: "6px 0 0", maxWidth: "70ch" }}>
           {t.trainingSubtitle}
-        </p>
-      </div>
+        </Muted>
+      </Stack>
 
       {canManage && (
-        <div
-          style={{
-            background: C.w,
-            borderRadius: "var(--radius-xl)",
-            boxShadow: "var(--shadow-sm)",
-            padding: "var(--space-5)",
-            marginBottom: "var(--space-6)",
-            border: `1px solid ${C.bd}`,
-          }}
-        >
+        <Card pad={5} style={{ marginBottom: "var(--space-6)" }}>
           <Row gap={4} justify="space-between" wrap>
-            <div style={{ minWidth: 0 }}>
+            <Stack gap={0} style={{ minWidth: 0 }}>
               <Row
                 gap="7px"
                 style={{
@@ -265,12 +260,10 @@ export default function TrainingView({
                 <Video size={15} aria-hidden="true" />{" "}
                 {isPlatformAdmin ? t.trAdminTitleGlobal : t.trAdminTitle}
               </Row>
-              <div
-                style={{ color: C.sub, fontSize: "var(--text-sm)", marginTop: 4, maxWidth: "70ch" }}
-              >
+              <Muted size="sm" style={{ marginTop: 4, maxWidth: "70ch" }}>
                 {isPlatformAdmin ? t.trAdminBlurbGlobal : t.trAdminBlurb}
-              </div>
-            </div>
+              </Muted>
+            </Stack>
             <Btn
               v={addOpen ? "ghost" : "primary"}
               sz="sm"
@@ -290,7 +283,8 @@ export default function TrainingView({
           </Row>
 
           {addOpen && (
-            <div
+            <Stack
+              gap={0}
               style={{
                 marginTop: "var(--space-5)",
                 borderTop: `1px solid ${C.bd}`,
@@ -334,44 +328,27 @@ export default function TrainingView({
                 {uploading ? t.trUploading : t.trUpload}
               </Btn>
               {uploading && <Muted style={{ marginTop: 8 }}>{t.trUploadingNote}</Muted>}
-            </div>
+            </Stack>
           )}
-        </div>
+        </Card>
       )}
 
       <Stack gap={6}>
         {items.map((clip) => {
           const isEditing = editingId === clip.id;
           return (
-            <div
-              key={clip.id}
-              style={{
-                background: C.w,
-                borderRadius: "var(--radius-xl)",
-                boxShadow: "var(--shadow-sm)",
-                overflow: "hidden",
-              }}
-            >
-              <div style={{ padding: "var(--space-5) var(--space-5) var(--space-4)" }}>
+            <Card key={clip.id} variant="raised" pad="none" style={{ overflow: "hidden" }}>
+              <Stack gap={0} style={{ padding: "var(--space-5) var(--space-5) var(--space-4)" }}>
                 <Row gap={4} align="flex-start" justify="space-between">
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: "var(--text-2xs)",
-                        letterSpacing: ".14em",
-                        textTransform: "uppercase",
-                        fontWeight: "var(--weight-extrabold)",
-                        color: C.am,
-                        marginBottom: 6,
-                      }}
-                    >
+                  <Stack gap={0} style={{ minWidth: 0, flex: 1 }}>
+                    <Eyebrow color={C.am} style={TRAINING_EYEBROW}>
                       {/* Uploads carry no eyebrow. Falling back to who added it is more
                         use than an empty strip of whitespace above the title. */}
                       {clip.eyebrow ||
                         (clip.created_by_name
                           ? `${t.trAddedBy} ${clip.created_by_name}`
                           : t.trYourLibrary)}
-                    </div>
+                    </Eyebrow>
                     {isEditing ? (
                       <Inp
                         value={editForm.title}
@@ -383,7 +360,7 @@ export default function TrainingView({
                         {clip.title}
                       </Text>
                     )}
-                  </div>
+                  </Stack>
                   {/* Bundled clips ship in the build and belong to Steadwerk, so there is
                     nothing a tenant admin could edit or delete even if the button were
                     here — "The Full Tour" included, since supabase/44 made it a real
@@ -408,7 +385,7 @@ export default function TrainingView({
                   )}
                 </Row>
                 {isEditing ? (
-                  <div style={{ marginTop: "var(--space-3)" }}>
+                  <Stack gap={0} style={{ marginTop: "var(--space-3)" }}>
                     <Fld label={t.trBlurb} hint={t.trBlurbHint}>
                       <TA
                         value={editForm.blurb}
@@ -429,20 +406,13 @@ export default function TrainingView({
                         <Trash2 size={13} aria-hidden="true" /> {t.trRemove}
                       </Btn>
                     </Row>
-                  </div>
+                  </Stack>
                 ) : (
-                  <p
-                    style={{
-                      color: C.sub,
-                      fontSize: "var(--text-sm)",
-                      margin: "6px 0 0",
-                      maxWidth: "72ch",
-                    }}
-                  >
+                  <Muted as="p" size="sm" style={{ margin: "6px 0 0", maxWidth: "72ch" }}>
                     {clip.blurb}
-                  </p>
+                  </Muted>
                 )}
-              </div>
+              </Stack>
 
               {/* The poster is a real button so it is focusable and keyboard
                 operable. Once play starts it drops away and the video's native
@@ -552,20 +522,18 @@ export default function TrainingView({
                     >
                       ▶
                     </span>
-                    <span
-                      style={{
-                        fontWeight: "var(--weight-extrabold)",
-                        fontSize: "var(--text-md)",
-                        padding: "0 20px",
-                        textAlign: "center",
-                      }}
+                    <Text
+                      as="span"
+                      size="md"
+                      weight="extrabold"
+                      style={{ padding: "0 20px", textAlign: "center" }}
                     >
                       {clip.title}
-                    </span>
+                    </Text>
                   </button>
                 )}
               </div>
-            </div>
+            </Card>
           );
         })}
       </Stack>
@@ -583,28 +551,10 @@ export default function TrainingView({
       {/* Native <details>/<summary>: no accordion library to ship, keyboard-operable
           for free, and stays open to Ctrl+F. Same pattern as the FAQ on the public
           landing page. */}
-      <div
-        style={{
-          marginTop: "var(--space-6)",
-          background: C.w,
-          borderRadius: "var(--radius-xl)",
-          boxShadow: "var(--shadow-sm)",
-          padding: "var(--space-5)",
-          border: `1px solid ${C.bd}`,
-        }}
-      >
-        <div
-          style={{
-            fontSize: "var(--text-2xs)",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            fontWeight: "var(--weight-extrabold)",
-            color: C.am,
-            marginBottom: 6,
-          }}
-        >
+      <Card pad={5} style={{ marginTop: "var(--space-6)" }}>
+        <Eyebrow color={C.am} style={TRAINING_EYEBROW}>
           {t.trainingFaqEyebrow}
-        </div>
+        </Eyebrow>
         <Text
           size="lg"
           weight="extrabold"
@@ -624,41 +574,30 @@ export default function TrainingView({
               key={q}
               style={{ borderTop: `1px solid ${C.bd}`, padding: "var(--space-3) 0" }}
             >
-              <summary
-                style={{
-                  cursor: "pointer",
-                  fontWeight: "var(--weight-bold)",
-                  color: C.navy,
-                  fontSize: "var(--text-sm)",
-                }}
+              <Text
+                as="summary"
+                size="sm"
+                weight="bold"
+                color={C.navy}
+                style={{ cursor: "pointer" }}
               >
                 {q}
-              </summary>
-              <div
-                style={{
-                  color: C.sub,
-                  fontSize: "var(--text-sm)",
-                  marginTop: 8,
-                  maxWidth: "70ch",
-                }}
-              >
+              </Text>
+              <Muted size="sm" style={{ marginTop: 8, maxWidth: "70ch" }}>
                 <Text as="b" color={C.navy}>
                   {lead}
                 </Text>{" "}
                 {rest}
-              </div>
+              </Muted>
             </details>
           ))}
         </Stack>
-      </div>
+      </Card>
 
-      <p
-        style={{
-          marginTop: "var(--space-4)",
-          padding: "0 var(--space-2)",
-          color: C.sub,
-          fontSize: "var(--text-sm)",
-        }}
+      <Muted
+        as="p"
+        size="sm"
+        style={{ margin: 0, marginTop: "var(--space-4)", padding: "0 var(--space-2)" }}
       >
         {t.trainingHelpIntro}{" "}
         <Text href="mailto:Sam@steadwerk.com" as="a" color={C.am}>
@@ -669,7 +608,7 @@ export default function TrainingView({
           (260) 579-2995
         </Text>{" "}
         {t.trainingHelpOutro}
-      </p>
+      </Muted>
     </div>
   );
 }

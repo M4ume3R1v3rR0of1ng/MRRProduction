@@ -16,6 +16,9 @@ import {
   Callout,
   Card,
   TextBtn,
+  Tabs,
+  Modal,
+  Stack,
 } from "@/shared/components/UIPrimitives";
 
 import { translations } from "@/shared/utils/translations";
@@ -221,38 +224,28 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
         </Muted>
       </div>
 
-      <Row gap={2} align="stretch" style={{ marginBottom: 16, borderBottom: `2px solid ${C.bd}` }}>
-        {[
-          ["logs", ScrollText, "Activity Log", "Every action — last 30 days only"],
-          ["batches", Package, "Batch Ledger", "Every inventory receipt, permanently"],
-        ].map(([k, Icon, label, hint]) => (
-          <button
-            key={k}
-            onClick={() => {
-              setMode(k);
-              setSearch("");
-              setCurrentPage(1);
-            }}
-            title={hint}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "8px 14px",
-              fontSize: "var(--text-sm)",
-              fontWeight: "var(--weight-extrabold)",
-              color: mode === k ? C.navy : C.sub,
-              borderBottom: mode === k ? `3px solid ${C.gold}` : "3px solid transparent",
-              marginBottom: -2,
-            }}
-          >
-            <Icon size={14} aria-hidden="true" /> {label}
-          </button>
-        ))}
-      </Row>
+      <Tabs
+        value={mode}
+        onChange={(k) => {
+          setMode(k);
+          setSearch("");
+          setCurrentPage(1);
+        }}
+        tabs={[
+          {
+            id: "logs",
+            icon: ScrollText,
+            label: "Activity Log",
+            title: "Every action — last 30 days only",
+          },
+          {
+            id: "batches",
+            icon: Package,
+            label: "Batch Ledger",
+            title: "Every inventory receipt, permanently",
+          },
+        ]}
+      />
 
       {mode === "logs" && (
         <Row gap={5} align="stretch" wrap style={{ marginBottom: 16 }}>
@@ -323,7 +316,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
             <Text as="strong" color={C.navy}>
               {t.alLegendTitle}
             </Text>
-            <div style={{ marginTop: 4 }}>
+            <Text style={{ marginTop: 4 }}>
               <Text as="span" weight="bold" color={C.navy}>
                 {t.alLegendReceiptName}
               </Text>{" "}
@@ -348,10 +341,10 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                 {t.alTagShort}
               </Text>{" "}
               {t.alLegendShort}
-            </div>
+            </Text>
           </Callout>
 
-          <div style={{ overflowX: "auto" }}>
+          <div>
             <Table pad="md" size="xs">
               <thead>
                 <tr>
@@ -424,7 +417,9 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                               />
                             )}
                           </Text>
-                          <td style={{ whiteSpace: "nowrap" }}>${(r.rem * r.price).toFixed(2)}</td>
+                          <Text as="td" style={{ whiteSpace: "nowrap" }}>
+                            ${(r.rem * r.price).toFixed(2)}
+                          </Text>
                         </>
                       )}
                       <Text
@@ -458,9 +453,9 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               </tbody>
             </Table>
             {filteredLedger.length === 0 && (
-              <p style={{ color: C.sub, fontSize: "var(--text-sm)", padding: "16px 0" }}>
+              <Muted as="p" size="sm" style={{ padding: "16px 0" }}>
                 {t.alNoReceipts}
-              </p>
+              </Muted>
             )}
           </div>
         </div>
@@ -501,14 +496,14 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
           {/* ── COMPACT INNER SCROLLBAR CONTAINER ────────────────────────── */}
 
           <Table
-            pad="md"
+            pad="lg"
             size="base"
             tableStyle={{ textAlign: "left" }}
             maxHeight={"850px"}
             style={{ border: `1px solid ${C.lg}`, borderRadius: "8px", marginBottom: "16px" }}
           >
             <thead className="mrr-thead-sticky">
-              <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
+              <tr>
                 {[
                   "Timestamp",
                   "Operator",
@@ -525,19 +520,13 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               {paginatedLogs.length > 0 ? (
                 paginatedLogs.map((l) => (
                   <tr key={l.id}>
-                    <td style={{ padding: "12px 10px", whiteSpace: "nowrap", color: C.sub }}>
+                    <Text as="td" color={C.sub} style={{ whiteSpace: "nowrap" }}>
                       {formatFullTimestamp(l.created_at)}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px 10px",
-                        fontWeight: "var(--weight-bold)",
-                        color: C.navy,
-                      }}
-                    >
+                    </Text>
+                    <Text as="td" weight="bold" color={C.navy}>
                       {l.user_email}
-                    </td>
-                    <td style={{ padding: "12px 10px" }}>
+                    </Text>
+                    <td>
                       <Bdg
                         color={
                           l.action_type === "PERM_CHANGE"
@@ -556,25 +545,13 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                         {l.action_type}
                       </Bdg>
                     </td>
-                    <td
-                      style={{
-                        padding: "12px 10px",
-                        fontWeight: "var(--weight-semibold)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
+                    <Text as="td" weight="semibold" style={{ whiteSpace: "nowrap" }}>
                       {whereOf(l)}
-                    </td>
-                    <td
-                      style={{
-                        padding: "12px 10px",
-                        color: "var(--c-barnwood)",
-                        lineHeight: 1.4,
-                      }}
-                    >
+                    </Text>
+                    <Text as="td" color={C.navy} style={{ lineHeight: 1.4 }}>
                       {l.description}
-                    </td>
-                    <td style={{ padding: "12px 10px" }}>
+                    </Text>
+                    <td>
                       {/* `metadata`, not `payload`. logger.js has always written
                             this column as metadata; this button read `payload`,
                             which nothing writes, so it rendered "—" on every row
@@ -600,17 +577,14 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
                 ))
               ) : (
                 <tr>
-                  <td
+                  <Text
+                    as="td"
                     colSpan={6}
-                    style={{
-                      textAlign: "center",
-                      padding: "32px 0",
-                      color: C.sub,
-                      fontStyle: "italic",
-                    }}
+                    color={C.sub}
+                    style={{ textAlign: "center", padding: "32px 0", fontStyle: "italic" }}
                   >
                     {t.alNoLogs}
-                  </td>
+                  </Text>
                 </tr>
               )}
             </tbody>
@@ -633,16 +607,9 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
               >
                 {t.alPrev}
               </Btn>
-              <span
-                style={{
-                  fontSize: "var(--text-sm)",
-                  fontWeight: "var(--weight-bold)",
-                  color: C.navy,
-                  padding: "0 8px",
-                }}
-              >
+              <Text as="span" size="sm" weight="bold" color={C.navy} style={{ padding: "0 8px" }}>
                 Page {currentPage} of {totalPages}
-              </span>
+              </Text>
               <Btn
                 v="ghost"
                 sz="sm"
@@ -658,148 +625,105 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
 
       {/* JSON Payload Inspector Modal */}
       {activePayload && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "rgba(15, 41, 74, 0.6)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-            padding: 16,
-          }}
-        >
-          <div
-            style={{
-              background: "var(--c-surface)",
-              borderRadius: "var(--radius-xl)",
-              padding: 24,
-              maxWidth: 500,
-              width: "100%",
-              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
-            }}
-          >
-            <Text as="h4" color={C.navy} style={{ margin: "0 0 12px 0", fontSize: 15 }}>
-              {t.alInspectorTitle}
-            </Text>
-
-            {/* A raw JSON dump is the right escape hatch and the wrong default.
+        <Modal title={t.alInspectorTitle} onClose={() => setActivePayload(null)}>
+          {/* A raw JSON dump is the right escape hatch and the wrong default.
                 For a pull, the questions are "what went out" and "did anything go
                 short", so answer those in plain rows and keep the JSON below for
                 anything this does not know how to render. */}
-            {activePayload.job_name && (
-              <Callout pad="10px 12px" size="sm" style={{ marginBottom: 12 }}>
-                <Text weight="bold" color={C.navy}>
-                  {activePayload.po ? `PO ${activePayload.po} · ` : ""}
-                  {activePayload.job_name}
-                </Text>
-              </Callout>
-            )}
+          {activePayload.job_name && (
+            <Callout pad="10px 12px" size="sm" style={{ marginBottom: 12 }}>
+              <Text weight="bold" color={C.navy}>
+                {activePayload.po ? `PO ${activePayload.po} · ` : ""}
+                {activePayload.job_name}
+              </Text>
+            </Callout>
+          )}
 
-            {Array.isArray(activePayload.lines) && activePayload.lines.length > 0 && (
-              <div style={{ marginBottom: 12 }}>
-                <Text
-                  size="2xs"
-                  weight="bold"
-                  color={C.sub}
-                  style={{ textTransform: "uppercase", marginBottom: 4 }}
-                >
-                  {t.alDetailMaterials}
-                </Text>
-                <div style={{ maxHeight: 160, overflowY: "auto" }}>
-                  {activePayload.lines.map((ln, i) => (
-                    <Row
-                      key={i}
-                      gap={5}
-                      align="stretch"
-                      justify="space-between"
-                      style={{
-                        padding: "4px 0",
-                        borderBottom: `1px solid ${C.lg}`,
-                        fontSize: "var(--text-sm)",
-                      }}
-                    >
-                      <Text as="span" weight="semibold" color={C.navy}>
-                        {ln.item}
-                      </Text>
-                      <Text as="span" color={C.sub} style={{ whiteSpace: "nowrap" }}>
-                        {ln.qty} {ln.unit}
-                        {ln.planned != null && ln.planned !== ln.qty
-                          ? ` (${t.alPlannedWas} ${ln.planned})`
-                          : ""}
-                      </Text>
-                    </Row>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {Array.isArray(activePayload.short) && activePayload.short.length > 0 && (
-              <Callout tone="danger" bordered pad="10px 12px" style={{ marginBottom: 12 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontWeight: "var(--weight-bold)",
-                    color: C.rd,
-                    fontSize: "var(--text-sm)",
-                    marginBottom: 4,
-                  }}
-                >
-                  <AlertTriangle size={13} aria-hidden="true" /> {t.alDetailShort}
-                </div>
-                {activePayload.short.map((s, i) => (
-                  <Text key={i} size="sm" color={C.navy}>
-                    {s.item}: {t.alDetailShortBy} {s.short} {s.unit}
-                  </Text>
+          {Array.isArray(activePayload.lines) && activePayload.lines.length > 0 && (
+            <Stack gap={0} style={{ marginBottom: 12 }}>
+              <Text
+                size="2xs"
+                weight="bold"
+                color={C.sub}
+                style={{ textTransform: "uppercase", marginBottom: 4 }}
+              >
+                {t.alDetailMaterials}
+              </Text>
+              <Stack gap={0} style={{ maxHeight: 160, overflowY: "auto" }}>
+                {activePayload.lines.map((ln, i) => (
+                  <Row
+                    key={i}
+                    gap={5}
+                    align="stretch"
+                    justify="space-between"
+                    style={{
+                      padding: "4px 0",
+                      borderBottom: `1px solid ${C.lg}`,
+                      fontSize: "var(--text-sm)",
+                    }}
+                  >
+                    <Text as="span" weight="semibold" color={C.navy}>
+                      {ln.item}
+                    </Text>
+                    <Text as="span" color={C.sub} style={{ whiteSpace: "nowrap" }}>
+                      {ln.qty} {ln.unit}
+                      {ln.planned != null && ln.planned !== ln.qty
+                        ? ` (${t.alPlannedWas} ${ln.planned})`
+                        : ""}
+                    </Text>
+                  </Row>
                 ))}
-              </Callout>
-            )}
+              </Stack>
+            </Stack>
+          )}
 
-            <div
-              style={{
-                background: "var(--c-shell)",
-                padding: 14,
-                borderRadius: "var(--radius-md)",
-                maxHeight: 300,
-                overflowY: "auto",
-                marginBottom: 16,
-              }}
-            >
-              <pre
+          {Array.isArray(activePayload.short) && activePayload.short.length > 0 && (
+            <Callout tone="danger" bordered pad="10px 12px" style={{ marginBottom: 12 }}>
+              <Row
+                gap={2}
                 style={{
-                  margin: 0,
-                  color: "var(--c-teal)",
-                  fontFamily: "monospace",
-                  fontSize: "var(--text-xs)",
-                  whiteSpace: "pre-wrap",
+                  fontWeight: "var(--weight-bold)",
+                  color: C.rd,
+                  fontSize: "var(--text-sm)",
+                  marginBottom: 4,
                 }}
               >
-                {JSON.stringify(activePayload, null, 2)}
-              </pre>
-            </div>
-            <button
-              onClick={() => setActivePayload(null)}
+                <AlertTriangle size={13} aria-hidden="true" /> {t.alDetailShort}
+              </Row>
+              {activePayload.short.map((s, i) => (
+                <Text key={i} size="sm" color={C.navy}>
+                  {s.item}: {t.alDetailShortBy} {s.short} {s.unit}
+                </Text>
+              ))}
+            </Callout>
+          )}
+
+          <div
+            style={{
+              background: "var(--c-shell)",
+              padding: 14,
+              borderRadius: "var(--radius-md)",
+              maxHeight: 300,
+              overflowY: "auto",
+              marginBottom: 16,
+            }}
+          >
+            <pre
               style={{
-                width: "100%",
-                padding: "10px",
-                background: C.shell,
-                color: "var(--c-shell-ink)",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                fontWeight: "var(--weight-bold)",
-                cursor: "pointer",
+                margin: 0,
+                color: "var(--c-teal)",
+                fontFamily: "monospace",
+                fontSize: "var(--text-xs)",
+                whiteSpace: "pre-wrap",
               }}
             >
-              {t.alCloseInspector}
-            </button>
+              {JSON.stringify(activePayload, null, 2)}
+            </pre>
           </div>
-        </div>
+          <Btn block onClick={() => setActivePayload(null)}>
+            {t.alCloseInspector}
+          </Btn>
+        </Modal>
       )}
     </Card>
   );

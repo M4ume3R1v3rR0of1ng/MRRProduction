@@ -32,6 +32,10 @@ import {
   Row,
   Stack,
   Text,
+  Callout,
+  Meter,
+  Btn,
+  Muted,
 } from "./shared/components/UIPrimitives";
 import IdleTimeoutWrapper from "./shared/components/IdleTimeoutWrapper";
 
@@ -143,6 +147,26 @@ const jSC = {
   completed: { c: "green", l: "Completed", icon: Flag },
   closed: { c: "purple", l: "Closed", icon: Lock },
 };
+
+// A count in the top bar that jumps to where it's dealt with ("3 new jobs").
+function ChromeChip({ tone, color, icon: Icon, onClick, children }) {
+  return (
+    <Callout
+      tone={tone}
+      onClick={onClick}
+      pad="3px 10px"
+      size="xs"
+      weight="bold"
+      color={color}
+      style={{ borderRadius: 20 }}
+    >
+      <Row inline gap="5px">
+        <Icon size={12} aria-hidden="true" />
+        {children}
+      </Row>
+    </Callout>
+  );
+}
 
 export default function App() {
   const navigate = useNavigate();
@@ -434,46 +458,23 @@ export default function App() {
   // ── HARDENED PROGRESS BAR LOADING FALLBACK ──
   if (app.loading) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyGroup: "center",
-          justifyContent: "center",
-          minHeight: "100vh",
-          background: C.bg,
-          flexDirection: "column",
-          gap: "var(--space-6)",
-        }}
+      <Stack
+        gap={6}
+        align="center"
+        style={{ justifyContent: "center", minHeight: "100vh", background: C.bg }}
       >
         {/* Platform mark, not the Maumee River mascot — this splash renders for every
             company on the platform, before we even know which one. */}
-        <div style={{ marginBottom: 4 }}>
-          <SteadwerkMark size={88} filled />
-        </div>
+        <SteadwerkMark size={88} filled />
 
         <Stack gap={3} align="center" style={{ width: "100%", maxWidth: "240px" }}>
           {/* External Track Container */}
-          <div
-            style={{
-              width: "100%",
-              height: "6px",
-              backgroundColor: C.line,
-              borderRadius: "10px",
-              overflow: "hidden",
-            }}
-          >
-            {/* Dynamic Colored Bar Indicator */}
-            <div
-              style={{
-                height: "100%",
-                backgroundColor: C.amber,
-                width: `${app.loadingProgress}%`,
-                transition: "width 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                borderRadius: "10px",
-              }}
-            />
-          </div>
+          <Meter
+            value={app.loadingProgress / 100}
+            color={C.amber}
+            track={C.line}
+            style={{ width: "100%" }}
+          />
 
           <Text
             size="base"
@@ -496,7 +497,7 @@ export default function App() {
         >
           <SkeletonCards count={3} cols={3} />
         </div>
-      </div>
+      </Stack>
     );
   }
 
@@ -755,53 +756,32 @@ export default function App() {
               components/PastDueBanner. */}
           <PastDueBanner user={app.curUser} lang={lang} />
           {app.loadErrors.length > 0 && (
-            <div
-              style={{
-                background: "var(--c-rust-wash)",
-                borderBottom: "2px solid var(--c-rust)",
-                color: "var(--c-rust)",
-                padding: "10px 20px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-                flexShrink: 0,
-                fontSize: "var(--text-sm)",
-                fontWeight: "var(--weight-bold)",
-              }}
+            <Callout
+              tone="danger"
+              pad="10px 20px"
+              size="sm"
+              weight="bold"
+              color={C.rust}
+              style={{ borderRadius: 0, borderBottom: "2px solid var(--c-rust)", flexShrink: 0 }}
             >
-              <Row as="span" gap="7px" align="flex-start">
-                <AlertTriangle
-                  size={15}
-                  style={{ marginTop: 2, flexShrink: 0 }}
-                  aria-hidden="true"
-                />
-                <span>
-                  Live data failed to load: {app.loadErrors.join(", ")}. Those sections are shown
-                  empty rather than with possibly-wrong data — don't make changes until this clears.
-                </span>
+              <Row gap={5} justify="space-between" wrap>
+                <Row as="span" gap="7px" align="flex-start">
+                  <AlertTriangle
+                    size={15}
+                    style={{ marginTop: 2, flexShrink: 0 }}
+                    aria-hidden="true"
+                  />
+                  <span>
+                    Live data failed to load: {app.loadErrors.join(", ")}. Those sections are shown
+                    empty rather than with possibly-wrong data — don't make changes until this
+                    clears.
+                  </span>
+                </Row>
+                <Btn v="danger" sz="sm" onClick={() => app.reload()} style={{ flexShrink: 0 }}>
+                  <RefreshCw size={13} aria-hidden="true" /> Retry
+                </Btn>
               </Row>
-              <button
-                onClick={() => app.reload()}
-                style={{
-                  background: C.rust,
-                  color: C.onAccent,
-                  border: "none",
-                  borderRadius: "var(--radius-md)",
-                  padding: "6px 14px",
-                  cursor: "pointer",
-                  fontWeight: "var(--weight-bold)",
-                  fontSize: "var(--text-sm)",
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <RefreshCw size={13} aria-hidden="true" /> Retry
-              </button>
-            </div>
+            </Callout>
           )}
           {!isMobile && (
             <div
@@ -817,12 +797,10 @@ export default function App() {
                 flexShrink: 0,
               }}
             >
-              <div
-                style={{ fontSize: "var(--text-sm)", color: C.sub, flexShrink: 0, marginRight: 24 }}
-              >
+              <Muted size="sm" style={{ flexShrink: 0, marginRight: 24 }}>
                 {companyDisplayName}
                 {app.warehouses?.[0]?.name ? ` · ${app.warehouses[0].name}` : ""}
-              </div>
+              </Muted>
 
               <Row
                 gap={0}
@@ -847,83 +825,49 @@ export default function App() {
               <Row gap={5} style={{ flexShrink: 0, marginLeft: 24 }}>
                 <SyncIndicator lang={lang} />
                 {app.newJobsForMe > 0 && (
-                  <div
+                  <ChromeChip
+                    tone="teal"
+                    color={C.tl}
+                    icon={PartyPopper}
                     onClick={() => navigateTo("pull")}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      background: C.tB,
-                      color: C.tl,
-                      borderRadius: 20,
-                      padding: "3px 10px",
-                      fontSize: "var(--text-xs)",
-                      fontWeight: "var(--weight-bold)",
-                      cursor: "pointer",
-                    }}
                   >
-                    <PartyPopper size={12} aria-hidden="true" /> {app.newJobsForMe}{" "}
+                    {" "}
+                    {app.newJobsForMe}{" "}
                     {app.newJobsForMe === 1 ? t.chromeNewJobOne : t.chromeNewJobMany}
-                  </div>
+                  </ChromeChip>
                 )}
                 {app.pendingReqCount > 0 && app.userPerms.maint_manage && (
-                  <div
+                  <ChromeChip
+                    tone="plum"
+                    color={C.pu}
+                    icon={Wrench}
                     onClick={() => navigateTo("requests")}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      background: C.pB,
-                      color: C.pu,
-                      borderRadius: 20,
-                      padding: "3px 10px",
-                      fontSize: "var(--text-xs)",
-                      fontWeight: "var(--weight-bold)",
-                      cursor: "pointer",
-                    }}
                   >
-                    <Wrench size={12} aria-hidden="true" /> {app.pendingReqCount} {t.chromePending}
-                  </div>
+                    {" "}
+                    {app.pendingReqCount} {t.chromePending}
+                  </ChromeChip>
                 )}
                 {app.lowStockCount > 0 && app.userPerms.inv_view && (
-                  <div
+                  <ChromeChip
+                    tone="warn"
+                    color={C.am}
+                    icon={AlertTriangle}
                     onClick={() => navigateTo("inventory")}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      background: C.aB,
-                      color: C.am,
-                      borderRadius: 20,
-                      padding: "3px 10px",
-                      fontSize: "var(--text-xs)",
-                      fontWeight: "var(--weight-bold)",
-                      cursor: "pointer",
-                    }}
                   >
-                    <AlertTriangle size={12} aria-hidden="true" /> {app.lowStockCount}{" "}
-                    {t.chromeLowStock}
-                  </div>
+                    {" "}
+                    {app.lowStockCount} {t.chromeLowStock}
+                  </ChromeChip>
                 )}
                 {app.jobsAwaitingCloseCount > 0 && app.userPerms.jobs_close && (
-                  <div
+                  <ChromeChip
+                    tone="teal"
+                    color={C.tl}
+                    icon={Receipt}
                     onClick={() => navigateTo("buildjobs")}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      background: C.tB,
-                      color: C.tl,
-                      borderRadius: 20,
-                      padding: "3px 10px",
-                      fontSize: "var(--text-xs)",
-                      fontWeight: "var(--weight-bold)",
-                      cursor: "pointer",
-                    }}
                   >
-                    <Receipt size={12} aria-hidden="true" /> {app.jobsAwaitingCloseCount} awaiting
-                    close
-                  </div>
+                    {" "}
+                    {app.jobsAwaitingCloseCount} awaiting close
+                  </ChromeChip>
                 )}
                 <CompanySwitcher user={app.curUser} lang={lang} />
                 <RoleBdg role={app.curUser.role} lang={lang} />

@@ -1,10 +1,11 @@
 // src/shared/components/ChatWidget.jsx
 import { useEffect, useRef, useState } from "react";
-import { Bot, X, AlertTriangle, Camera } from "lucide-react";
+import { Bot, X, AlertTriangle } from "lucide-react";
 import { translations } from "../utils/translations";
 import { supabase } from "../utils/supabase";
 import { C, compressImg } from "../utils/helpers";
-import { LoadingState, Modal, Row, Stack, Muted, Callout, TextBtn } from "./UIPrimitives";
+import { LoadingState, Modal, Row, Stack, Muted, Callout, TextBtn, Inp } from "./UIPrimitives";
+import { ChatBubble, PendingPhoto, ChatComposer } from "./ChatParts";
 
 // data:image/jpeg;base64,XXXX -> { media_type: "image/jpeg", data: "XXXX" }
 function parseDataUrl(dataUrl) {
@@ -372,42 +373,20 @@ export default function ChatWidget({ user, lang = "en" }) {
               const mine = m.role === "user";
               const isEditing = editingIndex === i;
               return (
-                <div
+                <Stack
                   key={m.id ?? `local-${i}`}
+                  gap={0}
                   style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "85%" }}
                 >
                   {!isEditing && (
-                    <div
-                      style={{
-                        background: mine ? C.blue : C.lg,
-                        color: mine ? C.onAccent : C.navy,
-                        borderRadius: "var(--radius-xl)",
-                        borderBottomRightRadius: mine ? 3 : "var(--radius-xl)",
-                        borderBottomLeftRadius: mine ? "var(--radius-xl)" : 3,
-                        padding: "var(--space-3) var(--space-5)",
-                        fontSize: "var(--text-base)",
-                        lineHeight: 1.4,
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-word",
-                      }}
+                    <ChatBubble
+                      mine={mine}
+                      photo={m.image}
+                      photoAlt={t.chAttachment}
+                      onPhotoClick={() => setLightboxPhoto(m.image)}
                     >
-                      {m.image && (
-                        <img
-                          src={m.image}
-                          alt={t.chAttachment}
-                          onClick={() => setLightboxPhoto(m.image)}
-                          style={{
-                            display: "block",
-                            maxWidth: "100%",
-                            maxHeight: 160,
-                            borderRadius: "var(--radius-md)",
-                            marginBottom: m.text ? "var(--space-2)" : 0,
-                            cursor: "pointer",
-                          }}
-                        />
-                      )}
                       {m.text}
-                    </div>
+                    </ChatBubble>
                   )}
 
                   {isEditing && (
@@ -419,18 +398,12 @@ export default function ChatWidget({ user, lang = "en" }) {
                           style={{ maxWidth: 120, borderRadius: "var(--radius-md)" }}
                         />
                       )}
-                      <input
+                      <Inp
                         autoFocus
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        style={{
-                          padding: "7px 10px",
-                          border: `1.5px solid ${C.bd}`,
-                          borderRadius: "var(--radius-md)",
-                          fontSize: "var(--text-base)",
-                          boxSizing: "border-box",
-                        }}
+                        style={{ padding: "7px 10px", fontSize: "var(--text-base)" }}
                       />
                       <Row align="stretch" justify="flex-end">
                         <TextBtn
@@ -463,7 +436,7 @@ export default function ChatWidget({ user, lang = "en" }) {
                       </TextBtn>
                     </Row>
                   )}
-                </div>
+                </Stack>
               );
             })}
             {sending && <LoadingState label={t.cwThinking} compact />}
@@ -485,109 +458,31 @@ export default function ChatWidget({ user, lang = "en" }) {
           )}
 
           {pendingPhoto && editingIndex === null && (
-            <div
-              style={{
-                position: "relative",
-                width: 52,
-                height: 52,
-                margin: "var(--space-2) 0 0 var(--space-4)",
-              }}
-            >
-              <img
-                src={pendingPhoto}
-                alt={t.chPendingAttachment}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  borderRadius: "var(--radius-md)",
-                  border: `1.5px solid ${C.bd}`,
-                }}
-              />
-              <button
-                onClick={() => setPendingPhoto(null)}
-                style={{
-                  position: "absolute",
-                  top: -6,
-                  right: -6,
-                  background: C.rd,
-                  color: C.onAccent,
-                  border: "none",
-                  borderRadius: "50%",
-                  width: 16,
-                  height: 16,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                }}
-              >
-                <X size={10} aria-hidden="true" />
-              </button>
-            </div>
+            <PendingPhoto
+              src={pendingPhoto}
+              alt={t.chPendingAttachment}
+              onRemove={() => setPendingPhoto(null)}
+              size={52}
+              style={{ margin: "var(--space-2) 0 0 var(--space-4)" }}
+            />
           )}
 
-          <Row
+          <ChatComposer
             gap={2}
-            align="stretch"
             style={{ padding: "var(--space-4)", borderTop: `1px solid ${C.lg}` }}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={attachPhoto}
-              style={{ display: "none" }}
-            />
-            <button
-              onClick={() => fileInputRef.current.click()}
-              disabled={sending || editingIndex !== null}
-              title={t.chAttachPhoto}
-              style={{
-                background: C.lg,
-                border: "none",
-                borderRadius: "var(--radius-md)",
-                padding: "9px var(--space-4)",
-                display: "flex",
-                alignItems: "center",
-                cursor: "pointer",
-              }}
-            >
-              <Camera size={16} color={C.navy} aria-hidden="true" />
-            </button>
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t.cwAskQuestion}
-              disabled={sending || editingIndex !== null}
-              style={{
-                flex: 1,
-                padding: "9px 11px",
-                border: `1.5px solid ${C.bd}`,
-                borderRadius: "var(--radius-md)",
-                fontSize: "var(--text-base)",
-                boxSizing: "border-box",
-              }}
-            />
-            <button
-              onClick={send}
-              disabled={sending || editingIndex !== null || (!draft.trim() && !pendingPhoto)}
-              style={{
-                background: C.blue,
-                color: C.onAccent,
-                border: "none",
-                borderRadius: "var(--radius-md)",
-                padding: "9px var(--space-6)",
-                fontSize: "var(--text-base)",
-                fontWeight: "var(--weight-bold)",
-                cursor: draft.trim() || pendingPhoto ? "pointer" : "default",
-                opacity: draft.trim() || pendingPhoto ? 1 : 0.6,
-              }}
-            >
-              {t.chSend}
-            </button>
-          </Row>
+            fileInputRef={fileInputRef}
+            onPickFile={attachPhoto}
+            attachTitle={t.chAttachPhoto}
+            attachDisabled={sending || editingIndex !== null}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={t.cwAskQuestion}
+            inputDisabled={sending || editingIndex !== null}
+            onSend={send}
+            sendDisabled={sending || editingIndex !== null || (!draft.trim() && !pendingPhoto)}
+            sendLabel={t.chSend}
+          />
         </div>
       )}
 

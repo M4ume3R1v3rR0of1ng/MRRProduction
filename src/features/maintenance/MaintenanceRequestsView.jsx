@@ -34,6 +34,10 @@ import {
   Text,
   Muted,
   Callout,
+  PageHeader,
+  Segmented,
+  Card,
+  TextBtn,
 } from "@/shared/components/UIPrimitives";
 import { notifyMaintFiled, notifyMaintStatus } from "@/shared/utils/maintenanceNotifications";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -420,142 +424,68 @@ export default function MaintenanceRequestsView({
   return (
     <div>
       {/* Header Bar */}
-      <Row gap={5} justify="space-between" wrap style={{ marginBottom: 20 }}>
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "var(--text-3xl)",
-              fontWeight: "var(--weight-black)",
-              color: "var(--c-slate)",
-              display: "flex",
-              alignItems: "center",
-              gap: "var(--space-3)",
-            }}
-          >
-            <Wrench size={26} aria-hidden="true" /> {t.maintTitle}
-          </h1>
-        </div>
-        <Row>
-          {pendingCount > 0 && (
-            <div
-              style={{
-                background: "var(--c-rust-wash)",
-                color: "var(--c-rust)",
-                border: "1px solid var(--c-rust-wash)",
-                padding: "6px 12px",
-                borderRadius: 20,
-                fontSize: "var(--text-sm)",
-                fontWeight: "var(--weight-bold)",
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-2)",
-              }}
+      <PageHeader
+        icon={Wrench}
+        title={t.maintTitle}
+        style={{ marginBottom: 20 }}
+        actions={
+          <>
+            {pendingCount > 0 && (
+              <Bdg color="red">
+                <Row inline as="span" gap={2}>
+                  <Bell size={13} aria-hidden="true" /> {pendingCount} {t.maintAwaiting}
+                </Row>
+              </Bdg>
+            )}
+            <Segmented
+              value={subView}
+              onChange={setSubView}
+              style={{ marginRight: 4 }}
+              options={[
+                { value: "list", label: t.maintRequestList, icon: ClipboardList },
+                { value: "calendar", label: t.maintScheduleCalendar, icon: Calendar },
+              ]}
+            />
+            <Btn
+              v="primary"
+              sz="sm"
+              onClick={() => setIsCreateOpen(true)}
+              style={{ fontWeight: "var(--weight-extrabold)" }}
             >
-              <Bell size={13} aria-hidden="true" /> {pendingCount} {t.maintAwaiting}
-            </div>
-          )}
-          <div
-            style={{
-              display: "flex",
-              background: "var(--c-subtle)",
-              padding: 4,
-              borderRadius: "var(--radius-md)",
-              marginRight: 4,
-            }}
-          >
-            <button
-              onClick={() => setSubView("list")}
-              style={{
-                padding: "6px 12px",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "var(--text-sm)",
-                fontWeight: "var(--weight-bold)",
-                cursor: "pointer",
-                background: subView === "list" ? "var(--c-surface)" : "transparent",
-                color: subView === "list" ? "var(--c-barnwood)" : "var(--c-sub)",
-                boxShadow: subView === "list" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <ClipboardList size={13} aria-hidden="true" /> {t.maintRequestList}
-            </button>
-            <button
-              onClick={() => setSubView("calendar")}
-              style={{
-                padding: "6px 12px",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "var(--text-sm)",
-                fontWeight: "var(--weight-bold)",
-                cursor: "pointer",
-                background: subView === "calendar" ? "var(--c-surface)" : "transparent",
-                color: subView === "calendar" ? "var(--c-barnwood)" : "var(--c-sub)",
-                boxShadow: subView === "calendar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-              }}
-            >
-              <Calendar size={13} aria-hidden="true" /> {t.maintScheduleCalendar}
-            </button>
-          </div>
-          <Btn
-            v="primary"
-            sz="sm"
-            onClick={() => setIsCreateOpen(true)}
-            style={{ fontWeight: "var(--weight-extrabold)" }}
-          >
-            <Plus size={14} aria-hidden="true" /> {t.maintNewRequest}
-          </Btn>
-        </Row>
-      </Row>
+              <Plus size={14} aria-hidden="true" /> {t.maintNewRequest}
+            </Btn>
+          </>
+        }
+      />
 
       {(chronicIssues.length > 0 || trendingIssues.length > 0) && (
         <Stack gap={2} style={{ marginBottom: 16 }}>
           {chronicIssues.map((c) => (
-            <div
+            <Callout
               key={`${c.vid}::${c.issueType}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "var(--c-rust-wash)",
-                border: "1px solid var(--c-rust-wash)",
-                color: "var(--c-rust)",
-                padding: "8px 14px",
-                borderRadius: "var(--radius-md)",
-                fontSize: "var(--text-sm)",
-                fontWeight: "var(--weight-bold)",
-              }}
+              tone="danger"
+              icon={Repeat}
+              pad="8px 14px"
+              size="sm"
+              weight="bold"
+              color={C.rust}
             >
-              <Repeat size={13} aria-hidden="true" /> {c.vname} — "{c.issueType}" {t.maintReported}{" "}
-              {c.count}x {t.maintInLast60}
-            </div>
+              {c.vname} — "{c.issueType}" {t.maintReported} {c.count}x {t.maintInLast60}
+            </Callout>
           ))}
           {trendingIssues.map((trend) => (
-            <div
+            <Callout
               key={trend.issueType}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "var(--c-warn-wash)",
-                border: "1px solid var(--c-warn-wash)",
-                color: "var(--c-warn)",
-                padding: "8px 14px",
-                borderRadius: "var(--radius-md)",
-                fontSize: "var(--text-sm)",
-                fontWeight: "var(--weight-bold)",
-              }}
+              tone="warn"
+              icon={TrendingUp}
+              pad="8px 14px"
+              size="sm"
+              weight="bold"
+              color={C.warn}
             >
-              <TrendingUp size={13} aria-hidden="true" /> "{trend.issueType}" {t.maintTrendingUp} —{" "}
-              {trend.recentCount} {t.maintInLast30}
+              "{trend.issueType}" {t.maintTrendingUp} — {trend.recentCount} {t.maintInLast30}
               {!trend.isNew && ` (${trend.ratio}${t.maintBaselineRate})`}
-            </div>
+            </Callout>
           ))}
         </Stack>
       )}
@@ -573,42 +503,17 @@ export default function MaintenanceRequestsView({
         <>
           {/* Filter Tabs + Sort */}
           <Row wrap style={{ marginBottom: 16 }}>
-            <div
-              style={{
-                display: "flex",
-                gap: "var(--space-2)",
-                background: "var(--c-subtle)",
-                padding: 4,
-                borderRadius: "var(--radius-md)",
-                width: "fit-content",
-              }}
-            >
-              {[
-                ["all", t.all],
-                ["active", t.active],
-                ["pending", t.pending],
-                ["scheduled", t.scheduled],
-                ["completed", t.completed],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setFilt(key)}
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: "var(--radius-sm)",
-                    border: "none",
-                    fontSize: "var(--text-sm)",
-                    fontWeight: "var(--weight-bold)",
-                    cursor: "pointer",
-                    background: filt === key ? "var(--c-plum)" : "transparent",
-                    color: filt === key ? "var(--c-on-accent)" : "var(--c-barnwood)",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              value={filt}
+              onChange={setFilt}
+              options={[
+                { value: "all", label: t.all },
+                { value: "active", label: t.active },
+                { value: "pending", label: t.pending },
+                { value: "scheduled", label: t.scheduled },
+                { value: "completed", label: t.completed },
+              ]}
+            />
             <Sel
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -644,134 +549,121 @@ export default function MaintenanceRequestsView({
               filtered.map((r) => {
                 const isUrgent = r.urgency === "urgent";
                 return (
-                  <div
+                  <Card
                     key={r.id}
-                    className="mrr-card-hover"
-                    style={{
-                      background: isUrgent ? "var(--c-rust-wash)" : "var(--c-surface)",
-                      borderRadius: "var(--radius-xl)",
-                      padding: 16,
-                      border: isUrgent ? "1px solid var(--c-rust-wash)" : "1px solid var(--c-line)",
-                      boxShadow: "var(--shadow-xs)",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: "var(--space-7)",
-                      flexWrap: "wrap",
-                    }}
+                    hover
+                    style={
+                      isUrgent ? { background: C.rB, borderColor: "var(--c-rust-wash)" } : undefined
+                    }
                   >
-                    {/* Left Side Metadata Info */}
-                    <div style={{ flex: 1, minWidth: 260 }}>
-                      <Row gap={2} wrap style={{ marginBottom: 6 }}>
-                        <Bdg
-                          color={
-                            r.status === "pending"
-                              ? "amber"
-                              : r.status === "scheduled"
-                                ? "blue"
-                                : "green"
-                          }
-                        >
-                          {{ pending: t.pending, scheduled: t.scheduled, completed: t.completed }[
-                            r.status
-                          ] || r.status}
-                        </Bdg>
-                        {isUrgent && (
-                          <Bdg color="red">
-                            <Row inline as="span" gap={1}>
-                              <AlertOctagon size={11} aria-hidden="true" /> {t.maintUrgent}
-                            </Row>
+                    <Row gap={7} justify="space-between" wrap>
+                      {/* Left Side Metadata Info */}
+                      <Stack gap={0} style={{ flex: 1, minWidth: 260 }}>
+                        <Row gap={2} wrap style={{ marginBottom: 6 }}>
+                          <Bdg
+                            color={
+                              r.status === "pending"
+                                ? "amber"
+                                : r.status === "scheduled"
+                                  ? "blue"
+                                  : "green"
+                            }
+                          >
+                            {{ pending: t.pending, scheduled: t.scheduled, completed: t.completed }[
+                              r.status
+                            ] || r.status}
                           </Bdg>
+                          {isUrgent && (
+                            <Bdg color="red">
+                              <Row inline as="span" gap={1}>
+                                <AlertOctagon size={11} aria-hidden="true" /> {t.maintUrgent}
+                              </Row>
+                            </Bdg>
+                          )}
+                          <Bdg color="gray">{r.type}</Bdg>
+                        </Row>
+                        <Text
+                          as="h3"
+                          weight="extrabold"
+                          color="var(--c-barnwood)"
+                          style={{ margin: "0 0 4px 0", fontSize: 15 }}
+                        >
+                          {r.vname}
+                        </Text>
+                        <Text
+                          as="p"
+                          size="base"
+                          color="var(--c-barnwood)"
+                          style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
+                        >
+                          {r.notes}
+                        </Text>
+                        <Muted>
+                          {t.maintBy} {r.uname} •{" "}
+                          {r.at ? new Date(r.at).toLocaleDateString() : "Recent"}
+                          {r.scheduled_date && (
+                            <Row
+                              inline
+                              as="span"
+                              gap={1}
+                              style={{
+                                marginLeft: 8,
+                                color: "var(--c-slate)",
+                                fontWeight: "var(--weight-bold)",
+                              }}
+                            >
+                              <Calendar size={11} aria-hidden="true" /> {t.scheduled}:{" "}
+                              {new Date(r.scheduled_date).toLocaleDateString()}
+                            </Row>
+                          )}
+                        </Muted>
+                      </Stack>
+
+                      {/* Right Actions Block */}
+                      <Row>
+                        {r.status === "pending" && perms.maint_manage && (
+                          <Btn v="primary" sz="sm" onClick={() => setSel(r)}>
+                            <Calendar size={13} aria-hidden="true" /> {t.maintScheduleBtn}
+                          </Btn>
                         )}
-                        <Bdg color="gray">{r.type}</Bdg>
-                      </Row>
-                      <Text
-                        as="h3"
-                        weight="extrabold"
-                        color="var(--c-barnwood)"
-                        style={{ margin: "0 0 4px 0", fontSize: 15 }}
-                      >
-                        {r.vname}
-                      </Text>
-                      <Text
-                        as="p"
-                        size="base"
-                        color="var(--c-barnwood)"
-                        style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
-                      >
-                        {r.notes}
-                      </Text>
-                      <Muted>
-                        {t.maintBy} {r.uname} •{" "}
-                        {r.at ? new Date(r.at).toLocaleDateString() : "Recent"}
-                        {r.scheduled_date && (
-                          <Row
-                            inline
-                            as="span"
-                            gap={1}
-                            style={{
-                              marginLeft: 8,
-                              color: "var(--c-slate)",
-                              fontWeight: "var(--weight-bold)",
+                        {r.status === "scheduled" && perms.maint_manage && (
+                          <Btn v="green" sz="sm" onClick={() => setSel(r)}>
+                            <CheckCircle2 size={13} aria-hidden="true" /> {t.maintCompleteBtn}
+                          </Btn>
+                        )}
+                        {r.status === "completed" && (
+                          <Btn
+                            v="ghost"
+                            sz="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              downloadServiceReport(r);
                             }}
                           >
-                            <Calendar size={11} aria-hidden="true" /> {t.scheduled}:{" "}
-                            {new Date(r.scheduled_date).toLocaleDateString()}
-                          </Row>
+                            <FileText size={13} aria-hidden="true" /> {t.maintDownloadPdf}
+                          </Btn>
                         )}
-                      </Muted>
-                    </div>
+                        <Btn v="ghost" sz="sm" onClick={() => setSel(r)}>
+                          {t.maintReview} →
+                        </Btn>
 
-                    {/* Right Actions Block */}
-                    <Row>
-                      {r.status === "pending" && perms.maint_manage && (
-                        <Btn v="primary" sz="sm" onClick={() => setSel(r)}>
-                          <Calendar size={13} aria-hidden="true" /> {t.maintScheduleBtn}
-                        </Btn>
-                      )}
-                      {r.status === "scheduled" && perms.maint_manage && (
-                        <Btn v="green" sz="sm" onClick={() => setSel(r)}>
-                          <CheckCircle2 size={13} aria-hidden="true" /> {t.maintCompleteBtn}
-                        </Btn>
-                      )}
-                      {r.status === "completed" && (
-                        <Btn
-                          v="ghost"
-                          sz="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadServiceReport(r);
-                          }}
-                        >
-                          <FileText size={13} aria-hidden="true" /> {t.maintDownloadPdf}
-                        </Btn>
-                      )}
-                      <Btn v="ghost" sz="sm" onClick={() => setSel(r)}>
-                        {t.maintReview} →
-                      </Btn>
-
-                      {perms.maint_manage && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteRequest(r.id);
-                          }}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            color: C.rd,
-                            cursor: "pointer",
-                            padding: "4px 8px",
-                            display: "flex",
-                            alignItems: "center",
-                          }}
-                          title={t.maintRemoveTitle}
-                        >
-                          <Trash2 size={15} aria-hidden="true" />
-                        </button>
-                      )}
+                        {perms.maint_manage && (
+                          <TextBtn
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteRequest(r.id);
+                            }}
+                            color={C.rd}
+                            title={t.maintRemoveTitle}
+                            aria-label={t.maintRemoveTitle}
+                            style={{ padding: "4px 8px", display: "flex" }}
+                          >
+                            <Trash2 size={15} aria-hidden="true" />
+                          </TextBtn>
+                        )}
+                      </Row>
                     </Row>
-                  </div>
+                  </Card>
                 );
               })
             )}
@@ -904,21 +796,9 @@ export default function MaintenanceRequestsView({
                 {new Date(sel.at).toLocaleDateString()}
               </div>
               {perms.maint_manage && (
-                <button
-                  onClick={() => handleDeleteRequest(sel.id)}
-                  style={{
-                    background: "var(--c-rust-wash)",
-                    color: "var(--c-rust)",
-                    border: "1px solid var(--c-rust-wash)",
-                    borderRadius: "var(--radius-sm)",
-                    padding: "4px 10px",
-                    fontSize: "var(--text-xs)",
-                    fontWeight: "var(--weight-bold)",
-                    cursor: "pointer",
-                  }}
-                >
+                <Btn v="outline" sz="sm" tone={C.rust} onClick={() => handleDeleteRequest(sel.id)}>
                   {t.maintDeleteRequest}
-                </button>
+                </Btn>
               )}
             </Row>
             <div>
@@ -935,15 +815,7 @@ export default function MaintenanceRequestsView({
                   .sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0))[0];
                 if (!lastCompleted) return null;
                 return (
-                  <div
-                    style={{
-                      background: "var(--c-pasture-wash)",
-                      border: "1px solid var(--c-pasture-wash)",
-                      padding: 10,
-                      borderRadius: "var(--radius-md)",
-                      marginTop: 8,
-                    }}
-                  >
+                  <Callout tone="success" pad={4} style={{ marginTop: 8 }}>
                     <Row
                       as="strong"
                       gap="5px"
@@ -963,16 +835,16 @@ export default function MaintenanceRequestsView({
                         {t.completed} {new Date(lastCompleted.completed_at).toLocaleDateString()}
                       </Muted>
                     )}
-                  </div>
+                  </Callout>
                 );
               })()}
             </div>
 
             {sel.photo && (
-              <div style={{ marginTop: 4 }}>
-                <strong style={{ display: "block", marginBottom: 6, color: C.navy }}>
+              <Stack gap={0} style={{ marginTop: 4 }}>
+                <Text as="strong" color={C.navy} style={{ display: "block", marginBottom: 6 }}>
                   {t.maintPhotoAttached}
-                </strong>
+                </Text>
                 <img
                   src={sel.photo}
                   alt={t.maintPhotoAlt}
@@ -985,11 +857,14 @@ export default function MaintenanceRequestsView({
                     background: C.lg,
                   }}
                 />
-              </div>
+              </Stack>
             )}
 
             {sel.status === "pending" && perms.maint_manage && (
-              <div style={{ borderTop: `1px solid ${C.bd}`, paddingTop: 14, marginTop: 6 }}>
+              <Stack
+                gap={0}
+                style={{ borderTop: `1px solid ${C.bd}`, paddingTop: 14, marginTop: 6 }}
+              >
                 <Text as="h3" size="md" color={C.navy} style={{ margin: "0 0 10px 0" }}>
                   {t.maintMgmtActions}
                 </Text>
@@ -1014,18 +889,21 @@ export default function MaintenanceRequestsView({
                     {t.maintApproveSchedule}
                   </Btn>
                 </Row>
-              </div>
+              </Stack>
             )}
 
             {sel.status === "scheduled" && perms.maint_manage && (
-              <div style={{ borderTop: `1px solid ${C.bd}`, paddingTop: 14, marginTop: 6 }}>
+              <Stack
+                gap={0}
+                style={{ borderTop: `1px solid ${C.bd}`, paddingTop: 14, marginTop: 6 }}
+              >
                 <Text as="h3" size="md" color={C.navy} style={{ margin: "0 0 10px 0" }}>
                   {t.maintCompleteServiceLogs}
                 </Text>
                 {sel.wh_notes && (
-                  <div style={{ marginBottom: 10 }}>
+                  <Text style={{ marginBottom: 10 }}>
                     <strong>{t.maintScheduleInfo}</strong> {sel.wh_notes}
-                  </div>
+                  </Text>
                 )}
                 <Btn
                   v="green"
@@ -1037,19 +915,14 @@ export default function MaintenanceRequestsView({
                 >
                   {t.maintCompleteClose}
                 </Btn>
-              </div>
+              </Stack>
             )}
 
             {sel.status === "completed" && (
-              <div
-                style={{
-                  borderTop: `1px solid ${C.bd}`,
-                  paddingTop: 14,
-                  marginTop: 6,
-                  background: "var(--c-pasture-wash)",
-                  padding: 12,
-                  borderRadius: "var(--radius-md)",
-                }}
+              <Callout
+                tone="success"
+                pad={5}
+                style={{ borderTop: `1px solid ${C.bd}`, marginTop: 6 }}
               >
                 <Row align="flex-start" justify="space-between">
                   <Text as="strong" color="var(--c-pasture)">
@@ -1060,16 +933,16 @@ export default function MaintenanceRequestsView({
                   </Btn>
                 </Row>
                 {sel.wh_notes && (
-                  <div style={{ marginTop: 4 }}>
+                  <Text style={{ marginTop: 4 }}>
                     <strong>{t.maintResolutionNotesLabel}</strong> {sel.wh_notes}
-                  </div>
+                  </Text>
                 )}
                 {sel.completed_at && (
                   <Muted style={{ marginTop: 4 }}>
                     {t.maintClosedOn} {new Date(sel.completed_at).toLocaleString()}
                   </Muted>
                 )}
-              </div>
+              </Callout>
             )}
           </Stack>
         </Modal>

@@ -293,32 +293,25 @@ export default function Sidebar({
           )}
         </div>
         {!collapsed && (
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "var(--text-xs)",
-                fontWeight: "var(--weight-black)",
-                color: C.gold,
-                lineHeight: 1.15,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
+          <Stack gap={0} style={{ minWidth: 0 }}>
+            <Text
+              size="xs"
+              weight="black"
+              color={C.gold}
+              font="display"
+              truncate
+              style={{ lineHeight: 1.15 }}
             >
               {companyName || "STEADWERK"}
-            </div>
-            <div
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: 9,
-                color: "rgba(237,230,218,0.55)",
-                letterSpacing: "1.5px",
-              }}
+            </Text>
+            <Text
+              font="display"
+              color="rgba(237,230,218,0.55)"
+              style={{ fontSize: 9, letterSpacing: "1.5px" }}
             >
               {companyName ? "STEADWERK" : TAGLINE}
-            </div>
-          </div>
+            </Text>
+          </Stack>
         )}
       </button>
 
@@ -345,30 +338,29 @@ export default function Sidebar({
           >
             <item.icon size={17} strokeWidth={2} aria-hidden="true" />
             {!collapsed && (
-              <span
-                style={{
-                  fontSize: "var(--text-base)",
-                  fontWeight: cur === item.id ? 700 : 500,
-                  flex: 1,
-                  textAlign: "left",
-                }}
+              <Text
+                as="span"
+                size="base"
+                weight={cur === item.id ? "bold" : "normal"}
+                style={{ flex: 1, textAlign: "left" }}
               >
                 {item.label}
-              </span>
+              </Text>
             )}
             {(item.badge || 0) > 0 && !collapsed && (
-              <span
+              <Text
+                as="span"
+                size="2xs"
+                weight="extrabold"
+                color={C.onAccent}
                 style={{
                   background: item.badgeColor || C.rd,
-                  color: C.onAccent,
                   borderRadius: 20,
-                  fontSize: "var(--text-2xs)",
                   padding: "1px 6px",
-                  fontWeight: "var(--weight-extrabold)",
                 }}
               >
                 {item.badge}
-              </span>
+              </Text>
             )}
             {(item.badge || 0) > 0 && collapsed && (
               <span
@@ -527,7 +519,6 @@ export default function Sidebar({
               background: rColor(user.role),
               display: "flex",
               alignItems: "center",
-              justifyGroup: "center",
               justifyContent: "center",
               fontSize: "var(--text-base)",
               fontWeight: "var(--weight-black)",
@@ -538,19 +529,10 @@ export default function Sidebar({
             {user.name ? user.name[0] : user.full_name ? user.full_name[0] : "U"}
           </div>
           {!collapsed && (
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: "var(--text-xs)",
-                  fontWeight: "var(--weight-bold)",
-                  color: C.shellInk,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
+            <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
+              <Text size="xs" weight="bold" color={C.shellInk} truncate>
                 {user.name || user.full_name || "Active User"}
-              </div>
+              </Text>
               <Text
                 weight="semibold"
                 color={rColor(user.role)}
@@ -558,7 +540,7 @@ export default function Sidebar({
               >
                 {ROLES[user.role]?.label || user.role || "Employee"}
               </Text>
-            </div>
+            </Stack>
           )}
         </div>
 
