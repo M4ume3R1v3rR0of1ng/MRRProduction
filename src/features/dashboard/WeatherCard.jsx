@@ -21,7 +21,7 @@ import {
 import { translations } from "@/shared/utils/translations";
 import { C } from "@/shared/utils/helpers";
 import { getAccessToken } from "@/shared/utils/supabase";
-import { Spinner, Card, Row, Text } from "@/shared/components/UIPrimitives";
+import { Spinner, Card, Row, Text, Muted } from "@/shared/components/UIPrimitives";
 
 // WMO weather code -> { icon, label }.
 function describeWeather(code) {
@@ -97,9 +97,7 @@ export default function WeatherCard({ lang = "en" }) {
     return (
       <Card pad="var(--space-4)" style={{ borderRadius: "var(--radius-lg)" }}>
         {header}
-        <div style={{ color: C.sub, fontSize: "var(--text-xs)", padding: "4px 0" }}>
-          {t.wcUnavailable}
-        </div>
+        <Muted style={{ padding: "4px 0" }}>{t.wcUnavailable}</Muted>
       </Card>
     );
   }

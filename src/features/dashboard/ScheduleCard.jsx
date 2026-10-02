@@ -13,7 +13,16 @@
 import { Calendar, AlertTriangle, Truck, Wrench } from "lucide-react";
 import { C, parseDay, todayLocal } from "@/shared/utils/helpers";
 import { buildSchedule } from "@/shared/utils/schedule";
-import { Row, Text, Eyebrow, Muted, TextBtn, Callout } from "@/shared/components/UIPrimitives";
+import {
+  Row,
+  Text,
+  Eyebrow,
+  Muted,
+  TextBtn,
+  Callout,
+  Card,
+  SectionTitle,
+} from "@/shared/components/UIPrimitives";
 
 const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -26,30 +35,11 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
   const es = lang === "es";
 
   return (
-    <div
-      className="mrr-card"
-      style={{
-        background: C.w,
-        borderRadius: "var(--radius-xl)",
-        padding: 16,
-        border: `1px solid ${C.bd}`,
-        boxShadow: "var(--shadow-xs)",
-      }}
-    >
+    <Card>
       <Row gap={4} align="baseline" justify="space-between" wrap style={{ marginBottom: 12 }}>
-        <h3
-          style={{
-            margin: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: "var(--text-base)",
-            fontWeight: "var(--weight-extrabold)",
-            color: C.navy,
-          }}
-        >
-          <Calendar size={15} aria-hidden="true" /> {es ? "La semana que viene" : "The week ahead"}
-        </h3>
+        <SectionTitle as="h3" icon={Calendar}>
+          {es ? "La semana que viene" : "The week ahead"}
+        </SectionTitle>
         <Row gap={4} align="baseline">
           <Text as="span" size="2xs" weight="bold" color={C.sub}>
             {totalJobs} {es ? "trabajos" : totalJobs === 1 ? "job" : "jobs"} · {totalMaint}{" "}
@@ -122,7 +112,9 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
                 </Row>
 
                 {busy === 0 && (
-                  <span style={{ fontSize: "var(--text-2xs)", color: C.sub, opacity: 0.6 }}>—</span>
+                  <Muted as="span" size="2xs" style={{ opacity: 0.6 }}>
+                    —
+                  </Muted>
                 )}
 
                 {day.jobs.slice(0, 2).map((j) => (
@@ -230,6 +222,6 @@ export default function ScheduleCard({ jobs, reqs, jobTrailers, vehs, users, onN
             : "Nothing scheduled this week. Set dates in Build Jobs or Maintenance."}
         </Muted>
       )}
-    </div>
+    </Card>
   );
 }

@@ -8,7 +8,7 @@ import { useNotify } from "../context/NotificationContext";
 import { HAS_NATIVE_CAMERA, capturePhoto } from "../utils/photoCapture";
 import { Stack, Row, Text, Muted, Card, IconSwatch } from "./LayoutPrimitives";
 
-// Card, Stack, Row, Eyebrow, SectionTitle, Muted, Text, Table, Callout — kept in their own file
+// The layout layer (Card, Stack, Row, Text, Callout, Table, Meter...) — kept in its own file
 // so this one stops growing, but re-exported so views have one import path.
 export {
   Card,

@@ -41,6 +41,9 @@ import {
   Muted,
   Callout,
   Grid,
+  LoadingState,
+  TextBtn,
+  Card,
 } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -156,7 +159,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
       wide
     >
       {loading ? (
-        <p style={{ color: C.sub, textAlign: "center", padding: "20px 0" }}>Loading templates...</p>
+        <LoadingState label="Loading templates..." />
       ) : editing ? (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "90px 1fr", gap: "var(--space-3)" }}>
@@ -222,26 +225,22 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                           <Muted as="span" size="2xs">
                             default qty
                           </Muted>
-                          <button
+                          <TextBtn
                             onClick={() =>
                               setEditing((p) => ({
                                 ...p,
                                 items: p.items.filter((_, i2) => i2 !== idx),
                               }))
                             }
-                            style={{
-                              marginLeft: "auto",
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              color: C.rd,
-                              fontSize: "var(--text-lg)",
-                              lineHeight: 1,
-                            }}
+                            color={C.rd}
+                            weight="normal"
+                            size="lg"
+                            aria-label="Remove"
+                            style={{ marginLeft: "auto", lineHeight: 1, padding: "1px 6px" }}
                             disabled={saving}
                           >
                             ×
-                          </button>
+                          </TextBtn>
                         </Row>
                       </Callout>
                     );
@@ -250,64 +249,48 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
               )}
             </div>
             <div>
-              <div style={{ position: "relative", marginBottom: 8 }}>
-                <Search
-                  size={13}
-                  color={C.sub}
-                  style={{
-                    position: "absolute",
-                    left: 9,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                  }}
-                  aria-hidden="true"
-                />
-                <Inp
-                  value={srch}
-                  onChange={(e) => setSrch(e.target.value)}
-                  placeholder="Search catalog..."
-                  style={{ paddingLeft: 28 }}
-                  disabled={saving}
-                />
-              </div>
+              <Inp
+                prefix={<Search size={13} />}
+                value={srch}
+                onChange={(e) => setSrch(e.target.value)}
+                placeholder="Search catalog..."
+                style={{ marginBottom: 8 }}
+                disabled={saving}
+              />
               <Stack gap="5px" style={{ maxHeight: 260, overflowY: "auto" }}>
                 {selectableMaterials(inv, editing.items, srch)
                   .slice(0, 40)
                   .map((item) => (
-                    <div
+                    <Card
                       key={item.id}
-                      style={{
-                        background: C.w,
-                        borderRadius: "var(--radius-md)",
-                        padding: "8px 10px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        boxShadow: "var(--shadow-xs)",
-                      }}
+                      variant="raised"
+                      pad="8px 10px"
+                      style={{ borderRadius: "var(--radius-md)", boxShadow: "var(--shadow-xs)" }}
                     >
-                      <div>
-                        <Text size="xs" weight="bold" color={C.navy}>
-                          {item.name}
-                        </Text>
-                        <Muted size="2xs">
-                          {tot(item)} {item.unit} available
-                        </Muted>
-                      </div>
-                      <Btn
-                        v="primary"
-                        sz="sm"
-                        onClick={() =>
-                          setEditing((p) => ({
-                            ...p,
-                            items: [...p.items, { iid: item.id, iname: item.name, qty: 1 }],
-                          }))
-                        }
-                        disabled={saving}
-                      >
-                        + Add
-                      </Btn>
-                    </div>
+                      <Row gap={0} justify="space-between">
+                        <div>
+                          <Text size="xs" weight="bold" color={C.navy}>
+                            {item.name}
+                          </Text>
+                          <Muted size="2xs">
+                            {tot(item)} {item.unit} available
+                          </Muted>
+                        </div>
+                        <Btn
+                          v="primary"
+                          sz="sm"
+                          onClick={() =>
+                            setEditing((p) => ({
+                              ...p,
+                              items: [...p.items, { iid: item.id, iname: item.name, qty: 1 }],
+                            }))
+                          }
+                          disabled={saving}
+                        >
+                          + Add
+                        </Btn>
+                      </Row>
+                    </Card>
                   ))}
               </Stack>
             </div>
@@ -351,16 +334,9 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
             lists.
           </Muted>
           {tpls.length === 0 && (
-            <p
-              style={{
-                color: C.sub,
-                fontSize: "var(--text-sm)",
-                textAlign: "center",
-                padding: "16px 0",
-              }}
-            >
+            <Muted as="p" size="sm" style={{ textAlign: "center", padding: "16px 0" }}>
               No templates yet — create your first one below.
-            </p>
+            </Muted>
           )}
           <Stack gap={3} style={{ maxHeight: 320, overflowY: "auto" }}>
             {tpls.map((tpl) => (

@@ -22,7 +22,7 @@ import { Save } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Modal, Row, Text, Table } from "@/shared/components/UIPrimitives";
+import { Btn, Modal, Row, Text, Table, Inp } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -127,7 +127,7 @@ export default function CorrectReturnModal({ job, activeUser, t, onSaved, onClos
                     {item.returned || 0} {item.unit || ""}
                   </td>
                   <td>
-                    <input
+                    <Inp
                       type="number"
                       min="0"
                       max={item.pulled || 0}

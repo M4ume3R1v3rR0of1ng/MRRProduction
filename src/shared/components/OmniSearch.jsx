@@ -15,6 +15,7 @@ import {
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { Text, Muted, Row } from "./LayoutPrimitives";
+import { Inp, Eyebrow, PickRow } from "./UIPrimitives";
 
 // Case-insensitive match across any of the given string fields
 const match = (txt, ...fields) =>
@@ -284,7 +285,9 @@ export default function OmniSearch({
   return (
     <div ref={containerRef} style={{ position: "relative", width: "100%" }}>
       {/* Search Input field */}
-      <input
+      {/* Inp rather than a bare input: the old one set outline:none and had no
+          focus style, so a keyboard user could not see they were in it. */}
+      <Inp
         type="text"
         value={query}
         onChange={(e) => {
@@ -294,16 +297,12 @@ export default function OmniSearch({
         onFocus={() => setIsOpen(true)}
         placeholder={t.chromeSearchPlaceholder}
         style={{
-          width: "100%",
           padding: "10px 14px 10px 12px",
-          borderRadius: "8px",
-          border: `1px solid ${C.bd || "var(--c-line)"}`,
+          borderWidth: 1,
           background: "var(--c-subtle)",
-          fontSize: "13px",
+          fontSize: "var(--text-base)",
           fontWeight: "var(--weight-semibold)",
           color: C.navy,
-          outline: "none",
-          transition: "all 0.2s",
         }}
       />
 
@@ -330,43 +329,30 @@ export default function OmniSearch({
               (s) =>
                 s.items.length > 0 && (
                   <div key={s.key}>
-                    <div
-                      style={{
-                        padding: "6px 14px",
-                        fontSize: "11px",
-                        fontWeight: "var(--weight-bold)",
-                        color: "var(--c-sub)",
-                        textTransform: "uppercase",
-                        background: "var(--c-subtle)",
-                      }}
-                    >
+                    <Eyebrow style={{ padding: "6px 14px", background: "var(--c-subtle)" }}>
                       {s.header}
-                    </div>
+                    </Eyebrow>
                     {s.items.map((item, idx) => (
-                      <div
+                      <PickRow
                         key={item.id || idx}
                         onClick={() => s.onClick(item)}
                         style={{
-                          padding: "10px 14px",
-                          cursor: "pointer",
-                          fontSize: "13px",
+                          borderBottom: "none",
+                          fontSize: "var(--text-base)",
                           color: "var(--c-barnwood)",
-                          transition: "background 0.15s",
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--c-subtle)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
                         <Text weight="semibold">{s.title(item)}</Text>
                         <Muted>{s.sub(item)}</Muted>
-                      </div>
+                      </PickRow>
                     ))}
                   </div>
                 ),
             )
           ) : (
-            <div style={{ padding: "20px", textAlign: "center", color: "var(--c-sub)" }}>
+            <Text color={C.sub} style={{ padding: "20px", textAlign: "center" }}>
               {t.osNoResults} "<strong>{query}</strong>"
-            </div>
+            </Text>
           )}
         </div>
       )}

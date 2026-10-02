@@ -132,37 +132,31 @@ export default function MfaPanel({ user, lang = "en" }) {
 
   return (
     <Card variant="raised" pad="lg">
-      <h2
+      <Row
+        as="h2"
         style={{
           margin: "0 0 6px",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
           fontSize: "var(--text-xl)",
           fontWeight: "var(--weight-black)",
           color: C.navy,
         }}
       >
         <Shield size={18} aria-hidden="true" /> {t.mfaTitle}
-      </h2>
+      </Row>
       <Text as="p" size="base" color={C.sub} style={{ margin: "0 0 20px" }}>
         {t.mfaIntro}
       </Text>
 
       {msg.text && (
-        <div
-          style={{
-            background: msg.isError ? C.rB : C.gB,
-            color: msg.isError ? C.rd : C.gr,
-            padding: "10px 14px",
-            borderRadius: "var(--radius-md)",
-            fontSize: "var(--text-base)",
-            marginBottom: 16,
-            fontWeight: "var(--weight-semibold)",
-          }}
+        <Callout
+          tone={msg.isError ? "danger" : "success"}
+          size="base"
+          weight="semibold"
+          color={msg.isError ? C.rd : C.gr}
+          style={{ marginBottom: 16 }}
         >
           {msg.text}
-        </div>
+        </Callout>
       )}
 
       {loading ? (
@@ -171,18 +165,15 @@ export default function MfaPanel({ user, lang = "en" }) {
         </Text>
       ) : pending ? (
         <form onSubmit={confirmEnroll}>
-          <ol
-            style={{
-              margin: "0 0 16px",
-              paddingLeft: 20,
-              color: C.navy,
-              fontSize: "var(--text-base)",
-              lineHeight: 1.7,
-            }}
+          <Text
+            as="ol"
+            size="base"
+            color={C.navy}
+            style={{ margin: "0 0 16px", paddingLeft: 20, lineHeight: 1.7 }}
           >
             <li>{t.mfaStep1}</li>
             <li>{t.mfaStep2}</li>
-          </ol>
+          </Text>
 
           {pending.qr && (
             <Row gap={0} align="stretch" justify="center" style={{ marginBottom: 14 }}>
@@ -260,39 +251,29 @@ export default function MfaPanel({ user, lang = "en" }) {
         <>
           <Stack gap={3} style={{ marginBottom: 16 }}>
             {verified.map((f) => (
-              <div
-                key={f.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 10,
-                  padding: "10px 14px",
-                  background: C.gB,
-                  border: `1.5px solid ${C.gr}`,
-                  borderRadius: "var(--radius-md)",
-                }}
-              >
-                <div>
-                  <Row
-                    gap={2}
-                    style={{
-                      fontWeight: "var(--weight-bold)",
-                      color: C.navy,
-                      fontSize: "var(--text-base)",
-                    }}
-                  >
-                    <CheckCircle2 size={14} color={C.gr} aria-hidden="true" />{" "}
-                    {f.friendly_name || t.mfaAuthenticator}
-                  </Row>
-                  <Muted size="2xs">
-                    {t.mfaAddedOn} {new Date(f.created_at).toLocaleDateString()}
-                  </Muted>
-                </div>
-                <Btn v="danger" sz="sm" onClick={() => removeFactor(f.id)} disabled={busy}>
-                  {t.mfaRemove}
-                </Btn>
-              </div>
+              <Callout key={f.id} tone="success" bordered>
+                <Row gap={4} justify="space-between">
+                  <div>
+                    <Row
+                      gap={2}
+                      style={{
+                        fontWeight: "var(--weight-bold)",
+                        color: C.navy,
+                        fontSize: "var(--text-base)",
+                      }}
+                    >
+                      <CheckCircle2 size={14} color={C.gr} aria-hidden="true" />{" "}
+                      {f.friendly_name || t.mfaAuthenticator}
+                    </Row>
+                    <Muted size="2xs">
+                      {t.mfaAddedOn} {new Date(f.created_at).toLocaleDateString()}
+                    </Muted>
+                  </div>
+                  <Btn v="danger" sz="sm" onClick={() => removeFactor(f.id)} disabled={busy}>
+                    {t.mfaRemove}
+                  </Btn>
+                </Row>
+              </Callout>
             ))}
           </Stack>
           <Muted as="p" size="2xs" style={{ margin: 0, lineHeight: 1.6 }}>

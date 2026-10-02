@@ -183,15 +183,7 @@ export default function BatchCorrectionModal({
 
       {recalc ? (
         <div>
-          <div
-            style={{
-              background: "color-mix(in srgb, var(--c-warn) 12%, transparent)",
-              border: `1.5px solid ${C.am}`,
-              borderRadius: "var(--radius-md)",
-              padding: "12px 14px",
-              marginBottom: "var(--space-4)",
-            }}
-          >
+          <Callout tone="warn" bordered pad="12px 14px" style={{ marginBottom: "var(--space-4)" }}>
             <Text weight="extrabold" color={C.navy} style={{ marginBottom: 6 }}>
               This changes {recalc.exact.length} finished job{recalc.exact.length > 1 ? "s" : ""}
             </Text>
@@ -230,19 +222,20 @@ export default function BatchCorrectionModal({
                       </Text>
                     )}
                   </Text>
-                  <span style={{ whiteSpace: "nowrap" }}>
+                  <Text as="span" style={{ whiteSpace: "nowrap" }}>
                     {used} × · {fm(before)} →{" "}
                     <Text as="strong" color={C.gr}>
                       {fm(after)}
                     </Text>
-                  </span>
+                  </Text>
                 </Row>
               );
             })}
-            <div
+            <Row
+              gap={0}
+              align="stretch"
+              justify="space-between"
               style={{
-                display: "flex",
-                justifyContent: "space-between",
                 fontSize: "var(--text-sm)",
                 fontWeight: "var(--weight-extrabold)",
                 color: C.navy,
@@ -272,8 +265,8 @@ export default function BatchCorrectionModal({
                   ),
                 )}
               </span>
-            </div>
-          </div>
+            </Row>
+          </Callout>
 
           {recalc.blended.length > 0 && (
             <Callout

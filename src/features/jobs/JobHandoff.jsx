@@ -18,7 +18,7 @@
 // permitted is worse than no button.
 import { C } from "@/shared/utils/helpers";
 import { TrussMark } from "@/shared/components/SteadwerkMark";
-import { Stack, Text } from "@/shared/components/UIPrimitives";
+import { Stack, Text, Btn, TextBtn } from "@/shared/components/UIPrimitives";
 
 export default function JobHandoff({
   job,
@@ -68,14 +68,14 @@ export default function JobHandoff({
           <Text
             size="xl"
             weight="black"
-            color={"var(--brand-accent-ink, var(--c-shell))"}
-            style={{ fontFamily: "var(--font-display)" }}
+            color="var(--brand-accent-ink, var(--c-shell))"
+            font="display"
           >
             {title}
           </Text>
         </Stack>
 
-        <div style={{ padding: "var(--space-8)" }}>
+        <Stack gap={0} style={{ padding: "var(--space-8)" }}>
           <Text size="lg" weight="extrabold" color={C.navy} style={{ marginBottom: 2 }}>
             {job.title || job.name}
           </Text>
@@ -93,42 +93,23 @@ export default function JobHandoff({
 
           <Stack gap={3}>
             {onGo && actionLabel && (
-              <button
-                className="mrr-btn"
-                autoFocus
-                onClick={onGo}
-                style={{
-                  padding: "12px",
-                  background: C.teal,
-                  color: "var(--c-on-accent)",
-                  border: "none",
-                  borderRadius: "var(--radius-lg)",
-                  fontWeight: "var(--weight-extrabold)",
-                  fontSize: "var(--text-md)",
-                  cursor: "pointer",
-                }}
-              >
+              <Btn v="teal" sz="lg" block autoFocus onClick={onGo}>
                 {actionLabel}
-              </button>
+              </Btn>
             )}
-            <button
-              className="mrr-btn"
-              onClick={onClose}
-              style={{
-                padding: "10px",
-                background: onGo ? "transparent" : C.subtle,
-                color: onGo ? C.sub : C.barnwood,
-                border: "none",
-                borderRadius: "var(--radius-lg)",
-                fontWeight: "var(--weight-bold)",
-                fontSize: "var(--text-base)",
-                cursor: "pointer",
-              }}
-            >
-              {closeLabel}
-            </button>
+            {/* Beside a primary action this is the quiet way out, not a second
+                button competing with it. */}
+            {onGo ? (
+              <TextBtn color={C.sub} onClick={onClose} style={{ padding: 10 }}>
+                {closeLabel}
+              </TextBtn>
+            ) : (
+              <Btn v="ghost" block onClick={onClose}>
+                {closeLabel}
+              </Btn>
+            )}
           </Stack>
-        </div>
+        </Stack>
       </div>
     </div>
   );

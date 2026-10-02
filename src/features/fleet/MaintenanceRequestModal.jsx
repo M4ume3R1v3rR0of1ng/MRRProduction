@@ -14,7 +14,18 @@
 import { useState } from "react";
 import { Wrench, Bell } from "lucide-react";
 import { C } from "@/shared/utils/helpers";
-import { Btn, Fld, Inp, Modal, Sel, TA, Card, Row } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Fld,
+  Inp,
+  Modal,
+  Sel,
+  TA,
+  Card,
+  Row,
+  Callout,
+  Grid,
+} from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
 
 export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClose, preVid }) {
@@ -101,16 +112,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
         <>
           {/* ── MULTI-SELECT CHECKBOX GRID INTERACTION LAYER ── */}
           <Fld label="Service Types (Select all that apply) *">
-            <div
-              className="sw-grid-2"
-              style={{
-                gap: "10px",
-                background: "var(--c-subtle)",
-                padding: 12,
-                borderRadius: "var(--radius-md)",
-                border: `1px solid ${C.bd || "var(--c-line)"}`,
-              }}
-            >
+            <Callout as={Grid} bordered pad={5} gap={4}>
               {(selV.type === "truck"
                 ? [
                     "Oil Change",
@@ -162,7 +164,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
                   </Row>
                 );
               })}
-            </div>
+            </Callout>
           </Fld>
 
           <Fld label="Urgency">

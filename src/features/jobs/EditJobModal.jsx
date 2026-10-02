@@ -29,6 +29,7 @@ import {
   Muted,
   Grid,
   TextBtn,
+  Card,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -276,7 +277,7 @@ export default function EditJobModal({
         ) : (
           items.map((item) => (
             <Row key={item.iid} style={{ background: C.lg, borderRadius: 7, padding: "7px 10px" }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <Stack gap={0} style={{ flex: 1, minWidth: 0 }}>
                 <Text size="sm" weight="bold" color={C.navy}>
                   {item.iname}
                 </Text>
@@ -286,7 +287,7 @@ export default function EditJobModal({
                     pulled
                   </Row>
                 )}
-              </div>
+              </Stack>
               <Inp
                 type="number"
                 min="0"
@@ -295,9 +296,9 @@ export default function EditJobModal({
                 style={{ width: 70, padding: "4px 8px" }}
                 disabled={saving}
               />
-              <span style={{ fontSize: "var(--text-xs)", color: C.sub, width: 50 }}>
+              <Muted as="span" style={{ width: 50 }}>
                 {item.unit}
-              </span>
+              </Muted>
               <TextBtn
                 onClick={() => removeItem(item)}
                 disabled={saving}
@@ -323,9 +324,11 @@ export default function EditJobModal({
         />
       </Fld>
       {search.trim() && (
-        <div
+        <Card
+          variant="flat"
+          pad="none"
           style={{
-            border: `1.5px solid ${C.bd}`,
+            borderWidth: 1.5,
             borderRadius: "var(--radius-md)",
             maxHeight: 160,
             overflowY: "auto",
@@ -333,11 +336,9 @@ export default function EditJobModal({
           }}
         >
           {addable.length === 0 ? (
-            <div
-              style={{ padding: 10, fontSize: "var(--text-sm)", color: C.sub, textAlign: "center" }}
-            >
+            <Muted size="sm" style={{ padding: 10, textAlign: "center" }}>
               No matching inventory items.
-            </div>
+            </Muted>
           ) : (
             addable.map((item) => (
               <Row
@@ -362,7 +363,7 @@ export default function EditJobModal({
               </Row>
             ))
           )}
-        </div>
+        </Card>
       )}
 
       <Row gap={4} align="stretch" style={{ marginTop: 14 }}>

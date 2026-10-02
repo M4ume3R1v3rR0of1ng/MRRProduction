@@ -8,7 +8,7 @@
     "hex": 0
   },
   "src/features/auth/MfaPanel.jsx": {
-    "inline": 5,
+    "inline": 1,
     "hex": 0
   },
   "src/features/auth/ProfileView.jsx": {
@@ -16,7 +16,7 @@
     "hex": 0
   },
   "src/features/auth/ResetPasswordScreen.jsx": {
-    "inline": 5,
+    "inline": 1,
     "hex": 0
   },
   "src/features/billing/BillingView.jsx": {
@@ -28,7 +28,7 @@
     "hex": 0
   },
   "src/features/dashboard/ScheduleCard.jsx": {
-    "inline": 7,
+    "inline": 4,
     "hex": 0
   },
   "src/features/dashboard/TeamChatBox.jsx": {
@@ -36,7 +36,7 @@
     "hex": 0
   },
   "src/features/dashboard/WeatherCard.jsx": {
-    "inline": 3,
+    "inline": 2,
     "hex": 0
   },
   "src/features/fleet/FleetManagementView.jsx": {
@@ -48,11 +48,7 @@
     "hex": 1
   },
   "src/features/fleet/MaintenanceRequestModal.jsx": {
-    "inline": 2,
-    "hex": 0
-  },
-  "src/features/inventory/BatchCorrectionModal.jsx": {
-    "inline": 3,
+    "inline": 1,
     "hex": 0
   },
   "src/features/inventory/BulkReceiveModal.jsx": {
@@ -72,19 +68,11 @@
     "hex": 0
   },
   "src/features/inventory/JobTemplatesModal.jsx": {
-    "inline": 6,
-    "hex": 0
-  },
-  "src/features/jobs/CorrectReturnModal.jsx": {
     "inline": 1,
     "hex": 0
   },
-  "src/features/jobs/EditJobModal.jsx": {
-    "inline": 4,
-    "hex": 0
-  },
   "src/features/jobs/JobHandoff.jsx": {
-    "inline": 5,
+    "inline": 2,
     "hex": 0
   },
   "src/features/jobs/PullAddedMaterialsModal.jsx": {
@@ -148,7 +136,7 @@
     "hex": 0
   },
   "src/shared/components/OmniSearch.jsx": {
-    "inline": 6,
+    "inline": 2,
     "hex": 0
   },
   "src/shared/components/SteadwerkMark.jsx": {

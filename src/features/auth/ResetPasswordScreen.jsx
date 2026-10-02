@@ -17,7 +17,7 @@ import { supabase } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
 import { validatePassword, PASSWORD_HINT } from "./passwordPolicy";
 import { translations } from "@/shared/utils/translations";
-import { Fld, Row, Text, Callout } from "@/shared/components/UIPrimitives";
+import { Fld, Row, Text, Callout, Stack, Btn } from "@/shared/components/UIPrimitives";
 import { SteadwerkLockup, BRAND } from "@/shared/components/SteadwerkMark";
 
 export default function ResetPasswordScreen({ onDone, lang = "en" }) {
@@ -99,14 +99,12 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
           margin: "auto",
         }}
       >
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ marginBottom: 14 }}>
-            <SteadwerkLockup size={64} />
-          </div>
-          <Text size="base" color={C.sub} style={{ marginTop: 4 }}>
+        <Stack gap={6} align="center" style={{ textAlign: "center", marginBottom: 32 }}>
+          <SteadwerkLockup size={64} />
+          <Text size="base" color={C.sub}>
             {done ? "Password updated" : "Set a new password"}
           </Text>
-        </div>
+        </Stack>
 
         {done ? (
           <>
@@ -119,24 +117,9 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
             >
               {t.rpChanged}
             </Callout>
-            <button
-              className="mrr-btn"
-              onClick={onDone}
-              style={{
-                width: "100%",
-                padding: "14px",
-                background: C.gold,
-                color: C.navy,
-                border: "none",
-                borderRadius: "var(--radius-md)",
-                fontSize: "var(--text-lg)",
-                fontWeight: "var(--weight-extrabold)",
-                cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-              }}
-            >
+            <Btn v="gold" sz="xl" block onClick={onDone}>
               {t.rpContinueSignIn}
-            </button>
+            </Btn>
           </>
         ) : (
           <>
@@ -171,27 +154,16 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
               />
             </Fld>
 
-            <button
-              className="mrr-btn"
+            <Btn
+              v="gold"
+              sz="xl"
+              block
               onClick={submit}
               disabled={submitting}
-              style={{
-                width: "100%",
-                padding: "14px",
-                background: submitting ? C.bd : C.gold,
-                color: C.navy,
-                border: "none",
-                borderRadius: "var(--radius-md)",
-                fontSize: "var(--text-lg)",
-                fontWeight: "var(--weight-extrabold)",
-                cursor: submitting ? "not-allowed" : "pointer",
-                marginTop: 8,
-                opacity: submitting ? 0.7 : 1,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-              }}
+              style={{ marginTop: 8 }}
             >
               {submitting ? "Saving…" : "Update password"}
-            </button>
+            </Btn>
           </>
         )}
       </div>
