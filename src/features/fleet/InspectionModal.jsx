@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { ClipboardList, Save, Loader2, X } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
+import { C } from "@/shared/utils/helpers";
 import {
   Btn,
   Fld,
@@ -152,7 +153,7 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
                         top: 2,
                         right: 2,
                         background: "rgba(15,23,42,0.8)",
-                        color: "#fff",
+                        color: C.onScrim,
                         border: "none",
                         borderRadius: "50%",
                         width: 18,

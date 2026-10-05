@@ -959,7 +959,7 @@ export function PhotoUpload({
                 top: "var(--space-2)",
                 right: "var(--space-2)",
                 background: "rgba(0,0,0,0.55)",
-                color: "#fff",
+                color: C.onScrim,
                 border: "none",
                 borderRadius: "50%",
                 width: 26,

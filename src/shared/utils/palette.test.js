@@ -99,7 +99,12 @@ const isLight = (v) => {
   return l !== null && l > 0.75;
 };
 
-const BG = /(?:background|backgroundColor)\s*:\s*[^,;}\n]*?(#[0-9a-fA-F]{3,6}|["']white["'])/g;
+// `bg` is in here because its absence is how the toast palette kept a literal
+// #fee2e2 panel through this entire audit: NotificationContext builds a style
+// object with its own `bg`/`border`/`color` keys and spreads them onto the
+// element later, so nothing on the line ever said "background". A style object
+// one indirection away from the DOM is still a hardcoded surface.
+const BG = /(?:background|backgroundColor|\bbg)\s*:\s*[^,;}\n]*?(#[0-9a-fA-F]{3,6}|["']white["'])/g;
 const INK = /color\s*:\s*[^,;}\n]*?(#[0-9a-fA-F]{3,6}|["']white["'])/g;
 const BARNWOOD_BG = /(?:background|backgroundColor)\s*:[^,;}\n]*var\(--c-barnwood\)/;
 // Ink is allowed to be a literal light color when it demonstrably sits on

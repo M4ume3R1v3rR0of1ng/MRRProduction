@@ -913,7 +913,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                 maxHeight: "68vh",
                 borderRadius: "var(--radius-md)",
                 objectFit: "contain",
-                background: "#000",
+                background: C.mediaBackdrop,
               }}
             />
             <Btn

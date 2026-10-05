@@ -198,6 +198,18 @@
      token at the SAME value on purpose — see the note there. */
   --c-scan-paper: #ffffff;
 
+  /* Letterbox behind a photo or a video frame. Black in both themes on purpose:
+     the bars are the absence of image, not a surface, so inverting them would
+     frame every clip and lightbox in a pale box. Also repeated in the dark block
+     at the same value. */
+  --c-media-backdrop: #000000;
+
+  /* Ink on a fixed dark scrim — the remove pip over a photo thumbnail, which
+     rides on rgba(0,0,0,.55) whatever the theme is doing. Deliberately NOT
+     --c-on-accent: that one inverts to near-black for dark mode, which would
+     put black ink on a black scrim. */
+  --c-on-scrim: #ffffff;
+
   /* ── Typography scale ── */
   --text-2xs: 10px;
   --text-xs: 11px;
@@ -297,6 +309,13 @@
      unscannable. Restated here rather than omitted so the parity check passes
      and the next person sees the decision instead of an apparent gap. */
   --c-scan-paper: #ffffff;
+
+  /* Same story as --c-scan-paper: both are identical to their light values on
+     purpose. A letterbox behind a photo stays black and the ink on a black
+     scrim stays white, because neither one's backdrop moves when the theme
+     does. Restated rather than omitted so the parity check passes. */
+  --c-media-backdrop: #000000;
+  --c-on-scrim: #ffffff;
 
   /* The light shadows are tinted slate at 5-14% alpha, which is invisible on a
      dark ground. Dark elevation has to come from near-black at much higher

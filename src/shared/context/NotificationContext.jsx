@@ -66,26 +66,27 @@ export function NotificationProvider({ children }) {
     return () => window.removeEventListener("mrr-audit-log-failure", onAuditFailure);
   }, []);
 
-  // Maps notification types to cohesive operational design tokens
+  // Maps notification types to the palette's wash/full-saturation pairs — the
+  // same pairing Bdg uses, so a toast and a badge of the same severity read as
+  // the same thing.
+  //
+  // These were literal hex until they weren't: the washes are near-black in dark
+  // mode (--c-pasture-wash is #1e2a23), so a hardcoded #065f46 label on one was
+  // dark-on-dark and unreadable, and the error toast was a light #fee2e2 panel
+  // that never inverted at all. The error case was also plain red, which the
+  // brand does not have — rust is the destructive color here (see helpers.js).
+  //
+  // The old `C.gB || "#hex"` fallbacks were vestigial: C's values are var()
+  // strings that are always truthy, so the right-hand side could never run.
   const getToastStyle = (type) => {
     switch (type) {
       case "success":
-        return {
-          bg: C.gB || "#d1fae5",
-          border: C.gr || "#10b981",
-          color: "#065f46",
-          Icon: CheckCircle2,
-        };
+        return { bg: C.gB, border: C.gr, color: C.gr, Icon: CheckCircle2 };
       case "warning":
-        return {
-          bg: C.aB || "#fef3c7",
-          border: C.am || "#f59e0b",
-          color: "#92400e",
-          Icon: AlertTriangle,
-        };
+        return { bg: C.aB, border: C.am, color: C.am, Icon: AlertTriangle };
       case "error":
       default:
-        return { bg: "#fee2e2", border: "#ef4444", color: "#991b1b", Icon: XCircle };
+        return { bg: C.rB, border: C.rd, color: C.rd, Icon: XCircle };
     }
   };
 

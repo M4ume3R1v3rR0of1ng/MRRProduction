@@ -430,7 +430,7 @@ export default function TrainingView({
                 className="sw-video-half"
                 style={{
                   position: "relative",
-                  background: "#000",
+                  background: C.mediaBackdrop,
                   borderRadius: "var(--radius-lg)",
                   overflow: "hidden",
                   marginBottom: "var(--space-5)",
@@ -449,7 +449,7 @@ export default function TrainingView({
                       width: "100%",
                       aspectRatio: "16 / 9",
                       objectFit: "contain",
-                      background: "#000",
+                      background: C.mediaBackdrop,
                     }}
                   />
                 ) : (
@@ -467,7 +467,7 @@ export default function TrainingView({
                       width: "100%",
                       aspectRatio: "16 / 9",
                       objectFit: "contain",
-                      background: "#000",
+                      background: C.mediaBackdrop,
                     }}
                   >
                     <source src={clip.src || clip.url} />

@@ -40,7 +40,7 @@ import {
 import IdleTimeoutWrapper from "./shared/components/IdleTimeoutWrapper";
 
 // Centralized Stateless Calculation & Helper Utilities
-import { C, tot, oilSt, predDays, detSt, fd, fm } from "./shared/utils/helpers";
+import { C, HEX, tot, oilSt, predDays, detSt, fd, fm } from "./shared/utils/helpers";
 import { translations } from "./shared/utils/translations";
 import { IS_IOS_APP } from "./core/platform";
 import { registerForPushNotifications } from "./shared/utils/pushRegistration";
@@ -311,8 +311,12 @@ export default function App() {
   // Set on the document root so modals and popups inherit it too. --brand-accent-ink is
   // whichever of dark/white text contrasts better with the chosen accent, so a button
   // label stays legible whatever color a company picks.
+  // HEX, not C, on purpose: relLum below parses the string with a hex regex and
+  // the value is handed to setProperty as the literal a company picked. A var()
+  // reference would fail the regex (falling back to 0.3) and seed the variable
+  // with a self-reference. HEX.amber is the same color --c-amber holds in light.
   useEffect(() => {
-    const accent = app.company?.branding?.accent || "#C97B2D";
+    const accent = app.company?.branding?.accent || HEX.amber;
     const relLum = (hex) => {
       const m = /^#?([0-9a-f]{6})$/i.exec(hex);
       if (!m) return 0.3;
@@ -322,7 +326,9 @@ export default function App() {
       return 0.2126 * r + 0.7152 * g + 0.0722 * b;
     };
     const L = relLum(accent);
-    const ink = 1.05 / (L + 0.05) >= (L + 0.05) / 0.071 ? "#FFFFFF" : "#23282D";
+    // Contrast ink for the accent itself, so it must not follow the theme: it is
+    // chosen against whatever color the company picked, not against the page.
+    const ink = 1.05 / (L + 0.05) >= (L + 0.05) / 0.071 ? HEX.surface : HEX.barnwood;
     const root = document.documentElement;
     root.style.setProperty("--brand-accent", accent);
     root.style.setProperty("--brand-accent-ink", ink);

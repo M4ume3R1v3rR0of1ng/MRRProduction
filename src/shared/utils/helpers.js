@@ -41,6 +41,11 @@ export const C = {
   shellInk: "var(--c-shell-ink)",
   // Text on a saturated fill (badges, role avatars, colored buttons).
   onAccent: "var(--c-on-accent)",
+  // Media letterbox, and the ink that rides on a fixed dark scrim (the remove
+  // pip over a photo). Both hold their value when the theme flips — onScrim is
+  // NOT onAccent, which inverts to near-black and would vanish on the scrim.
+  mediaBackdrop: "var(--c-media-backdrop)",
+  onScrim: "var(--c-on-scrim)",
 
   // ── Back-compat aliases. ──
   // The original keys were literal color names that stopped being true when the

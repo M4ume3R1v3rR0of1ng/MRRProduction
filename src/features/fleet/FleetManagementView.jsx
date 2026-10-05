@@ -789,7 +789,7 @@ export default function FleetManagementView({
                     <div
                       style={{
                         height: 130,
-                        background: photo ? "#000" : C.lg,
+                        background: photo ? C.mediaBackdrop : C.lg,
                         overflow: "hidden",
                         position: "relative",
                         display: "flex",

@@ -689,6 +689,10 @@ const ThemeIcon = ({ id }) => (
     {/* userSpaceOnUse rather than the default bounding-box region: the crescent
         cut travels outside the orb's own box, and a region derived from that box
         would clip the part of the bite that does the work. */}
+    {/* The two fills here are mask channel values, not colors: inside a mask,
+        white keeps the pixel and black cuts it away. They are not theme tokens
+        and must stay literal — swapping them for palette variables would make
+        the orb's visibility depend on the palette rather than on the mask. */}
     <mask id={id} maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24">
       <rect x="0" y="0" width="24" height="24" fill="#fff" />
       <circle className="tm-cut" cx="24" cy="10" r="7" fill="#000" />
