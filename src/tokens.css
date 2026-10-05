@@ -164,6 +164,17 @@
   --c-teal-wash: #dde9e9;
   --c-slate-wash: #e4eaf0;
 
+  /* Ink for TEXT sitting on the matching wash above.
+     The saturated token is tuned to be a fill or a border, and it is too light
+     to read as 13px type on its own wash: --c-pasture on --c-pasture-wash is
+     4.14:1, under the 4.5:1 WCAG AA floor for text this size. These are the
+     same hues darkened until they clear ~5.9:1, so a severity still reads as
+     its own color without the label going faint. Borders and fills keep using
+     the saturated token; only text should reach for these. */
+  --c-pasture-ink: #3a6049;
+  --c-warn-ink: #6e560c;
+  --c-rust-ink: #8c4221;
+
   /* Surfaces and strokes that are not in C but are used by the CSS below.
      Named rather than inlined so the dark block can move them together. */
   --c-ink: #0f172a; /* strongest text, used sparingly */
@@ -289,6 +300,14 @@
   --c-plum-wash: #262330;
   --c-teal-wash: #1d2727;
   --c-slate-wash: #1f2733;
+
+  /* On-wash ink, dark side. Here the saturated tokens are already the lighter
+     dark-mode values, and they clear AA on their own washes (4.7-6.3:1), so
+     these match them rather than darkening anything — the correction the light
+     block needs runs the other way. */
+  --c-pasture-ink: #7aae8c;
+  --c-warn-ink: #d89a52;
+  --c-rust-ink: #d2724a;
 
   --c-ink: #f4f1ea;
   --c-row-hover: #2a3037;

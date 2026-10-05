@@ -78,15 +78,19 @@ export function NotificationProvider({ children }) {
   //
   // The old `C.gB || "#hex"` fallbacks were vestigial: C's values are var()
   // strings that are always truthy, so the right-hand side could never run.
+  // Border takes the saturated token (it is a 5px bar, no text to read); the
+  // label takes the matching -ink token, which is the same hue darkened enough
+  // to clear AA at 13px. Reaching for the saturated token here instead drops
+  // success to 4.14:1 and warning to 3.83:1 in light mode.
   const getToastStyle = (type) => {
     switch (type) {
       case "success":
-        return { bg: C.gB, border: C.gr, color: C.gr, Icon: CheckCircle2 };
+        return { bg: C.gB, border: C.gr, color: C.pastureInk, Icon: CheckCircle2 };
       case "warning":
-        return { bg: C.aB, border: C.am, color: C.am, Icon: AlertTriangle };
+        return { bg: C.aB, border: C.am, color: C.warnInk, Icon: AlertTriangle };
       case "error":
       default:
-        return { bg: C.rB, border: C.rd, color: C.rd, Icon: XCircle };
+        return { bg: C.rB, border: C.rd, color: C.rustInk, Icon: XCircle };
     }
   };
 

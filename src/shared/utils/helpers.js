@@ -66,6 +66,13 @@ export const C = {
   tl: "var(--c-teal)",
   sl: "var(--c-slate)",
 
+  // ── Ink for text on the matching wash. ──
+  // The saturated token is a fill/border color and is too light to read as
+  // small type on its own wash (see tokens.css). Use these for the label.
+  pastureInk: "var(--c-pasture-ink)",
+  warnInk: "var(--c-warn-ink)",
+  rustInk: "var(--c-rust-ink)",
+
   // ── Tint backgrounds (badges, wells). ──
   gL: "var(--c-amber-wash)",
   gB: "var(--c-pasture-wash)",
