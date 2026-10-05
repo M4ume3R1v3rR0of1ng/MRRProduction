@@ -12,8 +12,21 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Update that fails loudly when no row matched. A bare .update().eq() reports
 // success on zero rows (row deleted elsewhere, bad/seed id, or filtered by
 // RLS), which lets the UI toast "saved" while nothing was written.
-export async function updateRowStrict(table, id, fields) {
-  const { data, error } = await supabase.from(table).update(fields).eq("id", id).select("id");
+//
+// companyId is optional only in the signature, not in spirit. The text-id tenant
+// tables (vehicles, inventory, jobs, maintenance_requests, warehouses) have
+// PRIMARY KEY (company_id, id) precisely because the ids are app-generated and
+// collide across companies — see the note in supabase/02_tenancy_tables.sql.
+// `.eq("id", id)` alone therefore names a row by half its key. Ordinary users are
+// saved by RLS narrowing the match to their own company; a PLATFORM ADMIN is not,
+// because every tenant policy reads `company_id = active_company_id() OR
+// is_platform_admin()` — so for them this filter matches every company's row with
+// that id, and the update writes to all of them. Pass the company whenever the
+// caller knows it.
+export async function updateRowStrict(table, id, fields, companyId) {
+  let q = supabase.from(table).update(fields).eq("id", id);
+  if (companyId) q = q.eq("company_id", companyId);
+  const { data, error } = await q.select("id");
   if (error) return { error };
   if (!data || data.length === 0) {
     return {

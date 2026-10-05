@@ -240,13 +240,18 @@ export default function MaintenanceRequestsView({
     // skipped when someone updates their own ticket so they don't alert themselves.
     const notifyRequester = !!currentTicket && String(currentTicket.uid) !== String(user.id);
 
-    const { error } = await updateRowStrict("maintenance_requests", id, {
-      status,
-      wh_notes: whNotes,
-      scheduled_date: scheduledDate,
-      completed_at: completedAt,
-      newforrequester: notifyRequester,
-    });
+    const { error } = await updateRowStrict(
+      "maintenance_requests",
+      id,
+      {
+        status,
+        wh_notes: whNotes,
+        scheduled_date: scheduledDate,
+        completed_at: completedAt,
+        newforrequester: notifyRequester,
+      },
+      user.companyId,
+    );
 
     if (error) {
       showToast(t.maintUpdateErr + " " + error.message, "error");
@@ -378,10 +383,15 @@ export default function MaintenanceRequestsView({
     // here. The service log entry's generated id, and — when this ticket had lent a
     // spare — what the completion trigger (19_maintenance_vehicle_swap.sql) decided
     // to do with both trucks' drivers, are only known to the database.
+    // Scoped to this company as well as the ids: vehicles' PK is (company_id, id)
+    // and those ids repeat across tenants, so an id-only filter can pull another
+    // company's truck into this list — which setVehs below would then paste over
+    // the real one.
     const vehicleIds = [req.vid, req.replacement_vehicle_id].filter(Boolean);
     const { data: freshVehs, error: refetchErr } = await supabase
       .from("vehicles")
       .select("*")
+      .eq("company_id", user.companyId)
       .in("id", vehicleIds);
     if (!refetchErr && freshVehs) {
       setVehs((p) => p.map((v) => freshVehs.find((f) => f.id === v.id) || v));

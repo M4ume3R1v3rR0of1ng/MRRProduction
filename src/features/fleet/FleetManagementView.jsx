@@ -249,7 +249,7 @@ export default function FleetManagementView({
       const photo_url = data
         ? await uploadPhotoToBucket("vehicle-photos", user.companyId, id, data)
         : null;
-      const { error } = await updateRowStrict("vehicles", id, { photo_url });
+      const { error } = await updateRowStrict("vehicles", id, { photo_url }, user.companyId);
       if (error) throw error;
       setVehs((p) => p.map((v) => (v.id === id ? { ...v, photo_url } : v)));
       setSel((p) => (p && p.id === id ? { ...p, photo_url } : p));
@@ -261,10 +261,26 @@ export default function FleetManagementView({
   // Current log arrays for one vehicle straight from the database — appending
   // to this device's copy (loaded once at sign-in) silently erased entries
   // other devices logged since. Same disease the inventory batches had.
+  //
+  // company_id belongs in this filter: vehicles' PK is (company_id, id) because
+  // the ids are app-generated text that repeats across tenants, so `.eq("id")`
+  // on its own is half a key. For an ordinary user RLS hid the other companies'
+  // matches; for a platform admin it does not, and .single() then came back with
+  // PostgREST's "Cannot coerce the result to a single JSON object" — which reads
+  // like a corrupt record and is really two tenants' trucks sharing an id.
   const fetchLiveVehicle = async (id, cols) => {
-    const { data, error } = await supabase.from("vehicles").select(cols).eq("id", id).single();
+    const { data, error } = await supabase
+      .from("vehicles")
+      .select(cols)
+      .eq("company_id", user.companyId)
+      .eq("id", id)
+      .maybeSingle();
     if (error) throw error;
-    return data || {};
+    if (!data)
+      throw new Error(
+        "This vehicle is no longer in the database — it may have been deleted by someone else. Refresh the page and try again.",
+      );
+    return data;
   };
 
   const logMi = async () => {
@@ -290,7 +306,7 @@ export default function FleetManagementView({
         mi,
         mil: [...(live.mil || []), { dt: form.date, mi, by: user.id }],
       };
-      const { error } = await updateRowStrict("vehicles", sel.id, changes);
+      const { error } = await updateRowStrict("vehicles", sel.id, changes, user.companyId);
       if (error) throw error;
       const up = { ...sel, ...changes };
       setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
@@ -328,7 +344,7 @@ export default function FleetManagementView({
         ...(form.type === "Oil Change" ? { lomi: e.mi } : {}),
         ...(form.type === "Detail" ? { ldd: form.date } : {}),
       };
-      const { error } = await updateRowStrict("vehicles", sel.id, changes);
+      const { error } = await updateRowStrict("vehicles", sel.id, changes, user.companyId);
       if (error) throw error;
       const up = { ...sel, ...changes };
       setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
@@ -352,7 +368,7 @@ export default function FleetManagementView({
   const assignUser = async () => {
     const assignedTo = form.assignedTo || "";
     try {
-      const { error } = await updateRowStrict("vehicles", sel.id, { assignedTo });
+      const { error } = await updateRowStrict("vehicles", sel.id, { assignedTo }, user.companyId);
       if (error) throw error;
       const up = { ...sel, assignedTo };
       setVehs((p) => p.map((v) => (v.id === sel.id ? up : v)));
@@ -433,7 +449,7 @@ export default function FleetManagementView({
     setGrounding(true);
     const changes = groundingPatch(grounded, reason);
     try {
-      const { error } = await updateRowStrict("vehicles", sel.id, changes);
+      const { error } = await updateRowStrict("vehicles", sel.id, changes, user.companyId);
       if (error) throw error;
 
       const updated = { ...sel, ...changes };
@@ -476,7 +492,7 @@ export default function FleetManagementView({
     };
 
     try {
-      const { error } = await updateRowStrict("vehicles", sel.id, changes);
+      const { error } = await updateRowStrict("vehicles", sel.id, changes, user.companyId);
       if (error) throw error;
 
       const updated = { ...sel, ...changes };
