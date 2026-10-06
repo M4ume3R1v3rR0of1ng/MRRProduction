@@ -740,7 +740,7 @@ export default function App() {
             newJobsForMe={app.newJobsForMe}
             jobsAwaitingClose={app.jobsAwaitingCloseCount}
             chatUnread={app.chatUnread}
-            trainingUnread={app.trainingUnread}
+            trainingUnread={app.trainingBadge}
             activeLogo={app.activeLogo}
             perms={app.userPerms}
             lang={lang}
@@ -1226,6 +1226,9 @@ export default function App() {
                       company={app.company}
                       trainingMedia={app.trainingMedia}
                       setTrainingMedia={app.setTrainingMedia}
+                      users={app.users}
+                      trainingAssignments={app.trainingAssignments}
+                      setTrainingAssignments={app.setTrainingAssignments}
                     />
                   }
                 />

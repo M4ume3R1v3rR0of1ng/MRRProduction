@@ -99,6 +99,10 @@
     "inline": 3,
     "hex": 0
   },
+  "src/features/training/AssignTrainingModal.jsx": {
+    "inline": 1,
+    "hex": 0
+  },
   "src/features/training/TrainingView.jsx": {
     "inline": 7,
     "hex": 0

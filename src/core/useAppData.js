@@ -62,6 +62,10 @@ export function useAppData() {
   // Company-uploaded training clips and photos. The bundled product tour is NOT here:
   // it ships in the build via src/data/trainingVideos.js. See supabase/26.
   const [trainingMedia, setTrainingMedia] = useState([]);
+  // Clips directed at specific people, with a due date and a watched stamp. See
+  // supabase/48. Scoped by RLS, not here: a crew member reads their own rows, an
+  // admin reads the whole company's.
+  const [trainingAssignments, setTrainingAssignments] = useState([]);
 
   const { showToast } = useNotify();
 
@@ -493,6 +497,23 @@ export function useAppData() {
           }
           setTrainingMedia(data || []);
         })(),
+        // Training assignments (supabase/48). RLS decides the scope for us: a
+        // crew member's request comes back as their own rows only, an admin's as
+        // the whole company's, so there is one query here rather than a branch
+        // on role. A missing table (48 not run) leaves this empty and the
+        // feature simply absent, the same way the library handles 26.
+        (async () => {
+          const { data, error } = await supabase
+            .from("training_assignments")
+            .select("*")
+            .order("due_on", { ascending: true, nullsFirst: false })
+            .order("assigned_at", { ascending: true });
+          if (error) {
+            console.error("Training assignments failed to load:", error);
+            return;
+          }
+          setTrainingAssignments(data || []);
+        })(),
         // One settings row per automation group. Read them in parallel and merge each
         // onto its registry defaults, so a key added to the registry after a company
         // last saved resolves to that key's default instead of undefined.
@@ -659,6 +680,24 @@ export function useAppData() {
       cancelled = true;
     };
   }, [curUser, trainingMedia]);
+
+  // What the sidebar actually shows on Training: clips added since you last
+  // looked, PLUS clips somebody is waiting on you to watch.
+  //
+  // The two halves clear differently, on purpose. The unread half is "new since
+  // you looked" and zeroes the moment you open Training. The assignment half is
+  // work you owe and only clears when you mark it watched — opening the tab and
+  // leaving does not settle it. That is the difference between a notification
+  // and a to-do, and a badge that cleared on sight would make an assignment the
+  // weaker of the two signals rather than the stronger one.
+  const trainingOutstanding = useMemo(
+    () =>
+      curUser
+        ? trainingAssignments.filter((a) => a.user_id === curUser.id && !a.completed_at).length
+        : 0,
+    [curUser, trainingAssignments],
+  );
+  const trainingBadge = trainingUnread + trainingOutstanding;
 
   useEffect(() => {
     if (!curUser) return;
@@ -987,6 +1026,8 @@ export function useAppData() {
     chatUnread,
     markChatRead,
     trainingUnread,
+    trainingBadge,
+    trainingOutstanding,
     markTrainingRead,
     logos,
     setLogos,
@@ -998,6 +1039,8 @@ export function useAppData() {
     setMaintenanceNotifications,
     maintManagers,
     trainingMedia,
+    trainingAssignments,
+    setTrainingAssignments,
     setTrainingMedia,
     pendingReqCount,
     lowStockCount,

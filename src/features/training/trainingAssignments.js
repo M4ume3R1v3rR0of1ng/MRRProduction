@@ -50,17 +50,36 @@ export function assignmentStatus(assignment, today = todayLocal()) {
 // Short human label for a deadline: "Overdue by 2 days", "Due today", "Due in
 // 3 days". Returns null when there is nothing to say, so the caller renders
 // nothing rather than an empty chip.
-export function dueLabel(assignment, today = todayLocal()) {
+//
+// Returns a DESCRIPTOR, not a string: { key, n }. The app ships English and
+// Spanish, so the words have to come out of translations.js at the call site —
+// building "Overdue by 2 days" here would hard-code one language into logic
+// that is otherwise about dates. `n` is always a positive count, since the
+// direction is already carried by the key.
+export function dueDescriptor(assignment, today = todayLocal()) {
   if (!assignment || assignment.completed_at) return null;
   const days = daysUntilDue(assignment.due_on, today);
   if (days === null) return null;
-  if (days < 0) {
-    const n = Math.abs(days);
-    return n === 1 ? "Overdue by 1 day" : `Overdue by ${n} days`;
-  }
-  if (days === 0) return "Due today";
-  if (days === 1) return "Due tomorrow";
-  return `Due in ${days} days`;
+  if (days < 0) return { key: "overdue", n: Math.abs(days) };
+  if (days === 0) return { key: "today", n: 0 };
+  if (days === 1) return { key: "tomorrow", n: 1 };
+  return { key: "days", n: days };
+}
+
+// The descriptor above, in the viewer's language. Kept here beside the classifier
+// rather than inline in the view so the key-to-string mapping is covered by the
+// same tests — a missing translation key renders "undefined" in a badge, which
+// is the sort of thing nobody notices in the language they don't read.
+export function formatDue(descriptor, t = {}) {
+  if (!descriptor) return null;
+  const { key, n } = descriptor;
+  if (key === "today") return t.trDueToday;
+  if (key === "tomorrow") return t.trDueTomorrow;
+  if (key === "days") return String(t.trDueInDays || "").replace("{n}", String(n));
+  // Singular gets its own key: Spanish needs "hace 1 día" against "hace 2 días",
+  // and an English "Overdue by 1 days" is the usual giveaway that it was faked
+  // with a trailing s.
+  return n === 1 ? t.trOverdueByDay : String(t.trOverdueByDays || "").replace("{n}", String(n));
 }
 
 // The rows to insert for a bulk assign. company_id comes from the column default

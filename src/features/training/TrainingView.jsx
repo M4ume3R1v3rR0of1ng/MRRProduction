@@ -15,8 +15,17 @@
 // So the chrome differs and the DATA is shared: both read
 // src/data/trainingVideos.js, which is the only thing that would actually hurt to
 // have in two places. Add a clip there and it appears in both.
-import { useRef, useState } from "react";
-import { Video, Plus, Trash2, Pencil } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import {
+  Video,
+  Plus,
+  Trash2,
+  Pencil,
+  UserCheck,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+} from "lucide-react";
 import { C } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
 import { TRAINING_VIDEOS } from "@/shared/data/trainingVideos";
@@ -35,6 +44,8 @@ import {
   Callout,
   Card,
   Eyebrow,
+  Meter,
+  TextBtn,
 } from "@/shared/components/UIPrimitives";
 import { uploadFileToBucket, removeFromBucket } from "@/shared/utils/storageBucketUpload";
 import {
@@ -48,6 +59,25 @@ import {
   VIDEO_TYPES,
   IMAGE_TYPES,
 } from "./trainingMedia";
+import AssignTrainingModal from "./AssignTrainingModal";
+import {
+  outstandingFor,
+  rosterFor,
+  assignmentStatus,
+  dueDescriptor,
+  formatDue,
+} from "./trainingAssignments";
+
+// Status -> the colors and icon a due badge wears. Overdue takes rust (this
+// brand's destructive color, never red), due-soon the warn amber, watched
+// pasture. Each pairs the wash with its matching -ink token rather than the
+// saturated one, which is too light to read as small type on its own wash.
+const DUE_TONE = {
+  overdue: { bg: C.rustWash, fg: C.rustInk, Icon: AlertTriangle },
+  "due-soon": { bg: C.warnWash, fg: C.warnInk, Icon: Clock },
+  watched: { bg: C.pastureWash, fg: C.pastureInk, Icon: CheckCircle2 },
+  open: { bg: C.subtle, fg: C.sub, Icon: Clock },
+};
 
 const BUCKET = "training-media";
 
@@ -61,6 +91,9 @@ export default function TrainingView({
   company,
   trainingMedia = [],
   setTrainingMedia,
+  users = [],
+  trainingAssignments = [],
+  setTrainingAssignments,
 }) {
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
@@ -91,7 +124,86 @@ export default function TrainingView({
   const [editForm, setEditForm] = useState({ title: "", blurb: "" });
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // ── Assignments (supabase/48) ──
+  const [assignFor, setAssignFor] = useState(null);
+  const [markingId, setMarkingId] = useState(null);
+
   const items = orderedMedia(TRAINING_VIDEOS, trainingMedia);
+
+  // What is outstanding for the person looking at the page, in pressure order.
+  // Everyone gets this, admins included: an owner who assigns themselves a clip
+  // is as entitled to the reminder as anyone.
+  const myOutstanding = useMemo(
+    () => outstandingFor(user?.id, trainingAssignments),
+    [user?.id, trainingAssignments],
+  );
+  const byMediaId = useMemo(() => new Map(items.map((c) => [c.id, c])), [items]);
+  const myAssignmentFor = (mediaId) =>
+    trainingAssignments.find((a) => a.media_id === mediaId && a.user_id === user?.id) || null;
+
+  const dueChip = (assignment) => {
+    const label = formatDue(dueDescriptor(assignment), t);
+    if (!label) return null;
+    const tone = DUE_TONE[assignmentStatus(assignment)] || DUE_TONE.open;
+    return (
+      <Row
+        gap="5px"
+        style={{
+          background: tone.bg,
+          color: tone.fg,
+          borderRadius: "var(--radius-pill)",
+          padding: "3px 10px",
+          fontSize: "var(--text-2xs)",
+          fontWeight: "var(--weight-extrabold)",
+          flexShrink: 0,
+        }}
+      >
+        <tone.Icon size={12} aria-hidden="true" /> {label}
+      </Row>
+    );
+  };
+
+  // The assignee sets their own completed_at. The guard trigger in supabase/48
+  // is what actually holds them to that one column — this just sends the one
+  // field, so a crew member cannot move their own deadline by any route.
+  const markWatched = async (assignment) => {
+    setMarkingId(assignment.id);
+    try {
+      const { data, error } = await supabase
+        .from("training_assignments")
+        .update({ completed_at: new Date().toISOString() })
+        .eq("id", assignment.id)
+        .select();
+      if (error) throw error;
+      const row = data?.[0];
+      if (row) setTrainingAssignments?.((prev) => prev.map((a) => (a.id === row.id ? row : a)));
+      showToast(t.trMarkedWatchedOk, "success");
+    } catch (err) {
+      console.error(err);
+      showToast(`${t.trMarkWatchedFail} ${err.message}`, "error");
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
+  const withdraw = async (assignment, clip) => {
+    const who =
+      assignment.person?.name || assignment.person?.full_name || assignment.person?.email || "—";
+    if (!window.confirm(t.trWithdrawConfirm.replace("{title}", clip.title).replace("{name}", who)))
+      return;
+    try {
+      const { error } = await supabase
+        .from("training_assignments")
+        .delete()
+        .eq("id", assignment.id);
+      if (error) throw error;
+      setTrainingAssignments?.((prev) => prev.filter((a) => a.id !== assignment.id));
+      showToast(t.trWithdrawnOk, "success");
+    } catch (err) {
+      console.error(err);
+      showToast(`${t.trWithdrawFail} ${err.message}`, "error");
+    }
+  };
 
   const resetForm = () => {
     setForm({ title: "", blurb: "", file: null });
@@ -245,6 +357,83 @@ export default function TrainingView({
         </Muted>
       </Stack>
 
+      {/* ── Assigned to you ──
+        Above the library on purpose. The library is a shelf you browse; this is
+        a short list of things somebody is actually waiting on, and burying it
+        under the shelf would make it indistinguishable from the shelf. Renders
+        nothing at all when there is nothing outstanding, rather than an empty
+        "all caught up" panel that would then sit above the library forever. */}
+      {myOutstanding.length > 0 && (
+        <Card
+          variant="raised"
+          pad={5}
+          style={{ marginBottom: "var(--space-6)", borderLeft: `4px solid ${C.am}` }}
+        >
+          <Stack gap={4}>
+            <Stack gap={0}>
+              <Row
+                gap="7px"
+                style={{
+                  fontWeight: "var(--weight-extrabold)",
+                  color: C.navy,
+                  fontSize: "var(--text-md)",
+                }}
+              >
+                <UserCheck size={15} aria-hidden="true" /> {t.trAssignedToYou} (
+                {myOutstanding.length})
+              </Row>
+              <Muted size="sm" style={{ marginTop: 4 }}>
+                {t.trAssignedToYouBlurb}
+              </Muted>
+            </Stack>
+
+            <Stack gap={2}>
+              {myOutstanding.map((assignment) => {
+                const clip = byMediaId.get(assignment.media_id);
+                // An assignment can outlive what it points at only briefly — the
+                // FK cascades on delete — but trainingMedia and assignments load
+                // as two separate queries, so one can arrive before the other.
+                // Skip rather than render a card with no title.
+                if (!clip) return null;
+                return (
+                  <Callout key={assignment.id} tone="neutral" pad="sm" bordered>
+                    <Row gap={3} justify="space-between" wrap>
+                      <Stack gap={0} style={{ minWidth: 0, flex: 1 }}>
+                        <Text weight="bold" color={C.navy}>
+                          {clip.title}
+                        </Text>
+                        {assignment.assigned_by_name && (
+                          <Muted size="2xs" style={{ marginTop: 2 }}>
+                            {t.trAssignedBy.replace("{name}", assignment.assigned_by_name)}
+                          </Muted>
+                        )}
+                      </Stack>
+                      <Row gap={2} wrap style={{ flexShrink: 0 }}>
+                        {dueChip(assignment)}
+                        <Btn
+                          v="green"
+                          sz="sm"
+                          onClick={() => markWatched(assignment)}
+                          disabled={markingId === assignment.id}
+                        >
+                          {markingId === assignment.id ? (
+                            t.trMarkingWatched
+                          ) : (
+                            <>
+                              <CheckCircle2 size={13} aria-hidden="true" /> {t.trMarkWatched}
+                            </>
+                          )}
+                        </Btn>
+                      </Row>
+                    </Row>
+                  </Callout>
+                );
+              })}
+            </Stack>
+          </Stack>
+        </Card>
+      )}
+
       {canManage && (
         <Card pad={5} style={{ marginBottom: "var(--space-6)" }}>
           <Row gap={4} justify="space-between" wrap>
@@ -336,6 +525,8 @@ export default function TrainingView({
       <Stack gap={6}>
         {items.map((clip) => {
           const isEditing = editingId === clip.id;
+          const mine = clip.bundled ? null : myAssignmentFor(clip.id);
+          const roster = clip.bundled ? null : rosterFor(clip.id, trainingAssignments, users);
           return (
             <Card key={clip.id} variant="raised" pad="none" style={{ overflow: "hidden" }}>
               <Stack gap={0} style={{ padding: "var(--space-5) var(--space-5) var(--space-4)" }}>
@@ -368,21 +559,36 @@ export default function TrainingView({
                     company Admin can only edit their own company's clips, never a
                     global one Steadwerk added — the row-write RLS policy refuses that
                     regardless of whether this button is shown. */}
-                  {!clip.bundled && (isPlatformAdmin || (isCompanyAdmin && !clip.is_global)) && (
-                    <Btn
-                      v="ghost"
-                      sz="sm"
-                      onClick={() => (isEditing ? cancelEdit() : startEdit(clip))}
-                    >
-                      {isEditing ? (
-                        t.trCancel
-                      ) : (
-                        <>
-                          <Pencil size={13} aria-hidden="true" /> {t.trEdit}
-                        </>
-                      )}
-                    </Btn>
-                  )}
+                  <Row gap={2} style={{ flexShrink: 0 }}>
+                    {/* Assign reaches further than Edit: a company admin may
+                      direct Steadwerk's GLOBAL clips at their own crew even
+                      though they cannot edit one. The assignment is their
+                      company's row, not a change to Steadwerk's clip, and
+                      supabase/48's trigger allows exactly that — a global clip
+                      or one of their own, never another company's. Bundled
+                      clips are excluded because they have no training_media row
+                      for the foreign key to point at. */}
+                    {!clip.bundled && canManage && (
+                      <Btn v="outline" sz="sm" onClick={() => setAssignFor(clip)}>
+                        <UserCheck size={13} aria-hidden="true" /> {t.trAssign}
+                      </Btn>
+                    )}
+                    {!clip.bundled && (isPlatformAdmin || (isCompanyAdmin && !clip.is_global)) && (
+                      <Btn
+                        v="ghost"
+                        sz="sm"
+                        onClick={() => (isEditing ? cancelEdit() : startEdit(clip))}
+                      >
+                        {isEditing ? (
+                          t.trCancel
+                        ) : (
+                          <>
+                            <Pencil size={13} aria-hidden="true" /> {t.trEdit}
+                          </>
+                        )}
+                      </Btn>
+                    )}
+                  </Row>
                 </Row>
                 {isEditing ? (
                   <Stack gap={0} style={{ marginTop: "var(--space-3)" }}>
@@ -411,6 +617,117 @@ export default function TrainingView({
                   <Muted as="p" size="sm" style={{ margin: "6px 0 0", maxWidth: "72ch" }}>
                     {clip.blurb}
                   </Muted>
+                )}
+
+                {/* The viewer's own standing on this clip, beside the clip
+                  itself. The "Assigned to you" panel above is the to-do list and
+                  drops a clip the moment it is watched; this is the record, so
+                  it keeps showing "Watched" afterwards. */}
+                {mine && (
+                  <Row gap={2} wrap style={{ marginTop: "var(--space-3)" }}>
+                    {mine.completed_at ? (
+                      <Row
+                        gap="5px"
+                        style={{
+                          background: C.pastureWash,
+                          color: C.pastureInk,
+                          borderRadius: "var(--radius-pill)",
+                          padding: "3px 10px",
+                          fontSize: "var(--text-2xs)",
+                          fontWeight: "var(--weight-extrabold)",
+                        }}
+                      >
+                        <CheckCircle2 size={12} aria-hidden="true" /> {t.trWatched}
+                      </Row>
+                    ) : (
+                      <>
+                        {dueChip(mine)}
+                        <Btn
+                          v="green"
+                          sz="sm"
+                          onClick={() => markWatched(mine)}
+                          disabled={markingId === mine.id}
+                        >
+                          {markingId === mine.id ? (
+                            t.trMarkingWatched
+                          ) : (
+                            <>
+                              <CheckCircle2 size={13} aria-hidden="true" /> {t.trMarkWatched}
+                            </>
+                          )}
+                        </Btn>
+                      </>
+                    )}
+                  </Row>
+                )}
+
+                {/* ── Admin roster ──
+                  Who this was given to and who has actually watched it. The
+                  whole reason assignment is worth having: "assigned" without
+                  "and here is who is outstanding" is a message sent into the
+                  dark. Only rendered once somebody has been assigned, so an
+                  unassigned clip stays as quiet as it was before. */}
+                {canManage && !clip.bundled && roster && roster.total > 0 && (
+                  <Stack gap={2} style={{ marginTop: "var(--space-4)" }}>
+                    <Row gap={3} wrap>
+                      <Eyebrow color={C.sub}>
+                        {t.trRoster
+                          .replace("{done}", String(roster.watchedCount))
+                          .replace("{total}", String(roster.total))}
+                      </Eyebrow>
+                      {roster.overdueCount > 0 && (
+                        <Text size="2xs" weight="extrabold" color={C.rustInk}>
+                          {t.trRosterOverdue.replace("{n}", String(roster.overdueCount))}
+                        </Text>
+                      )}
+                    </Row>
+                    <Meter
+                      value={roster.total ? roster.watchedCount / roster.total : 0}
+                      color={C.pasture}
+                    />
+                    <Row gap={2} wrap>
+                      {[...roster.watched, ...roster.outstanding].map((a) => {
+                        const label =
+                          a.person?.name || a.person?.full_name || a.person?.email || "—";
+                        const done = !!a.completed_at;
+                        const overdue = assignmentStatus(a) === "overdue";
+                        return (
+                          <Row
+                            key={a.id}
+                            gap="5px"
+                            style={{
+                              background: done ? C.pastureWash : overdue ? C.rustWash : C.subtle,
+                              color: done ? C.pastureInk : overdue ? C.rustInk : C.sub,
+                              borderRadius: "var(--radius-pill)",
+                              padding: "3px 4px 3px 10px",
+                              fontSize: "var(--text-2xs)",
+                              fontWeight: "var(--weight-bold)",
+                            }}
+                          >
+                            {done ? (
+                              <CheckCircle2 size={11} aria-hidden="true" />
+                            ) : (
+                              <Clock size={11} aria-hidden="true" />
+                            )}
+                            {label}
+                            {/* Withdrawing a watched assignment would delete the
+                              record that they watched it, so it is only offered
+                              while one is still outstanding. */}
+                            {!done && (
+                              <TextBtn
+                                onClick={() => withdraw(a, clip)}
+                                title={t.trWithdraw}
+                                aria-label={`${t.trWithdraw}: ${label}`}
+                                style={{ color: "inherit", padding: "0 6px", opacity: 0.75 }}
+                              >
+                                ×
+                              </TextBtn>
+                            )}
+                          </Row>
+                        );
+                      })}
+                    </Row>
+                  </Stack>
                 )}
               </Stack>
 
@@ -609,6 +926,18 @@ export default function TrainingView({
         </Text>{" "}
         {t.trainingHelpOutro}
       </Muted>
+
+      {assignFor && (
+        <AssignTrainingModal
+          clip={assignFor}
+          users={users}
+          assignments={trainingAssignments}
+          user={user}
+          lang={lang}
+          onAssigned={(rows) => setTrainingAssignments?.((prev) => [...prev, ...rows])}
+          onClose={() => setAssignFor(null)}
+        />
+      )}
     </div>
   );
 }

@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   daysUntilDue,
   assignmentStatus,
-  dueLabel,
+  dueDescriptor,
+  formatDue,
   assignmentRows,
   outstandingFor,
   rosterFor,
@@ -11,6 +12,7 @@ import {
   alreadyAssigned,
   DUE_SOON_DAYS,
 } from "./trainingAssignments";
+import { translations } from "@/shared/utils/translations";
 
 // A fixed "today" so none of this depends on when the suite runs.
 const TODAY = "2026-10-06";
@@ -70,18 +72,57 @@ describe("assignmentStatus", () => {
   });
 });
 
-describe("dueLabel", () => {
-  it("phrases each side of the deadline", () => {
-    expect(dueLabel(a({ due_on: "2026-10-06" }), TODAY)).toBe("Due today");
-    expect(dueLabel(a({ due_on: "2026-10-07" }), TODAY)).toBe("Due tomorrow");
-    expect(dueLabel(a({ due_on: "2026-10-11" }), TODAY)).toBe("Due in 5 days");
-    expect(dueLabel(a({ due_on: "2026-10-05" }), TODAY)).toBe("Overdue by 1 day");
-    expect(dueLabel(a({ due_on: "2026-10-01" }), TODAY)).toBe("Overdue by 5 days");
+describe("dueDescriptor", () => {
+  it("classifies each side of the deadline without naming a language", () => {
+    // The words live in translations.js; this only decides which one and how
+    // many. The app ships Spanish too.
+    expect(dueDescriptor(a({ due_on: "2026-10-06" }), TODAY)).toEqual({ key: "today", n: 0 });
+    expect(dueDescriptor(a({ due_on: "2026-10-07" }), TODAY)).toEqual({ key: "tomorrow", n: 1 });
+    expect(dueDescriptor(a({ due_on: "2026-10-11" }), TODAY)).toEqual({ key: "days", n: 5 });
+    expect(dueDescriptor(a({ due_on: "2026-10-05" }), TODAY)).toEqual({ key: "overdue", n: 1 });
+    expect(dueDescriptor(a({ due_on: "2026-10-01" }), TODAY)).toEqual({ key: "overdue", n: 5 });
+  });
+
+  it("always reports n as a positive count, direction being in the key", () => {
+    expect(dueDescriptor(a({ due_on: "2026-09-01" }), TODAY).n).toBeGreaterThan(0);
   });
 
   it("says nothing for an undated or finished assignment", () => {
-    expect(dueLabel(a(), TODAY)).toBeNull();
-    expect(dueLabel(a({ due_on: "2026-10-01", completed_at: "x" }), TODAY)).toBeNull();
+    expect(dueDescriptor(a(), TODAY)).toBeNull();
+    expect(dueDescriptor(a({ due_on: "2026-10-01", completed_at: "x" }), TODAY)).toBeNull();
+  });
+});
+
+describe("formatDue", () => {
+  // The real dictionaries, so a renamed or missing key fails here rather than
+  // rendering "undefined" inside a badge in a language nobody on the team reads.
+  const en = translations.en;
+  const es = translations.es;
+
+  it("renders every branch in English", () => {
+    expect(formatDue({ key: "today", n: 0 }, en)).toBe("Due today");
+    expect(formatDue({ key: "tomorrow", n: 1 }, en)).toBe("Due tomorrow");
+    expect(formatDue({ key: "days", n: 5 }, en)).toBe("Due in 5 days");
+    expect(formatDue({ key: "overdue", n: 1 }, en)).toBe("Overdue by 1 day");
+    expect(formatDue({ key: "overdue", n: 3 }, en)).toBe("Overdue by 3 days");
+  });
+
+  it("renders every branch in Spanish, with its own singular", () => {
+    expect(formatDue({ key: "today", n: 0 }, es)).toBe("Vence hoy");
+    expect(formatDue({ key: "overdue", n: 1 }, es)).toBe("Vencido hace 1 día");
+    expect(formatDue({ key: "overdue", n: 4 }, es)).toBe("Vencido hace 4 días");
+  });
+
+  it("substitutes the count rather than leaving the placeholder", () => {
+    for (const dict of [en, es]) {
+      expect(formatDue({ key: "days", n: 9 }, dict)).not.toMatch(/\{n\}/);
+      expect(formatDue({ key: "overdue", n: 9 }, dict)).not.toMatch(/\{n\}/);
+      expect(formatDue({ key: "days", n: 9 }, dict)).toContain("9");
+    }
+  });
+
+  it("says nothing when there is no descriptor", () => {
+    expect(formatDue(null, en)).toBeNull();
   });
 });
 
