@@ -21,7 +21,7 @@
 -- So this is a detector, not a log. Re-running it re-probes and refreshes every
 -- row, which is what makes it useful after a restore or on a fresh environment.
 --
--- THREE FILES CANNOT BE DETECTED, by their nature:
+-- FIVE FILES CANNOT BE DETECTED, by their nature:
 --
 --   11 and 13 are bug fixes that CREATE OR REPLACE a function 06 and 12 already
 --   created. The function exists either way, so presence proves nothing about
@@ -29,7 +29,26 @@
 --
 --   22 is an optional data backfill that writes no schema. Same treatment.
 --
--- For those three, check `note` and confirm by hand. Everything else is verified.
+--   23 is a one-off data recovery whose only schema footprint was a dated backup
+--   table you are meant to DROP once the recovery is done. Probing for that table
+--   reported "missing" on every correctly-finished recovery — the desired end
+--   state read as an alarm.
+--
+--   42 was probed by the policy it created, which 45 then drops BY NAME before
+--   installing its replacement (see 45 line 70). So the probe could only ever
+--   report missing once 45 was in, forever, on every healthy database. 42's own
+--   state is moot anyway: 45 supersedes it wholesale, so a verified 45 is the
+--   thing worth reading.
+--
+-- For those five, check `note` and confirm by hand. Everything else is verified.
+--
+-- WHY THIS MATTERS, AND WHY 23 AND 42 MOVED
+--
+-- The output below puts 'missing' first because those are the rows that need
+-- action. 23 and 42 sat permanently at the top of that list on a database with
+-- nothing wrong with it. Two standing false alarms in the "needs action" section
+-- is how a reader learns to skip the section, which costs more than the two rows
+-- were ever worth. A probe that cannot come back true is not a probe.
 
 begin;
 
@@ -245,9 +264,8 @@ begin
     public._mig_has_function('shares_company_any_status'),
     'function shares_company_any_status()');
 
-  perform public._mig_record('23_recover_orphaned_person.sql',
-    public._mig_has_table('inventory_batches_backup_20260806'),
-    'table inventory_batches_backup_20260806');
+  -- 23 is not probed here; it is recorded as 'undetectable' below. Its only
+  -- schema trace was a backup table the recovery tells you to drop afterwards.
 
   perform public._mig_record('24_job_contract_value.sql',
     public._mig_has_column('jobs', 'contract_value'),
@@ -330,9 +348,8 @@ begin
     public._mig_has_table('chat_messages'),
     'table chat_messages');
 
-  perform public._mig_record('42_training_media_platform_only.sql',
-    public._mig_has_policy('training_media_row_write_platform_admin', 'training_media'),
-    'training_media policy training_media_row_write_platform_admin (superseded by 45)');
+  -- 42 is not probed here; it is recorded as 'undetectable' below. 45 drops the
+  -- policy it created, by name, so the probe could only ever report missing.
 
   perform public._mig_record('44_training_media_editable_and_public.sql',
     public._mig_policy_has_role('training_media_row_select', 'training_media', 'anon'),
@@ -359,8 +376,14 @@ begin
     'training_assignments.heads_up_sent_at');
 end $$;
 
--- The three that leave no distinguishable trace. Recorded so the ledger lists
+-- The five that leave no distinguishable trace. Recorded so the ledger lists
 -- every file rather than silently omitting the ones it cannot check.
+--
+-- 23 and 42 were probed rather than listed here until this pass, and both
+-- reported 'missing' on a perfectly healthy database — 23 because its backup
+-- table is meant to be dropped, 42 because 45 drops its policy by name. Rows
+-- that can never come back true belong here, not at the top of the list the
+-- reader is told to act on.
 --
 -- The notes are deliberately PROSE, with the confirming queries kept in the
 -- Verify block at the bottom of this file instead. The SQL Editor's advisor reads
@@ -373,7 +396,11 @@ values
   ('13_fix_has_perm.sql', null, 'undetectable',
    'Bug fix replacing has_perm() from 12. The function exists either way, so presence proves nothing. See Verify block, check B.', now()),
   ('22_backfill_batch_by_name.sql', null, 'undetectable',
-   'Optional data backfill stamping byName onto stored batch rows. No schema change. See Verify block, check C.', now())
+   'Optional data backfill stamping byName onto stored batch rows. No schema change. See Verify block, check C.', now()),
+  ('23_recover_orphaned_person.sql', null, 'undetectable',
+   'One-off data recovery reattaching an orphaned account''s batch history. Its only schema footprint was a dated backup table the file tells you to drop once finished, so a completed recovery leaves nothing to probe. See Verify block, check D.', now()),
+  ('42_training_media_platform_only.sql', null, 'undetectable',
+   'Superseded wholesale by 45, which drops the policy this file created by name before installing its replacement. Nothing of 42 survives on a database that has 45, so a verified 45 is the thing to read instead. See Verify block, check E.', now())
 on conflict (filename) do update
   set present = excluded.present,
       status  = excluded.status,
@@ -454,6 +481,43 @@ order by
 --   join public.profiles p on p.id::text = b->>'by'
 --   where jsonb_typeof(i.batches) = 'array'
 --     and not (b ? 'byName');
+--
+-- ── Check D · did 23_recover_orphaned_person.sql run? ────────────────────────
+-- There is nothing left to probe, by design: the file's own instructions end
+-- with dropping the backup table it made, so a finished recovery and a recovery
+-- that never happened look identical in the schema.
+--
+-- What 23 actually did was stamp byName onto 24 batch rows whose 'by' id no
+-- longer resolved to a profile. Check C above counts the rows that still need
+-- stamping AND still resolve; this counts the other half — orphaned ids that
+-- 23 was meant to have labelled by hand:
+--
+--   select count(*)
+--   from public.inventory i
+--   cross join lateral jsonb_array_elements(i.batches) as b
+--   left join public.profiles p on p.id::text = b->>'by'
+--   where jsonb_typeof(i.batches) = 'array'
+--     and b ? 'by'
+--     and p.id is null
+--     and not (b ? 'byName');
+--
+-- Zero means every orphaned batch carries a name, which is the state 23 leaves
+-- behind. Anything above zero is history nobody can attribute any more, and 23
+-- is the file that describes how to go and look for it.
+--
+-- ── Check E · did 42_training_media_platform_only.sql run? ───────────────────
+-- Unanswerable, and it does not matter. 45 drops 42's policy by name (its line
+-- 70) and installs training_media_row_write in its place, so on any database
+-- carrying 45 there is no trace of 42 left to find. If 45 shows verified above,
+-- the library's three-tier write rules are in force and 42's own history is a
+-- dead question. The one thing worth confirming is the policy 45 leaves behind:
+--
+--   select policyname, cmd from pg_policies
+--   where schemaname = 'public' and tablename = 'training_media'
+--   order by policyname;
+--
+-- Expect training_media_row_select and training_media_row_write, and NOT
+-- training_media_row_write_platform_admin.
 --
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Re-run this whole file after applying any future migration, and add a probe for
