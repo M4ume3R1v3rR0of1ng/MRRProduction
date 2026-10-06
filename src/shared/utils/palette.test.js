@@ -23,16 +23,27 @@ const ruleBody = (selector) => {
   return tokens.slice(open, tokens.indexOf("\n}", open));
 };
 
+// A slot is either a plain token reference, or — for the two tenant-brand slots
+// — a runtime variable with a token as its fallback. App.jsx sets --brand-accent
+// and --brand-accent-ink on <html> from companies.branding, so those two are
+// deliberately absent from tokens.css and only the fallback half can be checked
+// here. The capture groups give back whichever --c- token a slot resolves to.
+const SLOT = /^var\((--c-[a-z-]+)\)$|^var\(--brand-[a-z-]+, var\((--c-[a-z-]+)\)\)$/;
+const tokenOf = (v) => {
+  const m = SLOT.exec(v);
+  return m ? m[1] || m[2] : null;
+};
+
 describe("C palette", () => {
   it("holds only var() references, never literal colors", () => {
-    const literal = Object.entries(C).filter(([, v]) => !/^var\(--c-[a-z-]+\)$/.test(v));
+    const literal = Object.entries(C).filter(([, v]) => !tokenOf(v));
     expect(literal).toEqual([]);
   });
 
   it("resolves every reference to a variable tokens.css actually defines", () => {
     const light = ruleBody(":root {");
     const missing = Object.entries(C)
-      .map(([key, v]) => [key, v.slice(4, -1)])
+      .map(([key, v]) => [key, tokenOf(v)])
       .filter(([, name]) => !light.includes(`${name}:`));
     expect(missing).toEqual([]);
   });

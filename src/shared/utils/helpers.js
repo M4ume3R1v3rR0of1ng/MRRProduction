@@ -17,7 +17,32 @@
 // `${C.gold}14` used to make a translucent wash and now produces garbage CSS.
 // Use color-mix(in srgb, ${C.gold} 8%, transparent) instead. If you need a real
 // hex — a canvas, a PDF, a meta tag — import HEX below.
-export const C = {
+//
+// ── One palette, one way in ──
+// C is the only way JavaScript reads this palette. For a long time it was not:
+// views mixed C.* with hand-written "var(--c-line)" strings — the same tokens in
+// two spellings, with nothing holding them in step. A variable added to
+// tokens.css might get a C key or might not (--c-backdrop, --c-disabled and
+// --c-stock-low never did); a view that needed a tint wash found only the
+// cryptic `gL` alias and wrote the var() out by hand instead; and three files
+// (SettingsView's `T`, SteadwerkMark's `BRAND`, UIPrimitives' badge maps) kept
+// private maps of var() strings on the side, so a token could be renamed here
+// and still be referenced by its old name three directories away.
+//
+// palette.test.js checks that every slot below resolves to a variable
+// tokens.css really defines, which is what keeps dark mode working. The reverse
+// direction is not enforced yet: a palette variable with no slot here is one a
+// view can only reach by writing var(--c-…) by hand, and the call sites that
+// still do are being migrated onto the slots below. The slots this commit adds
+// — stockLow, scanPaper, backdrop, disabled, disabledInk, accent, accentInk and
+// the spelled-out washes — are the ones those call sites were missing.
+//
+// This stays a hand-written object rather than one generated from the token
+// names, even though generating it would make the key spellings mechanical:
+// ~1,100 call sites rely on `C.` autocompleting in an editor, and a map built at
+// runtime offers nothing to complete. The test is what keeps the two sides
+// honest instead.
+const PALETTE = {
   // ── Semantic names. Prefer these in new code. ──
   barnwood: "var(--c-barnwood)", // the structural dark: sidebars, headings
   amber: "var(--c-amber)", // the accent: CTAs, active states
@@ -30,6 +55,10 @@ export const C = {
   pasture: "var(--c-pasture)", // success / active
   rust: "var(--c-rust)", // destructive. NOT red. See note above.
   warn: "var(--c-warn)", // deep amber — warnings
+  // A brighter "getting low" gold, for inventory's stock cards only. It rides on
+  // dots, borders and big numbers rather than small type, so it can sit far
+  // brighter than `warn` and still read as yellow next to rust. See tokens.css.
+  stockLow: "var(--c-stock-low)",
   plum: "var(--c-plum)",
   teal: "var(--c-teal)",
   slate: "var(--c-slate)",
@@ -46,25 +75,15 @@ export const C = {
   // NOT onAccent, which inverts to near-black and would vanish on the scrim.
   mediaBackdrop: "var(--c-media-backdrop)",
   onScrim: "var(--c-on-scrim)",
+  // Paper white for the MFA QR code, which a phone camera reads rather than a
+  // person. Holds its value in dark mode or the code stops scanning.
+  scanPaper: "var(--c-scan-paper)",
 
-  // ── Back-compat aliases. ──
-  // The original keys were literal color names that stopped being true when the
-  // palette moved to "The Raising" (C.blue has been brown since that reskin).
-  // They stay as aliases because a few hundred call sites use them; they are not
-  // deprecated-with-a-deadline, just no longer the name to reach for first.
-  navy: "var(--c-barnwood)",
-  gold: "var(--c-amber)",
-  blue: "var(--c-leather)",
-  bg: "var(--c-ground)",
-  w: "var(--c-surface)",
-  lg: "var(--c-subtle)",
-  bd: "var(--c-line)",
-  gr: "var(--c-pasture)",
-  rd: "var(--c-rust)",
-  am: "var(--c-warn)",
-  pu: "var(--c-plum)",
-  tl: "var(--c-teal)",
-  sl: "var(--c-slate)",
+  // ── Overlay and disabled states. ──
+  // The scrim behind a modal, and the two greys a switched-off control takes.
+  backdrop: "var(--c-backdrop)",
+  disabled: "var(--c-disabled)",
+  disabledInk: "var(--c-disabled-ink)",
 
   // ── Ink for text on the matching wash. ──
   // The saturated token is a fill/border color and is too light to read as
@@ -74,13 +93,60 @@ export const C = {
   rustInk: "var(--c-rust-ink)",
 
   // ── Tint backgrounds (badges, wells). ──
-  gL: "var(--c-amber-wash)",
-  gB: "var(--c-pasture-wash)",
-  rB: "var(--c-rust-wash)",
-  aB: "var(--c-warn-wash)",
-  pB: "var(--c-plum-wash)",
-  tB: "var(--c-teal-wash)",
-  sB: "var(--c-slate-wash)",
+  // Spelled out as well as abbreviated below, because the two-letter aliases
+  // were the only way to reach a wash and nobody guessed `gL` — they wrote
+  // var(--c-amber-wash) by hand instead, which is how the second system started.
+  amberWash: "var(--c-amber-wash)",
+  leatherWash: "var(--c-leather-wash)",
+  pastureWash: "var(--c-pasture-wash)",
+  rustWash: "var(--c-rust-wash)",
+  warnWash: "var(--c-warn-wash)",
+  plumWash: "var(--c-plum-wash)",
+  tealWash: "var(--c-teal-wash)",
+  slateWash: "var(--c-slate-wash)",
+};
+
+export const C = {
+  ...PALETTE,
+
+  // ── The tenant's own accent. ──
+  // companies.branding.accent, applied to --brand-accent on <html> by App.jsx,
+  // with the amber token as the fallback for the frame before that effect runs
+  // and for a company that never picked one. accentInk is whichever of
+  // dark/white App.jsx measured as legible against that accent, so it must not
+  // follow the theme. Both were written out longhand at six call sites, which
+  // meant six chances to drop the fallback half of the chain.
+  accent: "var(--brand-accent, var(--c-amber))",
+  accentInk: "var(--brand-accent-ink, var(--c-shell))",
+
+  // ── Back-compat aliases. ──
+  // The original keys were literal color names that stopped being true when the
+  // palette moved to "The Raising" (C.blue has been brown since that reskin).
+  // They stay as aliases because a few hundred call sites use them; they are not
+  // deprecated-with-a-deadline, just no longer the name to reach for first.
+  // Pointed at the slots above rather than restating the var() string, so an
+  // alias cannot quietly drift onto a different token than its semantic name.
+  navy: PALETTE.barnwood,
+  gold: PALETTE.amber,
+  blue: PALETTE.leather,
+  bg: PALETTE.ground,
+  w: PALETTE.surface,
+  lg: PALETTE.subtle,
+  bd: PALETTE.line,
+  gr: PALETTE.pasture,
+  rd: PALETTE.rust,
+  am: PALETTE.warn,
+  pu: PALETTE.plum,
+  tl: PALETTE.teal,
+  sl: PALETTE.slate,
+
+  gL: PALETTE.amberWash,
+  gB: PALETTE.pastureWash,
+  rB: PALETTE.rustWash,
+  aB: PALETTE.warnWash,
+  pB: PALETTE.plumWash,
+  tB: PALETTE.tealWash,
+  sB: PALETTE.slateWash,
 };
 
 // Literal light-mode hex, for the handful of consumers that cannot take a CSS

@@ -111,6 +111,11 @@
 
   /* ── Runtime palette (light) ──
      Every value in the C object in utils/helpers.js resolves to one of these.
+     The aim is the reverse too — apart from the six marked below as this
+     stylesheet's own, every one of these should have a slot in C, since C is the
+     only way JS is meant to read them and a variable with no slot is one a view
+     can only reach by writing var(--c-…) by hand. That half is not enforced
+     yet; the hand-written call sites are still being migrated.
      Around 1,100 inline style objects across the views read from C, and inline
      styles cannot carry a media query, so this indirection is what makes the app
      themeable at all. The dark set lives in the [data-theme="dark"] block below;
@@ -175,7 +180,12 @@
   --c-warn-ink: #6e560c;
   --c-rust-ink: #8c4221;
 
-  /* Surfaces and strokes that are not in C but are used by the CSS below.
+  /* ── The six this stylesheet owns outright ──
+     The only palette variables with no slot in C, because no JavaScript reads
+     them: they are referenced by the global rules at the bottom of this file and
+     nowhere else. This is the list that will be the allowed exception once
+     "every palette variable is reachable through C" is enforced, so adding one
+     here means deciding which side of that line it sits on.
      Named rather than inlined so the dark block can move them together. */
   --c-ink: #0f172a; /* strongest text, used sparingly */
   --c-row-hover: #f8fafc;
@@ -183,6 +193,12 @@
   --c-scroll-hover: #a4b3c8;
   --c-input-hover: #afbccf;
   --c-focus: #2563eb;
+
+  /* Modal scrim, and the two greys a switched-off control takes. Reached from JS
+     as C.backdrop / C.disabled / C.disabledInk. These sat in the block above for
+     a while, under a comment claiming nothing in C used them, while Modal, the
+     toast overlay, Toggle and the job handoff sheet each reached for them by
+     writing var(--c-backdrop) out by hand. */
   --c-backdrop: rgba(14, 45, 107, 0.55);
   --c-disabled: #cbd5e0;
   --c-disabled-ink: #a0aec0;
