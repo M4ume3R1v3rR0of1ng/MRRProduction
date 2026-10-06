@@ -949,6 +949,87 @@ export function useAppData() {
     };
   }, [curUser]);
 
+  // ── TRAINING ASSIGNMENTS, LIVE (supabase/49 put the table on the realtime
+  // publication; 48's policy already limits the stream to your own rows) ──
+  //
+  // Two jobs in one subscription. It folds the row into local state, so an admin
+  // assigning something while you are looking at Training makes it appear
+  // without a reload — and it toasts when one of the nightly sweep's sent-stamps
+  // lands, which is the in-app leg of send-training-due-notices.js's four
+  // channels.
+  //
+  // The toast fires on the STAMP, not on the due date: the sweep is the one
+  // thing that knows it has decided to notify you today, and reading the
+  // deadline here instead would re-toast on every unrelated update to the row.
+  //
+  // "Did the stamp just land" is answered against `since` — the moment this
+  // subscription opened — rather than by diffing payload.old. Realtime only
+  // carries the primary key in `old` unless the table is REPLICA IDENTITY FULL,
+  // so a diff would see every stamp as new and fire again the next time anyone
+  // touched the row (an admin re-dating it, say). A stamp older than `since` is
+  // a notice from a sweep that ran before this tab was open: the email and the
+  // chat message already carried it, and the assignment is sitting in the list.
+  useEffect(() => {
+    if (!curUser) return;
+    const since = new Date().toISOString();
+
+    const fold = (row) =>
+      setTrainingAssignments((prev) => {
+        const i = prev.findIndex((a) => a.id === row.id);
+        if (i === -1) return [...prev, row];
+        const next = [...prev];
+        next[i] = row;
+        return next;
+      });
+
+    const channel = supabase
+      .channel("realtime-training-assignments")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "training_assignments" },
+        (payload) => fold(payload.new),
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "training_assignments" },
+        (payload) => {
+          const row = payload.new;
+          fold(row);
+          if (row.completed_at) return;
+
+          // Voiced as the assistant, matching the durable chat message the sweep
+          // writes for the same event, so the toast and the message in the chat
+          // read as one thing rather than two systems talking at once.
+          if (row.overdue_last_sent_at && row.overdue_last_sent_at > since) {
+            showToast(
+              "Steadwerk Assistant: You have assigned training that is now overdue. Open Training to watch it and mark it done.",
+              "warning",
+              12000,
+            );
+          } else if (row.heads_up_sent_at && row.heads_up_sent_at > since) {
+            showToast(
+              "Steadwerk Assistant: You have training due soon. Open Training to watch it and mark it done.",
+              "info",
+              8000,
+            );
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "training_assignments" },
+        (payload) => setTrainingAssignments((prev) => prev.filter((a) => a.id !== payload.old?.id)),
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // showToast is stable from the notification context; listing it here would
+    // tear the subscription down and rebuild it on every provider render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [curUser]);
+
   // ── COMPUTED MEMO VALUES ──
   const pendingReqCount = useMemo(() => reqs.filter((r) => r.status === "pending").length, [reqs]);
   const lowStockCount = useMemo(() => inv.filter((i) => tot(i) <= i.alrt).length, [inv]);
