@@ -349,6 +349,10 @@ begin
   perform public._mig_record('47_billing_contact_name.sql',
     public._mig_has_column('companies', 'billing_contact_name'),
     'companies.billing_contact_name');
+
+  perform public._mig_record('48_training_assignments.sql',
+    public._mig_has_table('training_assignments'),
+    'table training_assignments');
 end $$;
 
 -- The three that leave no distinguishable trace. Recorded so the ledger lists
