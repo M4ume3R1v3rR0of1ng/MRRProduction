@@ -3,6 +3,7 @@ import React from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { translations } from "../utils/translations";
 import { captureException } from "../utils/sentry";
+import { C } from "../utils/helpers";
 
 // This boundary is mounted in main.jsx, ABOVE <App/>, which is where the app's
 // `lang` state lives — so it can never be handed the language as a prop. That is
@@ -62,7 +63,7 @@ export default class ErrorBoundary extends React.Component {
             alignItems: "center",
             justifyContent: "center",
             minHeight: "100vh",
-            background: "var(--c-subtle)",
+            background: C.subtle,
             fontFamily: "sans-serif",
             padding: 20,
             textAlign: "center",
@@ -70,14 +71,14 @@ export default class ErrorBoundary extends React.Component {
         >
           <AlertTriangle
             size={56}
-            color="var(--c-rust)"
+            color={C.rust}
             strokeWidth={1.5}
             style={{ marginBottom: 16 }}
             aria-hidden="true"
           />
           <h1
             style={{
-              color: "var(--c-slate)",
+              color: C.slate,
               fontSize: "var(--text-3xl)",
               fontWeight: "var(--weight-black)",
               margin: "0 0 8px 0",
@@ -87,7 +88,7 @@ export default class ErrorBoundary extends React.Component {
           </h1>
           <p
             style={{
-              color: "var(--c-sub)",
+              color: C.sub,
               fontSize: "var(--text-md)",
               maxWidth: 440,
               margin: "0 0 24px 0",
@@ -100,8 +101,8 @@ export default class ErrorBoundary extends React.Component {
 
           <div
             style={{
-              background: "var(--c-surface)",
-              border: "1.5px solid var(--c-line)",
+              background: C.surface,
+              border: `1.5px solid ${C.line}`,
               borderRadius: "var(--radius-md)",
               padding: 16,
               maxWidth: 600,
@@ -115,7 +116,7 @@ export default class ErrorBoundary extends React.Component {
               style={{
                 fontSize: "var(--text-xs)",
                 fontWeight: "var(--weight-bold)",
-                color: "var(--c-rust)",
+                color: C.rust,
                 textTransform: "uppercase",
                 marginBottom: 6,
               }}
@@ -127,13 +128,13 @@ export default class ErrorBoundary extends React.Component {
                 margin: 0,
                 fontSize: "var(--text-sm)",
                 fontFamily: "monospace",
-                color: "var(--c-slate)",
+                color: C.slate,
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-all",
-                background: "var(--c-rust-wash)",
+                background: C.rustWash,
                 padding: 10,
                 borderRadius: "var(--radius-sm)",
-                border: "1px solid var(--c-rust-wash)",
+                border: `1px solid ${C.rustWash}`,
               }}
             >
               {this.state.error?.toString() || "Unknown runtime exception."}
@@ -146,8 +147,8 @@ export default class ErrorBoundary extends React.Component {
               display: "flex",
               alignItems: "center",
               gap: 8,
-              background: "var(--c-slate)",
-              color: "var(--c-on-accent)",
+              background: C.slate,
+              color: C.onAccent,
               border: "none",
               borderRadius: "var(--radius-sm)",
               padding: "10px 20px",
@@ -157,8 +158,8 @@ export default class ErrorBoundary extends React.Component {
               boxShadow: "0 2px 4px rgba(27,82,184,0.3)",
               transition: "background 0.2s",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--c-slate)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "var(--c-slate)")}
+            onMouseEnter={(e) => (e.currentTarget.style.background = C.slate)}
+            onMouseLeave={(e) => (e.currentTarget.style.background = C.slate)}
           >
             <RefreshCw size={15} aria-hidden="true" /> Force App Reload
           </button>

@@ -27,7 +27,7 @@ const toLocalDateKey = (date) => {
 // ── Resolve border color from jSC config, supports both named keys and hex ──
 const resolveStatusColor = (statusConfig) => {
   const c = statusConfig?.c || "";
-  if (!c) return "var(--c-sub)";
+  if (!c) return C.sub;
   // If it's already a hex/rgb value, use directly
   if (c.startsWith("#") || c.startsWith("rgb")) return c;
   // Map named keys to theme colors
@@ -38,7 +38,7 @@ const resolveStatusColor = (statusConfig) => {
     green: C.gr,
     red: C.rd,
     teal: C.tl,
-    gray: "var(--c-sub)",
+    gray: C.sub,
   };
   return colorMap[c] ?? c;
 };

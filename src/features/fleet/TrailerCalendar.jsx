@@ -27,7 +27,7 @@ const toLocalDateKey = (date) => {
 
 const resolveStatusColor = (statusConfig) => {
   const c = statusConfig?.c || "";
-  if (!c) return "var(--c-sub)";
+  if (!c) return C.sub;
   if (c.startsWith("#") || c.startsWith("rgb")) return c;
   const colorMap = {
     blue: C.blue,
@@ -36,7 +36,7 @@ const resolveStatusColor = (statusConfig) => {
     green: C.gr,
     red: C.rd,
     teal: C.tl,
-    gray: "var(--c-sub)",
+    gray: C.sub,
   };
   return colorMap[c] ?? c;
 };

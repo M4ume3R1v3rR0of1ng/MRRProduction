@@ -468,7 +468,7 @@ export function Modal({ title, onClose, children, footer, wide, extraWide, disab
       style={{
         position: "fixed",
         inset: 0,
-        background: "var(--c-backdrop)",
+        background: C.backdrop,
         zIndex: 1000,
         display: "flex",
         alignItems: "center",
@@ -491,7 +491,7 @@ export function Modal({ title, onClose, children, footer, wide, extraWide, disab
         <div
           style={{
             padding: "var(--space-7) var(--space-8)",
-            borderBottom: "2px solid var(--brand-accent, var(--c-amber))",
+            borderBottom: `2px solid ${C.accent}`,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
@@ -683,8 +683,8 @@ export function Btn({ children, v = "primary", sz = "md", tone, block, ...p }) {
   const vs = {
     primary: { background: C.leather, color: C.onAccent, border: "none" },
     gold: {
-      background: "var(--brand-accent, var(--c-amber))",
-      color: "var(--brand-accent-ink, var(--c-shell))",
+      background: C.accent,
+      color: C.accentInk,
       border: "none",
     },
     outline: {
@@ -794,13 +794,13 @@ export function CheckChip({ checked, onChange, disabled, children }) {
 
 export function Bdg({ children, color = "blue" }) {
   const bg = {
-    blue: "var(--c-leather-wash)",
+    blue: C.leatherWash,
     green: C.gB,
     red: C.rB,
     amber: C.aB,
     gold: C.gL,
     purple: C.pB,
-    gray: "var(--c-subtle)",
+    gray: C.subtle,
     teal: C.tB,
     sky: C.sB,
   };
@@ -809,7 +809,7 @@ export function Bdg({ children, color = "blue" }) {
     green: C.gr,
     red: C.rd,
     amber: C.am,
-    gold: "var(--c-warn)",
+    gold: C.warn,
     purple: C.pu,
     gray: C.sub,
     teal: C.tl,
@@ -859,7 +859,7 @@ export function Toggle({ on, onChange, disabled = false }) {
         width: 38,
         height: 22,
         borderRadius: "var(--radius-pill)",
-        background: disabled ? "var(--c-disabled)" : on ? C.pasture : "var(--c-disabled)",
+        background: disabled ? C.disabled : on ? C.pasture : C.disabled,
         cursor: disabled ? "default" : "pointer",
         position: "relative",
         transition: "background 0.15s",
@@ -874,7 +874,7 @@ export function Toggle({ on, onChange, disabled = false }) {
           width: 16,
           height: 16,
           borderRadius: "50%",
-          background: disabled ? "var(--c-disabled-ink)" : C.surface,
+          background: disabled ? C.disabledInk : C.surface,
           transition: "left 0.15s",
           boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
         }}

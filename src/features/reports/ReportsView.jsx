@@ -831,7 +831,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                 pad={6}
                 style={{
                   borderRadius: "var(--radius-lg)",
-                  borderLeft: `4px solid ${log.photos?.length > 0 ? "var(--c-slate)" : "var(--c-line)"}`,
+                  borderLeft: `4px solid ${log.photos?.length > 0 ? C.slate : C.line}`,
                 }}
               >
                 <Row gap={7} align="flex-start" justify="space-between" wrap>
@@ -845,7 +845,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                     <Text
                       as="p"
                       size="base"
-                      color="var(--c-barnwood)"
+                      color={C.barnwood}
                       style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
                     >
                       {log.notes || (
@@ -877,7 +877,7 @@ function FleetCostTrendsReport({ vehs, reqs, t, companyId }) {
                             borderRadius: "var(--radius-sm)",
                             objectFit: "cover",
                             cursor: "pointer",
-                            border: "1px solid var(--c-line)",
+                            border: `1px solid ${C.line}`,
                           }}
                           title={t.rptExpandImage}
                         />
@@ -1039,7 +1039,7 @@ function AuditTrailReport({ t, companyId }) {
           tone="danger"
           bordered
           pad={8}
-          color="var(--c-rust)"
+          color={C.rust}
           style={{ borderRadius: "var(--radius-lg)", textAlign: "center" }}
         >
           <Text weight="bold" style={{ marginBottom: 6 }}>

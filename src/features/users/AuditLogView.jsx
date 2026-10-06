@@ -470,7 +470,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
           tone="danger"
           bordered
           pad={9}
-          color="var(--c-rust)"
+          color={C.rust}
           style={{ borderRadius: "var(--radius-lg)", textAlign: "center" }}
         >
           <Row
@@ -700,7 +700,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
 
           <div
             style={{
-              background: "var(--c-shell)",
+              background: C.shell,
               padding: 14,
               borderRadius: "var(--radius-md)",
               maxHeight: 300,
@@ -711,7 +711,7 @@ export default function AuditLogView({ perms, inv = [], users = [], companyId, l
             <pre
               style={{
                 margin: 0,
-                color: "var(--c-teal)",
+                color: C.teal,
                 fontFamily: "monospace",
                 fontSize: "var(--text-xs)",
                 whiteSpace: "pre-wrap",

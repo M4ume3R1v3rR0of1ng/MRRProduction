@@ -370,7 +370,7 @@ export default function Users({
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} style={{ background: u.active ? undefined : "var(--c-subtle)" }}>
+              <tr key={u.id} style={{ background: u.active ? undefined : C.subtle }}>
                 <Text as="td" weight="bold" color={C.navy}>
                   {u.full_name || u.name || "—"}
                 </Text>
@@ -610,7 +610,7 @@ export default function Users({
                       key={key}
                       style={{
                         background: hasOverride
-                          ? "color-mix(in srgb, var(--c-warn) 7%, transparent)"
+                          ? `color-mix(in srgb, ${C.warn} 7%, transparent)`
                           : "transparent",
                       }}
                     >

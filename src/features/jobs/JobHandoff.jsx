@@ -37,7 +37,7 @@ export default function JobHandoff({
       style={{
         position: "fixed",
         inset: 0,
-        background: "var(--c-backdrop)",
+        background: C.backdrop,
         zIndex: 1000,
         display: "flex",
         alignItems: "center",
@@ -59,18 +59,9 @@ export default function JobHandoff({
           textAlign: "center",
         }}
       >
-        <Stack
-          gap={3}
-          align="center"
-          style={{ background: "var(--brand-accent, var(--c-amber))", padding: "var(--space-7)" }}
-        >
-          <TrussMark size={34} color="var(--brand-accent-ink, var(--c-shell))" />
-          <Text
-            size="xl"
-            weight="black"
-            color="var(--brand-accent-ink, var(--c-shell))"
-            font="display"
-          >
+        <Stack gap={3} align="center" style={{ background: C.accent, padding: "var(--space-7)" }}>
+          <TrussMark size={34} color={C.accentInk} />
+          <Text size="xl" weight="black" color={C.accentInk} font="display">
             {title}
           </Text>
         </Stack>

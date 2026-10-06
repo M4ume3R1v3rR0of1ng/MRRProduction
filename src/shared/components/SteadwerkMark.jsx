@@ -1,4 +1,5 @@
 import { Row } from "./LayoutPrimitives"; // src/shared/components/SteadwerkMark.jsx
+import { C } from "../utils/helpers";
 //
 // Direction 02 — "The Raising".
 //
@@ -20,14 +21,14 @@ export const BRAND = {
   // The theme-aware version, for the mark and wordmark when they sit on the app
   // ground. Using the literal there made the badge #23282D on a #191D21 ground
   // in dark mode, which is very nearly invisible.
-  ink: "var(--c-barnwood)",
-  amber: "var(--c-amber)", // primary accent — lantern glow, wheat at cutting
-  amberDeep: "var(--c-warn)", // the amber, darkened for text on light backgrounds
-  leather: "var(--c-leather)", // harness leather — secondary
-  pasture: "var(--c-pasture)", // pasture green — success, "active"
+  ink: C.barnwood,
+  amber: C.amber, // primary accent — lantern glow, wheat at cutting
+  amberDeep: C.warn, // the amber, darkened for text on light backgrounds
+  leather: C.leather, // harness leather — secondary
+  pasture: C.pasture, // pasture green — success, "active"
   homespun: "#EDE6DA", // the light ground
-  plowshare: "var(--c-sub)", // muted grey — secondary text
-  rust: "var(--c-rust)", // destructive. NOT red — the brand has no red in it.
+  plowshare: C.sub, // muted grey — secondary text
+  rust: C.rust, // destructive. NOT red — the brand has no red in it.
 };
 
 export const TAGLINE = "EVERY JOB. EVERY TRUCK.";

@@ -19,7 +19,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { supabase, getAccessToken } from "@/shared/utils/supabase";
-import { compressImg } from "@/shared/utils/helpers";
+import { C, HEX, compressImg } from "@/shared/utils/helpers";
 import {
   PERM_DEFS,
   PERM_GROUPS,
@@ -63,31 +63,31 @@ import {
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const T = {
-  navy: "var(--c-barnwood)",
-  blue: "var(--c-slate)",
-  blueSoft: "var(--c-slate-wash)",
-  blueRing: "var(--c-slate-wash)",
-  slate: "var(--c-barnwood)",
-  slateL: "var(--c-sub)",
-  border: "var(--c-line)",
-  bg: "var(--c-subtle)",
+  navy: C.barnwood,
+  blue: C.slate,
+  blueSoft: C.slateWash,
+  blueRing: C.slateWash,
+  slate: C.barnwood,
+  slateL: C.sub,
+  border: C.line,
+  bg: C.subtle,
   // Was a literal #ffffff. That made every card in this view stay white in dark
   // mode while its text inverted to cream, which is how the permissions grid
   // ended up as pale-on-white. `white` is now the surface slot, so it follows
   // the theme; the name is kept because a dozen call sites use it.
-  white: "var(--c-surface)",
+  white: C.surface,
   // Chrome that stays dark in both themes, for the permission group headers.
   // T.navy cannot do this job: it maps to the ink token, which inverts.
-  shell: "var(--c-shell)",
-  shellInk: "var(--c-shell-ink)",
-  green: "var(--c-pasture)",
-  greenBg: "var(--c-pasture-wash)",
-  greenBd: "var(--c-pasture-wash)",
-  amber: "var(--c-warn)",
-  amberBg: "var(--c-warn-wash)",
-  amberBd: "var(--c-warn-wash)",
-  red: "var(--c-rust)",
-  redBg: "var(--c-rust-wash)",
+  shell: C.shell,
+  shellInk: C.shellInk,
+  green: C.pasture,
+  greenBg: C.pastureWash,
+  greenBd: C.pastureWash,
+  amber: C.warn,
+  amberBg: C.warnWash,
+  amberBd: C.warnWash,
+  red: C.rust,
+  redBg: C.rustWash,
   radius: "10px",
   radiusLg: "16px",
   shadow: "0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)",
@@ -159,7 +159,7 @@ export default function SettingsView({
   const [brandForm, setBrandForm] = useState({
     displayName: company?.branding?.displayName || company?.name || "",
     tagline: company?.branding?.tagline || "",
-    accent: company?.branding?.accent || "var(--c-amber)",
+    accent: company?.branding?.accent || HEX.amber,
     state: company?.branding?.state || "",
     taxRate: company?.branding?.taxRate != null ? String(company.branding.taxRate * 100) : "",
     taxLabel: company?.branding?.taxLabel || "",
@@ -930,7 +930,7 @@ export default function SettingsView({
               <Row gap={4}>
                 <input
                   type="color"
-                  value={brandForm.accent || "var(--c-amber)"}
+                  value={brandForm.accent || HEX.amber}
                   onChange={(e) => setBrandForm({ ...brandForm, accent: e.target.value })}
                   disabled={savingBrand}
                   aria-label={t.stAccentAria}
@@ -945,14 +945,14 @@ export default function SettingsView({
                   }}
                 />
                 <Text as="code" size="sm" color={T.slateL}>
-                  {(brandForm.accent || "var(--c-amber)").toUpperCase()}
+                  {(brandForm.accent || HEX.amber).toUpperCase()}
                 </Text>
-                {(brandForm.accent || "").toLowerCase() !== "var(--c-amber)" && (
+                {(brandForm.accent || "").toLowerCase() !== HEX.amber.toLowerCase() && (
                   <TextBtn
                     type="button"
                     color={T.blue}
                     size="sm"
-                    onClick={() => setBrandForm({ ...brandForm, accent: "var(--c-amber)" })}
+                    onClick={() => setBrandForm({ ...brandForm, accent: HEX.amber })}
                     disabled={savingBrand}
                   >
                     {t.stReset}

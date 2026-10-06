@@ -120,7 +120,7 @@ export function NotificationProvider({ children }) {
               style={{
                 position: "fixed",
                 inset: 0,
-                background: "var(--c-backdrop)",
+                background: C.backdrop,
                 zIndex: 10000,
                 display: "flex",
                 alignItems: "center",
@@ -144,7 +144,7 @@ export function NotificationProvider({ children }) {
                 <div
                   style={{
                     padding: "var(--space-7) var(--space-8)",
-                    borderBottom: `2px solid ${danger ? C.rust : "var(--brand-accent, var(--c-amber))"}`,
+                    borderBottom: `2px solid ${danger ? C.rust : C.accent}`,
                   }}
                 >
                   <h2
@@ -203,10 +203,8 @@ export function NotificationProvider({ children }) {
                       style={{
                         flex: 1,
                         padding: "11px",
-                        background: danger ? C.rust : "var(--brand-accent, var(--c-amber))",
-                        color: danger
-                          ? "var(--c-on-accent)"
-                          : "var(--brand-accent-ink, var(--c-shell))",
+                        background: danger ? C.rust : C.accent,
+                        color: danger ? C.onAccent : C.accentInk,
                         border: "none",
                         borderRadius: "var(--radius-lg)",
                         fontWeight: "var(--weight-extrabold)",

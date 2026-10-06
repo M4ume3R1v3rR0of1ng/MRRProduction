@@ -346,7 +346,7 @@ export default function InventoryCountTab({
         tone="danger"
         bordered
         pad={9}
-        color="var(--c-rust)"
+        color={C.rust}
         style={{ borderRadius: "var(--radius-lg)", textAlign: "center" }}
       >
         <Text weight="bold" style={{ marginBottom: 6 }}>

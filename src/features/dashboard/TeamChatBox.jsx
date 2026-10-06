@@ -36,7 +36,7 @@ function renderWithMentions(text, names) {
         style={{
           // A wash of the mention's own color — the old rgba() was a fixed light
           // blue that sat on the dark surface as a bright smear.
-          background: "color-mix(in srgb, var(--c-leather) 10%, transparent)",
+          background: `color-mix(in srgb, ${C.leather} 10%, transparent)`,
           borderRadius: "var(--radius-xs)",
           padding: "0 3px",
         }}
@@ -303,7 +303,7 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
           paddingRight: 4,
           marginBottom: 12,
           scrollbarWidth: "thin",
-          scrollbarColor: "var(--c-line) transparent",
+          scrollbarColor: `${C.line} transparent`,
         }}
       >
         {loading ? (

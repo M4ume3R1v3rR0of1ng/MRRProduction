@@ -188,7 +188,7 @@ export default function MfaPanel({ user, lang = "en" }) {
                 style={{
                   width: 200,
                   height: 200,
-                  background: "var(--c-scan-paper)",
+                  background: C.scanPaper,
                   padding: 8,
                   borderRadius: "var(--radius-md)",
                   border: `1px solid ${C.bd}`,

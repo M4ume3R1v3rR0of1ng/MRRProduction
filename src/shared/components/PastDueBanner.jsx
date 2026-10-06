@@ -24,6 +24,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { supabase } from "../utils/supabase";
 import { translations } from "../utils/translations";
+import { C } from "../utils/helpers";
 import { IS_IOS_APP } from "../../core/platform";
 import { Btn, Row } from "./UIPrimitives";
 
@@ -60,9 +61,9 @@ export default function PastDueBanner({ user, lang = "en" }) {
       gap={5}
       wrap
       style={{
-        background: "var(--c-rust-wash)",
-        borderBottom: "2px solid var(--c-rust)",
-        color: "var(--c-rust)",
+        background: C.rustWash,
+        borderBottom: `2px solid ${C.rust}`,
+        color: C.rust,
         padding: "10px 20px",
         flexShrink: 0,
         fontSize: "var(--text-sm)",

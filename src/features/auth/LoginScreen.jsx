@@ -452,7 +452,7 @@ export default function LoginScreen({
     >
       <div
         style={{
-          background: "color-mix(in srgb, var(--c-surface) 96%, transparent)",
+          background: `color-mix(in srgb, ${C.surface} 96%, transparent)`,
           backdropFilter: "blur(8px)",
           borderRadius: 24,
           padding: "60px 68px",
@@ -720,7 +720,7 @@ export default function LoginScreen({
                           borderRadius: "var(--radius-md)",
                           border: `2px solid ${active ? C.gold : C.bd}`,
                           ...(active && {
-                            background: "color-mix(in srgb, var(--c-amber) 10%, transparent)",
+                            background: `color-mix(in srgb, ${C.amber} 10%, transparent)`,
                           }),
                         }}
                       >

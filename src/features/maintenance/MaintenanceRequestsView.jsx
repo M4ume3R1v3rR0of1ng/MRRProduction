@@ -553,7 +553,7 @@ export default function MaintenanceRequestsView({
               <EmptyState
                 message={t.maintNoneFound}
                 messageStyle={{ fontSize: "inherit", fontWeight: "inherit" }}
-                style={{ border: "1px solid var(--c-line)", boxShadow: "none" }}
+                style={{ border: `1px solid ${C.line}`, boxShadow: "none" }}
               />
             ) : (
               filtered.map((r) => {
@@ -562,9 +562,7 @@ export default function MaintenanceRequestsView({
                   <Card
                     key={r.id}
                     hover
-                    style={
-                      isUrgent ? { background: C.rB, borderColor: "var(--c-rust-wash)" } : undefined
-                    }
+                    style={isUrgent ? { background: C.rB, borderColor: C.rustWash } : undefined}
                   >
                     <Row gap={7} justify="space-between" wrap>
                       {/* Left Side Metadata Info */}
@@ -595,7 +593,7 @@ export default function MaintenanceRequestsView({
                         <Text
                           as="h3"
                           weight="extrabold"
-                          color="var(--c-barnwood)"
+                          color={C.barnwood}
                           style={{ margin: "0 0 4px 0", fontSize: 15 }}
                         >
                           {r.vname}
@@ -603,7 +601,7 @@ export default function MaintenanceRequestsView({
                         <Text
                           as="p"
                           size="base"
-                          color="var(--c-barnwood)"
+                          color={C.barnwood}
                           style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
                         >
                           {r.notes}
@@ -618,7 +616,7 @@ export default function MaintenanceRequestsView({
                               gap={1}
                               style={{
                                 marginLeft: 8,
-                                color: "var(--c-slate)",
+                                color: C.slate,
                                 fontWeight: "var(--weight-bold)",
                               }}
                             >
@@ -831,13 +829,13 @@ export default function MaintenanceRequestsView({
                       gap="5px"
                       style={{
                         fontSize: "var(--text-xs)",
-                        color: "var(--c-pasture)",
+                        color: C.pasture,
                         textTransform: "uppercase",
                       }}
                     >
                       <History size={12} aria-hidden="true" /> {t.maintLastCompleted} — {sel.vname}
                     </Row>
-                    <Text size="sm" color="var(--c-pasture)" style={{ marginTop: 4 }}>
+                    <Text size="sm" color={C.pasture} style={{ marginTop: 4 }}>
                       {lastCompleted.wh_notes || t.maintNoResolutionNotes}
                     </Text>
                     {lastCompleted.completed_at && (
@@ -935,7 +933,7 @@ export default function MaintenanceRequestsView({
                 style={{ borderTop: `1px solid ${C.bd}`, marginTop: 6 }}
               >
                 <Row align="flex-start" justify="space-between">
-                  <Text as="strong" color="var(--c-pasture)">
+                  <Text as="strong" color={C.pasture}>
                     {t.maintRequestClosed}
                   </Text>
                   <Btn v="ghost" sz="sm" onClick={() => downloadServiceReport(sel)}>

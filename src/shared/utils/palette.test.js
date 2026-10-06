@@ -48,6 +48,38 @@ describe("C palette", () => {
     expect(missing).toEqual([]);
   });
 
+  // The six the global rules at the bottom of tokens.css use on their own. No
+  // JavaScript reads them, so they are the allowed exception to the rule below.
+  // Adding one here is a decision that a variable is the stylesheet's alone.
+  const CSS_ONLY = [
+    "--c-ink",
+    "--c-focus",
+    "--c-row-hover",
+    "--c-scroll-thumb",
+    "--c-scroll-hover",
+    "--c-input-hover",
+  ];
+
+  it("gives every palette variable a slot in C", () => {
+    // The other half of the invariant. A variable with no slot is one a view can
+    // only reach by writing var(--c-…) by hand, which is how this app ended up
+    // running two spellings of the same palette in parallel.
+    const slots = new Set(Object.values(C).map(tokenOf));
+    const orphans = (ruleBody(":root {").match(/--c-[a-z-]+(?=:)/g) || []).filter(
+      (n) => !slots.has(n) && !CSS_ONLY.includes(n),
+    );
+    expect(orphans).toEqual([]);
+  });
+
+  it("keeps the css-only exception list honest", () => {
+    // If one of these gains a slot in C, it is no longer css-only and the
+    // exception should go, or the rule above quietly stops covering it.
+    const slots = new Set(Object.values(C).map(tokenOf));
+    expect(CSS_ONLY.filter((n) => slots.has(n))).toEqual([]);
+    const light = ruleBody(":root {");
+    expect(CSS_ONLY.filter((n) => !light.includes(`${n}:`))).toEqual([]);
+  });
+
   it("gives every light variable a dark counterpart", () => {
     const names = (body) => new Set(body.match(/--c-[a-z-]+(?=:)/g) || []);
     const light = names(ruleBody(":root {"));
@@ -164,6 +196,16 @@ describe("view color audit", () => {
     // --c-barnwood inverts to cream for dark-mode text. Anything using it as a
     // surface wants --c-shell, which stays dark in both themes.
     const hits = scan((l) => BARNWOOD_BG.test(l));
+    expect(hits).toEqual([]);
+  });
+
+  it("never reaches for a palette variable without going through C", () => {
+    // C is the only way JS reads this palette. A hand-written var(--c-…) is the
+    // same token in a second spelling, with nothing holding the two in step: it
+    // survives a rename in tokens.css, it is invisible to every check in this
+    // file, and it cannot be found by searching for the slot name. 117 of these
+    // were migrated onto slots at once; this is what stops the next one.
+    const hits = scan((l) => /var\(--(?:c|brand)-/.test(l));
     expect(hits).toEqual([]);
   });
 

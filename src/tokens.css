@@ -110,12 +110,12 @@
   --brand-rust: #a34e28;
 
   /* ── Runtime palette (light) ──
-     Every value in the C object in utils/helpers.js resolves to one of these.
-     The aim is the reverse too — apart from the six marked below as this
-     stylesheet's own, every one of these should have a slot in C, since C is the
-     only way JS is meant to read them and a variable with no slot is one a view
-     can only reach by writing var(--c-…) by hand. That half is not enforced
-     yet; the hand-written call sites are still being migrated.
+     Every value in the C object in utils/helpers.js resolves to one of these,
+     and — apart from the six marked below as this stylesheet's own — every one
+     of these has a slot in C. That is a two-way invariant enforced by
+     palette.test.js: C is the only way JS reads these, so a variable with no
+     slot is a variable a view can only reach by writing var(--c-…) by hand,
+     which is the second color system this file used to run in parallel with.
      Around 1,100 inline style objects across the views read from C, and inline
      styles cannot carry a media query, so this indirection is what makes the app
      themeable at all. The dark set lives in the [data-theme="dark"] block below;
@@ -183,8 +183,8 @@
   /* ── The six this stylesheet owns outright ──
      The only palette variables with no slot in C, because no JavaScript reads
      them: they are referenced by the global rules at the bottom of this file and
-     nowhere else. This is the list that will be the allowed exception once
-     "every palette variable is reachable through C" is enforced, so adding one
+     nowhere else. palette.test.js carries this exact list as the one allowed
+     exception to "every palette variable is reachable through C", so adding one
      here means deciding which side of that line it sits on.
      Named rather than inlined so the dark block can move them together. */
   --c-ink: #0f172a; /* strongest text, used sparingly */

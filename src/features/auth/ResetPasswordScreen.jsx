@@ -89,7 +89,7 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
     >
       <div
         style={{
-          background: "color-mix(in srgb, var(--c-surface) 96%, transparent)",
+          background: `color-mix(in srgb, ${C.surface} 96%, transparent)`,
           backdropFilter: "blur(8px)",
           borderRadius: 20,
           padding: "48px 56px",

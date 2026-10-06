@@ -136,7 +136,7 @@ export default function ItemDetailModal({
             key={b.id}
             style={{
               padding: "10px 14px",
-              background: isActive ? "color-mix(in srgb, var(--c-leather) 10%, transparent)" : C.lg,
+              background: isActive ? `color-mix(in srgb, ${C.leather} 10%, transparent)` : C.lg,
               borderRadius: "var(--radius-md)",
               border: isActive ? `1.5px solid ${C.blue}` : "none",
               marginBottom: 8,

@@ -774,7 +774,7 @@ export default function App() {
               size="sm"
               weight="bold"
               color={C.rust}
-              style={{ borderRadius: 0, borderBottom: "2px solid var(--c-rust)", flexShrink: 0 }}
+              style={{ borderRadius: 0, borderBottom: `2px solid ${C.rust}`, flexShrink: 0 }}
             >
               <Row gap={5} justify="space-between" wrap>
                 <Row as="span" gap="7px" align="flex-start">

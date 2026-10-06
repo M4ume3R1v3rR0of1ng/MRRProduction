@@ -53,7 +53,7 @@ export default function CompanySwitcher({ user, lang = "en" }) {
       title={t.csSwitchCompany}
       style={{
         width: "auto",
-        background: "var(--c-surface)",
+        background: C.surface,
         color: C.navy,
         padding: "6px 10px",
         fontSize: "var(--text-2xs)",

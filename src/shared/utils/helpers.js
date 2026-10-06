@@ -29,13 +29,11 @@
 // private maps of var() strings on the side, so a token could be renamed here
 // and still be referenced by its old name three directories away.
 //
-// palette.test.js checks that every slot below resolves to a variable
-// tokens.css really defines, which is what keeps dark mode working. The reverse
-// direction is not enforced yet: a palette variable with no slot here is one a
-// view can only reach by writing var(--c-…) by hand, and the call sites that
-// still do are being migrated onto the slots below. The slots this commit adds
-// — stockLow, scanPaper, backdrop, disabled, disabledInk, accent, accentInk and
-// the spelled-out washes — are the ones those call sites were missing.
+// palette.test.js now fails the build if tokens.css defines a palette variable
+// with no slot below, or if any view writes `var(--c-…)` itself. The six
+// variables the global stylesheet in tokens.css uses on its own — --c-ink,
+// --c-focus, --c-row-hover, --c-scroll-thumb, --c-scroll-hover, --c-input-hover
+// — are the listed exception there, since no JS ever touches them.
 //
 // This stays a hand-written object rather than one generated from the token
 // names, even though generating it would make the key spellings mechanical:

@@ -546,12 +546,12 @@ export default function FleetManagementView({
           <Stack gap={0} align="center" style={{ textAlign: "center" }}>
             <Truck
               size={44}
-              color="var(--c-slate)"
+              color={C.slate}
               strokeWidth={1.5}
               style={{ marginBottom: 16 }}
               aria-hidden="true"
             />
-            <Text as="h3" weight="extrabold" color="var(--c-slate)" style={{ margin: "0 0 8px 0" }}>
+            <Text as="h3" weight="extrabold" color={C.slate} style={{ margin: "0 0 8px 0" }}>
               {t.flRegistryEmpty}
             </Text>
             <Text
@@ -716,7 +716,7 @@ export default function FleetManagementView({
               paddingRight: 6,
               paddingBottom: 24,
               scrollbarWidth: "thin", // Native Firefox layout alignment compatibility rules fallback
-              scrollbarColor: "var(--c-line) transparent",
+              scrollbarColor: `${C.line} transparent`,
             }}
           >
             {/* Fleet Grid Tracker */}

@@ -870,7 +870,7 @@ export default function DashboardView({
         wrap
         style={{
           marginBottom: 14,
-          borderLeft: "4px solid var(--brand-accent, var(--c-amber))",
+          borderLeft: `4px solid ${C.accent}`,
           paddingLeft: 14,
         }}
       >
@@ -1126,28 +1126,28 @@ export default function DashboardView({
             title={t.pull}
             subtitle={t.dashQaStage}
             icon={Package}
-            color="var(--c-slate)"
+            color={C.slate}
             onClick={() => onNav("pull")}
           />
           <QuickActionCard
             title={t.requests}
             subtitle={t.dashQaMaint}
             icon={Wrench}
-            color="var(--c-plum)"
+            color={C.plum}
             onClick={() => onNav("requests")}
           />
           <QuickActionCard
             title={t.myAssignedJobs}
             subtitle={t.dashQaCheck}
             icon={ClipboardList}
-            color="var(--c-teal)"
+            color={C.teal}
             onClick={() => onNav("pull")}
           />
           <QuickActionCard
             title={t.fleet}
             subtitle={t.dashQaFlag}
             icon={AlertTriangle}
-            color="var(--c-rust)"
+            color={C.rust}
             onClick={() => onNav("fleet")}
           />
         </div>

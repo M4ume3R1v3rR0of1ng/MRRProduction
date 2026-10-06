@@ -299,7 +299,7 @@ export default function OmniSearch({
         style={{
           padding: "10px 14px 10px 12px",
           borderWidth: 1,
-          background: "var(--c-subtle)",
+          background: C.subtle,
           fontSize: "var(--text-base)",
           fontWeight: "var(--weight-semibold)",
           color: C.navy,
@@ -314,10 +314,10 @@ export default function OmniSearch({
             top: "calc(100% + 6px)",
             left: 0,
             right: 0,
-            background: "var(--c-surface)",
+            background: C.surface,
             borderRadius: "12px",
             boxShadow: "0 12px 32px rgba(15, 23, 42, 0.15)",
-            border: "1px solid var(--c-line)",
+            border: `1px solid ${C.line}`,
             maxHeight: "420px",
             overflowY: "auto",
             zIndex: 1100,
@@ -329,7 +329,7 @@ export default function OmniSearch({
               (s) =>
                 s.items.length > 0 && (
                   <div key={s.key}>
-                    <Eyebrow style={{ padding: "6px 14px", background: "var(--c-subtle)" }}>
+                    <Eyebrow style={{ padding: "6px 14px", background: C.subtle }}>
                       {s.header}
                     </Eyebrow>
                     {s.items.map((item, idx) => (
@@ -339,7 +339,7 @@ export default function OmniSearch({
                         style={{
                           borderBottom: "none",
                           fontSize: "var(--text-base)",
-                          color: "var(--c-barnwood)",
+                          color: C.barnwood,
                         }}
                       >
                         <Text weight="semibold">{s.title(item)}</Text>

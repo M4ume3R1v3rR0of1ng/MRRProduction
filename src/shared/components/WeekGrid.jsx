@@ -134,7 +134,7 @@ export function WeekRow({ label, highlight, children }) {
     <tr
       style={{
         borderBottom: `1px solid ${C.lg}`,
-        background: highlight ? "color-mix(in srgb, var(--c-amber) 4%, transparent)" : undefined,
+        background: highlight ? `color-mix(in srgb, ${C.amber} 4%, transparent)` : undefined,
       }}
     >
       <td

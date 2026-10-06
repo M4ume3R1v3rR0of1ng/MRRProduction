@@ -133,9 +133,9 @@ export default function InventoryView({
   // small text in ~24 other views and can't go past ~4.5:1 against white without
   // hurting legibility there. Nothing else reads --c-warn as a dot next to a
   // rust dot, so it never had to be THIS distinct from red — --c-stock-low does.
-  const STOCK_RED = "var(--c-rust)";
-  const STOCK_YELLOW = "var(--c-stock-low)";
-  const STOCK_GREEN = "var(--c-pasture)";
+  const STOCK_RED = C.rust;
+  const STOCK_YELLOW = C.stockLow;
+  const STOCK_GREEN = C.pasture;
 
   const toggleSpecial = async (item, e) => {
     e.stopPropagation();

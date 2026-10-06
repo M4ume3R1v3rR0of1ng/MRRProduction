@@ -216,7 +216,7 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
               value={user.email}
               disabled
               style={{
-                background: "var(--c-subtle)",
+                background: C.subtle,
                 color: C.sub,
                 cursor: "not-allowed",
               }}
