@@ -5,9 +5,17 @@
 // never be a state you can forget you are in — every job you close and every
 // batch you adjust from here is real, and it is theirs.
 //
-// Fixed rather than inline: the app shell is locked to 100vh with its own
-// overflow rules, and a banner in the flow would either steal height from the
-// layout or get scrolled away exactly when it matters.
+// Pinned to the bottom of the viewport rather than sitting in the flow: the app
+// shell is locked to 100vh with its own overflow rules, and a banner in the
+// layout would either steal height from it or get scrolled away exactly when it
+// matters.
+//
+// The `position: fixed` that did that used to live on this component. It now
+// lives on the shared bottom banner stack in App.jsx, because this is no longer
+// the only thing down there — the role-preview banner can be on at the same
+// time, and two separately-fixed bars at bottom:0 draw on top of each other.
+// `stacked` says another banner sits below this one, which is what decides
+// whether this one pads for the iOS home indicator.
 import { useState } from "react";
 import { Eye } from "lucide-react";
 import { supabase } from "../utils/supabase";
@@ -15,7 +23,7 @@ import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { Btn, Row } from "./UIPrimitives";
 
-export default function VisitingBanner({ user, onLogout, lang = "en" }) {
+export default function VisitingBanner({ user, onLogout, stacked = false, lang = "en" }) {
   const t = translations[lang] || translations.en;
   const [leaving, setLeaving] = useState(false);
 
@@ -55,17 +63,13 @@ export default function VisitingBanner({ user, onLogout, lang = "en" }) {
       gap={6}
       wrap
       style={{
-        position: "fixed",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 900,
         background: C.rust,
         color: C.onAccent,
         // Extra bottom padding lifts the text off the iOS home indicator while the
         // banner's own rust background still runs to the physical screen edge.
-        // --safe-bottom is 0px everywhere else.
-        padding: "9px 16px calc(9px + var(--safe-bottom))",
+        // --safe-bottom is 0px everywhere else. Skipped when another banner is
+        // stacked below this one — that one is doing the clearing.
+        padding: stacked ? "9px 16px" : "9px 16px calc(9px + var(--safe-bottom))",
         fontSize: "var(--text-base)",
         fontWeight: "var(--weight-bold)",
         boxShadow: "0 -2px 12px rgba(0,0,0,0.28)",

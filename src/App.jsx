@@ -47,7 +47,9 @@ import { registerForPushNotifications } from "./shared/utils/pushRegistration";
 
 import CompanySwitcher from "./shared/components/CompanySwitcher";
 import VisitingBanner from "./shared/components/VisitingBanner";
+import RolePreviewBanner from "./shared/components/RolePreviewBanner";
 import PastDueBanner from "./shared/components/PastDueBanner";
+import { canPreviewRoles } from "./core/rolePreview";
 import { SteadwerkMark, TrussMark } from "./shared/components/SteadwerkMark";
 import Sidebar from "./shared/layouts/Sidebar";
 
@@ -295,15 +297,31 @@ export default function App() {
   // Owner Console rather than the product. See supabase/32.
   const isPlatformCompany = app.company?.is_platform_company === true;
 
-  // "dashboard" is the wrong landing here: it renders crews, trucks and job counts
-  // for a company that has none, and the sidebar no longer offers it. Move to the
-  // console once, when the flag first resolves, and only from the default view so
-  // this can never yank someone off a screen they navigated to themselves.
+  // Can this session actually open the Owner Console? The /owner route itself
+  // asks the same question and sends anyone else to /dashboard, so every redirect
+  // TOWARDS /owner has to ask it too.
+  //
+  // Without this the two guards ping-pong forever: the effect below pushed
+  // /dashboard → /owner, the route pushed /owner → /dashboard, and the effect
+  // fired again on arrival. That is an infinite redirect for two real sessions —
+  // Steadwerk's own staff, who are admins of the platform COMPANY without being
+  // operators of the platform, and the platform owner previewing a crew role,
+  // which deliberately drops isPlatformAdmin (see core/rolePreview.js).
+  const canOpenConsole = app.curUser?.isPlatformAdmin === true;
+
+  // "dashboard" is the wrong landing in the platform tenant: it renders crews,
+  // trucks and job counts for a company that has none, and the sidebar no longer
+  // offers it. Move to the console once, when the flag first resolves, and only
+  // from the default view so this can never yank someone off a screen they
+  // navigated to themselves.
+  //
+  // Anyone who cannot open the console stays on /dashboard. It is a sparse page
+  // for them, but a sparse page is not a redirect loop.
   useEffect(() => {
-    if (isPlatformCompany && location.pathname === "/dashboard") {
+    if (isPlatformCompany && canOpenConsole && location.pathname === "/dashboard") {
       navigate("/owner", { replace: true });
     }
-  }, [isPlatformCompany, location.pathname]);
+  }, [isPlatformCompany, canOpenConsole, location.pathname]);
 
   // ── PER-COMPANY BRAND ACCENT ──
   // Each company's accent color (companies.branding.accent) drives the --brand-accent
@@ -635,9 +653,36 @@ export default function App() {
           overflow: "hidden", // Prevents the whole browser page from ever scrolling
         }}
       >
-        {/* Renders nothing unless the platform owner is inside a tenant they are
-            not a member of. See components/VisitingBanner. */}
-        <VisitingBanner user={app.curUser} onLogout={handleLogout} lang={lang} />
+        {/* ── FIXED BOTTOM BANNER STACK ──
+            Both banners warn about a state that changes what the whole app means,
+            and both can be on at once: the platform owner can be previewing a
+            role inside a tenant they hold no membership in. Each used to pin
+            itself to bottom:0, which meant the second one drew on top of the
+            first. One fixed column owns the slot now and they stack; the banners
+            themselves lay out in normal flow inside it.
+
+            The role preview sits closest to the screen edge because it owns the
+            Exit button, which is the thing a thumb reaches for. Every banner
+            here takes `stacked` = "another banner is below me", which is what
+            decides who pads for the iOS home indicator — only the bottom-most
+            one has anything down there to clear. Insert a new banner and set
+            the flag on whatever it displaces. */}
+        <Stack gap={0} style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 900 }}>
+          {/* Renders nothing unless the platform owner is inside a tenant they are
+              not a member of. See components/VisitingBanner. */}
+          <VisitingBanner
+            user={app.curUser}
+            onLogout={handleLogout}
+            stacked={!!app.previewRole}
+            lang={lang}
+          />
+          {/* Renders nothing unless a role preview is running. See core/rolePreview.js. */}
+          <RolePreviewBanner
+            previewRole={app.previewRole}
+            onExit={() => app.setPreviewRole(null)}
+            lang={lang}
+          />
+        </Stack>
 
         {/* MOBILE HEADER NAVIGATION BAR */}
         {/* The status-bar inset is PADDING on this bar, not a margin above it, so
@@ -743,6 +788,12 @@ export default function App() {
             trainingUnread={app.trainingBadge}
             activeLogo={app.activeLogo}
             perms={app.userPerms}
+            // From the REAL user. app.curUser.isPlatformAdmin is deliberately
+            // false mid-preview (see core/rolePreview.js), so reading it here
+            // would make the picker vanish the first time it was used.
+            canPreviewRole={canPreviewRoles(app.realUser)}
+            previewRole={app.previewRole}
+            setPreviewRole={app.setPreviewRole}
             lang={lang}
             setLang={setLang}
           />
@@ -905,7 +956,12 @@ export default function App() {
                 inside the portal" once signed in. */}
                 <Route
                   path="/"
-                  element={<Navigate to={isPlatformCompany ? "/owner" : "/dashboard"} replace />}
+                  element={
+                    <Navigate
+                      to={isPlatformCompany && canOpenConsole ? "/owner" : "/dashboard"}
+                      replace
+                    />
+                  }
                 />
                 <Route path="/login" element={<Navigate to="/dashboard" replace />} />
                 <Route
@@ -930,6 +986,7 @@ export default function App() {
                       setReqs={app.setReqs}
                       company={app.company}
                       activeLogo={app.activeLogo}
+                      chatNotifications={app.chatNotifications}
                     />
                   }
                 />
@@ -1052,6 +1109,7 @@ export default function App() {
                         user={app.curUser}
                         perms={app.userPerms}
                         maintenanceNotifications={app.maintenanceNotifications}
+                        fleetNotifications={app.fleetNotifications}
                         maintManagers={app.maintManagers}
                         oilSt={oilSt}
                         detSt={detSt}
@@ -1156,6 +1214,10 @@ export default function App() {
                         setJobNotifications={app.setJobNotifications}
                         maintenanceNotifications={app.maintenanceNotifications}
                         setMaintenanceNotifications={app.setMaintenanceNotifications}
+                        fleetNotifications={app.fleetNotifications}
+                        setFleetNotifications={app.setFleetNotifications}
+                        chatNotifications={app.chatNotifications}
+                        setChatNotifications={app.setChatNotifications}
                         setWarehouses={app.setWH}
                         logos={app.logos}
                         setLogos={app.setLogos}

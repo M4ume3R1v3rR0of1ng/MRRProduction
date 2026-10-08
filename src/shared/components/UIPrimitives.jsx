@@ -844,11 +844,18 @@ const ROLE_LABEL_KEYS = {
   bookkeeper: "roleBookkeeper",
 };
 
+// A role's visible name in the active language. Exported because the role-preview
+// picker and its banner have to agree with this badge word for word — three
+// spellings of "Site Supervisor" in one screenshot is how a training clip
+// teaches a name the app does not use.
+export function roleLabel(role, lang = "en") {
+  const t = translations[lang] || translations.en;
+  return t[ROLE_LABEL_KEYS[role]] || ROLES[role]?.label || role || "Employee";
+}
+
 export function RoleBdg({ role, lang = "en" }) {
   const r = ROLES[role] || { label: "Employee", color: "gray" };
-  const t = translations[lang] || translations.en;
-  const label = t[ROLE_LABEL_KEYS[role]] || r.label;
-  return <Bdg color={r.color}>{label}</Bdg>;
+  return <Bdg color={r.color}>{roleLabel(role, lang)}</Bdg>;
 }
 
 export function Toggle({ on, onChange, disabled = false }) {

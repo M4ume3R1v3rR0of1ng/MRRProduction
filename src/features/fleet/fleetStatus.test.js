@@ -6,6 +6,7 @@ import {
   vehicleStatusKind,
   normalizeGroundReason,
   groundingPatch,
+  availableSpares,
   VEHICLE_ACTIVE,
   VEHICLE_OUT_OF_SERVICE,
 } from "./fleetStatus";
@@ -149,5 +150,53 @@ describe("groundingPatch", () => {
 
   it("allows grounding with no reason given", () => {
     expect(groundingPatch(true, "")).toEqual({ status: VEHICLE_OUT_OF_SERVICE, oos_reason: null });
+  });
+});
+
+describe("availableSpares", () => {
+  // The vehicle going in for service, and the request that books it in.
+  const serviced = truck({ id: "v1", assignedTo: "u1" });
+  const req = { id: "r1", vid: "v1", status: "scheduled", scheduled_date: "2026-10-08" };
+
+  it("offers a free, roadworthy vehicle", () => {
+    const spare = truck({ id: "v2" });
+    expect(availableSpares([serviced, spare], [req], req)).toEqual([spare]);
+  });
+
+  it("never offers the vehicle that is going in for service", () => {
+    expect(availableSpares([serviced], [req], req)).toEqual([]);
+  });
+
+  it("skips a vehicle that already has a driver", () => {
+    expect(availableSpares([serviced, truck({ id: "v2", assignedTo: "u2" })], [req], req)).toEqual(
+      [],
+    );
+  });
+
+  it("skips a grounded vehicle", () => {
+    const grounded = truck({ id: "v2", status: VEHICLE_OUT_OF_SERVICE });
+    expect(availableSpares([serviced, grounded], [req], req)).toEqual([]);
+  });
+
+  // The RPC refuses any vehicle carrying a 'scheduled' request whatever date it is
+  // for, so a truck booked in for next month is not offerable today even though it
+  // is sitting free. Listing it would produce a button whose only outcome is
+  // "That vehicle is itself scheduled for maintenance."
+  it("skips a vehicle booked for its own service, including a future date", () => {
+    const booked = truck({ id: "v2" });
+    const future = { id: "r2", vid: "v2", status: "scheduled", scheduled_date: "2099-01-01" };
+    expect(availableSpares([serviced, booked], [req, future], req)).toEqual([]);
+  });
+
+  it("still offers a vehicle whose own request is only pending or already completed", () => {
+    const spare = truck({ id: "v2" });
+    const pending = { id: "r2", vid: "v2", status: "pending" };
+    const done = { id: "r3", vid: "v2", status: "completed" };
+    expect(availableSpares([serviced, spare], [req, pending, done], req)).toEqual([spare]);
+  });
+
+  it("tolerates missing lists and a missing request", () => {
+    expect(availableSpares(undefined, undefined, undefined)).toEqual([]);
+    expect(availableSpares([truck({ id: "v2" })], undefined, undefined)).toHaveLength(1);
   });
 });

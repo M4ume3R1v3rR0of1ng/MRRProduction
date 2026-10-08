@@ -305,3 +305,148 @@ describe("Maintenance: deleting", () => {
     expect(view.state.reqs).toEqual([]);
   });
 });
+
+// Booking a truck in for service leaves its driver with nothing to drive, and the
+// loan that fixes that was reachable only from the fleet board — on the card of a
+// truck whose service date had already arrived. These cover the two ways into it
+// from the tab where the service is actually scheduled.
+describe("Maintenance: lending a spare while a truck is in the shop", () => {
+  const spare = { ...truck, id: "v2", name: "Truck 7", plate: "XYZ-9876" };
+  const driven = { ...truck, assignedTo: driver.id };
+
+  const renderFleet = (reqs, vehs = [driven, spare], permOverrides = {}) =>
+    renderStateful(MaintenanceRequestsView, {
+      state: { reqs, vehs },
+      props: {
+        users: [manager, driver],
+        user: manager,
+        perms: { ...permsFor(manager), ...permOverrides },
+        maintenanceNotifications: {},
+        maintManagers: [manager],
+        lang: "en",
+        company: { id: "c1", name: "Test Co" },
+      },
+    });
+
+  const schedule = async () => {
+    await userEvent.click(screen.getByRole("button", { name: t.maintScheduleBtn }));
+    const review = modalTitled(`${t.maintReviewRequest} — Truck 3 (ABC-1234)`);
+    fireEvent.change(within(review).getByLabelText(t.maintScheduleDate), {
+      target: { value: "2026-08-03" },
+    });
+    await userEvent.click(within(review).getByRole("button", { name: t.maintApproveSchedule }));
+    return screen.findByText(t.maintStatusUpdated);
+  };
+
+  it("offers the loaner picker as soon as a driven truck is scheduled", async () => {
+    renderFleet([ticket("r1", "pending")]);
+    await schedule();
+
+    // Each offer is a button; the truck going in is named in the title but is never
+    // one of them, since it cannot stand in for itself.
+    const picker = modalTitled(`${t.flLendSpare} — Truck 3 (ABC-1234)`);
+    expect(within(picker).getByRole("button", { name: /Truck 7/ })).toBeTruthy();
+    expect(within(picker).queryByRole("button", { name: /Truck 3/ })).toBeNull();
+  });
+
+  it("moves the driver onto the spare through the one RPC that does all three writes", async () => {
+    const view = renderFleet([ticket("r1", "pending")]);
+    await schedule();
+
+    const picker = modalTitled(`${t.flLendSpare} — Truck 3 (ABC-1234)`);
+    await userEvent.click(within(picker).getByText("Truck 7"));
+
+    expect(await screen.findByText(t.flSpareLent)).toBeTruthy();
+    expect(rpcCalls("assign_replacement_vehicle")).toEqual([
+      expect.objectContaining({
+        args: { p_request_id: "r1", p_replacement_vehicle_id: "v2" },
+      }),
+    ]);
+    // No separate vehicle writes from here: one driver on one truck, decided by the
+    // database. See supabase/19_maintenance_vehicle_swap.sql.
+    expect(writes().filter((w) => w.table === "vehicles")).toEqual([]);
+    expect(view.state.vehs.find((v) => v.id === "v2").assignedTo).toBe(driver.id);
+    expect(view.state.vehs.find((v) => v.id === "v1").assignedTo).toBeNull();
+    expect(view.state.reqs[0]).toMatchObject({
+      replacement_vehicle_id: "v2",
+      original_driver_id: driver.id,
+    });
+    expect(auditLog()).toContain("FLEET_STATUS_CHANGE");
+  });
+
+  it("leaves the ticket scheduled and lends nothing when the swap is refused", async () => {
+    respond(
+      { op: "rpc", fn: "assign_replacement_vehicle" },
+      { error: { message: "That vehicle already has a driver assigned." } },
+    );
+    const view = renderFleet([ticket("r1", "scheduled")]);
+
+    await userEvent.click(screen.getByRole("button", { name: t.maintCompleteBtn }));
+    await userEvent.click(screen.getByRole("button", { name: t.flLendSpare }));
+    const picker = modalTitled(`${t.flLendSpare} — Truck 3 (ABC-1234)`);
+    await userEvent.click(within(picker).getByText("Truck 7"));
+
+    expect(await screen.findByText(/already has a driver assigned/)).toBeTruthy();
+    expect(view.state.vehs.find((v) => v.id === "v2").assignedTo).toBeUndefined();
+    expect(view.state.vehs.find((v) => v.id === "v1").assignedTo).toBe(driver.id);
+    expect(view.state.reqs[0].replacement_vehicle_id).toBeUndefined();
+  });
+
+  it("does not ask about a loaner for a truck nobody is driving", async () => {
+    renderFleet([ticket("r1", "pending")], [truck, spare]);
+    await schedule();
+
+    expect(screen.queryByRole("heading", { name: /^Lend a spare/ })).toBeNull();
+  });
+
+  // Not just unprompted: the button is gone too. A swap with no driver to move
+  // changes nothing, but it still records a replacement and the RPC allows only
+  // one per request, so it would block the real loan if a driver turned up later.
+  it("offers no loan at all on a truck nobody is driving", async () => {
+    renderFleet([ticket("r1", "scheduled")], [truck, spare]);
+
+    await userEvent.click(screen.getByRole("button", { name: t.maintCompleteBtn }));
+
+    expect(screen.queryByRole("button", { name: t.flLendSpare })).toBeNull();
+    expect(screen.getByRole("button", { name: t.maintCompleteClose })).toBeTruthy();
+  });
+
+  it("reports the loan already out instead of offering a second one", async () => {
+    renderFleet([ticket("r1", "scheduled", { replacement_vehicle_id: "v2" })]);
+
+    await userEvent.click(screen.getByRole("button", { name: t.maintCompleteBtn }));
+
+    expect(screen.getByText(`${t.flSpareOut} Truck 7`)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: t.flLendSpare })).toBeNull();
+  });
+
+  // Pre-arranging the replacement is the case the fleet board could not serve at
+  // all: its button appears only once the service date has arrived.
+  it("lends ahead of a service date that has not arrived yet", async () => {
+    renderFleet([ticket("r1", "scheduled", { scheduled_date: "2099-01-01" })]);
+
+    await userEvent.click(screen.getByRole("button", { name: t.maintCompleteBtn }));
+    await userEvent.click(screen.getByRole("button", { name: t.flLendSpare }));
+
+    expect(modalTitled(`${t.flLendSpare} — Truck 3 (ABC-1234)`)).toBeTruthy();
+  });
+
+  it("says why there is nothing to pick rather than showing an empty list", async () => {
+    renderFleet([ticket("r1", "scheduled")], [driven, { ...spare, assignedTo: manager.id }]);
+
+    await userEvent.click(screen.getByRole("button", { name: t.maintCompleteBtn }));
+    await userEvent.click(screen.getByRole("button", { name: t.flLendSpare }));
+
+    expect(screen.getByText(t.flNoSparesFree)).toBeTruthy();
+  });
+
+  it("keeps the loan away from someone who may book services but not move drivers", async () => {
+    renderFleet([ticket("r1", "scheduled")], [driven, spare], { fleet_edit: false });
+
+    await userEvent.click(screen.getByRole("button", { name: t.maintCompleteBtn }));
+
+    expect(screen.queryByRole("button", { name: t.flLendSpare })).toBeNull();
+    // The step they ARE allowed is still there.
+    expect(screen.getByRole("button", { name: t.maintCompleteClose })).toBeTruthy();
+  });
+});

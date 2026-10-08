@@ -27,6 +27,7 @@ const {
 
 const req = {
   id: "r1",
+  vid: "v1",
   vname: "Truck 12 (ABC-1234)",
   type: "Brake Service",
   urgency: "normal",
@@ -282,7 +283,71 @@ describe("notifyMaintStatus", () => {
       actorId: "wh1",
       send,
     });
-    expect(res).toMatchObject({ sent: true, to: "jason@example.com", event: "scheduled" });
+    expect(res).toMatchObject({ sent: true, to: ["jason@example.com"], event: "scheduled" });
+  });
+
+  it("also emails the driver the truck is assigned to", async () => {
+    const send = vi.fn().mockResolvedValue({});
+    const res = await notifyMaintStatus({
+      status: "scheduled",
+      req,
+      users,
+      // Filed by Jason (emp1), but the truck is Maria's. Before this, Maria — the one
+      // actually losing her truck for a day — got nothing.
+      vehicles: [{ id: "v1", assignedTo: "mg1" }],
+      prefs: { scheduled: true },
+      actorId: "wh1",
+      send,
+    });
+    expect(res.sent).toBe(true);
+    expect(res.to).toEqual(["jason@example.com", "pat@example.com"]);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends one email, not two, when the filer is also the driver", async () => {
+    const send = vi.fn().mockResolvedValue({});
+    const res = await notifyMaintStatus({
+      status: "completed",
+      req,
+      users,
+      vehicles: [{ id: "v1", assignedTo: "emp1" }],
+      prefs: { completed: true },
+      actorId: "wh1",
+      send,
+    });
+    expect(res.to).toEqual(["jason@example.com"]);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("still reaches the driver when the filer closed out their own ticket", async () => {
+    const send = vi.fn().mockResolvedValue({});
+    const res = await notifyMaintStatus({
+      status: "completed",
+      req,
+      users,
+      vehicles: [{ id: "v1", assignedTo: "mg1" }],
+      prefs: { completed: true },
+      // Jason filed it and Jason completed it, so he is not told about his own action —
+      // but Pat drives the truck and is.
+      actorId: "emp1",
+      send,
+    });
+    expect(res.sent).toBe(true);
+    expect(res.to).toEqual(["pat@example.com"]);
+  });
+
+  it("ignores a vehicle that is not the one on the ticket", async () => {
+    const send = vi.fn().mockResolvedValue({});
+    const res = await notifyMaintStatus({
+      status: "scheduled",
+      req,
+      users,
+      vehicles: [{ id: "v9", assignedTo: "mg1" }],
+      prefs: { scheduled: true },
+      actorId: "wh1",
+      send,
+    });
+    expect(res.to).toEqual(["jason@example.com"]);
   });
 
   it("stays quiet when someone updates their own ticket", async () => {
@@ -334,7 +399,7 @@ describe("notifyMaintStatus", () => {
       prefs: { scheduled: true },
       send,
     });
-    expect(gone.reason).toBe("no-requester-email");
+    expect(gone.reason).toBe("no-recipients");
     const inactive = await notifyMaintStatus({
       status: "scheduled",
       req,
@@ -342,7 +407,7 @@ describe("notifyMaintStatus", () => {
       prefs: { scheduled: true },
       send,
     });
-    expect(inactive.reason).toBe("no-requester-email");
+    expect(inactive.reason).toBe("no-recipients");
     expect(send).not.toHaveBeenCalled();
   });
 

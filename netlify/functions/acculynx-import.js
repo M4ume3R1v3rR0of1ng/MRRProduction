@@ -212,12 +212,29 @@ const rawHandler = async (event) => {
     // The AccuLynx key lives in company_secrets now (no browser role can read it).
     // This service-role client can. ACCULYNX_API_KEY stays as a fallback only so
     // Maumee River keeps working before its key is saved into the DB.
+    //
+    // ⚠️ The slug guard is load-bearing, and its absence here was a cross-tenant
+    // leak. ACCULYNX_API_KEY is Maumee River's own key, held at the PLATFORM level
+    // only because that company predates per-company secrets. Unguarded, any
+    // ?company=<slug> with no key of its own fell through to it — so an import run
+    // against a tenant who had not configured AccuLynx would pull Maumee River's
+    // jobs and customers and upsert them into that tenant's portal, stamped with
+    // their company_id. acculynx-sync.js already scoped the same fallback by slug
+    // (see its comment) for exactly this reason; this endpoint did not, and it is
+    // the more dangerous of the two because it names its target company by
+    // parameter instead of inferring it from a signed-in caller.
+    //
+    // Maumee River is a CLIENT of the platform, not its owner. Nothing keyed to it
+    // may be reachable by another tenant — so a company with no key now gets the
+    // 400 below, which is what every company other than Maumee River already got.
     const { data: secrets } = await supabase
       .from("company_secrets")
       .select("integrations")
       .eq("company_id", company.id)
       .maybeSingle();
-    const apiKey = secrets?.integrations?.acculynxApiKey || process.env.ACCULYNX_API_KEY;
+    const apiKey =
+      secrets?.integrations?.acculynxApiKey ||
+      (slug === "maumee-river-roofing" ? process.env.ACCULYNX_API_KEY : null);
     if (!apiKey) {
       return {
         statusCode: 400,

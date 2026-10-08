@@ -42,6 +42,11 @@ checks A, B and C in the `Verify` block at the bottom of `33_migration_ledger.sq
   need a manual follow-up when the check comes back wrong.
 - **`00_introspect.sql` is read-only** and writes nothing. It is for inspecting an
   unfamiliar database before you touch it.
+- **`platform_ownership_check.sql` is read-only** and is the manual check `32`
+  needs. It answers "is Steadwerk the platform operator, and is every roofing
+  business a client?" in one cell, and names the statement that fixes anything it
+  finds wrong. Unnumbered because it is not a migration — run it whenever you need
+  the answer.
 
 ## Why the service-role key does not save you
 
@@ -112,6 +117,16 @@ in SQL, change it there too.
 3. Close with a `Verify` block a person can paste into the SQL Editor.
 4. **Add a probe for it** to the do-block in `33_migration_ledger.sql`, then
    re-run that file. A migration with no probe is one nobody can verify later.
+
+## Who owns the platform
+
+Steadwerk is the platform operator and every roofing business, Maumee River
+Roofing included, is a tenant inside it. That split lives entirely in data —
+`companies.is_platform_company` (`32`) and `profiles.is_platform_admin` (`01`) —
+so the code can be right while the database disagrees, silently.
+
+Run [`platform_ownership_check.sql`](platform_ownership_check.sql). It is
+read-only, and `problems` is empty when ownership is set up correctly.
 
 ## Verification scripts
 

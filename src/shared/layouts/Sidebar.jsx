@@ -22,9 +22,12 @@ import {
   ChevronLeft,
   Palette,
   Globe,
+  Glasses,
 } from "lucide-react";
 import { C } from "../utils/helpers";
 import { ROLES } from "../database/permissions";
+import { PREVIEW_ROLES } from "@/core/rolePreview";
+import { Sel, roleLabel } from "../components/UIPrimitives";
 import { logAction } from "../utils/logger";
 import { TrussMark, TAGLINE } from "../components/SteadwerkMark";
 import { translations } from "../utils/translations";
@@ -50,6 +53,13 @@ export default function Sidebar({
   isPlatformAdmin,
   isPlatformCompany,
   perms,
+  // ── ROLE PREVIEW ("view as") ──
+  // canPreviewRole comes from the REAL user, not `user` above: mid-preview
+  // `user.isPlatformAdmin` is false by design, and reading it here would make
+  // the picker disappear the moment it was used. See core/rolePreview.js.
+  canPreviewRole = false,
+  previewRole = null,
+  setPreviewRole,
   // ── ACCEPT LANG MATRIX CONTROL ARGS ──
   lang = "en",
   setLang,
@@ -98,7 +108,15 @@ export default function Sidebar({
   // Console and the flag is false for that company, so the full portal below comes
   // back — which is what you went in there for.
   const platformNavItems = [
-    { id: "owner", icon: Building2, label: t.ownerConsole },
+    // isPlatformAdmin, not "is an admin of this company". The Owner Console lists
+    // every tenant on the platform and can suspend or delete one, so it belongs
+    // to the person flagged profiles.is_platform_admin and to nobody else —
+    // including Steadwerk's own staff, who are admins of the platform COMPANY
+    // without being operators of the platform. Ungated, this row rendered for all
+    // of them and the /owner route then bounced them to /dashboard: a tab that
+    // looks like access and isn't. Same flag the route checks, so the nav and the
+    // router now agree.
+    ...(isPlatformAdmin ? [{ id: "owner", icon: Building2, label: t.ownerConsole }] : []),
     // Hidden on iOS along with the view itself. A nav row that routes to a
     // screen the App Store build does not contain is a dead tap, and one that
     // said "Billing" would invite the reviewer to go looking for a purchase.
@@ -394,6 +412,68 @@ export default function Sidebar({
       >
         {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
       </button>
+
+      {/* ── ROLE PREVIEW ("view as") ──
+          The platform operator only, and only while the rail is expanded: a
+          60px-wide rail has no room for a seven-option picker, and the fixed
+          banner (components/RolePreviewBanner) already carries both the warning
+          and the exit for anyone working collapsed or on a phone.
+
+          Sits above the theme and language controls because it belongs with
+          them — chrome that changes how the app presents itself rather than
+          anything about the company's work. */}
+      {canPreviewRole && !collapsed && (
+        <Stack
+          gap={2}
+          style={{ padding: "8px 10px 4px", borderTop: "1px solid rgba(255,255,255,0.05)" }}
+        >
+          <Row
+            as="span"
+            gap={1}
+            style={{
+              fontSize: "var(--text-2xs)",
+              color: previewRole ? C.gold : "rgba(255,255,255,0.4)",
+              fontWeight: "var(--weight-extrabold)",
+            }}
+          >
+            <Glasses size={12} aria-hidden="true" /> {t.rolePreviewLabel || "View as"}
+          </Row>
+          <Sel
+            value={previewRole || ""}
+            onChange={(e) => setPreviewRole?.(e.target.value || null)}
+            aria-label={t.rolePreviewLabel || "View as"}
+            title={t.rolePreviewHint}
+            // A LIGHT control on the dark rail, the same call CompanySwitcher
+            // makes for the one other dropdown that sits on this chrome. Tinting
+            // the closed control dark leaves the OPEN option list to the OS
+            // popup, which on Windows and Android draws its own light background
+            // under whatever colour the control set — unreadable in exactly the
+            // moment you need to read it. The gold ring carries "a preview is
+            // running" instead of the fill.
+            style={{
+              padding: "5px 8px",
+              fontSize: "var(--text-2xs)",
+              fontWeight: "var(--weight-bold)",
+              color: C.navy,
+              border: `${previewRole ? 2 : 1}px solid ${previewRole ? C.gold : C.bd}`,
+            }}
+          >
+            <option value="">{t.rolePreviewOff || "My own role"}</option>
+            {PREVIEW_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {roleLabel(r, lang)}
+              </option>
+            ))}
+          </Sel>
+          {/* Text, not Muted: Muted's colour is C.sub, which is tuned for a light
+              surface and all but disappears on the dark shell. */}
+          {previewRole && (
+            <Text size="2xs" color="rgba(255,255,255,0.45)" style={{ lineHeight: 1.35 }}>
+              {t.rolePreviewHint}
+            </Text>
+          )}
+        </Stack>
+      )}
 
       {/* ── THEME CONTROL ──
           One button cycling auto → light → dark, rather than three buttons like

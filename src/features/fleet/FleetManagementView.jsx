@@ -48,16 +48,12 @@ import TrailerCalendar from "./TrailerCalendar";
 import SearchBar, { matchesQuery } from "@/shared/components/SearchBar";
 import { uploadPhotoToBucket } from "@/shared/utils/storageBucketUpload";
 import { notifyMaintFiled } from "@/shared/utils/maintenanceNotifications";
-import {
-  vehicleStatusKind,
-  isGrounded,
-  isUndispatchable,
-  groundingPatch,
-  isServiceDue,
-} from "./fleetStatus";
+import { notifyVehicleAssigned } from "@/shared/utils/fleetNotifications";
+import { vehicleStatusKind, isGrounded, groundingPatch, isServiceDue } from "./fleetStatus";
 import MaintenanceRequestModal from "./MaintenanceRequestModal";
 import AddVehicleModal from "./AddVehicleModal";
 import InspectionModal from "./InspectionModal";
+import LendSpareModal from "./LendSpareModal";
 
 // ── MAIN VIEW COMPONENT (The Only Default Export) ──
 // The values of the <option> list in this view's sort dropdown, in the same
@@ -80,6 +76,7 @@ export default function FleetManagementView({
   user,
   perms,
   maintenanceNotifications,
+  fleetNotifications,
   maintManagers = [],
   oilSt,
   detSt,
@@ -134,85 +131,12 @@ export default function FleetManagementView({
   const [grounding, setGrounding] = useState(false);
   const predictedServices = sel ? learnServiceIntervals(sel) : [];
 
-  // Vehicles that can stand in for one in the shop: no driver on them, not themselves
-  // due in for service today, and not grounded. Excludes the serviced vehicle implicitly
-  // (it is blocked, so it fails the second test). A truck booked for a FUTURE service
-  // date is still fair game as a loaner today — isServiceDue is what keeps that date
-  // honest instead of blocking on any 'scheduled' row regardless of when it's for.
-  const availableSpares = (forReq) =>
-    vehs.filter(
-      (x) =>
-        x.id !== forReq?.vid &&
-        !x.assignedTo &&
-        !isUndispatchable(x) &&
-        !reqs.some(
-          (r) => r.vid === x.id && r.status === "scheduled" && isServiceDue(r, todayLocal()),
-        ),
-    );
-
-  // Lend a spare while a vehicle is in for service.
-  //
-  // The three writes this implies (remember the current driver, move them onto
-  // the spare, clear the serviced truck) go through one RPC because they must
-  // land together. As three supabase calls from here, a failure on the second
-  // leaves a driver on two vehicles or on none, and the fleet screen is the only
-  // place anyone would notice. See supabase/19_maintenance_vehicle_swap.sql.
-  const confirmSwap = async (replacementId) => {
-    if (!swapReq || !replacementId || swapping) return;
-    setSwapping(true);
-    try {
-      const { error } = await supabase.rpc("assign_replacement_vehicle", {
-        p_request_id: swapReq.id,
-        p_replacement_vehicle_id: replacementId,
-      });
-      if (error) throw error;
-
-      const driverId = vehs.find((x) => x.id === swapReq.vid)?.assignedTo || null;
-
-      // Mirror the RPC locally instead of refetching. The grid renders off these
-      // two lists, and a refetch would blank and repaint the whole fleet for a
-      // change that touches three rows.
-      setVehs((p) =>
-        p.map((x) =>
-          x.id === replacementId
-            ? { ...x, assignedTo: driverId }
-            : x.id === swapReq.vid
-              ? { ...x, assignedTo: null }
-              : x,
-        ),
-      );
-      setReqs((p) =>
-        p.map((r) =>
-          r.id === swapReq.id
-            ? { ...r, replacement_vehicle_id: replacementId, original_driver_id: driverId }
-            : r,
-        ),
-      );
-
-      await logAction(
-        user.id,
-        user.email,
-        "FLEET_STATUS_CHANGE",
-        `Lent "${vehs.find((x) => x.id === replacementId)?.name || replacementId}" to the driver of "${swapReq.vname || swapReq.vid}" while it is in for service.`,
-        { vehicle_id: swapReq.vid, request_id: swapReq.id, replacement_id: replacementId },
-        "fleet",
-      );
-
-      showToast(t.flSpareLent, "success");
-      setSwapReq(null);
-    } catch (err) {
-      showToast(`${t.flSpareLendFailed} ${err.message}`, "error");
-    } finally {
-      setSwapping(false);
-    }
-  };
   // Which dialog is open stays here; each dialog owns its own form state.
   const [isInspectOpen, setIsInspectOpen] = useState(false);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
-  // The scheduled maintenance request we are lending a spare against, plus an
-  // in-flight flag so a double click can't fire the RPC twice.
+  // The scheduled maintenance request we are lending a spare against. The dialog
+  // owns the RPC and its own in-flight flag; see LendSpareModal.
   const [swapReq, setSwapReq] = useState(null);
-  const [swapping, setSwapping] = useState(false);
   const vehSorters = {
     name_az: (a, b) => (a.name || "").localeCompare(b.name || "", undefined, { numeric: true }),
     name_za: (a, b) => (b.name || "").localeCompare(a.name || "", undefined, { numeric: true }),
@@ -367,6 +291,9 @@ export default function FleetManagementView({
 
   const assignUser = async () => {
     const assignedTo = form.assignedTo || "";
+    // Read before the write: the helper needs the OLD driver to tell a real handover
+    // from a Save that changed nothing, and `sel` is replaced below.
+    const previousDriverId = sel.assignedTo || "";
     try {
       const { error } = await updateRowStrict("vehicles", sel.id, { assignedTo }, user.companyId);
       if (error) throw error;
@@ -375,6 +302,20 @@ export default function FleetManagementView({
       setSel(up);
       setModal(null);
       setForm({});
+
+      // Tell the driver which truck is now theirs. Deliberately not awaited, same as the
+      // maintenance filing email below: the assignment is already saved, and a slow or
+      // failed relay must not hold up the dialog closing or surface as an assignment
+      // error. notifyVehicleAssigned resolves either way.
+      notifyVehicleAssigned({
+        vehicle: up,
+        driverId: assignedTo,
+        previousDriverId,
+        users,
+        prefs: fleetNotifications,
+        actorId: user.id,
+        assignedByName: user.name || user.email,
+      });
     } catch (err) {
       showToast(`${t.flAssignmentFail} ${err.message}`, "error");
     }
@@ -1530,72 +1471,16 @@ export default function FleetManagementView({
       )}
 
       {swapReq && (
-        <Modal
-          title={`${t.flLendSpare} — ${swapReq.vname || swapReq.vid}`}
-          onClose={() => {
-            if (!swapping) setSwapReq(null);
-          }}
-        >
-          <Text as="p" size="sm" color={C.sub} style={{ marginBottom: 14 }}>
-            {t.flLendSpareHelp}
-          </Text>
-
-          {availableSpares(swapReq).length === 0 ? (
-            // Say why there is nothing to pick. "No vehicles available" alone sends
-            // people hunting for a bug when the real answer is that every truck
-            // already has a driver.
-            <Callout pad={7} size="sm" color={C.sub} style={{ borderRadius: "var(--radius-lg)" }}>
-              {t.flNoSparesFree}
-            </Callout>
-          ) : (
-            <Stack gap={3}>
-              {availableSpares(swapReq).map((x) => (
-                <Card
-                  as="button"
-                  type="button"
-                  key={x.id}
-                  disabled={swapping}
-                  onClick={() => confirmSwap(x.id)}
-                  pad="sm"
-                  style={{
-                    border: `2px solid ${C.lg}`,
-                    borderRadius: "var(--radius-lg)",
-                    textAlign: "left",
-                    width: "100%",
-                  }}
-                >
-                  <Row gap={5} justify="space-between">
-                    <span>
-                      <Row
-                        inline
-                        as="span"
-                        gap="5px"
-                        style={{ fontWeight: "var(--weight-extrabold)", color: C.navy }}
-                      >
-                        {x.type === "truck" ? (
-                          <Truck size={13} aria-hidden="true" />
-                        ) : (
-                          <Tractor size={13} aria-hidden="true" />
-                        )}{" "}
-                        {x.name}
-                      </Row>
-                      <Muted as="span" size="2xs" style={{ display: "block" }}>
-                        {x.yr} {x.make} {x.model} · #{x.plate}
-                      </Muted>
-                    </span>
-                    <Bdg color="green">{t.flUnassigned}</Bdg>
-                  </Row>
-                </Card>
-              ))}
-            </Stack>
-          )}
-
-          <Row gap={0} align="stretch" justify="flex-end" style={{ marginTop: 16 }}>
-            <Btn v="ghost" onClick={() => setSwapReq(null)} disabled={swapping}>
-              {t.cancel}
-            </Btn>
-          </Row>
-        </Modal>
+        <LendSpareModal
+          req={swapReq}
+          vehs={vehs}
+          setVehs={setVehs}
+          reqs={reqs}
+          setReqs={setReqs}
+          user={user}
+          lang={lang}
+          onClose={() => setSwapReq(null)}
+        />
       )}
     </Stack>
   );

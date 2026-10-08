@@ -445,6 +445,12 @@ export const translations = {
     visitingUnknownCompany: "another company",
     visitingLeave: "Leave",
     visitingLeaving: "Leaving...",
+    rolePreviewLabel: "View as",
+    rolePreviewOff: "My own role",
+    rolePreviewBanner:
+      "Viewing the app as a {role}. Nav and permissions only — writes are still yours.",
+    rolePreviewExit: "Exit preview",
+    rolePreviewHint: "Changes what you see, not what the database allows.",
     pastDueBanner: "Payment past due — update your card to keep your subscription active.",
     pastDueBannerAction: "Update payment",
     ocClose: "Close",
@@ -678,6 +684,8 @@ export const translations = {
     maintApproveSchedule: "Approve & Schedule",
     maintCompleteServiceLogs: "Complete Service Logs",
     maintScheduleInfo: "Schedule Info:",
+    maintSpareReturnsOnComplete:
+      "The driver moves back to their own vehicle automatically when this service is marked complete.",
     maintFinalNotes: "Final Completion Notes",
     maintFinalPlaceholder: "e.g., Service resolved...",
     maintCompleteClose: "Complete & Close Request",
@@ -1828,6 +1836,12 @@ export const translations = {
     visitingUnknownCompany: "otra empresa",
     visitingLeave: "Salir",
     visitingLeaving: "Saliendo...",
+    rolePreviewLabel: "Ver como",
+    rolePreviewOff: "Mi propio rol",
+    rolePreviewBanner:
+      "Viendo la aplicación como {role}. Solo navegación y permisos — los cambios siguen siendo suyos.",
+    rolePreviewExit: "Salir de la vista",
+    rolePreviewHint: "Cambia lo que usted ve, no lo que la base de datos permite.",
     pastDueBanner: "Pago atrasado — actualice su tarjeta para mantener su suscripción activa.",
     pastDueBannerAction: "Actualizar pago",
     ocClose: "Cerrar",
@@ -2068,6 +2082,8 @@ export const translations = {
     maintApproveSchedule: "Aprobar y Programar",
     maintCompleteServiceLogs: "Registros de Servicio Completado",
     maintScheduleInfo: "Información de Programación:",
+    maintSpareReturnsOnComplete:
+      "El conductor regresa a su vehículo automáticamente cuando este servicio se marca como completado.",
     maintFinalNotes: "Notas Finales de Finalización",
     maintFinalPlaceholder: "ej., Servicio resuelto...",
     maintCompleteClose: "Completar y Cerrar Solicitud",

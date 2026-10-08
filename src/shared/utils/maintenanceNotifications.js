@@ -4,7 +4,8 @@
 //   - a new request goes OUT to everyone who can act on it (the Manage Requests
 //     permission holders), because until now filing a request only produced a popup
 //     that the shop saw whenever it next happened to log in;
-//   - a status change goes BACK to whoever filed it.
+//   - a status change goes BACK to whoever filed it AND to the truck's assigned driver,
+//     who are usually but not always the same person.
 //
 // Company config lives in settings(key='maintenance_notifications') and is described by
 // the shared registry in ./automations. Everything defaults off, so nothing sends until
@@ -209,14 +210,28 @@ export async function notifyMaintFiled({
   }
 }
 
-// A ticket moved: tell whoever filed it. `actorId` suppresses the email when the shop
-// user updating the ticket is the same person who reported it, matching the existing
+// A ticket moved: tell whoever filed it AND whoever drives the truck.
+//
+// WHY TWO RECIPIENTS, NOT ONE
+//
+// This used to email the requester alone, which is only the driver when the driver
+// filed the ticket themselves. Shops routinely file on a driver's behalf — the office
+// spots a problem, or somebody actions the oil-due escalation — and in every one of
+// those cases the person who actually loses their truck for a day got no mail at all.
+// Reported as the feature not working, while it was working exactly as written.
+//
+// So both are written to, deduplicated by email address, since the common case is that
+// they are the same person and nobody wants the message twice.
+//
+// `actorId` drops whoever performed the update from the list, matching the existing
 // `newforrequester` rule that stops the dashboard popup alerting someone to their own
-// action.
+// action. It drops that ONE person rather than cancelling the send, so a driver closing
+// out their own ticket still can't silence the mail to a different assigned driver.
 export async function notifyMaintStatus({
   status,
   req,
   users = [],
+  vehicles = [],
   prefs,
   actorId,
   send = sendEmail,
@@ -226,19 +241,37 @@ export async function notifyMaintStatus({
   if (!shouldNotifyMaint(event, prefs)) return { sent: false, reason: "disabled" };
 
   const requesterId = req?.uid ?? req?.userId;
-  if (actorId && String(requesterId) === String(actorId))
-    return { sent: false, reason: "self-update" };
 
-  const requester = users.find((u) => u && String(u.id) === String(requesterId));
-  if (!requester?.email || requester.active === false)
-    return { sent: false, reason: "no-requester-email" };
+  // The ticket names its vehicle as `vid`. vehicles."assignedTo" is the real column —
+  // see the note in utils/fleetNotifications.js; it is camelCase in the database.
+  const vehicle = vehicles.find((v) => v && String(v.id) === String(req?.vid));
+  const driverId = vehicle ? (vehicle.assignedTo ?? vehicle.assignedto ?? "") : "";
+
+  const byEmail = new Map();
+  let droppedActor = false;
+  for (const candidateId of [requesterId, driverId]) {
+    const id = String(candidateId ?? "").trim();
+    if (!id) continue;
+    if (actorId && id === String(actorId)) {
+      droppedActor = true;
+      continue;
+    }
+    const person = users.find((u) => u && String(u.id) === id);
+    if (!person?.email || person.active === false) continue;
+    const email = String(person.email).trim().toLowerCase();
+    if (email) byEmail.set(email, person);
+  }
+
+  const to = [...byEmail.keys()];
+  if (to.length === 0)
+    return { sent: false, reason: droppedActor ? "self-update" : "no-recipients" };
 
   const mail = buildMaintEmail(event, { ...req, status });
   if (!mail) return { sent: false, reason: "unknown-event" };
 
   try {
-    await send({ to: requester.email, subject: mail.subject, html: mail.html });
-    return { sent: true, event, to: requester.email };
+    await send({ to, subject: mail.subject, html: mail.html });
+    return { sent: true, event, to };
   } catch (err) {
     return { sent: false, reason: "send-failed", error: err?.message };
   }

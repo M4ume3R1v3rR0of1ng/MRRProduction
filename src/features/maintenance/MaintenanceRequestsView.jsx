@@ -13,6 +13,7 @@ import {
   FileText,
   Trash2,
   History,
+  KeyRound,
 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C } from "@/shared/utils/helpers";
@@ -45,6 +46,7 @@ import { logAction } from "@/shared/utils/logger";
 import MaintenanceCalendar from "./MaintenanceCalendar";
 import SearchBar, { matchesQuery } from "@/shared/components/SearchBar";
 import CompleteServiceModal from "./CompleteServiceModal";
+import LendSpareModal from "@/features/fleet/LendSpareModal";
 import { generateMaintenancePdf } from "./maintenancePdf";
 
 // The values of the <option> list in this view's sort dropdown, in the same
@@ -85,6 +87,23 @@ export default function MaintenanceRequestsView({
   // The ticket "Complete Service" was opened against. Separate from `sel` so the
   // review modal underneath stays mounted with its own state while this one is open.
   const [completeServiceReq, setCompleteServiceReq] = useState(null);
+
+  // The ticket we are lending a spare against. Same reasoning as above, and it is
+  // also what lets `updateStatus` hand straight off to the loaner picker the moment
+  // it has scheduled a ticket — see the comment there.
+  const [lendSpareReq, setLendSpareReq] = useState(null);
+
+  // Assigning a driver to a different truck is a fleet action, so it takes the
+  // fleet permission as well as the one that gates this whole section. The two
+  // travel together in every role preset that has maint_manage (see
+  // shared/database/permissions.js), but they can be set per-user, and someone
+  // allowed to book services is not automatically allowed to move drivers.
+  const canLendSpare = perms.maint_manage && perms.fleet_edit;
+
+  // Who is on the truck this ticket is about, if anyone. A loan only has a point
+  // when there is a driver to move; with the truck empty the swap is a no-op, so
+  // this is what decides whether scheduling offers the picker unprompted.
+  const driverOf = (req) => vehs.find((v) => v.id === req?.vid)?.assignedTo || null;
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newTicket, setNewTicket] = useState({
@@ -270,9 +289,11 @@ export default function MaintenanceRequestsView({
       "maintenance",
     );
 
-    // Email the requester the same news the dashboard popup carries. `notifyRequester`
-    // already encodes "this wasn't the requester's own edit"; actorId re-checks it inside
-    // the helper so the rule holds if this call is ever moved.
+    // Email the requester the same news the dashboard popup carries, plus the driver the
+    // truck is assigned to — `vehs` is passed so the helper can resolve that driver off
+    // the ticket's vehicle. `notifyRequester` already encodes "this wasn't the
+    // requester's own edit"; actorId re-checks it inside the helper so the rule holds if
+    // this call is ever moved.
     if (notifyRequester) {
       notifyMaintStatus({
         status,
@@ -283,6 +304,7 @@ export default function MaintenanceRequestsView({
           completed_at: completedAt,
         },
         users,
+        vehicles: vehs,
         prefs: maintenanceNotifications,
         actorId: user.id,
       });
@@ -305,6 +327,31 @@ export default function MaintenanceRequestsView({
     setSel(null);
     setForm({});
     showToast(t.maintStatusUpdated, "success");
+
+    // Booking a truck in for service is what strands its driver, so the loaner
+    // question is asked here rather than left for someone to discover on the fleet
+    // board. Only on the pending → scheduled transition, only when the truck has a
+    // driver to move, and only when none has been lent already — the RPC refuses a
+    // second loan, and re-opening the picker on every edit of a scheduled ticket
+    // would be a dialog nobody asked for.
+    //
+    // The row this hands over is built from `currentTicket` plus the fields just
+    // written, because `reqs` will not carry them until React has re-rendered.
+    if (
+      status === "scheduled" &&
+      currentTicket &&
+      currentTicket.status !== "scheduled" &&
+      !currentTicket.replacement_vehicle_id &&
+      canLendSpare &&
+      driverOf(currentTicket)
+    ) {
+      setLendSpareReq({
+        ...currentTicket,
+        status,
+        wh_notes: whNotes,
+        scheduled_date: scheduledDate,
+      });
+    }
   };
 
   const handleDeleteRequest = async (id) => {
@@ -407,10 +454,17 @@ export default function MaintenanceRequestsView({
     );
 
     if (notifyRequester) {
+      // `freshVehs` on purpose, not the `vehs` prop. Completing a ticket can MOVE the
+      // driver — complete_maintenance_service takes a reassignment (supabase/38) and the
+      // swap trigger hands a loaned spare back (supabase/19) — so the prop in this
+      // closure may still name whoever had the truck before the work was signed off.
+      // Emailing them would tell the wrong person their vehicle is ready. Falls back to
+      // the prop when the refetch above failed, which is no worse than before.
       notifyMaintStatus({
         status: "completed",
         req: { ...req, wh_notes: details.notes, completed_at: nowIso },
         users,
+        vehicles: freshVehs?.length ? freshVehs : vehs,
         prefs: maintenanceNotifications,
         actorId: user.id,
       });
@@ -913,6 +967,48 @@ export default function MaintenanceRequestsView({
                     <strong>{t.maintScheduleInfo}</strong> {sel.wh_notes}
                   </Text>
                 )}
+                {/* The loan, from the tab where the service was booked. The picker is
+                offered the moment a ticket is scheduled (see updateStatus), but a
+                manager who dismissed it then, or who scheduled the ticket by dragging
+                it on the calendar, needs a way back to it — and the fleet board only
+                shows that button once the service date has arrived.
+
+                Plum on both branches: it is the wash form of the C.pu the fleet board
+                already uses for a loan, so "a spare is involved" reads the same colour
+                wherever it is shown. */}
+                {sel.replacement_vehicle_id ? (
+                  <Callout tone="plum" pad={5} style={{ marginBottom: 10 }}>
+                    <Row gap={1} align="flex-start">
+                      <KeyRound size={13} aria-hidden="true" />
+                      <Text as="span" weight="bold" color={C.pu}>
+                        {t.flSpareOut}{" "}
+                        {vehs.find((x) => x.id === sel.replacement_vehicle_id)?.name ||
+                          sel.replacement_vehicle_id}
+                      </Text>
+                    </Row>
+                    <Muted style={{ marginTop: 4 }}>{t.maintSpareReturnsOnComplete}</Muted>
+                  </Callout>
+                ) : (
+                  // Same two conditions the scheduling hand-off uses, deliberately:
+                  // one rule for when a loan is worth offering, in both places. With
+                  // nobody on the truck the swap moves a null driver onto the spare
+                  // and changes nothing — but it still fills in
+                  // replacement_vehicle_id, and the RPC refuses a second loan, so
+                  // that pointless swap would block the real one later.
+                  canLendSpare &&
+                  driverOf(sel) && (
+                    <Btn
+                      v="purple"
+                      style={{ width: "100%", justifyContent: "center", marginBottom: 10 }}
+                      onClick={() => {
+                        setLendSpareReq(sel);
+                        setSel(null);
+                      }}
+                    >
+                      <KeyRound size={13} aria-hidden="true" /> {t.flLendSpare}
+                    </Btn>
+                  )
+                )}
                 <Btn
                   v="green"
                   style={{ width: "100%", justifyContent: "center" }}
@@ -964,6 +1060,19 @@ export default function MaintenanceRequestsView({
           user={activeUser}
           onClose={() => setCompleteServiceReq(null)}
           onSubmit={(details) => completeService(completeServiceReq, details)}
+        />
+      )}
+
+      {lendSpareReq && (
+        <LendSpareModal
+          req={lendSpareReq}
+          vehs={vehs}
+          setVehs={setVehs}
+          reqs={reqs}
+          setReqs={setReqs}
+          user={activeUser}
+          lang={lang}
+          onClose={() => setLendSpareReq(null)}
         />
       )}
     </div>

@@ -1,5 +1,5 @@
 // src/shared/utils/automations.js
-import { HardHat, Wrench } from "lucide-react";
+import { HardHat, MessageSquare, Truck, Wrench } from "lucide-react";
 //
 // One registry for every automatic email the app sends. Settings → Automations renders
 // straight off this list, so adding an automation is a single entry here plus a call to
@@ -27,7 +27,23 @@ export const AUTOMATION_GROUPS = [
     icon: Wrench,
     settingsKey: "maintenance_notifications",
     blurb:
-      "Email the shop when a request comes in, and the person who filed it when their ticket moves. New requests go to everyone holding the Manage Requests permission (Warehouse Managers, Coordinators and Admins by default).",
+      "Email the shop when a request comes in, and both the person who filed it and the truck's assigned driver when their ticket moves. New requests go to everyone holding the Manage Requests permission (Warehouse Managers, Coordinators and Admins by default).",
+  },
+  {
+    id: "fleet",
+    label: "Fleet",
+    icon: Truck,
+    settingsKey: "fleet_notifications",
+    blurb:
+      "Email a driver about the truck they have been given. A vehicle with no driver on it, or a driver without an email on file, is skipped silently.",
+  },
+  {
+    id: "chat",
+    label: "Team Chat",
+    icon: MessageSquare,
+    settingsKey: "chat_notifications",
+    blurb:
+      "Email someone when they are named directly in Team Chat. Only new mentions send, so correcting a typo in a message does not email anyone a second time.",
   },
 ];
 
@@ -96,7 +112,7 @@ export const AUTOMATIONS = [
     key: "scheduled",
     label: "Request scheduled",
     desc: "The shop approves a ticket and books a date for it.",
-    recipient: "Whoever filed the request",
+    recipient: "Whoever filed it, and the truck's driver",
     default: false,
   },
   {
@@ -104,7 +120,31 @@ export const AUTOMATIONS = [
     key: "completed",
     label: "Request completed",
     desc: "The work is finished and the ticket is closed out.",
-    recipient: "Whoever filed the request",
+    recipient: "Whoever filed it, and the truck's driver",
+    default: false,
+  },
+
+  // ── Fleet ──
+  // Defaults OFF for the same reason as the maintenance group: nothing here emailed
+  // anyone before, so there is no existing behaviour to preserve.
+  {
+    group: "fleet",
+    key: "assigned",
+    label: "Vehicle assigned",
+    desc: "A truck or trailer is put in someone's name, so they know which one is theirs without being told in person.",
+    recipient: "The driver being assigned",
+    default: false,
+  },
+
+  // ── Team Chat ──
+  // Off by default like the two groups above. Chat is chattier than tickets or
+  // assignments, so this is the one most worth leaving off until a shop asks for it.
+  {
+    group: "chat",
+    key: "mentioned",
+    label: "Mentioned in chat",
+    desc: "Someone types @their name in Team Chat. One email per mention, sent immediately; editing a message only emails people the edit newly named.",
+    recipient: "Whoever was mentioned",
     default: false,
   },
 ];

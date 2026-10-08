@@ -1,18 +1,27 @@
 // src/core/useAppData.js
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { supabase } from "@/shared/utils/supabase";
 import { storage } from "@/shared/utils/storage";
 import { useNotify } from "@/shared/context/NotificationContext";
-import { DEFAULT_ROLE_PERMS, getEffectivePerms } from "@/shared/database/permissions";
+import { DEFAULT_ROLE_PERMS } from "@/shared/database/permissions";
 import { tot } from "@/shared/utils/helpers";
 import { defaultPrefs, mergePrefs, groupById } from "@/shared/utils/automations";
 import { resolveMaintManagers, isUrgent } from "@/shared/utils/maintenanceNotifications";
+import {
+  resolveRolePreview,
+  readPreviewRole,
+  storePreviewRole,
+  PREVIEW_ROLES,
+} from "./rolePreview";
 
 export function useAppData() {
   const [loading, setLoading] = useState(true);
   // ── ADDED LACKING PROGRESS TRACKER STATE ──
   const [loadingProgress, setLoadingProgress] = useState(0);
 
+  // The REAL signed-in identity. Everything inside this hook reads this one;
+  // what leaves the hook as `curUser` is the role-preview view of it (see the
+  // bottom of this file, and core/rolePreview.js).
   const [curUser, setCurUser] = useState(null);
   // Start empty, not seeded. Seeding the initial state meant Maumee River's trucks
   // and staff were the first thing rendered for EVERY company, for the moment before
@@ -35,6 +44,59 @@ export function useAppData() {
   });
 
   const [userOverrides, setUserOverrides] = useState({});
+
+  // ── "VIEW AS" ROLE PREVIEW ──
+  //
+  // The platform operator's recording tool: render the app as another role so a
+  // training clip shows the screen that role really gets. See core/rolePreview.js
+  // for why this is a rendering choice and not an access-control one.
+  //
+  // It lives here rather than in App.jsx because `userPerms` and the user object
+  // every view gates on are both computed here. Resolved once, in one place, so a
+  // view cannot end up with one role's nav and another's permissions.
+  const [previewRole, setPreviewRoleState] = useState(readPreviewRole);
+
+  const setPreviewRole = useCallback((role) => {
+    const next = PREVIEW_ROLES.includes(role) ? role : null;
+    storePreviewRole(next);
+    setPreviewRoleState(next);
+  }, []);
+
+  const {
+    viewUser,
+    perms: userPerms,
+    previewing,
+  } = useMemo(
+    () => resolveRolePreview({ user: curUser, previewRole, rolePerms, userOverrides }),
+    [curUser, previewRole, rolePerms, userOverrides],
+  );
+
+  // Signing out drops the preview. sessionStorage already dies with the tab, but
+  // signing out and back in as somebody else inside the same tab would otherwise
+  // hand them a preview they never chose. Gated on !loading because curUser is
+  // null for the whole first load, and clearing then would defeat the reload
+  // persistence that makes this usable mid-recording.
+  useEffect(() => {
+    if (!loading && !curUser && previewRole) setPreviewRole(null);
+  }, [loading, curUser, previewRole, setPreviewRole]);
+
+  // ProfileView and UserManagementView hand back a user object they BUILT from
+  // the one they were given — which, mid-preview, carries the preview role and a
+  // flattened isPlatformAdmin. Writing that into state would make renaming
+  // yourself on the profile screen quietly demote you for real, and the preview
+  // would then be unexitable because the picker is gated on isPlatformAdmin.
+  // Identity comes back off live state instead; only what a caller can
+  // legitimately change gets through.
+  const setCurUserGuarded = useCallback(
+    (next) =>
+      setCurUser((prev) => {
+        const resolved = typeof next === "function" ? next(prev) : next;
+        if (!previewRole || !resolved || !prev) return resolved;
+        return { ...resolved, role: prev.role, isPlatformAdmin: prev.isPlatformAdmin };
+      }),
+    [previewRole],
+  );
+
   // Table loads that errored during the last load() run. Non-empty triggers the
   // red "live data failed to load" banner in App — the affected lists are left
   // empty on purpose; plausible-looking seed data hid real outages.
@@ -59,6 +121,8 @@ export function useAppData() {
   const [maintenanceNotifications, setMaintenanceNotifications] = useState(() =>
     defaultPrefs("maintenance"),
   );
+  const [fleetNotifications, setFleetNotifications] = useState(() => defaultPrefs("fleet"));
+  const [chatNotifications, setChatNotifications] = useState(() => defaultPrefs("chat"));
   // Company-uploaded training clips and photos. The bundled product tour is NOT here:
   // it ships in the build via src/data/trainingVideos.js. See supabase/26.
   const [trainingMedia, setTrainingMedia] = useState([]);
@@ -520,6 +584,8 @@ export function useAppData() {
         ...[
           ["jobs", setJobNotifications],
           ["maintenance", setMaintenanceNotifications],
+          ["fleet", setFleetNotifications],
+          ["chat", setChatNotifications],
         ].map(([groupId, setPrefs]) =>
           (async () => {
             const settingsKey = groupById(groupId)?.settingsKey;
@@ -835,8 +901,11 @@ export function useAppData() {
           if (String(row.uid) === String(curUser.id)) return;
           if (row.status !== "pending") return;
 
-          const perms = getEffectivePerms(curUser, rolePerms, userOverrides);
-          if (!perms.maint_manage) return;
+          // userPerms, not a fresh getEffectivePerms off the real user: a role
+          // preview has to silence the toasts that role never sees, or a clip
+          // recorded as an employee still gets the manager's "new request"
+          // popup across it mid-sentence.
+          if (!userPerms.maint_manage) return;
 
           const urgent = isUrgent(row);
           showToast(
@@ -883,7 +952,10 @@ export function useAppData() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [curUser, rolePerms, userOverrides]);
+    // userPerms replaces rolePerms/userOverrides here: it is derived from both,
+    // plus the active role preview, so the handler above re-reads the right
+    // permissions when any of the three change.
+  }, [curUser, userPerms]);
 
   // ── REALTIME: OIL-DUE NOTICES (in-app fallback while iOS push is pending) ──
   // send-maintenance-push-notices.js writes one oil_due_notices row per vehicle
@@ -1047,11 +1119,6 @@ export function useAppData() {
   );
   const activeLogo = logos || null;
 
-  const userPerms = useMemo(() => {
-    if (!curUser) return {};
-    return getEffectivePerms(curUser, rolePerms, userOverrides);
-  }, [curUser, rolePerms, userOverrides]);
-
   // Who a new maintenance request emails: the maint_manage holders, resolved once here
   // rather than threading rolePerms and userOverrides into every view that can file one.
   // Same predicate as the dashboard popup, so the email and the popup always agree.
@@ -1063,8 +1130,7 @@ export function useAppData() {
   // ── SIGN-IN ALERT: tell whoever can close jobs how many are waiting ──
   useEffect(() => {
     if (!curUser) return;
-    const perms = getEffectivePerms(curUser, rolePerms, userOverrides);
-    if (!perms.jobs_close) return;
+    if (!userPerms.jobs_close) return;
     const count = jobs.filter((j) => j.status === "completed").length;
     if (count > 0) {
       showToast(
@@ -1082,8 +1148,18 @@ export function useAppData() {
     loadingProgress, // Safely exposed to App.jsx for visual tracking
     loadErrors,
     reload: load,
-    curUser,
-    setCurUser,
+    // The user the app RENDERS from. Identical to the real one unless a role
+    // preview is running, in which case `role` and `isPlatformAdmin` are the
+    // preview's; id, email, name and companyId are always the real ones, so
+    // every write stays attributable. core/rolePreview.js has the full rules.
+    curUser: viewUser,
+    // The real identity, for the two things that must not follow the preview:
+    // the picker's own entitlement check, and the banner that offers the way out.
+    realUser: curUser,
+    setCurUser: setCurUserGuarded,
+    // null when not previewing; the role being previewed otherwise.
+    previewRole: previewing,
+    setPreviewRole,
     users,
     setUsers,
     warehouses,
@@ -1118,6 +1194,10 @@ export function useAppData() {
     setJobNotifications,
     maintenanceNotifications,
     setMaintenanceNotifications,
+    fleetNotifications,
+    setFleetNotifications,
+    chatNotifications,
+    setChatNotifications,
     maintManagers,
     trainingMedia,
     trainingAssignments,

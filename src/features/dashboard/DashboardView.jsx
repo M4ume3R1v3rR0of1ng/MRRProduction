@@ -281,6 +281,7 @@ export default function DashboardView({
   onMarkChatRead,
   company = null,
   activeLogo = null,
+  chatNotifications,
 }) {
   const t = translations[lang] || translations.en;
   const low = inv.filter((i) => tot(i) <= i.alrt);
@@ -365,7 +366,16 @@ export default function DashboardView({
   // The figures behind those status cards. Hoisted out of the three render
   // functions below so the cards can be assembled at the top of the page; the
   // lists a few of them feed are still used down there.
-  const myVehicle = vehs.find((v) => v.assigned_to_id === user.id || v.assigned_to === user.name);
+  // vehicles."assignedTo" holds the driver's id, in that exact camelCase spelling —
+  // supabase/19_maintenance_vehicle_swap.sql:56 looks it up by that name and raises if it
+  // is missing, and every writer in the app (FleetManagementView's assignUser,
+  // LendSpareModal, complete_maintenance_service) uses it. This line previously read
+  // `assigned_to_id` / `assigned_to`, columns nothing has ever written, against a
+  // `select("*")` that does no key mapping — so "my vehicle" was always undefined and
+  // this card never appeared for anyone.
+  const myVehicle = vehs.find(
+    (v) => String(v.assignedTo ?? v.assignedto ?? "") === String(user.id),
+  );
   const myOpenTickets = reqs.filter((r) => r.submitted_by === user.name && r.status === "pending");
   const pendingPulls = jobs.filter((j) => j.status === "approved" || j.status === "draft");
   const activeJobsList = jobs.filter((j) => j.status === "active");
@@ -640,6 +650,7 @@ export default function DashboardView({
             limit={30}
             onMarkRead={onMarkChatRead}
             lang={lang}
+            chatNotifications={chatNotifications}
           />
         </CardGrid>
       </Stack>
@@ -743,6 +754,7 @@ export default function DashboardView({
             limit={30}
             onMarkRead={onMarkChatRead}
             lang={lang}
+            chatNotifications={chatNotifications}
           />
         </CardGrid>
       </Stack>
@@ -854,6 +866,7 @@ export default function DashboardView({
             limit={30}
             onMarkRead={onMarkChatRead}
             lang={lang}
+            chatNotifications={chatNotifications}
           />
         </CardGrid>
       </Stack>

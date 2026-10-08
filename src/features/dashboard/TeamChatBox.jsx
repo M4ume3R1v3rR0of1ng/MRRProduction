@@ -5,6 +5,8 @@ import { translations } from "@/shared/utils/translations";
 import { ChatBubble, PendingPhoto, ChatComposer } from "@/shared/components/ChatParts";
 import { supabase } from "@/shared/utils/supabase";
 import { C, ft, compressImg } from "@/shared/utils/helpers";
+import { knownNamesFrom, mentionPattern } from "@/shared/utils/mentions";
+import { notifyChatMention } from "@/shared/utils/chatNotifications";
 import {
   Modal,
   LoadingState,
@@ -20,11 +22,12 @@ import {
   PickRow,
 } from "@/shared/components/UIPrimitives";
 
-const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
+// The pattern comes from utils/mentions, which is also what decides who gets emailed
+// about a mention. Keeping one matcher means the blue highlight and the notification can
+// never disagree about what counts as a mention — see the header of that file.
 function renderWithMentions(text, names) {
-  if (!names.length) return text;
-  const pattern = new RegExp(`(@(?:${names.map(escapeRegex).join("|")}))(?![\\w'-])`, "g");
+  const pattern = mentionPattern(names);
+  if (!pattern) return text;
   const parts = text.split(pattern);
   return parts.map((part, i) =>
     names.some((n) => part === `@${n}`) ? (
@@ -49,7 +52,14 @@ function renderWithMentions(text, names) {
   );
 }
 
-export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, lang = "en" }) {
+export default function TeamChatBox({
+  user,
+  users = [],
+  limit = 30,
+  onMarkRead,
+  lang = "en",
+  chatNotifications,
+}) {
   const t = translations[lang] || translations.en;
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -64,13 +74,10 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
   const fileInputRef = useRef(null);
 
   const senderName = user?.name || user?.full_name || user?.email || "User";
-  const knownNames = useMemo(
-    () =>
-      [...new Set(users.map((u) => u.full_name || u.name).filter(Boolean))].sort(
-        (a, b) => b.length - a.length,
-      ),
-    [users],
-  );
+  // Deactivated staff are included on purpose: supabase/21 keeps their profiles readable
+  // so their names still render on the history they made. They are dropped at the point
+  // of emailing, not here — see resolveMentionedUsers in utils/mentions.
+  const knownNames = useMemo(() => knownNamesFrom(users), [users]);
 
   const mentionMatch = draft.match(/@([\w'-]*)$/);
   const mentionQuery = mentionMatch ? mentionMatch[1].toLowerCase() : null;
@@ -195,6 +202,19 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
       if (sendError) throw sendError;
       setError("");
       if (data) addMessage(data);
+
+      // Email anyone named in it. No previousMessage, so every mention is new.
+      // Deliberately not awaited: the message is already posted and visible to the room,
+      // and a slow or failed relay must not hold up the composer or surface as a send
+      // error. notifyChatMention resolves either way.
+      notifyChatMention({
+        message: text,
+        users,
+        prefs: chatNotifications,
+        actorId: user?.id,
+        senderName,
+        hasPhoto: !!photoToSend,
+      });
     } catch (err) {
       console.error("Failed to send chat message:", err);
       setError(err.message || "Failed to send message.");
@@ -225,6 +245,10 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
   const saveEdit = async () => {
     const text = editDraft.trim();
     if (!text) return;
+    // Captured BEFORE the update, and before `messages` is replaced below: it is the only
+    // record of who the message already named, which is what keeps a typo fix from
+    // re-emailing everyone in it.
+    const priorText = messages.find((m) => m.id === editingId)?.message ?? "";
     try {
       const { data, error: editError } = await supabase
         .from("team_chat_messages")
@@ -237,6 +261,18 @@ export default function TeamChatBox({ user, users = [], limit = 30, onMarkRead, 
       setError("");
       if (data) replaceMessage(data);
       cancelEdit();
+
+      // An edit can add a name that was not there before. Only those people are told;
+      // `priorText` subtracts everyone the message already mentioned, so correcting a
+      // word emails nobody. Not awaited, same reasoning as in send().
+      notifyChatMention({
+        message: text,
+        previousMessage: priorText,
+        users,
+        prefs: chatNotifications,
+        actorId: user?.id,
+        senderName,
+      });
     } catch (err) {
       console.error("Failed to edit chat message:", err);
       setError(err.message || "Failed to edit message.");

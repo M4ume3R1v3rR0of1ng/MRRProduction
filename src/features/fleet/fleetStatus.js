@@ -96,3 +96,24 @@ export function groundingPatch(grounded, reason) {
     ? { status: VEHICLE_OUT_OF_SERVICE, oos_reason: normalizeGroundReason(reason) }
     : { status: VEHICLE_ACTIVE, oos_reason: null };
 }
+
+// Vehicles that can stand in for one going in for service.
+//
+// Mirrors the refusals in assign_replacement_vehicle (supabase/19_maintenance_vehicle_swap.sql)
+// so the picker never offers a choice the database will reject: not the vehicle being
+// serviced, nobody driving it, not grounded, and not itself carrying a scheduled request.
+//
+// That last test used to be qualified with isServiceDue, on the reasoning that a truck
+// booked in for NEXT Tuesday is still free to lend today. The RPC disagrees — it refuses
+// any vehicle with a 'scheduled' row whatever date that row carries — so the looser filter
+// listed spares whose only possible outcome was "That vehicle is itself scheduled for
+// maintenance." A button that can only error is worse than one that isn't there.
+export function availableSpares(vehs, reqs, forReq) {
+  return (vehs || []).filter(
+    (x) =>
+      x.id !== forReq?.vid &&
+      !x.assignedTo &&
+      !isUndispatchable(x) &&
+      !(reqs || []).some((r) => r.vid === x.id && r.status === "scheduled"),
+  );
+}

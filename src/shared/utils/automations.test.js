@@ -38,6 +38,31 @@ describe("registry shape", () => {
   it("ships every maintenance automation off, since none of them sent mail before", () => {
     for (const a of automationsForGroup("maintenance")) expect(a.default).toBe(false);
   });
+
+  it("ships every fleet automation off, for the same reason", () => {
+    const fleet = automationsForGroup("fleet");
+    expect(fleet.length).toBeGreaterThan(0);
+    for (const a of fleet) expect(a.default).toBe(false);
+  });
+
+  it("ships every chat automation off, since chat is the noisiest of them", () => {
+    const chat = automationsForGroup("chat");
+    expect(chat.length).toBeGreaterThan(0);
+    for (const a of chat) expect(a.default).toBe(false);
+  });
+
+  it("gives every group a blurb and every automation a recipient, which the UI renders", () => {
+    for (const g of AUTOMATION_GROUPS) {
+      expect(typeof g.blurb).toBe("string");
+      expect(g.blurb.length).toBeGreaterThan(0);
+      expect(g.icon).toBeTruthy();
+    }
+    for (const a of AUTOMATIONS) {
+      expect(typeof a.recipient).toBe("string");
+      expect(a.recipient.length).toBeGreaterThan(0);
+      expect(typeof a.default).toBe("boolean");
+    }
+  });
 });
 
 describe("defaultPrefs", () => {

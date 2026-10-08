@@ -144,6 +144,10 @@ export default function SettingsView({
   setJobNotifications,
   maintenanceNotifications = {},
   setMaintenanceNotifications,
+  fleetNotifications = {},
+  setFleetNotifications,
+  chatNotifications = {},
+  setChatNotifications,
   rolePerms,
   setRolePerms,
   acculynxConfig,
@@ -168,11 +172,14 @@ export default function SettingsView({
 
   // Automation rules, rendered straight off the shared registry in utils/automations.
   // Each group owns one settings row and saves independently, on the same upsert path as
-  // acculynx_config / job_templates. Adding an automation is an entry in the registry —
-  // nothing in this file needs to change.
+  // acculynx_config / job_templates. Adding an automation to an EXISTING group is an
+  // entry in the registry and nothing in this file changes; a whole new group also needs
+  // its state wired in here, since that is where its settings row is read and written.
   const GROUP_STATE = {
     jobs: { stored: jobNotifications, apply: setJobNotifications },
     maintenance: { stored: maintenanceNotifications, apply: setMaintenanceNotifications },
+    fleet: { stored: fleetNotifications, apply: setFleetNotifications },
+    chat: { stored: chatNotifications, apply: setChatNotifications },
   };
   const [automationForm, setAutomationForm] = useState(() =>
     Object.fromEntries(
