@@ -80,8 +80,35 @@ jobs:
       # Tests do not import every module, so they cannot catch a syntax error or a
       # bad import in a file nothing covers. The build does, and it is the same
       # command Netlify runs, so a green build here means a green deploy there.
+      #
+      # THE ENV VARS ARE DELIBERATE NONSENSE, AND MUST STAY THAT WAY
+      #
+      # The bundle itself needs nothing: Vite replaces import.meta.env with string
+      # literals and never executes app code. The prerender-public-pages plugin
+      # does — it evaluates the public pages as SSR modules in Node after the
+      # bundle closes, and src/shared/utils/supabase.js throws at module load when
+      # these two are absent. So from the commit that added prerendering
+      # (2026-10-02) this step failed on every push, while Netlify stayed green
+      # because its own env vars are set. The bundle built fine every time; it was
+      # always the closeBundle hook that died, which is why the error arrives
+      # AFTER "built in ...ms" and reads like a build failure.
+      #
+      # Real credentials would be pure cost. The only public page that queries
+      # Supabase is TrainingPage, and it queries from inside a useEffect, which
+      # renderToString never runs — so the prerendered HTML is byte-identical
+      # either way, and carries neither value (verified: no supabase.co string in
+      # dist/training.html). Wiring secrets in would buy nothing, make this cheap
+      # hermetic check depend on a live project, and give it a way to fail that has
+      # nothing to do with the code being tested.
+      #
+      # Same values and same reasoning as src/test/setup.js, which says it louder.
+      # The URL has to parse, because createClient validates it; that is the only
+      # requirement either one places on these strings.
       - name: Web build
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://test.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-anon-key
 
       # The App Store bundle takes a different path through the code: --mode ios
       # loads .env.ios, which folds IS_IOS_APP to true and drops the landing page,
@@ -91,6 +118,11 @@ jobs:
       # Deliberately `vite build` and not `npm run build:ios`. The latter also runs
       # `cap sync ios`, which is a Capacitor platform operation better left to the
       # macOS job that actually compiles the thing.
+      #
+      # And deliberately no env block, unlike the step above: prerender-public-pages
+      # skips ios mode entirely (`env.mode !== "ios"` in vite.config.js), so nothing
+      # evaluates supabase.js here and there is nothing to satisfy. Verified by
+      # running this exact command with no .env and no vars set.
       - name: iOS bundle build
         run: npx vite build --mode ios
 
