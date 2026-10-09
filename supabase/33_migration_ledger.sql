@@ -374,6 +374,19 @@ begin
   perform public._mig_record('49_training_due_notices.sql',
     public._mig_has_column('training_assignments', 'heads_up_sent_at'),
     'training_assignments.heads_up_sent_at');
+
+  -- Probed by the constraint's DEFINITION, not its existence: 20 already created
+  -- inventory_counts_period_fmt, and 50 only widens the pattern it checks. So
+  -- _mig_has_constraint would read 'verified' on a database that has 20 and not
+  -- 50 — the same trap as 11/13 and 38, and solved the same way.
+  perform public._mig_record('50_inventory_count_cadence.sql',
+    coalesce((
+      select pg_get_constraintdef(oid) like '%-W%'
+      from pg_constraint
+      where conrelid = 'public.inventory_counts'::regclass
+        and conname = 'inventory_counts_period_fmt'
+    ), false),
+    'constraint inventory_counts_period_fmt also accepts the ISO week shape');
 end $$;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists

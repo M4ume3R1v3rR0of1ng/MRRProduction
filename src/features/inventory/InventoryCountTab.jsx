@@ -39,8 +39,19 @@ import {
   currentPeriod,
   recentPeriods,
   periodLabel,
-  shiftPeriod,
+  periodStart,
+  previousClosedCount,
+  cadenceOf,
+  CADENCES,
+  MONTHLY,
+  WEEKLY,
 } from "./inventoryCounts";
+
+// The company's counting cadence, as a bare string ("monthly" | "weekly") rather
+// than JSON. Every other settings row holds an object and is JSON.stringify'd;
+// this one is a single scalar, and wrapping a scalar in JSON buys nothing but a
+// parse step that can throw.
+const CADENCE_SETTING_KEY = "inventory_count_cadence";
 
 export default function InventoryCountTab({
   inv = [],
@@ -53,10 +64,15 @@ export default function InventoryCountTab({
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
 
-  const [period, setPeriod] = useState(currentPeriod());
-  // Every count this company has ever taken. There are twelve a year, so loading
-  // the lot is cheaper than the round trips needed to chase one period's
-  // predecessor on every period change.
+  // How often this company counts: MONTHLY or WEEKLY, from
+  // settings(key='inventory_count_cadence'). Null until the load below resolves,
+  // which is what stops the period selector rendering a month and then snapping
+  // to a week a moment later.
+  const [cadence, setCadence] = useState(null);
+  const [period, setPeriod] = useState(null);
+  // Every count this company has ever taken. Twelve a year monthly, fifty-two
+  // weekly, so loading the lot is still cheaper than the round trips needed to
+  // chase one period's predecessor on every period change.
   const [counts, setCounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -78,17 +94,32 @@ export default function InventoryCountTab({
       setLoading(true);
       setLoadError(null);
       try {
-        const { data, error } = await supabase
-          .from("inventory_counts")
-          .select("*")
-          .order("period", { ascending: false });
-        if (error) throw error;
-        if (!cancelled) setCounts(data || []);
+        // Both in parallel. The cadence decides which period the sheet opens on,
+        // so rendering before it arrives would show the wrong sheet first.
+        const [countsRes, cadenceRes] = await Promise.all([
+          supabase.from("inventory_counts").select("*").order("period", { ascending: false }),
+          supabase.from("settings").select("value").eq("key", CADENCE_SETTING_KEY).maybeSingle(),
+        ]);
+        if (countsRes.error) throw countsRes.error;
+        if (!cancelled) {
+          setCounts(countsRes.data || []);
+          // A missing row, a failed read, or a stored value the registry no longer
+          // recognises all mean "monthly" — the cadence every existing count was
+          // taken at. A company that has never chosen keeps what it always had.
+          const stored = cadenceRes.error ? null : cadenceRes.data?.value;
+          const resolved = CADENCES.includes(stored) ? stored : MONTHLY;
+          setCadence(resolved);
+          setPeriod((p) => p ?? currentPeriod(resolved));
+        }
       } catch (err) {
         console.error("Failed to load inventory counts:", err);
         // An empty sheet and a failed fetch look identical, and one of them means
         // "nobody has ever counted" while the other means "do not trust this".
         if (!cancelled) {
+          // Still settle the cadence, or the error screen has no period to name
+          // and the retry button renders against a null sheet.
+          setCadence((c) => c ?? MONTHLY);
+          setPeriod((p) => p ?? currentPeriod(MONTHLY));
           setLoadError(err.message || "Request failed");
           setCounts([]);
         }
@@ -103,10 +134,11 @@ export default function InventoryCountTab({
   }, [retryTick]);
 
   const countRow = useMemo(() => counts.find((c) => c.period === period) || null, [counts, period]);
-  const prevRow = useMemo(
-    () => counts.find((c) => c.period === shiftPeriod(period, -1)) || null,
-    [counts, period],
-  );
+  // The most recent CLOSED count ending before this period starts, at whatever
+  // cadence it was taken. Not the immediately-preceding period by name: that
+  // dropped a good count on the floor whenever a period was skipped, and could
+  // never bridge a cadence change. See previousClosedCount.
+  const prevRow = useMemo(() => previousClosedCount(counts, period), [counts, period]);
   const isClosed = countRow?.status === "closed";
 
   // Typed values, saved plus unsaved, as { [iid]: { counted, at, by } }.
@@ -119,12 +151,77 @@ export default function InventoryCountTab({
   }, [countRow, draft]);
 
   // Switching period abandons nothing silently: the draft is period-scoped, so it
-  // is cleared deliberately rather than carried onto another month's sheet.
+  // is cleared deliberately rather than carried onto another period's sheet.
   const changePeriod = (next) => {
     if (dirty && !window.confirm(t.cntDiscardConfirm)) return;
     setDraft({});
     setDirty(false);
     setPeriod(next);
+  };
+
+  // Switch the whole company between monthly and weekly counting.
+  //
+  // Closed counts are never touched or reinterpreted — a closed month stays a
+  // month forever, and stays readable from the period list. All this changes is
+  // the span the NEXT count covers. The chain survives the switch because
+  // previousClosedCount looks backwards by date rather than by period name, so
+  // the first weekly sheet still opens from the last monthly count that closed.
+  //
+  // An OPEN count at the old cadence is the one thing worth warning about: it is
+  // left exactly as it is, still openable from the list, but it is no longer the
+  // period the sheet lands on, so somebody mid-count would otherwise think their
+  // typing had vanished.
+  const changeCadence = async (next) => {
+    if (!canEdit || next === cadence || !CADENCES.includes(next)) return;
+    if (dirty && !window.confirm(t.cntDiscardConfirm)) return;
+
+    const openAtOldCadence = counts.filter(
+      (c) => c && c.status !== "closed" && cadenceOf(c.period) === cadence,
+    );
+    const msg = openAtOldCadence.length
+      ? t.cntCadenceSwitchOpen
+          .replace("{n}", openAtOldCadence.length)
+          .replace("{cadence}", next === WEEKLY ? t.cntCadenceWeekly : t.cntCadenceMonthly)
+      : t.cntCadenceSwitch.replace(
+          "{cadence}",
+          next === WEEKLY ? t.cntCadenceWeekly : t.cntCadenceMonthly,
+        );
+    if (!window.confirm(msg)) return;
+
+    setSaving(true);
+    try {
+      // company_id is stamped by its column DEFAULT active_company_id(), so it is
+      // deliberately not sent from the browser. See supabase/02.
+      const { error } = await supabase.from("settings").upsert(
+        {
+          key: CADENCE_SETTING_KEY,
+          value: next,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "company_id,key" },
+      );
+      if (error) throw error;
+
+      setDraft({});
+      setDirty(false);
+      setCadence(next);
+      setPeriod(currentPeriod(next));
+
+      await logAction(
+        user?.id ?? null,
+        user?.email ?? null,
+        "INV_MUTATION",
+        `Switched inventory counts to ${next}.`,
+        { cadence: next, previous: cadence },
+        "inventory",
+      );
+      showToast(t.cntCadenceSaved, "success");
+    } catch (err) {
+      console.error("Failed to change the count cadence:", err);
+      showToast(`${t.cntCadenceFail} ${err.message}`, "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // A CLOSED count renders the frozen lines it was closed with, never a fresh
@@ -315,11 +412,21 @@ export default function InventoryCountTab({
   };
 
   const periodOptions = useMemo(() => {
-    const recent = recentPeriods(currentPeriod(), 18);
-    // Any closed period older than the rolling window still has to be reachable.
+    if (!cadence) return [];
+    // 18 months or 26 weeks — roughly a season and a half either way, rather than
+    // 18 weeks, which would only reach back four months.
+    const recent = recentPeriods(currentPeriod(cadence), cadence === WEEKLY ? 26 : 18);
+    // Any period already counted but outside the rolling window still has to be
+    // reachable, INCLUDING counts taken at the other cadence before a switch.
+    // Dropping those would make a company's own history unopenable.
     const extra = counts.map((c) => c.period).filter((p) => !recent.includes(p));
-    return [...new Set([...recent, ...extra])].sort().reverse();
-  }, [counts]);
+    return (
+      [...new Set([...recent, ...extra])]
+        // By start DATE, not by string: "2026-W05" sorts after "2026-12" lexically,
+        // so a company that switched cadence would get its list shuffled.
+        .sort((a, b) => String(periodStart(b)).localeCompare(String(periodStart(a))))
+    );
+  }, [counts, cadence]);
 
   const tile = (value, label, tone) => (
     <StatTile
@@ -382,6 +489,21 @@ export default function InventoryCountTab({
           </Muted>
         </div>
         <Row wrap>
+          {canEdit && (
+            <Sel
+              value={cadence || MONTHLY}
+              onChange={(e) => changeCadence(e.target.value)}
+              aria-label={t.cntCadenceAria}
+              disabled={saving}
+              style={{ width: "auto" }}
+            >
+              {CADENCES.map((c) => (
+                <option key={c} value={c}>
+                  {c === WEEKLY ? t.cntCadenceWeekly : t.cntCadenceMonthly}
+                </option>
+              ))}
+            </Sel>
+          )}
           <Sel
             value={period}
             onChange={(e) => changePeriod(e.target.value)}

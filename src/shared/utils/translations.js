@@ -89,10 +89,19 @@ export const translations = {
     cntClosed: "Period closed. These numbers are now frozen.",
     cntCloseFail: "Could not close the period:",
     cntCloseConfirm:
-      "Close the {period} count? The numbers freeze permanently and next month's opening balances will be read from them.",
+      "Close the {period} count? The numbers freeze permanently and the next period's opening balances will be read from them.",
     cntCloseConfirmPartial:
-      "{n} items have not been counted. Close {period} anyway? Uncounted items carry into next month from the book rather than from a real count, so their bleed will not be measured.",
+      "{n} items have not been counted. Close {period} anyway? Uncounted items carry into the next period from the book rather than from a real count, so their bleed will not be measured.",
     cntDiscardConfirm: "You have unsaved counts on this sheet. Switch period and lose them?",
+    cntCadenceAria: "Select how often you count",
+    cntCadenceMonthly: "Monthly",
+    cntCadenceWeekly: "Weekly",
+    cntCadenceSwitch:
+      "Switch to {cadence} counting? Counts you have already closed stay exactly as they are and stay readable. This only changes the span the next count covers.",
+    cntCadenceSwitchOpen:
+      "Switch to {cadence} counting? {n} count(s) still in progress at the old cadence will stay open and reachable from the period list, but the sheet will move to the current {cadence} period. Counts already closed are unaffected.",
+    cntCadenceSaved: "Counting cadence updated.",
+    cntCadenceFail: "Could not change the counting cadence:",
     cntColItem: "Item",
     cntColOpening: "Opening",
     cntColReceived: "Received",
@@ -1479,10 +1488,19 @@ export const translations = {
     cntClosed: "Período cerrado. Estos números quedan congelados.",
     cntCloseFail: "No se pudo cerrar el período:",
     cntCloseConfirm:
-      "¿Cerrar el conteo de {period}? Los números se congelan permanentemente y los saldos iniciales del mes siguiente se leerán de ellos.",
+      "¿Cerrar el conteo de {period}? Los números se congelan permanentemente y los saldos iniciales del período siguiente se leerán de ellos.",
     cntCloseConfirmPartial:
-      "{n} artículos no se han contado. ¿Cerrar {period} de todos modos? Los artículos sin contar pasan al mes siguiente desde el libro y no desde un conteo real, así que su pérdida no se medirá.",
+      "{n} artículos no se han contado. ¿Cerrar {period} de todos modos? Los artículos sin contar pasan al período siguiente desde el libro y no desde un conteo real, así que su pérdida no se medirá.",
     cntDiscardConfirm: "Tiene conteos sin guardar en esta hoja. ¿Cambiar de período y perderlos?",
+    cntCadenceAria: "Seleccionar con qué frecuencia cuenta",
+    cntCadenceMonthly: "Mensual",
+    cntCadenceWeekly: "Semanal",
+    cntCadenceSwitch:
+      "¿Cambiar a conteo {cadence}? Los conteos que ya cerró quedan exactamente como están y siguen siendo legibles. Esto solo cambia el período que cubrirá el próximo conteo.",
+    cntCadenceSwitchOpen:
+      "¿Cambiar a conteo {cadence}? {n} conteo(s) aún en curso con la frecuencia anterior quedarán abiertos y accesibles desde la lista de períodos, pero la hoja pasará al período {cadence} actual. Los conteos ya cerrados no se ven afectados.",
+    cntCadenceSaved: "Frecuencia de conteo actualizada.",
+    cntCadenceFail: "No se pudo cambiar la frecuencia de conteo:",
     cntColItem: "Artículo",
     cntColOpening: "Inicial",
     cntColReceived: "Recibido",
