@@ -40,6 +40,9 @@ import {
   materialCostRatioPct,
   summarizeJobs,
 } from "./jobCosting";
+// Shared with the pull-time dialog in PullInventoryView, deliberately: one
+// definition of "over plan", or the warehouse and this screen disagree.
+import { jobsNeedingPullReview } from "@/features/jobs/pullReview";
 
 // ── TREND COMPONENT 1: JOB PROFITABILITY ──
 //
@@ -370,6 +373,151 @@ function JobProfitabilityReport({ jobs, setJobs, user, perms, t }) {
           </tfoot>
         )}
       </Table>
+    </Card>
+  );
+}
+
+// ── PULLS NEEDING REVIEW ──
+//
+// The other half of the pull-time plan check in PullInventoryView. That dialog
+// makes a mismatch a decision; this makes the decisions visible afterwards, so
+// the pattern turns up here rather than at the monthly count, three weeks after
+// the material left.
+//
+// Everything on this list is derived from the job rows that are already loaded —
+// `pulled` against `planned`, and the `pullCorrection` stamp correct_job_pull
+// (supabase/51) writes onto a corrected line. There is no flag column to set and
+// keep in step with reality, which also means the list is right about jobs that
+// were pulled long before any of this existed.
+//
+// Thresholds come from ./pullReview, shared with the dialog, so the warehouse and
+// the office cannot end up disagreeing about what counts as over plan.
+function PullReviewReport({ jobs, jSC, t }) {
+  const flagged = jobsNeedingPullReview(jobs);
+  const pulledCount = jobs.filter((j) =>
+    ["active", "completed", "closed"].includes(j?.status),
+  ).length;
+
+  const labelFor = (kind) =>
+    kind === "corrected"
+      ? t.rptPullReviewCorrected
+      : kind === "off_plan"
+        ? t.pullPlanOffPlan
+        : kind === "skipped"
+          ? t.pullPlanSkipped
+          : t.pullPlanOver;
+
+  const handleExport = () => {
+    if (flagged.length === 0) return;
+    const headers = [
+      t.rptColPO,
+      t.rptColProject,
+      t.rptColJobStatus,
+      t.colItem,
+      t.colPlanned,
+      t.colPulled,
+      t.pullPlanColIssue,
+    ];
+    const rows = flagged.flatMap(({ job, flags }) =>
+      flags.map((f) => [
+        job.po || "",
+        job.title || job.name || "",
+        job.status || "",
+        f.name,
+        f.planned,
+        f.actual,
+        labelFor(f.kind),
+      ]),
+    );
+    downloadCSV("mrr-pulls-needing-review-" + todayLocal() + ".csv", headers, rows);
+  };
+
+  return (
+    <Card variant="raised" pad={8} style={{ marginTop: 20 }}>
+      <Row gap={4} justify="space-between" wrap style={{ marginBottom: 16 }}>
+        <Text as="h2" size="lg" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
+          {t.rptPullReviewTitle}
+        </Text>
+        {flagged.length > 0 && (
+          <Btn v="green" sz="sm" onClick={handleExport}>
+            <Download size={13} aria-hidden="true" /> {t.rptExportPullReview}
+          </Btn>
+        )}
+      </Row>
+
+      <Callout tone="neutral" bordered size="sm" style={{ marginBottom: 16 }}>
+        {t.rptPullReviewNote}
+      </Callout>
+
+      {flagged.length === 0 ? (
+        <Muted>{t.rptPullReviewNone}</Muted>
+      ) : (
+        <>
+          <Callout tone="warn" bordered size="sm" weight="semibold" style={{ marginBottom: 16 }}>
+            {t.rptPullReviewCount.replace("{n}", flagged.length).replace("{total}", pulledCount)}
+          </Callout>
+          <Table pad="lg" size="base">
+            <thead>
+              <tr>
+                {[
+                  t.rptColPO,
+                  t.rptColProject,
+                  t.rptColJobStatus,
+                  t.colItem,
+                  t.colPlanned,
+                  t.colPulled,
+                  t.pullPlanColIssue,
+                ].map((h) => (
+                  <th key={h}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {flagged.flatMap(({ job, flags }) =>
+                flags.map((f, i) => (
+                  <tr key={`${job.id}-${f.iid}`}>
+                    {/* The job identity is printed once per job, not once per
+                        line, so a job with four flagged lines reads as one job
+                        with a problem rather than four separate ones. */}
+                    <Text as="td" weight="bold">
+                      {i === 0 ? job.po : ""}
+                    </Text>
+                    <td>{i === 0 ? job.title || job.name : ""}</td>
+                    <td>
+                      {i === 0 && (
+                        <Bdg color={jSC?.[job.status]?.c || "gray"}>
+                          {jSC?.[job.status]?.l || job.status}
+                        </Bdg>
+                      )}
+                    </td>
+                    <Text as="td" color={C.navy}>
+                      {f.name}
+                    </Text>
+                    <td>
+                      {f.planned} {f.unit}
+                    </td>
+                    <td>
+                      {f.actual} {f.unit}
+                      {f.kind === "corrected" && f.prevPulled !== f.actual && (
+                        <Muted style={{ marginLeft: 6 }}>
+                          {t.rptPullReviewCorrectedFrom.replace("{qty}", f.prevPulled)}
+                        </Muted>
+                      )}
+                    </td>
+                    <td>
+                      <Bdg
+                        color={f.kind === "over" ? "amber" : f.kind === "corrected" ? "sky" : "red"}
+                      >
+                        {labelFor(f.kind)}
+                      </Bdg>
+                    </td>
+                  </tr>
+                )),
+              )}
+            </tbody>
+          </Table>
+        </>
+      )}
     </Card>
   );
 }
@@ -1101,6 +1249,7 @@ export default function Reports({
   inv = [],
   vehs = [],
   reqs = [],
+  jSC = {},
   lang,
 }) {
   const t = translations[lang] || translations.en;
@@ -1166,7 +1315,13 @@ export default function Reports({
 
       <div>
         {activeTab === "Jobs" && (
-          <JobProfitabilityReport jobs={jobs} setJobs={setJobs} user={user} perms={perms} t={t} />
+          <>
+            <JobProfitabilityReport jobs={jobs} setJobs={setJobs} user={user} perms={perms} t={t} />
+            {/* Under the same tab rather than one of its own: whoever opens Jobs
+                to see what the work cost is exactly who should see which pulls
+                did not match the plan. */}
+            <PullReviewReport jobs={jobs} jSC={jSC} t={t} />
+          </>
         )}
         {activeTab === "Inventory" && perms.inv_pricing_view && (
           <InventoryCostTrendsReport inv={inv} t={t} />

@@ -1,7 +1,17 @@
 // src/features/jobs/PullInventoryView.jsx
 // ── Pull Inventory ────────────────────────────────
 import { useState, useEffect, useRef, Fragment } from "react";
-import { ClipboardList, X, Sparkles, Bell, User, Truck, AlertTriangle, Pencil } from "lucide-react";
+import {
+  ClipboardList,
+  X,
+  Sparkles,
+  Bell,
+  User,
+  Truck,
+  AlertTriangle,
+  Pencil,
+  Plus,
+} from "lucide-react";
 import {
   C,
   fd,
@@ -17,6 +27,9 @@ import {
   jobStatusMeta,
 } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
+import { planAnomalies } from "./pullReview";
+import { canAddPull } from "./addPullMaterials";
+import AddPullMaterialsModal from "./AddPullMaterialsModal";
 import { translations } from "@/shared/utils/translations";
 import { useStickySort } from "@/shared/hooks/useStickySort";
 import { generatePDF } from "./pdfGenerator";
@@ -102,6 +115,9 @@ export default function PullInventory({
   // the pull was computed against LIVE batches, found a shortfall, and stopped
   // before committing anything. See confirmPull.
   const [shortWarn, setShortWarn] = useState(null);
+  // Lines whose quantity disagrees with the approved plan, held for confirmation.
+  // Raised before the warehouse is even read — see confirmPull.
+  const [planWarn, setPlanWarn] = useState(null);
   // Oldest first, matching Build Jobs: the queue reads in creation order, so the
   // job that has been waiting longest is at the top rather than buried at the
   // bottom. The dropdown still offers newest-first.
@@ -424,11 +440,35 @@ export default function PullInventory({
     onOpenItemHandled?.();
   }, [openItemId]);
 
-  // `force` is the second press, after the shortfall dialog. The first press
-  // computes the whole pull, and if anything would go negative it stops and shows
-  // what and by how much — nothing is written on that pass.
-  const confirmPull = async (force = false) => {
+  // Two gates stand in front of the commit, and each one has to be passed
+  // explicitly by the person pulling:
+  //
+  //   planAcked   the quantities do not match the approved plan (off-plan line,
+  //               well over plan, or a planned line left at zero). Checked FIRST,
+  //               because it reads only what was typed — no database round trip —
+  //               and a typo is better caught before the warehouse is even read.
+  //   shortAcked  the pull takes stock below zero. Needs the fresh batch read, so
+  //               it can only be checked after it.
+  //
+  // An options object rather than positional flags: the shortfall dialog has to
+  // carry planAcked forward (it was already passed to get there), and two
+  // booleans in a row would be read wrong by somebody eventually.
+  const confirmPull = async ({ planAcked = false, shortAcked = false } = {}) => {
     if (!sel) return;
+
+    // Before anything: does what was typed match what was approved? This is the
+    // guard for the mistake the shortfall check cannot see — the right quantity
+    // of the WRONG item. Stock is there, FIFO succeeds, nothing goes negative,
+    // and the job quietly consumes material it never planned for.
+    const planRows = planAnomalies(sel.items || sel.materials || [], (item) => {
+      const parsed = parseFloat(pullQtys[item.iid]);
+      return Number.isNaN(parsed) ? item.planned || item.qty || 0 : parsed;
+    });
+    if (planRows.length > 0 && !planAcked) {
+      setPlanWarn(planRows);
+      return;
+    }
+
     setPulling(true);
 
     const updItems = [...(sel.items || sel.materials || [])];
@@ -511,7 +551,7 @@ export default function PullInventory({
       //
       // This check runs on FRESH batches, not the modal's snapshot, so it reflects
       // what another device received or pulled while this screen sat open.
-      if (shortRows.length > 0 && !force) {
+      if (shortRows.length > 0 && !shortAcked) {
         setShortWarn(shortRows);
         return;
       }
@@ -571,6 +611,7 @@ export default function PullInventory({
         showToast(t.pullPulledOk, "success");
       }
       setShortWarn(null);
+      setPlanWarn(null);
       setModal(null);
       setPullQtys({});
       // The job does not leave this screen, but it does leave the queue you were
@@ -1205,6 +1246,23 @@ export default function PullInventory({
                         <Truck size={13} aria-hidden="true" /> {t.pullPullMaterials}
                       </Btn>
                     )}
+                    {/* The answer to "we got to the site and need more coil".
+                        On the card, under jobs_pull, because the roles that hold
+                        jobs_pull are the ones who find out — the existing Pull
+                        Added Materials button sat behind jobs_build, which
+                        neither `warehouse` nor `field` has. See supabase/52. */}
+                    {canAddPull(job, perms) && (
+                      <Btn
+                        v="outline"
+                        sz="sm"
+                        onClick={() => {
+                          setSel(job);
+                          setModal("addPull");
+                        }}
+                      >
+                        <Plus size={13} aria-hidden="true" /> {t.pullAddMatBtn}
+                      </Btn>
+                    )}
                     {perms.jobs_complete && job.status === "active" && (
                       <Btn
                         v="gold"
@@ -1246,10 +1304,10 @@ export default function PullInventory({
               >
                 {t.cancel}
               </Btn>
-              {/* Wrapped, not passed by reference: onClick hands the click event
-                through as the first argument, and an event object is truthy — so
-                `onClick={confirmPull}` would arrive as force=true and skip the
-                shortfall confirmation entirely. */}
+              {/* Still wrapped, not passed by reference. confirmPull's argument is
+                now an options object, so a stray click event would destructure to
+                all-false and fail safe rather than skipping both confirmations —
+                but relying on that is a trap for whoever edits it next. */}
               <Btn
                 v="teal"
                 sz="lg"
@@ -1341,6 +1399,99 @@ export default function PullInventory({
         </Modal>
       )}
 
+      {/* ── Not what was approved ───────────────────────────────────────────
+          The guard the shortfall check cannot provide. Pulling the right quantity
+          of the WRONG item goes through every other check clean: the stock is
+          there, FIFO succeeds, nothing goes negative. The only thing that knows
+          something is off is the approved plan, and nothing was comparing against
+          it until the quantities were already committed.
+
+          Raised before the warehouse is even read, and like the shortfall dialog
+          it confirms rather than blocks — the plan is a plan, and a crew that
+          genuinely needs more cannot wait for an office revision. */}
+      {planWarn && (
+        <Modal
+          title={t.pullPlanTitle}
+          onClose={() => {
+            if (!pulling) setPlanWarn(null);
+          }}
+        >
+          <Callout tone="warn" bordered pad="12px 14px" style={{ marginBottom: 14 }}>
+            <Row
+              gap={2}
+              style={{
+                fontWeight: "var(--weight-bold)",
+                color: C.gold,
+                marginBottom: 4,
+                fontSize: "var(--text-base)",
+              }}
+            >
+              <AlertTriangle size={14} aria-hidden="true" /> {t.pullPlanHeading}
+            </Row>
+            <Text size="sm" color={C.navy} style={{ lineHeight: 1.45 }}>
+              {t.pullPlanBody}
+            </Text>
+          </Callout>
+
+          <div className="sw-table-scroll">
+            <Table pad="md" size="base" tableStyle={{ marginBottom: 14 }}>
+              <thead>
+                <tr>
+                  {[t.colItem, t.colPlanned, t.colActualPull, t.pullPlanColIssue].map((h) => (
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {planWarn.map((r) => (
+                  <tr key={r.iid}>
+                    <Text as="td" weight="bold" color={C.navy}>
+                      {r.name}
+                    </Text>
+                    <td>
+                      {r.planned} {r.unit}
+                    </td>
+                    <td>
+                      {r.actual} {r.unit}
+                    </td>
+                    <td>
+                      <Bdg color={r.kind === "over" ? "amber" : "red"}>
+                        {r.kind === "off_plan"
+                          ? t.pullPlanOffPlan
+                          : r.kind === "skipped"
+                            ? t.pullPlanSkipped
+                            : t.pullPlanOver}
+                      </Bdg>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+
+          <Muted style={{ marginBottom: 14, lineHeight: 1.45 }}>{t.pullPlanFootnote}</Muted>
+
+          <Row gap={4} align="stretch">
+            <Btn
+              v="ghost"
+              onClick={() => setPlanWarn(null)}
+              disabled={pulling}
+              style={{ flex: 1, justifyContent: "center" }}
+            >
+              {t.pullPlanCancel}
+            </Btn>
+            <Btn
+              v="gold"
+              onClick={() => confirmPull({ planAcked: true })}
+              disabled={pulling}
+              style={{ flex: 1, justifyContent: "center" }}
+            >
+              {pulling ? t.pullInProgress : t.pullPlanProceed}
+            </Btn>
+          </Row>
+        </Modal>
+      )}
+
       {/* ── Going negative ──────────────────────────────────────────────────
           Raised BEFORE anything is written, computed against live batches rather
           than this device's snapshot. The pull is still allowed: a crew standing
@@ -1411,9 +1562,11 @@ export default function PullInventory({
             >
               {t.pullShortCancel}
             </Btn>
+            {/* planAcked carries forward: the plan dialog was already passed to
+                get here, and dropping it would re-raise it behind this one. */}
             <Btn
               v="gold"
-              onClick={() => confirmPull(true)}
+              onClick={() => confirmPull({ planAcked: true, shortAcked: true })}
               disabled={pulling}
               style={{ flex: 1, justifyContent: "center" }}
             >
@@ -1539,6 +1692,30 @@ export default function PullInventory({
             </Table>
           </div>
         </Modal>
+      )}
+
+      {/* ── MODAL: THE JOB NEEDS MORE MATERIAL THAN IT WAS PLANNED FOR ──────
+          Hands control back to the detail drawer rather than closing outright,
+          so the person who just added a line lands on the materials list with it
+          on it. The job does not change status or queue, so there is no hand-off
+          card to raise either. */}
+      {modal === "addPull" && sel && canAddPull(sel, perms) && (
+        <AddPullMaterialsModal
+          job={sel}
+          inv={inv}
+          users={users}
+          activeUser={user}
+          t={t}
+          onSaved={(updatedJob, changedBatches) => {
+            setJobs((p) => p.map((j) => (j.id === updatedJob.id ? updatedJob : j)));
+            setSel(updatedJob);
+            setInv((p) =>
+              p.map((i) => (changedBatches[i.id] ? { ...i, batches: changedBatches[i.id] } : i)),
+            );
+            setModal(null);
+          }}
+          onClose={() => setModal(null)}
+        />
       )}
 
       {modal === "edit" && sel && perms.jobs_edit_pull && (
@@ -1760,11 +1937,21 @@ export default function PullInventory({
           onClose={() => setSel(null)}
           wide
         >
-          {perms.jobs_edit_pull && (
-            <Row gap={0} align="stretch" justify="flex-end" style={{ marginBottom: 8 }}>
-              <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>
-                <Pencil size={13} aria-hidden="true" /> {t.pullEditJob}
-              </Btn>
+          {(perms.jobs_edit_pull || canAddPull(sel, perms)) && (
+            <Row gap={2} align="stretch" justify="flex-end" wrap style={{ marginBottom: 8 }}>
+              {/* Offered here as well as on the card: this drawer is where
+                  somebody who opened the job to check what it has will notice
+                  the line is missing. */}
+              {canAddPull(sel, perms) && (
+                <Btn v="outline" sz="sm" onClick={() => setModal("addPull")}>
+                  <Plus size={13} aria-hidden="true" /> {t.pullAddMatBtn}
+                </Btn>
+              )}
+              {perms.jobs_edit_pull && (
+                <Btn v="outline" sz="sm" onClick={() => startEditJob(sel)}>
+                  <Pencil size={13} aria-hidden="true" /> {t.pullEditJob}
+                </Btn>
+              )}
             </Row>
           )}
           <Divider style={{ margin: "18px 0 14px", borderTopColor: C.lg }} />

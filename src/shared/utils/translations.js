@@ -841,6 +841,47 @@ export const translations = {
       "Check the physical shelf first. If the material is really there, the count is wrong and Adjust Stock will fix it. If it is not there, pulling anyway records the shortfall against this job so it can be traced later.",
     pullShortCancel: "Go back and fix quantities",
     pullShortProceed: "Pull anyway and record the shortfall",
+    // The guard for the right quantity of the WRONG item: every other check
+    // passes clean, because the stock is there and FIFO succeeds. Only the
+    // approved plan knows anything is off. Worded as a question about the
+    // quantities rather than an accusation — most of the time it is a legitimate
+    // extra, and the dialog has to stay readable on the day it is not.
+    pullPlanTitle: "This does not match the approved plan",
+    pullPlanHeading: "Check these quantities before pulling",
+    pullPlanBody:
+      "These lines do not match what was approved for this job. That is often fine — but it is also what a quantity typed into the wrong row looks like, so it is worth a second look at the list before the stock moves.",
+    pullPlanColIssue: "What's off",
+    pullPlanOffPlan: "Not on the plan",
+    pullPlanSkipped: "Planned, pulling none",
+    pullPlanOver: "Well over plan",
+    pullPlanFootnote:
+      "Compare this against the paperwork in your hand. If a line says “Not on the plan” next to another that says “Planned, pulling none”, the quantity is almost certainly on the wrong row. Pulling anyway is recorded and will show up under Reports → Jobs for review.",
+    pullPlanCancel: "Go back and fix quantities",
+    pullPlanProceed: "Quantities are right, pull anyway",
+    // The crew is on site and needs more than the job was planned for. Worded
+    // around that moment rather than around the data model — nobody standing on a
+    // roof is looking for "pull added materials", they are looking for the button
+    // that gets them more coil without building a second job for the same roof.
+    pullAddMatBtn: "Need More Materials",
+    pullAddMatTitle: "Add Materials To This Job",
+    pullAddMatInfo:
+      "The job has already been pulled, so this adds to it: material already on the job that never went out, plus anything the plan did not account for. Stock comes off the shelf the same way as the original pull, and the job keeps a record that these lines were added after it started.",
+    pullAddMatOnJob: "On this job, not yet pulled",
+    pullAddMatNew: "Not on this job",
+    pullAddMatNoneAdded: "Nothing added yet — search below to put a new item on this job.",
+    pullAddMatAdd: "Add",
+    pullAddMatReason: "Why does this job need more? (optional)",
+    pullAddMatReasonHint:
+      "Stays on the job permanently, unlike the activity log. Worth a line for whoever reconciles the cost later — “roof measured short”, “two bundles damaged on site”.",
+    pullAddMatConfirm: "Add & Pull Materials",
+    pullAddMatSaving: "Pulling...",
+    pullAddMatSaved: "Materials added to the job and pulled from stock.",
+    pullAddMatFail: "Could not add the materials:",
+    pullAddMatNoChange: "Enter a quantity for at least one item first.",
+    pullAddMatNothing:
+      "Every material on this job has already been pulled. Search above to add something new, or use Correct Pulled Materials to change a quantity that already went out.",
+    pullAddMatGone:
+      "These items are no longer in inventory, so nothing was pulled: {items}. Refresh the page and try again.",
     pullPulledOk: "Materials successfully pulled from warehouse staging.",
     pullPullAborted: "Database Error: Pull aborted.",
     // Says where the job WENT, not just that something happened. Completing a job
@@ -925,6 +966,17 @@ export const translations = {
     rptColPrimaryMaterial: "Primary Material Consumed",
     rptNone: "None",
     rptNoCompletedLines: "No completed production lines available.",
+    // Pulls worth a second look. Covers active jobs too, not just completed ones:
+    // a wrong pull is cheap to fix while the material is still on the truck.
+    rptPullReviewTitle: "Pulls needing review",
+    rptPullReviewNote:
+      "Jobs whose pulled materials do not match the approved plan, or whose pull has already been corrected. Active jobs are included on purpose — a wrong pull is far cheaper to fix before the job is completed than after.",
+    rptPullReviewNone: "Every pulled job matches its approved plan. Nothing to review.",
+    rptPullReviewCount: "{n} of {total} pulled jobs need a look",
+    rptExportPullReview: "Export Review List",
+    rptColJobStatus: "Status",
+    rptPullReviewCorrected: "Pull corrected",
+    rptPullReviewCorrectedFrom: "was {qty}",
     rptInvTrendsTitle: "Structural Vendor Material Cost Trends",
     rptAllTrends: "All Trends",
     rptCostIncreasing: "Cost Increasing",
@@ -1071,18 +1123,6 @@ export const translations = {
     bjCorrectReturnNoChange: "Nothing was changed.",
     colCurrentlyReturned: "Currently Returned",
     colCorrectedReturned: "Corrected Total",
-    bjPullAdded: "Pull Added Materials",
-    bjPullAddedTitle: "Pull Added Materials",
-    bjPullAddedInfo:
-      "Pull stock for lines added to this job after its initial pull — nothing was deducted or costed for them yet. This deducts from the warehouse now (FIFO), same as a normal pull. A line already pulled belongs in Correct Return instead.",
-    bjPullAddedSaving: "Pulling...",
-    bjPullAddedSaved: "Materials pulled.",
-    bjPullAddedFail: "Could not pull the added materials:",
-    bjPullAddedNoChange: "Nothing was entered to pull.",
-    bjPullAddedShortTitle: "Pulling past available stock",
-    bjPullAddedShortAsk:
-      "This would take the warehouse balance below zero for: {items}. Pull anyway?",
-    bjPullAddedShortConfirm: "Pull anyway",
     bjCreatedTitle: "Job built",
     bjCreatedAssigned: "It is now in Pull Inventory, waiting for {name} to pull materials.",
     bjCreatedUnassigned:
@@ -2246,6 +2286,38 @@ export const translations = {
       "Revise el estante primero. Si el material sí está allí, el conteo está mal y Ajustar Stock lo corrige. Si no está, retirar de todos modos registra el faltante contra este trabajo para poder rastrearlo después.",
     pullShortCancel: "Volver y corregir cantidades",
     pullShortProceed: "Retirar de todos modos y registrar el faltante",
+    pullPlanTitle: "Esto no coincide con el plan aprobado",
+    pullPlanHeading: "Revise estas cantidades antes de retirar",
+    pullPlanBody:
+      "Estas líneas no coinciden con lo aprobado para este trabajo. Muchas veces no es problema — pero también es como se ve una cantidad escrita en la fila equivocada, así que vale revisar la lista antes de mover el material.",
+    pullPlanColIssue: "Qué no cuadra",
+    pullPlanOffPlan: "No está en el plan",
+    pullPlanSkipped: "Planificado, sin retirar",
+    pullPlanOver: "Muy por encima del plan",
+    pullPlanFootnote:
+      "Compare esto con el papeleo que tiene en mano. Si una línea dice “No está en el plan” junto a otra que dice “Planificado, sin retirar”, la cantidad casi seguro está en la fila equivocada. Retirar de todos modos queda registrado y aparecerá en Reportes → Trabajos para revisión.",
+    pullPlanCancel: "Volver y corregir cantidades",
+    pullPlanProceed: "Las cantidades están bien, retirar",
+    pullAddMatBtn: "Se Necesita Más Material",
+    pullAddMatTitle: "Agregar Material A Este Trabajo",
+    pullAddMatInfo:
+      "El material de este trabajo ya fue retirado, así que esto se suma: material que ya está en el trabajo pero nunca salió, más lo que el plan no contemplaba. El stock sale del almacén igual que en el retiro original, y el trabajo guarda constancia de que estas líneas se agregaron después de empezar.",
+    pullAddMatOnJob: "En este trabajo, aún sin retirar",
+    pullAddMatNew: "No está en este trabajo",
+    pullAddMatNoneAdded: "Nada agregado todavía — busque abajo para poner un artículo nuevo.",
+    pullAddMatAdd: "Agregar",
+    pullAddMatReason: "¿Por qué necesita más este trabajo? (opcional)",
+    pullAddMatReasonHint:
+      "Queda en el trabajo de forma permanente, a diferencia del registro de actividad. Vale una línea para quien revise el costo después — “el techo midió menos”, “dos paquetes dañados en obra”.",
+    pullAddMatConfirm: "Agregar y Retirar Material",
+    pullAddMatSaving: "Retirando...",
+    pullAddMatSaved: "Material agregado al trabajo y retirado del stock.",
+    pullAddMatFail: "No se pudo agregar el material:",
+    pullAddMatNoChange: "Ingrese una cantidad para al menos un artículo.",
+    pullAddMatNothing:
+      "Todo el material de este trabajo ya fue retirado. Busque arriba para agregar algo nuevo, o use Corregir Material Retirado para cambiar una cantidad que ya salió.",
+    pullAddMatGone:
+      "Estos artículos ya no están en el inventario, así que no se retiró nada: {items}. Actualice la página e intente de nuevo.",
     pullPulledOk: "Materiales retirados con éxito del almacén.",
     pullPullAborted: "Error de Base de Datos: Retiro cancelado.",
     pullJobCompleted:
@@ -2328,6 +2400,16 @@ export const translations = {
     rptColPrimaryMaterial: "Material Principal Consumido",
     rptNone: "Ninguno",
     rptNoCompletedLines: "No hay trabajos completados disponibles.",
+    rptPullReviewTitle: "Retiros que requieren revisión",
+    rptPullReviewNote:
+      "Trabajos cuyos materiales retirados no coinciden con el plan aprobado, o cuyo retiro ya fue corregido. Se incluyen los trabajos activos a propósito — un retiro equivocado es mucho más barato de corregir antes de completar el trabajo que después.",
+    rptPullReviewNone:
+      "Todos los trabajos retirados coinciden con su plan aprobado. Nada que revisar.",
+    rptPullReviewCount: "{n} de {total} trabajos retirados requieren revisión",
+    rptExportPullReview: "Exportar Lista de Revisión",
+    rptColJobStatus: "Estado",
+    rptPullReviewCorrected: "Retiro corregido",
+    rptPullReviewCorrectedFrom: "era {qty}",
     rptInvTrendsTitle: "Tendencias de Costo de Materiales de Proveedores",
     rptAllTrends: "Todas las Tendencias",
     rptCostIncreasing: "Costo en Aumento",
@@ -2477,18 +2559,6 @@ export const translations = {
     bjCorrectReturnNoChange: "No se cambió nada.",
     colCurrentlyReturned: "Devuelto Actualmente",
     colCorrectedReturned: "Total Corregido",
-    bjPullAdded: "Retirar Materiales Añadidos",
-    bjPullAddedTitle: "Retirar Materiales Añadidos",
-    bjPullAddedInfo:
-      "Retire del almacén los materiales de líneas añadidas a este trabajo después del retiro inicial — todavía no se les descontó ni costeó nada. Esto descuenta del almacén ahora (FIFO), igual que un retiro normal. Una línea ya retirada pertenece a Corregir Devolución, no aquí.",
-    bjPullAddedSaving: "Retirando...",
-    bjPullAddedSaved: "Materiales retirados.",
-    bjPullAddedFail: "No se pudieron retirar los materiales añadidos:",
-    bjPullAddedNoChange: "No se ingresó nada para retirar.",
-    bjPullAddedShortTitle: "Retirando más del stock disponible",
-    bjPullAddedShortAsk:
-      "Esto dejaría el balance del almacén por debajo de cero para: {items}. ¿Retirar de todos modos?",
-    bjPullAddedShortConfirm: "Retirar de todos modos",
     bjCreatedTitle: "Trabajo creado",
     bjCreatedAssigned: "Ya está en Retirar Inventario, esperando que {name} retire los materiales.",
     bjCreatedUnassigned:

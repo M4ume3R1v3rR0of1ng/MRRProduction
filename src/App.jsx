@@ -1167,6 +1167,7 @@ export default function App() {
                         inv={app.inv}
                         vehs={app.vehs}
                         reqs={app.reqs}
+                        jSC={jSC}
                         lang={lang}
                         setLang={setLang}
                       />

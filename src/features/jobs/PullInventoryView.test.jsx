@@ -166,6 +166,89 @@ describe("Pull Inventory: pull materials", () => {
     expect(view.state.jobs[0].status).toBe("active");
   });
 
+  // The mistake the shortfall check cannot see. Stock is plentiful, FIFO
+  // succeeds, nothing goes negative — and the job consumes 20 of an item it
+  // never planned for while the item it did plan for never leaves the shelf.
+  // The only thing that knows is the approved plan.
+  it("stops when the quantities do not match the plan, naming both halves of a wrong row", async () => {
+    const twoLine = job("j9", "approved", {
+      assignedto: "sam",
+      items: [line("i1", "Underlayment", { planned: 20 }), line("i2", "Sheathing", { planned: 0 })],
+    });
+    respond(
+      { table: "inventory", op: "select" },
+      {
+        data: [
+          { id: "i1", batches: [batch("b1", "2026-05-01", 100, 10)] },
+          { id: "i2", batches: [batch("b2", "2026-05-01", 100, 5)] },
+        ],
+      },
+    );
+    const view = renderPull([twoLine]);
+    await userEvent.click(screen.getByRole("button", { name: t.pullPullMaterials }));
+    const modal = modalTitled(`${t.pullPullMaterials} — ${twoLine.title}`);
+
+    // 20 typed into the Sheathing row, leaving Underlayment at nothing.
+    const [underlayment, sheathing] = within(modal).getAllByRole("spinbutton");
+    await userEvent.clear(underlayment);
+    await userEvent.type(underlayment, "0");
+    await userEvent.clear(sheathing);
+    await userEvent.type(sheathing, "20");
+    await userEvent.click(within(modal).getByRole("button", { name: t.pullConfirm }));
+
+    const warn = modalTitled(t.pullPlanTitle);
+    expect(within(warn).getByText(t.pullPlanSkipped)).toBeTruthy();
+    expect(within(warn).getByText(t.pullPlanOffPlan)).toBeTruthy();
+    // Nothing written, and the warehouse was never even read — this gate runs
+    // before the fresh batch select.
+    expect(commits()).toEqual([]);
+
+    // Backing out leaves the job exactly as it was.
+    await userEvent.click(within(warn).getByRole("button", { name: t.pullPlanCancel }));
+    expect(screen.queryByRole("heading", { name: t.pullPlanTitle })).toBeNull();
+    expect(view.state.jobs[0].status).toBe("approved");
+
+    // Second time through, confirm the quantities are deliberate.
+    await userEvent.click(within(modal).getByRole("button", { name: t.pullConfirm }));
+    await userEvent.click(
+      within(modalTitled(t.pullPlanTitle)).getByRole("button", { name: t.pullPlanProceed }),
+    );
+
+    expect(await screen.findByText(t.pullPulledOk)).toBeTruthy();
+    expect(commits()).toHaveLength(1);
+    const pulled = commits()[0].args.p_items;
+    expect(pulled.find((i) => i.iid === "i2")).toMatchObject({ pulled: 20 });
+    expect(pulled.find((i) => i.iid === "i1").pulled || 0).toBe(0);
+  });
+
+  it("asks about the plan first, then the shortfall, and carries both acks through", async () => {
+    // Both gates on one pull. The plan dialog is answered first because it needs
+    // no database round trip; the shortfall dialog can only come after the fresh
+    // read. Proceeding from the second must not re-raise the first.
+    const overPlan = job("j8", "approved", {
+      assignedto: "sam",
+      items: [line("i1", "Shingle", { planned: 10 })],
+    });
+    liveStock(batch("b1", "2026-05-01", 4, 10));
+    renderPull([overPlan]);
+    await userEvent.click(screen.getByRole("button", { name: t.pullPullMaterials }));
+    const modal = modalTitled(`${t.pullPullMaterials} — ${overPlan.title}`);
+
+    await setQty(modal, 40);
+    await userEvent.click(within(modal).getByRole("button", { name: t.pullConfirm }));
+
+    await userEvent.click(
+      within(modalTitled(t.pullPlanTitle)).getByRole("button", { name: t.pullPlanProceed }),
+    );
+    expect(commits()).toEqual([]);
+
+    const short = modalTitled(t.pullShortTitle);
+    await userEvent.click(within(short).getByRole("button", { name: t.pullShortProceed }));
+
+    expect(commits()).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: t.pullPlanTitle })).toBeNull();
+  });
+
   it("leaves the job and stock untouched when the transaction fails", async () => {
     liveStock(batch("b1", "2026-05-01", 50, 10));
     respond(
