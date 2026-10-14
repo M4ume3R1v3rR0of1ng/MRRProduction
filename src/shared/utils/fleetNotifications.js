@@ -64,6 +64,103 @@ export function buildAssignmentEmail(vehicle, { assignedByName } = {}) {
   };
 }
 
+// Pure: the subject/html for a spare lent while the driver's own vehicle is in for
+// service. Deliberately NOT buildAssignmentEmail — "Truck 12 is now assigned to you"
+// is wrong for a loan in both directions. It doesn't say the truck is a loaner, and it
+// doesn't say which of their vehicles went in, which is the thing the driver needs in
+// order to know what is happening to their day.
+//
+// Everything interpolated is user-entered and lands in HTML email, so it is escaped —
+// same rule as every other sendEmail call site.
+export function buildSpareLoanEmail(spare, { servicedVehicle, scheduledDate, lentByName } = {}) {
+  const rawSpare = vehicleLabel(spare);
+  const rawServiced = vehicleLabel(servicedVehicle);
+  const label = escapeHtml(rawSpare);
+  const serviced = escapeHtml(rawServiced);
+  const year = escapeHtml(spare?.year || spare?.yr || "");
+  const make = escapeHtml(spare?.make || "");
+  const model = escapeHtml(spare?.model || "");
+  const mileage = spare?.mi == null || spare.mi === "" ? "" : escapeHtml(spare.mi);
+  const by = escapeHtml(String(lentByName || "").trim());
+
+  // Dates arrive as a plain "YYYY-MM-DD" string from the request row. Formatted with
+  // parseDay-style care would be nicer, but a wrong date here is worse than a plain
+  // one, so the stored value is shown as-is.
+  const when = escapeHtml(String(scheduledDate || "").trim());
+
+  const row = (lbl, value) => (value ? `<p><strong>${lbl}:</strong> ${value}</p>` : "");
+  const spec = [year, make, model].filter(Boolean).join(" ");
+
+  return {
+    subject: `Spare Vehicle: drive ${rawSpare}${rawServiced === "a vehicle" ? "" : ` while ${rawServiced} is in for service`}`,
+    html:
+      `<h2>You have been given a spare vehicle</h2>` +
+      `<p>Drive <strong>${label}</strong> while <strong>${serviced}</strong> is in for service.</p>` +
+      row("Spare vehicle", spec) +
+      row("Current mileage", mileage) +
+      row("Service scheduled", when) +
+      row("Arranged by", by) +
+      `<p>This is temporary — ${serviced} goes back in your name as soon as the service is marked complete.</p>` +
+      `<p>Log in to the Fleet page to see the spare's service history, log mileage, or report a problem with it.</p>`,
+  };
+}
+
+// A spare was lent out: tell the driver which vehicle is now theirs and why.
+//
+// WHY THIS EXISTS SEPARATELY FROM notifyVehicleAssigned
+//
+// The loan RPC (assign_replacement_vehicle, supabase/19) moves the driver off their own
+// truck and onto the spare in one transaction, so the fleet board is correct and nobody
+// is ever told. The "unassigned" branch below already claimed "a service loan emails
+// separately" — this is the function that was supposed to be doing that, and until now
+// was not. Completing the service pops the driver's dashboard alert (supabase/38), so
+// before this they were told when they got their own truck BACK and never told they had
+// been given a loaner in the first place.
+//
+// WHY IT SHARES THE `assigned` TOGGLE
+//
+// A loaner is a truck the driver has been given, which is exactly what that automation
+// promises to email about ("Email a driver about the truck they have been given"). A
+// separate key would default to off, which would mean this still silently did nothing
+// until an admin went looking for a switch they have no reason to expect.
+//
+// Returns a result rather than throwing: the swap is already committed when this runs,
+// and a loan must never fail on account of an email.
+export async function notifySpareLent({
+  spare,
+  servicedVehicle,
+  driverId,
+  scheduledDate,
+  users = [],
+  prefs,
+  actorId,
+  lentByName,
+  send = sendEmail,
+}) {
+  if (!prefs || prefs.assigned !== true) return { sent: false, reason: "disabled" };
+
+  // The serviced vehicle had nobody on it. The loan still makes sense (the spare is
+  // staged ready for whoever takes the work) but there is no driver to write to.
+  const next = String(driverId ?? "").trim();
+  if (!next) return { sent: false, reason: "no-driver" };
+
+  // Same rule as everywhere else: nobody is emailed about their own action. A driver
+  // who lends themselves a spare already knows which one they picked.
+  if (actorId && String(actorId) === next) return { sent: false, reason: "self-assign" };
+
+  const driver = users.find((u) => u && String(u.id) === next);
+  if (!driver?.email || driver.active === false) return { sent: false, reason: "no-driver-email" };
+
+  const mail = buildSpareLoanEmail(spare, { servicedVehicle, scheduledDate, lentByName });
+
+  try {
+    await send({ to: driver.email, subject: mail.subject, html: mail.html });
+    return { sent: true, event: "spare-lent", to: driver.email };
+  } catch (err) {
+    return { sent: false, reason: "send-failed", error: err?.message };
+  }
+}
+
 // A vehicle changed hands: tell the driver who now has it. Returns a result rather than
 // throwing, because assigning a vehicle must never fail on account of an email.
 //

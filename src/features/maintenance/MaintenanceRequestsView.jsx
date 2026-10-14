@@ -65,6 +65,9 @@ export default function MaintenanceRequestsView({
   perms,
   curUser,
   maintenanceNotifications,
+  // Only used by the Lend a Spare dialog this view mounts — a loan emails the driver
+  // which vehicle is now theirs, and that is a fleet automation, not a maintenance one.
+  fleetNotifications,
   maintManagers = [],
   lang,
   openItemId,
@@ -1086,6 +1089,8 @@ export default function MaintenanceRequestsView({
           reqs={reqs}
           setReqs={setReqs}
           user={activeUser}
+          users={users}
+          fleetNotifications={fleetNotifications}
           lang={lang}
           onClose={() => setLendSpareReq(null)}
         />

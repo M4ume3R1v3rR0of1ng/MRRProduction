@@ -17,6 +17,7 @@ import { translations } from "@/shared/utils/translations";
 import { renderStateful } from "@/test/renderView";
 import { reset, respond, writes, rpcCalls, auditLog } from "@/test/fakeSupabase";
 import { person, permsFor } from "@/test/fixtures/jobs";
+import { sendEmail } from "@/shared/utils/email";
 
 vi.mock("@supabase/supabase-js", async () => {
   const { fakeSupabase } = await import("@/test/fakeSupabase");
@@ -314,7 +315,9 @@ describe("Maintenance: lending a spare while a truck is in the shop", () => {
   const spare = { ...truck, id: "v2", name: "Truck 7", plate: "XYZ-9876" };
   const driven = { ...truck, assignedTo: driver.id };
 
-  const renderFleet = (reqs, vehs = [driven, spare], permOverrides = {}) =>
+  // fleetNotifications defaults to {} — the loan email is off unless a test asks for
+  // it, matching a company that has never turned the automation on.
+  const renderFleet = (reqs, vehs = [driven, spare], permOverrides = {}, fleetNotifications = {}) =>
     renderStateful(MaintenanceRequestsView, {
       state: { reqs, vehs },
       props: {
@@ -322,6 +325,7 @@ describe("Maintenance: lending a spare while a truck is in the shop", () => {
         user: manager,
         perms: { ...permsFor(manager), ...permOverrides },
         maintenanceNotifications: {},
+        fleetNotifications,
         maintManagers: [manager],
         lang: "en",
         company: { id: "c1", name: "Test Co" },
@@ -372,6 +376,39 @@ describe("Maintenance: lending a spare while a truck is in the shop", () => {
       original_driver_id: driver.id,
     });
     expect(auditLog()).toContain("FLEET_STATUS_CHANGE");
+  });
+
+  // The swap alone leaves the fleet board correct and the driver uninformed. Completing
+  // the service pops their dashboard alert (supabase/38), so without this they were told
+  // when they got their own truck BACK and never told they had been lent one.
+  it("emails the driver which spare is theirs and why", async () => {
+    renderFleet([ticket("r1", "pending")], [driven, spare], {}, { assigned: true });
+    await schedule();
+
+    await userEvent.click(
+      within(modalTitled(`${t.flLendSpare} — Truck 3 (ABC-1234)`)).getByText("Truck 7"),
+    );
+    expect(await screen.findByText(t.flSpareLent)).toBeTruthy();
+
+    expect(sendEmail).toHaveBeenCalledTimes(1);
+    const mail = sendEmail.mock.calls[0][0];
+    expect(mail.to).toBe(driver.email);
+    // Both halves: what to drive, and which of their trucks went in.
+    expect(mail.html).toContain("Truck 7 (XYZ-9876)");
+    expect(mail.html).toContain("Truck 3 (ABC-1234)");
+  });
+
+  it("does not email when the fleet automation is switched off", async () => {
+    // Every outbound email in this app is an admin choice, and this one shares the
+    // Fleet → "Vehicle assigned" toggle rather than adding a switch of its own.
+    renderFleet([ticket("r1", "pending")]);
+    await schedule();
+
+    await userEvent.click(
+      within(modalTitled(`${t.flLendSpare} — Truck 3 (ABC-1234)`)).getByText("Truck 7"),
+    );
+    expect(await screen.findByText(t.flSpareLent)).toBeTruthy();
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 
   it("leaves the ticket scheduled and lends nothing when the swap is refused", async () => {

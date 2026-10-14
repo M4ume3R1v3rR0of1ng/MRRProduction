@@ -1141,6 +1141,7 @@ export default function App() {
                         user={app.curUser}
                         perms={app.userPerms}
                         maintenanceNotifications={app.maintenanceNotifications}
+                        fleetNotifications={app.fleetNotifications}
                         maintManagers={app.maintManagers}
                         lang={lang}
                         setLang={setLang}

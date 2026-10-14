@@ -15,6 +15,11 @@
 // As three supabase calls from here, a failure on the second leaves a driver on two
 // vehicles or on none, and the fleet screen is the only place anyone would notice.
 // See supabase/19_maintenance_vehicle_swap.sql.
+//
+// Those three writes leave the fleet board correct and the driver uninformed, which is
+// why the swap is followed by notifySpareLent. Gated on the Fleet → "Vehicle assigned"
+// automation, same toggle as a normal assignment: see that function's header for why it
+// shares the switch rather than adding one.
 import { useState } from "react";
 import { Truck, Tractor } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
@@ -33,6 +38,7 @@ import { C } from "@/shared/utils/helpers";
 import { translations } from "@/shared/utils/translations";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
+import { notifySpareLent } from "@/shared/utils/fleetNotifications";
 import { availableSpares } from "./fleetStatus";
 
 export default function LendSpareModal({
@@ -42,6 +48,8 @@ export default function LendSpareModal({
   reqs,
   setReqs,
   user,
+  users = [],
+  fleetNotifications,
   lang = "en",
   onClose,
 }) {
@@ -94,6 +102,27 @@ export default function LendSpareModal({
         { vehicle_id: req.vid, request_id: req.id, replacement_id: replacementId },
         "fleet",
       );
+
+      // Tell the driver which truck is now theirs. Deliberately not awaited, same as
+      // the assignment email in FleetManagementView: the swap is already committed, and
+      // a slow or failed relay must not hold the dialog open or surface as a loan
+      // failure. notifySpareLent resolves either way.
+      //
+      // Without this the driver was never told. The swap moves them onto the spare and
+      // the fleet board is correct, but the only person who needed to know found out by
+      // walking to the yard — and completing the service pops their dashboard alert
+      // (supabase/38), so they were told when they got their own truck back and never
+      // told they had been lent one.
+      notifySpareLent({
+        spare: vehs.find((x) => x.id === replacementId),
+        servicedVehicle: vehs.find((x) => x.id === req.vid) || { name: req.vname },
+        driverId,
+        scheduledDate: req.scheduled_date,
+        users,
+        prefs: fleetNotifications,
+        actorId: user.id,
+        lentByName: user.name || user.email,
+      });
 
       showToast(t.flSpareLent, "success");
       onClose();

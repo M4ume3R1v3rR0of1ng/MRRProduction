@@ -1478,6 +1478,8 @@ export default function FleetManagementView({
           reqs={reqs}
           setReqs={setReqs}
           user={user}
+          users={users}
+          fleetNotifications={fleetNotifications}
           lang={lang}
           onClose={() => setSwapReq(null)}
         />
