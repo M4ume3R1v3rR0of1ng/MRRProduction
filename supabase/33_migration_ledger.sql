@@ -387,6 +387,14 @@ begin
         and conname = 'inventory_counts_period_fmt'
     ), false),
     'constraint inventory_counts_period_fmt also accepts the ISO week shape');
+
+  perform public._mig_record('51_correct_job_pull.sql',
+    public._mig_has_function('correct_job_pull'),
+    'function correct_job_pull');
+
+  perform public._mig_record('52_add_and_pull_job_materials.sql',
+    public._mig_has_function('add_and_pull_job_materials'),
+    'function add_and_pull_job_materials');
 end $$;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists
