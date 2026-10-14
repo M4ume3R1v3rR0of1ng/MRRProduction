@@ -4,6 +4,7 @@ import App from "./App.jsx";
 import { NotificationProvider } from "./shared/context/NotificationContext";
 import ErrorBoundary from "./shared/components/ErrorBoundary"; // Imported boundary class
 import { registerSW } from "virtual:pwa-register";
+import { reloadWhenIdle } from "./shared/utils/deferredReload";
 import { applyTheme, readTheme } from "./shared/utils/theme";
 import { initSentry } from "./shared/utils/sentry";
 import "./tokens.css";
@@ -35,11 +36,34 @@ initSentry();
 // is a bare navigator.serviceWorker.register() with no update listener, so the
 // new worker would take over in the background while the open page kept running
 // the old bundle until a manual reload. Importing here swaps injectRegister
-// 'auto' over to the real client, which owns the reload.
+// 'auto' over to the real client, which is what makes the reload below possible
+// at all — and which hands the timing of it to onNeedReload.
 const UPDATE_CHECK_MS = 60_000;
+
+let heldUpdateLogged = false;
+const logHeldUpdateOnce = (blocker) => {
+  if (heldUpdateLogged) return;
+  heldUpdateLogged = true;
+  console.info(
+    `[update] A new version is ready and is being held back (${blocker}). ` +
+      "The page will reload itself as soon as nothing is being typed.",
+  );
+};
 
 registerSW({
   immediate: true,
+  // Without this the register client reloads the tab the moment the new worker
+  // activates, which discards whatever was being typed at the time — a pull
+  // quantity, a chat message, a half-finished job edit. Taking the callback moves
+  // the decision of WHEN, not whether: utils/deferredReload waits for a gap
+  // between tasks, and that file's header explains why the wait is bounded.
+  onNeedReload() {
+    reloadWhenIdle({
+      // One line, once, so support can tell "held back deliberately" apart from
+      // "the update never arrived". Not repeated on every poll.
+      onDefer: logHeldUpdateOnce,
+    });
+  },
   onRegisteredSW(_swUrl, registration) {
     if (!registration) return;
     setInterval(() => {
