@@ -624,6 +624,7 @@ export const translations = {
     pending: "Pending",
     scheduled: "Scheduled",
     completed: "Completed",
+    expired: "Expired",
     reportedNotes: "Reported Notes & Detailed Description",
     urgency: "Urgency Level",
 
@@ -2071,6 +2072,7 @@ export const translations = {
     pending: "Pendiente",
     scheduled: "Programado",
     completed: "Completado",
+    expired: "Vencido",
     reportedNotes: "Notas Reportadas y Descripción Detallada",
     urgency: "Nivel de Urgencia",
 

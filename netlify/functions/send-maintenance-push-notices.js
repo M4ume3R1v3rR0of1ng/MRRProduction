@@ -2,8 +2,27 @@
 //
 // Nightly job: tell a driver 7 days before their truck's oil change is
 // projected due (from the truck's own mileage log — see
-// _shared/oilForecast.js), then escalate to a daily URGENT notice starting
-// the day it's due if nobody has filed a matching maintenance request.
+// _shared/oilForecast.js), then escalate daily once it is due until the oil
+// change is actually recorded.
+//
+// A FILED REQUEST PAUSES THE ESCALATION. IT DOES NOT END IT.
+//
+// Filing an oil-change maintenance request used to set resolved_at and silence
+// the cycle for good, which treated a statement of intent as a completed
+// service. The real world does not cooperate: drivers file late, managers
+// forget to approve, shops reschedule, and the truck keeps moving the whole
+// time. The ladder now is:
+//
+//   days 1-3 after filing   silent. Somebody is plausibly on it
+//                           (REQUEST_GRACE_DAYS).
+//   day 4 onward, daily     "stalled" — manager only. The driver did the one
+//                           thing asked of them; the hold-up is not theirs.
+//   day 14                  the request is auto-closed as `expired`
+//                           (REQUEST_EXPIRY_DAYS, supabase/53), and from the
+//                           next run the full driver+manager escalation
+//                           resumes, because nothing is open on the truck.
+//   any day                 a RECORDED oil change (vehicles.lomi moves) ends
+//                           the cycle. That, and only that.
 //
 // TWO AUDIENCES, NOT ONE
 //
@@ -78,30 +97,73 @@ const MAIL_FROM = platformFromAddress("alerts");
 const DAY_MS = 86400000;
 const HEADS_UP_WINDOW_DAYS = 7;
 
+// How long an open oil-change request buys. Three days covers a driver getting
+// to the shop, a manager approving the request, and the shop actually doing the
+// work — and is short enough that a request nobody is working on stops passing
+// for progress. Days 1-3 are silent; a request still open on day 4 stalls.
+export const REQUEST_GRACE_DAYS = 3;
+
+// When an open request stops counting as a request at all. At two weeks the
+// thing is not pending, it is abandoned, and leaving it open means it keeps
+// suppressing the DRIVER's half of the escalation for a truck that has been
+// running past its interval for a fortnight. Auto-closing it as `expired`
+// (supabase/53) hands the truck back to the normal overdue escalation and keeps
+// the maintenance board free of tickets nobody will ever action.
+export const REQUEST_EXPIRY_DAYS = 14;
+
 // True when `isoTimestamp` falls on the same UTC calendar day as `todayStr`
-// ("YYYY-MM-DD"). Used to cap the urgent escalation at one send per day.
+// ("YYYY-MM-DD"). Used to cap each escalation at one send per day.
 export function isSameUtcDay(isoTimestamp, todayStr) {
   if (!isoTimestamp) return false;
   return String(isoTimestamp).slice(0, 10) === todayStr;
 }
 
+// Whole calendar days from `fromDay` to `todayStr`, floored at 0. Both ends are
+// parsed in one UTC frame (see oilForecast.parseDay), so this counts days and
+// is not an hours-apart division a daylight saving change can tip onto the
+// wrong side of a rounding boundary. `fromDay` may be a full timestamp — a
+// request's `at` is a timestamptz — and only its calendar day is used: a
+// request filed at 11pm is one day old the next morning, not 0.42.
+export function wholeDaysSince(fromDay, todayStr) {
+  const from = parseDay(fromDay);
+  const today = parseDay(todayStr);
+  if (!from || !today) return 0;
+  return Math.max(0, Math.round((today - from) / DAY_MS));
+}
+
 // The pure decision for one vehicle on one day — no I/O, so this is what the
 // unit tests exercise directly. `existingNotice` is the current
-// oil_due_notices row for this vehicle (or null); `hasResolvingRequest` is
-// whether a pending/scheduled Oil Change request already covers the CURRENT
-// cycle (the caller is responsible for that "current cycle" filtering, since
-// it needs the maintenance_requests table).
+// oil_due_notices row for this vehicle (or null); `resolvingRequestAt` is the
+// filing timestamp of the OLDEST open (pending/scheduled) oil-change request
+// covering the current cycle, or null if there is none — the caller does that
+// filtering, since it needs the maintenance_requests table.
 //
-// Returns { action, projectedDueDate }, action one of:
+// Oldest rather than newest on purpose: the grace window is measured from when
+// somebody first raised this, so filing a second request for the same truck
+// cannot buy another three days of silence.
+//
+// Returns { action, projectedDueDate, daysOverdue, daysRequestOpen }, action
+// one of:
 //   "none"        - nothing to do today
 //   "clear_cycle" - the stored cycle is stale (oil was actually changed, or
 //                   this vehicle no longer projects a due date at all) and
 //                   the tracking row should be deleted
-//   "resolve"     - a qualifying request showed up; mark the row resolved,
-//                   no push
+//   "pause"       - a qualifying request showed up; stamp the row as paused,
+//                   notify nobody
 //   "heads_up"    - send the 7-day heads-up, upsert the tracking row
-//   "urgent"      - send today's urgent escalation, upsert the tracking row
-export function decideNoticeAction({ vehicle, todayStr, existingNotice, hasResolvingRequest }) {
+//   "urgent"      - send today's overdue escalation to driver AND manager
+//   "stalled"     - an open request has outlived the grace window: today's
+//                   manager-only escalation. The caller also expires the
+//                   request once daysRequestOpen reaches REQUEST_EXPIRY_DAYS.
+//
+// WHAT A PAUSE IS NOT
+//
+// `paused_at` being set does NOT suppress "urgent". That was the bug (see
+// supabase/53): a request filed and then closed, cancelled, or auto-expired
+// without the oil ever being changed left the truck permanently silent. The
+// only thing that ends a cycle is a recorded oil change, which arrives here as
+// staleCycle below.
+export function decideNoticeAction({ vehicle, todayStr, existingNotice, resolvingRequestAt }) {
   const cycleLomi = Number(vehicle.lomi) || 0;
   // A stored cycle whose baseline lomi no longer matches the vehicle's current
   // lomi means the oil was actually changed since that cycle opened — it's
@@ -119,15 +181,43 @@ export function decideNoticeAction({ vehicle, todayStr, existingNotice, hasResol
 
   // Due date reached or passed.
   if (daysOut <= 0) {
-    if (hasResolvingRequest) {
-      if (notice && !notice.resolved_at) return { action: "resolve", projectedDueDate };
-      return { action: staleCycle ? "clear_cycle" : "none", projectedDueDate };
+    const daysOverdue = -daysOut;
+
+    if (resolvingRequestAt) {
+      const daysRequestOpen = wholeDaysSince(resolvingRequestAt, todayStr);
+
+      // Inside the grace window: somebody is plausibly on it. Stamp the pause
+      // the first time so the row records WHY this cycle went quiet, then say
+      // nothing for the rest of the window.
+      if (daysRequestOpen < REQUEST_GRACE_DAYS) {
+        if (notice && !notice.paused_at) {
+          return { action: "pause", projectedDueDate, daysOverdue, daysRequestOpen };
+        }
+        return {
+          action: staleCycle ? "clear_cycle" : "none",
+          projectedDueDate,
+          daysOverdue,
+          daysRequestOpen,
+        };
+      }
+
+      // The window has lapsed and the request is still open. The driver already
+      // did what was asked of them, so this goes to the manager alone — capped
+      // at one a day by its own timestamp, which is deliberately not the one
+      // that caps "urgent".
+      if (isSameUtcDay(notice?.stall_last_sent_at, todayStr)) {
+        return { action: "none", projectedDueDate, daysOverdue, daysRequestOpen };
+      }
+      return { action: "stalled", projectedDueDate, daysOverdue, daysRequestOpen };
     }
-    if (notice?.resolved_at) return { action: "none", projectedDueDate }; // already resolved this cycle
+
+    // No open request — including the case where one was just expired, or was
+    // closed by hand without the oil being changed. Full escalation, both
+    // audiences. Note paused_at is NOT consulted: see "WHAT A PAUSE IS NOT".
     if (isSameUtcDay(notice?.urgent_last_sent_at, todayStr)) {
-      return { action: "none", projectedDueDate };
+      return { action: "none", projectedDueDate, daysOverdue };
     }
-    return { action: "urgent", projectedDueDate };
+    return { action: "urgent", projectedDueDate, daysOverdue };
   }
 
   // Within the heads-up window and not sent yet for this cycle. <= rather than
@@ -175,14 +265,23 @@ export function buildUrgentMessage(vehicle, dueDate) {
 // been and that nobody has filed anything. A forwarded driver notice reads like
 // a cc and gets filtered like one.
 //
-// `daysOverdue` is only passed for the urgent event. It is derived from the
-// projected date rather than counted from the first notice, so it stays right
-// even if the job missed days.
-export function buildManagerMessage(vehicle, dueDate, { urgent, driverName, daysOverdue } = {}) {
+// `event` is "heads_up", "urgent" or "stalled" — the same three the decision
+// produces. `daysOverdue` is derived from the projected date rather than
+// counted from the first notice, so it stays right even if the job missed days.
+export function buildManagerMessage(
+  vehicle,
+  dueDate,
+  { event = "heads_up", driverName, daysOverdue = 0, daysRequestOpen = 0, expired = false } = {},
+) {
   const name = vehicleLabel(vehicle);
   const whose = driverName ? `assigned to ${driverName}` : "with no driver assigned";
+  // Day 0 is the due date itself, so "0 days overdue" would be wrong on the
+  // first escalation — the truck is due TODAY and unactioned, which is already
+  // the thing worth saying.
+  const pastDue =
+    daysOverdue > 0 ? `${daysOverdue} day${daysOverdue === 1 ? "" : "s"} past due` : "due today";
 
-  if (!urgent) {
+  if (event === "heads_up") {
     return {
       title: `Oil change due soon: ${name}`,
       body: `${name} (${whose}) is projected due for an oil change around ${dueDate}. The driver has been notified.`,
@@ -190,30 +289,34 @@ export function buildManagerMessage(vehicle, dueDate, { urgent, driverName, days
     };
   }
 
-  // Day 0 is the due date itself, so "0 days overdue" would be wrong on the
-  // first urgent notice — it is due TODAY and unfiled, which is already the
-  // escalation.
-  const howLong =
-    daysOverdue > 0 ? `${daysOverdue} day${daysOverdue === 1 ? "" : "s"} overdue` : "due today";
+  if (event === "stalled") {
+    // A request exists, so this is not "nobody knows" — it is "somebody raised
+    // it and it has not moved". Saying which of the two it is, in the subject,
+    // is the difference between a manager chasing the driver and a manager
+    // chasing the shop.
+    const openFor = `open ${daysRequestOpen} day${daysRequestOpen === 1 ? "" : "s"}`;
+    return {
+      title: `ACTION NEEDED: oil change request stalled — ${name} (${pastDue}, request filed but no oil change recorded)`,
+      body:
+        `${name} (${whose}) was projected due for an oil change on ${dueDate} — ${pastDue}. ` +
+        `A maintenance request has been ${openFor} and no oil change has been recorded against the ` +
+        `vehicle, so it is still running on the old interval.` +
+        (expired
+          ? ` That request has now been open ${daysRequestOpen} days and has been auto-closed as expired; ` +
+            `from tomorrow this truck goes back to the full overdue escalation, driver included.`
+          : ""),
+      data: { type: "oil_due_manager_stalled", vehicleId: vehicle.id },
+    };
+  }
+
   return {
-    title: `ACTION NEEDED: oil change ${howLong} — ${name}`,
+    title: `ACTION NEEDED: oil change ${pastDue} — ${name}`,
     body:
-      `${name} (${whose}) was projected due for an oil change on ${dueDate} — ${howLong} — ` +
+      `${name} (${whose}) was projected due for an oil change on ${dueDate} — ${pastDue} — ` +
       `and no maintenance request has been filed. No oil change has been recorded against it either, ` +
       `so the truck is still running on the old interval.`,
     data: { type: "oil_due_manager_urgent", vehicleId: vehicle.id },
   };
-}
-
-// Whole days between the projected due date and today, floored at 0. Both ends
-// are plain calendar days parsed in one UTC frame (see oilForecast.parseDay),
-// so this is a count of days and not an hours-apart division that a daylight
-// saving change can push onto the wrong side of a rounding boundary.
-export function daysOverdueOn(dueDate, todayStr) {
-  const due = parseDay(dueDate);
-  const today = parseDay(todayStr);
-  if (!due || !today) return 0;
-  return Math.max(0, Math.round((today - due) / DAY_MS));
 }
 
 function escapeHtml(value) {
@@ -343,6 +446,60 @@ async function writeAssistantChatMessage(admin, companyId, userId, text, vehicle
   }
 }
 
+// Auto-closes the oil-change requests that have outlived REQUEST_EXPIRY_DAYS,
+// as `expired` (supabase/53 documents the status). Returns how many closed.
+//
+// NOT `completed`: nothing was completed. Writing completed would put a service
+// that never happened into the vehicle's maintenance history, its reports, and
+// the "past services" the fleet card learns its intervals from — poisoning the
+// very projection this job runs on.
+//
+// Scoped three ways, because a service-role client has no RLS to fall back on:
+// by company, by the exact request ids this cycle is tracking, and by the
+// statuses that are still open. The status filter also makes it safe against a
+// race — if somebody approved or completed the request in the seconds since
+// this run read it, the update matches nothing rather than reopening a decision
+// a person already made.
+//
+// The reason is APPENDED to wh_notes, never written over it. That field holds
+// whatever the scheduler or the shop wrote — "waiting on a filter", "booked for
+// Tuesday" — which is the most useful thing on the ticket for working out why
+// it stalled. Replacing it would destroy the evidence at the exact moment
+// somebody needs it. One update per request rather than one bulk update is the
+// price of that, and there is normally one request per truck.
+//
+// Best-effort like every other write here: a failure is logged and the stall
+// notice still goes out.
+async function expireStaleRequests(admin, requests, companyId, vehicleLabel) {
+  const note =
+    `Auto-closed after ${REQUEST_EXPIRY_DAYS} days: still open, and no oil change was ` +
+    `recorded against this vehicle. Overdue escalation resumes.`;
+
+  let closed = 0;
+  for (const request of requests || []) {
+    if (!request?.id) continue;
+    const existing = String(request.wh_notes || "").trim();
+
+    const { data, error } = await admin
+      .from("maintenance_requests")
+      .update({ status: "expired", wh_notes: existing ? `${existing}\n\n${note}` : note })
+      .eq("company_id", companyId)
+      .eq("id", request.id)
+      .in("status", ["pending", "scheduled"])
+      .select("id");
+
+    if (error) {
+      console.error(
+        `send-maintenance-push-notices: expiring request ${request.id} failed for ${vehicleLabel}:`,
+        error.message,
+      );
+      continue;
+    }
+    closed += data?.length || 0;
+  }
+  return closed;
+}
+
 // Every manager channel for one event, in parallel. Returns the count mailed so
 // the job's log line says whether the escalation actually reached anybody.
 async function notifyManagers(
@@ -390,7 +547,9 @@ const rawHandler = async () => {
 
   let headsUpSent = 0;
   let urgentSent = 0;
-  let resolved = 0;
+  let stalledSent = 0;
+  let paused = 0;
+  let requestsExpired = 0;
   let managerNotices = 0;
   let unassignedEscalated = 0;
 
@@ -404,7 +563,7 @@ const rawHandler = async () => {
       admin.from("oil_due_notices").select("*").eq("company_id", company.id),
       admin
         .from("maintenance_requests")
-        .select("vid, type, at")
+        .select("id, vid, type, at, wh_notes")
         .eq("company_id", company.id)
         .in("status", ["pending", "scheduled"]),
     ]);
@@ -469,18 +628,25 @@ const rawHandler = async () => {
       // Change, ..." (comma-joined), not the bare "Oil Change" the completion
       // dropdown uses, hence the substring match rather than an exact one.
       // See MaintenanceRequestsView.jsx vs CompleteServiceModal.jsx.
-      const hasResolvingRequest = (openReqs || []).some(
-        (r) =>
-          r.vid === vehicle.id &&
-          /oil change/i.test(r.type || "") &&
-          (!existingNotice || String(r.at) >= String(existingNotice.cycle_started_at)),
-      );
+      //
+      // Sorted and kept, not reduced to a boolean: the grace window is measured
+      // from the OLDEST of them (so a second request for the same truck cannot
+      // buy another three days of quiet), and the ids are what gets expired at
+      // the two-week mark.
+      const cycleRequests = (openReqs || [])
+        .filter(
+          (r) =>
+            r.vid === vehicle.id &&
+            /oil change/i.test(r.type || "") &&
+            (!existingNotice || String(r.at) >= String(existingNotice.cycle_started_at)),
+        )
+        .sort((a, b) => String(a.at).localeCompare(String(b.at)));
 
       const decision = decideNoticeAction({
         vehicle,
         todayStr,
         existingNotice,
-        hasResolvingRequest,
+        resolvingRequestAt: cycleRequests[0]?.at || null,
       });
       const nowIso = new Date().toISOString();
       // NOT named vehicleLabel — that name is the exported fallback-chain
@@ -492,7 +658,7 @@ const rawHandler = async () => {
         staleVehicleIds.push(vehicle.id);
         continue;
       }
-      if (decision.action === "resolve") {
+      if (decision.action === "pause") {
         upserts.push({
           company_id: company.id,
           vehicle_id: vehicle.id,
@@ -503,16 +669,17 @@ const rawHandler = async () => {
           projected_due_date: decision.projectedDueDate,
           heads_up_sent_at: existingNotice.heads_up_sent_at,
           urgent_last_sent_at: existingNotice.urgent_last_sent_at,
-          resolved_at: nowIso,
+          stall_last_sent_at: existingNotice.stall_last_sent_at,
+          paused_at: nowIso,
           updated_at: nowIso,
         });
-        resolved++;
+        paused++;
         continue;
       }
       if (decision.action === "heads_up") {
         const message = buildHeadsUpMessage(vehicle, decision.projectedDueDate);
         const managerMessage = buildManagerMessage(vehicle, decision.projectedDueDate, {
-          urgent: false,
+          event: "heads_up",
           driverName: driver?.full_name,
         });
         await Promise.all([
@@ -543,7 +710,62 @@ const rawHandler = async () => {
           projected_due_date: decision.projectedDueDate,
           heads_up_sent_at: nowIso,
           urgent_last_sent_at: existingNotice?.urgent_last_sent_at || null,
-          resolved_at: null,
+          stall_last_sent_at: existingNotice?.stall_last_sent_at || null,
+          paused_at: null,
+          updated_at: nowIso,
+        });
+        continue;
+      }
+      if (decision.action === "stalled") {
+        // Two weeks open is not pending, it is abandoned. Expiring it here —
+        // before the notice is composed — is what makes the `expired` wording
+        // below true, and from tomorrow the truck falls back into the normal
+        // driver+manager escalation because nothing is open on it any more.
+        const expiring = decision.daysRequestOpen >= REQUEST_EXPIRY_DAYS;
+        if (expiring) {
+          requestsExpired += await expireStaleRequests(
+            admin,
+            cycleRequests,
+            company.id,
+            vehicleLogLabel,
+          );
+        }
+
+        const managerMessage = buildManagerMessage(vehicle, decision.projectedDueDate, {
+          event: "stalled",
+          driverName: driver?.full_name,
+          daysOverdue: decision.daysOverdue,
+          daysRequestOpen: decision.daysRequestOpen,
+          expired: expiring,
+        });
+        // Manager-only, deliberately. The driver filed the request; whatever is
+        // holding it up is not theirs to answer for, and a daily nag about a
+        // ticket they cannot approve or schedule is how people learn to ignore
+        // this channel.
+        managerNotices += await notifyManagers(admin, {
+          companyId: company.id,
+          companyName: company.name,
+          managers,
+          message: managerMessage,
+          vehicleLabel: vehicleLogLabel,
+          apnsReady,
+          urgent: true,
+        });
+        stalledSent++;
+        upserts.push({
+          company_id: company.id,
+          vehicle_id: vehicle.id,
+          driver_id: driverId,
+          vehicle_name: vehicleLabel(vehicle),
+          cycle_lomi: Number(vehicle.lomi) || 0,
+          cycle_started_at: existingNotice?.cycle_started_at || nowIso,
+          projected_due_date: decision.projectedDueDate,
+          heads_up_sent_at: existingNotice?.heads_up_sent_at || null,
+          urgent_last_sent_at: existingNotice?.urgent_last_sent_at || null,
+          stall_last_sent_at: nowIso,
+          // The pause stamp stays. It is the record of when a request bought
+          // this cycle its three days, and clearing it would lose that.
+          paused_at: existingNotice?.paused_at || null,
           updated_at: nowIso,
         });
         continue;
@@ -551,9 +773,9 @@ const rawHandler = async () => {
       if (decision.action === "urgent") {
         const message = buildUrgentMessage(vehicle, decision.projectedDueDate);
         const managerMessage = buildManagerMessage(vehicle, decision.projectedDueDate, {
-          urgent: true,
+          event: "urgent",
           driverName: driver?.full_name,
-          daysOverdue: daysOverdueOn(decision.projectedDueDate, todayStr),
+          daysOverdue: decision.daysOverdue,
         });
         await Promise.all([
           pushToUser(admin, driverId, message, vehicleLogLabel, apnsReady),
@@ -585,7 +807,8 @@ const rawHandler = async () => {
           projected_due_date: decision.projectedDueDate,
           heads_up_sent_at: existingNotice?.heads_up_sent_at || null,
           urgent_last_sent_at: nowIso,
-          resolved_at: null,
+          stall_last_sent_at: existingNotice?.stall_last_sent_at || null,
+          paused_at: existingNotice?.paused_at || null,
           updated_at: nowIso,
         });
       }
@@ -620,8 +843,8 @@ const rawHandler = async () => {
 
   console.log(
     `send-maintenance-push-notices: heads-up ${headsUpSent}, urgent ${urgentSent}, ` +
-      `resolved ${resolved}, manager notices ${managerNotices}, ` +
-      `unassigned trucks escalated ${unassignedEscalated}.`,
+      `stalled ${stalledSent}, paused ${paused}, requests expired ${requestsExpired}, ` +
+      `manager notices ${managerNotices}, unassigned trucks escalated ${unassignedEscalated}.`,
   );
   return {
     statusCode: 200,
@@ -629,7 +852,9 @@ const rawHandler = async () => {
       ok: true,
       headsUpSent,
       urgentSent,
-      resolved,
+      stalledSent,
+      paused,
+      requestsExpired,
       managerNotices,
       unassignedEscalated,
     }),

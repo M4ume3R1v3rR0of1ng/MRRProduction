@@ -576,6 +576,10 @@ export default function MaintenanceRequestsView({
                 { value: "pending", label: t.pending },
                 { value: "scheduled", label: t.scheduled },
                 { value: "completed", label: t.completed },
+                // Reachable only via this chip and "all", never from "active" —
+                // an expired request is closed, and the point of expiring it was
+                // to get it off the working list.
+                { value: "expired", label: t.expired },
               ]}
             />
             <Sel
@@ -622,18 +626,29 @@ export default function MaintenanceRequestsView({
                       {/* Left Side Metadata Info */}
                       <Stack gap={0} style={{ flex: 1, minWidth: 260 }}>
                         <Row gap={2} wrap style={{ marginBottom: 6 }}>
+                          {/* `expired` is written only by the nightly oil-due
+                              job (supabase/53): an oil-change request left open
+                              14 days with no oil change recorded. Gray, not
+                              green — nothing about it went well, and the
+                              fall-through below would otherwise have coloured
+                              it like a completed service. */}
                           <Bdg
                             color={
                               r.status === "pending"
                                 ? "amber"
                                 : r.status === "scheduled"
                                   ? "blue"
-                                  : "green"
+                                  : r.status === "expired"
+                                    ? "gray"
+                                    : "green"
                             }
                           >
-                            {{ pending: t.pending, scheduled: t.scheduled, completed: t.completed }[
-                              r.status
-                            ] || r.status}
+                            {{
+                              pending: t.pending,
+                              scheduled: t.scheduled,
+                              completed: t.completed,
+                              expired: t.expired,
+                            }[r.status] || r.status}
                           </Bdg>
                           {isUrgent && (
                             <Bdg color="red">

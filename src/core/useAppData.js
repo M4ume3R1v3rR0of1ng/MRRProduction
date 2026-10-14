@@ -966,12 +966,25 @@ export function useAppData() {
   // needed; this driver is the only one who will ever receive this row's events.
   //
   // The job only ever WRITES a row on a real action (see decideNoticeAction in
-  // that file), so which timestamp is freshly set says which notice this is
-  // without needing the pre-image: urgent_last_sent_at present (and not yet
-  // resolved) means urgent — whether that's the first time (INSERT, heads-up
-  // window was missed) or a later day's repeat (UPDATE) reads the same either
-  // way. Otherwise, heads_up_sent_at present is the normal 7-day notice.
-  // resolved_at present means stay quiet — the driver already handled it.
+  // that file), so which timestamp was JUST set says which notice this is
+  // without needing the pre-image.
+  //
+  // "Just set" and not merely "present": every write carries the other stamps
+  // forward, so by the second week of a cycle a row can have all of them. A
+  // row that is merely PRESENT says what has ever happened; the one written
+  // moments ago says what is happening now. Realtime only streams actual
+  // changes, so the row arriving here was written seconds before it — which
+  // makes recency a reliable discriminator, and FRESH_MS generous enough to
+  // absorb clock skew between Postgres and the browser while staying far
+  // inside the one-write-per-vehicle-per-day cadence.
+  //
+  // This replaces an earlier test of "resolved_at is absent", which broke on
+  // the escalation ladder supabase/53 introduced: once a request had paused a
+  // cycle, paused_at stayed set, so the driver got no toast when the request
+  // was closed without an oil change and the urgent escalation resumed — the
+  // one moment they most needed it. A stall notice writes only
+  // stall_last_sent_at and so still raises nothing here, which is correct:
+  // stalls are the manager's business, not the driver's.
   //
   // Voiced as the assistant rather than a bare system banner, and delivered
   // twice: this toast (guaranteed visible even if the driver never opens the
@@ -984,21 +997,28 @@ export function useAppData() {
   useEffect(() => {
     if (!curUser) return;
 
+    const FRESH_MS = 6 * 60 * 60 * 1000;
+    const justSet = (ts) => {
+      if (!ts) return false;
+      const at = new Date(ts).getTime();
+      return Number.isFinite(at) && Math.abs(Date.now() - at) < FRESH_MS;
+    };
+
     const notifyFromRow = (row) => {
-      if (row.resolved_at) return;
       const vehicleName = row.vehicle_name || "a vehicle";
+      const isUrgent = justSet(row.urgent_last_sent_at);
       let text = null;
-      if (row.urgent_last_sent_at) {
+      if (isUrgent) {
         text = `URGENT — ${vehicleName}'s oil change is overdue and no maintenance request has been filed yet. Want me to help you file one?`;
-      } else if (row.heads_up_sent_at) {
+      } else if (justSet(row.heads_up_sent_at)) {
         text = `Heads up — ${vehicleName}'s oil change is projected due around ${row.projected_due_date}. Let me know if you'd like help requesting maintenance for it.`;
       }
       if (!text) return;
 
       showToast(
         `Steadwerk Assistant: ${text}`,
-        row.urgent_last_sent_at ? "warning" : "success",
-        row.urgent_last_sent_at ? 12000 : 8000,
+        isUrgent ? "warning" : "success",
+        isUrgent ? 12000 : 8000,
       );
     };
 
