@@ -114,13 +114,18 @@ describe.each(ROLES)("%s", (role) => {
     expect(!!button(/approve & assign/i)).toBe(can.approve);
   });
 
-  it(`Build Jobs detail panel: Close Job ${can.close ? "shown" : "hidden"}`, async () => {
+  it(`Build Jobs detail panel: Close Job ${can.close ? "shown" : "hidden"}, Need More Materials ${can.pull ? "shown" : "hidden"}`, async () => {
     renderBuildJobs(role);
     await userEvent.click(screen.getByText("Completed Job"));
     expect(!!button(/close job/i)).toBe(can.close);
+    // Offered on this screen too, on the drawer rather than inside Edit Job, so
+    // office staff get the same one-step flow. The roles that reach Build Jobs
+    // at all are a different set (build || close) — the Pull Inventory case is
+    // what proves the warehouse and the field can get to it.
+    expect(!!button(/need more materials/i)).toBe(can.pull);
   });
 
-  it(`Pull Inventory: Pull ${can.pull ? "shown" : "hidden"}, Return & Complete ${can.complete ? "shown" : "hidden"}`, () => {
+  it(`Pull Inventory: Pull ${can.pull ? "shown" : "hidden"}, Return & Complete ${can.complete ? "shown" : "hidden"}, Need More Materials ${can.pull ? "shown" : "hidden"}`, () => {
     withNotify(
       <PullInventoryView
         jobs={[approvedJob, activeJob]}
@@ -137,11 +142,20 @@ describe.each(ROLES)("%s", (role) => {
     );
     expect(!!button(/pull materials/i)).toBe(can.pull);
     expect(!!button(/return & complete/i)).toBe(can.complete);
+    // The one that matters for `field` and `warehouse`: jobs_pull holders
+    // without jobs_build. "Add material to an already-pulled job" used to be a
+    // button inside Edit Job in Build Jobs, and reaching it needed jobs_build
+    // twice over — so the roles that pull material could never ask for it and
+    // the recorded workaround was building a second job for the same roof.
+    // Asserted HERE, on the screen those roles actually have, because the old
+    // test asserted only that the button respected jobs_pull — which it did,
+    // from behind a door those roles could not open.
+    expect(!!button(/need more materials/i)).toBe(can.pull);
   });
 
-  it(`Edit Job: Correct Return ${can.close ? "shown" : "hidden"}, Pull Added ${can.pull ? "shown" : "hidden"}`, () => {
-    // One line pulled, one added after the pull, so both follow-ups are in play
-    // and only the permission decides whether each is offered.
+  it(`Edit Job: Correct Return ${can.close ? "shown" : "hidden"}`, () => {
+    // One line pulled, one sitting at zero, so a follow-up is in play and only
+    // the permission decides whether it is offered.
     const edited = { ...completedJob, items: [line(4), { ...line(0), iid: "i2" }] };
     withNotify(
       <EditJobModal
@@ -152,11 +166,14 @@ describe.each(ROLES)("%s", (role) => {
         onSaved={noop}
         onClose={noop}
         onCorrectReturn={noop}
-        onPullAdded={noop}
       />,
     );
     expect(!!button(/correct return/i)).toBe(can.close);
-    expect(!!button(/pull added materials/i)).toBe(can.pull);
+    // Pulling that zero line is no longer offered here. It moved out to the job
+    // card and detail drawer under jobs_pull alone — see the Pull Inventory case
+    // above for why. Asserted absent so it cannot quietly come back to a place
+    // the roles that need it cannot reach.
+    expect(button(/pull added materials/i)).toBeNull();
   });
 
   it(`Sidebar: Build Jobs ${can.build || can.close ? "shown" : "hidden"}`, () => {

@@ -13,7 +13,7 @@
 // updates its own list, which keeps the "who owns the jobs array" question with
 // the component that actually owns it.
 import { useState } from "react";
-import { Truck, RefreshCw, AlertTriangle, Search, Save, Loader2 } from "lucide-react";
+import { RefreshCw, AlertTriangle, Search, Save, Loader2 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, mkJI, mergePullTracking } from "@/shared/utils/helpers";
 import {
@@ -69,7 +69,6 @@ export default function EditJobModal({
   onSaved,
   onClose,
   onCorrectReturn,
-  onPullAdded,
 }) {
   const [form, setForm] = useState(() => formFromJob(job));
   const [items, setItems] = useState(() => itemsFromJob(job));
@@ -79,20 +78,15 @@ export default function EditJobModal({
 
   const addable = addableInventory(inv, items, search);
 
-  // Against the job as SAVED, not the in-progress `items` state above — a
-  // line just added in this edit and not yet saved has pulled: 0 same as a
-  // genuinely-added-after-the-pull line, and offering to pull it here would
-  // be pulling stock for something the job doesn't actually have yet.
-  const savedItems = itemsFromJob(job);
   const canCorrectReturn = !!onCorrectReturn && perms.jobs_close && job.status === "completed";
-  // Not "closed" — same boundary Correct Return already draws (and Edit Job
-  // itself: its own button above is hidden once a job is closed), so this
-  // never becomes a control that's live in the RPC but unreachable in the UI.
-  const canPullAdded =
-    !!onPullAdded &&
-    perms.jobs_pull &&
-    ["active", "completed"].includes(job.status) &&
-    savedItems.some((i) => i && (i.pulled || 0) === 0);
+
+  // "Pull Added Materials" used to live here, and that was the bug: reaching it
+  // meant holding `jobs_build`, which `warehouse` and `field` — the two roles
+  // that actually pull material — do not have, so the people who discover a job
+  // needs more material could not ask for it. It is now one dialog on the job
+  // card and detail drawer under `jobs_pull` alone (AddPullMaterialsModal), on
+  // this screen and on Pull Inventory. Adding a line here still works; pulling
+  // it is that button's job.
 
   const addItem = (item) =>
     setItems((p) => [...p, mkJI(item.id, item.name, item.cat, item.unit, 1)]);
@@ -253,18 +247,11 @@ export default function EditJobModal({
         <Text as="h4" size="sm" color={C.navy} style={{ margin: 0, textTransform: "uppercase" }}>
           Materials Checklist
         </Text>
-        {(canCorrectReturn || canPullAdded) && (
+        {canCorrectReturn && (
           <Row gap={2} align="stretch" wrap>
-            {canPullAdded && (
-              <Btn v="outline" sz="sm" onClick={() => onPullAdded()} disabled={saving}>
-                <Truck size={13} aria-hidden="true" /> Pull Added Materials
-              </Btn>
-            )}
-            {canCorrectReturn && (
-              <Btn v="outline" sz="sm" onClick={() => onCorrectReturn()} disabled={saving}>
-                <RefreshCw size={13} aria-hidden="true" /> Correct Return
-              </Btn>
-            )}
+            <Btn v="outline" sz="sm" onClick={() => onCorrectReturn()} disabled={saving}>
+              <RefreshCw size={13} aria-hidden="true" /> Correct Return
+            </Btn>
           </Row>
         )}
       </Row>

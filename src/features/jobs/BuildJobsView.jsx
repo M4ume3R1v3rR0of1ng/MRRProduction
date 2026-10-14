@@ -18,6 +18,7 @@ import {
   Save,
   Search,
   LayoutTemplate,
+  Plus,
 } from "lucide-react";
 import {
   C,
@@ -75,7 +76,8 @@ import { logAction } from "@/shared/utils/logger";
 import { fetchJobTemplates, resolveDefaultTemplates } from "./jobTemplates";
 import EditJobModal from "./EditJobModal";
 import CorrectReturnModal from "./CorrectReturnModal";
-import PullAddedMaterialsModal from "./PullAddedMaterialsModal";
+import AddPullMaterialsModal from "./AddPullMaterialsModal";
+import { canAddPull } from "./addPullMaterials";
 
 // The values of the <option> list in this view's sort dropdown, in the same
 // order. useStickySort checks a remembered choice against this before trusting
@@ -1202,6 +1204,13 @@ export default function BuildJobs({
                 <Pencil size={13} aria-hidden="true" /> Edit Job
               </Btn>
             )}
+            {/* On the drawer under `jobs_pull`, one click from the job, rather
+                than two clicks deep inside Edit Job behind `jobs_build`. */}
+            {canAddPull(sel, perms) && (
+              <Btn v="outline" sz="sm" onClick={() => setModal("addPull")}>
+                <Plus size={13} aria-hidden="true" /> {t.pullAddMatBtn}
+              </Btn>
+            )}
             {perms.jobs_approve && sel.status === "draft" && (
               <Btn
                 v="teal"
@@ -1419,7 +1428,6 @@ export default function BuildJobs({
           }}
           onClose={() => setModal("detail")}
           onCorrectReturn={perms.jobs_close ? () => setModal("correctReturn") : undefined}
-          onPullAdded={perms.jobs_pull ? () => setModal("pullAdded") : undefined}
         />
       )}
 
@@ -1440,10 +1448,14 @@ export default function BuildJobs({
         />
       )}
 
-      {/* ── MODAL: PULL A LINE ADDED AFTER THE INITIAL PULL ──
-          Also reached from inside Edit Job — same hand-back as above. */}
-      {modal === "pullAdded" && sel && (
-        <PullAddedMaterialsModal
+      {/* ── MODAL: THE JOB NEEDS MORE MATERIAL THAN IT WAS PLANNED FOR ──
+          Reached from the detail drawer, not from inside Edit Job. That is the
+          whole point of it: the version that lived inside Edit Job needed
+          `jobs_build` to reach, which the two roles that actually pull material
+          do not have. The same dialog is on the Pull Inventory screen, where
+          they work. See supabase/52. */}
+      {modal === "addPull" && sel && canAddPull(sel, perms) && (
+        <AddPullMaterialsModal
           job={sel}
           inv={inv}
           users={users}
@@ -1452,14 +1464,14 @@ export default function BuildJobs({
           onSaved={(updated, changedBatches) => {
             setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
             setSel(updated);
-            setModal("edit");
+            setModal("detail");
             if (changedBatches && typeof setInv === "function") {
               setInv((p) =>
                 p.map((i) => (changedBatches[i.id] ? { ...i, batches: changedBatches[i.id] } : i)),
               );
             }
           }}
-          onClose={() => setModal("edit")}
+          onClose={() => setModal("detail")}
         />
       )}
 
