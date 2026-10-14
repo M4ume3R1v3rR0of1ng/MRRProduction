@@ -1204,8 +1204,8 @@ export default function FleetManagementView({
                         ` · ${p.predictedNextMileage.toLocaleString()} mi`}
                     </Text>
                     <Muted size="2xs">
-                      Based on {p.sampleSize} past service{p.sampleSize === 1 ? "" : "s"} · every ~
-                      {p.avgIntervalDays}d
+                      Based on {p.serviceCount} past service{p.serviceCount === 1 ? "" : "s"} ·
+                      every ~{p.avgIntervalDays}d
                       {p.avgIntervalMiles !== null &&
                         ` / ${p.avgIntervalMiles.toLocaleString()} mi`}
                     </Muted>

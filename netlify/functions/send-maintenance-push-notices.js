@@ -5,11 +5,28 @@
 // _shared/oilForecast.js), then escalate to a daily URGENT notice starting
 // the day it's due if nobody has filed a matching maintenance request.
 //
+// TWO AUDIENCES, NOT ONE
+//
+// The driver gets both notices because they are the one standing next to the
+// truck. The FLEET MANAGER gets both too — everyone holding `fleet_edit`, see
+// _shared/fleetRecipients.js for why that permission and not a role name —
+// because a driver alert that goes unread is a truck that quietly runs past
+// its oil change, and the person answerable for that never hears about it.
+// The urgent one is written as an escalation when it reaches them: by that
+// day the projection has passed, nobody has filed a request, and the
+// manager's copy says plainly how many days overdue it now is.
+//
+// This also fixes a silent gap: an UNASSIGNED truck used to be skipped
+// outright (`if (!driverId) continue`), so a truck sitting between drivers
+// accrued miles past its oil change and generated no notice of any kind. It
+// is now processed on the manager channel alone — which is the right
+// escalation anyway, since there is no driver to act on it.
+//
 // FOUR CHANNELS, ONE DECISION
 //
 // The escalation timing (decideNoticeAction below) doesn't know or care which
-// channel actually reaches the driver — it just decides "heads-up" or
-// "urgent" once per cycle/day. Four things happen off that one decision:
+// channel actually reaches anyone — it just decides "heads-up" or "urgent"
+// once per cycle/day. Four things happen off that one decision:
 //   1. iOS push, via APNs (_shared/apns.js) — the intended long-term channel,
 //      gated on apnsReady since the Apple key isn't in place yet.
 //   2. An oil_due_notices row upsert with driver_id set — supabase/40 makes
@@ -17,16 +34,26 @@
 //      table on the realtime publication, so useAppData.js's
 //      "realtime-oil-due-notices" effect shows an immediate toast the moment
 //      a row lands, same mechanism as the existing maintenance_requests toast.
-//   3. An email via Resend, so a driver who doesn't open the app that day
-//      still hears about it.
+//   3. An email via Resend, so someone who doesn't open the app that day
+//      still hears about it. This is the channel the fleet manager is reached
+//      on, and the only one of the four that needs no setup at all.
 //   4. A chat_messages row (supabase/41) — the SAME text, but written into
-//      the driver's own conversation with the Steadwerk Assistant, so it's
+//      the recipient's own conversation with the Steadwerk Assistant, so it's
 //      not just a toast that vanishes: it's a real, persisted message the
 //      assistant "said", there on next login same as any reply it ever gave.
 //      ChatWidget picks this up live via its own realtime subscription.
 // Only (1) needs Apple credentials that aren't in place yet — see the
 // apnsReady check: a push attempt is skipped, not the whole run, when APNs
 // isn't configured. (2), (3), and (4) work today regardless.
+//
+// ⚠️ (2) IS DRIVER-ONLY, AND THAT IS A SCHEMA LIMIT, NOT A CHOICE.
+//    oil_due_notices carries exactly one driver_id and supabase/40's policy
+//    reads `driver_id = auth.uid()`, so the in-app realtime toast can only
+//    ever reach the one person the row names. Managers are covered by (3) and
+//    (4) instead — the chat message persists, which is the part that matters.
+//    Giving managers the toast too means another migration (a second policy
+//    resolving fleet_edit inside RLS, or a notice-recipients table); worth
+//    doing if the toast turns out to be the channel people actually read.
 //
 // Same shape as daily-archive.js otherwise: the cron invokes this, not a
 // person, so there is no access token or company to resolve — adminClient()
@@ -44,6 +71,7 @@ import { adminClient, platformFromAddress } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 import { parseDay, projectedOilDueDate } from "./_shared/oilForecast.js";
 import { sendPush, isDeadTokenResponse } from "./_shared/apns.js";
+import { loadFleetManagers, dropUser } from "./_shared/fleetRecipients.js";
 
 const MAIL_FROM = platformFromAddress("alerts");
 
@@ -137,6 +165,57 @@ export function buildUrgentMessage(vehicle, dueDate) {
   };
 }
 
+// The manager's wording, for both events.
+//
+// WHY NOT JUST FORWARD THE DRIVER'S COPY
+//
+// It is addressed to the wrong person and asks for the wrong thing. "Request
+// maintenance when you get a chance" is advice to the driver; the manager needs
+// to know WHICH truck, WHOSE it is, and — once it is overdue — how long it has
+// been and that nobody has filed anything. A forwarded driver notice reads like
+// a cc and gets filtered like one.
+//
+// `daysOverdue` is only passed for the urgent event. It is derived from the
+// projected date rather than counted from the first notice, so it stays right
+// even if the job missed days.
+export function buildManagerMessage(vehicle, dueDate, { urgent, driverName, daysOverdue } = {}) {
+  const name = vehicleLabel(vehicle);
+  const whose = driverName ? `assigned to ${driverName}` : "with no driver assigned";
+
+  if (!urgent) {
+    return {
+      title: `Oil change due soon: ${name}`,
+      body: `${name} (${whose}) is projected due for an oil change around ${dueDate}. The driver has been notified.`,
+      data: { type: "oil_due_manager", vehicleId: vehicle.id },
+    };
+  }
+
+  // Day 0 is the due date itself, so "0 days overdue" would be wrong on the
+  // first urgent notice — it is due TODAY and unfiled, which is already the
+  // escalation.
+  const howLong =
+    daysOverdue > 0 ? `${daysOverdue} day${daysOverdue === 1 ? "" : "s"} overdue` : "due today";
+  return {
+    title: `ACTION NEEDED: oil change ${howLong} — ${name}`,
+    body:
+      `${name} (${whose}) was projected due for an oil change on ${dueDate} — ${howLong} — ` +
+      `and no maintenance request has been filed. No oil change has been recorded against it either, ` +
+      `so the truck is still running on the old interval.`,
+    data: { type: "oil_due_manager_urgent", vehicleId: vehicle.id },
+  };
+}
+
+// Whole days between the projected due date and today, floored at 0. Both ends
+// are plain calendar days parsed in one UTC frame (see oilForecast.parseDay),
+// so this is a count of days and not an hours-apart division that a daylight
+// saving change can push onto the wrong side of a rounding boundary.
+export function daysOverdueOn(dueDate, todayStr) {
+  const due = parseDay(dueDate);
+  const today = parseDay(todayStr);
+  if (!due || !today) return 0;
+  return Math.max(0, Math.round((today - due) / DAY_MS));
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -146,19 +225,23 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-// Pushes to every device registered for `driverId`, pruning tokens APNs
+// Pushes to every device registered for `userId`, pruning tokens APNs
 // reports as dead along the way. Returns true if at least one push actually
-// went out (a driver with zero registered devices, or every send failing,
+// went out (someone with zero registered devices, or every send failing,
 // still updates the tracking row — this is at-least-once notification intent
 // against a device, not a delivery guarantee). A no-op, not an error, when
 // APNs isn't configured yet — the in-app/email channels below still fire.
-async function pushToDriver(admin, driverId, message, vehicleLabel, apnsReady) {
-  if (!apnsReady) return false;
+//
+// Takes a userId rather than a driverId: nothing about a push is specific to
+// being the assigned driver, and the fleet manager who installed the app
+// should get it on their phone on the same terms.
+async function pushToUser(admin, userId, message, vehicleLabel, apnsReady) {
+  if (!apnsReady || !userId) return false;
 
   const { data: tokens, error } = await admin
     .from("device_push_tokens")
     .select("token")
-    .eq("user_id", driverId);
+    .eq("user_id", userId);
   if (error) {
     console.error(
       `send-maintenance-push-notices: token lookup failed for ${vehicleLabel}:`,
@@ -195,39 +278,59 @@ async function pushToDriver(admin, driverId, message, vehicleLabel, apnsReady) {
   return anySent;
 }
 
-// Best-effort email to the driver — a missing RESEND_API_KEY or a Resend
-// failure logs and returns rather than throwing, so it never takes the push
-// attempt or the DB upsert (which is what drives the in-app banner) down
-// with it.
-async function emailDriver(driver, companyName, message, vehicleLabel) {
-  if (!driver?.email) return;
+// Best-effort email — a missing RESEND_API_KEY or a Resend failure logs and
+// returns rather than throwing, so it never takes the push attempt or the DB
+// upsert (which is what drives the in-app banner) down with it.
+//
+// `people` is a list so the fleet managers go out in ONE Resend call rather
+// than one per manager: three managers times forty trucks on a bad week is a
+// lot of API calls to make serially inside a 10-second function. They are
+// genuine `to:` recipients, not bcc — these are colleagues working the same
+// problem and seeing who else was told is useful, not a leak.
+//
+// `urgent` only changes the footer. Resend has no "high importance" flag worth
+// relying on, and clients largely ignore X-Priority anyway, so the escalation
+// is carried by the subject line (buildManagerMessage writes "ACTION NEEDED")
+// where it is actually visible in a list of unread mail.
+async function emailPeople(people, companyName, message, vehicleLabel, { urgent = false } = {}) {
+  const to = [...new Set((people || []).map((p) => p?.email).filter(Boolean))];
+  if (!to.length) return;
   if (!process.env.RESEND_API_KEY) {
-    console.warn("send-maintenance-push-notices: RESEND_API_KEY not set — skipping driver email.");
+    console.warn("send-maintenance-push-notices: RESEND_API_KEY not set — skipping email.");
     return;
   }
+  const footer = urgent
+    ? "<p>Open the app to file the maintenance request, or log the oil change if it has already been done and was never recorded.</p>"
+    : "<p>Open the app to file the maintenance request.</p>";
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: `${companyName} Alerts <${MAIL_FROM}>`,
-      to: driver.email,
+      to,
       subject: `${message.title} — Steadwerk`,
-      html: `<p>${escapeHtml(message.body)}</p><p>Open the app to file the maintenance request.</p>`,
+      html: `<p>${escapeHtml(message.body)}</p>${footer}`,
     });
   } catch (err) {
     console.error(`send-maintenance-push-notices: email failed for ${vehicleLabel}:`, err.message);
   }
 }
 
-// Writes the reminder into the driver's own conversation with the Steadwerk
+// Writes the reminder into one person's own conversation with the Steadwerk
 // Assistant (supabase/41) — origin_session_id is left null on purpose, which
 // is what tells ChatWidget's realtime subscription this row did NOT come from
 // a tab it needs to skip as its own echo (see that migration's "WHY
 // origin_session_id"). Best-effort like the other two channels: a failure
 // here still leaves the push/email/oil_due_notices row intact.
-async function writeAssistantChatMessage(admin, companyId, driverId, text, vehicleLabel) {
+//
+// One row per recipient, because each person's assistant conversation is their
+// own — this is the channel that gives a manager something still there on
+// Monday, since the realtime toast cannot reach them (see the schema note in
+// the header).
+async function writeAssistantChatMessage(admin, companyId, userId, text, vehicleLabel) {
+  if (!userId) return;
   const { error } = await admin.from("chat_messages").insert({
     company_id: companyId,
-    user_id: driverId,
+    user_id: userId,
     role: "assistant",
     text,
     proactive: true,
@@ -240,8 +343,25 @@ async function writeAssistantChatMessage(admin, companyId, driverId, text, vehic
   }
 }
 
+// Every manager channel for one event, in parallel. Returns the count mailed so
+// the job's log line says whether the escalation actually reached anybody.
+async function notifyManagers(
+  admin,
+  { companyId, companyName, managers, message, vehicleLabel, apnsReady, urgent },
+) {
+  if (!managers.length) return 0;
+  await Promise.all([
+    emailPeople(managers, companyName, message, vehicleLabel, { urgent }),
+    ...managers.map((m) => pushToUser(admin, m.id, message, vehicleLabel, apnsReady)),
+    ...managers.map((m) =>
+      writeAssistantChatMessage(admin, companyId, m.id, message.body, vehicleLabel),
+    ),
+  ]);
+  return managers.length;
+}
+
 const rawHandler = async () => {
-  // Gates the APNs push ATTEMPT only (pushToDriver no-ops without this) — not
+  // Gates the APNs push ATTEMPT only (pushToUser no-ops without this) — not
   // the whole run. The in-app banner (oil_due_notices + realtime, see
   // supabase/40) and the email below need no Apple credentials at all.
   const apnsReady = ["APNS_KEY", "APNS_KEY_ID", "APNS_TEAM_ID", "APNS_BUNDLE_ID"].every(
@@ -271,6 +391,8 @@ const rawHandler = async () => {
   let headsUpSent = 0;
   let urgentSent = 0;
   let resolved = 0;
+  let managerNotices = 0;
+  let unassignedEscalated = 0;
 
   for (const company of companies || []) {
     const [
@@ -319,9 +441,27 @@ const rawHandler = async () => {
       }
     }
 
+    // Also once per company, for the same reason. A fleet with no reachable
+    // manager is logged rather than passed over in silence — "nobody holds
+    // fleet_edit" and "everybody who does has no email on file" both look
+    // identical from the outside, and both mean the escalation this job exists
+    // for is going nowhere.
+    const fleetManagers = await loadFleetManagers(admin, company.id);
+    if (!fleetManagers.length) {
+      console.warn(
+        `send-maintenance-push-notices: company ${company.id} has no fleet manager with an ` +
+          "email on file (nobody holding fleet_edit) — oil-due escalations will reach drivers only.",
+      );
+    }
+
     for (const vehicle of vehicles || []) {
-      const driverId = vehicle.assignedTo;
-      if (!driverId) continue;
+      // An unassigned truck is NOT skipped any more: it still accrues miles and
+      // still comes due, and having no driver is precisely the case where the
+      // manager is the only person who can act. The driver-facing channels
+      // below no-op on a null driverId.
+      const driverId = vehicle.assignedTo || null;
+      const driver = driverId ? driverById.get(driverId) : null;
+      const managers = dropUser(fleetManagers, driverId);
 
       const existingNotice = noticeByVehicle.get(vehicle.id) || null;
       // A request "resolves" this cycle if it's an open Oil Change request
@@ -371,12 +511,28 @@ const rawHandler = async () => {
       }
       if (decision.action === "heads_up") {
         const message = buildHeadsUpMessage(vehicle, decision.projectedDueDate);
+        const managerMessage = buildManagerMessage(vehicle, decision.projectedDueDate, {
+          urgent: false,
+          driverName: driver?.full_name,
+        });
         await Promise.all([
-          pushToDriver(admin, driverId, message, vehicleLogLabel, apnsReady),
-          emailDriver(driverById.get(driverId), company.name, message, vehicleLogLabel),
+          pushToUser(admin, driverId, message, vehicleLogLabel, apnsReady),
+          emailPeople(driver ? [driver] : [], company.name, message, vehicleLogLabel),
           writeAssistantChatMessage(admin, company.id, driverId, message.body, vehicleLogLabel),
+          notifyManagers(admin, {
+            companyId: company.id,
+            companyName: company.name,
+            managers,
+            message: managerMessage,
+            vehicleLabel: vehicleLogLabel,
+            apnsReady,
+            urgent: false,
+          }).then((n) => {
+            managerNotices += n;
+          }),
         ]);
         headsUpSent++;
+        if (!driverId) unassignedEscalated++;
         upserts.push({
           company_id: company.id,
           vehicle_id: vehicle.id,
@@ -394,12 +550,31 @@ const rawHandler = async () => {
       }
       if (decision.action === "urgent") {
         const message = buildUrgentMessage(vehicle, decision.projectedDueDate);
+        const managerMessage = buildManagerMessage(vehicle, decision.projectedDueDate, {
+          urgent: true,
+          driverName: driver?.full_name,
+          daysOverdue: daysOverdueOn(decision.projectedDueDate, todayStr),
+        });
         await Promise.all([
-          pushToDriver(admin, driverId, message, vehicleLogLabel, apnsReady),
-          emailDriver(driverById.get(driverId), company.name, message, vehicleLogLabel),
+          pushToUser(admin, driverId, message, vehicleLogLabel, apnsReady),
+          emailPeople(driver ? [driver] : [], company.name, message, vehicleLogLabel, {
+            urgent: true,
+          }),
           writeAssistantChatMessage(admin, company.id, driverId, message.body, vehicleLogLabel),
+          notifyManagers(admin, {
+            companyId: company.id,
+            companyName: company.name,
+            managers,
+            message: managerMessage,
+            vehicleLabel: vehicleLogLabel,
+            apnsReady,
+            urgent: true,
+          }).then((n) => {
+            managerNotices += n;
+          }),
         ]);
         urgentSent++;
+        if (!driverId) unassignedEscalated++;
         upserts.push({
           company_id: company.id,
           vehicle_id: vehicle.id,
@@ -444,9 +619,21 @@ const rawHandler = async () => {
   }
 
   console.log(
-    `send-maintenance-push-notices: heads-up ${headsUpSent}, urgent ${urgentSent}, resolved ${resolved}.`,
+    `send-maintenance-push-notices: heads-up ${headsUpSent}, urgent ${urgentSent}, ` +
+      `resolved ${resolved}, manager notices ${managerNotices}, ` +
+      `unassigned trucks escalated ${unassignedEscalated}.`,
   );
-  return { statusCode: 200, body: JSON.stringify({ ok: true, headsUpSent, urgentSent, resolved }) };
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      ok: true,
+      headsUpSent,
+      urgentSent,
+      resolved,
+      managerNotices,
+      unassignedEscalated,
+    }),
+  };
 };
 
 export const handler = withSentry("send-maintenance-push-notices", rawHandler);

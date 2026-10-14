@@ -4,6 +4,8 @@ import {
   isSameUtcDay,
   buildHeadsUpMessage,
   buildUrgentMessage,
+  buildManagerMessage,
+  daysOverdueOn,
 } from "../send-maintenance-push-notices.js";
 
 // A truck whose mileage log projects a due date exactly `daysOut` days after
@@ -226,5 +228,78 @@ describe("message builders", () => {
       "ABC-123",
     );
     expect(buildHeadsUpMessage({ id: "v9" }, "2026-02-08").body).toContain("v9");
+  });
+});
+
+describe("daysOverdueOn", () => {
+  it("counts whole calendar days past the projected date", () => {
+    expect(daysOverdueOn("2026-02-01", "2026-02-04")).toBe(3);
+    expect(daysOverdueOn("2026-02-01", "2026-02-01")).toBe(0);
+  });
+
+  it("counts across a daylight-saving change without drifting", () => {
+    // 2026-03-08 springs forward. Both ends are parsed in one UTC frame, so
+    // this is 7 days and not 6.96 rounding its way to 7 by luck.
+    expect(daysOverdueOn("2026-03-05", "2026-03-12")).toBe(7);
+    expect(daysOverdueOn("2026-10-29", "2026-11-05")).toBe(7);
+  });
+
+  it("never goes negative, and survives a missing date", () => {
+    expect(daysOverdueOn("2026-02-10", "2026-02-01")).toBe(0);
+    expect(daysOverdueOn(null, "2026-02-01")).toBe(0);
+    expect(daysOverdueOn("2026-02-01", null)).toBe(0);
+  });
+});
+
+describe("buildManagerMessage", () => {
+  const truck = { id: "v1", name: "Truck 12" };
+
+  it("tells a manager whose truck it is on the heads-up", () => {
+    const msg = buildManagerMessage(truck, "2026-02-08", {
+      urgent: false,
+      driverName: "Dana Reyes",
+    });
+    expect(msg.title).toContain("Truck 12");
+    expect(msg.body).toContain("assigned to Dana Reyes");
+    expect(msg.body).toContain("2026-02-08");
+    // The manager is told the driver already has it, so they don't chase it.
+    expect(msg.body).toMatch(/driver has been notified/i);
+    expect(msg.data.type).toBe("oil_due_manager");
+  });
+
+  it("says plainly when a truck has nobody on it", () => {
+    const msg = buildManagerMessage(truck, "2026-02-08", { urgent: false });
+    expect(msg.body).toContain("no driver assigned");
+  });
+
+  it("leads the urgent subject with how overdue the truck is", () => {
+    const msg = buildManagerMessage(truck, "2026-02-01", {
+      urgent: true,
+      driverName: "Dana Reyes",
+      daysOverdue: 5,
+    });
+    expect(msg.title).toBe("ACTION NEEDED: oil change 5 days overdue — Truck 12");
+    expect(msg.body).toMatch(/no maintenance request has been filed/i);
+    expect(msg.body).toMatch(/no oil change has been recorded/i);
+    expect(msg.data.type).toBe("oil_due_manager_urgent");
+  });
+
+  it("says 'due today' rather than '0 days overdue' on the first urgent notice", () => {
+    const msg = buildManagerMessage(truck, "2026-02-01", { urgent: true, daysOverdue: 0 });
+    expect(msg.title).toBe("ACTION NEEDED: oil change due today — Truck 12");
+    expect(msg.title).not.toContain("0 days");
+  });
+
+  it("gets the singular right at one day", () => {
+    const msg = buildManagerMessage(truck, "2026-02-01", { urgent: true, daysOverdue: 1 });
+    expect(msg.title).toContain("1 day overdue");
+    expect(msg.title).not.toContain("1 days");
+  });
+
+  it("falls back to plate or id like the driver messages do", () => {
+    expect(buildManagerMessage({ id: "v9", plate: "ABC-123" }, "2026-02-08", {}).title).toContain(
+      "ABC-123",
+    );
+    expect(buildManagerMessage({ id: "v9" }, "2026-02-08", {}).title).toContain("v9");
   });
 });
