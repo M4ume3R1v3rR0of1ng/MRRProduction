@@ -7,17 +7,23 @@
 // and left dark text on the blue bubble; the widget's used onAccent.
 import { Camera, X } from "lucide-react";
 import { C } from "../utils/helpers";
+import { bubbleColors } from "./chatColors";
 import { Row } from "./LayoutPrimitives";
 import { Btn, Inp } from "./UIPrimitives";
 
 // One message. The tail corner (the squared one) points at the sender's side.
 // pre-wrap so the assistant's multi-line answers keep their line breaks.
 export function ChatBubble({ mine, photo, photoAlt, onPhotoClick, children }) {
+  // From chatColors, not inline: the @mention highlight rendered INSIDE this bubble
+  // has to know what it is sitting on. When these two picked their colors
+  // independently they picked the same one, and mentions in your own messages became
+  // invisible. See that file's header.
+  const { fill, ink } = bubbleColors(mine);
   return (
     <div
       style={{
-        background: mine ? C.blue : C.lg,
-        color: mine ? C.onAccent : C.navy,
+        background: fill,
+        color: ink,
         borderRadius: "var(--radius-xl)",
         borderBottomRightRadius: mine ? 3 : "var(--radius-xl)",
         borderBottomLeftRadius: mine ? "var(--radius-xl)" : 3,

@@ -6,6 +6,7 @@ import { ChatBubble, PendingPhoto, ChatComposer } from "@/shared/components/Chat
 import { supabase } from "@/shared/utils/supabase";
 import { C, ft, compressImg } from "@/shared/utils/helpers";
 import { knownNamesFrom, mentionPattern } from "@/shared/utils/mentions";
+import { mentionInk, mentionWash } from "@/shared/components/chatColors";
 import { notifyChatMention } from "@/shared/utils/chatNotifications";
 import {
   Modal,
@@ -23,9 +24,16 @@ import {
 } from "@/shared/components/UIPrimitives";
 
 // The pattern comes from utils/mentions, which is also what decides who gets emailed
-// about a mention. Keeping one matcher means the blue highlight and the notification can
+// about a mention. Keeping one matcher means the highlight and the notification can
 // never disagree about what counts as a mention — see the header of that file.
-function renderWithMentions(text, names) {
+//
+// `mine` is not decoration — it decides whether the mention is visible at all. The
+// ink and wash come from shared/components/chatColors.js, which is also where
+// ChatBubble gets the fill it sits on. That file's header has the full account; the
+// short version is that this function used to hard-code C.blue, ChatBubble fills your
+// own messages with C.blue, and so your own mentions were drawn in the fill color and
+// disappeared.
+function renderWithMentions(text, names, mine) {
   const pattern = mentionPattern(names);
   if (!pattern) return text;
   const parts = text.split(pattern);
@@ -35,11 +43,9 @@ function renderWithMentions(text, names) {
         as="span"
         key={i}
         weight="bold"
-        color={C.blue}
+        color={mentionInk(mine)}
         style={{
-          // A wash of the mention's own color — the old rgba() was a fixed light
-          // blue that sat on the dark surface as a bright smear.
-          background: `color-mix(in srgb, ${C.leather} 10%, transparent)`,
+          background: mentionWash(mine),
           borderRadius: "var(--radius-xs)",
           padding: "0 3px",
         }}
@@ -402,7 +408,7 @@ export default function TeamChatBox({
                     photoAlt={t.chAttachment}
                     onPhotoClick={() => setLightboxPhoto(m.photo)}
                   >
-                    {m.message && renderWithMentions(m.message, knownNames)}
+                    {m.message && renderWithMentions(m.message, knownNames, mine)}
                   </ChatBubble>
                 )}
 
