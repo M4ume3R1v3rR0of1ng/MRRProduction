@@ -155,6 +155,11 @@ export const translations = {
     blBillingContactBlurb:
       "Who to address on receipts, invoices, and any custom email about this account.",
     blBillingContactPlaceholder: "Full name",
+    blContactNameLabel: "Contact name",
+    blBillingEmail: "Billing email",
+    blBillingEmailPlaceholder: "accounting@company.com",
+    blBillingEmailHint:
+      "Receipts and invoices are sent here. Leave it blank and nobody is emailed about this account.",
     blSaveContact: "Save",
     blBillingContactSaved: "Billing contact saved.",
     blBillingContactFail: "Could not save billing contact:",
@@ -1596,6 +1601,11 @@ export const translations = {
     blBillingContactBlurb:
       "A quién dirigirse en recibos, facturas y cualquier correo personalizado sobre esta cuenta.",
     blBillingContactPlaceholder: "Nombre completo",
+    blContactNameLabel: "Nombre del contacto",
+    blBillingEmail: "Correo de facturación",
+    blBillingEmailPlaceholder: "contabilidad@empresa.com",
+    blBillingEmailHint:
+      "Los recibos y las facturas se envían aquí. Si se deja en blanco, no se notifica a nadie sobre esta cuenta.",
     blSaveContact: "Guardar",
     blBillingContactSaved: "Contacto de facturación guardado.",
     blBillingContactFail: "No se pudo guardar el contacto de facturación:",

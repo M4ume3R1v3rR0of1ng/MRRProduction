@@ -34,6 +34,10 @@
 //   • Target company must exist.
 //   • Target must NOT already have a stripe_subscription_id — refuses to open a
 //     second subscription for a company that is already really billed.
+//
+// The billingEmail collected here becomes customer.email, which is the address
+// Stripe sends every receipt and invoice to. It is written whether the customer
+// is created fresh or reused — see the reuse branch below for why that mattered.
 // @ts-check
 
 import Stripe from "stripe";
@@ -144,6 +148,14 @@ const rawHandler = async (event) => {
     // it right away, the same way create-checkout.js does — so stripe-webhook.js
     // can map an event back to this company by customer id even before a
     // subscription exists yet.
+    //
+    // Either way the email typed into this modal has to land on the customer.
+    // Reuse used to skip that: customers.create was the ONLY writer of the field,
+    // so a leftover customer kept whatever address it was born with, and the one
+    // the operator just entered was validated, accepted, reported as success, and
+    // then silently dropped. Stripe addresses every receipt and invoice it sends
+    // to customer.email, so the symptom was a company billed correctly and never
+    // emailed about it — with nothing anywhere in the app saying why.
     let customerId = secrets?.stripe_customer_id || null;
     if (!customerId) {
       const customer = await stripe.customers.create({
@@ -163,7 +175,15 @@ const rawHandler = async (event) => {
           { company_id: company.id, stripe_customer_id: customerId },
           { onConflict: "company_id" },
         );
+    } else {
+      await stripe.customers.update(customerId, { email });
     }
+
+    // Our own copy, which is what the Billing tab shows and what the receipt
+    // mail in stripe-webhook.js addresses. Written after the Stripe call so a
+    // rejected address (Stripe validates harder than the regex above) does not
+    // leave the column claiming an email Stripe never accepted.
+    await admin.from("companies").update({ billing_email: email }).eq("id", company.id);
 
     const appUrl = process.env.PUBLIC_APP_URL || process.env.URL || "https://steadwerk.com";
 

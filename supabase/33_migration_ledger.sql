@@ -395,6 +395,10 @@ begin
   perform public._mig_record('52_add_and_pull_job_materials.sql',
     public._mig_has_function('add_and_pull_job_materials'),
     'function add_and_pull_job_materials');
+
+  perform public._mig_record('54_billing_email.sql',
+    public._mig_has_column('companies', 'billing_email'),
+    'companies.billing_email');
 end $$;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists

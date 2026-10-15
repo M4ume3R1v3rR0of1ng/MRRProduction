@@ -24,6 +24,7 @@ import {
   Divider,
   Btn,
   Inp,
+  Fld,
   Callout,
 } from "@/shared/components/UIPrimitives";
 
@@ -54,6 +55,10 @@ export default function BillingView({ user, lang = "en" }) {
   const [busy, setBusy] = useState(false);
   const [contactName, setContactName] = useState("");
   const [savedContactName, setSavedContactName] = useState("");
+  // companies.billing_email (supabase/54), alongside the contact name on the
+  // same my_company() row — not a read of the Stripe customer.
+  const [billingEmail, setBillingEmail] = useState("");
+  const [savedBillingEmail, setSavedBillingEmail] = useState("");
   const [contactBusy, setContactBusy] = useState(false);
   const [billingInterval, setBillingInterval] = useState(null); // "monthly" | "annual" | null
   const [annualBusy, setAnnualBusy] = useState(false);
@@ -72,6 +77,8 @@ export default function BillingView({ user, lang = "en" }) {
     const co = Array.isArray(companyRows) ? companyRows[0] : companyRows;
     setContactName(co?.billing_contact_name || "");
     setSavedContactName(co?.billing_contact_name || "");
+    setBillingEmail(co?.billing_email || "");
+    setSavedBillingEmail(co?.billing_email || "");
     // subscription_status isn't returned by my_company (safe columns only); read it
     // off the current user's company via a lightweight companies select (RLS-scoped).
     const { data: statusRow } = await supabase
@@ -134,6 +141,13 @@ export default function BillingView({ user, lang = "en" }) {
     cardExpiringSoon = diff >= 0 && diff <= 1;
   }
 
+  // One Save button covers both billing-contact fields, so it arms when either
+  // has moved. Case-insensitive on the email because Stripe may hand back an
+  // address capitalised differently from the one that was typed.
+  const contactDirty = contactName.trim() !== savedContactName;
+  const emailDirty =
+    billingEmail.trim().toLowerCase() !== (savedBillingEmail || "").trim().toLowerCase();
+
   // delta is signed: +1 buys a pack, -1 drops one. Capacity moves when the
   // subscription.updated webhook lands, so this reloads rather than guessing.
   const changePacks = async (delta) => {
@@ -171,21 +185,34 @@ export default function BillingView({ user, lang = "en" }) {
     }
   };
 
-  const saveContactName = async () => {
+  const saveBillingContact = async () => {
     const trimmed = contactName.trim();
     if (!trimmed) return;
+    // Sent only when it actually moved: the server reads an absent field as
+    // "leave the address alone", which is what keeps a name-only save from
+    // touching the email. Its shape is checked server-side rather than here as
+    // well — one validator that cannot drift from the other.
+    const nextEmail = emailDirty ? billingEmail.trim().toLowerCase() : "";
     setContactBusy(true);
     try {
       const accessToken = await getAccessToken();
       const res = await fetch("/.netlify/functions/update-billing-contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accessToken, name: trimmed }),
+        body: JSON.stringify({
+          accessToken,
+          name: trimmed,
+          ...(nextEmail ? { email: nextEmail } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
       setContactName(trimmed);
       setSavedContactName(trimmed);
+      if (nextEmail) {
+        setBillingEmail(nextEmail);
+        setSavedBillingEmail(nextEmail);
+      }
       showToast(t.blBillingContactSaved, "success");
     } catch (err) {
       showToast(`${t.blBillingContactFail} ${err.message}`, "error");
@@ -303,33 +330,44 @@ export default function BillingView({ user, lang = "en" }) {
             )}
           </Card>
 
-          {/* Billing contact — who to address on receipts, invoices, and any custom
-              email sent about this account. Stripe only ever knows the company
-              name, not a person; this is the one place that person's name lives.
-              See supabase/47. */}
+          {/* Billing contact — who to address on receipts and invoices, and where
+              to send them. Both are ours: companies.billing_contact_name
+              (supabase/47) and companies.billing_email (supabase/54). Stripe only
+              ever knows the company name, never the person, and its copy of the
+              address is a mirror of this one rather than the other way round. */}
           <Card variant="flat" pad="var(--space-8)" style={{ marginBottom: 16 }}>
             <Eyebrow style={{ marginBottom: 8 }}>{t.blBillingContact}</Eyebrow>
             <Text size="base" color={C.sub} style={{ marginBottom: 12 }}>
               {t.blBillingContactBlurb}
             </Text>
-            <Row gap={4} align="stretch" wrap>
+            <Fld label={t.blContactNameLabel}>
               <Inp
                 type="text"
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
                 placeholder={t.blBillingContactPlaceholder}
-                style={{ flex: "1 1 220px", width: "auto", color: C.navy }}
+                style={{ color: C.navy }}
               />
-              <Btn
-                v="gold"
-                onClick={saveContactName}
-                disabled={
-                  contactBusy || !contactName.trim() || contactName.trim() === savedContactName
-                }
-              >
-                {t.blSaveContact}
-              </Btn>
-            </Row>
+            </Fld>
+            {/* Shown for every company, comped ones included: the column is ours,
+                and an address set before billing starts is the one that gets used
+                the moment it does. */}
+            <Fld label={t.blBillingEmail} hint={t.blBillingEmailHint}>
+              <Inp
+                type="email"
+                value={billingEmail}
+                onChange={(e) => setBillingEmail(e.target.value)}
+                placeholder={t.blBillingEmailPlaceholder}
+                style={{ color: C.navy }}
+              />
+            </Fld>
+            <Btn
+              v="gold"
+              onClick={saveBillingContact}
+              disabled={contactBusy || !contactName.trim() || (!contactDirty && !emailDirty)}
+            >
+              {t.blSaveContact}
+            </Btn>
           </Card>
 
           {/* Seats */}

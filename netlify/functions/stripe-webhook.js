@@ -17,11 +17,17 @@
 // is the owner's manual kill switch (owner console), and a stray billing event must
 // not quietly reopen a company you deliberately cut off.
 //
-// Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET.
+// RECEIPTS: invoice.payment_succeeded also sends the customer their receipt, from
+// Steadwerk rather than from Stripe. See sendReceipt() below for why it is done
+// here and what it deliberately does not do.
+//
+// Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY (receipts),
+// PLATFORM_MAIL_DOMAIN (the address they come from).
 // @ts-check
 
 import Stripe from "stripe";
-import { adminClient, errorMessage } from "./_shared/tenant.js";
+import { Resend } from "resend";
+import { adminClient, errorMessage, platformFromAddress } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 import { checkRateLimit, clientIp, rateLimitedResponse } from "./_shared/rateLimit.js";
 
@@ -351,6 +357,184 @@ async function applyStatus(
   }
 }
 
+// billing@<verified platform domain>. See platformFromAddress in _shared/tenant.js.
+const RECEIPT_FROM = platformFromAddress("billing");
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Stripe amounts are in the currency's minor unit. Intl throws RangeError on a
+// currency code it does not know, which is not worth failing a receipt over.
+/**
+ * @param {number | null | undefined} minor
+ * @param {string} currency
+ * @returns {string}
+ */
+function money(minor, currency) {
+  const amount = (minor || 0) / 100;
+  const code = (currency || "usd").toUpperCase();
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${code}`;
+  }
+}
+
+// Send the customer their receipt.
+//
+// WHY HERE AND NOT STRIPE
+//
+// Stripe will email a receipt itself, but only if the "successful payments"
+// toggle is on in the dashboard, only to whatever address its own customer record
+// happens to carry, and only ever in Stripe's own wording. Sending it here means
+// the address is companies.billing_email (supabase/54), which an admin can see
+// and correct in the Billing tab, and the mail is Steadwerk's.
+//
+// WHAT FAILS HOW
+//
+// A failed DATABASE read throws: nothing has been sent yet, a retry is the right
+// answer, and the handler's catch turns it into the 500 that asks Stripe for one.
+// A failed SEND does not: Stripe would replay the whole event, and a Resend
+// outage would have it retrying a charge that already succeeded for days, mailing
+// twice the moment the outage cleared. That one is logged and dropped — the
+// invoice is still in Stripe with its own PDF either way.
+//
+// ENGLISH ONLY, like every other backend notice, and for the same reason: the
+// language preference lives in the browser's localStorage and a function has
+// nothing to read. See the known-gaps list in README section 23.
+/**
+ * @param {SupabaseClient} admin
+ * @param {Stripe.Invoice} inv
+ * @returns {Promise<void>}
+ */
+async function sendReceipt(admin, inv) {
+  // The $0 invoice Stripe raises when a trial starts. Nobody paid anything, so a
+  // "receipt" for it is just noise in an accountant's inbox.
+  if (!inv.amount_paid) return;
+
+  const customerId = stripeId(inv.customer);
+  const subscriptionId = stripeId(inv.parent?.subscription_details?.subscription);
+
+  // Same two-step resolution applyStatus uses, and the same reason for
+  // maybeSingle: no match is a real answer, only a broken read throws.
+  let companyId = null;
+  if (subscriptionId) {
+    const row = must(
+      "look up company by stripe_subscription_id for receipt",
+      await admin
+        .from("company_secrets")
+        .select("company_id")
+        .eq("stripe_subscription_id", subscriptionId)
+        .maybeSingle(),
+    );
+    companyId = row?.company_id || null;
+  }
+  if (!companyId && customerId) {
+    const row = must(
+      "look up company by stripe_customer_id for receipt",
+      await admin
+        .from("company_secrets")
+        .select("company_id")
+        .eq("stripe_customer_id", customerId)
+        .maybeSingle(),
+    );
+    companyId = row?.company_id || null;
+  }
+  if (!companyId) {
+    console.warn("stripe-webhook: paid invoice maps to no company; no receipt sent", {
+      customerId,
+      subscriptionId,
+    });
+    return;
+  }
+
+  const co = must(
+    "read company for receipt",
+    await admin
+      .from("companies")
+      .select("name, billing_email, billing_contact_name")
+      .eq("id", companyId)
+      .maybeSingle(),
+  );
+  if (!co) {
+    console.warn(`stripe-webhook: company ${companyId} is gone; no receipt sent.`);
+    return;
+  }
+
+  // Our column first. inv.customer_email is Stripe's own copy, kept only as a
+  // fallback for a company billed before supabase/54 and never edited since —
+  // which is exactly the address that may be stale, hence the backfill note in
+  // that migration.
+  const to = co.billing_email || inv.customer_email || null;
+  if (!to) {
+    console.warn(`stripe-webhook: company ${companyId} has no billing email; no receipt sent.`);
+    return;
+  }
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn("stripe-webhook: RESEND_API_KEY not set — skipping receipt email.");
+    return;
+  }
+
+  const currency = inv.currency || "usd";
+  const total = money(inv.amount_paid, currency);
+  const rows = (inv.lines?.data || [])
+    .map(
+      (li) =>
+        `<tr><td style="padding:4px 16px 4px 0">${escapeHtml(li.description || "Subscription")}</td>` +
+        `<td style="padding:4px 0;text-align:right">${escapeHtml(money(li.amount, currency))}</td></tr>`,
+    )
+    .join("");
+  const paidAt = inv.status_transitions?.paid_at
+    ? new Date(inv.status_transitions.paid_at * 1000)
+    : new Date();
+  const paidOn = paidAt.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+  const docUrl = inv.hosted_invoice_url || inv.invoice_pdf || null;
+  const numbered = inv.number ? ` ${inv.number}` : "";
+
+  try {
+    const resend = new Resend(apiKey);
+    await resend.emails.send({
+      from: `Steadwerk Billing <${RECEIPT_FROM}>`,
+      to,
+      subject: `Receipt${numbered} — ${total} — Steadwerk`,
+      html:
+        `<p>${co.billing_contact_name ? `Hi ${escapeHtml(co.billing_contact_name)},` : "Hi,"}</p>` +
+        `<p>Thanks — we've received ${escapeHtml(total)} for ${escapeHtml(co.name)}.</p>` +
+        `<table style="border-collapse:collapse;margin:16px 0">${rows}` +
+        `<tr><td style="padding:8px 16px 0 0;border-top:1px solid #ddd"><strong>Total paid</strong></td>` +
+        `<td style="padding:8px 0 0;border-top:1px solid #ddd;text-align:right"><strong>${escapeHtml(total)}</strong></td></tr>` +
+        `</table>` +
+        `<p>Paid on ${escapeHtml(paidOn)}.</p>` +
+        (docUrl
+          ? `<p><a href="${escapeHtml(docUrl)}">View or download the full invoice</a></p>`
+          : "") +
+        `<p>— Steadwerk</p>`,
+    });
+  } catch (err) {
+    console.error(
+      `stripe-webhook: receipt email failed for company ${companyId}:`,
+      errorMessage(err),
+    );
+  }
+}
+
 /**
  * @param {NetlifyEvent} event
  * @returns {Promise<NetlifyResponse>}
@@ -501,6 +685,15 @@ const rawHandler = async (event) => {
           },
           "canceled",
         );
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        // Deliberately does NOT touch subscription_status. customer.subscription.*
+        // is what moves a company to 'active', and it arrives for this same
+        // payment; having two writers race over one column to say the same thing
+        // is how the status ends up depending on event ordering.
+        await sendReceipt(admin, stripeEvent.data.object);
         break;
       }
 

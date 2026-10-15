@@ -213,6 +213,9 @@ const rawHandler = async (event) => {
         // Who to address on billing emails/receipts — distinct from companyName.
         // See supabase/47.
         billing_contact_name: fullName,
+        // ...and where to send them. Our own copy of the address, not a read of
+        // the Stripe customer created below; see supabase/54.
+        billing_email: email,
       })
       .select("id")
       .single();
