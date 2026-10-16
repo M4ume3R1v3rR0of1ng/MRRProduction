@@ -57,7 +57,7 @@
 //      still hears about it. This is the channel the fleet manager is reached
 //      on, and the only one of the four that needs no setup at all.
 //   4. A chat_messages row (supabase/41) — the SAME text, but written into
-//      the recipient's own conversation with the Steadwerk Assistant, so it's
+//      the recipient's own conversation with ANVIL, so it's
 //      not just a toast that vanishes: it's a real, persisted message the
 //      assistant "said", there on next login same as any reply it ever gave.
 //      ChatWidget picks this up live via its own realtime subscription.
@@ -418,8 +418,8 @@ async function emailPeople(people, companyName, message, vehicleLabel, { urgent 
   }
 }
 
-// Writes the reminder into one person's own conversation with the Steadwerk
-// Assistant (supabase/41) — origin_session_id is left null on purpose, which
+// Writes the reminder into one person's own conversation with ANVIL
+// (supabase/41) — origin_session_id is left null on purpose, which
 // is what tells ChatWidget's realtime subscription this row did NOT come from
 // a tab it needs to skip as its own echo (see that migration's "WHY
 // origin_session_id"). Best-effort like the other two channels: a failure

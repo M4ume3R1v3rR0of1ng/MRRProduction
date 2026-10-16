@@ -12,10 +12,12 @@ import {
   ScrollText,
   Settings,
 } from "lucide-react";
+import { Bot } from "lucide-react";
 import { C } from "../utils/helpers";
 import { translations } from "../utils/translations";
 import { Text, Muted, Row } from "./LayoutPrimitives";
 import { Inp, Eyebrow, PickRow } from "./UIPrimitives";
+import { askAnvil } from "./anvil";
 
 // Case-insensitive match across any of the given string fields
 const match = (txt, ...fields) =>
@@ -213,6 +215,24 @@ export default function OmniSearch({
 
   const hasResults = results && Object.values(results).some((arr) => arr.length > 0);
 
+  // Hand the typed text to ANVIL instead of matching it.
+  //
+  // WHY THIS ROW EXISTS
+  //
+  // The matrix above is a substring match over names. It is excellent at "011"
+  // and useless at "which trucks are overdue" — and a question is exactly what
+  // somebody types into a search box when they do not know the name of the
+  // thing they are after. That used to dead-end on "No results for...".
+  //
+  // It renders LAST, so it never displaces a direct hit, and it is the only
+  // thing offered when nothing matched: the old empty state told people their
+  // question was unanswerable, when ANVIL could in fact answer it.
+  const handleAsk = () => {
+    askAnvil(query.trim());
+    setQuery("");
+    setIsOpen(false);
+  };
+
   // ── CATEGORY RENDER CONFIG ──
   const sections = results
     ? [
@@ -324,35 +344,57 @@ export default function OmniSearch({
             padding: "8px 0",
           }}
         >
-          {hasResults ? (
-            sections.map(
-              (s) =>
-                s.items.length > 0 && (
-                  <div key={s.key}>
-                    <Eyebrow style={{ padding: "6px 14px", background: C.subtle }}>
-                      {s.header}
-                    </Eyebrow>
-                    {s.items.map((item, idx) => (
-                      <PickRow
-                        key={item.id || idx}
-                        onClick={() => s.onClick(item)}
-                        style={{
-                          borderBottom: "none",
-                          fontSize: "var(--text-base)",
-                          color: C.barnwood,
-                        }}
-                      >
-                        <Text weight="semibold">{s.title(item)}</Text>
-                        <Muted>{s.sub(item)}</Muted>
-                      </PickRow>
-                    ))}
-                  </div>
-                ),
-            )
-          ) : (
-            <Text color={C.sub} style={{ padding: "20px", textAlign: "center" }}>
-              {t.osNoResults} "<strong>{query}</strong>"
-            </Text>
+          {hasResults
+            ? sections.map(
+                (s) =>
+                  s.items.length > 0 && (
+                    <div key={s.key}>
+                      <Eyebrow style={{ padding: "6px 14px", background: C.subtle }}>
+                        {s.header}
+                      </Eyebrow>
+                      {s.items.map((item, idx) => (
+                        <PickRow
+                          key={item.id || idx}
+                          onClick={() => s.onClick(item)}
+                          style={{
+                            borderBottom: "none",
+                            fontSize: "var(--text-base)",
+                            color: C.barnwood,
+                          }}
+                        >
+                          <Text weight="semibold">{s.title(item)}</Text>
+                          <Muted>{s.sub(item)}</Muted>
+                        </PickRow>
+                      ))}
+                    </div>
+                  ),
+              )
+            : // Not an error any more: a question that matches no record name is
+              // the normal case for a question, so it is stated plainly and the
+              // ask row below is the offer.
+              query.trim() && (
+                <Muted size="sm" style={{ display: "block", padding: "14px 14px 4px" }}>
+                  {t.osNoResults} "<strong>{query}</strong>"
+                </Muted>
+              )}
+
+          {query.trim() && (
+            <div>
+              <Eyebrow style={{ padding: "6px 14px", background: C.subtle }}>
+                {t.cwAskAnvil}
+              </Eyebrow>
+              <PickRow
+                onClick={handleAsk}
+                style={{ borderBottom: "none", fontSize: "var(--text-base)", color: C.barnwood }}
+              >
+                <Text weight="semibold">
+                  <Row inline as="span" gap={2}>
+                    <Bot size={13} aria-hidden="true" /> {query.trim()}
+                  </Row>
+                </Text>
+                <Muted>{t.cwAssistantExpansion}</Muted>
+              </PickRow>
+            </div>
           )}
         </div>
       )}

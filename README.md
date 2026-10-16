@@ -56,12 +56,12 @@ It is sold as a subscription ($99/mo including 10 users, or $990/yr) and runs as
 | Frontend framework | React 18 + Vite 7                                                 | No Redux or similar; one central data hook feeds the whole tree.                                                  |
 | Routing            | react-router-dom 7                                                | Real per-view URLs, added mid-project (see [Routing](#8-routing)).                                                |
 | Styling            | Inline style objects + a small CSS token file (`src/tokens.css`)  | No CSS framework. Per-company branding (accent color) is applied as CSS custom properties at runtime.             |
-| Backend            | Netlify Functions (Node, serverless)                              | 23 functions, every one wrapped for Sentry reporting.                                                             |
+| Backend            | Netlify Functions (Node, serverless)                              | 25 functions, every one wrapped for Sentry reporting.                                                             |
 | Database           | Supabase (hosted Postgres)                                        | Row Level Security, 47 hand-applied SQL migrations.                                                               |
 | Auth               | Supabase Auth                                                     | Email and password only, no SSO/federated login by design (see [Section 5](#5-multi-tenancy-and-security-model)). |
 | Billing            | Stripe                                                            | Checkout, customer portal, and webhooks, all server-side.                                                         |
 | Email              | Resend                                                            | Transactional email, sender-fenced to a company's own members.                                                    |
-| AI assistant       | Anthropic API                                                     | Backs an in-app chat widget.                                                                                      |
+| AI assistant       | Anthropic API                                                     | Backs ANVIL, the in-app assistant (ten read tools, four confirm-gated write tools).                               |
 | PDF generation     | jsPDF + jspdf-autotable                                           | Lazy-loaded, kept out of the PWA precache on purpose (see [Section 14](#14-pwa-and-offline-behavior)).            |
 | Mobile shell       | Capacitor 8                                                       | Wraps the web build for iOS App Store distribution.                                                               |
 | Error monitoring   | Sentry (`@sentry/react` client-side, `@sentry/node` in functions) | Off by default; only activates if a DSN is configured.                                                            |
@@ -221,7 +221,34 @@ Vehicles and trailers, service logging, formal inspection reports, mileage loggi
 
 Crews submit requests against a vehicle; managers schedule and close them. "Complete Service" is one atomic action (migration 34): it logs the service to the vehicle's history, closes the request, and optionally reassigns the driver, all in one step rather than three that could get out of sync.
 
-A nightly job (`send-maintenance-push-notices.js`, migrations 38-40) forecasts each vehicle's next oil change from its own mileage log, warns the assigned driver 7 days out, then escalates to a daily urgent notice once it's actually due and no matching request has been filed. One decision ("heads-up" vs. "urgent") fans out to four channels at once: an iOS push via APNs, a realtime in-app toast, an email, and a persisted message in the driver's chat with the Steadwerk Assistant — so the notice is never just a toast that vanishes if nobody was looking. The APNs channel is code-complete but not yet live; see [Section 12](#12-integrations).
+A nightly job (`send-maintenance-push-notices.js`, migrations 38-40) forecasts each vehicle's next oil change from its own mileage log, warns the assigned driver 7 days out, then escalates to a daily urgent notice once it's actually due and no matching request has been filed. One decision ("heads-up" vs. "urgent") fans out to four channels at once: an iOS push via APNs, a realtime in-app toast, an email, and a persisted message in the driver's chat with ANVIL (see below) — so the notice is never just a toast that vanishes if nobody was looking. The APNs channel is code-complete but not yet live; see [Section 12](#12-integrations).
+
+### ANVIL (the in-app assistant)
+
+**ANVIL** — Assistant for Navigating Vehicles, Inventory & Labor — is the assistant built into every tenant's account. Backend: [chat.js](netlify/functions/chat.js) plus `_shared/anvil*.js`. Frontend: [ChatWidget](src/shared/components/ChatWidget.jsx) and [AnvilCard](src/features/dashboard/AnvilCard.jsx).
+
+It was previously a read-only corner bubble called "Steadwerk Assistant", with six tools over jobs, inventory, fleet and maintenance. It now does four things it could not:
+
+**1. It sees more.** Ten read tools. The four added: `get_schedule` (a day-window calendar across jobs, trailers and shop time — including the trailer-double-booked conflict no single calendar in the app can see on its own, since trailers live in Fleet and shop time lives in Maintenance), `get_job_costing` (material cost actual-vs-planned, contract value, margin; the payload carries its own caveat that labour and overhead are not in this system, because a margin quoted without that overstates every job by roofing's largest cost line), `get_training_status`, and `get_my_briefing`.
+
+**2. It can change things.** Four write tools, in [`_shared/anvilActions.js`](netlify/functions/_shared/anvilActions.js): file a maintenance request, schedule a pending one, correct stock, log mileage. Each one is gated on the same permission as the button that does it in the UI (`maint_submit`, `maint_manage`, `inv_adjust`, `fleet_log_mi`).
+
+**No write happens on the turn the model asks for it.** The tool returns a _preview_ — the exact before/after in plain words, plus an HMAC-signed token — the widget renders Confirm/Cancel under it, and only a second request carrying that token back commits anything. Permission is re-checked on commit (five minutes is long enough for an admin to have revoked it), the write is audited to `audit_logs` as if the user had clicked it, and the signature exists so the write that lands is byte-for-byte the one the person was shown: without it a stale or tampered client could confirm "correct to 40" under a preview that said 400. The signing key is derived from `SUPABASE_SERVICE_ROLE_KEY` rather than a new env var, deliberately — a signing secret provisioned separately is one that's missing in production on the day it matters.
+
+Writes also fail on ambiguity rather than guessing: "adjust the shingles" against four kinds of shingle is a question, not an instruction. An exact name still wins outright, so `011` is not called ambiguous merely because `0110` exists.
+
+**3. It's in more places.** Besides the corner bubble: a dashboard card showing this morning's briefing with one-tap prompts (each gated on the permission that makes the answer meaningful), an "Ask ANVIL" row in [OmniSearch](src/shared/components/OmniSearch.jsx) — which turns the old "no results for..." dead end into something useful, since a question is exactly what people type when they don't know the name of the thing they want — and page awareness, so "when is this one due?" resolves on the Fleet page without anybody typing a unit number. That context is a **hint appended to the prompt, never a grant**: whitelisted, length-capped, and backed by tool guards that re-derive every permission from the session token regardless.
+
+Cross-tree calls go through a one-way window event ([`anvil.js`](src/shared/components/anvil.js)) rather than a context provider — the widget is mounted once beside the router, the callers are inside routed views, and lifting the conversation into context would re-render every consumer on each reply for the sake of one fire-and-forget call.
+
+**4. It speaks first.** `send-daily-briefing.js` runs weekday mornings at 12:00 UTC (an hour before the oil escalation, so the briefing is read first and the urgent notice lands on top of it) and writes each person one message about their own day: today's jobs, overdue oil, tickets waiting on them, low stock, outstanding training, loose ends. Every section is gated on the permission that gates its page, so a briefing only ever contains things that person could have gone and looked at. One message, once, in the place ANVIL already talks to them — not four more escalation ladders.
+
+**Silence is a feature.** `buildBriefing` returns `null` when it found nothing worth saying and _no row is written_. A channel that produces a daily "all clear" is a channel people filter, and then the morning that matters is filtered too. The dashboard card is correspondingly empty on a quiet morning, and shows the prompts instead of inventing a status.
+
+Two things worth knowing about the shape of all this:
+
+- **`loadCompanyRoster()` exists because `profiles` is not company-scoped.** It has one row per auth user across the whole platform, and these functions run on a service-role client where RLS doesn't apply — so a bare `admin.from("profiles").select(...)` returns every tenant's names. Anything resolving an id to a name goes through that helper, where `memberships` picks the id list first.
+- **The dashboard card renders the briefing rather than recomputing one.** A client-side copy of "what matters today" would drift from the server's, and would be filtering on permissions the browser can see rather than the ones the database enforces. One briefing, written once, shown in two places.
 
 ### Scheduling
 
@@ -229,7 +256,7 @@ A calendar view spanning jobs, crew assignments, and trailer bookings.
 
 ### Dashboard
 
-The landing screen after login: job pipeline summary, a weather card, and a team chat box backed by durable message history (migration 41) rather than an ephemeral, reload-and-it's-gone thread.
+The landing screen after login: job pipeline summary, a weather card, an [ANVIL card](#anvil-the-in-app-assistant) carrying this morning's briefing, and a team chat box backed by durable message history (migration 41) rather than an ephemeral, reload-and-it's-gone thread.
 
 ### Reports
 
@@ -274,7 +301,7 @@ The app uses `react-router-dom` for real, per-view URLs (`/dashboard`, `/buildjo
 
 ## 9. Backend: Netlify Functions
 
-All 23 functions live in `netlify/functions/` and are wrapped with `withSentry(name, handler)` for error reporting. Every one that touches a tenant table goes through `resolveCaller()` first (see [Section 5](#5-multi-tenancy-and-security-model)).
+All 25 functions live in `netlify/functions/` and are wrapped with `withSentry(name, handler)` for error reporting. Every one that touches a tenant table goes through `resolveCaller()` first (see [Section 5](#5-multi-tenancy-and-security-model)).
 
 | Function                           | Purpose                                                                                                                                                                                                                                                          |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -295,11 +322,12 @@ All 23 functions live in `netlify/functions/` and are wrapped with `withSentry(n
 | `acculynx-sync.js`                 | Pushes/pulls job data to and from AccuLynx.                                                                                                                                                                                                                      |
 | `acculynx-import.js`               | A machine-to-machine import path, authenticated by a shared secret header rather than a user session.                                                                                                                                                            |
 | `weather.js`                       | Backs the dashboard weather card.                                                                                                                                                                                                                                |
-| `chat.js`                          | Backs the in-app AI assistant (Anthropic). The second-largest function.                                                                                                                                                                                          |
+| `chat.js`                          | ANVIL's backend (Anthropic): ten read tools, plus the confirm-gated write path in `_shared/anvilActions.js`. The second-largest function. See [Feature modules](#7-feature-modules).                                                                             |
 | `send-email.js` / `send-alert.js`  | Transactional email relays, fenced so a user can only email people in their own company, never arbitrary external addresses.                                                                                                                                     |
 | `register-push-token.js`           | Registers/re-confirms a device's APNs push token for the signed-in user.                                                                                                                                                                                         |
 | `send-maintenance-push-notices.js` | Nightly oil-due forecast and escalation — push, realtime toast, email, and chat message, one decision fanned out to four channels. See [Feature modules](#7-feature-modules).                                                                                    |
 | `send-training-due-notices.js`     | Nightly sweep for assigned training (migrations 48-49): a heads-up inside 3 days of the deadline, then one nudge a day while overdue. Same four channels as the oil sweep, but grouped per person rather than per row. Runs at 13:05 UTC, five minutes after it. |
+| `send-daily-briefing.js`           | Weekday mornings at 12:00 UTC: one ANVIL briefing per person, each section gated on the permission that gates its page. Writes no row at all for a person with nothing to hear about. See [Feature modules](#7-feature-modules).                                 |
 | `daily-archive.js`                 | A scheduled/cron cleanup job.                                                                                                                                                                                                                                    |
 
 ## 10. Database: Supabase and migrations
@@ -323,7 +351,7 @@ Selected highlights beyond tenancy and permissions (already covered above): a se
 
 - **AccuLynx**: the roofing industry CRM/project system this app syncs job and document data with. Configuration is per-company (`Settings -> Integrations`), with the API key itself never readable by the browser once saved; only a "configured: yes/no" status is exposed.
 - **Resend**: transactional email. All platform mail goes out from one verified sending domain, with the company's name as the display name, and is fenced so a user can only send to their own company's active members.
-- **Anthropic**: powers the in-app chat assistant. Loads after the rest of the view the person actually asked for, since it's useful but never the reason someone opened the app.
+- **Anthropic**: powers ANVIL, the in-app assistant. Loads after the rest of the view the person actually asked for, since it's useful but never the reason someone opened the app.
 - **Weather**: a simple lookup backing the dashboard's weather card.
 - **Apple Push Notification service (APNs)**: `_shared/apns.js` signs its own ES256 provider JWT and posts over Node's built-in `http2` module rather than pulling in a push-sending library (the usual pick, `node-apn`, is effectively unmaintained). Backs the oil-due maintenance notice pipeline. **Not live**: none of its five required env vars (`APNS_KEY`, `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_BUNDLE_ID`, `APNS_PRODUCTION`) are set locally as of this writing, and the code that calls it catches that once per run rather than per notice. See [Section 13](#13-the-ios-app) for the matching native-side gap.
 - **Sentry**: see [Section 22](#22-error-monitoring).

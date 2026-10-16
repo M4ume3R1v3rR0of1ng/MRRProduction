@@ -1,5 +1,5 @@
 // src/App.jsx
-import { lazy, Suspense, useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import {
   Routes,
   Route,
@@ -461,6 +461,46 @@ export default function App() {
     }
   }, [lang]);
   const t = translations[lang] || translations.en;
+
+  // ── WHAT ANVIL IS TOLD THE USER IS LOOKING AT ──
+  //
+  // So "when is this one due?" resolves without them typing a unit number. The
+  // record half comes from the same ?open= param OmniSearch deep-links with,
+  // resolved to a human label because an id means nothing to a language model.
+  //
+  // This is a HINT, NOT A PERMISSION — chat.js re-derives every permission from
+  // the verified session token regardless, so a forged context buys nothing.
+  // See describeContext there.
+  //
+  // Sits above the early returns below, not next to the ChatWidget it feeds,
+  // because a hook after a conditional return is called in a different order
+  // on different renders. It reads location directly for the same reason the
+  // `view` constant further down does.
+  const anvilView = location.pathname.slice(1) || "dashboard";
+  const anvilRecordId = searchParams.get("open");
+  const anvilContext = useMemo(() => {
+    if (!anvilRecordId) return { view: anvilView };
+    const labelOf = () => {
+      switch (anvilView) {
+        case "fleet":
+          return app.vehs?.find((v) => String(v.id) === anvilRecordId)?.name;
+        case "requests": {
+          const r = app.reqs?.find((x) => String(x.id) === anvilRecordId);
+          return r && `${r.type || "request"} on ${r.vname || "a vehicle"}`;
+        }
+        case "buildjobs":
+        case "pull": {
+          const j = app.jobs?.find((x) => String(x.id) === anvilRecordId);
+          return j && (j.title || j.name || j.po);
+        }
+        case "users":
+          return app.users?.find((u) => String(u.id) === anvilRecordId)?.name;
+        default:
+          return null;
+      }
+    };
+    return { view: anvilView, record: labelOf() || null };
+  }, [anvilView, anvilRecordId, app.vehs, app.reqs, app.jobs, app.users]);
 
   // ── PASSWORD RECOVERY RENDER LAYER ──
   // Takes precedence over the loading splash and the auth check: a recovery link
@@ -1326,7 +1366,7 @@ export default function App() {
         </div>
       </div>
       <Suspense fallback={null}>
-        <ChatWidget user={app.curUser} lang={lang} />
+        <ChatWidget user={app.curUser} lang={lang} context={anvilContext} />
       </Suspense>
     </IdleTimeoutWrapper>
   );

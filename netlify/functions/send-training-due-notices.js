@@ -15,7 +15,7 @@
 //      assignee's own rows. An open tab hears about it immediately.
 //   3. An email via Resend, for the person who will not open the app today.
 //   4. A chat_messages row (supabase/41) — the same words, persisted into their
-//      own conversation with the Steadwerk Assistant, so the reminder is still
+//      own conversation with ANVIL, so the reminder is still
 //      there at next login rather than being a toast nobody was looking at.
 //
 // GROUPED PER PERSON, NOT PER ASSIGNMENT
