@@ -1145,6 +1145,35 @@ export const translations = {
     bjCorrectReturnNoChange: "Nothing was changed.",
     colCurrentlyReturned: "Currently Returned",
     colCorrectedReturned: "Corrected Total",
+    bjCorrectPull: "Correct Pull",
+    bjCorrectPullTitle: "Correct Pulled Materials",
+    bjCorrectPullInfo:
+      "Fix a quantity that went out wrong on this job. Lowering a line puts those units back on the shelf at the exact prices they were bought at, into the batches they actually came from — not at today's price, and not as a fresh adjustment in this month's count.",
+    bjCorrectPullRaiseHintTitle: "Need MORE of something, not less?",
+    bjCorrectPullRaiseHint:
+      "This screen can only reduce a pull. To add more of a line that has already gone out, correct it to 0 here, then use Need More Materials to pull the new total.",
+    bjCorrectPullNewTotal: "New Pulled Total",
+    bjCorrectPullBackToStock: "Back To Stock",
+    bjCorrectPullReason: "Why is this being corrected? (optional)",
+    bjCorrectPullReasonHint:
+      "Stays on the job permanently, unlike the activity log. Worth a line for whoever reconciles the cost later — “pulled 10, only 6 went on the roof”, “wrong colour, swapped on site”.",
+    bjCorrectPullConfirm: "Save Correction",
+    bjCorrectPullSaving: "Correcting...",
+    bjCorrectPullSaved: "Pull corrected and the stock credited back.",
+    bjCorrectPullFail: "Could not correct the pull:",
+    bjCorrectPullNoChange: "Change at least one quantity first.",
+    bjCorrectPullInvalid: "Fix the highlighted quantities first.",
+    bjCorrectPullNothing:
+      "Nothing has been pulled on this job yet, so there is no pull to correct.",
+    bjCorrectPullCannotRaise:
+      "Cannot go above what was pulled — correct it to 0 and use Need More Materials.",
+    bjCorrectPullBelowReturned:
+      "Cannot go below the {n} already returned — correct the return first.",
+    bjCorrectPullNegative: "Cannot be negative.",
+    bjCorrectPullBlank: "Enter a quantity.",
+    bjCorrectPullNoHistory:
+      "Pulled before batch tracking, so it cannot be credited back exactly — adjust this item’s stock by hand instead.",
+    bjCorrectPullAllReturned: "Everything pulled has already come back.",
     bjCreatedTitle: "Job built",
     bjCreatedAssigned: "It is now in Pull Inventory, waiting for {name} to pull materials.",
     bjCreatedUnassigned:
@@ -2600,6 +2629,35 @@ export const translations = {
     bjCorrectReturnNoChange: "No se cambió nada.",
     colCurrentlyReturned: "Devuelto Actualmente",
     colCorrectedReturned: "Total Corregido",
+    bjCorrectPull: "Corregir Retiro",
+    bjCorrectPullTitle: "Corregir Materiales Retirados",
+    bjCorrectPullInfo:
+      "Corrija una cantidad que salió mal en este trabajo. Al reducir una línea, esas unidades vuelven al estante a los precios exactos a los que se compraron y a los lotes de los que realmente salieron — no al precio de hoy, ni como un ajuste nuevo en el conteo de este mes.",
+    bjCorrectPullRaiseHintTitle: "¿Necesita MÁS de algo, no menos?",
+    bjCorrectPullRaiseHint:
+      "Esta pantalla solo puede reducir un retiro. Para agregar más de una línea que ya salió, corríjala a 0 aquí y luego use Se Necesita Más Material para retirar el nuevo total.",
+    bjCorrectPullNewTotal: "Nuevo Total Retirado",
+    bjCorrectPullBackToStock: "Vuelve Al Inventario",
+    bjCorrectPullReason: "¿Por qué se corrige esto? (opcional)",
+    bjCorrectPullReasonHint:
+      "Queda en el trabajo de forma permanente, a diferencia del registro de actividad. Vale una línea para quien concilie el costo después — “se retiraron 10, solo 6 se usaron en el techo”, “color equivocado, cambiado en obra”.",
+    bjCorrectPullConfirm: "Guardar Corrección",
+    bjCorrectPullSaving: "Corrigiendo...",
+    bjCorrectPullSaved: "Retiro corregido y el inventario acreditado.",
+    bjCorrectPullFail: "No se pudo corregir el retiro:",
+    bjCorrectPullNoChange: "Cambie al menos una cantidad primero.",
+    bjCorrectPullInvalid: "Corrija primero las cantidades marcadas.",
+    bjCorrectPullNothing:
+      "Todavía no se ha retirado nada en este trabajo, así que no hay retiro que corregir.",
+    bjCorrectPullCannotRaise:
+      "No puede superar lo retirado — corríjalo a 0 y use Se Necesita Más Material.",
+    bjCorrectPullBelowReturned:
+      "No puede ser menor que los {n} ya devueltos — corrija primero la devolución.",
+    bjCorrectPullNegative: "No puede ser negativo.",
+    bjCorrectPullBlank: "Ingrese una cantidad.",
+    bjCorrectPullNoHistory:
+      "Se retiró antes del seguimiento por lotes, así que no se puede acreditar con exactitud — ajuste el inventario de este artículo a mano.",
+    bjCorrectPullAllReturned: "Todo lo retirado ya regresó.",
     bjCreatedTitle: "Trabajo creado",
     bjCreatedAssigned: "Ya está en Retirar Inventario, esperando que {name} retire los materiales.",
     bjCreatedUnassigned:

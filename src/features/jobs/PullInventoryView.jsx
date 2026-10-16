@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Pencil,
   Plus,
+  Undo2,
 } from "lucide-react";
 import {
   C,
@@ -30,6 +31,8 @@ import { displayNameOf } from "@/shared/utils/people";
 import { planAnomalies } from "./pullReview";
 import { canAddPull } from "./addPullMaterials";
 import AddPullMaterialsModal from "./AddPullMaterialsModal";
+import { canCorrectPull } from "./correctPull";
+import CorrectPullModal from "./CorrectPullModal";
 import { translations } from "@/shared/utils/translations";
 import { useStickySort } from "@/shared/hooks/useStickySort";
 import { generatePDF } from "./pdfGenerator";
@@ -1263,6 +1266,23 @@ export default function PullInventory({
                         <Plus size={13} aria-hidden="true" /> {t.pullAddMatBtn}
                       </Btn>
                     )}
+                    {/* The other direction: too much went out, or the wrong
+                        thing did. Same card, same permission — the person who
+                        mis-pulled is the person holding jobs_pull, and
+                        supabase/51 says in as many words that gating this
+                        anywhere else closes the only door to them. */}
+                    {canCorrectPull(job, perms) && (
+                      <Btn
+                        v="outline"
+                        sz="sm"
+                        onClick={() => {
+                          setSel(job);
+                          setModal("correctPull");
+                        }}
+                      >
+                        <Undo2 size={13} aria-hidden="true" /> {t.bjCorrectPull}
+                      </Btn>
+                    )}
                     {perms.jobs_complete && job.status === "active" && (
                       <Btn
                         v="gold"
@@ -1718,6 +1738,24 @@ export default function PullInventory({
         />
       )}
 
+      {/* ── MODAL: THAT PULL WAS WRONG ── supabase/51. ── */}
+      {modal === "correctPull" && sel && canCorrectPull(sel, perms) && (
+        <CorrectPullModal
+          job={sel}
+          activeUser={user}
+          t={t}
+          onSaved={(updatedJob, freshInv) => {
+            setJobs((p) => p.map((j) => (j.id === updatedJob.id ? updatedJob : j)));
+            setSel(updatedJob);
+            if (freshInv) {
+              setInv((p) => p.map((i) => (freshInv[i.id] ? { ...i, batches: freshInv[i.id] } : i)));
+            }
+            setModal(null);
+          }}
+          onClose={() => setModal(null)}
+        />
+      )}
+
       {modal === "edit" && sel && perms.jobs_edit_pull && (
         <Modal
           title={`${t.pullEditJob} — ${sel.po}`}
@@ -1937,7 +1975,7 @@ export default function PullInventory({
           onClose={() => setSel(null)}
           wide
         >
-          {(perms.jobs_edit_pull || canAddPull(sel, perms)) && (
+          {(perms.jobs_edit_pull || canAddPull(sel, perms) || canCorrectPull(sel, perms)) && (
             <Row gap={2} align="stretch" justify="flex-end" wrap style={{ marginBottom: 8 }}>
               {/* Offered here as well as on the card: this drawer is where
                   somebody who opened the job to check what it has will notice
@@ -1945,6 +1983,13 @@ export default function PullInventory({
               {canAddPull(sel, perms) && (
                 <Btn v="outline" sz="sm" onClick={() => setModal("addPull")}>
                   <Plus size={13} aria-hidden="true" /> {t.pullAddMatBtn}
+                </Btn>
+              )}
+              {/* And this drawer is where they will notice a line reads 20 when
+                  6 went on the roof — the quantities are on screen right here. */}
+              {canCorrectPull(sel, perms) && (
+                <Btn v="outline" sz="sm" onClick={() => setModal("correctPull")}>
+                  <Undo2 size={13} aria-hidden="true" /> {t.bjCorrectPull}
                 </Btn>
               )}
               {perms.jobs_edit_pull && (

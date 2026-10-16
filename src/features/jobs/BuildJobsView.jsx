@@ -19,6 +19,7 @@ import {
   Search,
   LayoutTemplate,
   Plus,
+  Undo2,
 } from "lucide-react";
 import {
   C,
@@ -78,6 +79,8 @@ import EditJobModal from "./EditJobModal";
 import CorrectReturnModal from "./CorrectReturnModal";
 import AddPullMaterialsModal from "./AddPullMaterialsModal";
 import { canAddPull } from "./addPullMaterials";
+import CorrectPullModal from "./CorrectPullModal";
+import { canCorrectPull } from "./correctPull";
 
 // The values of the <option> list in this view's sort dropdown, in the same
 // order. useStickySort checks a remembered choice against this before trusting
@@ -1211,6 +1214,15 @@ export default function BuildJobs({
                 <Plus size={13} aria-hidden="true" /> {t.pullAddMatBtn}
               </Btn>
             )}
+            {/* Beside Need More Materials, under the same permission, because
+                they are the two halves of one job: 52 sends a line at pulled > 0
+                here, and this sends a line corrected to 0 back there. See
+                supabase/51's note on why this cannot live inside Edit Job. */}
+            {canCorrectPull(sel, perms) && (
+              <Btn v="outline" sz="sm" onClick={() => setModal("correctPull")}>
+                <Undo2 size={13} aria-hidden="true" /> {t.bjCorrectPull}
+              </Btn>
+            )}
             {perms.jobs_approve && sel.status === "draft" && (
               <Btn
                 v="teal"
@@ -1469,6 +1481,27 @@ export default function BuildJobs({
               setInv((p) =>
                 p.map((i) => (changedBatches[i.id] ? { ...i, batches: changedBatches[i.id] } : i)),
               );
+            }
+          }}
+          onClose={() => setModal("detail")}
+        />
+      )}
+
+      {/* ── MODAL: THAT PULL WAS WRONG ──
+          Reached from the detail drawer under `jobs_pull`, for the same reason
+          Need More Materials is: the roles that pull material hold neither
+          `jobs_build` nor `jobs_edit_pull`. supabase/51. */}
+      {modal === "correctPull" && sel && canCorrectPull(sel, perms) && (
+        <CorrectPullModal
+          job={sel}
+          activeUser={activeUser}
+          t={t}
+          onSaved={(updated, freshInv) => {
+            setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
+            setSel(updated);
+            setModal("detail");
+            if (freshInv && typeof setInv === "function") {
+              setInv((p) => p.map((i) => (freshInv[i.id] ? { ...i, batches: freshInv[i.id] } : i)));
             }
           }}
           onClose={() => setModal("detail")}

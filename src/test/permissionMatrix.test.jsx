@@ -123,6 +123,10 @@ describe.each(ROLES)("%s", (role) => {
     // at all are a different set (build || close) — the Pull Inventory case is
     // what proves the warehouse and the field can get to it.
     expect(!!button(/need more materials/i)).toBe(can.pull);
+    // The other half of that pair, under the same flag. supabase/51 is explicit
+    // that gating it on jobs_edit_pull or jobs_close would leave the RPC
+    // callable by people who cannot open the only door to it.
+    expect(!!button(/correct pull/i)).toBe(can.pull);
   });
 
   it(`Pull Inventory: Pull ${can.pull ? "shown" : "hidden"}, Return & Complete ${can.complete ? "shown" : "hidden"}, Need More Materials ${can.pull ? "shown" : "hidden"}`, () => {
@@ -151,6 +155,10 @@ describe.each(ROLES)("%s", (role) => {
     // test asserted only that the button respected jobs_pull — which it did,
     // from behind a door those roles could not open.
     expect(!!button(/need more materials/i)).toBe(can.pull);
+    // Same screen, same flag, opposite direction: too much went out, or the
+    // wrong thing did. `warehouse` and `field` are the roles that mis-pull and
+    // the ones that have to be able to put it right.
+    expect(!!button(/correct pull/i)).toBe(can.pull);
   });
 
   it(`Edit Job: Correct Return ${can.close ? "shown" : "hidden"}`, () => {
