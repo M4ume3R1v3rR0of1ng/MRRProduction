@@ -211,6 +211,50 @@ const READ_TOOLS = [
 // What the model is offered: reads plus the confirm-gated writes.
 const TOOLS = [...READ_TOOLS, ...ACTION_TOOLS];
 
+// ── THE SYSTEM PROMPT IS SPLIT IN TWO, AND THE SPLIT IS LOAD-BEARING ───────
+//
+// Prompt caching is a PREFIX match, and the request renders in the order
+// tools → system → messages. The frozen half below therefore sits directly
+// after a tool list that never changes, which makes those ~3k tokens one
+// stable prefix worth caching.
+//
+// Everything that varies per caller — their name, their role, their company,
+// the page they are looking at — lives in the second block instead. It used to
+// open the prompt, which put volatile bytes ahead of every instruction and
+// made the whole thing uncacheable: a different name meant a different prefix,
+// so nothing after it could ever be reused.
+//
+// The win is bigger than one request. A turn that calls tools re-sends this
+// entire prefix on each pass of the loop below, up to five times, so the cache
+// pays off WITHIN a single question as well as across a conversation.
+//
+// Keep this string free of interpolation. Anything company- or user-specific
+// that creeps in here silently stops the cache from ever being read.
+const STATIC_SYSTEM = `You are A.N.V.I.L. — Assistant for Navigating Vehicles, Inventory & Labor — the built-in assistant inside a Steadwerk account, an internal tool for warehouse staff, site supervisors, drivers, and office managers.
+Answer questions about jobs, inventory, fleet vehicles, maintenance, the schedule, job costing, and training using the tools provided — never invent data.
+When asked what maintenance to do, what is due, or what needs attention, call recommend_maintenance. It returns an already-ranked list: present it in that order, lead with the overdue items, and cite the reason it gives. Do not re-sort it or compute your own mileage math.
+When asked how the day or week looks, or what they should be looking at, call get_my_briefing — it is already filtered to what this person is allowed to see.
+Job costing covers MATERIAL cost only. Labour, overhead, subcontractors and disposal are not tracked anywhere in this system, so never call a margin from get_job_costing "profit" without saying what it leaves out.
+You can also CHANGE things: file and schedule maintenance requests, correct stock, and log mileage. Those tools do not act when you call them — they return a preview, and the app shows the user a Confirm button. So: call the tool once, relay its summary in one short sentence, and stop. Never say something has been filed, corrected, scheduled or logged on the strength of a preview; the user has not pressed Confirm yet, and you will not be told when they do.
+If a write tool reports an ambiguous match, ask the user which one they meant rather than guessing.
+Never speculate about other companies on the platform; you have no access to them.
+If a tool returns a permission error, tell the user plainly they don't have access to that rather than guessing or making something up.
+Keep answers short and directly useful — this is an internal ops tool, not a chatty assistant.`;
+
+/**
+ * The half of the prompt that changes per request, kept deliberately small so
+ * the cached prefix above carries the weight.
+ */
+function callerSystemBlock({ companyName, actorName, role, contextLine }) {
+  return [
+    `You are talking to ${actorName} (role: ${role}), in ${companyName}'s account.`,
+    `All data you can see belongs to ${companyName}.`,
+    contextLine,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 // Mirrors src/features/fleet/patterns.js — duplicated rather than imported because this
 // function runs as CommonJS in Node while the frontend module is ESM.
 function learnServiceIntervals(vehicle) {
@@ -1281,17 +1325,6 @@ const rawHandler = async (event) => {
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const contextLine = describeContext(context);
-    const systemPrompt = `You are A.N.V.I.L. — Assistant for Navigating Vehicles, Inventory & Labor — the built-in assistant inside ${caller.companyName}'s Steadwerk account, an internal tool for warehouse staff, site supervisors, drivers, and office managers.
-You are talking to ${actorName} (role: ${caller.role}).${contextLine ? `\n${contextLine}` : ""}
-Answer questions about jobs, inventory, fleet vehicles, maintenance, the schedule, job costing, and training using the tools provided — never invent data.
-When asked what maintenance to do, what is due, or what needs attention, call recommend_maintenance. It returns an already-ranked list: present it in that order, lead with the overdue items, and cite the reason it gives. Do not re-sort it or compute your own mileage math.
-When asked how the day or week looks, or what they should be looking at, call get_my_briefing — it is already filtered to what this person is allowed to see.
-Job costing covers MATERIAL cost only. Labour, overhead, subcontractors and disposal are not tracked anywhere in this system, so never call a margin from get_job_costing "profit" without saying what it leaves out.
-You can also CHANGE things: file and schedule maintenance requests, correct stock, and log mileage. Those tools do not act when you call them — they return a preview, and the app shows the user a Confirm button. So: call the tool once, relay its summary in one short sentence, and stop. Never say something has been filed, corrected, scheduled or logged on the strength of a preview; the user has not pressed Confirm yet, and you will not be told when they do.
-If a write tool reports an ambiguous match, ask the user which one they meant rather than guessing.
-All data you can see belongs to ${caller.companyName}. Never speculate about other companies on the platform; you have no access to them.
-If a tool returns a permission error, tell the user plainly they don't have access to that rather than guessing or making something up.
-Keep answers short and directly useful — this is an internal ops tool, not a chatty assistant.`;
 
     let workingMessages = messages.slice(-20); // cap history sent per request
     let finalText = "";
@@ -1301,9 +1334,29 @@ Keep answers short and directly useful — this is an internal ops tool, not a c
 
     for (let i = 0; i < 5; i++) {
       const response = await anthropic.messages.create({
-        model: "claude-haiku-4-5",
-        max_tokens: 1024,
-        system: systemPrompt,
+        model: "claude-haiku-5-5",
+        // Thinking is adaptive and ON by default on this model, and it draws
+        // from the SAME budget as the answer. The old 1024 was sized for a
+        // model that did not think at all; left there, a ranked maintenance
+        // list or a relayed briefing gets cut off mid-sentence. Raise this
+        // before lowering `effort` — a truncated answer is a bug, slow
+        // thinking is only a cost.
+        max_tokens: 16000,
+        // Two blocks, not one string: see STATIC_SYSTEM. The breakpoint goes
+        // on the frozen half, so the cache covers `tools` + these
+        // instructions and stops short of anything caller-specific.
+        system: [
+          { type: "text", text: STATIC_SYSTEM, cache_control: { type: "ephemeral" } },
+          {
+            type: "text",
+            text: callerSystemBlock({
+              companyName: caller.companyName,
+              actorName,
+              role: caller.role,
+              contextLine,
+            }),
+          },
+        ],
         tools: TOOLS,
         messages: workingMessages,
       });
