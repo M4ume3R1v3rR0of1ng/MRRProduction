@@ -70,7 +70,9 @@ export const ACTION_TOOLS = [
         notes: { type: "string", description: "What the driver reported, in their words." },
       },
       required: ["vehicle_name", "issue_type"],
+      additionalProperties: false,
     },
+    strict: true,
   },
   {
     name: "schedule_maintenance_request",
@@ -90,7 +92,9 @@ export const ACTION_TOOLS = [
         },
       },
       required: ["request_id", "scheduled_date"],
+      additionalProperties: false,
     },
+    strict: true,
   },
   {
     name: "adjust_stock",
@@ -113,7 +117,9 @@ export const ACTION_TOOLS = [
         },
       },
       required: ["item_name", "new_quantity"],
+      additionalProperties: false,
     },
+    strict: true,
   },
   {
     name: "log_mileage",
@@ -126,7 +132,9 @@ export const ACTION_TOOLS = [
         mileage: { type: "number", description: "The odometer reading, in miles." },
       },
       required: ["vehicle_name", "mileage"],
+      additionalProperties: false,
     },
+    strict: true,
   },
 ];
 
