@@ -215,7 +215,7 @@ export default function OmniSearch({
 
   const hasResults = results && Object.values(results).some((arr) => arr.length > 0);
 
-  // Hand the typed text to ANVIL instead of matching it.
+  // Hand the typed text to A.N.V.I.L. instead of matching it.
   //
   // WHY THIS ROW EXISTS
   //
@@ -226,7 +226,7 @@ export default function OmniSearch({
   //
   // It renders LAST, so it never displaces a direct hit, and it is the only
   // thing offered when nothing matched: the old empty state told people their
-  // question was unanswerable, when ANVIL could in fact answer it.
+  // question was unanswerable, when A.N.V.I.L. could in fact answer it.
   const handleAsk = () => {
     askAnvil(query.trim());
     setQuery("");

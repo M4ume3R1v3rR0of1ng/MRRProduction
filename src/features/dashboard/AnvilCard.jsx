@@ -1,6 +1,6 @@
 // src/features/dashboard/AnvilCard.jsx
 //
-// ANVIL on the dashboard: this morning's briefing, and a way in.
+// A.N.V.I.L. on the dashboard: this morning's briefing, and a way in.
 //
 // WHY THIS READS THE BRIEFING RATHER THAN BUILDING ONE
 //
@@ -88,7 +88,7 @@ export default function AnvilCard({ user, perms = {}, lang = "en" }) {
     let cancelled = false;
 
     // Newest proactive message only. Not filtered by date in the query: a
-    // briefing written on Friday is still the last thing ANVIL said on a
+    // briefing written on Friday is still the last thing A.N.V.I.L. said on a
     // Monday morning before the cron runs, and showing it beats showing
     // nothing — the row carries its own timestamp, rendered below, so nobody
     // mistakes it for today's.

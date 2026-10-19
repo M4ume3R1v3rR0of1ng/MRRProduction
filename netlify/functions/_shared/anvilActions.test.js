@@ -100,7 +100,7 @@ describe("applyStockCorrection", () => {
     // Found stock is valued at the newest known price, not zero — otherwise it
     // deflates the cost of every later pull that consumes it.
     expect(result[1].price).toBe(7);
-    expect(result[1].ref).toContain("ANVIL");
+    expect(result[1].ref).toContain("A.N.V.I.L.");
   });
 
   it("drains oldest-first when the count came out low, matching how a pull consumes", () => {
@@ -219,7 +219,7 @@ describe("previewAction", () => {
     expect(result.summary).toContain("011");
     expect(result.summary).toContain("Brakes");
     expect(verifyAction(result.action, caller)).toEqual({ ok: true });
-    // Resolved to the label the crew's own tickets use, so a ticket ANVIL files
+    // Resolved to the label the crew's own tickets use, so a ticket A.N.V.I.L. files
     // is indistinguishable in every list that reads vname.
     expect(result.action.input.vehicle_label).toBe("011 (ABC123)");
   });

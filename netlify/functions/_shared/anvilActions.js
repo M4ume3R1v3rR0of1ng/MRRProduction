@@ -1,6 +1,6 @@
 // netlify/functions/_shared/anvilActions.js
 //
-// The four things ANVIL can CHANGE, as opposed to the dozen it can read.
+// The four things A.N.V.I.L. can CHANGE, as opposed to the dozen it can read.
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // WHY A WRITE IS TWO ROUND TRIPS AND NOT ONE
@@ -287,7 +287,7 @@ export function applyStockCorrection(liveBatches, newQty, { byUserId, byName, re
         // being removed, so the name is stored beside it.
         byName: byName || null,
         rem: delta,
-        ref: `Manual Adjustment (ANVIL${reason ? `: ${reason}` : ""})`,
+        ref: `Manual Adjustment (A.N.V.I.L.${reason ? `: ${reason}` : ""})`,
       },
     ];
   }
@@ -374,7 +374,7 @@ async function buildAction(admin, { caller, tool, input }) {
         input: {
           vehicle_id: v.id,
           // Stored the way MaintenanceRequestsView stores it — unit number plus
-          // plate — so a ticket ANVIL files is indistinguishable from one the
+          // plate — so a ticket A.N.V.I.L. files is indistinguishable from one the
           // crew filed, in every list and report that reads vname.
           vehicle_label: `${v.name} (${v.plate || "No Plate"})`,
           vehicle_type: v.type || "truck",
@@ -528,7 +528,7 @@ export async function executeAction(admin, { perms, caller, actorName, tool, inp
         message: `Filed. The ${input.issue_type} request on ${input.vehicle_label} is in as ${input.urgency} urgency, pending a manager scheduling it.`,
         audit: {
           action_type: "MAINTENANCE_REQUEST_CREATE",
-          description: `ANVIL filed a ${input.urgency} ${input.issue_type} request on ${input.vehicle_label}`,
+          description: `A.N.V.I.L. filed a ${input.urgency} ${input.issue_type} request on ${input.vehicle_label}`,
           metadata: { request_id: data?.id, vehicle_id: input.vehicle_id, via: "anvil" },
         },
       };
@@ -557,7 +557,7 @@ export async function executeAction(admin, { perms, caller, actorName, tool, inp
         message: `Scheduled. The ${data[0].type || "service"} on ${data[0].vname || "that vehicle"} is booked for ${input.scheduled_date}.`,
         audit: {
           action_type: "FLEET_MAINTENANCE",
-          description: `ANVIL scheduled request ${input.request_id} for ${input.scheduled_date}`,
+          description: `A.N.V.I.L. scheduled request ${input.request_id} for ${input.scheduled_date}`,
           metadata: {
             request_id: input.request_id,
             scheduled_date: input.scheduled_date,
@@ -601,7 +601,7 @@ export async function executeAction(admin, { perms, caller, actorName, tool, inp
         message: `Corrected. ${live.name} now reads ${input.new_quantity} ${live.unit || "units"}, ${input.new_quantity >= before ? "up" : "down"} from ${before}.`,
         audit: {
           action_type: "INV_MUTATION",
-          description: `ANVIL corrected ${live.name} from ${before} to ${input.new_quantity}${input.reason ? ` (${input.reason})` : ""}`,
+          description: `A.N.V.I.L. corrected ${live.name} from ${before} to ${input.new_quantity}${input.reason ? ` (${input.reason})` : ""}`,
           metadata: {
             item_id: input.item_id,
             from: before,
@@ -655,7 +655,7 @@ export async function executeAction(admin, { perms, caller, actorName, tool, inp
         message: `Logged. ${live.name} reads ${input.mileage} miles, up ${input.mileage - previous}.`,
         audit: {
           action_type: "FLEET_MAINTENANCE",
-          description: `ANVIL logged ${input.mileage} miles on ${live.name}`,
+          description: `A.N.V.I.L. logged ${input.mileage} miles on ${live.name}`,
           metadata: {
             vehicle_id: input.vehicle_id,
             from: previous,

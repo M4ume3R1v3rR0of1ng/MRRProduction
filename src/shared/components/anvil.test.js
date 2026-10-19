@@ -70,13 +70,14 @@ describe("askAnvil / onAnvilAsk", () => {
   });
 
   it("keeps the name and its expansion together", () => {
-    expect(ANVIL_NAME).toBe("ANVIL");
+    expect(ANVIL_NAME).toBe("A.N.V.I.L.");
     // The acronym, unpacked. Checked because the two drifting apart is exactly
-    // the kind of thing nobody notices.
+    // the kind of thing nobody notices. The name is written with a stop after
+    // each letter, so the initials are assembled the same way to compare.
     const initials = ANVIL_EXPANSION.split(/[\s&]+/)
       .filter((w) => /^[A-Z]/.test(w))
-      .map((w) => w[0])
+      .map((w) => `${w[0]}.`)
       .join("");
-    expect(initials).toBe("ANVIL");
+    expect(initials).toBe(ANVIL_NAME);
   });
 });

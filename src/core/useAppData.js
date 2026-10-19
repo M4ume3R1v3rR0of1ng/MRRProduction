@@ -1015,7 +1015,7 @@ export function useAppData() {
       }
       if (!text) return;
 
-      showToast(`ANVIL: ${text}`, isUrgent ? "warning" : "success", isUrgent ? 12000 : 8000);
+      showToast(`A.N.V.I.L.: ${text}`, isUrgent ? "warning" : "success", isUrgent ? 12000 : 8000);
     };
 
     const channel = supabase
@@ -1090,13 +1090,13 @@ export function useAppData() {
           // read as one thing rather than two systems talking at once.
           if (row.overdue_last_sent_at && row.overdue_last_sent_at > since) {
             showToast(
-              "ANVIL: You have assigned training that is now overdue. Open Training to watch it and mark it done.",
+              "A.N.V.I.L.: You have assigned training that is now overdue. Open Training to watch it and mark it done.",
               "warning",
               12000,
             );
           } else if (row.heads_up_sent_at && row.heads_up_sent_at > since) {
             showToast(
-              "ANVIL: You have training due soon. Open Training to watch it and mark it done.",
+              "A.N.V.I.L.: You have training due soon. Open Training to watch it and mark it done.",
               "info",
               8000,
             );

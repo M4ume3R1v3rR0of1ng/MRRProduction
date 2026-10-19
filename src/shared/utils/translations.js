@@ -338,22 +338,22 @@ export const translations = {
       "Ask me about jobs, inventory, fleet status, the schedule, job costs, or training. I can also file a request, correct stock or log mileage — you confirm before anything changes.",
     cwThinking: "Thinking...",
     cwAskQuestion: "Ask a question...",
-    // ANVIL is the assistant's name and stays untranslated in every language —
+    // A.N.V.I.L. is the assistant's name and stays untranslated in every language —
     // it is a name, and the acronym only unpacks in English. The expansion
     // beside it is what gets translated.
-    cwAssistant: "ANVIL",
+    cwAssistant: "A.N.V.I.L.",
     cwAssistantExpansion: "Assistant for Navigating Vehicles, Inventory & Labor",
     cwConfirmTitle: "Confirm before I change anything",
     cwConfirm: "Confirm",
     cwCancel: "Cancel",
     cwCancelled: "Cancelled — nothing was changed.",
     cwApplying: "Applying...",
-    cwAskAnvil: "Ask ANVIL",
-    cwAskAnvilAbout: "Ask ANVIL about this",
-    cwBriefingTitle: "Your day, from ANVIL",
+    cwAskAnvil: "Ask A.N.V.I.L.",
+    cwAskAnvilAbout: "Ask A.N.V.I.L. about this",
+    cwBriefingTitle: "Your day, from A.N.V.I.L.",
     cwBriefingEmpty: "Nothing needs your attention right now.",
     cwBriefingAsk: "What should I look at today?",
-    cwOpen: "Open ANVIL",
+    cwOpen: "Open A.N.V.I.L.",
 
     // Login and password reset (pre-auth screens)
     lgForgotPassword: "Forgot password?",
@@ -1824,20 +1824,20 @@ export const translations = {
       "Pregúnteme sobre trabajos, inventario, estado de la flota, el calendario, costos de trabajos o capacitación. También puedo presentar una solicitud, corregir existencias o registrar el kilometraje — usted confirma antes de que algo cambie.",
     cwThinking: "Pensando...",
     cwAskQuestion: "Haga una pregunta...",
-    // Un nombre propio: ANVIL no se traduce. Lo que sigue sí.
-    cwAssistant: "ANVIL",
+    // Un nombre propio: A.N.V.I.L. no se traduce. Lo que sigue sí.
+    cwAssistant: "A.N.V.I.L.",
     cwAssistantExpansion: "Asistente de Vehículos, Inventario y Labor",
     cwConfirmTitle: "Confirme antes de que cambie algo",
     cwConfirm: "Confirmar",
     cwCancel: "Cancelar",
     cwCancelled: "Cancelado — no se cambió nada.",
     cwApplying: "Aplicando...",
-    cwAskAnvil: "Preguntar a ANVIL",
-    cwAskAnvilAbout: "Preguntar a ANVIL sobre esto",
-    cwBriefingTitle: "Su día, según ANVIL",
+    cwAskAnvil: "Preguntar a A.N.V.I.L.",
+    cwAskAnvilAbout: "Preguntar a A.N.V.I.L. sobre esto",
+    cwBriefingTitle: "Su día, según A.N.V.I.L.",
     cwBriefingEmpty: "Nada requiere su atención en este momento.",
     cwBriefingAsk: "¿Qué debería revisar hoy?",
-    cwOpen: "Abrir ANVIL",
+    cwOpen: "Abrir A.N.V.I.L.",
 
     // Inicio de sesión y restablecimiento de contraseña
     lgForgotPassword: "¿Olvidó su contraseña?",

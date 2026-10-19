@@ -1,6 +1,6 @@
 // netlify/functions/send-daily-briefing.js
 //
-// Every weekday morning, ANVIL writes each person one message about their own
+// Every weekday morning, A.N.V.I.L. writes each person one message about their own
 // day: today's jobs, overdue oil changes, tickets waiting on them, low stock,
 // outstanding training, and loose ends — each section gated on the permission
 // that gates its page in the app.
@@ -14,7 +14,7 @@
 // receiving six emails before breakfast, which is how people learn to ignore
 // all of them.
 //
-// A briefing inverts it. One message, once, in the one place ANVIL already
+// A briefing inverts it. One message, once, in the one place A.N.V.I.L. already
 // talks to them — their own conversation (supabase/41), where it persists and
 // is still there after lunch. Nothing escalates, nothing nags, and the things
 // in it are things they could have gone and looked at themselves.
@@ -99,7 +99,7 @@ const rawHandler = async () => {
         user_id: member.userId,
         role: "assistant",
         text: briefing.text,
-        // Marks it as something ANVIL raised on its own, which is what drives
+        // Marks it as something A.N.V.I.L. raised on its own, which is what drives
         // the unread badge on the launcher. origin_session_id stays null, so
         // ChatWidget's realtime subscription never mistakes it for its own
         // echo (see supabase/41's "WHY origin_session_id").

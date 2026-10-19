@@ -1169,7 +1169,7 @@ export default function DashboardView({
         {/* Warehouse weather — relevant to scheduling roof work; shown for all roles */}
         <WeatherCard lang={lang} />
 
-        {/* ANVIL's morning briefing. Sits here, beside the weather and the quick
+        {/* A.N.V.I.L.'s morning briefing. Sits here, beside the weather and the quick
             actions, because it answers the same kind of question those do —
             "what am I walking into" — and like them it is shown to every role.
             What it contains is already filtered per person server-side; see

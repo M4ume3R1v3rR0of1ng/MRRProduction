@@ -1,11 +1,11 @@
 // src/shared/components/ChatWidget.jsx
 //
-// ANVIL's window. The conversation lives here; the backend is
+// A.N.V.I.L.'s window. The conversation lives here; the backend is
 // netlify/functions/chat.js.
 //
 // TWO THINGS THIS GAINED BEYOND "ASK AND READ"
 //
-//   A CONFIRM BAR. ANVIL can now change things, and a reply may arrive with a
+//   A CONFIRM BAR. A.N.V.I.L. can now change things, and a reply may arrive with a
 //   `pendingAction` attached: a write it has lined up but not performed. The
 //   bar below renders that action's own summary with Confirm and Cancel, and
 //   pressing Confirm sends the signed token back. See anvilActions.js for why
@@ -89,7 +89,7 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
   const [error, setError] = useState("");
   const [editingIndex, setEditingIndex] = useState(null);
   const [lightboxPhoto, setLightboxPhoto] = useState(null);
-  // A write ANVIL has lined up and described, waiting on this person to say
+  // A write A.N.V.I.L. has lined up and described, waiting on this person to say
   // yes. Exactly one at a time — the backend sends at most one per reply (see
   // chat.js's "The FIRST valid preview wins"), because one button cannot
   // honestly mean two changes.
@@ -244,7 +244,7 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
     setEditingIndex(null);
     // A new question supersedes any write still waiting on a yes. Leaving the
     // old bar up would let someone confirm a correction they have since talked
-    // ANVIL out of.
+    // A.N.V.I.L. out of.
     setPendingAction(null);
 
     const nextMessages = [...baseMessages, { role: "user", text, image }];
@@ -311,7 +311,7 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
   //
   // Sends the signed token back and nothing else: no new user turn, and the
   // model is not consulted again. chat.js commits the action and returns the
-  // outcome in its own words, which is appended here as ANVIL's next message.
+  // outcome in its own words, which is appended here as A.N.V.I.L.'s next message.
   const confirmPending = async () => {
     if (!pendingAction || applying) return;
     setApplying(true);
@@ -345,7 +345,7 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
       ]);
       // Cleared whether or not the write succeeded. A refused action (the
       // ticket moved, the item is gone) must not leave a button that invites a
-      // second attempt at something that will fail the same way — ANVIL's
+      // second attempt at something that will fail the same way — A.N.V.I.L.'s
       // reply above already says what happened.
       setPendingAction(null);
     } catch (err) {
@@ -622,10 +622,10 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
           )}
 
           {/* ── The confirm bar ──
-              A write ANVIL has described but not performed. It sits above the
+              A write A.N.V.I.L. has described but not performed. It sits above the
               composer, in the amber used for "your attention is needed"
               elsewhere, and repeats the backend's OWN summary verbatim rather
-              than ANVIL's paraphrase of it in the bubble above — what is
+              than A.N.V.I.L.'s paraphrase of it in the bubble above — what is
               confirmed here has to be what the signed token actually commits
               (see anvilActions.js). */}
           {pendingAction && (

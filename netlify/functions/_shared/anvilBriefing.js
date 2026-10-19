@@ -1,6 +1,6 @@
 // netlify/functions/_shared/anvilBriefing.js
 //
-// What ANVIL has to say to one person first thing in the morning.
+// What A.N.V.I.L. has to say to one person first thing in the morning.
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // ONE BRIEFING PER PERSON, NOT ONE PER COMPANY

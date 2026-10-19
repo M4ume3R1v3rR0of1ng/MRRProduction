@@ -462,7 +462,7 @@ export default function App() {
   }, [lang]);
   const t = translations[lang] || translations.en;
 
-  // ── WHAT ANVIL IS TOLD THE USER IS LOOKING AT ──
+  // ── WHAT A.N.V.I.L. IS TOLD THE USER IS LOOKING AT ──
   //
   // So "when is this one due?" resolves without them typing a unit number. The
   // record half comes from the same ?open= param OmniSearch deep-links with,

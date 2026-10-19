@@ -29,7 +29,7 @@ describe("extractText", () => {
   });
 });
 
-// The page-context hint ANVIL is given, so "when is this one due?" resolves
+// The page-context hint A.N.V.I.L. is given, so "when is this one due?" resolves
 // without the user typing a unit number. Everything here lands in a system
 // prompt, which is why it is whitelisted and capped rather than passed through.
 describe("describeContext", () => {

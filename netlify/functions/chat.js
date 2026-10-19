@@ -1,6 +1,6 @@
 // netlify/functions/chat.js
 //
-// ANVIL's backend — Assistant for Navigating Vehicles, Inventory & Labor.
+// A.N.V.I.L.'s backend — Assistant for Navigating Vehicles, Inventory & Labor.
 //
 // Runs server-side only: the Anthropic API key never reaches the browser.
 // Every tool call is gated by the calling user's *actual* effective
@@ -203,7 +203,7 @@ const READ_TOOLS = [
   {
     name: "get_my_briefing",
     description:
-      "Assemble the caller's own operational briefing for today — the same one ANVIL writes to them each morning: today's jobs, overdue oil changes, pending tickets, low stock, outstanding training, and loose ends, all filtered to what this user is allowed to see. Use when the user asks what they should be looking at, what needs attention, how the day looks, or for a catch-up.",
+      "Assemble the caller's own operational briefing for today — the same one A.N.V.I.L. writes to them each morning: today's jobs, overdue oil changes, pending tickets, low stock, outstanding training, and loose ends, all filtered to what this user is allowed to see. Use when the user asks what they should be looking at, what needs attention, how the day looks, or for a catch-up.",
     input_schema: { type: "object", properties: {} },
   },
 ];
@@ -538,7 +538,7 @@ const contractValue = (job) => {
 const round2 = (n) => Math.round(n * 100) / 100;
 
 // `admin` is the SERVICE-ROLE client: RLS does not apply to a single query below.
-// The .eq("company_id", companyId) on each one is the ONLY thing keeping ANVIL
+// The .eq("company_id", companyId) on each one is the ONLY thing keeping A.N.V.I.L.
 // from reading another company's jobs, trucks, and pricing. If you add a tool
 // here, it must be scoped the same way.
 async function executeTool(admin, perms, caller, actorName, name, input) {
@@ -941,7 +941,7 @@ async function executeTool(admin, perms, caller, actorName, name, input) {
 }
 
 /**
- * The per-day calendar ANVIL reports, mirroring src/shared/utils/schedule.js's
+ * The per-day calendar A.N.V.I.L. reports, mirroring src/shared/utils/schedule.js's
  * buildSchedule — including the conflict it finds, which no single calendar in
  * the app can see on its own: a trailer out on a job the same day it is booked
  * into the shop (trailers live in Fleet, shop time lives in Maintenance).
@@ -1210,7 +1210,7 @@ const rawHandler = async (event) => {
     // ── The confirm path ───────────────────────────────────────────────────
     //
     // Pressing Confirm does NOT go back to the model. It commits the exact
-    // action that was previewed and reports the outcome in ANVIL's own words.
+    // action that was previewed and reports the outcome in A.N.V.I.L.'s own words.
     // Letting the model narrate the result would invite it to summarize a
     // write — and a write whose summary drifts from what landed is worse than
     // no summary at all.
@@ -1259,7 +1259,7 @@ const rawHandler = async (event) => {
           },
         ]);
       } catch (auditErr) {
-        console.error("chat: failed to audit an ANVIL action:", auditErr.message);
+        console.error("chat: failed to audit an A.N.V.I.L. action:", auditErr.message);
       }
 
       const confirmRow = await persistTurn(admin, {
@@ -1281,7 +1281,7 @@ const rawHandler = async (event) => {
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const contextLine = describeContext(context);
-    const systemPrompt = `You are ANVIL — Assistant for Navigating Vehicles, Inventory & Labor — the built-in assistant inside ${caller.companyName}'s Steadwerk account, an internal tool for warehouse staff, site supervisors, drivers, and office managers.
+    const systemPrompt = `You are A.N.V.I.L. — Assistant for Navigating Vehicles, Inventory & Labor — the built-in assistant inside ${caller.companyName}'s Steadwerk account, an internal tool for warehouse staff, site supervisors, drivers, and office managers.
 You are talking to ${actorName} (role: ${caller.role}).${contextLine ? `\n${contextLine}` : ""}
 Answer questions about jobs, inventory, fleet vehicles, maintenance, the schedule, job costing, and training using the tools provided — never invent data.
 When asked what maintenance to do, what is due, or what needs attention, call recommend_maintenance. It returns an already-ranked list: present it in that order, lead with the overdue items, and cite the reason it gives. Do not re-sort it or compute your own mileage math.

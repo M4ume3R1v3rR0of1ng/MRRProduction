@@ -1,6 +1,6 @@
 // src/shared/components/anvil.js
 //
-// ANVIL's name, and the one way anything in the app asks it a question.
+// A.N.V.I.L.'s name, and the one way anything in the app asks it a question.
 //
 // WHY AN EVENT AND NOT A CONTEXT OR A PROP
 //
@@ -21,7 +21,7 @@
 // that the widget was mounted to hear it. Anything that needs an answer should
 // be reading the data itself, not asking an assistant for it.
 
-export const ANVIL_NAME = "ANVIL";
+export const ANVIL_NAME = "A.N.V.I.L.";
 
 // Expanded on first sight in the widget header, because an acronym nobody can
 // unpack is just noise on a button.
@@ -30,7 +30,7 @@ export const ANVIL_EXPANSION = "Assistant for Navigating Vehicles, Inventory & L
 const ASK_EVENT = "steadwerk-anvil-ask";
 
 /**
- * Opens ANVIL and asks it something.
+ * Opens A.N.V.I.L. and asks it something.
  *
  * @param {string} question The question, as the user would have typed it.
  * @param {object} [context] What the caller had on screen: { view, record }.
