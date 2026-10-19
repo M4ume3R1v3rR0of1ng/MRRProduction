@@ -1145,15 +1145,21 @@ export function describeContext(context) {
  * Best effort throughout: a failure here must not take down a reply the user
  * already has, or make a committed write look like it failed.
  */
-async function persistTurn(admin, { caller, sessionId, reply, incoming }) {
+async function persistTurn(admin, { caller, sessionId, reply, incoming, photoUrl }) {
   try {
     const rows = [];
     if (incoming?.role === "user") {
+      const url = typeof photoUrl === "string" && photoUrl.startsWith("https://") ? photoUrl : null;
       rows.push({
         company_id: caller.companyId,
         user_id: caller.userId,
         role: "user",
-        text: extractText(incoming.content) || "[Photo attached]",
+        // The placeholder is still the fallback, because the photo may have
+        // failed to reach storage (ChatWidget sends the question anyway —
+        // supabase/55) and a turn with neither text nor a URL would otherwise
+        // persist as an empty bubble.
+        text: extractText(incoming.content) || (url ? "" : "[Photo attached]"),
+        photo_url: url,
         origin_session_id: sessionId || null,
       });
     }
@@ -1208,7 +1214,7 @@ const rawHandler = async (event) => {
     };
   }
 
-  const { accessToken, messages, sessionId, context, confirmAction } = body;
+  const { accessToken, messages, sessionId, context, confirmAction, photoUrl } = body;
   // A confirm request carries no new user turn — just the signed action the
   // widget is handing back — so `messages` is only required for a normal chat
   // request.
@@ -1409,6 +1415,10 @@ const rawHandler = async (event) => {
       sessionId,
       reply: replyText,
       incoming: messages[messages.length - 1],
+      // Where the attached photo landed in storage, if the client got it
+      // there. The model still reads the base64 off the message itself; this
+      // is only so the turn can be replayed after a reload (supabase/55).
+      photoUrl,
     });
 
     return {

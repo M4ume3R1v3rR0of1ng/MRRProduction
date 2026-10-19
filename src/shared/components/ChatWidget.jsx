@@ -19,6 +19,7 @@ import { Bot, X, AlertTriangle, Check } from "lucide-react";
 import { translations } from "../utils/translations";
 import { supabase } from "../utils/supabase";
 import { C, compressImg } from "../utils/helpers";
+import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import {
   LoadingState,
   Modal,
@@ -33,23 +34,7 @@ import {
 } from "./UIPrimitives";
 import { ChatBubble, PendingPhoto, ChatComposer } from "./ChatParts";
 import { ANVIL_EXPANSION, onAnvilAsk } from "./anvil";
-
-// data:image/jpeg;base64,XXXX -> { media_type: "image/jpeg", data: "XXXX" }
-function parseDataUrl(dataUrl) {
-  const match = /^data:(image\/[a-zA-Z]+);base64,(.+)$/.exec(dataUrl || "");
-  if (!match) return null;
-  return { media_type: match[1], data: match[2] };
-}
-
-function toApiContent(msg) {
-  const blocks = [];
-  if (msg.image) {
-    const parsed = parseDataUrl(msg.image);
-    if (parsed) blocks.push({ type: "image", source: { type: "base64", ...parsed } });
-  }
-  if (msg.text) blocks.push({ type: "text", text: msg.text });
-  return blocks.length === 1 && blocks[0].type === "text" ? blocks[0].text : blocks;
-}
+import { toApiContent } from "./chatContent";
 
 // A per-browser marker of when this user last opened the chat — NOT the
 // conversation itself (that's chat_messages, see supabase/41, genuinely
@@ -132,7 +117,7 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
 
     supabase
       .from("chat_messages")
-      .select("id, role, text, proactive, created_at")
+      .select("id, role, text, photo_url, proactive, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(50)
@@ -144,9 +129,15 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
         }
         const rows = data || [];
         setMessages(
-          [...rows]
-            .reverse()
-            .map((r) => ({ id: r.id, role: r.role, text: r.text, proactive: r.proactive })),
+          [...rows].reverse().map((r) => ({
+            id: r.id,
+            role: r.role,
+            text: r.text,
+            // A replayed photo is the stored URL rather than the base64 the
+            // composer held — ChatBubble takes either (supabase/55).
+            image: r.photo_url || null,
+            proactive: r.proactive,
+          })),
         );
 
         // The newest row (rows[0], since this fetch is newest-first) is a
@@ -195,7 +186,16 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
           setMessages((prev) =>
             prev.some((m) => m.id === row.id)
               ? prev
-              : [...prev, { id: row.id, role: row.role, text: row.text, proactive: row.proactive }],
+              : [
+                  ...prev,
+                  {
+                    id: row.id,
+                    role: row.role,
+                    text: row.text,
+                    image: row.photo_url || null,
+                    proactive: row.proactive,
+                  },
+                ],
           );
           if (row.proactive && !open) setHasUnread(true);
         },
@@ -255,6 +255,29 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
       const accessToken = sessionData?.session?.access_token;
       if (!accessToken) throw new Error("Not signed in.");
 
+      // The photo goes to storage BEFORE the question goes to the model, so
+      // the turn can be replayed after a reload instead of coming back as
+      // "[Photo attached]" (supabase/55). The model still reads the base64
+      // off the message below — this upload only buys durability.
+      //
+      // A failed upload must not cost the user their question:
+      // uploadPhotoToBucket rethrows, so it is caught here and the send
+      // carries on without a URL. The assistant still sees the photo; only
+      // the replay loses it.
+      let photoUrl = null;
+      if (image?.startsWith("data:") && user?.companyId) {
+        try {
+          photoUrl = await uploadPhotoToBucket("chat-photos", user.companyId, user.id, image);
+        } catch {
+          photoUrl = null;
+        }
+      } else if (image?.startsWith("https://")) {
+        // Already in the bucket: this is an edited turn re-sending a photo
+        // that came back out of history. Re-uploading it would decode a URL
+        // as base64 and throw.
+        photoUrl = image;
+      }
+
       const response = await fetch("/.netlify/functions/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -266,6 +289,7 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
           // route does).
           context: askContext || contextRef.current || null,
           messages: nextMessages.map((m) => ({ role: m.role, content: toApiContent(m) })),
+          photoUrl,
         }),
       });
 
