@@ -41,6 +41,22 @@ import crypto from "node:crypto";
 const TOKEN_TTL_MS = 5 * 60 * 1000;
 const SIGNING_INFO = "steadwerk:anvil:pending-action:v1";
 
+// The seven kinds of service the Fleet page's Log Service form offers, as its
+// <option> VALUES — English regardless of the user's language, because the
+// value is what gets written to the record and two of them are load-bearing
+// further down (see logServiceChanges). Mirrors FleetManagementView.jsx's list;
+// a kind that exists here and not there would be written into a service history
+// the Fleet page cannot reproduce.
+export const SERVICE_TYPES = [
+  "Oil Change",
+  "Tire Rotation",
+  "Brake Service",
+  "Repair",
+  "Detail",
+  "Inspection",
+  "Other",
+];
+
 // ── Tool definitions, as the model sees them ───────────────────────────────
 //
 // Each description says, in the model's own idiom, that calling this does not
@@ -136,6 +152,43 @@ export const ACTION_TOOLS = [
     },
     strict: true,
   },
+  {
+    name: "log_service_record",
+    description:
+      "Record a service that has already been PERFORMED on a vehicle — an oil change, tire rotation, brake service, repair, detail or inspection — exactly as the Fleet page's Log Service form does. This is for work that is DONE: to ask for work that still needs doing, use file_maintenance_request instead. Recording an oil change is the one thing that stops that vehicle's oil-change reminders. Calling this does NOT record anything yet — it returns a preview for the user to confirm. Relay the summary and stop.",
+    input_schema: {
+      type: "object",
+      properties: {
+        vehicle_name: {
+          type: "string",
+          description: "Vehicle unit number or plate, e.g. '011'. Must match one real vehicle.",
+        },
+        service_type: {
+          type: "string",
+          enum: SERVICE_TYPES,
+          description: "What was done. Must be one of the listed kinds.",
+        },
+        performed_on: {
+          type: "string",
+          description: "The day the work was done, as YYYY-MM-DD. Defaults to today.",
+        },
+        mileage: {
+          type: "number",
+          description:
+            "The odometer reading when the work was done. Defaults to the vehicle's current reading. Trailers have no odometer — omit it for those.",
+        },
+        performed_by: {
+          type: "string",
+          description: "The shop or the employee who did it. Defaults to the caller.",
+        },
+        cost: { type: "number", description: "What it cost, in dollars." },
+        notes: { type: "string", description: "Anything worth recording about the work." },
+      },
+      required: ["vehicle_name", "service_type"],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
 ];
 
 export const ACTION_NAMES = new Set(ACTION_TOOLS.map((t) => t.name));
@@ -147,12 +200,18 @@ const ACTION_PERM = {
   schedule_maintenance_request: "maint_manage",
   adjust_stock: "inv_adjust",
   log_mileage: "fleet_log_mi",
+  // Deliberately NOT fleet_log_mi, though this writes a mileage too: the Fleet
+  // page gates its Log Service form on fleet_log_service, and a driver who may
+  // report an odometer reading is not thereby someone who may declare a brake
+  // service done.
+  log_service_record: "fleet_log_service",
 };
 
 const PERM_DENIED = {
   maint_submit: "This user does not have permission to file maintenance requests.",
   maint_manage: "This user does not have permission to schedule maintenance requests.",
   inv_adjust: "This user does not have permission to adjust stock.",
+  fleet_log_service: "This user does not have permission to log vehicle service records.",
   fleet_log_mi: "This user does not have permission to log mileage.",
 };
 
@@ -484,9 +543,119 @@ async function buildAction(admin, { caller, tool, input }) {
       };
     }
 
+    case "log_service_record": {
+      const serviceType = String(input.service_type || "").trim();
+      if (!SERVICE_TYPES.includes(serviceType)) {
+        return {
+          error: `"${input.service_type}" is not a kind of service this system records. Ask the user which of these it was: ${SERVICE_TYPES.join(", ")}.`,
+        };
+      }
+
+      const day = input.performed_on ? String(input.performed_on).trim() : today();
+      if (!DAY_RE.test(day)) {
+        return {
+          error: `"${input.performed_on}" is not a calendar day. Ask the user for the date as YYYY-MM-DD.`,
+        };
+      }
+      // A service cannot have been performed tomorrow. Scheduling future work
+      // is schedule_maintenance_request's job, and a future-dated record would
+      // teach learnServiceIntervals a cadence from a date that has not happened.
+      if (day > today()) {
+        return {
+          error: `${day} is in the future, and this records work already done. If it is still to happen, schedule the request instead.`,
+        };
+      }
+
+      const { data, error } = await admin
+        .from("vehicles")
+        .select("id, name, plate, type, mi, lomi")
+        .eq("company_id", companyId)
+        .limit(200);
+      if (error) return { error: error.message };
+      const found = matchOne(data || [], input.vehicle_name, ["name", "plate"], "vehicle");
+      if (found.error) return { error: found.error };
+      const v = found.row;
+
+      // The Fleet form only shows a mileage box for a truck, and falls back to
+      // the vehicle's current reading when it is left blank — same here.
+      const currentMi = Number(v.mi) || 0;
+      let odometer = currentMi;
+      if (input.mileage !== undefined && input.mileage !== null) {
+        const miles = Number(input.mileage);
+        if (!Number.isFinite(miles) || miles < 0) {
+          return { error: "The mileage must be a number of zero or more." };
+        }
+        odometer = Math.round(miles);
+      }
+
+      // An oil change is the one service that moves the oil baseline (`lomi`),
+      // which is what both the forecast and the escalation read. Moving it
+      // BACKWARDS would inflate miles-since-oil, so the truck would resolve
+      // its current reminder cycle and immediately open a new one reading as
+      // overdue — a confusing re-escalation out of an attempt to stop it.
+      const previousLomi = Number(v.lomi) || 0;
+      if (serviceType === "Oil Change" && odometer < previousLomi) {
+        return {
+          error: `${v.name}'s last oil change is recorded at ${previousLomi} miles, so logging this one at ${odometer} would move the oil baseline backwards and restart its reminders. Check the mileage with the user.`,
+        };
+      }
+
+      const cost = Number(input.cost);
+      const normalized = {
+        vehicle_id: v.id,
+        vehicle_name: v.name,
+        service_type: serviceType,
+        performed_on: day,
+        mileage: odometer,
+        performed_by: String(input.performed_by || "").trim(),
+        cost: Number.isFinite(cost) && cost > 0 ? Math.round(cost * 100) / 100 : 0,
+        notes: String(input.notes || "").trim(),
+      };
+
+      const isTruck = v.type === "truck";
+      const parts = [
+        `Record a ${serviceType} on ${v.name} (${v.plate || "no plate"}) as done on ${day}`,
+        isTruck ? ` at ${odometer} miles` : "",
+        normalized.performed_by ? `, by ${normalized.performed_by}` : "",
+        normalized.cost ? `, costing $${normalized.cost}` : "",
+        ".",
+      ];
+      // Worth saying before they press Confirm, not after: this is the one
+      // write in the system that stops a nagging escalation.
+      if (serviceType === "Oil Change") {
+        parts.push(` This stops ${v.name}'s oil-change reminders.`);
+      }
+
+      return { input: normalized, summary: parts.filter(Boolean).join("") };
+    }
+
     default:
       return { error: `Unknown action: ${tool}` };
   }
+}
+
+/**
+ * The vehicle columns one service record changes, as FleetManagementView.jsx's
+ * logSvc computes them. Shared by the executor and its test, because the two
+ * things that must not drift are this and the Fleet page.
+ *
+ * `sl` is appended to the history passed in — which must be the LIVE one, read
+ * inside the same call as the write, never a copy the preview saw five minutes
+ * ago. Two services logged on one truck in that window would otherwise have the
+ * second silently drop the first.
+ *
+ * The two conditional columns are the whole reason service type matters:
+ *   • Oil Change moves `lomi`, the baseline every oil projection and the push
+ *     escalation measure from (see _shared/oilForecast.js and
+ *     send-maintenance-push-notices.js's cycle_lomi staleness check).
+ *   • Detail moves `ldd`, the last-detail date the detail status reads.
+ */
+export function logServiceChanges(liveLog, entry) {
+  return {
+    sl: [...(Array.isArray(liveLog) ? liveLog : []), entry],
+    ...(entry.type === "Oil Change" ? { lomi: entry.mi } : {}),
+    ...(entry.type === "Detail" ? { ldd: entry.dt } : {}),
+  };
 }
 
 // ── Phase two: execute ─────────────────────────────────────────────────────
@@ -670,6 +839,68 @@ export async function executeAction(admin, { perms, caller, actorName, tool, inp
             to: input.mileage,
             via: "anvil",
           },
+        },
+      };
+    }
+
+    case "log_service_record": {
+      // The live row, for its service history — appending to the copy the
+      // preview read would drop any service logged in between. Same reason
+      // FleetManagementView.jsx calls fetchLiveVehicle before writing.
+      const { data: live, error: readError } = await admin
+        .from("vehicles")
+        .select("id, name, type, mi, lomi, sl")
+        .eq("company_id", companyId)
+        .eq("id", input.vehicle_id)
+        .maybeSingle();
+      if (readError) return { error: readError.message };
+      if (!live) {
+        return { error: `${input.vehicle_name} is no longer in the fleet. Nothing changed.` };
+      }
+
+      // Re-checked against the live baseline rather than the token's: somebody
+      // may have logged an oil change in the five minutes this confirmation
+      // was open, which makes this one backwards rather than merely stale.
+      const liveLomi = Number(live.lomi) || 0;
+      if (input.service_type === "Oil Change" && input.mileage < liveLomi) {
+        return {
+          error: `${live.name}'s oil baseline now reads ${liveLomi} miles, above the ${input.mileage} that was confirmed. Somebody logged an oil change already, so nothing was changed.`,
+        };
+      }
+
+      const entry = {
+        // Short random id, same shape as the Fleet form's, used only as a key
+        // for the entry within the history array.
+        id: crypto.randomBytes(5).toString("hex").slice(0, 8),
+        type: input.service_type,
+        dt: input.performed_on,
+        mi: input.mileage,
+        by: input.performed_by || actorName,
+        notes: input.notes || "",
+        cost: input.cost || 0,
+      };
+
+      const { error: writeError } = await admin
+        .from("vehicles")
+        .update(logServiceChanges(live.sl, entry))
+        .eq("company_id", companyId)
+        .eq("id", input.vehicle_id);
+      if (writeError) return { error: writeError.message };
+
+      const where = live.type === "truck" ? ` at ${entry.mi} miles` : "";
+      const stops =
+        input.service_type === "Oil Change"
+          ? ` That clears its oil-change reminders — they stop from the next run.`
+          : "";
+      return {
+        ok: true,
+        message: `Recorded. ${entry.type} on ${live.name}${where}, dated ${entry.dt}.${stops}`,
+        audit: {
+          action_type: "FLEET_MAINTENANCE",
+          // Mirrors logSvc's own audit line, so a service recorded in chat and
+          // one recorded on the Fleet page read the same in the log.
+          description: `A.N.V.I.L. logged service for "${live.name}": ${entry.type} @ ${entry.mi} mi${entry.cost ? ` ($${entry.cost})` : ""}`,
+          metadata: { vehicle_id: input.vehicle_id, service: entry, via: "anvil" },
         },
       };
     }
