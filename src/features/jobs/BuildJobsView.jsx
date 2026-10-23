@@ -71,7 +71,12 @@ import { supabase, getAccessToken, updateRowStrict } from "@/shared/utils/supaba
 import { useNotify } from "@/shared/context/NotificationContext";
 import CrewCalendar from "./CrewCalendar";
 import { generatePDF } from "./pdfGenerator";
-import { syncJobReportToAccuLynx, syncStatusOf, reportUploadedAtOf } from "./accuLynxSync";
+import {
+  syncJobReportToAccuLynx,
+  syncStatusOf,
+  reportUploadedAtOf,
+  costOnly,
+} from "./accuLynxSync";
 import { logAction } from "@/shared/utils/logger";
 
 import { fetchJobTemplates, resolveDefaultTemplates } from "./jobTemplates";
@@ -718,11 +723,16 @@ export default function BuildJobs({
   const closeJob = async (job = sel) => {
     if (!job || closing) return;
 
-    const alreadyFiled = syncStatusOf(job) === "synced" || !!reportUploadedAtOf(job);
+    // "synced" is the only state with nothing left to send. A report that filed while
+    // the expense was refused leaves syncStatus "failed" and report_uploaded_at set,
+    // and testing the latter here meant Close skipped the sync entirely and took the
+    // job off the list with no material cost on it. syncJobReportToAccuLynx skips the
+    // report half by itself, so the cost gets its retry.
+    const fullySynced = syncStatusOf(job) === "synced";
     const axReady = !!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl);
 
     setClosing(true);
-    if (!alreadyFiled && axReady) {
+    if (!fullySynced && axReady) {
       const r = await syncJobReportToAccuLynx({
         job,
         users,
@@ -738,15 +748,15 @@ export default function BuildJobs({
         // closing it with no report filed has to be a deliberate choice, because
         // closing is what takes it off the queue that would have reminded anyone.
         const go = await confirm({
-          title: t.bjCloseSyncFailTitle,
-          message: t.bjCloseSyncFailAsk,
+          title: costOnly(r) ? t.bjCloseCostFailTitle : t.bjCloseSyncFailTitle,
+          message: costOnly(r) ? t.bjCloseCostFailAsk : t.bjCloseSyncFailAsk,
           detail: r.error,
           confirmLabel: t.bjCloseAnyway,
           cancelLabel: t.bjDontClose,
           tone: "danger",
         });
         if (!go) {
-          showToast(`${t.bjCloseSyncFail} ${r.error}`, "error");
+          showToast(`${costOnly(r) ? t.bjCloseCostFail : t.bjCloseSyncFail} ${r.error}`, "error");
           setClosing(false);
           return;
         }

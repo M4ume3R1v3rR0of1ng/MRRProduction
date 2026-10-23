@@ -179,6 +179,29 @@ const rawHandler = async (event) => {
         .filter((f) => f.id);
     };
 
+    // An Additional Job Expense is booked against an account type — the same
+    // "Commission / Labor / Materials / Other" list AccuLynx makes you pick from in
+    // the UI when you mark an expense paid. The API documents accountTypeId as
+    // optional, and it is, right up until `isPaid` is set: then AccuLynx has to
+    // resolve which account the money left, finds nothing, and answers
+    // 500 InternalServerError with a traceId and no explanation — which is the error
+    // the sync has been reporting against real jobs.
+    //
+    // Ids are per-company like folder ids, so this resolves at runtime. Note the
+    // response is a BARE ARRAY, not the { items } envelope the rest of v2 uses.
+    const listAccountTypes = async () => {
+      const res = await fetch(
+        "https://api.acculynx.com/api/v2/company-settings/location-settings/account-types?pageSize=100&recordStartIndex=0",
+        { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } },
+      );
+      if (!res.ok) return [];
+      const d = await res.json();
+      const raw = Array.isArray(d) ? d : Array.isArray(d?.items) ? d.items : [];
+      return raw
+        .filter((a) => a.id && a.isActive !== false)
+        .map((a) => ({ id: a.id, name: a.name || "Unnamed account" }));
+    };
+
     // ── Document folders: populates the Settings dropdown ────────────────
     if (body.action === "documentFolders") {
       try {
@@ -485,12 +508,25 @@ const rawHandler = async (event) => {
       body.poNumber && body.poNumber !== "NO_PO" ? String(body.poNumber).slice(0, 50) : null;
     try {
       const existingRes = await fetch(
-        `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/payments?pageSize=100&recordStartIndex=0`,
+        `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/payments`,
         { headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" } },
       );
       if (existingRes.ok) {
         const existing = await existingRes.json();
-        const priorPayments = Array.isArray(existing?.items) ? existing.items : [];
+        // GET /payments answers three buckets, each wrapping its own list:
+        //   { additionalExpenses: { payments: [...], total }, paidPayments: {...},
+        //     receivedPayments: {...} }
+        // — verified against the live API. This used to read `existing.items`, which
+        // is never present, so priorPayments was ALWAYS empty and this guard never
+        // once fired: every retry of a timed-out sync booked the cost a second time.
+        // The endpoint also takes no paging parameters, so they are gone.
+        //
+        // Only additionalExpenses is searched. Our line is an expense, and matching a
+        // customer's received payment that happened to be the same amount would skip
+        // a post that genuinely needed to happen.
+        const priorPayments = Array.isArray(existing?.additionalExpenses?.payments)
+          ? existing.additionalExpenses.payments
+          : [];
         const duplicate = priorPayments.find(
           (p) =>
             Math.abs(Number(p.amount) - amount) < 0.005 &&
@@ -525,7 +561,22 @@ const rawHandler = async (event) => {
     // and the reason no expense this integration ever sent has landed. The sync
     // fires when the job is marked complete, so "now" is the honest date; callers
     // may override it if they ever need to backdate.
-    const paymentDate = body.paymentDate || new Date().toISOString();
+    // Seconds precision, which is the shape AccuLynx documents ("2020-06-22T00:00:00Z").
+    // They discard the time either way, so the milliseconds a JS ISO string carries buy
+    // nothing and are not in any example they publish.
+    const paymentDate = body.paymentDate || new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
+
+    // Booked under "Materials", because that is what this expense is. A tenant whose
+    // chart of accounts names it differently can say so. With no match we post the
+    // expense WITHOUT isPaid rather than risk the 500 described at listAccountTypes:
+    // an expense on the job that someone ticks "paid" by hand is recoverable, and a
+    // refused one leaves nothing behind at all.
+    const wantedAccount = String(body.accountTypeName || "Materials")
+      .trim()
+      .toLowerCase();
+    const accountTypes = await listAccountTypes();
+    const accountTypeId =
+      accountTypes.find((a) => String(a.name).trim().toLowerCase() === wantedAccount)?.id || null;
 
     const expenseRes = await fetch(
       `https://api.acculynx.com/api/v2/jobs/${acculynxJobId}/payments/expense`,
@@ -540,7 +591,8 @@ const rawHandler = async (event) => {
           amount,
           notes,
           paymentDate,
-          isPaid: true,
+          // These two travel together or not at all — see listAccountTypes.
+          ...(accountTypeId ? { accountTypeId, isPaid: true } : {}),
           // 50, not 255: AccuLynx caps refNumber at 50 and 400s the whole call
           // past that. It also has to match the slice the duplicate check above
           // uses, or a replay would fail to recognise its own earlier expense.
@@ -551,7 +603,14 @@ const rawHandler = async (event) => {
 
     if (!expenseRes.ok) {
       const txt = await expenseRes.text();
-      throw new Error(`AccuLynx expense error ${expenseRes.status}: ${txt}`);
+      // AccuLynx documents no 5xx here, and when it sends one the body is a traceId
+      // and nothing actionable. Saying plainly that it is their end, and that the
+      // report PDF is a separate write, saves reading that JSON as a bug in the app.
+      const hint =
+        expenseRes.status >= 500
+          ? " This is an error inside AccuLynx, not a rejected payload. The completion report is filed by a separate call and is unaffected."
+          : "";
+      throw new Error(`AccuLynx expense error ${expenseRes.status}: ${txt}${hint}`);
     }
 
     return {

@@ -23,7 +23,7 @@ vi.mock("./jobReportPdf", () => ({
   buildJobReportPdf: vi.fn(async () => ({ base64: "JVBERi0=", filename: "JobReportPO1.pdf" })),
 }));
 
-const { syncJobReportToAccuLynx } = await import("./accuLynxSync");
+const { syncJobReportToAccuLynx, costOnly } = await import("./accuLynxSync");
 
 const inv = [
   {
@@ -236,5 +236,83 @@ describe("neither half is ever retried", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(updateRowStrict.mock.calls[0][2].syncStatus).toBe("manual");
     expect(r.skipped).toBe(true);
+  });
+});
+
+// The failure this integration actually produces in the field: AccuLynx files the
+// PDF and then answers 500 on the expense. That left the job with syncStatus
+// "failed" AND report_uploaded_at set — and every caller treated a set
+// report_uploaded_at as "nothing left to send", so the cost could never be retried.
+// The job closed with the paperwork filed and no material cost on it, permanently.
+describe("retrying after the report filed but the cost did not", () => {
+  const halfSynced = { ...jobWithMaterials, report_uploaded_at: "2026-10-23T00:00:00.000Z" };
+
+  it("posts the cost and does NOT file a second copy of the report", async () => {
+    const fetchMock = vi.fn(async () => okJson({ ok: true, message: "cost ok" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const r = await syncJobReportToAccuLynx({ job: halfSynced, config, inv });
+
+    // One call, and it is the expense — not the upload.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(bodiesOf(fetchMock)[0].action).toBeUndefined();
+    expect(r.report.skipped).toBe(true);
+    expect(r.cost.ok).toBe(true);
+    // A skipped half is not a failed one: the job is fully synced now.
+    expect(r.ok).toBe(true);
+    expect(updateRowStrict.mock.calls[0][2].syncStatus).toBe("synced");
+  });
+
+  it("does not overwrite the existing report_uploaded_at", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => okJson({ ok: true })),
+    );
+
+    await syncJobReportToAccuLynx({ job: halfSynced, config, inv });
+
+    expect(updateRowStrict.mock.calls[0][2].report_uploaded_at).toBeUndefined();
+  });
+});
+
+// Which half failed decides what the person is told. Saying "Report could not be
+// filed" when the PDF is sitting in AccuLynx and only the expense was refused sends
+// them hunting for a document that is already there.
+describe("attributing the failure", () => {
+  it("flags a cost-only failure as such", async () => {
+    let n = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        n += 1;
+        if (n === 1) return okJson({ ok: true, message: "filed" });
+        return new Response(JSON.stringify({ error: "expense refused" }), { status: 400 });
+      }),
+    );
+
+    const r = await syncJobReportToAccuLynx({ job: jobWithMaterials, config, inv });
+
+    expect(r.costFailed).toBe(true);
+    expect(r.reportFailed).toBe(false);
+    expect(costOnly(r)).toBe(true);
+  });
+
+  it("does not flag a cost-only failure when the report failed too", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ error: "nope" }), { status: 502 })),
+    );
+
+    const r = await syncJobReportToAccuLynx({ job: jobWithMaterials, config, inv });
+
+    expect(r.reportFailed).toBe(true);
+    expect(costOnly(r)).toBe(false);
+  });
+
+  it("falls back to the report wording for a failure it cannot attribute", () => {
+    // An older caller, or a result built by hand, carries no flags. The cost-only
+    // message asserts the report is filed, so it must not be the default.
+    expect(costOnly({ ok: false, error: "AccuLynx is down" })).toBe(false);
+    expect(costOnly(undefined)).toBe(false);
   });
 });

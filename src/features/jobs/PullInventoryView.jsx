@@ -36,10 +36,11 @@ import CorrectPullModal from "./CorrectPullModal";
 import { translations } from "@/shared/utils/translations";
 import { useStickySort } from "@/shared/hooks/useStickySort";
 import { generatePDF } from "./pdfGenerator";
-// syncStatusOf / reportUploadedAtOf are read only to answer "is this report already
-// filed", which stops a retry after a failed commit from filing a second copy.
+// syncStatusOf answers "is there anything left to send". Not filing a second copy of
+// the report is syncJobReportToAccuLynx's own business now, since only the report half
+// is once-only — the cost has to stay retriable after AccuLynx refuses it.
 // The badge and sync modal that used to need the rest went with the Completed tab.
-import { syncJobReportToAccuLynx, syncStatusOf, reportUploadedAtOf } from "./accuLynxSync";
+import { syncJobReportToAccuLynx, syncStatusOf, costOnly } from "./accuLynxSync";
 import {
   Btn,
   Bdg,
@@ -682,10 +683,11 @@ export default function PullInventory({
         if (!go) return false;
       }
 
-      // Skip when the report is already filed: AccuLynx has no replace-document
-      // call, so a retry after a failed commit would file a second copy.
-      const alreadyFiled = syncStatusOf(sel) === "synced" || !!reportUploadedAtOf(sel);
-      if (acculynxConfig?.autoSync && !alreadyFiled) {
+      // Only a fully-synced job has nothing left to send. A job whose report filed
+      // but whose cost was refused still owes the cost, and it used to be skipped
+      // here on the strength of the filed report alone.
+      const fullySynced = syncStatusOf(sel) === "synced";
+      if (acculynxConfig?.autoSync && !fullySynced) {
         const r = await syncJobReportToAccuLynx({
           job: updatedJob,
           users,
@@ -699,8 +701,8 @@ export default function PullInventory({
           showToast(t.pullReportUploaded, "success");
         } else if (!r.skipped) {
           const go = await confirm({
-            title: t.pullSyncFailedTitle,
-            message: t.pullSyncFailedAsk,
+            title: costOnly(r) ? t.pullCostFailedTitle : t.pullSyncFailedTitle,
+            message: costOnly(r) ? t.pullCostFailedAsk : t.pullSyncFailedAsk,
             detail: r.error,
             confirmLabel: t.pullCompleteAnyway,
             cancelLabel: t.pullDontComplete,

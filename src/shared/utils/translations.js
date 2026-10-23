@@ -922,6 +922,9 @@ export const translations = {
     pullSyncFailedTitle: "Report could not be filed",
     pullSyncFailedAsk:
       "AccuLynx did not accept the report, so nothing has been filed for this job. Nothing has been completed yet.",
+    pullCostFailedTitle: "Material cost did not post",
+    pullCostFailedAsk:
+      "The completion report IS filed on the AccuLynx job — only the material cost was refused. The paperwork is there; the expense is not. Nothing has been completed yet.",
     pullCompleteAnyway: "Complete anyway",
     pullDontComplete: "Leave it open",
     pullJustBuilt: "Just built",
@@ -1133,6 +1136,10 @@ export const translations = {
     bjCloseSyncFailTitle: "Report could not be filed",
     bjCloseSyncFailAsk:
       "AccuLynx did not accept the report, so nothing has been filed for this job. Closing now takes it off this list, and nothing will remind you again.",
+    bjCloseCostFail: "Job NOT closed. The material cost could not be posted to AccuLynx:",
+    bjCloseCostFailTitle: "Material cost did not post",
+    bjCloseCostFailAsk:
+      "The completion report IS filed on the AccuLynx job — only the material cost was refused. Closing now takes the job off this list, and nothing will remind you to add the expense by hand.",
     bjCloseAnyway: "Close without the report",
     bjDontClose: "Keep it open",
     bjCorrectReturn: "Correct Return",
@@ -2399,6 +2406,9 @@ export const translations = {
       "Su navegador bloqueó la ventana emergente, así que no se generó ningún reporte para este trabajo. Todavía no se ha completado nada.",
     pullPdfBlockedDetail:
       "Permita ventanas emergentes para este sitio y presione Completar otra vez para obtener el reporte. O termine sin él: el trabajo se cerrará igual y los materiales se devolverán igual.",
+    pullCostFailedTitle: "El costo de materiales no se registró",
+    pullCostFailedAsk:
+      "El reporte de finalización SÍ está archivado en el trabajo de AccuLynx — solo se rechazó el costo de materiales. El papeleo está ahí; el gasto no. Todavía no se ha completado nada.",
     pullSyncFailedTitle: "No se pudo archivar el reporte",
     pullSyncFailedAsk:
       "AccuLynx no aceptó el reporte, así que no se archivó nada para este trabajo. Todavía no se ha completado nada.",
@@ -2614,6 +2624,11 @@ export const translations = {
     bjClosing: "Archivando reporte...",
     bjCloseSynced: "Reporte archivado en AccuLynx.",
     bjCloseSyncFail: "El trabajo NO se cerró. No se pudo archivar el reporte en AccuLynx:",
+    bjCloseCostFail:
+      "El trabajo NO se cerró. No se pudo registrar el costo de materiales en AccuLynx:",
+    bjCloseCostFailTitle: "El costo de materiales no se registró",
+    bjCloseCostFailAsk:
+      "El reporte de finalización SÍ está archivado en el trabajo de AccuLynx — solo se rechazó el costo de materiales. Cerrarlo ahora lo quita de esta lista, y nada le recordará agregar el gasto a mano.",
     bjCloseSyncFailTitle: "No se pudo archivar el reporte",
     bjCloseSyncFailAsk:
       "AccuLynx no aceptó el reporte, así que no se archivó nada para este trabajo. Si lo cierra ahora, sale de esta lista y nada volverá a recordárselo.",

@@ -12,6 +12,13 @@ export const syncNoteOf = (job) => job?.syncNote || "";
 export const syncedAtOf = (job) => job?.syncedAt || "";
 export const reportUploadedAtOf = (job) => job?.report_uploaded_at || null;
 
+// Did ONLY the expense half fail? The two halves fail independently, and the message
+// shown for a cost-only failure states that the report is filed — so it may be used
+// only when that is known to be true. A failure this cannot attribute (an older
+// caller, a result built by hand) falls back to the broader "report" wording, which
+// is wrong about less.
+export const costOnly = (r) => !!r?.costFailed && !r?.reportFailed;
+
 // Sync state is a record of what happened, not part of the job's own edit flow.
 // It must never turn a completed job into a failed save, so a write that doesn't
 // land is logged and swallowed: the in-memory state is already correct, and the
@@ -137,7 +144,15 @@ export async function syncJobReportToAccuLynx({
     return { ok: false, skipped: true, error: note };
   }
 
-  const report = await uploadJobReportToAccuLynx({ job, users, activeLogo, inv, company, config });
+  // The report is filed exactly once. AccuLynx has no replace-document call, so a
+  // second attempt would drop a second copy into Job Paperwork — but the COST still
+  // has to be retriable, and skipping it was the whole problem. The usual failure is
+  // a filed report and a refused expense, and when the callers gated the entire sync
+  // on "already filed" that expense could never be posted: the job went to closed
+  // with the paperwork in place and no material cost on it, forever.
+  const report = reportUploadedAtOf(job)
+    ? { ok: false, skipped: true, error: "Report was already filed." }
+    : await uploadJobReportToAccuLynx({ job, users, activeLogo, inv, company, config });
   const cost = await postJobCostToAccuLynx({ job, users, inv, company, config });
 
   // Report the halves separately. Collapsing them into one "failed" hides which of
@@ -149,7 +164,13 @@ export async function syncJobReportToAccuLynx({
   ].filter(Boolean);
   const note = parts.join(" ") || "Nothing to send.";
 
-  const anyFailed = (!report.ok && !report.skipped) || (!cost.ok && !cost.skipped);
+  // Which half failed is reported back, not just that something did. The callers put
+  // this in front of someone as "Report could not be filed", and saying that when the
+  // report is sitting in AccuLynx and only the expense was refused sends people to
+  // look for a missing PDF that is already there.
+  const reportFailed = !report.ok && !report.skipped;
+  const costFailed = !cost.ok && !cost.skipped;
+  const anyFailed = reportFailed || costFailed;
   const at = report.uploadedAt || new Date().toISOString();
 
   const fields = anyFailed
@@ -166,7 +187,15 @@ export async function syncJobReportToAccuLynx({
   applyJobState(setJobs, job?.id, fields);
   await persistSyncState(job?.id, fields);
 
-  return { ok: !anyFailed, report, cost, error: anyFailed ? note : undefined, message: note };
+  return {
+    ok: !anyFailed,
+    report,
+    cost,
+    reportFailed,
+    costFailed,
+    error: anyFailed ? note : undefined,
+    message: note,
+  };
 }
 
 function applyJobState(setJobs, jobId, fields) {
