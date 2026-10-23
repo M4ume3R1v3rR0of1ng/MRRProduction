@@ -1,23 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  Required for @capacitor/push-notifications. "development" here talks to
-  APNs' sandbox host — matches send-maintenance-push-notices.js sending to
-  the sandbox host whenever APNS_PRODUCTION is unset. Change to "production"
-  (and set APNS_PRODUCTION=true in Netlify) for the TestFlight/App Store
-  build, matching whichever provisioning profile actually signs the build.
+  Required for @capacitor/push-notifications.
 
-  This file alone does not enable the capability — Xcode has to know it
-  exists. Open ios/App/App.xcworkspace, select the App target, go to
-  Signing & Capabilities, and add "Push Notifications": that both wires this
-  file into the build settings (CODE_SIGN_ENTITLEMENTS) and regenerates the
-  provisioning profile to include the capability. Hand-editing
-  project.pbxproj to do the same is fragile without Xcode there to validate
-  it, so this is intentionally left as a manual step.
+  WHY "production" AND NOT "development"
+
+  aps-environment names which APNs host the device token minted for this build
+  belongs to. A token is not portable between the two: a token issued under
+  "development" is rejected by api.push.apple.com, and vice versa, with a
+  400 BadDeviceToken that says nothing about why.
+
+  Every build of this app that is SIGNED is a Release build produced by the
+  testflight job in .github/workflows/ios-build.yml, bound for TestFlight or
+  the App Store. Both of those are the production host. So "production" is not
+  a release-time switch anyone has to remember to flip — it is simply the only
+  value that is ever correct here.
+
+  The matching half is server-side: _shared/apns.js picks its host from
+  APNS_PRODUCTION, so that must be set to true in Netlify or the backend will
+  keep posting production tokens to the sandbox host. Both halves or neither.
+
+  WHY THE DEBUG CONFIGURATION DOES NOT REFERENCE THIS FILE
+
+  CODE_SIGN_ENTITLEMENTS is set on the Release build configuration only. Debug
+  exists here solely to answer "does it compile?" on a simulator, unsigned
+  (see the compile job in the same workflow), and the simulator cannot register
+  with APNs at all — so an entitlement there would buy nothing while giving the
+  one currently-green job a provisioning profile it does not have and does not
+  need.
 -->
 <plist version="1.0">
 <dict>
 	<key>aps-environment</key>
-	<string>development</string>
+	<string>production</string>
 </dict>
 </plist>

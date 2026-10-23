@@ -1,14 +1,22 @@
-# Compile the iOS app on a macOS runner.
+# Build the iOS app on a macOS runner, and — on request — sign it and send it
+# to TestFlight.
 #
-# WHAT THIS ANSWERS: "does the Capacitor project actually build?" Nobody on this
-# team has a Mac, so without this the first time anyone finds out is when they
-# rent one. It builds for the SIMULATOR and does no code signing, which means it
-# needs no Apple Developer account, no certificates and no provisioning profile.
-# It runs today, on a repo with none of that set up.
+# Two jobs, because they answer two different questions and cost very different
+# amounts:
 #
-# WHAT IT DOES NOT DO: produce anything installable on a real iPhone or uploadable
-# to TestFlight. Both need a paid Apple Developer account and signing assets. See
-# the block at the bottom of this file for what to add once enrollment completes.
+#   build       "Does the Capacitor project actually build?" Runs on every push
+#               to main that can affect the iOS app. Simulator, unsigned, no
+#               Apple account needed. This is the job that catches a broken
+#               native project on the commit that broke it.
+#
+#   testflight  "Can this become a build a human can install?" Manual dispatch
+#               only. Device archive, real code signing, upload to App Store
+#               Connect. Needs a paid Apple Developer membership and nine
+#               repository secrets, enumerated on the job itself.
+#
+# Nobody on this team owns a Mac. That is the premise of the whole file: every
+# step that needs Xcode happens here, on a rented macOS runner, so the iOS app
+# can be shipped from a Windows machine that has never seen Xcode.
 
 name: iOS build
 
@@ -29,8 +37,18 @@ on:
       - "vite.config.js"
       - ".env.ios"
       - ".github/workflows/ios-build.yml"
-  # Lets you run it by hand from the Actions tab without pushing anything.
+  # Lets you run it by hand from the Actions tab without pushing anything, and
+  # is the ONLY way the testflight job below ever runs.
   workflow_dispatch:
+    inputs:
+      upload:
+        description: "Upload to TestFlight (off = sign and validate only)"
+        type: boolean
+        default: false
+      build_number:
+        description: "CFBundleVersion override (blank = this workflow run's number)"
+        type: string
+        default: ""
 
 jobs:
   build:
@@ -63,18 +81,17 @@ jobs:
       # vite build --mode ios && cap sync ios.
       #
       # --mode ios loads .env.ios, which strips the landing page, the signup flow
-      # and BillingView. See src/utils/platform.js for why that is not optional.
+      # and BillingView. See src/core/platform.js for why that is not optional.
       #
-      # The two secrets are optional FOR THIS WORKFLOW, which only asks whether
-      # the project compiles, and it compiles either way.
+      # The two secrets are optional FOR THIS JOB, which only asks whether the
+      # project compiles, and it compiles either way.
       #
-      # They are not optional for a usable app. src/utils/supabase.js throws at
-      # module load when they are missing, so an artifact built without them does
-      # not merely lose its backend — it dies on launch with a blank screen.
+      # They are not optional for a usable app. src/shared/utils/supabase.js
+      # throws at module load when they are missing, so an artifact built
+      # without them does not merely lose its backend — it dies on launch with
+      # a blank screen.
       # Vite inlines these at build time, so they must be present HERE, not on
-      # the device. Set them in Settings > Secrets and variables > Actions before
-      # trusting any build you intend to install. Both ship in the client bundle
-      # regardless and are governed entirely by RLS, so neither is sensitive.
+      # the device. The testflight job treats them as mandatory for that reason.
       #
       # The test step above deliberately does NOT get them: src/test/setup.js
       # stubs fake values so the suite never depends on a live project.
@@ -93,7 +110,9 @@ jobs:
       # unshared scheme would fail with "scheme not found".
       #
       # CODE_SIGNING_ALLOWED=NO is what removes the need for an Apple account.
-      # A simulator build does not need a signed binary.
+      # A simulator build does not need a signed binary. It is also why the Debug
+      # configuration deliberately has no CODE_SIGN_ENTITLEMENTS — see the
+      # comment in ios/App/App/App.entitlements.
       - name: Compile (unsigned, simulator)
         run: |
           xcodebuild \
@@ -117,30 +136,369 @@ jobs:
           echo "Built: $APP"
           du -sh "$APP"
 
-# ─────────────────────────────────────────────────────────────────────────────
-# NEXT STAGE: TestFlight
-#
-# Deliberately not written yet, because every line of it would fail today. It
-# needs an Apple Developer Program membership, and an ORGANIZATION enrolment
-# needs a D-U-N-S number for the business, which takes days to weeks. Individual
-# enrolment is faster but puts a personal name on the App Store listing as the
-# seller, which is wrong for a product companies pay $99/month for.
-#
-# Once enrolment completes, this becomes a second job that:
-#
-#   1. Imports a signing certificate and provisioning profile from secrets
-#      (fastlane match, or apple-actions/import-codesign-certs).
-#   2. Swaps -sdk iphonesimulator for a real device archive:
-#        xcodebuild -scheme App -configuration Release \
-#          -archivePath build/App.xcarchive archive
-#   3. Exports a signed .ipa with an ExportOptions.plist.
-#   4. Uploads with xcrun altool or apple-actions/upload-testflight-build,
-#      authenticating with an App Store Connect API key.
-#
-# Secrets it will need:
-#   APPSTORE_ISSUER_ID, APPSTORE_KEY_ID, APPSTORE_PRIVATE_KEY
-#   BUILD_CERTIFICATE_BASE64, P12_PASSWORD, PROVISIONING_PROFILE_BASE64
-#
-# Do not add that job before the compile job above is green. A signing failure on
-# top of a compile failure is two problems reported as one.
-# ─────────────────────────────────────────────────────────────────────────────
+  # ───────────────────────────────────────────────────────────────────────────
+  testflight:
+    name: Archive, sign and upload to TestFlight
+    # MANUAL ONLY, and not by accident:
+    #
+    #   1. Every upload consumes a CFBundleVersion that App Store Connect will
+    #      never accept again for this CFBundleShortVersionString, and it emails
+    #      your testers. A push to main is not a statement that the result
+    #      belongs on someone's phone. A dispatch is.
+    #   2. It is a second full macOS build on top of the one it depends on, at
+    #      ten times Linux rates.
+    #   3. It needs nine secrets. Push-triggered, it would fail on every single
+    #      commit until the last one was set.
+    if: github.event_name == 'workflow_dispatch'
+    # Deliberately gated on the compile job rather than duplicating its checks.
+    # A signing failure stacked on a compile failure is two problems reported as
+    # one, and the cheap job is the one that should find the cheap mistake.
+    needs: build
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    env:
+      ARCHIVE_PATH: build/App.xcarchive
+      EXPORT_PATH: build/export
+      BUNDLE_ID: com.steadwerk.app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      # Nine secrets, checked in one place so a missing one is a named error in
+      # the first ten seconds rather than an Xcode diagnostic twenty minutes in.
+      #
+      #   APPLE_TEAM_ID                 Membership details in the developer
+      #                                 portal. THIS is the secret that changes
+      #                                 when the account converts from
+      #                                 Individual to Organization — nothing in
+      #                                 the repo hardcodes it, so that
+      #                                 conversion is a secret update, not a
+      #                                 commit.
+      #   BUILD_CERTIFICATE_BASE64      An Apple Distribution certificate
+      #                                 exported as .p12, then base64'd:
+      #                                   base64 -i cert.p12 | pbcopy
+      #   P12_PASSWORD                  The password set during that export.
+      #   PROVISIONING_PROFILE_BASE64   An App Store provisioning profile for
+      #                                 com.steadwerk.app WITH the Push
+      #                                 Notifications capability enabled,
+      #                                 base64'd the same way.
+      #   APPSTORE_ISSUER_ID            App Store Connect > Users and Access >
+      #   APPSTORE_KEY_ID               Integrations > App Store Connect API.
+      #   APPSTORE_PRIVATE_KEY          The whole .p8 file, BEGIN/END lines
+      #                                 included, newlines intact. Apple lets
+      #                                 you download it exactly once.
+      #   VITE_SUPABASE_URL             Mandatory here, unlike the build job:
+      #   VITE_SUPABASE_ANON_KEY        Vite inlines them, and a build without
+      #                                 them launches to a blank screen.
+      - name: Check every required secret is present
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          missing=""
+          for name in APPLE_TEAM_ID BUILD_CERTIFICATE_BASE64 P12_PASSWORD \
+                      PROVISIONING_PROFILE_BASE64 APPSTORE_ISSUER_ID \
+                      APPSTORE_KEY_ID APPSTORE_PRIVATE_KEY \
+                      VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY; do
+            if [ -z "${!name}" ]; then
+              missing="$missing $name"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "Cannot sign a build. Missing repository secrets:"
+            for name in $missing; do echo "  - $name"; done
+            echo ""
+            echo "Settings > Secrets and variables > Actions. Each one is"
+            echo "described in the comment above this step."
+            exit 1
+          fi
+          echo "All nine secrets are present."
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web bundle and sync to Xcode
+        run: npm run build:ios
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+
+      # The certificate goes into a keychain created for this run and deleted at
+      # the end of it, never the runner's login keychain.
+      #
+      # Done with `security` directly rather than via a third-party action. This
+      # is the step that handles a distribution certificate and its password;
+      # the dependency budget for that step is zero.
+      - name: Import the signing certificate
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(uuidgen)
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+
+          printf '%s' "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          # -lut 21600: do not auto-lock mid-build. The job's timeout is shorter.
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$P12_PASSWORD" \
+            -t cert -f pkcs12 -k "$KEYCHAIN_PATH" \
+            -T /usr/bin/codesign -T /usr/bin/security
+          # Without this, codesign raises a GUI "allow access?" prompt that
+          # nobody is there to click, and the build hangs until the timeout.
+          security set-key-partition-list -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" > /dev/null
+          # Put it in the search list so codesign finds the identity without
+          # every caller having to pass --keychain.
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+          rm -f "$CERT_PATH"
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+
+          echo "Signing identities now available:"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Install the provisioning profile
+        env:
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PROFILE_RAW="$RUNNER_TEMP/profile.mobileprovision"
+          PROFILE_PLIST="$RUNNER_TEMP/profile.plist"
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+
+          printf '%s' "$PROVISIONING_PROFILE_BASE64" | base64 --decode > "$PROFILE_RAW"
+
+          # A .mobileprovision is a CMS-signed plist, so PlistBuddy cannot read
+          # it until the signature wrapper is removed.
+          security cms -D -i "$PROFILE_RAW" > "$PROFILE_PLIST"
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$PROFILE_PLIST")
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_PLIST")
+
+          # Xcode looks profiles up by UUID filename, not by display name.
+          mkdir -p "$PROFILE_DIR"
+          cp "$PROFILE_RAW" "$PROFILE_DIR/$PROFILE_UUID.mobileprovision"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
+          echo "Installed '$PROFILE_NAME' ($PROFILE_UUID)"
+
+          # Two preflight checks. Both failures otherwise surface much later as
+          # inscrutable codesign or export errors, so they are worth catching
+          # here, where the message can say what is actually wrong.
+          APP_ID=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$PROFILE_PLIST")
+          echo "Profile application-identifier: $APP_ID"
+          case "$APP_ID" in
+            *".$BUNDLE_ID") ;;
+            *)
+              echo "This profile is not for $BUNDLE_ID. Re-download the right one."
+              exit 1
+              ;;
+          esac
+
+          if ! /usr/libexec/PlistBuddy -c 'Print :Entitlements:aps-environment' "$PROFILE_PLIST" > /dev/null 2>&1; then
+            echo "This profile has no aps-environment entitlement, but"
+            echo "ios/App/App/App.entitlements asks for one. Enable the Push"
+            echo "Notifications capability on the $BUNDLE_ID identifier, then"
+            echo "regenerate the profile and update the secret."
+            exit 1
+          fi
+
+      - name: Decide the build number
+        # Read through env rather than interpolated into the script: a
+        # workflow_dispatch input is controlled by whoever runs the workflow,
+        # and a bare ${{ }} inside a run block is a shell injection.
+        env:
+          BUILD_NUMBER_INPUT: ${{ inputs.build_number }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          N="$BUILD_NUMBER_INPUT"
+          # github.run_number increments on every run of this workflow file,
+          # which makes it unique and monotonic — the two things App Store
+          # Connect demands of CFBundleVersion. It resets if this file is ever
+          # renamed or recreated, which is what the manual override is for.
+          if [ -z "$N" ]; then N="$RUN_NUMBER"; fi
+          case "$N" in
+            '' | *[!0-9]*)
+              echo "Build number must be a positive integer, got '$N'."
+              exit 1
+              ;;
+          esac
+          echo "BUILD_NUMBER=$N" >> "$GITHUB_ENV"
+          echo "CFBundleVersion for this build: $N"
+          echo "MARKETING_VERSION (CFBundleShortVersionString) comes from the"
+          echo "Xcode project and is bumped deliberately, by commit."
+
+      # Signing settings are passed here rather than written into
+      # project.pbxproj. The project stays automatically-signed and openable by
+      # anyone who ever does get a Mac, while CI — which has no Xcode GUI to
+      # resolve a team with — gets explicit manual signing, for this build only.
+      #
+      # "Apple Distribution" is the name Apple gives distribution certificates
+      # issued today. An account old enough to still be using an "iPhone
+      # Distribution" certificate needs that string instead — the import step
+      # above prints every identity it loaded, which is where to check.
+      - name: Archive for device
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            archive
+
+      - name: Export a signed .ipa
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Generated rather than committed: teamID is a secret, and the profile
+          # name is only known once the profile has been decoded.
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>teamID</key>
+            <string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>$BUNDLE_ID</key>
+              <string>$PROFILE_NAME</string>
+            </dict>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+          </dict>
+          </plist>
+          PLIST
+
+          # manageAppVersionAndBuildNumber=false above matters: left to itself,
+          # Xcode picks its own build number at export time and silently
+          # discards the one the archive step was told to use.
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
+
+          IPA=$(find "$EXPORT_PATH" -name '*.ipa' | head -1)
+          if [ -z "$IPA" ]; then
+            echo "Export reported success but produced no .ipa."
+            exit 1
+          fi
+          echo "IPA_PATH=$IPA" >> "$GITHUB_ENV"
+          echo "Exported: $IPA"
+          du -h "$IPA"
+
+      # Kept even when the upload is skipped or fails, so a signed build is
+      # never lost to a flaky Apple endpoint. Not installable by double-click —
+      # an .ipa needs Apple Configurator or a TestFlight round trip — but it is
+      # the artifact to hand to anyone debugging the signing itself.
+      - name: Keep the .ipa as a workflow artifact
+        if: always() && env.IPA_PATH != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: steadwerk-ios-${{ env.BUILD_NUMBER }}
+          path: ${{ env.EXPORT_PATH }}
+          retention-days: 14
+
+      - name: Authenticate to App Store Connect
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: |
+          # altool finds the key by filename convention in one of a few fixed
+          # directories. It does not accept a path.
+          KEY_DIR="$HOME/.appstoreconnect/private_keys"
+          KEY_FILE="$KEY_DIR/AuthKey_$APPSTORE_KEY_ID.p8"
+          mkdir -p "$KEY_DIR"
+          printf '%s' "$APPSTORE_PRIVATE_KEY" > "$KEY_FILE"
+          chmod 600 "$KEY_FILE"
+          if ! grep -q 'BEGIN PRIVATE KEY' "$KEY_FILE"; then
+            echo "APPSTORE_PRIVATE_KEY does not look like a .p8 file. Paste the"
+            echo "entire file, including the BEGIN and END lines."
+            exit 1
+          fi
+          echo "App Store Connect API key in place for key id $APPSTORE_KEY_ID."
+
+      # Validation asks Apple the same questions the upload will, without
+      # consuming a build number. It is why `upload` defaults to off: the first
+      # run of this job should be a dry run.
+      - name: Validate the build with Apple
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+        run: |
+          xcrun altool --validate-app \
+            -f "$IPA_PATH" \
+            -t ios \
+            --apiKey "$APPSTORE_KEY_ID" \
+            --apiIssuer "$APPSTORE_ISSUER_ID"
+
+      - name: Upload to TestFlight
+        if: inputs.upload
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+        run: |
+          xcrun altool --upload-app \
+            -f "$IPA_PATH" \
+            -t ios \
+            --apiKey "$APPSTORE_KEY_ID" \
+            --apiIssuer "$APPSTORE_ISSUER_ID"
+          echo ""
+          echo "Uploaded build $BUILD_NUMBER."
+          echo "Apple processes it for 5-30 minutes before it appears in"
+          echo "TestFlight. Watch for a rejection email: processing failures"
+          echo "arrive by mail, not as a failure here."
+
+      - name: Report that the upload was skipped
+        if: ${{ !inputs.upload }}
+        run: |
+          echo "Archived, signed and validated build $BUILD_NUMBER, but did not"
+          echo "upload it — the 'upload' input was off."
+          echo ""
+          echo "Re-run from the Actions tab with it enabled to send a build to"
+          echo "TestFlight."
+
+      # Always. A keychain left in the runner's search list, a distribution
+      # certificate and an API private key left on disk are exactly the things
+      # not to leave behind, even on a VM that is about to be destroyed.
+      - name: Remove the signing material
+        if: always()
+        run: |
+          if [ -n "${KEYCHAIN_PATH:-}" ] && [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi
+          rm -rf "$HOME/Library/MobileDevice/Provisioning Profiles" || true
+          rm -rf "$HOME/.appstoreconnect/private_keys" || true
+          rm -f "$RUNNER_TEMP/profile.plist" \
+            "$RUNNER_TEMP/profile.mobileprovision" \
+            "$RUNNER_TEMP/certificate.p12" || true
+          echo "Signing material removed."

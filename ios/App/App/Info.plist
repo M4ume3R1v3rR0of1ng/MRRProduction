@@ -24,6 +24,22 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Export compliance, declared here so an upload does not stall waiting for
+	     a human. Without this key every build that lands in App Store Connect
+	     sits in "Missing Compliance" until someone opens the web UI and answers
+	     the encryption questionnaire by hand — which would make the automated
+	     TestFlight job in .github/workflows/ios-build.yml only half an
+	     automation.
+
+	     false is the correct answer, not a convenient one. The app ships no
+	     cryptography of its own: it talks HTTPS to Supabase, Netlify and APNs,
+	     and uses the platform's TLS to do it. That is the standard exemption
+	     under category 5, part 2 of the U.S. Export Administration Regulations.
+	     If the app ever bundles its own crypto — on-device encryption of cached
+	     job data, say — this has to be revisited, because the declaration is a
+	     legal statement and not a build setting. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<!-- REQUIRED by @capacitor/camera. iOS does not fail politely when a usage
 	     string is missing: the moment code touches the camera or the photo
 	     library the system TERMINATES the app, with no JavaScript error and
