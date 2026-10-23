@@ -131,6 +131,32 @@ export function mediaRow({ title, blurb, kind, url, sortOrder, user, isGlobal = 
   };
 }
 
+// Who may edit or remove a clip. Three rules, in the order they apply:
+//
+//   1. Nobody touches a bundled clip. It ships in the build, so there is no row to
+//      change and no file to delete.
+//   2. A platform admin (Owner) may edit or remove any clip, any tier.
+//   3. A company Admin may edit or remove any clip their company can SEE — their own
+//      company's private clips and Steadwerk's global ones alike (supabase/56). An
+//      edit to a global clip lands for every other company and on the logged-out
+//      /training page, which is why the UI says so before they save one.
+//
+// Insert is deliberately NOT this rule: only a platform admin can put a new clip in
+// the global tier (see mediaRow's isGlobal and supabase/56's insert policy). Editing
+// what Steadwerk published is not the same right as publishing to every tenant.
+//
+// This decides which BUTTONS appear. The row-write policies in supabase/56 are what
+// actually enforce it; a hidden button stops nobody.
+export function canEditMedia(
+  clip,
+  { isPlatformAdmin = false, isCompanyAdmin = false, companyId = null } = {},
+) {
+  if (!clip || clip.bundled) return false;
+  if (isPlatformAdmin) return true;
+  if (!isCompanyAdmin) return false;
+  return clip.is_global === true || (!!companyId && clip.company_id === companyId);
+}
+
 // Bundled clips first, then company uploads by sort order and then upload time, so the
 // product tour stays at the top of the page it explains.
 export function orderedMedia(bundled = [], uploaded = []) {

@@ -1374,6 +1374,8 @@ export const translations = {
     trRemove: "Remove",
     trRemoveConfirm:
       'Remove "{title}" from the training library? This deletes the file for everyone.',
+    trRemoveConfirmGlobal:
+      'Remove "{title}"? This is one of Steadwerk\'s shared videos — removing it takes it away from every company that uses it, not just yours.',
     trRemovedOk: "Removed from the training library.",
     trRemoveFail: "Could not remove that:",
     trEdit: "Edit",
@@ -1381,6 +1383,8 @@ export const translations = {
     trEditedOk: "Updated.",
     trEditFail: "Could not save that:",
     trTitleRequired: "Give the clip a title so people know what it covers.",
+    trGlobalEditWarn:
+      "This is one of Steadwerk's shared videos. Your changes show up for every company that uses it, and on the public training page.",
     trAddedBy: "Added by",
     trYourLibrary: "Training library",
     trainingDownload: "Download it instead.",
@@ -2877,6 +2881,8 @@ export const translations = {
     trRemove: "Quitar",
     trRemoveConfirm:
       '¿Quitar "{title}" de la biblioteca de capacitación? Esto elimina el archivo para todos.',
+    trRemoveConfirmGlobal:
+      '¿Quitar "{title}"? Es uno de los videos compartidos de Steadwerk: al quitarlo desaparece para todas las empresas que lo usan, no solo para la suya.',
     trRemovedOk: "Quitado de la biblioteca de capacitación.",
     trRemoveFail: "No se pudo quitar:",
     trEdit: "Editar",
@@ -2884,6 +2890,8 @@ export const translations = {
     trEditedOk: "Actualizado.",
     trEditFail: "No se pudo guardar:",
     trTitleRequired: "Dele un título al video para que la gente sepa qué cubre.",
+    trGlobalEditWarn:
+      "Este es uno de los videos compartidos de Steadwerk. Sus cambios se ven en todas las empresas que lo usan y en la página pública de capacitación.",
     trAddedBy: "Agregado por",
     trYourLibrary: "Biblioteca de capacitación",
     trainingDownload: "Descárguelo en su lugar.",

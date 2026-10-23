@@ -400,6 +400,13 @@ begin
     public._mig_has_column('companies', 'billing_email'),
     'companies.billing_email');
 
+  -- Probed by its GUARD, not by its policies: 56 replaces 45's one FOR ALL policy
+  -- with three narrower ones, and a policy probe would have to read definitions to
+  -- tell the two states apart. training_media_global_guard() exists only in 56.
+  perform public._mig_record('56_training_media_admin_edit_all.sql',
+    public._mig_has_function('training_media_global_guard'),
+    'function training_media_global_guard');
+
   -- Probed by reading the function's SOURCE, not by its existence: 57 replaces
   -- 52's function in place, so _mig_has_function would read 'verified' on a
   -- database carrying only 52 — the same trap as 11/13, 38 and 50, and solved

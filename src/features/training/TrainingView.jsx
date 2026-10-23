@@ -50,6 +50,7 @@ import {
 import { uploadFileToBucket, removeFromBucket } from "@/shared/utils/storageBucketUpload";
 import {
   orderedMedia,
+  canEditMedia,
   validateMediaForm,
   mediaObjectPath,
   mediaRow,
@@ -97,12 +98,14 @@ export default function TrainingView({
 }) {
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
-  // Two kinds of admin, two different reaches. A platform admin (Owner) can add,
-  // edit or remove ANY clip, global or not. A company's own Admin can only add,
-  // edit or remove their own company's private clips — never Steadwerk's global
-  // ones, and never another company's. Matches
-  // supabase/45_training_media_company_admin_edit.sql; the UI hiding a button is
-  // convenience, the database RLS is what actually enforces it.
+  // Two kinds of admin. A platform admin (Owner) can add, edit or remove ANY clip
+  // and is the only one who can ADD a global one. A company's own Admin can add
+  // private clips to their own library, and can edit or remove anything their
+  // company can see — their own clips and Steadwerk's global ones both
+  // (supabase/56_training_media_admin_edit_all.sql widened this; 45 held Edit to
+  // their own tier). Never another company's private clips. canEditMedia in
+  // ./trainingMedia holds the rule; the UI hiding a button is convenience, the
+  // database RLS is what actually enforces it.
   const isPlatformAdmin = user?.isPlatformAdmin === true;
   const isCompanyAdmin = user?.role === "admin";
   const canManage = isPlatformAdmin || isCompanyAdmin;
@@ -247,7 +250,9 @@ export default function TrainingView({
       const { data, error } = await supabase.from("training_media").insert([row]).select();
       if (error) throw error;
 
-      const created = data?.[0] || row;
+      // company_id comes off the database default, so the optimistic fallback has to
+      // add it back — canEditMedia reads it to tell our own clip from someone else's.
+      const created = data?.[0] || { ...row, company_id: company.id };
       setTrainingMedia?.((p) => [...p, created]);
 
       await logAction(
@@ -273,7 +278,13 @@ export default function TrainingView({
   };
 
   const removeMedia = async (item) => {
-    if (!window.confirm(t.trRemoveConfirm.replace("{title}", item.title))) return;
+    // A global clip is one shared row. A company admin removing it takes it away
+    // from every other company and from the logged-out /training page, so the
+    // confirm has to say that rather than "deletes the file for everyone", which
+    // reads as "everyone here".
+    const confirmCopy =
+      item.is_global && !isPlatformAdmin ? t.trRemoveConfirmGlobal : t.trRemoveConfirm;
+    if (!window.confirm(confirmCopy.replace("{title}", item.title))) return;
     try {
       const { error } = await supabase.from("training_media").delete().eq("id", item.id);
       if (error) throw error;
@@ -555,10 +566,10 @@ export default function TrainingView({
                   {/* Bundled clips ship in the build and belong to Steadwerk, so there is
                     nothing a tenant admin could edit or delete even if the button were
                     here — "The Full Tour" included, since supabase/44 made it a real
-                    row. Beyond that: a platform admin (Owner) can edit anything; a
-                    company Admin can only edit their own company's clips, never a
-                    global one Steadwerk added — the row-write RLS policy refuses that
-                    regardless of whether this button is shown. */}
+                    row. Beyond that, canEditMedia decides: an Owner can edit anything,
+                    and a company Admin anything their company can see, Steadwerk's
+                    global clips included. The RLS policies in supabase/56 refuse the
+                    rest whether or not this button is shown. */}
                   <Row gap={2} style={{ flexShrink: 0 }}>
                     {/* Assign reaches further than Edit: a company admin may
                       direct Steadwerk's GLOBAL clips at their own crew even
@@ -573,7 +584,11 @@ export default function TrainingView({
                         <UserCheck size={13} aria-hidden="true" /> {t.trAssign}
                       </Btn>
                     )}
-                    {!clip.bundled && (isPlatformAdmin || (isCompanyAdmin && !clip.is_global)) && (
+                    {canEditMedia(clip, {
+                      isPlatformAdmin,
+                      isCompanyAdmin,
+                      companyId: company?.id,
+                    }) && (
                       <Btn
                         v="ghost"
                         sz="sm"
@@ -592,6 +607,22 @@ export default function TrainingView({
                 </Row>
                 {isEditing ? (
                   <Stack gap={0} style={{ marginTop: "var(--space-3)" }}>
+                    {/* Said once, here, rather than in a second confirm dialog on save:
+                      this one row is what every company reads. An Owner editing their
+                      own library already knows that and does not need telling. */}
+                    {clip.is_global && !isPlatformAdmin && (
+                      <Callout
+                        tone="warn"
+                        pad="sm"
+                        bordered
+                        icon={AlertTriangle}
+                        size="sm"
+                        color={C.warnInk}
+                        style={{ marginBottom: "var(--space-3)" }}
+                      >
+                        {t.trGlobalEditWarn}
+                      </Callout>
+                    )}
                     <Fld label={t.trBlurb} hint={t.trBlurbHint}>
                       <TA
                         value={editForm.blurb}

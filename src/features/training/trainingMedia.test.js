@@ -5,6 +5,7 @@ import {
   validateMediaForm,
   mediaObjectPath,
   mediaRow,
+  canEditMedia,
   orderedMedia,
   formatBytes,
   MAX_VIDEO_BYTES,
@@ -143,6 +144,47 @@ describe("mediaRow", () => {
     expect(
       mediaRow({ title: "T", kind: "video", url: "u", user: {}, isGlobal: true }).is_global,
     ).toBe(true);
+  });
+});
+
+describe("canEditMedia", () => {
+  const owner = { isPlatformAdmin: true };
+  const admin = { isCompanyAdmin: true, companyId: "c1" };
+
+  it("lets a platform admin edit anything in either tier", () => {
+    expect(canEditMedia({ id: "a", is_global: true }, owner)).toBe(true);
+    expect(canEditMedia({ id: "a", is_global: false, company_id: "c2" }, owner)).toBe(true);
+  });
+
+  it("lets a company admin edit their own company's clip", () => {
+    expect(canEditMedia({ id: "a", is_global: false, company_id: "c1" }, admin)).toBe(true);
+  });
+
+  it("lets a company admin edit a global clip too (supabase/56)", () => {
+    expect(canEditMedia({ id: "a", is_global: true, company_id: "steadwerk" }, admin)).toBe(true);
+  });
+
+  it("still refuses another company's private clip", () => {
+    expect(canEditMedia({ id: "a", is_global: false, company_id: "c2" }, admin)).toBe(false);
+  });
+
+  it("refuses a bundled clip to everyone, platform admin included", () => {
+    expect(canEditMedia({ id: "a", bundled: true }, owner)).toBe(false);
+    expect(canEditMedia({ id: "a", bundled: true, is_global: true }, admin)).toBe(false);
+  });
+
+  it("refuses anyone who is not an admin", () => {
+    expect(canEditMedia({ id: "a", is_global: true }, { companyId: "c1" })).toBe(false);
+    expect(canEditMedia({ id: "a", is_global: false, company_id: "c1" }, {})).toBe(false);
+  });
+
+  it("survives junk input", () => {
+    expect(canEditMedia(null, owner)).toBe(false);
+    expect(canEditMedia({ id: "a", is_global: true })).toBe(false);
+  });
+
+  it("does not take a missing company id as a match", () => {
+    expect(canEditMedia({ id: "a", is_global: false }, { isCompanyAdmin: true })).toBe(false);
   });
 });
 
