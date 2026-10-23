@@ -109,7 +109,8 @@ in SQL, change it there too.
 | 46  | `46_training_media_unread.sql`                | `training_media_reads` — an unread badge on the sidebar's Training tab until a new clip is opened.                                                                                                 |
 | 47  | `47_billing_contact_name.sql`                 | `companies.billing_contact_name` — the signer's name, distinct from the company name, so it can be pulled for custom billing emails.                                                               |
 | 51  | `51_correct_job_pull.sql`                     | Lets a `jobs_pull` holder correct a wrong PULL: credits stock back to the exact batches it came from via the line's `consumed` split, and optionally pulls the right item instead, in one write.   |
-| 52  | `52_add_and_pull_job_materials.sql`           | Lets a `jobs_pull` holder add material to a job that is already pulled and pull it in one write — the crew-needs-more-coil case that used to mean building a second job for the same roof.         |
+| 52  | `52_add_and_pull_job_materials.sql`           | Lets a `jobs_pull` holder add material to a job that is already pulled and pull it in one write — the crew-needs-more-coil case that used to mean building a second job for the same roof. **Extended by 57.** |
+| 57  | `57_top_up_pulled_job_line.sql`               | Replaces 52's function so a line that has ALREADY been pulled can take more ("pulled 6 OSB, need 9 more"): a second FIFO draw appended to the same line, with `planned` revised and a `toppedUp` stamp. Closes the loop where 52 and 51 each refused it and named the other. |
 
 ## Adding a migration
 

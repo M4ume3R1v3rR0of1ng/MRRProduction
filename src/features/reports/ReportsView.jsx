@@ -401,11 +401,13 @@ function PullReviewReport({ jobs, jSC, t }) {
   const labelFor = (kind) =>
     kind === "corrected"
       ? t.rptPullReviewCorrected
-      : kind === "off_plan"
-        ? t.pullPlanOffPlan
-        : kind === "skipped"
-          ? t.pullPlanSkipped
-          : t.pullPlanOver;
+      : kind === "topped_up"
+        ? t.rptPullReviewToppedUp
+        : kind === "off_plan"
+          ? t.pullPlanOffPlan
+          : kind === "skipped"
+            ? t.pullPlanSkipped
+            : t.pullPlanOver;
 
   const handleExport = () => {
     if (flagged.length === 0) return;
@@ -503,10 +505,29 @@ function PullReviewReport({ jobs, jSC, t }) {
                           {t.rptPullReviewCorrectedFrom.replace("{qty}", f.prevPulled)}
                         </Muted>
                       )}
+                      {/* The approved number, which `planned` no longer shows:
+                          supabase/57 moves it to the new total when a top-up
+                          revises it, so without this the row would read as
+                          though the plan always said 15. */}
+                      {f.kind === "topped_up" && (
+                        <Muted style={{ marginLeft: 6 }}>
+                          {t.rptPullReviewToppedUpFrom
+                            .replace("{added}", f.addedAfter)
+                            .replace("{qty}", f.prevPlanned)}
+                        </Muted>
+                      )}
                     </td>
                     <td>
                       <Bdg
-                        color={f.kind === "over" ? "amber" : f.kind === "corrected" ? "sky" : "red"}
+                        color={
+                          f.kind === "over"
+                            ? "amber"
+                            : f.kind === "corrected"
+                              ? "sky"
+                              : f.kind === "topped_up"
+                                ? "sky"
+                                : "red"
+                        }
                       >
                         {labelFor(f.kind)}
                       </Bdg>

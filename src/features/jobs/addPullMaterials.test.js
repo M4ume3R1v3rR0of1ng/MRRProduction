@@ -5,6 +5,7 @@ import {
   canAddPull,
   orphanLines,
   overPullRows,
+  topUpLines,
 } from "./addPullMaterials";
 
 const line = (iid, over = {}) => ({
@@ -63,6 +64,40 @@ describe("orphanLines", () => {
     expect(orphanLines({ materials: [line("a"), null] }).map((l) => l.iid)).toEqual(["a"]);
     expect(orphanLines({})).toEqual([]);
     expect(orphanLines(null)).toEqual([]);
+  });
+});
+
+describe("topUpLines", () => {
+  // The reported bug, as a test: "I pulled 6 osb but now I need 9 more and can
+  // not add them on." Before supabase/57 a line at pulled > 0 appeared in
+  // NEITHER half of this dialog — orphanLines dropped it for having a pull and
+  // addableForPull dropped it for being on the job — so the item the crew needed
+  // was not on the screen at all.
+  it("returns the lines something has already gone out for", () => {
+    const j = job("active", [
+      line("osb", { pulled: 6 }),
+      line("coil"),
+      line("nails", { pulled: 2 }),
+    ]);
+    expect(topUpLines(j).map((l) => l.iid)).toEqual(["osb", "nails"]);
+  });
+
+  it("splits the job's lines with orphanLines, covering every one of them", () => {
+    const j = job("active", [line("a"), line("b", { pulled: 4 }), line("c")]);
+    expect([...orphanLines(j), ...topUpLines(j)].map((l) => l.iid).sort()).toEqual(["a", "b", "c"]);
+    // No line can be in both: the quantity box means something different in each
+    // section (the whole pull vs. the amount to add), so a line in both would be
+    // pulled twice by one save.
+    const orphanIds = new Set(orphanLines(j).map((l) => l.iid));
+    expect(topUpLines(j).some((l) => orphanIds.has(l.iid))).toBe(false);
+  });
+
+  it("reads `materials` when the row has no `items`, and survives nulls", () => {
+    expect(topUpLines({ materials: [line("a", { pulled: 1 }), null] }).map((l) => l.iid)).toEqual([
+      "a",
+    ]);
+    expect(topUpLines({})).toEqual([]);
+    expect(topUpLines(null)).toEqual([]);
   });
 });
 

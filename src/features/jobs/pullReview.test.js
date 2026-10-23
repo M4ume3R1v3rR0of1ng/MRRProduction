@@ -10,6 +10,8 @@ import {
   lineAnomaly,
   planAnomalies,
   wasCorrected,
+  topUps,
+  toppedUpOverPlan,
   jobPullFlags,
   jobsNeedingPullReview,
 } from "./pullReview";
@@ -122,6 +124,101 @@ describe("jobPullFlags", () => {
       ["i1", "over"],
       ["i2", "off_plan"],
     ]);
+  });
+
+  // ── Top-ups (supabase/57) ────────────────────────────────────────────────
+  // The reported case: 6 OSB approved and pulled, 9 more needed on the roof. 57
+  // raises `planned` to the new total on purpose, so by the time this module
+  // reads the line the quantities agree and lineAnomaly has nothing to notice —
+  // the stamp is the only remaining record that the job outgrew its plan.
+  it("flags a line topped up past what was approved, from the stamp", () => {
+    const j = job("j1", "active", {
+      items: [
+        line("i1", "OSB", {
+          planned: 15,
+          pulled: 15,
+          toppedUp: [
+            { qty: 9, prevPulled: 6, newPulled: 15, prevPlanned: 6, reason: "roof measured short" },
+          ],
+        }),
+      ],
+    });
+    expect(lineAnomaly(j.items[0], 15)).toBeNull();
+    expect(jobPullFlags(j)).toEqual([
+      expect.objectContaining({
+        iid: "i1",
+        kind: "topped_up",
+        planned: 15,
+        actual: 15,
+        prevPlanned: 6,
+        addedAfter: 9,
+        reasons: ["roof measured short"],
+      }),
+    ]);
+  });
+
+  it("does NOT flag a top-up that stayed inside the approved plan", () => {
+    // Planned 20, pulled 6, 9 more sent out: 15 is still material the job was
+    // approved to use, so there is nothing for a manager to open. Listing it
+    // would be listing a job for working as intended.
+    const j = job("j1", "active", {
+      items: [
+        line("i1", "OSB", {
+          planned: 20,
+          pulled: 15,
+          toppedUp: [{ qty: 9, prevPulled: 6, newPulled: 15, prevPlanned: 20 }],
+        }),
+      ],
+    });
+    expect(toppedUpOverPlan(j.items[0])).toBe(false);
+    expect(jobPullFlags(j)).toEqual([]);
+  });
+
+  it("totals repeated top-ups and keeps the ORIGINAL approved quantity", () => {
+    // A roof can come up short twice. The second entry's prevPlanned is already
+    // the first one's revision, so the approved number is the first entry's.
+    const l = line("i1", "OSB", {
+      planned: 20,
+      pulled: 20,
+      toppedUp: [
+        { qty: 9, prevPulled: 6, newPulled: 15, prevPlanned: 6, reason: "measured short" },
+        { qty: 5, prevPulled: 15, newPulled: 20, prevPlanned: 15, reason: "two damaged" },
+      ],
+    });
+    expect(topUps(l)).toHaveLength(2);
+    const [flag] = jobPullFlags(job("j1", "active", { items: [l] }));
+    expect(flag).toMatchObject({
+      kind: "topped_up",
+      prevPlanned: 6,
+      addedAfter: 14,
+      reasons: ["measured short", "two damaged"],
+    });
+  });
+
+  it("treats a line with no top-up stamp as untouched", () => {
+    expect(topUps(line("i1", "OSB"))).toEqual([]);
+    expect(toppedUpOverPlan(line("i1", "OSB"))).toBe(false);
+    // Older rows and anything that wrote the wrong shape must not throw.
+    expect(toppedUpOverPlan({ toppedUp: true })).toBe(false);
+    expect(toppedUpOverPlan(null)).toBe(false);
+  });
+
+  it("prefers 'corrected' over 'topped_up' on the same line", () => {
+    // Both are explained after-the-fact changes, but a correction means someone
+    // decided the recorded quantity was WRONG, which is the more actionable of
+    // the two.
+    const j = job("j1", "active", {
+      items: [
+        line("i1", "OSB", {
+          planned: 15,
+          pulled: 12,
+          toppedUp: [{ qty: 9, prevPulled: 6, newPulled: 15, prevPlanned: 6 }],
+          pullCorrection: { prevPulled: 15 },
+        }),
+      ],
+    });
+    expect(jobPullFlags(j)).toHaveLength(1);
+    expect(jobPullFlags(j)[0].kind).toBe("corrected");
   });
 
   it("prefers 'corrected' over the quantity verdict on the same line", () => {

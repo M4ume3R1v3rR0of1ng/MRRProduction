@@ -81,6 +81,26 @@ export const planAnomalies = (lines, qtyOf) =>
 // is purged at 30 days and this list is most of the reason the stamp exists.
 export const wasCorrected = (line) => Boolean(line?.pullCorrection);
 
+// Each time this line was topped up after its pull, oldest first — written by
+// add_and_pull_job_materials (supabase/57). An ARRAY, unlike the two stamps
+// beside it, because a roof can come up short twice and the earlier reason is
+// the half a cost reconciliation reads.
+export const topUps = (line) => (Array.isArray(line?.toppedUp) ? line.toppedUp : []);
+
+// Did topping this line up take it past what was APPROVED for it?
+//
+// Not every top-up did. A line planned for 20 and pulled at 6 can take 9 more
+// and still be inside its plan — nothing was revised, and listing it would be
+// listing a job for having used the material it was approved to use.
+//
+// The ones that went past it are the margin question ("we approved 6 and the
+// roof ate 15"), and they are only answerable from the stamp: supabase/57 raises
+// `planned` to the new total, deliberately — see its header — so by the time
+// anything reads the line, `planned` and `pulled` agree and lineAnomaly below
+// has nothing left to notice. `prevPlanned` is where the approved number went.
+export const toppedUpOverPlan = (line) =>
+  topUps(line).some((e) => num(e?.newPulled) > num(e?.prevPlanned));
+
 // Why one job's pulls deserve a look, or [] when they do not.
 //
 // "skipped" is deliberately NOT raised here, though the pre-commit dialog does
@@ -88,6 +108,10 @@ export const wasCorrected = (line) => Boolean(line?.pullCorrection);
 // pulled: 0 until Pull Added Materials runs (supabase/36), so listing skipped
 // lines would flag healthy jobs continuously — and this list is only worth
 // having if everything on it is worth opening.
+//
+// Three kinds come out of here, and the first two that match win: "corrected" (a
+// pull put right, 51), "topped_up" (more material sent out than was approved,
+// 57), then whatever lineAnomaly makes of the quantities themselves.
 export const jobPullFlags = (job) =>
   (job?.items || job?.materials || []).filter(Boolean).reduce((out, line) => {
     const pulled = num(line.pulled);
@@ -95,6 +119,23 @@ export const jobPullFlags = (job) =>
       out.push({
         ...rowOf(line, pulled, "corrected"),
         prevPulled: num(line.pullCorrection?.prevPulled),
+      });
+      return out;
+    }
+    // Listed for the same reason "corrected" is: it is explained, and it still
+    // changes what the job cost. Reported as its own kind rather than as "over"
+    // — the label for a mistake — because somebody asked for this material on
+    // purpose and said why, and `planned` has moved to match.
+    if (toppedUpOverPlan(line)) {
+      const entries = topUps(line);
+      out.push({
+        ...rowOf(line, pulled, "topped_up"),
+        // The quantity on the APPROVED plan, before any of this. First entry,
+        // not last: the second top-up's prevPlanned is already the first one's
+        // revision.
+        prevPlanned: num(entries[0]?.prevPlanned),
+        addedAfter: entries.reduce((s, e) => s + num(e?.qty), 0),
+        reasons: entries.map((e) => e?.reason).filter(Boolean),
       });
       return out;
     }

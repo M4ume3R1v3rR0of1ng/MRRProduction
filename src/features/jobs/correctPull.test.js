@@ -125,8 +125,8 @@ describe("correctionsFrom", () => {
     expect(correctionsFrom(lines, qtyMap({ i1: "4", i2: "6" }))).toEqual({ i1: 4 });
   });
 
-  // 0 is the whole point of the two-step route out of the Add Materials dead
-  // end, so it has to survive as a real value rather than read as "unset".
+  // 0 is how a pull that should never have happened is backed out entirely, so
+  // it has to survive as a real value rather than read as "unset".
   it("treats a corrected total of 0 as a correction, not a blank", () => {
     expect(correctionsFrom([line("i1")], qtyMap({ i1: "0" }))).toEqual({ i1: 0 });
   });
@@ -144,9 +144,10 @@ describe("correctionsFrom", () => {
 });
 
 describe("invalidRows", () => {
-  // The loop this whole dialog exists to close: 52 refuses pulled > 0 and names
-  // this screen, 51 refuses an increase and names 52. Saying it on the row is
-  // what stops someone bouncing between the two.
+  // This screen reduces a pull and nothing else, so a raise belongs next door.
+  // Saying so on the row is what stops someone bouncing between the two — which
+  // is exactly what happened while 52 refused a pulled line and named this
+  // screen, and this screen refused a raise and named that one (now supabase/57).
   it("flags an attempt to raise a pull and points back at Need More Materials", () => {
     const rows = invalidRows([line("i1", { pulled: 10 })], qtyMap({ i1: "11" }));
     expect(rows).toHaveLength(1);

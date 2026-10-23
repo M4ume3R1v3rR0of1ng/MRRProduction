@@ -5,11 +5,16 @@
 // The dialog that finally calls correct_job_pull (supabase/51), which shipped
 // installed and granted and with nothing in the app reaching it.
 //
-// What these cover is mostly the gap that left: 52 refuses a line at pulled > 0
-// and names this screen, 51 refuses an increase and names 52, so the two-step
-// route out — correct the line to 0 here, pull the new total through Need More
-// Materials — has to actually work, and a 0 has to survive as a real corrected
-// total rather than read as an empty box.
+// What these cover is mostly the gap that left, plus one thing that has since
+// changed. 52 refused a line at pulled > 0 and named this screen, 51 refuses an
+// increase and named 52, and the only way through that circle was to correct a
+// line to 0 here and re-pull the new total next door. supabase/57 opened it
+// properly — Need More Materials now adds to a pulled line — so that route is no
+// longer the answer to "we need more", and the row's message says so.
+//
+// Correcting a line to 0 still has to work, and a 0 still has to survive as a
+// real corrected total rather than read as an empty box: it is how a pull that
+// should never have happened is backed out.
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -116,7 +121,7 @@ describe("CorrectPullModal", () => {
     expect(updated.items.find((i) => i.iid === "i9").pulled).toBe(10);
   });
 
-  // The whole point of the two-step route out of the Add Materials dead end.
+  // How a pull that should never have happened is backed out entirely.
   it("treats 0 as a real correction, not an empty box", async () => {
     respond(
       { op: "rpc", fn: "correct_job_pull" },

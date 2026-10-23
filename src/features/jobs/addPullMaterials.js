@@ -5,7 +5,7 @@
 // can be tested without rendering anything — same split pullReview.js draws for
 // the same reason.
 //
-// Two different things land in one dialog here, and keeping them straight is
+// Three different things land in one dialog here, and keeping them straight is
 // most of what this module is for:
 //
 //   an ORPHAN line  already on the job, sitting at pulled = 0. Either it was
@@ -13,11 +13,16 @@
 //                   line and offers no way to pull it), or the crew entered 0
 //                   for it during the original pull. It has an approved
 //                   `planned` quantity already.
+//   a TOP-UP        already on the job and already pulled, and the roof needs
+//                   MORE of it: "I pulled 6 osb but now I need 9 more." The
+//                   quantity typed for one of these is what to ADD, not the new
+//                   total — see topUpLines below.
 //   a NEW line      not on the job at all. It has no plan, because nobody
 //                   planned it — the need appeared on the roof.
 //
-// They commit through the same RPC (supabase/52) and differ only in whether the
-// line has to be created, which is why one dialog covers both.
+// They commit through the same RPC (supabase/52, extended by 57) and differ only
+// in whether the line has to be created and whether it already has a pull to add
+// to, which is why one dialog covers all three.
 import { planAnomalies } from "./pullReview";
 
 // Material can be added to a job that has already been pulled, and only to one:
@@ -37,15 +42,32 @@ export const canAddPull = (job, perms = {}) =>
 
 const linesOf = (job) => (job?.items || job?.materials || []).filter(Boolean);
 
-// Lines the job already carries that nothing has gone out for. Anything with
-// pulled > 0 is out of scope here and belongs to correct_job_pull (supabase/51),
-// which is why supabase/52 refuses it rather than trusting this filter.
+// Lines the job already carries that nothing has gone out for.
 export const orphanLines = (job) => linesOf(job).filter((l) => (l.pulled || 0) === 0);
+
+// Lines something HAS gone out for, which is the case this dialog used to drop
+// on the floor.
+//
+// It was not an oversight so much as a circle. Until supabase/57 a line at
+// pulled > 0 was refused by the RPC behind this dialog and told to use Correct
+// Pulled Materials, which refuses an increase and tells you to come back here —
+// so the item a crew needed more of appeared in NEITHER screen, and the only
+// route through was to un-pull the line to 0 in one dialog and re-pull the new
+// total in the other. Nobody found it, it rewrote the first pull's history as a
+// correction that never happened, and for a pull with no recorded batch split it
+// was refused outright (correctPull.hasBatchHistory).
+//
+// 57 accumulates instead: a top-up is a SECOND pull against the same line, so
+// the quantity entered for one of these is what to ADD. Nothing is undone, the
+// original pull's date and batch split survive, and a line with no batch history
+// can still be topped up.
+export const topUpLines = (job) => linesOf(job).filter((l) => (l.pulled || 0) > 0);
 
 // Inventory still offerable as a NEW line: matches the search and is not already
 // on the job in any form. An item already on the job is reached through its own
-// line above — offering it twice would create a second line for the same item,
-// and `iid` is what every lookup in the pull path keys on.
+// line above — whether or not it has been pulled — because offering it twice
+// would create a second line for the same item, and `iid` is what every lookup
+// in the pull path keys on.
 export const addableForPull = (inv = [], job, query = "") => {
   const onJob = new Set(linesOf(job).map((l) => l.iid));
   const q = query.trim().toLowerCase();
@@ -68,5 +90,10 @@ export const addableForPull = (inv = [], job, query = "") => {
 // New lines never reach this. Their `planned` is set to the quantity being
 // pulled (see supabase/52 for why), so there is nothing for them to disagree
 // with.
+//
+// Neither do top-ups, for the same reason one step removed: supabase/57 raises a
+// topped-up line's `planned` to the new total, because somebody has deliberately
+// asked for more and been asked why. Warning that the result is over plan would
+// be warning them about the revision they just made on purpose.
 export const overPullRows = (lines, qtyOf) =>
   planAnomalies(lines, qtyOf).filter((r) => r.kind !== "skipped");

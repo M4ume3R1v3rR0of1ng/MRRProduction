@@ -9,9 +9,14 @@
 // them to zero the line and use Add Materials. Both messages were right and
 // neither was reachable, because 51 had no UI — it has been installed and
 // granted since phase 51 with nothing in the app calling it. This dialog is
-// that missing half, and the loop closes here: correcting a line to 0 is
-// exactly the state Need More Materials accepts, so the two-step route the RPC
-// prescribes can now be walked without touching the database.
+// that missing half.
+//
+// The two-step route those messages prescribe — zero the line here, pull the new
+// total there — then became walkable, and that turned out to be the wrong answer
+// anyway: nobody found it, it rewrote the first pull as a correction that never
+// happened, and a pull with no recorded batch split could not be zeroed at all.
+// supabase/57 removed the need for it, so this screen is now only what its name
+// says, and a raise is sent next door rather than staged here.
 //
 // WHAT IT DELIBERATELY DOES NOT DO
 //

@@ -887,8 +887,14 @@ export const translations = {
     pullAddMatBtn: "Need More Materials",
     pullAddMatTitle: "Add Materials To This Job",
     pullAddMatInfo:
-      "The job has already been pulled, so this adds to it: material already on the job that never went out, plus anything the plan did not account for. Stock comes off the shelf the same way as the original pull, and the job keeps a record that these lines were added after it started.",
+      "The job has already been pulled, so this adds to it: more of something that already went out, material on the job that never went out, and anything the plan did not account for. Stock comes off the shelf the same way as the original pull, and the job keeps a record of what was added after it started, by whom and why.",
     pullAddMatOnJob: "On this job, not yet pulled",
+    pullAddMatPulled: "Already pulled — need more?",
+    pullAddMatPulledInfo:
+      "Enter how much MORE to send out. It is added to what has already been pulled; nothing is un-pulled and the first pull's history is kept.",
+    pullAddMatAlreadyPulled: "Already Pulled",
+    pullAddMatAddMore: "Add More",
+    pullAddMatNewTotal: "New Total",
     pullAddMatNew: "Not on this job",
     pullAddMatNoneAdded: "Nothing added yet — search below to put a new item on this job.",
     pullAddMatAdd: "Add",
@@ -901,7 +907,7 @@ export const translations = {
     pullAddMatFail: "Could not add the materials:",
     pullAddMatNoChange: "Enter a quantity for at least one item first.",
     pullAddMatNothing:
-      "Every material on this job has already been pulled. Search above to add something new, or use Correct Pulled Materials to change a quantity that already went out.",
+      "There is no material on this job yet. Search above to put an item on it and pull it in one step.",
     pullAddMatGone:
       "These items are no longer in inventory, so nothing was pulled: {items}. Refresh the page and try again.",
     pullPulledOk: "Materials successfully pulled from warehouse staging.",
@@ -1002,6 +1008,8 @@ export const translations = {
     rptColJobStatus: "Status",
     rptPullReviewCorrected: "Pull corrected",
     rptPullReviewCorrectedFrom: "was {qty}",
+    rptPullReviewToppedUp: "More sent out",
+    rptPullReviewToppedUpFrom: "{added} added after the pull, approved for {qty}",
     rptInvTrendsTitle: "Structural Vendor Material Cost Trends",
     rptAllTrends: "All Trends",
     rptCostIncreasing: "Cost Increasing",
@@ -1158,7 +1166,7 @@ export const translations = {
       "Fix a quantity that went out wrong on this job. Lowering a line puts those units back on the shelf at the exact prices they were bought at, into the batches they actually came from — not at today's price, and not as a fresh adjustment in this month's count.",
     bjCorrectPullRaiseHintTitle: "Need MORE of something, not less?",
     bjCorrectPullRaiseHint:
-      "This screen can only reduce a pull. To add more of a line that has already gone out, correct it to 0 here, then use Need More Materials to pull the new total.",
+      "This screen can only reduce a pull. To send out MORE of a line, close this and use Need More Materials — it adds to what already went out, so nothing has to be corrected to 0 first.",
     bjCorrectPullNewTotal: "New Pulled Total",
     bjCorrectPullBackToStock: "Back To Stock",
     bjCorrectPullReason: "Why is this being corrected? (optional)",
@@ -1173,7 +1181,7 @@ export const translations = {
     bjCorrectPullNothing:
       "Nothing has been pulled on this job yet, so there is no pull to correct.",
     bjCorrectPullCannotRaise:
-      "Cannot go above what was pulled — correct it to 0 and use Need More Materials.",
+      "Cannot go above what was pulled — use Need More Materials to send out more.",
     bjCorrectPullBelowReturned:
       "Cannot go below the {n} already returned — correct the return first.",
     bjCorrectPullNegative: "Cannot be negative.",
@@ -2378,8 +2386,14 @@ export const translations = {
     pullAddMatBtn: "Se Necesita Más Material",
     pullAddMatTitle: "Agregar Material A Este Trabajo",
     pullAddMatInfo:
-      "El material de este trabajo ya fue retirado, así que esto se suma: material que ya está en el trabajo pero nunca salió, más lo que el plan no contemplaba. El stock sale del almacén igual que en el retiro original, y el trabajo guarda constancia de que estas líneas se agregaron después de empezar.",
+      "El material de este trabajo ya fue retirado, así que esto se suma: más de algo que ya salió, material que está en el trabajo pero nunca salió, y lo que el plan no contemplaba. El stock sale del almacén igual que en el retiro original, y el trabajo guarda constancia de lo que se agregó después de empezar, por quién y por qué.",
     pullAddMatOnJob: "En este trabajo, aún sin retirar",
+    pullAddMatPulled: "Ya retirado — ¿necesita más?",
+    pullAddMatPulledInfo:
+      "Ingrese CUÁNTO MÁS hay que sacar. Se suma a lo ya retirado; no se devuelve nada y se conserva el historial del primer retiro.",
+    pullAddMatAlreadyPulled: "Ya Retirado",
+    pullAddMatAddMore: "Agregar Más",
+    pullAddMatNewTotal: "Nuevo Total",
     pullAddMatNew: "No está en este trabajo",
     pullAddMatNoneAdded: "Nada agregado todavía — busque abajo para poner un artículo nuevo.",
     pullAddMatAdd: "Agregar",
@@ -2392,7 +2406,7 @@ export const translations = {
     pullAddMatFail: "No se pudo agregar el material:",
     pullAddMatNoChange: "Ingrese una cantidad para al menos un artículo.",
     pullAddMatNothing:
-      "Todo el material de este trabajo ya fue retirado. Busque arriba para agregar algo nuevo, o use Corregir Material Retirado para cambiar una cantidad que ya salió.",
+      "Este trabajo todavía no tiene material. Busque arriba para poner un artículo y retirarlo en un solo paso.",
     pullAddMatGone:
       "Estos artículos ya no están en el inventario, así que no se retiró nada: {items}. Actualice la página e intente de nuevo.",
     pullPulledOk: "Materiales retirados con éxito del almacén.",
@@ -2490,6 +2504,8 @@ export const translations = {
     rptColJobStatus: "Estado",
     rptPullReviewCorrected: "Retiro corregido",
     rptPullReviewCorrectedFrom: "era {qty}",
+    rptPullReviewToppedUp: "Se sacó más",
+    rptPullReviewToppedUpFrom: "{added} agregado después del retiro, aprobado para {qty}",
     rptInvTrendsTitle: "Tendencias de Costo de Materiales de Proveedores",
     rptAllTrends: "Todas las Tendencias",
     rptCostIncreasing: "Costo en Aumento",
@@ -2650,7 +2666,7 @@ export const translations = {
       "Corrija una cantidad que salió mal en este trabajo. Al reducir una línea, esas unidades vuelven al estante a los precios exactos a los que se compraron y a los lotes de los que realmente salieron — no al precio de hoy, ni como un ajuste nuevo en el conteo de este mes.",
     bjCorrectPullRaiseHintTitle: "¿Necesita MÁS de algo, no menos?",
     bjCorrectPullRaiseHint:
-      "Esta pantalla solo puede reducir un retiro. Para agregar más de una línea que ya salió, corríjala a 0 aquí y luego use Se Necesita Más Material para retirar el nuevo total.",
+      "Esta pantalla solo puede reducir un retiro. Para sacar MÁS de una línea, cierre esto y use Se Necesita Más Material — se suma a lo que ya salió, así que no hay que corregir nada a 0 primero.",
     bjCorrectPullNewTotal: "Nuevo Total Retirado",
     bjCorrectPullBackToStock: "Vuelve Al Inventario",
     bjCorrectPullReason: "¿Por qué se corrige esto? (opcional)",
@@ -2665,7 +2681,7 @@ export const translations = {
     bjCorrectPullNothing:
       "Todavía no se ha retirado nada en este trabajo, así que no hay retiro que corregir.",
     bjCorrectPullCannotRaise:
-      "No puede superar lo retirado — corríjalo a 0 y use Se Necesita Más Material.",
+      "No puede superar lo retirado — use Se Necesita Más Material para sacar más.",
     bjCorrectPullBelowReturned:
       "No puede ser menor que los {n} ya devueltos — corrija primero la devolución.",
     bjCorrectPullNegative: "No puede ser negativo.",

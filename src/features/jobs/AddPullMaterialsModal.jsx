@@ -8,11 +8,15 @@
 // here; they were just behind a screen the warehouse cannot open. See
 // supabase/52 for the full account of why.
 //
-// This dialog does both halves of the job in one write:
+// This dialog does all three halves of the job in one write:
 //
 //   * pulls stock for an ORPHAN line — one already on the job at pulled = 0,
 //     either added through the Pull screen's Edit Job (which can append a line
 //     and offers no way to pull it) or left at 0 during the original pull;
+//   * TOPS UP a line that has already been pulled and needs more — "I pulled 6
+//     osb but now I need 9 more", the case that had no route at all until
+//     supabase/57 (see topUpLines in ./addPullMaterials for the circle it was
+//     caught in);
 //   * ADDS a line that was never on the job and pulls it in the same breath.
 //
 // It lives on the Pull Inventory screen, on the job card and in the job detail
@@ -25,11 +29,16 @@
 // rather than this dialog's opening snapshot — so it deducts from what is in the
 // warehouse now, not what was there when the screen loaded.
 //
-// add_and_pull_job_materials (supabase/52) is the RPC. It writes the job and
-// every touched inventory row in one transaction, builds each new line from the
-// inventory row rather than from this payload, and refuses any line that already
-// shows pulled > 0 — changing one of those is correct_job_pull's job (51), not
-// this one.
+// add_and_pull_job_materials (supabase/52, extended by 57) is the RPC. It writes
+// the job and every touched inventory row in one transaction, builds each new
+// line from the inventory row rather than from this payload, and ADDS each
+// quantity to whatever the line already has. So every quantity sent is "pull
+// this much now", never "the new total should be this" — which is also what the
+// boxes below mean, and why the top-up boxes start empty rather than prefilled
+// with what is already out.
+//
+// Reducing a pull is still correct_job_pull's job (51) — this dialog only ever
+// sends material out.
 import { useMemo, useState } from "react";
 import { AlertTriangle, Plus, Search, Truck } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
@@ -54,7 +63,7 @@ import {
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { sendLowStockAlerts } from "@/features/inventory/lowStockAlerts";
-import { addableForPull, orphanLines, overPullRows } from "./addPullMaterials";
+import { addableForPull, orphanLines, overPullRows, topUpLines } from "./addPullMaterials";
 
 const num = (v) => {
   const n = parseFloat(String(v));
@@ -73,12 +82,18 @@ export default function AddPullMaterialsModal({
   // Against the job as handed in, which on this screen is the live row — the
   // Pull screen keeps `sel` in step with every commit it makes.
   const orphans = useMemo(() => orphanLines(job), [job]);
+  const topUps = useMemo(() => topUpLines(job), [job]);
 
   // Quantities for the lines already on the job. Prefilled with what was
   // planned, since the common case for an orphan line is pulling exactly it.
   const [orphanQtys, setOrphanQtys] = useState(() =>
     Object.fromEntries(orphans.map((l) => [l.iid, String(l.planned || l.qty || 0)])),
   );
+  // Extra quantities for lines that have already been pulled. Deliberately
+  // EMPTY, not prefilled: a number in this box means "send this much more", and
+  // every line on the job has one, so anything prefilled here would be material
+  // leaving the warehouse because a dialog was opened.
+  const [topUpQtys, setTopUpQtys] = useState({});
   // Items being added to the job by this dialog: { id, name, cat, unit, qty }.
   const [added, setAdded] = useState([]);
   const [search, setSearch] = useState("");
@@ -114,11 +129,29 @@ export default function AddPullMaterialsModal({
     if (!saving) onClose?.();
   };
 
-  // Everything this dialog is being asked to pull, in one list, with the only
-  // distinction the commit cares about: whether the line has to be created.
+  // Everything this dialog is being asked to pull, in one list. `qty` is always
+  // "pull this much now" — for a top-up that is the amount to ADD, which is what
+  // the RPC does with it too. The two flags are the only distinctions the commit
+  // cares about: whether the line has to be created, and whether it already has
+  // a pull the plan check should leave alone.
   const requests = () => [
     ...orphans
-      .map((line) => ({ line, iid: line.iid, qty: num(orphanQtys[line.iid]), isNew: false }))
+      .map((line) => ({
+        line,
+        iid: line.iid,
+        qty: num(orphanQtys[line.iid]),
+        isNew: false,
+        isTopUp: false,
+      }))
+      .filter((r) => r.qty > 0),
+    ...topUps
+      .map((line) => ({
+        line,
+        iid: line.iid,
+        qty: num(topUpQtys[line.iid]),
+        isNew: false,
+        isTopUp: true,
+      }))
       .filter((r) => r.qty > 0),
     ...added
       .map((a) => ({
@@ -126,6 +159,7 @@ export default function AddPullMaterialsModal({
         iid: a.id,
         qty: num(a.qty),
         isNew: true,
+        isTopUp: false,
       }))
       .filter((r) => r.qty > 0),
   ];
@@ -139,11 +173,12 @@ export default function AddPullMaterialsModal({
 
     // Does what was typed disagree with what was approved? Checked first, on the
     // orphan lines only — a line being added now has no plan to disagree with
-    // (supabase/52 sets its `planned` to the quantity pulled). Reads only what
-    // is on screen, so a typo is caught before the warehouse is even read.
+    // (supabase/52 sets its `planned` to the quantity pulled), and a top-up
+    // revises the plan on purpose (57 raises it, see overPullRows). Reads only
+    // what is on screen, so a typo is caught before the warehouse is even read.
     if (!planAcked) {
       const rows = overPullRows(
-        reqs.filter((r) => !r.isNew).map((r) => r.line),
+        reqs.filter((r) => !r.isNew && !r.isTopUp).map((r) => r.line),
         (line) => num(orphanQtys[line.iid]),
       );
       if (rows.length > 0) {
@@ -212,7 +247,10 @@ export default function AddPullMaterialsModal({
           consumed: res.consumed,
           // Only read for a line being created. An orphan line keeps the
           // `planned` it was approved with, so pulling past it still reports as
-          // over-plan — see supabase/52.
+          // over-plan (supabase/52); a topped-up line has its `planned` raised
+          // to the new total by the RPC rather than by anything sent from here
+          // (supabase/57), so the client never gets to decide what a job is
+          // approved for.
           ...(r.isNew ? { planned: r.qty } : {}),
         };
       }
@@ -251,11 +289,51 @@ export default function AddPullMaterialsModal({
         at: new Date().toISOString(),
       };
       const pulledByIid = new Map((data?.pulls || []).map((p) => [p.iid, p]));
-      const existing = (job.items || job.materials || []).map((i) =>
-        i && pulledByIid.has(i.iid) && lines[i.iid]
-          ? { ...i, ...lines[i.iid], addedAfterPull: stamp }
-          : i,
-      );
+      // Taken from the reply, NOT from `lines`. What was sent is a delta — "pull
+      // 9 more" — so spreading it over the line would show 9 pulled where 15
+      // went out, and would do it only until the next read, which is the kind of
+      // wrong number somebody acts on. Every quantity below is the server's.
+      const existing = (job.items || job.materials || []).map((i) => {
+        const p = i && pulledByIid.get(i.iid);
+        if (!p) return i;
+        const topUp = Boolean(p.topUp);
+        // Falls back to what was sent for the window where this app is deployed
+        // and supabase/57 has not been applied yet: 52's reply carries only
+        // { iid, pulled }, so reading `planned` off it would blank the line's
+        // approved quantity on screen. `prevPulled` is the field that tells the
+        // two replies apart, and under 52 a top-up cannot reach here at all —
+        // the RPC refuses it — so the fallback only ever covers the orphan path,
+        // where what was sent IS the new total.
+        const sent = lines[i.iid] || {};
+        const authoritative = p.prevPulled !== undefined;
+        return {
+          ...i,
+          pulled: authoritative ? p.pulled : sent.pulled,
+          planned: p.planned ?? i.planned,
+          pulledAt: p.pulledAt ?? sent.pulledAt,
+          priceAtPull: p.priceAtPull ?? sent.priceAtPull,
+          pullCost: p.pullCost ?? sent.pullCost,
+          consumed: p.consumed ?? sent.consumed,
+          // A top-up leaves `addedAfterPull` as it was — the line joined the job
+          // whenever it joined it — and records itself in `toppedUp` instead, in
+          // the array shape 57 writes so a second one appends rather than
+          // erasing the first.
+          ...(topUp
+            ? {
+                toppedUp: [
+                  ...(Array.isArray(i.toppedUp) ? i.toppedUp : []),
+                  {
+                    ...stamp,
+                    qty: p.qty,
+                    prevPulled: p.prevPulled,
+                    newPulled: p.pulled,
+                    prevPlanned: p.prevPlanned,
+                  },
+                ],
+              }
+            : { addedAfterPull: stamp }),
+        };
+      });
       const fresh = (data?.added || []).map((a) => ({
         ...a,
         returned: 0,
@@ -269,11 +347,12 @@ export default function AddPullMaterialsModal({
       const updatedJob = { ...job, items: updatedItems, materials: updatedItems };
 
       const addedCount = (data?.added || []).length;
+      const topUpCount = reqs.filter((r) => r.isTopUp).length;
       await logAction(
         activeUser.id,
         activeUser.email,
         "INVENTORY_PULL",
-        `Added and pulled ${reqs.length} material line${reqs.length === 1 ? "" : "s"} for PO ${job.po || "n/a"} (${job.title || job.name || "Untitled job"}) after the job was already pulled${addedCount > 0 ? `, ${addedCount} of them new to the job` : ""}.${
+        `Added and pulled ${reqs.length} material line${reqs.length === 1 ? "" : "s"} for PO ${job.po || "n/a"} (${job.title || job.name || "Untitled job"}) after the job was already pulled${addedCount > 0 ? `, ${addedCount} of them new to the job` : ""}${topUpCount > 0 ? `, ${topUpCount} added on top of a line that had already been pulled` : ""}.${
           shortRows.length
             ? ` Went short on ${shortRows.map((r) => `${r.name} (${r.short} ${r.unit})`.trim()).join(", ")}. Stock is now negative, check the count.`
             : ""
@@ -287,6 +366,10 @@ export default function AddPullMaterialsModal({
             qty: r.qty,
             unit: r.line.unit || "",
             new_to_job: r.isNew,
+            // What "qty" means for this row: added to a line that already had a
+            // pull, rather than being the whole of it.
+            top_up: r.isTopUp,
+            ...(r.isTopUp ? { previously_pulled: r.line.pulled || 0 } : {}),
           })),
           short: shortRows.map((r) => ({ item: r.name, qty: r.short, unit: r.unit })),
         },
@@ -334,7 +417,7 @@ export default function AddPullMaterialsModal({
     }
   };
 
-  const nothingToDo = orphans.length === 0 && added.length === 0;
+  const nothingToDo = orphans.length === 0 && topUps.length === 0 && added.length === 0;
 
   // ── The two held confirmations ──────────────────────────────────────────────
   // Rendered instead of the dialog rather than on top of it: both are a question
@@ -602,6 +685,94 @@ export default function AddPullMaterialsModal({
                           style={{ width: 80, padding: "4px 8px" }}
                         />
                       </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          </div>
+        </>
+      )}
+
+      {/* ── Lines already pulled, which the roof needs more of ───────────────
+          The reported case, and until supabase/57 the one this dialog had no
+          row for at all. The box is the amount to ADD, left empty so opening
+          the dialog cannot send anything out, and the row shows what is already
+          pulled beside it so "9 more" never has to be worked out as "15 total"
+          in someone's head — which is the arithmetic the old two-step
+          workaround made them do, standing on a roof. */}
+      {topUps.length > 0 && (
+        <>
+          <Text
+            as="h4"
+            size="sm"
+            weight="extrabold"
+            color={C.navy}
+            style={{ margin: "18px 0 8px", textTransform: "uppercase" }}
+          >
+            {t.pullAddMatPulled}
+          </Text>
+          <Muted as="p" size="sm" style={{ margin: "0 0 8px", lineHeight: 1.45 }}>
+            {t.pullAddMatPulledInfo}
+          </Muted>
+          <div className="sw-table-scroll">
+            <Table pad="md">
+              <thead>
+                <tr>
+                  {[
+                    t.colItem,
+                    t.pullAddMatAlreadyPulled,
+                    t.colAvailable,
+                    t.pullAddMatAddMore,
+                    t.pullAddMatNewTotal,
+                  ].map((h) => (
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {topUps.map((line) => {
+                  const avail = availOf(line.iid);
+                  const extra = num(topUpQtys[line.iid]);
+                  const short = extra > avail;
+                  return (
+                    <tr key={line.iid} style={{ background: short ? C.rB : "transparent" }}>
+                      <Text as="td" weight="bold" color={C.navy}>
+                        {line.iname || line.name}
+                      </Text>
+                      <td>
+                        {line.pulled || 0} {line.unit || ""}
+                      </td>
+                      <Text as="td" weight="bold" color={short ? C.rd : C.gr}>
+                        {avail} {line.unit || ""}
+                        {short && (
+                          <AlertTriangle
+                            size={11}
+                            style={{ marginLeft: 4, verticalAlign: -1 }}
+                            aria-hidden="true"
+                          />
+                        )}
+                      </Text>
+                      <td>
+                        <Inp
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          aria-label={`${t.pullAddMatAddMore} — ${line.iname || line.name}`}
+                          value={topUpQtys[line.iid] ?? ""}
+                          onChange={(e) =>
+                            setTopUpQtys((p) => ({ ...p, [line.iid]: e.target.value }))
+                          }
+                          disabled={saving}
+                          style={{ width: 80, padding: "4px 8px" }}
+                        />
+                      </td>
+                      {/* Shown only once something is typed: a "new total" that
+                          equals what is already pulled reads as a quantity this
+                          dialog is about to send out again. */}
+                      <Text as="td" weight={extra > 0 ? "bold" : "normal"} color={C.sub}>
+                        {extra > 0 ? `${(line.pulled || 0) + extra} ${line.unit || ""}` : "—"}
+                      </Text>
                     </tr>
                   );
                 })}

@@ -111,6 +111,12 @@ export const invalidRows = (lines, qtyOf) =>
       // 51 can only reduce a pull. Raising one is a fresh FIFO deduction, which
       // is Need More Materials' job — the error message says so, and so does
       // this dialog rather than letting someone find out on save.
+      //
+      // That pointer used to be a circle: Need More Materials refused an
+      // already-pulled line right back, and the only way through was to correct
+      // the line to 0 here first. supabase/57 made it a straight answer — that
+      // dialog now adds to a pulled line directly — so the row's message no
+      // longer tells anyone to zero anything out.
       if (next > pulled) return { iid: line.iid, line, kind: "increase", pulled };
       if (next < floor) return { iid: line.iid, line, kind: "belowReturned", floor };
       return null;

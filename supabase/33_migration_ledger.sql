@@ -399,6 +399,20 @@ begin
   perform public._mig_record('54_billing_email.sql',
     public._mig_has_column('companies', 'billing_email'),
     'companies.billing_email');
+
+  -- Probed by reading the function's SOURCE, not by its existence: 57 replaces
+  -- 52's function in place, so _mig_has_function would read 'verified' on a
+  -- database carrying only 52 — the same trap as 11/13, 38 and 50, and solved
+  -- the same way. `toppedUp` is the stamp only 57's accumulate branch writes.
+  perform public._mig_record('57_top_up_pulled_job_line.sql',
+    coalesce((
+      select pg_get_functiondef(p.oid) like '%toppedUp%'
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'add_and_pull_job_materials'
+      limit 1
+    ), false),
+    'add_and_pull_job_materials accumulates onto an already-pulled line');
 end $$;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists
