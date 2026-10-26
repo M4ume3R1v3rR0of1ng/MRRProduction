@@ -42,6 +42,7 @@ import TeamChatBox from "./TeamChatBox";
 import WeatherCard from "./WeatherCard";
 import ScheduleCard from "./ScheduleCard";
 import AnvilCard from "./AnvilCard";
+import TranslatableText from "@/shared/components/TranslatableText";
 import { supabase } from "@/shared/utils/supabase";
 import { translations } from "@/shared/utils/translations";
 
@@ -1271,14 +1272,27 @@ export default function DashboardView({
 
             <Callout bordered pad={5} size="sm" style={{ textAlign: "left", marginBottom: 16 }}>
               <strong>
-                <FileText size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Reported
-                Issue:
+                <FileText size={13} style={{ verticalAlign: -2 }} aria-hidden="true" />{" "}
+                {t.dashReportedIssue}
               </strong>{" "}
-              {maintAlert.notes || "No description provided"}
+              {/* This is the first place a manager reads a new request, and the
+                  sentence in it was typed by whoever filed it — so it is the
+                  one that most needs to be readable in the viewer's language. */}
+              {maintAlert.notes ? (
+                <TranslatableText
+                  text={maintAlert.notes}
+                  lang={lang}
+                  as="span"
+                  toggleStyle={{ marginTop: 4 }}
+                />
+              ) : (
+                t.dashNoDescription
+              )}
               <>
                 <Divider dashed />
                 <strong>
-                  <User size={13} style={{ verticalAlign: -2 }} aria-hidden="true" /> Submitted By:
+                  <User size={13} style={{ verticalAlign: -2 }} aria-hidden="true" />{" "}
+                  {t.maintSubmittedBy}
                 </strong>{" "}
                 {maintAlert.uname || "Unknown"}
               </>

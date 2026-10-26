@@ -45,6 +45,7 @@ import { useNotify } from "@/shared/context/NotificationContext";
 import { logAction } from "@/shared/utils/logger";
 import MaintenanceCalendar from "./MaintenanceCalendar";
 import SearchBar, { matchesQuery } from "@/shared/components/SearchBar";
+import TranslatableText from "@/shared/components/TranslatableText";
 import CompleteServiceModal from "./CompleteServiceModal";
 import LendSpareModal from "@/features/fleet/LendSpareModal";
 import { generateMaintenancePdf } from "./maintenancePdf";
@@ -670,14 +671,19 @@ export default function MaintenanceRequestsView({
                         >
                           {r.vname}
                         </Text>
-                        <Text
+                        {/* Whoever filed this typed it in their own language.
+                            The badges and labels above already read in the
+                            viewer's, so without this the card is Spanish
+                            chrome around an English sentence, or the reverse. */}
+                        <TranslatableText
+                          text={r.notes}
+                          lang={lang}
                           as="p"
                           size="base"
                           color={C.barnwood}
-                          style={{ margin: "0 0 6px 0", lineHeight: 1.4 }}
-                        >
-                          {r.notes}
-                        </Text>
+                          style={{ margin: "0 0 4px 0", lineHeight: 1.4 }}
+                          toggleStyle={{ marginBottom: 6 }}
+                        />
                         <Muted>
                           {t.maintBy} {r.uname} •{" "}
                           {r.at ? new Date(r.at).toLocaleDateString() : "Recent"}
@@ -886,8 +892,14 @@ export default function MaintenanceRequestsView({
             </div>
             <div>
               <strong>{t.maintNotesLabel}</strong>
-              <Callout pad={5} style={{ marginTop: 4, fontStyle: "italic" }}>
-                "{sel.notes}"
+              <Callout pad={5} style={{ marginTop: 4 }}>
+                <TranslatableText
+                  text={sel.notes}
+                  lang={lang}
+                  quote
+                  style={{ fontStyle: "italic" }}
+                  toggleStyle={{ marginTop: 6 }}
+                />
               </Callout>
               {(() => {
                 const lastCompleted = reqs
@@ -907,9 +919,23 @@ export default function MaintenanceRequestsView({
                     >
                       <History size={12} aria-hidden="true" /> {t.maintLastCompleted} — {sel.vname}
                     </Row>
-                    <Text size="sm" color={C.pasture} style={{ marginTop: 4 }}>
-                      {lastCompleted.wh_notes || t.maintNoResolutionNotes}
-                    </Text>
+                    {/* The shop's own words from last time, so the same
+                        split applies: typed text needs the toggle, the
+                        "nothing recorded" line is a shipped string. */}
+                    {lastCompleted.wh_notes ? (
+                      <TranslatableText
+                        text={lastCompleted.wh_notes}
+                        lang={lang}
+                        size="sm"
+                        color={C.pasture}
+                        style={{ marginTop: 4 }}
+                        toggleStyle={{ marginTop: 4 }}
+                      />
+                    ) : (
+                      <Text size="sm" color={C.pasture} style={{ marginTop: 4 }}>
+                        {t.maintNoResolutionNotes}
+                      </Text>
+                    )}
                     {lastCompleted.completed_at && (
                       <Muted size="2xs" style={{ marginTop: 4 }}>
                         {t.completed} {new Date(lastCompleted.completed_at).toLocaleDateString()}
@@ -981,9 +1007,13 @@ export default function MaintenanceRequestsView({
                   {t.maintCompleteServiceLogs}
                 </Text>
                 {sel.wh_notes && (
-                  <Text style={{ marginBottom: 10 }}>
-                    <strong>{t.maintScheduleInfo}</strong> {sel.wh_notes}
-                  </Text>
+                  <TranslatableText
+                    text={sel.wh_notes}
+                    lang={lang}
+                    label={t.maintScheduleInfo}
+                    style={{ marginBottom: 4 }}
+                    toggleStyle={{ marginBottom: 10 }}
+                  />
                 )}
                 {/* The loan, from the tab where the service was booked. The picker is
                 offered the moment a ticket is scheduled (see updateStatus), but a
@@ -1055,9 +1085,13 @@ export default function MaintenanceRequestsView({
                   </Btn>
                 </Row>
                 {sel.wh_notes && (
-                  <Text style={{ marginTop: 4 }}>
-                    <strong>{t.maintResolutionNotesLabel}</strong> {sel.wh_notes}
-                  </Text>
+                  <TranslatableText
+                    text={sel.wh_notes}
+                    lang={lang}
+                    label={t.maintResolutionNotesLabel}
+                    style={{ marginTop: 4 }}
+                    toggleStyle={{ marginTop: 4 }}
+                  />
                 )}
                 {sel.completed_at && (
                   <Muted style={{ marginTop: 4 }}>

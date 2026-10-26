@@ -21,6 +21,8 @@ export const translations = {
     dashPoTracker: "PO Tracker Number:",
     dashUntitledContract: "Untitled Production Contract",
     dashNewMaintReq: "New Maintenance Request",
+    dashReportedIssue: "Reported Issue:",
+    dashNoDescription: "No description provided",
     dashMaintUpdate: "Maintenance Update",
     dashGotItMaint: "Got It, Open Maintenance Requests →",
     dashGotItMyReq: "Got It, View My Requests →",
@@ -704,6 +706,17 @@ export const translations = {
     maintDeleteRequest: "Delete Request",
     maintIssueClassLabel: "Issue Classification:",
     maintNotesLabel: "Reported Notes / Description:",
+
+    // The toggle on text a person typed, which no shipped dictionary can hold.
+    // See src/shared/components/TranslatableText.jsx.
+    trTranslate: "Translate",
+    trShowOriginal: "Show original",
+    trTranslating: "Translating...",
+    trFailed: "Could not translate that right now.",
+    trRetry: "Try again",
+    trAlreadyInLang: "Already in English.",
+    trMachineNote: "Machine translation — the original is the record.",
+
     maintLastCompleted: "Last Completed Service",
     maintNoResolutionNotes: "No resolution notes were recorded.",
     maintPhotoAttached: "Visual Evidence Attached:",
@@ -1529,6 +1542,8 @@ export const translations = {
     dashPoTracker: "Número de Seguimiento de PO:",
     dashUntitledContract: "Contrato de Producción Sin Título",
     dashNewMaintReq: "Nueva Solicitud de Mantenimiento",
+    dashReportedIssue: "Problema Reportado:",
+    dashNoDescription: "No se proporcionó descripción",
     dashMaintUpdate: "Actualización de Mantenimiento",
     dashGotItMaint: "Entendido, Abrir Solicitudes de Mantenimiento →",
     dashGotItMyReq: "Entendido, Ver Mis Solicitudes →",
@@ -2218,6 +2233,17 @@ export const translations = {
     maintDeleteRequest: "Eliminar Solicitud",
     maintIssueClassLabel: "Clasificación del Problema:",
     maintNotesLabel: "Notas Reportadas / Descripción:",
+
+    // El interruptor para el texto que una persona escribió, que ningún
+    // diccionario fijo puede contener.
+    trTranslate: "Traducir",
+    trShowOriginal: "Ver el original",
+    trTranslating: "Traduciendo...",
+    trFailed: "No se pudo traducir en este momento.",
+    trRetry: "Intentar de nuevo",
+    trAlreadyInLang: "Ya está en español.",
+    trMachineNote: "Traducción automática — el original es el registro.",
+
     maintLastCompleted: "Último Servicio Completado",
     maintNoResolutionNotes: "No se registraron notas de resolución.",
     maintPhotoAttached: "Evidencia Visual Adjunta:",
