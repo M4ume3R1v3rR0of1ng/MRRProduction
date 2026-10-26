@@ -113,6 +113,7 @@ in SQL, change it there too.
 | 56  | `56_training_media_admin_edit_all.sql`        | Any company's Admin may now edit or remove a GLOBAL clip too, which lands for every tenant. Adding one stays Owner-only, and `training_media_global_guard()` holds the two tiers apart.                                                                                                                             |
 | 57  | `57_top_up_pulled_job_line.sql`               | Replaces 52's function so a line that has ALREADY been pulled can take more ("pulled 6 OSB, need 9 more"): a second FIFO draw appended to the same line, with `planned` revised and a `toppedUp` stamp. Closes the loop where 52 and 51 each refused it and named the other.                                        |
 | 58  | `58_acculynx_server_retry.sql`                | The AccuLynx sync stops being a person's job: `acculynx_sync_candidates()` plus an attempt counter let an hourly function (`netlify/functions/acculynx-retry-sync.js`) finish the paperwork no browser finished. A changed PO resets the counter. Also grants `jobs_close` to `warehouse` in `default_job_perms()`. |
+| 59  | `59_last_admin_guard.sql`                     | **Optional.** Refuses to delete, deactivate or demote a company's last active admin while other members remain. Exempts company deletion, service_role and an explicit per-transaction opt-out.                                                                                                                     |
 
 ## Adding a migration
 
@@ -132,6 +133,16 @@ so the code can be right while the database disagrees, silently.
 
 Run [`platform_ownership_check.sql`](platform_ownership_check.sql). It is
 read-only, and `problems` is empty when ownership is set up correctly.
+
+If nobody holds platform admin any more — the account that did was deleted, say —
+run [`bootstrap_platform_admin.sql`](bootstrap_platform_admin.sql). Also
+unnumbered. It puts all three of the things that have to be true back in place:
+`is_platform_admin`, an active `admin` membership in the platform tenant, and an
+`active_company_id` pointing there. It cannot be done with
+`admin_add_company_admin()`, which checks `is_platform_admin()` and so needs a
+platform admin to already exist; and the flag alone is not enough, because an
+account with no active membership is signed straight back out at the login form
+(`src/features/auth/LoginScreen.jsx`) however many privileges it holds.
 
 ## Verification scripts
 
