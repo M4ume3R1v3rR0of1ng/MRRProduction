@@ -420,6 +420,19 @@ begin
       limit 1
     ), false),
     'add_and_pull_job_materials accumulates onto an already-pulled line');
+
+  -- 58 adds a function AND rewrites 12's default_job_perms in place, so two probes.
+  -- The candidates function is new and can be probed by existence; the permission
+  -- change cannot — default_job_perms exists either way, and reading it wrong means
+  -- believing a warehouse lead can close a job when the database still refuses.
+  perform public._mig_record('58_acculynx_server_retry.sql',
+    public._mig_has_function('acculynx_sync_candidates')
+      and public._mig_has_column('jobs', 'sync_attempts'),
+    'function acculynx_sync_candidates + jobs.sync_attempts');
+
+  perform public._mig_record('58_acculynx_server_retry.sql (warehouse close)',
+    coalesce((public.default_job_perms('warehouse') ->> 'jobs_close')::boolean, false),
+    'default_job_perms(warehouse).jobs_close is true');
 end $$;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists

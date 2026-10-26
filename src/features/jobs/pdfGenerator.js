@@ -1,6 +1,12 @@
 // src/features/jobs/pdfGenerator.js
 
-import { newestPrice } from "@/shared/utils/helpers";
+// Relative, and with the extension, on purpose: this module is imported by
+// netlify/functions/acculynx-retry-sync.js, so the cron costs a job with the SAME
+// arithmetic the browser does rather than a second copy of it. "@/" is a Vite alias
+// that resolves nowhere under Node, and an extensionless specifier resolves nowhere
+// under Node ESM — either one leaves this file importable only from the bundle.
+// Vite resolves both spellings, so nothing about the web build changes.
+import { newestPrice } from "../../shared/utils/helpers.js";
 
 // Job/item fields below (name, PO, address, notes, item names) are free text set by
 // warehouse/coordinator/manager users, then rendered via document.write() into a

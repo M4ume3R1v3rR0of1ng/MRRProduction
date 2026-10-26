@@ -1,6 +1,6 @@
 // src/features/jobs/accuLynxSync.js
 import { getAccessToken, updateRowStrict } from "@/shared/utils/supabase";
-import { buildJobReportModel } from "./pdfGenerator";
+import { buildCostPayload, money } from "./accuLynxPayload";
 
 // ── Reading sync state off a job ─────────────────────────────────────────────
 // "syncStatus"/"syncedAt"/"syncNote" are real columns on public.jobs and always
@@ -203,42 +203,19 @@ function applyJobState(setJobs, jobId, fields) {
   setJobs((p) => p.map((j) => (j.id === jobId ? { ...j, ...fields } : j)));
 }
 
-const money = (n) => "$" + Number(n).toFixed(2);
-
 // ── Post the material cost as an Additional Job Expense ──────────────────────
 //
-// The amount is m.totalWithTax — the TAX-INCLUSIVE figure, and the exact number
-// printed as "TOTAL MATERIAL COST" on the PDF. This used to post the pre-tax
-// subtotal, so the expense in AccuLynx and the report attached to the same job
-// disagreed by the tax on every job.
-//
-// Both numbers now come from one call to buildJobReportModel, which is also what
-// the PDF renders from. They cannot drift, because there is only one calculation.
+// The payload itself is built by accuLynxPayload.js, because the hourly retry
+// posts the SAME expense and the de-duplication guard matches on the amount to the
+// penny: a retry that computes the figure even slightly differently does not look
+// like a retry to AccuLynx, it looks like a second cost. This function owns the
+// transport and the error wording; it does not own the arithmetic.
 async function postJobCostToAccuLynx({ job, users, inv, company, config }) {
-  const m = buildJobReportModel(job, users, inv, company);
-  const amount = parseFloat(m.totalWithTax.toFixed(2));
+  const { amount, lineItems, paymentDescription } = buildCostPayload(job, users, inv, company);
 
   if (!(amount > 0)) {
     return { ok: false, skipped: true, error: "No material cost to post." };
   }
-
-  const lineItems = m.categories
-    .flatMap((c) => c.items)
-    .filter((i) => i.used > 0)
-    .map((i) => ({
-      name: i.iname || "Unknown Material",
-      category: i.icat || "Materials",
-      unit: i.unit || "units",
-      quantity: i.used,
-      unitPrice: i.unitPrice,
-      totalCost: parseFloat(i.total.toFixed(2)),
-    }));
-
-  // Second line spells out the tax so the number is auditable from AccuLynx alone,
-  // without opening the PDF to find out why the expense is not the sum of the items.
-  const paymentDescription =
-    `Material Cost - ${job?.name || job?.title || "Job"}\n` +
-    `${money(m.grandTotal)} + ${m.taxLabel} ${m.taxPct}% ${money(m.salesTax)} = ${money(amount)}`;
 
   try {
     const accessToken = await getAccessToken();
@@ -359,6 +336,65 @@ export async function uploadJobReportToAccuLynx({ job, users, activeLogo, inv, c
       ok: false,
       error: err.name === "AbortError" ? "AccuLynx upload timed out" : err.message,
     };
+  }
+}
+
+// ── Pre-flight: will this PO actually resolve in AccuLynx? ───────────────────
+//
+// Both writes resolve an unlinked job by an EXACT jobNumber match and refuse to
+// guess, so a PO that was typed with a prefix, a typo, or a job number this company
+// only uses internally can never sync — not on the first attempt, not on the cron's
+// eighth. Nothing used to find that out until the sync failed, by which time the
+// crew had gone home and the job was off their screen.
+//
+// This asks the question while someone is still standing there. It calls the same
+// resolver the writes call — `action: "resolveJobRef"`, which runs
+// resolveAccuLynxJobId server-side — rather than a lookalike check, because a check
+// that is merely similar blesses a PO the sync then refuses.
+//
+// Returns { known, matched, reason, nearby }. `known: false` means the CHECK failed
+// (AccuLynx unreachable, session expired), which is not evidence about the PO:
+// every caller treats it as "carry on". Refusing to let a crew finish a job because
+// a validation call timed out would be a worse bug than the one this prevents.
+export async function checkAccuLynxJobRef({ job, config }) {
+  if (!config?.enabled || !config?.proxyUrl) return { known: false, matched: null };
+  // A wizard-linked job carries the id, and the id is never looked up — there is
+  // nothing to validate and no call worth making.
+  if (job?.acculynx_job_id) return { known: true, matched: true, nearby: [] };
+
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) return { known: false, matched: null };
+
+    const res = await fetchWithTimeout(
+      config.proxyUrl,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey || ""}`,
+        },
+        body: JSON.stringify({
+          action: "resolveJobRef",
+          poNumber: job?.po || null,
+          acculynxJobId: job?.acculynx_job_id || null,
+          accessToken,
+        }),
+      },
+      12000,
+    );
+
+    const data = await readProxyJson(res, config.proxyUrl, { requireOk: true });
+    return {
+      known: true,
+      matched: !!data.matched,
+      reason: data.reason || null,
+      nearby: Array.isArray(data.nearby) ? data.nearby : [],
+    };
+  } catch {
+    // Deliberately swallowed. See the note above: an unanswered question is not a
+    // "no", and this must never be the thing that stops a finished job.
+    return { known: false, matched: null };
   }
 }
 

@@ -946,6 +946,15 @@ export const translations = {
       "The completion report IS filed on the AccuLynx job — only the material cost was refused. The paperwork is there; the expense is not. Nothing has been completed yet.",
     pullCompleteAnyway: "Complete anyway",
     pullDontComplete: "Leave it open",
+    pullPoUnmatchedTitle: "This PO is not in AccuLynx",
+    pullPoUnmatchedAsk:
+      "The report and the material cost are matched to the AccuLynx job by this PO, and no AccuLynx job has it. Completing now means the paperwork cannot be sent — not by the hourly retry either — until the PO is corrected in Build Jobs. Nothing has been completed yet.",
+    pullPoUnmatchedNearby: "AccuLynx does have: {list}",
+    pullCollisionTitle: "Another job already posted this exact amount",
+    pullCollisionAsk:
+      "This PO carries more than one job, and {job} already sent a material cost of {amount} — the same figure to the penny. AccuLynx treats a second expense with the same amount and PO as a duplicate and refuses it silently, so this job's cost would read as sent without ever landing. Nothing has been completed yet.",
+    pullCollisionDetail:
+      "Ask the office to split the PO or post this cost by hand. Completing anyway finishes the job and returns the stock; only the expense is at risk.",
     pullJustBuilt: "Just built",
     pullJustPulled: "Just pulled",
     pullJustCompleted: "Just completed",
@@ -1163,6 +1172,12 @@ export const translations = {
       "The completion report IS filed on the AccuLynx job — only the material cost was refused. Closing now takes the job off this list, and nothing will remind you to add the expense by hand.",
     bjCloseAnyway: "Close without the report",
     bjDontClose: "Keep it open",
+    bjPoUnmatchedTitle: "No AccuLynx job has this PO",
+    bjPoUnmatchedAsk:
+      "Nothing in AccuLynx has this job number, so when this job is completed its report and material cost will have nowhere to go. Use Find Job above to link it instead of typing the PO, or correct the number.",
+    bjPoUnmatchedNearby: "AccuLynx does have: {list}",
+    bjPoSaveAnyway: "Save it anyway",
+    bjPoFixIt: "Let me fix the PO",
     bjCorrectReturn: "Correct Return",
     bjCorrectReturnTitle: "Correct Returned Materials",
     bjCorrectReturnInfo:
@@ -2458,6 +2473,15 @@ export const translations = {
       "AccuLynx no aceptó el reporte, así que no se archivó nada para este trabajo. Todavía no se ha completado nada.",
     pullCompleteAnyway: "Completar de todos modos",
     pullDontComplete: "Dejarlo abierto",
+    pullPoUnmatchedTitle: "Este PO no está en AccuLynx",
+    pullPoUnmatchedAsk:
+      "El reporte y el costo de materiales se vinculan al trabajo de AccuLynx por este PO, y ningún trabajo de AccuLynx lo tiene. Si completa ahora, el papeleo no se podrá enviar — tampoco por el reintento cada hora — hasta que se corrija el PO en Crear Trabajos. Todavía no se ha completado nada.",
+    pullPoUnmatchedNearby: "AccuLynx sí tiene: {list}",
+    pullCollisionTitle: "Otro trabajo ya registró este mismo monto",
+    pullCollisionAsk:
+      "Este PO tiene más de un trabajo, y {job} ya envió un costo de materiales de {amount} — la misma cifra al centavo. AccuLynx considera duplicado un segundo gasto con el mismo monto y PO, y lo rechaza en silencio, así que el costo de este trabajo parecería enviado sin llegar nunca. Todavía no se ha completado nada.",
+    pullCollisionDetail:
+      "Pida a la oficina que separe el PO o que registre este costo a mano. Si completa de todos modos, el trabajo se termina y el material se devuelve; solo el gasto queda en riesgo.",
     pullJustBuilt: "Recién creado",
     pullJustPulled: "Recién retirado",
     pullJustCompleted: "Recién completado",
@@ -2680,6 +2704,12 @@ export const translations = {
       "AccuLynx no aceptó el reporte, así que no se archivó nada para este trabajo. Si lo cierra ahora, sale de esta lista y nada volverá a recordárselo.",
     bjCloseAnyway: "Cerrar sin el reporte",
     bjDontClose: "Dejarlo abierto",
+    bjPoUnmatchedTitle: "Ningún trabajo de AccuLynx tiene este PO",
+    bjPoUnmatchedAsk:
+      "Nada en AccuLynx tiene este número de trabajo, así que cuando este trabajo se complete, su reporte y su costo de materiales no tendrán adónde ir. Use Buscar Trabajo arriba para vincularlo en vez de escribir el PO, o corrija el número.",
+    bjPoUnmatchedNearby: "AccuLynx sí tiene: {list}",
+    bjPoSaveAnyway: "Guardar de todos modos",
+    bjPoFixIt: "Dejarme corregir el PO",
     bjCorrectReturn: "Corregir Devolución",
     bjCorrectReturnTitle: "Corregir Materiales Devueltos",
     bjCorrectReturnInfo:

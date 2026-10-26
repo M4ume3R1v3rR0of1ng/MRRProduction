@@ -40,7 +40,16 @@ import { generatePDF } from "./pdfGenerator";
 // the report is syncJobReportToAccuLynx's own business now, since only the report half
 // is once-only — the cost has to stay retriable after AccuLynx refuses it.
 // The badge and sync modal that used to need the rest went with the Completed tab.
-import { syncJobReportToAccuLynx, syncStatusOf, costOnly } from "./accuLynxSync";
+import {
+  syncJobReportToAccuLynx,
+  syncStatusOf,
+  costOnly,
+  checkAccuLynxJobRef,
+} from "./accuLynxSync";
+// Two ways a sync is doomed before it starts rather than merely unlucky: a PO no
+// AccuLynx job carries, and a sibling job on a shared PO whose cost is identical to
+// the penny. Both are only fixable while somebody is still standing here.
+import { collidingSibling } from "./poCollisions";
 import {
   Btn,
   Bdg,
@@ -687,6 +696,66 @@ export default function PullInventory({
       // but whose cost was refused still owes the cost, and it used to be skipped
       // here on the strength of the filed report alone.
       const fullySynced = syncStatusOf(sel) === "synced";
+
+      // ── Two pre-flight checks, before anything is sent ─────────────────────
+      //
+      // Gated on `enabled` rather than `autoSync`, because neither problem is about
+      // this one attempt: a PO that matches nothing cannot be sent by the hourly
+      // retry OR by Close Job either, and a cost that collides with a sibling's is
+      // refused however it is submitted. A company that uses AccuLynx wants to know
+      // now, whether or not it asked for automatic sending.
+      //
+      // Both ASK rather than refuse. The roof is finished; a numbering mistake in
+      // the office is not a reason a crew cannot close out their day. But it has to
+      // be a decision somebody makes, because afterwards the job leaves this screen
+      // and the chance to mention it is gone.
+      const axOn = !!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl);
+      if (axOn && !fullySynced) {
+        const ref = await checkAccuLynxJobRef({ job: updatedJob, config: acculynxConfig });
+        // `known: false` means the CHECK failed, which says nothing about the PO —
+        // carry on rather than invent a problem out of a timeout.
+        if (ref.known && ref.matched === false) {
+          const nearby = (ref.nearby || []).map((n) => `${n.jobNumber} — ${n.name}`).join(", ");
+          const go = await confirm({
+            title: t.pullPoUnmatchedTitle,
+            message: t.pullPoUnmatchedAsk,
+            detail: nearby
+              ? t.pullPoUnmatchedNearby.replace("{list}", nearby)
+              : ref.reason || undefined,
+            confirmLabel: t.pullCompleteAnyway,
+            cancelLabel: t.pullDontComplete,
+            tone: "danger",
+          });
+          if (!go) return false;
+        }
+
+        // Costed off newInv, the inventory this completion is about to produce —
+        // the same list the sync itself will price against a moment later.
+        const clash = collidingSibling({
+          job: updatedJob,
+          jobs,
+          users,
+          inv: newInv,
+          company,
+        });
+        if (clash) {
+          const go = await confirm({
+            title: t.pullCollisionTitle,
+            message: t.pullCollisionAsk
+              .replace(
+                "{job}",
+                clash.sibling.title || clash.sibling.name || clash.sibling.po || "another job",
+              )
+              .replace("{amount}", `$${clash.amount.toFixed(2)}`),
+            detail: t.pullCollisionDetail,
+            confirmLabel: t.pullCompleteAnyway,
+            cancelLabel: t.pullDontComplete,
+            tone: "danger",
+          });
+          if (!go) return false;
+        }
+      }
+
       if (acculynxConfig?.autoSync && !fullySynced) {
         const r = await syncJobReportToAccuLynx({
           job: updatedJob,

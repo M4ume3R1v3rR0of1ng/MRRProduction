@@ -76,6 +76,7 @@ import {
   syncStatusOf,
   reportUploadedAtOf,
   costOnly,
+  checkAccuLynxJobRef,
 } from "./accuLynxSync";
 import { logAction } from "@/shared/utils/logger";
 
@@ -419,6 +420,39 @@ export default function BuildJobs({
     if (!wPO.notes || !wPO.notes.trim()) {
       showToast(t.bjNotesRequired, "warning");
       return;
+    }
+
+    // ── Is this PO one AccuLynx will recognise? ───────────────────────────────
+    //
+    // Here is where the PO is decided, and here is the only cheap moment to get it
+    // right. An unlinked job resolves by an EXACT jobNumber match when its cost and
+    // report are sent, so a number typed with a prefix or a digit out of place can
+    // never sync — and nothing finds that out until a crew has finished the job,
+    // days later, by which time the PO is on a pull sheet and a dozen line items.
+    //
+    // Skipped entirely when Find Job linked the job: it carries the AccuLynx id, so
+    // there is nothing to look up. Asks rather than refuses, because a company may
+    // legitimately build a job before it exists in AccuLynx — and `known: false`
+    // (the check itself failed) is never treated as a bad PO.
+    if (!wPO.acculynxJobId && acculynxConfig?.enabled && acculynxConfig?.proxyUrl) {
+      const ref = await checkAccuLynxJobRef({
+        job: { po: wPO.po, acculynx_job_id: null },
+        config: acculynxConfig,
+      });
+      if (ref.known && ref.matched === false) {
+        const nearby = (ref.nearby || []).map((n) => `${n.jobNumber} — ${n.name}`).join(", ");
+        const go = await confirm({
+          title: t.bjPoUnmatchedTitle,
+          message: t.bjPoUnmatchedAsk,
+          detail: nearby
+            ? t.bjPoUnmatchedNearby.replace("{list}", nearby)
+            : ref.reason || undefined,
+          confirmLabel: t.bjPoSaveAnyway,
+          cancelLabel: t.bjPoFixIt,
+          tone: "danger",
+        });
+        if (!go) return;
+      }
     }
 
     setSaving(true);

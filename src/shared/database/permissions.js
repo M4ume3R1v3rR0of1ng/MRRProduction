@@ -233,7 +233,15 @@ export const DEFAULT_ROLE_PERMS = {
     jobs_pull: true,
     jobs_edit_pull: false,
     jobs_complete: true,
-    jobs_close: false,
+    // Closing IS filing — Close Job in Build Jobs is the one place a person can make
+    // the AccuLynx sync happen on demand. Withholding it from the warehouse meant
+    // the people who actually finish the jobs could not retry their own paperwork,
+    // and a completed job drops off Pull Inventory, so they had nothing to press at
+    // all. The hourly retry (netlify/functions/acculynx-retry-sync.js) means they no
+    // longer have to, but "the machine will get to it within the hour" is no answer
+    // to an office that needs the cost posted now. Mirrors default_job_perms() in
+    // supabase/58 — the database makes this same call and the two must agree.
+    jobs_close: true,
     jobs_revenue: false,
     reports_view: true,
     users_manage: false,

@@ -8,7 +8,8 @@
 // so this renders the report a second way. Both renderers read buildJobReportModel(),
 // so the arithmetic is shared: only the drawing differs.
 
-import { buildJobReportModel } from "./pdfGenerator";
+// Extension required: the cron imports this module under Node ESM. See pdfGenerator.js.
+import { buildJobReportModel } from "./pdfGenerator.js";
 
 const NAVY = [14, 45, 107];
 const AMBER = [245, 168, 0];
