@@ -540,19 +540,14 @@ export function useAppData() {
           // anything else ever renders it. A missing table (migration 26 not run)
           // leaves the library empty rather than failing the whole boot.
           //
-          // Two tiers, one query: every globally-shared clip (Steadwerk's own
-          // uploads), plus this company's own private ones. RLS in supabase/45
-          // would actually allow a platform admin to read every company's private
-          // rows too, but this narrows the request to what's relevant to THIS
-          // session rather than pulling every tenant's library into one page load.
+          // No tier filter, because there are no longer tiers: one library,
+          // Steadwerk's, read by every company (supabase/60). The filter that used
+          // to be here asked for "global clips plus this company's private ones",
+          // which was the right query for supabase/45 and is now just a way to
+          // hide rows from a tenant that is entitled to all of them.
           const { data, error } = await supabase
             .from("training_media")
             .select("*")
-            .or(
-              activeCompanyId
-                ? `is_global.eq.true,company_id.eq.${activeCompanyId}`
-                : "is_global.eq.true",
-            )
             .order("sort_order", { ascending: true })
             .order("created_at", { ascending: true });
           if (error) {

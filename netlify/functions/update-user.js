@@ -1,6 +1,7 @@
 // netlify/functions/update-user.js
-// Admin-only: update a member's shared profile fields (name, email) within the
-// CALLER'S company.
+// Update a member's shared profile fields (name, email) within the CALLER'S
+// company. Requires admin, or the users_manage permission — see
+// _shared/userAdmin.js for what a non-admin delegate may do.
 //
 // Why this can't be a plain client-side profiles update:
 //
@@ -15,7 +16,8 @@
 // Scope: a company admin may only edit a member of THEIR OWN company. The service
 // role bypasses RLS, so that membership check is the whole guard.
 
-import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
+import { resolveUserAdmin, targetGuardError } from "./_shared/userAdmin.js";
 import { withSentry } from "./_shared/sentry.js";
 
 const rawHandler = async (event) => {
@@ -48,15 +50,20 @@ const rawHandler = async (event) => {
       body: JSON.stringify({ error: callerError.message }),
     };
   }
-  if (!isCompanyAdmin(caller)) {
-    return { statusCode: 403, headers, body: JSON.stringify({ error: "Admin access required" }) };
+  const { fullAdmin, error: authzError } = await resolveUserAdmin(admin, caller);
+  if (authzError) {
+    return {
+      statusCode: authzError.status,
+      headers,
+      body: JSON.stringify({ error: authzError.message }),
+    };
   }
 
   // The target must be a member of the caller's company — otherwise an admin could
   // pass any uuid and edit a user in a company they've never heard of.
   const { data: membership } = await admin
     .from("memberships")
-    .select("user_id")
+    .select("user_id, role")
     .eq("user_id", targetUserId)
     .eq("company_id", caller.companyId)
     .maybeSingle();
@@ -66,6 +73,18 @@ const rawHandler = async (event) => {
       headers,
       body: JSON.stringify({ error: "That user is not a member of your company." }),
     };
+  }
+
+  // Rule 2: a delegate must not touch an admin's account. The email here IS the
+  // login identity, so editing an admin's address would redirect their password
+  // resets — that is the takeover this refuses. Editing your OWN name and email
+  // stays allowed; Personal Profile already permits exactly that.
+  const guardError = await targetGuardError(admin, caller, targetUserId, fullAdmin, {
+    knownRole: membership.role ?? null,
+    allowSelf: true,
+  });
+  if (guardError) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: guardError }) };
   }
 
   const cleanName = (name || "").trim();

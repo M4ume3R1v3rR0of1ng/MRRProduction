@@ -98,14 +98,21 @@ export default function TrainingView({
 }) {
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
-  // Two kinds of admin. A platform admin (Owner) can add, edit or remove ANY clip
-  // and is the only one who can ADD a global one. A company's own Admin can add
-  // private clips to their own library, and can edit or remove anything their
-  // company can see — their own clips and Steadwerk's global ones both
-  // (supabase/56_training_media_admin_edit_all.sql widened this; 45 held Edit to
-  // their own tier). Never another company's private clips. canEditMedia in
-  // ./trainingMedia holds the rule; the UI hiding a button is convenience, the
-  // database RLS is what actually enforces it.
+  // Two kinds of admin, and after supabase/60 they reach the same clips, because every
+  // company now sees the whole library.
+  //
+  // A platform admin (Owner) can add, edit or remove anything. A company's own Admin
+  // can too — 56 gave them edit and delete over any clip their company can see, and 60
+  // made that every clip, so what used to be "Steadwerk's global clips plus my own" is
+  // now the entire library. Adding is theirs as well, and what they add is published to
+  // every company, which is the part that is new. canEditMedia in ./trainingMedia holds
+  // the rule; the RLS in 56 is what enforces it, and a hidden button stops nobody.
+  //
+  // That reach is wide on purpose for now — narrowing it is a separate decision — so
+  // the edit form warns before a save and the remove confirm says who else it lands on.
+  //
+  // Assigning a clip to a crew with a due date is a company Admin's job (supabase/48).
+  // That writes their own company's row rather than touching the clip.
   const isPlatformAdmin = user?.isPlatformAdmin === true;
   const isCompanyAdmin = user?.role === "admin";
   const canManage = isPlatformAdmin || isCompanyAdmin;
@@ -239,10 +246,6 @@ export default function TrainingView({
           url,
           sortOrder: trainingMedia.length,
           user,
-          // Only a platform admin's own upload ever lands in the shared, every-company
-          // tier — the row-write policy pins this to false for anyone else regardless
-          // of what gets sent, but there is no reason to send the wrong thing anyway.
-          isGlobal: isPlatformAdmin,
         }),
         object_path: storedPath,
       };
@@ -251,7 +254,7 @@ export default function TrainingView({
       if (error) throw error;
 
       // company_id comes off the database default, so the optimistic fallback has to
-      // add it back — canEditMedia reads it to tell our own clip from someone else's.
+      // add it back — it is the "Added by" byline, not a visibility gate (supabase/60).
       const created = data?.[0] || { ...row, company_id: company.id };
       setTrainingMedia?.((p) => [...p, created]);
 
@@ -278,13 +281,11 @@ export default function TrainingView({
   };
 
   const removeMedia = async (item) => {
-    // A global clip is one shared row. A company admin removing it takes it away
-    // from every other company and from the logged-out /training page, so the
-    // confirm has to say that rather than "deletes the file for everyone", which
-    // reads as "everyone here".
-    const confirmCopy =
-      item.is_global && !isPlatformAdmin ? t.trRemoveConfirmGlobal : t.trRemoveConfirm;
-    if (!window.confirm(confirmCopy.replace("{title}", item.title))) return;
+    // One clip is one row every tenant reads, so the confirm says "every company"
+    // rather than "everyone" — which an Owner working inside a tenant would read as
+    // "everyone here". A delete also cascades the assignments (48) and read receipts
+    // (46) every other company had against it.
+    if (!window.confirm(t.trRemoveConfirm.replace("{title}", item.title))) return;
     try {
       const { error } = await supabase.from("training_media").delete().eq("id", item.id);
       if (error) throw error;
@@ -460,6 +461,11 @@ export default function TrainingView({
                 <Video size={15} aria-hidden="true" />{" "}
                 {isPlatformAdmin ? t.trAdminTitleGlobal : t.trAdminTitle}
               </Row>
+              {/* Both versions of this copy now say "every company", because both are
+                true: a company Admin's upload is published to the whole platform too
+                (supabase/60). Before 60 the tenant-facing version said "everyone in
+                your company", which is exactly the belief that let the library be
+                filled up invisibly. */}
               <Muted size="sm" style={{ marginTop: 4, maxWidth: "70ch" }}>
                 {isPlatformAdmin ? t.trAdminBlurbGlobal : t.trAdminBlurb}
               </Muted>
@@ -563,32 +569,26 @@ export default function TrainingView({
                       </Text>
                     )}
                   </Stack>
-                  {/* Bundled clips ship in the build and belong to Steadwerk, so there is
-                    nothing a tenant admin could edit or delete even if the button were
-                    here — "The Full Tour" included, since supabase/44 made it a real
-                    row. Beyond that, canEditMedia decides: an Owner can edit anything,
-                    and a company Admin anything their company can see, Steadwerk's
-                    global clips included. The RLS policies in supabase/56 refuse the
-                    rest whether or not this button is shown. */}
+                  {/* Bundled clips ship in the build and have no row to change, so
+                    there is nothing to edit or delete even for an Owner — "The Full
+                    Tour" excepted, since supabase/44 made it a real row. Beyond that,
+                    canEditMedia decides: an Owner or any company's Admin, for any clip,
+                    now that every company sees all of them (supabase/60 over 56's
+                    reach). The RLS policies in supabase/56 refuse the rest whether or
+                    not this button is shown. */}
                   <Row gap={2} style={{ flexShrink: 0 }}>
-                    {/* Assign reaches further than Edit: a company admin may
-                      direct Steadwerk's GLOBAL clips at their own crew even
-                      though they cannot edit one. The assignment is their
-                      company's row, not a change to Steadwerk's clip, and
-                      supabase/48's trigger allows exactly that — a global clip
-                      or one of their own, never another company's. Bundled
-                      clips are excluded because they have no training_media row
-                      for the foreign key to point at. */}
+                    {/* Assign is the one thing here that stays a tenant's own: a company
+                      Admin points clips at their own crew with their own due dates. The
+                      assignment is their company's row, not a change to the clip, and
+                      supabase/48's trigger allows exactly that. Bundled clips are
+                      excluded because they have no training_media row for the foreign
+                      key to point at. */}
                     {!clip.bundled && canManage && (
                       <Btn v="outline" sz="sm" onClick={() => setAssignFor(clip)}>
                         <UserCheck size={13} aria-hidden="true" /> {t.trAssign}
                       </Btn>
                     )}
-                    {canEditMedia(clip, {
-                      isPlatformAdmin,
-                      isCompanyAdmin,
-                      companyId: company?.id,
-                    }) && (
+                    {canEditMedia(clip, { isPlatformAdmin, isCompanyAdmin }) && (
                       <Btn
                         v="ghost"
                         sz="sm"
@@ -608,9 +608,11 @@ export default function TrainingView({
                 {isEditing ? (
                   <Stack gap={0} style={{ marginTop: "var(--space-3)" }}>
                     {/* Said once, here, rather than in a second confirm dialog on save:
-                      this one row is what every company reads. An Owner editing their
-                      own library already knows that and does not need telling. */}
-                    {clip.is_global && !isPlatformAdmin && (
+                      this one row is what every company reads. It shows for EVERY clip
+                      now, not just a global one — after supabase/60 there is no other
+                      kind. An Owner is not shown it, because publishing to every
+                      company is the job they came here to do. */}
+                    {!isPlatformAdmin && (
                       <Callout
                         tone="warn"
                         pad="sm"

@@ -120,6 +120,35 @@ export const translations = {
     invReceiveBulk: "Receive Bulk Order",
     invTemplates: "Templates",
     invAddItem: "Add Item",
+
+    // Add from library (supabase/61). "Library" throughout, never "catalog" — in
+    // this app a company's own positions ARE the catalog, so calling the shared
+    // source a catalog too would make the one sentence that matters ambiguous.
+    invAddFromLibrary: "Add from library",
+    invLibTitle: "Add from the Steadwerk library",
+    invLibBlurb:
+      "Standard positions every roofer carries, ready to drop into your catalog. They come in with no stock and no price — receive against them as normal, and what you pay is yours. Your copy is yours to rename or remove afterwards; nothing here changes it.",
+    invLibLoading: "Loading the library...",
+    invLibLoadFail: "Could not load the library:",
+    invLibSearch: "Search the library",
+    invLibSelectAll: "Select all",
+    invLibClearVisible: "Clear all",
+    invLibSelectCat: "Select category",
+    invLibClearCat: "Clear category",
+    invLibNoMatch: "Nothing in the library matches that.",
+    invLibSelected: "{n} selected",
+    invLibAlreadyHave: "{n} already in your catalog",
+    invLibAlertAt: "alert at {n}",
+    invLibAddN: "Add {n} items",
+    invLibAdding: "Adding...",
+    invLibAddedOk: "Added {n} items to your catalog.",
+    invLibAddFail: "Could not add those:",
+    invLibEmptyTitle: "The library is empty",
+    invLibEmptyBody:
+      "Steadwerk has not put any positions in the shared library yet. Add items by hand in the meantime.",
+    invLibHaveAllTitle: "You already carry all of it",
+    invLibHaveAllBody:
+      "Every position in the shared library is already in your catalog. Anything else you need, add by hand.",
     invPricingRestricted: "Pricing restricted",
     invSortAria: "Sort inventory",
     invSortNameAZ: "↕ Name — A to Z",
@@ -258,6 +287,10 @@ export const translations = {
     umRolePermsBlurb:
       "Role permissions are set in {link}. You can also give individual users custom permission overrides here using the button.",
     umRolePermsLink: "Settings → Role Permissions",
+    umDelegateNotice:
+      "You can add, edit and remove users. Giving someone admin access, and changing an admin's account, stay with the admins — ask one of them for those.",
+    umAdminOnlyRow: "Admin — ask an admin",
+    umAdminOnlyEdit: "Only an admin can change another admin's account.",
     umEdit: "Edit",
     umFullName: "Full Name *",
     umEmail: "Email Address",
@@ -434,6 +467,37 @@ export const translations = {
     ocReactivate: "Reactivate",
     ocDelete: "Delete",
     ocSuspend: "Suspend",
+    // Shared inventory library (supabase/61). The description leads with the thing
+    // an operator needs to know before they touch it: editing is safe, because a
+    // company's import took a copy.
+    ocLibTitle: "Shared inventory library",
+    ocLibDesc:
+      "The generic positions offered to every company under Inventory → Add from library. Editing is safe: importing takes a copy, so renaming or retiring a line here changes what future imports offer and never touches stock, prices or history in anyone's catalog.",
+    ocLibCount: "{active} offered · {total} total",
+    ocLibLoading: "Loading the library...",
+    ocLibLoadFail: "Could not load the library:",
+    ocLibEmpty: "Nothing in the library yet. Add the first position above.",
+    ocLibAddPosition: "Add a position",
+    ocLibAdd: "Add to library",
+    ocLibSave: "Save",
+    ocLibName: "Item name",
+    ocLibNamePlaceholder: "Synthetic Underlayment",
+    ocLibCat: "Category",
+    ocLibUnit: "Unit",
+    ocLibAlrt: "Low alert",
+    ocLibAlrtHint: "Starting threshold. Each company can change their own copy.",
+    ocLibNameRequired: "Give the position a name.",
+    ocLibDuplicate: "A position with that name is already in the library.",
+    ocLibOffered: "Offered",
+    ocLibRetired: "Retired",
+    ocLibActiveHint: "Turn off to stop offering this position, without deleting it.",
+    ocLibAdded: "Added to the library.",
+    ocLibSaved: "Saved.",
+    ocLibDeleted: "Deleted from the library.",
+    ocLibDeleteConfirm:
+      'Delete "{name}" from the shared library? Companies that already imported it keep their copy — this only stops it being offered. Turning it off instead keeps the wording.',
+    ocLibFailed: "Could not do that:",
+
     ocPlatformAdmins: "Platform administrators",
     ocPlatformAdminsDesc:
       "People who can see this console and manage every company. Grant sparingly.",
@@ -1339,12 +1403,16 @@ export const translations = {
       "Short walkthroughs of the parts people ask about most. Watch what you need and get back to work.",
     trainingPlay: "Play",
     trainingNoVideo: "Your browser can’t play this video.",
-    trAdminTitle: "Your company's training library",
+    // Both versions say "every company", because after supabase/60 both are true —
+    // a company admin's upload is published platform-wide just like Steadwerk's. The
+    // tenant-facing copy used to say "everyone in your company", which is the belief
+    // that let the library be filled up invisibly.
+    trAdminTitle: "The shared training library",
     trAdminBlurb:
-      "Upload your own clips and photos. Everyone in your company sees them here, under Steadwerk's own videos. Only your company's admins can add, edit or remove them.",
+      "Upload your own clips and photos. The training library is shared across the whole platform, so anything you add here is visible to every company that uses Steadwerk — not just yours — and so is anything you edit or remove.",
     trAdminTitleGlobal: "Steadwerk's training library",
     trAdminBlurbGlobal:
-      "Upload clips and photos for every company to see. Only Steadwerk can add, edit or remove them.",
+      "One library, shared by every company on the platform — including any that sign up later. Company admins can also add, edit and remove clips here.",
     trAddMedia: "Add photo or video",
     trCancel: "Cancel",
     trTitle: "Title",
@@ -1401,9 +1469,7 @@ export const translations = {
 
     trRemove: "Remove",
     trRemoveConfirm:
-      'Remove "{title}" from the training library? This deletes the file for everyone.',
-    trRemoveConfirmGlobal:
-      'Remove "{title}"? This is one of Steadwerk\'s shared videos — removing it takes it away from every company that uses it, not just yours.',
+      'Remove "{title}" from the training library? The library is shared, so this takes the clip away from every company on the platform and clears their assignments for it.',
     trRemovedOk: "Removed from the training library.",
     trRemoveFail: "Could not remove that:",
     trEdit: "Edit",
@@ -1411,8 +1477,10 @@ export const translations = {
     trEditedOk: "Updated.",
     trEditFail: "Could not save that:",
     trTitleRequired: "Give the clip a title so people know what it covers.",
+    // Shown for every clip now, not just one of Steadwerk's: there is only one library
+    // and every company reads it (supabase/60).
     trGlobalEditWarn:
-      "This is one of Steadwerk's shared videos. Your changes show up for every company that uses it, and on the public training page.",
+      "The training library is shared. Your changes show up for every company on the platform, and on the public training page.",
     trAddedBy: "Added by",
     trYourLibrary: "Training library",
     trainingDownload: "Download it instead.",
@@ -1658,6 +1726,34 @@ export const translations = {
     invReceiveBulk: "Recibir Pedido en Bloque",
     invTemplates: "Plantillas",
     invAddItem: "Agregar Artículo",
+
+    // Agregar desde la biblioteca (supabase/61). "Biblioteca" para la fuente
+    // compartida y "catálogo" para lo de cada empresa, igual que en inglés.
+    invAddFromLibrary: "Agregar desde la biblioteca",
+    invLibTitle: "Agregar desde la biblioteca de Steadwerk",
+    invLibBlurb:
+      "Posiciones estándar que todo techador maneja, listas para agregar a su catálogo. Entran sin existencias y sin precio — reciba contra ellas como siempre, y lo que usted pague es suyo. Su copia es suya para renombrar o quitar; nada de aquí la cambia.",
+    invLibLoading: "Cargando la biblioteca...",
+    invLibLoadFail: "No se pudo cargar la biblioteca:",
+    invLibSearch: "Buscar en la biblioteca",
+    invLibSelectAll: "Seleccionar todo",
+    invLibClearVisible: "Quitar todo",
+    invLibSelectCat: "Seleccionar categoría",
+    invLibClearCat: "Quitar categoría",
+    invLibNoMatch: "Nada en la biblioteca coincide con eso.",
+    invLibSelected: "{n} seleccionados",
+    invLibAlreadyHave: "{n} ya están en su catálogo",
+    invLibAlertAt: "alerta en {n}",
+    invLibAddN: "Agregar {n} artículos",
+    invLibAdding: "Agregando...",
+    invLibAddedOk: "Se agregaron {n} artículos a su catálogo.",
+    invLibAddFail: "No se pudieron agregar:",
+    invLibEmptyTitle: "La biblioteca está vacía",
+    invLibEmptyBody:
+      "Steadwerk aún no ha puesto posiciones en la biblioteca compartida. Por ahora, agregue artículos a mano.",
+    invLibHaveAllTitle: "Ya maneja todo",
+    invLibHaveAllBody:
+      "Todas las posiciones de la biblioteca compartida ya están en su catálogo. Lo que falte, agréguelo a mano.",
     invPricingRestricted: "Precios restringidos",
     invSortAria: "Ordenar inventario",
     invSortNameAZ: "↕ Nombre — A a Z",
@@ -1790,6 +1886,10 @@ export const translations = {
     umRolePermsBlurb:
       "Los permisos por rol se configuran en {link}. También puede dar excepciones de permisos a usuarios individuales aquí con el botón.",
     umRolePermsLink: "Configuración → Permisos por Rol",
+    umDelegateNotice:
+      "Puede agregar, editar y eliminar usuarios. Dar acceso de administrador, y modificar la cuenta de un administrador, queda en manos de los administradores — pídaselo a uno de ellos.",
+    umAdminOnlyRow: "Administrador — consulte a un administrador",
+    umAdminOnlyEdit: "Solo un administrador puede modificar la cuenta de otro administrador.",
     umEdit: "Editar",
     umFullName: "Nombre Completo *",
     umEmail: "Correo Electrónico",
@@ -1968,6 +2068,36 @@ export const translations = {
     ocReactivate: "Reactivar",
     ocDelete: "Eliminar",
     ocSuspend: "Suspender",
+    // Biblioteca de inventario compartida (supabase/61). Igual que en inglés:
+    // lo primero es que editar aquí es seguro, porque la importación copió.
+    ocLibTitle: "Biblioteca de inventario compartida",
+    ocLibDesc:
+      "Las posiciones genéricas que se ofrecen a todas las empresas en Inventario → Agregar desde la biblioteca. Editar es seguro: la importación toma una copia, así que renombrar o retirar una línea aquí cambia lo que se ofrecerá en el futuro y nunca toca existencias, precios ni historial en el catálogo de nadie.",
+    ocLibCount: "{active} ofrecidas · {total} en total",
+    ocLibLoading: "Cargando la biblioteca...",
+    ocLibLoadFail: "No se pudo cargar la biblioteca:",
+    ocLibEmpty: "Aún no hay nada en la biblioteca. Agregue la primera posición arriba.",
+    ocLibAddPosition: "Agregar una posición",
+    ocLibAdd: "Agregar a la biblioteca",
+    ocLibSave: "Guardar",
+    ocLibName: "Nombre del artículo",
+    ocLibNamePlaceholder: "Membrana sintética",
+    ocLibCat: "Categoría",
+    ocLibUnit: "Unidad",
+    ocLibAlrt: "Alerta baja",
+    ocLibAlrtHint: "Umbral inicial. Cada empresa puede cambiar su propia copia.",
+    ocLibNameRequired: "Dele un nombre a la posición.",
+    ocLibDuplicate: "Ya hay una posición con ese nombre en la biblioteca.",
+    ocLibOffered: "Ofrecida",
+    ocLibRetired: "Retirada",
+    ocLibActiveHint: "Desactive para dejar de ofrecer esta posición, sin eliminarla.",
+    ocLibAdded: "Agregada a la biblioteca.",
+    ocLibSaved: "Guardado.",
+    ocLibDeleted: "Eliminada de la biblioteca.",
+    ocLibDeleteConfirm:
+      '¿Eliminar "{name}" de la biblioteca compartida? Las empresas que ya la importaron conservan su copia — esto solo deja de ofrecerla. Desactivarla en su lugar conserva el texto.',
+    ocLibFailed: "No se pudo hacer eso:",
+
     ocPlatformAdmins: "Administradores de la plataforma",
     ocPlatformAdminsDesc:
       "Personas que pueden ver esta consola y administrar todas las empresas. Otórguelo con moderación.",
@@ -2873,12 +3003,15 @@ export const translations = {
       "Guías breves de las partes que más se preguntan. Vea lo que necesite y vuelva al trabajo.",
     trainingPlay: "Reproducir",
     trainingNoVideo: "Su navegador no puede reproducir este video.",
-    trAdminTitle: "Biblioteca de capacitación de su empresa",
+    // Las dos versiones dicen "todas las empresas", porque después de supabase/60 las
+    // dos son ciertas: lo que sube el administrador de una empresa se publica en toda
+    // la plataforma igual que lo de Steadwerk.
+    trAdminTitle: "La biblioteca de capacitación compartida",
     trAdminBlurb:
-      "Suba sus propios videos y fotos. Todos en su empresa los ven aquí, debajo de los videos de Steadwerk. Solo los administradores de su empresa pueden agregarlos, editarlos o quitarlos.",
+      "Suba sus propios videos y fotos. La biblioteca de capacitación es compartida por toda la plataforma, así que todo lo que agregue aquí lo ven todas las empresas que usan Steadwerk — no solo la suya — y lo mismo ocurre con lo que edite o quite.",
     trAdminTitleGlobal: "Biblioteca de capacitación de Steadwerk",
     trAdminBlurbGlobal:
-      "Suba videos y fotos para que los vean todas las empresas. Solo Steadwerk puede agregarlos, editarlos o quitarlos.",
+      "Una sola biblioteca, compartida por todas las empresas de la plataforma — incluidas las que se registren más adelante. Los administradores de cada empresa también pueden agregar, editar y quitar videos aquí.",
     trAddMedia: "Agregar foto o video",
     trCancel: "Cancelar",
     trTitle: "Título",
@@ -2936,9 +3069,7 @@ export const translations = {
 
     trRemove: "Quitar",
     trRemoveConfirm:
-      '¿Quitar "{title}" de la biblioteca de capacitación? Esto elimina el archivo para todos.',
-    trRemoveConfirmGlobal:
-      '¿Quitar "{title}"? Es uno de los videos compartidos de Steadwerk: al quitarlo desaparece para todas las empresas que lo usan, no solo para la suya.',
+      '¿Quitar "{title}" de la biblioteca de capacitación? La biblioteca es compartida, así que esto quita el video para todas las empresas de la plataforma y borra sus asignaciones.',
     trRemovedOk: "Quitado de la biblioteca de capacitación.",
     trRemoveFail: "No se pudo quitar:",
     trEdit: "Editar",
@@ -2946,8 +3077,10 @@ export const translations = {
     trEditedOk: "Actualizado.",
     trEditFail: "No se pudo guardar:",
     trTitleRequired: "Dele un título al video para que la gente sepa qué cubre.",
+    // Ahora se muestra para todos los videos, no solo los de Steadwerk: hay una sola
+    // biblioteca y todas las empresas la leen (supabase/60).
     trGlobalEditWarn:
-      "Este es uno de los videos compartidos de Steadwerk. Sus cambios se ven en todas las empresas que lo usan y en la página pública de capacitación.",
+      "La biblioteca de capacitación es compartida. Sus cambios se ven en todas las empresas de la plataforma y en la página pública de capacitación.",
     trAddedBy: "Agregado por",
     trYourLibrary: "Biblioteca de capacitación",
     trainingDownload: "Descárguelo en su lugar.",

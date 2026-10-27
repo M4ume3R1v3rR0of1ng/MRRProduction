@@ -16,6 +16,11 @@
 // rather than returning a Proxy that says yes to everything: a typo'd
 // permission id in a tool guard should fail closed, not silently pass for
 // admins and fail for everyone else.
+// @ts-check
+
+/** @typedef {import("@supabase/supabase-js").SupabaseClient<any, any, any, any, any>} SupabaseClient */
+/** @typedef {Record<string, boolean | undefined>} PermMap */
+
 const ADMIN_PERMS = {
   inv_view: true,
   inv_edit: true,
@@ -50,6 +55,13 @@ export function adminPerms() {
   return { ...ADMIN_PERMS };
 }
 
+/**
+ * @param {SupabaseClient} admin
+ * @param {string} userId
+ * @param {string} companyId
+ * @param {string | undefined} role
+ * @returns {Promise<PermMap>}
+ */
 export async function getEffectivePerms(admin, userId, companyId, role) {
   if (role === "admin") return adminPerms();
 
@@ -89,6 +101,11 @@ export async function getEffectivePerms(admin, userId, companyId, role) {
  *
  * Returns [{ userId, name, email, role, perms }].
  */
+/**
+ * @param {SupabaseClient} admin
+ * @param {string} companyId
+ * @returns {Promise<{ roster: Array<{ userId: string, name: string, email: string | null, role: string, perms: PermMap }>, error?: string }>}
+ */
 export async function loadCompanyRoster(admin, companyId) {
   const [{ data: members, error: memberError }, { data: roleRows }, { data: overrideRows }] =
     await Promise.all([
@@ -117,15 +134,16 @@ export async function loadCompanyRoster(admin, companyId) {
   const overrides = Object.fromEntries(
     (overrideRows || []).map((r) => [r.user_id, r.overrides || {}]),
   );
+  /** @type {Map<string, { full_name?: string | null, name?: string | null, email?: string | null }>} */
   const profileById = new Map((profiles || []).map((p) => [p.id, p]));
 
   return {
     roster: active.map((m) => {
-      const p = profileById.get(m.user_id) || {};
+      const p = profileById.get(m.user_id);
       return {
         userId: m.user_id,
-        name: p.full_name || p.name || p.email || "Unknown",
-        email: p.email || null,
+        name: p?.full_name || p?.name || p?.email || "Unknown",
+        email: p?.email || null,
         role: m.role,
         perms:
           m.role === "admin"

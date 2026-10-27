@@ -9,6 +9,7 @@ import {
   Search,
   AlertOctagon,
   Star,
+  Library,
 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm, tot, newestPrice } from "@/shared/utils/helpers";
@@ -39,6 +40,7 @@ import ItemFormModal from "./ItemFormModal";
 import ReceiveBatchModal from "./ReceiveBatchModal";
 import AdjustStockModal from "./AdjustStockModal";
 import BatchCorrectionModal from "./BatchCorrectionModal";
+import AddFromLibraryModal from "./AddFromLibraryModal";
 import InventoryCountTab from "./InventoryCountTab";
 
 export default function InventoryView({
@@ -233,6 +235,15 @@ export default function InventoryView({
             {perms.inv_edit && (
               <Btn v="outline" onClick={() => setModal("tpl")}>
                 <LayoutTemplate size={14} aria-hidden="true" /> {t.invTemplates}
+              </Btn>
+            )}
+            {/* Importing from the library IS adding items, so it rides on inv_edit
+                rather than inviting a permission of its own. Placed before Add item
+                because it is the faster road to the same place — most of what a new
+                company needs is already in the library. */}
+            {perms.inv_edit && (
+              <Btn v="outline" onClick={() => setModal("library")}>
+                <Library size={14} aria-hidden="true" /> {t.invAddFromLibrary}
               </Btn>
             )}
             {perms.inv_edit && (
@@ -579,6 +590,18 @@ export default function InventoryView({
             setBatchSel(b);
             setModal("batch");
           }}
+          onClose={() => setModal(null)}
+        />
+      )}
+
+      {modal === "library" && perms.inv_edit && (
+        <AddFromLibraryModal
+          inv={inv}
+          user={user}
+          lang={lang}
+          // The rows come back from the insert's select(), so this is what the
+          // database actually stored rather than an optimistic guess.
+          onImported={(rows) => setInv((p) => [...p, ...rows])}
           onClose={() => setModal(null)}
         />
       )}

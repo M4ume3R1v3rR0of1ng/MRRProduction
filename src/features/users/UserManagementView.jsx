@@ -50,6 +50,17 @@ export default function Users({
   const { showToast } = useNotify();
   const t = translations[lang] || translations.en;
 
+  // This screen opens for anyone holding users_manage, not just admins — see
+  // netlify/functions/_shared/userAdmin.js. A DELEGATE (users_manage without the
+  // admin role) may do the day-to-day work but not promote anyone to admin, not
+  // touch an admin's account, and not edit the permission matrix, whose RLS in
+  // supabase/02_tenancy_tables.sql is admin-only regardless of what we render.
+  //
+  // Everything below hides what the server would refuse. The server is still the
+  // authority — this only keeps the screen from offering buttons that fail.
+  const fullAdmin = currentUser?.role === "admin" || currentUser?.isPlatformAdmin === true;
+  const canActOn = (u) => fullAdmin || u.role !== "admin";
+
   const save = async () => {
     const missing = [];
     if (!form.name) missing.push(t.umFieldName);
@@ -94,11 +105,18 @@ export default function Users({
         const result = await response.json().catch(() => ({}));
         if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
 
-        const { error: roleError } = await supabase.rpc("set_member_role", {
-          target_user: editing,
-          new_role: form.role,
-        });
-        if (roleError) throw roleError;
+        // Only when the role actually moved. Firing this on every save used to be
+        // harmless, but set_member_role() now refuses a delegate changing their
+        // own role (supabase/62) — so an unchanged role would make a delegate
+        // editing their own name fail on a write that was never needed.
+        const priorRole = users.find((u) => u.id === editing)?.role;
+        if (form.role !== priorRole) {
+          const { error: roleError } = await supabase.rpc("set_member_role", {
+            target_user: editing,
+            new_role: form.role,
+          });
+          if (roleError) throw roleError;
+        }
 
         setUsers((p) => p.map((u) => (u.id === editing ? { ...u, ...profilePayload } : u)));
         // If an admin edited their OWN row, refresh the live session so the new name
@@ -258,6 +276,13 @@ export default function Users({
   };
 
   const handleEditUser = (targetUser) => {
+    // Reachable without the row's Edit button: OmniSearch deep-links straight
+    // here via openItemId. A delegate landing on an admin would get a form with
+    // no matching role option and a save the server refuses, so stop at the door.
+    if (!canActOn(targetUser)) {
+      showToast(t.umAdminOnlyEdit, "warning");
+      return;
+    }
     setForm({
       name: targetUser.full_name || targetUser.name || "",
       email: targetUser.email || "",
@@ -359,6 +384,20 @@ export default function Users({
         {t.umRolePermsBlurb.split("{link}")[1]}
       </Callout>
 
+      {/* Say out loud what a delegate cannot do. The alternative is someone
+          wondering why the admin rows have no buttons. */}
+      {!fullAdmin && (
+        <Callout
+          tone="info"
+          bordered
+          icon={Lock}
+          size="sm"
+          style={{ marginBottom: 14, lineHeight: 1.7 }}
+        >
+          {t.umDelegateNotice}
+        </Callout>
+      )}
+
       <Card variant="raised" pad="none" style={{ overflow: "hidden" }}>
         <Table pad="xl" size="base">
           <thead>
@@ -385,25 +424,35 @@ export default function Users({
                 </td>
                 <td>
                   <Row gap={2} justify="flex-end">
-                    <Btn
-                      v="ghost"
-                      sz="sm"
-                      onClick={() => handleOpenPermissionOverrides(u)}
-                      title={t.umPermOverridesTitle}
-                    >
-                      <Lock size={13} aria-hidden="true" /> Override
-                    </Btn>
-                    <Btn v="ghost" sz="sm" onClick={() => handleEditUser(u)}>
-                      {t.umEdit}
-                    </Btn>
-                    <Btn
-                      v="danger"
-                      sz="sm"
-                      onClick={() => handleRemoveUser(u.id)}
-                      style={{ minWidth: 95, textAlign: "center" }}
-                    >
-                      <Trash2 size={13} aria-hidden="true" /> Remove
-                    </Btn>
+                    {/* Overrides are admin-only in RLS, so a delegate pressing this
+                        would only ever get a policy violation. */}
+                    {fullAdmin && (
+                      <Btn
+                        v="ghost"
+                        sz="sm"
+                        onClick={() => handleOpenPermissionOverrides(u)}
+                        title={t.umPermOverridesTitle}
+                      >
+                        <Lock size={13} aria-hidden="true" /> Override
+                      </Btn>
+                    )}
+                    {canActOn(u) ? (
+                      <>
+                        <Btn v="ghost" sz="sm" onClick={() => handleEditUser(u)}>
+                          {t.umEdit}
+                        </Btn>
+                        <Btn
+                          v="danger"
+                          sz="sm"
+                          onClick={() => handleRemoveUser(u.id)}
+                          style={{ minWidth: 95, textAlign: "center" }}
+                        >
+                          <Trash2 size={13} aria-hidden="true" /> Remove
+                        </Btn>
+                      </>
+                    ) : (
+                      <Muted>{t.umAdminOnlyRow}</Muted>
+                    )}
                   </Row>
                 </td>
               </tr>
@@ -441,7 +490,9 @@ export default function Users({
               value={form.role || "field"}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
             >
-              <option value="admin">{t.roleLongAdmin}</option>
+              {/* Only an admin may hand out admin. Offering it to a delegate would
+                  be offering a promotion the server refuses. */}
+              {fullAdmin && <option value="admin">{t.roleLongAdmin}</option>}
               <option value="manager">{t.roleLongManager}</option>
               <option value="coordinator">{t.roleLongCoordinator}</option>
               <option value="warehouse">{t.roleLongWarehouse}</option>
@@ -501,7 +552,10 @@ export default function Users({
             </Btn>
           </Row>
 
-          {editing && (
+          {/* A delegate may reset other members' passwords but not their own —
+              setting your own belongs in Personal Profile, and the server refuses
+              it here. Admins keep the section on every row, including their own. */}
+          {editing && (fullAdmin || editing !== currentUser?.id) && (
             <Stack
               gap={0}
               style={{ marginTop: 22, paddingTop: 18, borderTop: `1px solid ${C.lg}` }}

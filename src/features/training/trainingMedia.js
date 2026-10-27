@@ -6,17 +6,33 @@
 // training and ships in the build: a file in public/ plus an entry in that module, which
 // means a code change and a deploy per clip (empty today — see that file). This is the
 // other half: media uploaded at runtime, stored in the training-media bucket and listed
-// in training_media, split into two tiers by is_global (see
-// supabase/45_training_media_company_admin_edit.sql):
+// in training_media.
 //
-//   - is_global rows are Steadwerk's own uploads. Every company sees them, logged in or
-//     not, and only a platform admin (Owner) can add, edit or remove one.
-//   - non-global rows are a single company's own uploads ("here is how WE tarp a roof").
-//     Only that company sees them, and only that company's own Admin (or a platform
-//     admin) can add, edit or remove one.
+// ONE LIBRARY, READ BY EVERY COMPANY (see supabase/60_training_media_one_shared_library.sql)
 //
-// All three tiers (bundled, global, company-private) render in the same list, bundled
-// first. Nothing here can edit or remove the bundled clips.
+// Every company reads every clip, logged in or not, including companies that sign up
+// later. There is no per-company tier any more.
+//
+// 45 and 56 ran a second, private tier here, which is why is_global exists at all. It
+// is gone: 45's default (is_global false) quietly made every upload private to
+// whichever tenant the uploader happened to be working inside — the Owner included —
+// so the shared library was shared with exactly one company. 60 publishes every row
+// and holds the column true in a trigger, so nothing can be hidden again.
+//
+// WHO MAY WRITE IS UNCHANGED, AND WIDER THAN IT LOOKS
+//
+// 60 deliberately left 56's write rule alone: a platform admin (Owner) anywhere, and a
+// company's own Admin for any clip their company can SEE. Every company can now see
+// every clip, so that second branch reaches the whole library — any company's Admin can
+// edit or remove any clip, and it lands for every other company. See canEditMedia and
+// point 2 of 60's header; narrowing this is a decision still to be made.
+//
+// What a company's Admin also does is ASSIGN clips to their own crew with their own due
+// dates — their company's row, not a change to the clip. That lives in
+// ./trainingAssignments and supabase/48, and is untouched by any of this.
+//
+// Both tiers (bundled, uploaded) render in the same list, bundled first. Nothing here
+// can edit or remove the bundled clips.
 
 // Kept in step with the bucket limits in supabase/26_training_media.sql. The Supabase
 // plan also enforces a global per-request upload ceiling that can be LOWER than these;
@@ -82,11 +98,13 @@ export function validateMediaFile(file) {
   return { ok: true, kind, error: null };
 }
 
-// Storage object path. Company prefix first, because that is what the storage write
-// policies in supabase/45_training_media_company_admin_edit.sql key on — a company
-// admin may only write inside their own folder, whether the clip they're adding ends
-// up global or private. The random suffix stops two uploads named "training.mp4" in
-// the same second from colliding.
+// Storage object path. The company prefix is no longer a permission boundary — only a
+// platform admin writes to this bucket at all after supabase/60, and the folder-scoped
+// write policies 45 introduced are gone with the tier they served. It stays because
+// every object already in the bucket carries it, so changing the shape now would split
+// the library across two conventions for no gain, and because it still answers "which
+// session uploaded this" when reading the bucket directly. The random suffix stops two
+// uploads named "training.mp4" in the same second from colliding.
 export function mediaObjectPath(companyId, file) {
   if (!companyId)
     throw new Error("mediaObjectPath: companyId is required (tenant-scoped storage).");
@@ -110,10 +128,14 @@ export function validateMediaForm({ title, file }) {
   return validateMediaFile(file);
 }
 
-// The row to insert. company_id is set by the database default, not here. isGlobal
-// should only ever be true for a platform admin's own upload — the write policy also
-// enforces this server-side, so a crafted request cannot smuggle a false one through.
-export function mediaRow({ title, blurb, kind, url, sortOrder, user, isGlobal = false }) {
+// The row to insert. company_id is set by the database default, not here — it is the
+// "Added by" byline, not a visibility gate.
+//
+// is_global is always true and is not a parameter. There is one library and every
+// company reads it, so a clip written any other way is a clip nobody can see; that is
+// the bug supabase/60 fixed, and its guard trigger refuses a false row outright rather
+// than trusting this function to be the only writer.
+export function mediaRow({ title, blurb, kind, url, sortOrder, user }) {
   return {
     title: String(title).trim().slice(0, 160),
     blurb:
@@ -123,7 +145,7 @@ export function mediaRow({ title, blurb, kind, url, sortOrder, user, isGlobal = 
     kind,
     url,
     sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
-    is_global: !!isGlobal,
+    is_global: true,
     created_by: user?.id || null,
     // Denormalised for the same reason the other four tables do it: a deleted account
     // otherwise leaves an orphaned id and no way to say who added the clip.
@@ -135,30 +157,28 @@ export function mediaRow({ title, blurb, kind, url, sortOrder, user, isGlobal = 
 //
 //   1. Nobody touches a bundled clip. It ships in the build, so there is no row to
 //      change and no file to delete.
-//   2. A platform admin (Owner) may edit or remove any clip, any tier.
-//   3. A company Admin may edit or remove any clip their company can SEE — their own
-//      company's private clips and Steadwerk's global ones alike (supabase/56). An
-//      edit to a global clip lands for every other company and on the logged-out
-//      /training page, which is why the UI says so before they save one.
+//   2. A platform admin (Owner) may edit or remove any clip.
+//   3. A company Admin may edit or remove any clip their company can SEE (supabase/56).
 //
-// Insert is deliberately NOT this rule: only a platform admin can put a new clip in
-// the global tier (see mediaRow's isGlobal and supabase/56's insert policy). Editing
-// what Steadwerk published is not the same right as publishing to every tenant.
+// Rule 3 used to mean "their own company's private clips, plus Steadwerk's global
+// ones". After supabase/60 there is one library and every company sees all of it, so
+// rule 3 now reaches EVERY clip: an edit or a delete by any company's Admin lands for
+// every other company and on the logged-out /training page, and a delete clears every
+// company's assignments and read receipts for it. 60 left that reach in place on
+// purpose — the UI warns before an edit, and narrowing it is a decision still to be
+// made. companyId is no longer consulted, because there is no row a company can see
+// but not write; it stays in the signature so the caller does not have to change when
+// that decision lands.
 //
-// This decides which BUTTONS appear. The row-write policies in supabase/56 are what
-// actually enforce it; a hidden button stops nobody.
-export function canEditMedia(
-  clip,
-  { isPlatformAdmin = false, isCompanyAdmin = false, companyId = null } = {},
-) {
+// This decides which BUTTONS appear. The row-write policies in supabase/56, still
+// live, are what actually enforce it; a hidden button stops nobody.
+export function canEditMedia(clip, { isPlatformAdmin = false, isCompanyAdmin = false } = {}) {
   if (!clip || clip.bundled) return false;
-  if (isPlatformAdmin) return true;
-  if (!isCompanyAdmin) return false;
-  return clip.is_global === true || (!!companyId && clip.company_id === companyId);
+  return isPlatformAdmin === true || isCompanyAdmin === true;
 }
 
-// Bundled clips first, then company uploads by sort order and then upload time, so the
-// product tour stays at the top of the page it explains.
+// Bundled clips first, then the uploaded library by sort order and then upload time, so
+// the product tour stays at the top of the page it explains.
 export function orderedMedia(bundled = [], uploaded = []) {
   const mine = [...uploaded].sort((a, b) => {
     const s = (a?.sort_order ?? 0) - (b?.sort_order ?? 0);

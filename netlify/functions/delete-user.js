@@ -1,5 +1,6 @@
 // netlify/functions/delete-user.js
-// Admin-only: removes a user from the CALLER'S company.
+// Removes a user from the CALLER'S company. Requires admin, or the users_manage
+// permission — see _shared/userAdmin.js for what a non-admin delegate may do.
 //
 // The semantics changed with multi-tenancy, and the old behaviour is now a bug.
 //
@@ -11,7 +12,8 @@
 // So: revoke the membership. Only if that was their LAST membership anywhere is the
 // underlying account actually deleted, because at that point nothing else refers to it.
 
-import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
+import { resolveUserAdmin, targetGuardError } from "./_shared/userAdmin.js";
 import { withSentry } from "./_shared/sentry.js";
 
 const rawHandler = async (event) => {
@@ -44,8 +46,13 @@ const rawHandler = async (event) => {
       body: JSON.stringify({ error: callerError.message }),
     };
   }
-  if (!isCompanyAdmin(caller)) {
-    return { statusCode: 403, headers, body: JSON.stringify({ error: "Admin access required" }) };
+  const { fullAdmin, error: authzError } = await resolveUserAdmin(admin, caller);
+  if (authzError) {
+    return {
+      statusCode: authzError.status,
+      headers,
+      body: JSON.stringify({ error: authzError.message }),
+    };
   }
   if (targetUserId === caller.userId) {
     return {
@@ -61,7 +68,7 @@ const rawHandler = async (event) => {
     // heard of — the service-role key would let them.
     const { data: targetMembership } = await admin
       .from("memberships")
-      .select("user_id")
+      .select("user_id, role")
       .eq("user_id", targetUserId)
       .eq("company_id", caller.companyId)
       .maybeSingle();
@@ -72,6 +79,16 @@ const rawHandler = async (event) => {
         headers,
         body: JSON.stringify({ error: "That user is not a member of your company." }),
       };
+    }
+
+    // Rule 2. Without this a delegate could remove every admin in the company —
+    // the exact outage supabase/59_last_admin_guard.sql exists to prevent, except
+    // reached through a supported button instead of hand-written SQL.
+    const guardError = await targetGuardError(admin, caller, targetUserId, fullAdmin, {
+      knownRole: targetMembership.role ?? null,
+    });
+    if (guardError) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: guardError }) };
     }
 
     // Company-scoped cleanup only. Their overrides at another company are none of

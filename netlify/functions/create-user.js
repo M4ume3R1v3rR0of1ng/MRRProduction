@@ -1,5 +1,6 @@
 // netlify/functions/create-user.js
-// Admin-only: adds a user to the CALLER'S company.
+// Adds a user to the CALLER'S company. Requires admin, or the users_manage
+// permission — see _shared/userAdmin.js for what a non-admin delegate may do.
 //
 // Two paths, because a person can now belong to more than one company:
 //   - Email is new to the platform  -> create the auth account, then add a membership.
@@ -13,11 +14,11 @@ import { Resend } from "resend";
 import {
   adminClient,
   resolveCaller,
-  isCompanyAdmin,
   corsHeaders,
   appOrigin,
   platformFromAddress,
 } from "./_shared/tenant.js";
+import { resolveUserAdmin, roleAssignmentError, targetGuardError } from "./_shared/userAdmin.js";
 import { validatePassword } from "./_shared/password.js";
 import { withSentry } from "./_shared/sentry.js";
 
@@ -152,8 +153,20 @@ const rawHandler = async (event) => {
       body: JSON.stringify({ error: callerError.message }),
     };
   }
-  if (!isCompanyAdmin(caller)) {
-    return { statusCode: 403, headers, body: JSON.stringify({ error: "Admin access required" }) };
+  // An admin, the platform owner, or someone the company granted users_manage.
+  const { fullAdmin, error: authzError } = await resolveUserAdmin(admin, caller);
+  if (authzError) {
+    return {
+      statusCode: authzError.status,
+      headers,
+      body: JSON.stringify({ error: authzError.message }),
+    };
+  }
+  // A delegate adding an admin would be adding themselves a way up. See rule 1
+  // in _shared/userAdmin.js.
+  const roleError = roleAssignmentError(role, fullAdmin);
+  if (roleError) {
+    return { statusCode: 403, headers, body: JSON.stringify({ error: roleError }) };
   }
 
   const targetEmail = email.trim().toLowerCase();
@@ -177,11 +190,28 @@ const rawHandler = async (event) => {
     if (userId) {
       const { data: mem } = await admin
         .from("memberships")
-        .select("user_id")
+        .select("user_id, role")
         .eq("user_id", userId)
         .eq("company_id", caller.companyId)
         .maybeSingle();
       alreadyMember = !!mem;
+
+      // "Add" doubles as re-invite: the membership below is an upsert, so adding
+      // an address that is already on the roster rewrites that person's role. For
+      // a delegate that is a demotion path around set_member_role() — re-add the
+      // company's admin as an employee and their admin rights are gone. Rule 2.
+      if (alreadyMember) {
+        const guardError = await targetGuardError(admin, caller, userId, fullAdmin, {
+          knownRole: mem?.role ?? null,
+          // Re-adding yourself changes nothing about your own access unless the
+          // role moves, and roleAssignmentError already refuses the only move
+          // that would matter.
+          allowSelf: true,
+        });
+        if (guardError) {
+          return { statusCode: 403, headers, body: JSON.stringify({ error: guardError }) };
+        }
+      }
     }
     if (!alreadyMember && !caller.isPlatformAdmin) {
       const { data: co } = await admin

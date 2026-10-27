@@ -114,6 +114,7 @@ in SQL, change it there too.
 | 57  | `57_top_up_pulled_job_line.sql`               | Replaces 52's function so a line that has ALREADY been pulled can take more ("pulled 6 OSB, need 9 more"): a second FIFO draw appended to the same line, with `planned` revised and a `toppedUp` stamp. Closes the loop where 52 and 51 each refused it and named the other.                                        |
 | 58  | `58_acculynx_server_retry.sql`                | The AccuLynx sync stops being a person's job: `acculynx_sync_candidates()` plus an attempt counter let an hourly function (`netlify/functions/acculynx-retry-sync.js`) finish the paperwork no browser finished. A changed PO resets the counter. Also grants `jobs_close` to `warehouse` in `default_job_perms()`. |
 | 59  | `59_last_admin_guard.sql`                     | **Optional.** Refuses to delete, deactivate or demote a company's last active admin while other members remain. Exempts company deletion, service_role and an explicit per-transaction opt-out.                                                                                                                     |
+| 62  | `62_delegated_user_management.sql`            | **Required if you grant "Manage Users" to a non-admin role.** `set_member_role()` now accepts `has_perm('users_manage')`, not just the literal `admin` role — with three refusals: no granting admin, no touching an admin's membership, no changing your own role. Mirrored in `_shared/userAdmin.js`.             |
 
 ## Adding a migration
 

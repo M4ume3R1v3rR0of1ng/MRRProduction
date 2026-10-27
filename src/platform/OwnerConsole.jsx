@@ -31,6 +31,7 @@ import {
   EmptyState,
   LoadingState,
 } from "@/shared/components/UIPrimitives";
+import InventoryLibraryCard from "./InventoryLibraryCard";
 
 // Same duplication note as the pricing block atop LandingPage.jsx and the pricing
 // constants in supabase/30_platform_revenue.sql: these dollar figures must match
@@ -723,6 +724,14 @@ export default function OwnerConsole({ user, lang = "en" }) {
           </tbody>
         </Table>
       </Card>
+
+      {/* ── Shared inventory library ──
+          The generic positions every company is offered at signup (supabase/61).
+          Its own component because this file is long enough, and because nothing
+          else here reads a line of its state. Safe to edit freely: a company's
+          import COPIES these rows, so changes here only affect FUTURE imports —
+          unlike the training library, where one row is live for every tenant. */}
+      <InventoryLibraryCard user={user} lang={lang} />
 
       {/* ── Platform administrators ──
           Only a platform admin can grant/revoke this role (enforced by the RPC),

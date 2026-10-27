@@ -403,6 +403,11 @@ begin
   -- Probed by its GUARD, not by its policies: 56 replaces 45's one FOR ALL policy
   -- with three narrower ones, and a policy probe would have to read definitions to
   -- tell the two states apart. training_media_global_guard() exists only in 56.
+  --
+  -- 60 rewrites that function in place, keeping the name. So this probe reads
+  -- 'verified' on a database carrying 60, which is correct — 56 did run, and its
+  -- update and delete policies are still what govern writes here — but it says
+  -- nothing about which VISIBILITY rule is live. The 60 probe below answers that.
   perform public._mig_record('56_training_media_admin_edit_all.sql',
     public._mig_has_function('training_media_global_guard'),
     'function training_media_global_guard');
@@ -433,6 +438,50 @@ begin
   perform public._mig_record('58_acculynx_server_retry.sql (warehouse close)',
     coalesce((public.default_job_perms('warehouse') ->> 'jobs_close')::boolean, false),
     'default_job_perms(warehouse).jobs_close is true');
+
+  -- Probed by the COLUMN DEFAULT, because 60 reuses 45's column and 56's function
+  -- name and replaces same-named policies — existence proves nothing about which
+  -- rule is live. is_global defaults to false under 45 and true under 60, and that
+  -- one difference is what separates "every upload is private to one company" from
+  -- "every upload is published to all of them". Reading this wrong means believing
+  -- the training library is shared when new clips still land visible only to
+  -- whichever tenant the Owner uploaded them from.
+  --
+  -- 'verified' here says the library is shared. It says nothing about who may
+  -- write to it: 60 left 56's update and delete policies in place on purpose, so a
+  -- verified 60 also means any company's Admin can edit or delete any clip in it.
+  -- See point 2 of 60's header.
+  perform public._mig_record('60_training_media_one_shared_library.sql',
+    coalesce((
+      select column_default = 'true'
+      from information_schema.columns
+      where table_schema = 'public' and table_name = 'training_media'
+        and column_name = 'is_global'
+    ), false),
+    'training_media.is_global defaults to true');
+
+  -- Probed by the table, which only 61 creates — no earlier file makes an
+  -- inventory_catalog, so unlike 60 there is no older state to be confused with
+  -- and existence is proof enough. The ROW COUNT is deliberately not probed: 61's
+  -- seed is a starting point Steadwerk edits and prunes, so 'how many positions'
+  -- says nothing about whether the file ran.
+  perform public._mig_record('61_inventory_catalog.sql',
+    public._mig_has_table('inventory_catalog'),
+    'table inventory_catalog');
+
+  -- 62 replaces set_member_role() rather than adding anything, so
+  -- _mig_has_function would report 'present' against 03's version and tell the
+  -- reader nothing — the same trap 11 and 13 fell into and were moved out of the
+  -- probed list for. The body is what changed, so the body is what gets probed:
+  -- only 62's version mentions users_manage.
+  perform public._mig_record('62_delegated_user_management.sql',
+    coalesce((
+      select pg_get_functiondef(p.oid) like '%users_manage%'
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'set_member_role'
+    ), false),
+    'set_member_role() honours users_manage');
 end $$;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists

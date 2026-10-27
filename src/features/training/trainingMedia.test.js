@@ -136,13 +136,16 @@ describe("mediaRow", () => {
     ).toBe("d@e.com");
   });
 
-  it("defaults to a private, company-scoped upload", () => {
-    expect(mediaRow({ title: "T", kind: "video", url: "u", user: {} }).is_global).toBe(false);
+  // The bug supabase/60 fixed: 45's default made every upload private to whichever
+  // tenant the Owner was working inside, so "the shared library" reached one company.
+  // There is no caller-supplied tier any more and no way to write a hidden row.
+  it("always publishes the clip to every company", () => {
+    expect(mediaRow({ title: "T", kind: "video", url: "u", user: {} }).is_global).toBe(true);
   });
 
-  it("only marks a clip global when told to", () => {
+  it("ignores a caller trying to hide a clip", () => {
     expect(
-      mediaRow({ title: "T", kind: "video", url: "u", user: {}, isGlobal: true }).is_global,
+      mediaRow({ title: "T", kind: "video", url: "u", user: {}, isGlobal: false }).is_global,
     ).toBe(true);
   });
 });
@@ -151,21 +154,19 @@ describe("canEditMedia", () => {
   const owner = { isPlatformAdmin: true };
   const admin = { isCompanyAdmin: true, companyId: "c1" };
 
-  it("lets a platform admin edit anything in either tier", () => {
+  it("lets a platform admin edit any clip", () => {
     expect(canEditMedia({ id: "a", is_global: true }, owner)).toBe(true);
-    expect(canEditMedia({ id: "a", is_global: false, company_id: "c2" }, owner)).toBe(true);
+    expect(canEditMedia({ id: "a", is_global: true, company_id: "c2" }, owner)).toBe(true);
   });
 
-  it("lets a company admin edit their own company's clip", () => {
-    expect(canEditMedia({ id: "a", is_global: false, company_id: "c1" }, admin)).toBe(true);
-  });
-
-  it("lets a company admin edit a global clip too (supabase/56)", () => {
+  // 56's reach, which supabase/60 left in place: any clip the company can SEE. 60 made
+  // that every clip, so a company admin now reaches another company's upload too — the
+  // consequence of one shared library, and the thing to revisit when write permissions
+  // are narrowed.
+  it("lets a company admin edit any clip, whoever uploaded it", () => {
+    expect(canEditMedia({ id: "a", is_global: true, company_id: "c1" }, admin)).toBe(true);
     expect(canEditMedia({ id: "a", is_global: true, company_id: "steadwerk" }, admin)).toBe(true);
-  });
-
-  it("still refuses another company's private clip", () => {
-    expect(canEditMedia({ id: "a", is_global: false, company_id: "c2" }, admin)).toBe(false);
+    expect(canEditMedia({ id: "a", is_global: true, company_id: "c2" }, admin)).toBe(true);
   });
 
   it("refuses a bundled clip to everyone, platform admin included", () => {
@@ -173,9 +174,9 @@ describe("canEditMedia", () => {
     expect(canEditMedia({ id: "a", bundled: true, is_global: true }, admin)).toBe(false);
   });
 
-  it("refuses anyone who is not an admin", () => {
+  it("refuses everyone else", () => {
     expect(canEditMedia({ id: "a", is_global: true }, { companyId: "c1" })).toBe(false);
-    expect(canEditMedia({ id: "a", is_global: false, company_id: "c1" }, {})).toBe(false);
+    expect(canEditMedia({ id: "a", is_global: true }, {})).toBe(false);
   });
 
   it("survives junk input", () => {
@@ -183,8 +184,13 @@ describe("canEditMedia", () => {
     expect(canEditMedia({ id: "a", is_global: true })).toBe(false);
   });
 
-  it("does not take a missing company id as a match", () => {
-    expect(canEditMedia({ id: "a", is_global: false }, { isCompanyAdmin: true })).toBe(false);
+  it("does not take a truthy non-true flag as an admin of either kind", () => {
+    // TrainingView derives both flags with ===, so keep these strict: a stray "false"
+    // string or a 1 must not open the library up.
+    expect(canEditMedia({ id: "a" }, { isPlatformAdmin: "yes" })).toBe(false);
+    expect(canEditMedia({ id: "a" }, { isPlatformAdmin: 1 })).toBe(false);
+    expect(canEditMedia({ id: "a" }, { isCompanyAdmin: "admin" })).toBe(false);
+    expect(canEditMedia({ id: "a" }, { isCompanyAdmin: 1 })).toBe(false);
   });
 });
 

@@ -1,5 +1,6 @@
 // netlify/functions/reset-password.js
-// Admin-only: sets a new password for a user in the CALLER'S company.
+// Sets a new password for a user in the CALLER'S company. Requires admin, or the
+// users_manage permission — see _shared/userAdmin.js for the delegate rules.
 //
 // This one needs more care than it looks like it does.
 //
@@ -12,7 +13,8 @@
 // this company. Anyone else gets the self-serve reset-by-email flow, which proves
 // possession of the mailbox instead of trusting an admin.
 
-import { adminClient, resolveCaller, isCompanyAdmin, corsHeaders } from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders } from "./_shared/tenant.js";
+import { resolveUserAdmin, targetGuardError } from "./_shared/userAdmin.js";
 import { validatePassword } from "./_shared/password.js";
 import { withSentry } from "./_shared/sentry.js";
 import { checkRateLimit, rateLimitedResponse } from "./_shared/rateLimit.js";
@@ -51,8 +53,13 @@ const rawHandler = async (event) => {
       body: JSON.stringify({ error: callerError.message }),
     };
   }
-  if (!isCompanyAdmin(caller)) {
-    return { statusCode: 403, headers, body: JSON.stringify({ error: "Admin access required" }) };
+  const { fullAdmin, error: authzError } = await resolveUserAdmin(admin, caller);
+  if (authzError) {
+    return {
+      statusCode: authzError.status,
+      headers,
+      body: JSON.stringify({ error: authzError.message }),
+    };
   }
 
   // Defense in depth, not the primary control: this action already requires a
@@ -65,17 +72,28 @@ const rawHandler = async (event) => {
   try {
     const { data: memberships } = await admin
       .from("memberships")
-      .select("company_id")
+      .select("company_id, role")
       .eq("user_id", targetUserId);
 
     const companies = memberships || [];
 
-    if (!companies.some((m) => m.company_id === caller.companyId)) {
+    const here = companies.find((m) => m.company_id === caller.companyId);
+    if (!here) {
       return {
         statusCode: 404,
         headers,
         body: JSON.stringify({ error: "That user is not a member of your company." }),
       };
+    }
+
+    // Rule 2, and the sharpest case for it: a password unlocks the whole account.
+    // A delegate who could reset an admin's password would simply sign in as that
+    // admin, which hands them everything the delegate rules withhold.
+    const guardError = await targetGuardError(admin, caller, targetUserId, fullAdmin, {
+      knownRole: here.role ?? null,
+    });
+    if (guardError) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: guardError }) };
     }
 
     // The takeover guard described above. A platform admin (you) is exempt — you
