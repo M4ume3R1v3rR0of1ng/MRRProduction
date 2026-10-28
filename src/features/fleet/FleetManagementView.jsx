@@ -1450,6 +1450,7 @@ export default function FleetManagementView({
           vehs={vehs}
           user={user}
           preVid={reqVid}
+          lang={lang}
           onSave={saveServiceRequest}
           onClose={() => {
             setReqModal(false);
@@ -1467,7 +1468,12 @@ export default function FleetManagementView({
       )}
 
       {isInspectOpen && (
-        <InspectionModal vehs={vehs} user={user} onClose={() => setIsInspectOpen(false)} />
+        <InspectionModal
+          vehs={vehs}
+          user={user}
+          lang={lang}
+          onClose={() => setIsInspectOpen(false)}
+        />
       )}
 
       {swapReq && (

@@ -27,8 +27,43 @@ import {
   Grid,
 } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
+import { translations } from "@/shared/utils/translations";
 
-export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClose, preVid }) {
+// The service types a request can carry. These English strings are the stored
+// VALUE: they go into the database, show up in the Maintenance queue and get
+// printed on the completion PDF, so they are deliberately NOT translated.
+// serviceLabel below translates only what the person filing the request reads,
+// which is the same split 94fc565 drew for a note typed in the cab.
+const TRUCK_SERVICES = [
+  "Oil Change",
+  "Tire Rotation",
+  "Brake Service",
+  "AC / Heat Issue",
+  "Electrical Issue",
+  "Engine Issue",
+  "Repair",
+  "Inspection",
+  "Other",
+];
+const TRAILER_SERVICES = [
+  "Tire Check",
+  "Brake Check",
+  "Lighting Issue",
+  "Hitch / Coupler Issue",
+  "Repair",
+  "Inspection",
+  "Other",
+];
+
+export default function MaintenanceRequestModal({
+  vehs = [],
+  user,
+  onSave,
+  onClose,
+  preVid,
+  lang = "en",
+}) {
+  const t = translations[lang] || translations.en;
   const [form, setForm] = useState({
     vid: preVid || "",
     type: [],
@@ -37,14 +72,28 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
     mileage: "",
   });
   const selV = vehs.find((v) => v.id === form.vid);
+  // Spelled out rather than looked up as t[key], so every key stays greppable.
+  const serviceLabel = (svc) =>
+    ({
+      "Oil Change": t.svcOilChange,
+      "Tire Rotation": t.svcTireRotation,
+      "Brake Service": t.svcBrakeService,
+      "AC / Heat Issue": t.svcACHeat,
+      "Electrical Issue": t.svcElectrical,
+      "Engine Issue": t.svcEngine,
+      "Tire Check": t.svcTireCheck,
+      "Brake Check": t.svcBrakeCheck,
+      "Lighting Issue": t.svcLighting,
+      "Hitch / Coupler Issue": t.svcHitchCoupler,
+      Repair: t.svcRepair,
+      Inspection: t.svcInspection,
+      Other: t.svcOther,
+    })[svc] || svc;
   const { showToast } = useNotify();
 
   const submit = () => {
     if (!form.vid || !Array.isArray(form.type) || form.type.length === 0 || !form.notes.trim()) {
-      showToast(
-        "Please select a vehicle, at least one service type, and describe the issue.",
-        "info",
-      );
+      showToast(t.mrIncompleteErr, "info");
       return;
     }
     const v = vehs.find((x) => x.id === form.vid);
@@ -72,7 +121,7 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
     <Modal
       title={
         <Row gap={3}>
-          <Wrench size={17} aria-hidden="true" /> Submit Maintenance Request
+          <Wrench size={17} aria-hidden="true" /> {t.mrTitle}
         </Row>
       }
       onClose={onClose}
@@ -91,16 +140,16 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
           fontWeight: "var(--weight-semibold)",
         }}
       >
-        Your request goes to the maintenance queue for scheduling.
+        {t.mrQueueNote}
       </Card>
-      <Fld label="Vehicle *">
+      <Fld label={t.mrVehicleLabel}>
         <Sel
           value={form.vid}
           onChange={
             (e) => setForm({ ...form, vid: e.target.value, type: [] }) // Flushes checkbox state on toggle
           }
         >
-          <option value="">— Select a vehicle —</option>
+          <option value="">{t.mrSelectVehicle}</option>
           {vehs.map((v) => (
             <option key={v.id} value={v.id}>
               {v.name} — {v.yr} {v.make} {v.model} ({v.plate})
@@ -111,35 +160,14 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
       {selV && (
         <>
           {/* ── MULTI-SELECT CHECKBOX GRID INTERACTION LAYER ── */}
-          <Fld label="Service Types (Select all that apply) *">
+          <Fld label={t.mrServiceTypes}>
             <Callout as={Grid} bordered pad={5} gap={4}>
-              {(selV.type === "truck"
-                ? [
-                    "Oil Change",
-                    "Tire Rotation",
-                    "Brake Service",
-                    "AC / Heat Issue",
-                    "Electrical Issue",
-                    "Engine Issue",
-                    "Repair",
-                    "Inspection",
-                    "Other",
-                  ]
-                : [
-                    "Tire Check",
-                    "Brake Check",
-                    "Lighting Issue",
-                    "Hitch / Coupler Issue",
-                    "Repair",
-                    "Inspection",
-                    "Other",
-                  ]
-              ).map((t) => {
-                const isChecked = Array.isArray(form.type) && form.type.includes(t);
+              {(selV.type === "truck" ? TRUCK_SERVICES : TRAILER_SERVICES).map((svc) => {
+                const isChecked = Array.isArray(form.type) && form.type.includes(svc);
                 return (
                   <Row
                     as="label"
-                    key={t}
+                    key={svc}
                     gap={3}
                     style={{
                       fontSize: "var(--text-base)",
@@ -155,30 +183,30 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
                       onChange={() => {
                         const currentTypes = Array.isArray(form.type) ? form.type : [];
                         const nextTypes = isChecked
-                          ? currentTypes.filter((item) => item !== t)
-                          : [...currentTypes, t];
+                          ? currentTypes.filter((item) => item !== svc)
+                          : [...currentTypes, svc];
                         setForm({ ...form, type: nextTypes });
                       }}
                     />
-                    {t}
+                    {serviceLabel(svc)}
                   </Row>
                 );
               })}
             </Callout>
           </Fld>
 
-          <Fld label="Urgency">
+          <Fld label={t.osUrgency}>
             <Sel
               value={form.urgency}
               onChange={(e) => setForm({ ...form, urgency: e.target.value })}
             >
-              <option value="normal">Normal — Schedule when possible</option>
-              <option value="soon">Soon — Within the next few days</option>
-              <option value="urgent">Urgent — Safety concern / vehicle down</option>
+              <option value="normal">{t.mrUrgNormal}</option>
+              <option value="soon">{t.mrUrgSoon}</option>
+              <option value="urgent">{t.mrUrgUrgent}</option>
             </Sel>
           </Fld>
           {selV.type === "truck" && (
-            <Fld label="Current Mileage (optional)">
+            <Fld label={t.mrMileageLabel}>
               <Inp
                 type="number"
                 value={form.mileage}
@@ -186,21 +214,21 @@ export default function MaintenanceRequestModal({ vehs = [], user, onSave, onClo
               />
             </Fld>
           )}
-          <Fld label="Description / Notes *" hint="Be specific — what you hear, feel, or see.">
+          <Fld label={t.mrNotesLabel} hint={t.mrNotesHint}>
             <TA
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="e.g. Brakes grinding when stopping..."
+              placeholder={t.mrNotesPlaceholder}
             />
           </Fld>
         </>
       )}
       <Row gap={4}>
         <Btn v="ghost" onClick={onClose} style={{ flex: 1, justifyContent: "center" }}>
-          Cancel
+          {t.cancel}
         </Btn>
         <Btn v="purple" onClick={submit} style={{ flex: 1, justifyContent: "center" }}>
-          Submit Request <Bell size={14} aria-hidden="true" />
+          {t.mrSubmit} <Bell size={14} aria-hidden="true" />
         </Btn>
       </Row>
     </Modal>

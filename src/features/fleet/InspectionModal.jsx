@@ -21,6 +21,7 @@ import {
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
+import { translations } from "@/shared/utils/translations";
 
 const BLANK = { vehicleId: "", notes: "", photos: [] };
 
@@ -31,14 +32,15 @@ export const vehicleLabel = (vehs, vehicleId) => {
   return v ? `${v.name} (${v.plate})` : "Unknown Fleet Asset";
 };
 
-export default function InspectionModal({ vehs = [], user, onClose }) {
+export default function InspectionModal({ vehs = [], user, onClose, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const [form, setForm] = useState(BLANK);
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useNotify();
 
   const submit = async () => {
     if (!form.vehicleId) {
-      showToast("Please select a vehicle asset for inspection logging.", "error");
+      showToast(t.inspNoVehicleErr, "error");
       return;
     }
     setSubmitting(true);
@@ -66,11 +68,11 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
         "fleet",
       );
 
-      showToast("Inspection records and photos committed successfully!", "success");
+      showToast(t.inspSavedOk, "success");
       setForm(BLANK);
       onClose?.();
     } catch (err) {
-      showToast(`Database Transaction Blocked: ${err.message}`, "error");
+      showToast(`${t.inspSaveFail} ${err.message}`, "error");
     } finally {
       setSubmitting(false);
     }
@@ -80,7 +82,7 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
     <Modal
       title={
         <Row as="span">
-          <ClipboardList size={17} aria-hidden="true" /> File Vehicle Condition & Inspection Report
+          <ClipboardList size={17} aria-hidden="true" /> {t.inspTitle}
         </Row>
       }
       onClose={() => {
@@ -89,13 +91,13 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
       wide
     >
       <Stack gap={6}>
-        <Fld label="Select Fleet Vehicle *">
+        <Fld label={t.inspVehicleLabel}>
           <Sel
             value={form.vehicleId}
             onChange={(e) => setForm({ ...form, vehicleId: e.target.value })}
             disabled={submitting}
           >
-            <option value="">-- Choose Fleet Vehicle --</option>
+            <option value="">{t.inspChooseVehicle}</option>
             {vehs.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.name} — {v.yr} {v.make} ({v.plate})
@@ -104,16 +106,16 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
           </Sel>
         </Fld>
 
-        <Fld label="Inspection Assessments & Condition Notes">
+        <Fld label={t.inspNotesLabel}>
           <TA
-            placeholder="Log structural inspection results, provider diagnostics or general notes..."
+            placeholder={t.inspNotesPlaceholder}
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             disabled={submitting}
           />
         </Fld>
 
-        <Fld label="Upload Inspection Pictures / Condition Evidence">
+        <Fld label={t.inspPhotosLabel}>
           <Stack gap={3}>
             <PhotoUpload
               current={null}
@@ -138,7 +140,7 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
                   >
                     <img
                       src={img}
-                      alt="preview"
+                      alt={t.inspPhotoAlt}
                       style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
                     <button
@@ -180,7 +182,7 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
             onClick={onClose}
             disabled={submitting}
           >
-            Cancel
+            {t.cancel}
           </Btn>
           <Btn
             v="gold"
@@ -195,11 +197,11 @@ export default function InspectionModal({ vehs = [], user, onClose }) {
                   style={{ animation: "mrr-spin 0.7s linear infinite" }}
                   aria-hidden="true"
                 />{" "}
-                Saving Log Entry...
+                {t.inspSaving}
               </>
             ) : (
               <>
-                <Save size={14} aria-hidden="true" /> Commit Inspection Log
+                <Save size={14} aria-hidden="true" /> {t.inspSubmit}
               </>
             )}
           </Btn>
