@@ -1106,6 +1106,7 @@ export default function MaintenanceRequestsView({
 
       {completeServiceReq && (
         <CompleteServiceModal
+          lang={lang}
           req={completeServiceReq}
           vehs={vehs}
           users={users}

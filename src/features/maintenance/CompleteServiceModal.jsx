@@ -27,6 +27,7 @@ import {
   Grid,
 } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
+import { translations } from "@/shared/utils/translations";
 
 const SERVICE_TYPES = [
   "Oil Change",
@@ -57,7 +58,24 @@ export default function CompleteServiceModal({
   user,
   onSubmit,
   onClose,
+  lang = "en",
 }) {
+  const t = translations[lang] || translations.en;
+  // Stored value -> label, the same split MaintenanceRequestModal draws: the
+  // English string goes to the service log, only the option text translates.
+  const serviceLabel = (svc) =>
+    ({
+      "Oil Change": t.svcOilChange,
+      "Tire Rotation": t.svcTireRotation,
+      "Brake Service": t.svcBrakeService,
+      "AC / Heat Repair": t.svcACHeatRepair,
+      "Electrical Repair": t.svcElectricalRepair,
+      "Engine Repair": t.svcEngineRepair,
+      "General Repair": t.svcGeneralRepair,
+      Detail: t.svcDetail,
+      Inspection: t.svcInspection,
+      Other: t.svcOther,
+    })[svc] || svc;
   const veh = vehs.find((v) => v.id === req.vid);
   const currentDriver = veh?.assignedTo ? users.find((u) => u.id === veh.assignedTo) : null;
   const { showToast } = useNotify();
@@ -77,18 +95,15 @@ export default function CompleteServiceModal({
 
   const submit = async () => {
     const missing = [];
-    if (!form.serviceType) missing.push("service type");
-    if (!form.serviceDate) missing.push("service date");
-    if (!form.performedBy.trim()) missing.push("performed by");
+    if (!form.serviceType) missing.push(t.csFieldServiceType);
+    if (!form.serviceDate) missing.push(t.csFieldServiceDate);
+    if (!form.performedBy.trim()) missing.push(t.csFieldPerformedBy);
     if (missing.length) {
-      showToast(`Please fill in: ${missing.join(", ")}.`, "warning");
+      showToast(`${t.csMissingPrefix} ${missing.join(", ")}.`, "warning");
       return;
     }
     if (form.mileage && veh && parseFloat(form.mileage) < (parseFloat(veh.mi) || 0)) {
-      showToast(
-        `Odometer can't be behind the vehicle's last logged mileage (${(veh.mi || 0).toLocaleString()}).`,
-        "warning",
-      );
+      showToast(t.csOdometerBehind.replace("{n}", (veh.mi || 0).toLocaleString()), "warning");
       return;
     }
 
@@ -111,7 +126,7 @@ export default function CompleteServiceModal({
       });
       onClose();
     } catch (err) {
-      showToast(`Failed to complete service: ${err.message}`, "error");
+      showToast(`${t.csFailed} ${err.message}`, "error");
     } finally {
       setSubmitting(false);
     }
@@ -121,7 +136,7 @@ export default function CompleteServiceModal({
     <Modal
       title={
         <Row gap={3}>
-          <CheckCircle2 size={17} aria-hidden="true" /> Complete Service — {req.vname}
+          <CheckCircle2 size={17} aria-hidden="true" /> {t.csTitlePrefix} {req.vname}
         </Row>
       }
       onClose={onClose}
@@ -139,7 +154,7 @@ export default function CompleteServiceModal({
               fontSize: "var(--text-sm)",
             }}
           >
-            <strong>Scheduling notes:</strong> {req.wh_notes}
+            <strong>{t.csSchedulingNotes}</strong> {req.wh_notes}
           </Card>
         )}
         {req.replacement_vehicle_id && (
@@ -156,26 +171,25 @@ export default function CompleteServiceModal({
               fontWeight: "var(--weight-semibold)",
             }}
           >
-            A spare was lent while this truck was in for service. Completing it returns the original
-            driver automatically — pick a driver below only if that's not what you want.
+            {t.csSpareNote}
           </Card>
         )}
 
         <Grid gap={4}>
-          <Fld label="Service Performed *">
+          <Fld label={t.csServicePerformed}>
             <Sel
               value={form.serviceType}
               onChange={(e) => setForm({ ...form, serviceType: e.target.value })}
             >
-              <option value="">— Select —</option>
-              {SERVICE_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              <option value="">{t.csSelect}</option>
+              {SERVICE_TYPES.map((svc) => (
+                <option key={svc} value={svc}>
+                  {serviceLabel(svc)}
                 </option>
               ))}
             </Sel>
           </Fld>
-          <Fld label="Service Date *">
+          <Fld label={t.csServiceDate}>
             <Inp
               type="date"
               value={form.serviceDate}
@@ -185,14 +199,14 @@ export default function CompleteServiceModal({
         </Grid>
 
         <Grid gap={4}>
-          <Fld label="Performed By *">
+          <Fld label={t.csPerformedBy}>
             <Inp
               value={form.performedBy}
               onChange={(e) => setForm({ ...form, performedBy: e.target.value })}
-              placeholder="Shop or technician name"
+              placeholder={t.csPerformedByPlaceholder}
             />
           </Fld>
-          <Fld label="Cost" hint="Optional">
+          <Fld label={t.colCost} hint={t.csCostHint}>
             <Inp
               type="number"
               min="0"
@@ -206,8 +220,8 @@ export default function CompleteServiceModal({
 
         {veh && veh.type === "truck" && (
           <Fld
-            label="Odometer at Completion"
-            hint={`Optional — last logged: ${(veh.mi || 0).toLocaleString()} mi`}
+            label={t.csOdometer}
+            hint={t.csOdometerHint.replace("{n}", (veh.mi || 0).toLocaleString())}
           >
             <Inp
               type="number"
@@ -218,31 +232,28 @@ export default function CompleteServiceModal({
           </Fld>
         )}
 
-        <Fld
-          label="Resolution Notes"
-          hint="What was found and fixed — this replaces the ticket's scheduling notes."
-        >
+        <Fld label={t.csResolutionNotes} hint={t.csResolutionHint}>
           <TA
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            placeholder="e.g. Replaced front brake pads, bled lines..."
+            placeholder={t.csResolutionPlaceholder}
           />
         </Fld>
 
         <Fld
-          label="Driver"
+          label={t.osDriver}
           hint={
             currentDriver
-              ? `Currently assigned: ${currentDriver.name || currentDriver.email}`
-              : "No driver currently assigned"
+              ? t.csDriverAssigned.replace("{name}", currentDriver.name || currentDriver.email)
+              : t.csDriverNone
           }
         >
           <Sel
             value={form.driverChoice}
             onChange={(e) => setForm({ ...form, driverChoice: e.target.value })}
           >
-            <option value="unchanged">— No change —</option>
-            <option value="clear">Remove driver</option>
+            <option value="unchanged">{t.csNoChange}</option>
+            <option value="clear">{t.csRemoveDriver}</option>
             {users
               .filter((u) => u.active !== false)
               .map((u) => (
@@ -260,7 +271,7 @@ export default function CompleteServiceModal({
             style={{ flex: 1, justifyContent: "center" }}
             disabled={submitting}
           >
-            Cancel
+            {t.cancel}
           </Btn>
           <Btn
             v="green"
@@ -269,10 +280,10 @@ export default function CompleteServiceModal({
             disabled={submitting}
           >
             {submitting ? (
-              "Completing…"
+              t.csCompleting
             ) : (
               <>
-                <CheckCircle2 size={14} aria-hidden="true" /> Complete Service
+                <CheckCircle2 size={14} aria-hidden="true" /> {t.csComplete}
               </>
             )}
           </Btn>

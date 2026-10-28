@@ -15,6 +15,7 @@ import { uid, todayLocal } from "@/shared/utils/helpers";
 import { Btn, Fld, Inp, Modal, Sel, Row, Grid } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
+import { translations } from "@/shared/utils/translations";
 
 const BLANK = {
   name: "",
@@ -57,7 +58,8 @@ export const buildVehicle = (form) => {
   };
 };
 
-export default function AddVehicleModal({ user, onCreated, onClose }) {
+export default function AddVehicleModal({ user, onCreated, onClose, lang = "en" }) {
+  const t = translations[lang] || translations.en;
   const [form, setForm] = useState(BLANK);
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useNotify();
@@ -69,7 +71,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
 
   const save = async () => {
     if (!form.name.trim() || !form.plate.trim()) {
-      showToast("Please enter at least a name/nickname and license plate.", "warning");
+      showToast(t.avMissingErr, "warning");
       return;
     }
     setSubmitting(true);
@@ -89,11 +91,11 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
         "fleet",
       );
 
-      showToast("Vehicle added to the fleet roster.", "success");
+      showToast(t.avAddedOk, "success");
       setForm(BLANK);
       onClose?.();
     } catch (err) {
-      showToast(`Database Error: Could not add vehicle. ${err.message}`, "error");
+      showToast(`${t.avAddFail} ${err.message}`, "error");
     } finally {
       setSubmitting(false);
     }
@@ -103,31 +105,31 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
     <Modal
       title={
         <Row gap={3}>
-          <Truck size={17} aria-hidden="true" /> Register New Fleet Vehicle
+          <Truck size={17} aria-hidden="true" /> {t.avTitle}
         </Row>
       }
       onClose={close}
     >
-      <Fld label="Name / Nickname *">
+      <Fld label={t.avNameLabel}>
         <Inp
           value={form.name}
           onChange={(e) => set({ name: e.target.value })}
-          placeholder="e.g. Truck 013"
+          placeholder={t.avNamePlaceholder}
           disabled={submitting}
         />
       </Fld>
-      <Fld label="Type">
+      <Fld label={t.avTypeLabel}>
         <Sel
           value={form.type}
           onChange={(e) => set({ type: e.target.value })}
           disabled={submitting}
         >
-          <option value="truck">Truck</option>
-          <option value="trailer">Trailer</option>
+          <option value="truck">{t.flTruck}</option>
+          <option value="trailer">{t.flTrailer}</option>
         </Sel>
       </Fld>
       <Grid cols={3} gap={3}>
-        <Fld label="Year">
+        <Fld label={t.flYear}>
           <Inp
             type="number"
             value={form.yr}
@@ -135,14 +137,14 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
             disabled={submitting}
           />
         </Fld>
-        <Fld label="Make">
+        <Fld label={t.flMake}>
           <Inp
             value={form.make}
             onChange={(e) => set({ make: e.target.value })}
             disabled={submitting}
           />
         </Fld>
-        <Fld label="Model">
+        <Fld label={t.flModel}>
           <Inp
             value={form.model}
             onChange={(e) => set({ model: e.target.value })}
@@ -150,7 +152,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
           />
         </Fld>
       </Grid>
-      <Fld label="License Plate *">
+      <Fld label={t.avPlateLabel}>
         <Inp
           value={form.plate}
           onChange={(e) => set({ plate: e.target.value })}
@@ -159,7 +161,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
       </Fld>
       {form.type === "truck" && (
         <Grid gap={3}>
-          <Fld label="Starting Mileage">
+          <Fld label={t.avStartMileage}>
             <Inp
               type="number"
               value={form.mi}
@@ -167,7 +169,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
               disabled={submitting}
             />
           </Fld>
-          <Fld label="Oil Change Interval (mi)">
+          <Fld label={t.avOilInterval}>
             <Inp
               type="number"
               value={form.oii}
@@ -177,7 +179,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
           </Fld>
         </Grid>
       )}
-      <Fld label="Detail Interval (days)">
+      <Fld label={t.avDetailInterval}>
         <Inp
           type="number"
           value={form.dii}
@@ -192,7 +194,7 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
           style={{ flex: 1, justifyContent: "center" }}
           disabled={submitting}
         >
-          Cancel
+          {t.cancel}
         </Btn>
         <Btn
           v="primary"
@@ -207,11 +209,11 @@ export default function AddVehicleModal({ user, onCreated, onClose }) {
                 style={{ animation: "mrr-spin 0.7s linear infinite" }}
                 aria-hidden="true"
               />{" "}
-              Saving...
+              {t.avSaving}
             </>
           ) : (
             <>
-              <Plus size={14} aria-hidden="true" /> Add Vehicle
+              <Plus size={14} aria-hidden="true" /> {t.avSubmit}
             </>
           )}
         </Btn>

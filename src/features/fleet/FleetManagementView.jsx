@@ -513,6 +513,7 @@ export default function FleetManagementView({
         </Card>
         {isAddVehicleOpen && (
           <AddVehicleModal
+            lang={lang}
             user={user}
             onCreated={(v) => setVehs((p) => [...p, v])}
             onClose={() => setIsAddVehicleOpen(false)}
@@ -1461,6 +1462,7 @@ export default function FleetManagementView({
 
       {isAddVehicleOpen && (
         <AddVehicleModal
+          lang={lang}
           user={user}
           onCreated={(v) => setVehs((p) => [...p, v])}
           onClose={() => setIsAddVehicleOpen(false)}
