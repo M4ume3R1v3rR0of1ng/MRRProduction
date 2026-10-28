@@ -244,12 +244,8 @@ export default function TrailerCalendar({
     <Card variant="raised" pad={8} style={{ marginTop: 16 }}>
       <WeekHeader
         icon={Calendar}
-        title="Weekly Trailer Booking Calendar"
-        subtitle={
-          canEdit
-            ? "Drag a booking to a different trailer or day to reassign it."
-            : "Read-only — you don't have permission to reassign trailer bookings."
-        }
+        title={t.tcTitle}
+        subtitle={canEdit ? t.tcDragHint : t.tcReadOnly}
         weekLabel={weekLabel}
         onShift={handleShiftWeek}
         onToday={handleGoToToday}
@@ -262,7 +258,7 @@ export default function TrailerCalendar({
         dayKey={toLocalDateKey}
         todayKey={todayString}
         labelIcon={Truck}
-        label="Trailer"
+        label={t.flTrailer}
         labelWidth={170}
       >
         {trailerRows.map((trailer) => (

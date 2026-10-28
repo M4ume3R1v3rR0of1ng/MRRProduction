@@ -904,18 +904,18 @@ export default function FleetManagementView({
                         {v.type === "truck" && (
                           <Bdg color={os === "overdue" ? "red" : os === "soon" ? "amber" : "green"}>
                             {os === "overdue"
-                              ? "Oil Overdue"
+                              ? t.flOilOverdue
                               : os === "soon"
-                                ? "Oil Soon"
-                                : "Oil OK"}
+                                ? t.flOilSoon
+                                : t.flOilOk}
                           </Bdg>
                         )}
                         <Bdg color={ds === "overdue" ? "red" : ds === "soon" ? "amber" : "green"}>
                           {ds === "overdue"
-                            ? "Detail Overdue"
+                            ? t.flDetailOverdue
                             : ds === "soon"
-                              ? "Detail Soon"
-                              : "Detail OK"}
+                              ? t.flDetailSoon
+                              : t.flDetailOk}
                         </Bdg>
                       </Row>
                     </Stack>
@@ -1028,7 +1028,7 @@ export default function FleetManagementView({
                 }}
               >
                 <Pencil size={13} aria-hidden="true" />{" "}
-                {isEditingInfo ? "Cancel Details Edit" : "Edit Vehicle Name/Plate"}
+                {isEditingInfo ? t.flCancelEdit : t.flEditInfo}
               </Btn>
             )}
             {perms.fleet_edit &&
@@ -1423,7 +1423,7 @@ export default function FleetManagementView({
             <TA
               value={groundReason}
               onChange={(e) => setGroundReason(e.target.value)}
-              placeholder="e.g. Blown transmission, waiting on parts"
+              placeholder={t.flGroundReasonPlaceholder}
             />
           </Fld>
           <Row gap={4} align="stretch">
