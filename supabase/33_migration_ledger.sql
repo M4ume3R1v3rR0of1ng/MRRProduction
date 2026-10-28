@@ -396,9 +396,25 @@ begin
     public._mig_has_function('add_and_pull_job_materials'),
     'function add_and_pull_job_materials');
 
+  -- 53 only adds two columns to 39's oil_due_notices, so the columns are the
+  -- probe rather than the table, which 39 creates. stall_last_sent_at is the
+  -- distinctive half: nothing before 53 has any notion of a stalled notice.
+  perform public._mig_record('53_oil_due_stall_escalation.sql',
+    public._mig_has_column('oil_due_notices', 'stall_last_sent_at')
+      and public._mig_has_column('oil_due_notices', 'paused_at'),
+    'oil_due_notices.stall_last_sent_at + paused_at');
+
   perform public._mig_record('54_billing_email.sql',
     public._mig_has_column('companies', 'billing_email'),
     'companies.billing_email');
+
+  -- Probed by the COLUMN, not by the four storage policies 55 also installs:
+  -- those reuse 05's names (tenant_objects_select and its siblings), which the
+  -- 05 probe above already reads, so they are true on a database that has only
+  -- 05 — the same trap as 11/13. chat_messages.photo_url appears only in 55.
+  perform public._mig_record('55_chat_photos.sql',
+    public._mig_has_column('chat_messages', 'photo_url'),
+    'chat_messages.photo_url');
 
   -- Probed by its GUARD, not by its policies: 56 replaces 45's one FOR ALL policy
   -- with three narrower ones, and a policy probe would have to read definitions to
@@ -438,6 +454,15 @@ begin
   perform public._mig_record('58_acculynx_server_retry.sql (warehouse close)',
     coalesce((public.default_job_perms('warehouse') ->> 'jobs_close')::boolean, false),
     'default_job_perms(warehouse).jobs_close is true');
+
+  -- 59 is optional (the README says so), which makes 'missing' here a decision
+  -- rather than a fault: it means this database will still let a company be left
+  -- with no active admin. Probed by the guard function, which no earlier file
+  -- creates under this or any other name; the trigger that calls it is created
+  -- in the same transaction, so one implies the other.
+  perform public._mig_record('59_last_admin_guard.sql',
+    public._mig_has_function('membership_last_admin_guard'),
+    'function membership_last_admin_guard');
 
   -- Probed by the COLUMN DEFAULT, because 60 reuses 45's column and 56's function
   -- name and replaces same-named policies — existence proves nothing about which
@@ -546,7 +571,7 @@ order by
   filename;
 
 -- ═════════════════════════════════════════════════════════════════════════════
--- The three that have to be confirmed by hand
+-- The five that have to be confirmed by hand
 --
 -- ── Check A · did 11_fix_admin_list.sql run? ─────────────────────────────────
 -- Read the installed source, do NOT call the function.
