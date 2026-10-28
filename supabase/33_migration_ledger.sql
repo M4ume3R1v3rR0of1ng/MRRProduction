@@ -540,6 +540,31 @@ on conflict (filename) do update
       note    = excluded.note,
       checked_at = excluded.checked_at;
 
+-- ── How far THIS COPY of the file reaches ───────────────────────────────────
+--
+-- The one failure mode the ledger could not report was itself being out of
+-- date. A copy sitting in a SQL Editor tab probes what it knew when it was
+-- saved and silently omits everything added since, so a newer migration does
+-- not read as unchecked — it does not appear at all. A run can therefore come
+-- back with no 'missing' rows and still leave several files unaccounted for,
+-- which looks exactly like a clean bill of health.
+--
+-- So the 33 row says which copy produced the output. Compare it against the
+-- highest-numbered file in supabase/: if this says less, the tab is stale and
+-- the answer is incomplete rather than good.
+--
+-- Self-maintaining on purpose, rather than a number somebody has to remember
+-- to bump: now() is fixed for the whole transaction, so checked_at = now()
+-- selects precisely the rows this run just wrote.
+update public.schema_migrations
+set note = 'this file — this copy probes through ' ||
+  coalesce((
+    select max((substring(filename from '^[0-9]+'))::int)::text
+    from public.schema_migrations
+    where checked_at = now()
+  ), '??')
+where filename = '33_migration_ledger.sql';
+
 commit;
 
 -- ═════════════════════════════════════════════════════════════════════════════
@@ -558,7 +583,7 @@ commit;
 --
 --   missing       this migration has NOT been run. The note says which object
 --                 was looked for and not found.
---   undetectable  cannot be probed. Confirm by hand with checks A, B and C below.
+--   undetectable  cannot be probed. Confirm by hand with checks A through E below.
 --   verified      the object that migration creates is present.
 -- ═════════════════════════════════════════════════════════════════════════════
 select

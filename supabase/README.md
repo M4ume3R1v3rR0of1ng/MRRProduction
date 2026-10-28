@@ -25,6 +25,14 @@ rows returned" with no grid at all, you are looking at an older copy of the file
 that ended on `commit;`: the Supabase SQL Editor only ever shows the result of
 the last statement, so that version did its work and reported nothing.
 
+A stale copy that _does_ print a grid is the subtler version of the same
+problem, and it looks like good news: it probes what it knew when it was saved
+and omits everything added since, so newer migrations are absent from the
+output rather than reported as `missing`. The `33` row names the copy that ran —
+its note reads `this copy probes through N`. If `N` is lower than the
+highest-numbered file in this directory, everything above `N` was never checked.
+Re-run the current file before believing a clean result.
+
 Five files leave no distinguishable trace and are marked `undetectable`: `11`
 and `13` are `create or replace` fixes over functions `06` and `12` already
 created, `22` is an optional data backfill, `23` is a one-off recovery whose only
