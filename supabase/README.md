@@ -25,10 +25,13 @@ rows returned" with no grid at all, you are looking at an older copy of the file
 that ended on `commit;`: the Supabase SQL Editor only ever shows the result of
 the last statement, so that version did its work and reported nothing.
 
-Three files leave no distinguishable trace and are marked `undetectable`:
-`11` and `13` are `create or replace` fixes over functions `06` and `12` already
-created, and `22` is an optional data backfill. Confirm those three by hand using
-checks A, B and C in the `Verify` block at the bottom of `33_migration_ledger.sql`.
+Five files leave no distinguishable trace and are marked `undetectable`: `11`
+and `13` are `create or replace` fixes over functions `06` and `12` already
+created, `22` is an optional data backfill, `23` is a one-off recovery whose only
+footprint was a backup table the file tells you to drop, and `42` is superseded
+wholesale by `45`, which drops its policy by name. Confirm those five by hand
+using checks A through E in the `Verify` block at the bottom of
+`33_migration_ledger.sql`.
 
 ## Rules
 
@@ -108,8 +111,14 @@ in SQL, change it there too.
 | 45  | `45_training_media_company_admin_edit.sql`    | `is_global` splits the library: Steadwerk's global tier (Owner/platform-admin only) alongside each company's own private tier, managed by that company's Admin. **Widened by 56.**                                                                                                                                  |
 | 46  | `46_training_media_unread.sql`                | `training_media_reads` — an unread badge on the sidebar's Training tab until a new clip is opened.                                                                                                                                                                                                                  |
 | 47  | `47_billing_contact_name.sql`                 | `companies.billing_contact_name` — the signer's name, distinct from the company name, so it can be pulled for custom billing emails.                                                                                                                                                                                |
+| 48  | `48_training_assignments.sql`                 | `training_assignments` — one row per (company, clip, person): assign a clip to named people with an optional due date, and record who actually watched it. 45 gave the crew a shelf where everything was equally optional; this directs one clip at one person.                                                     |
+| 49  | `49_training_due_notices.sql`                 | **Required if you use assignments.** Two sent-stamps on the assignment drive a heads-up before an assigned clip's due date and a daily nudge once it has passed. 48 showed the date inside the app, which only reached the person who did not need reminding.                                                       |
+| 50  | `50_inventory_count_cadence.sql`              | Widens `inventory_counts.period`'s check constraint to accept an ISO week (`2026-W41`) as well as a calendar month (`2026-10`). 20 wrote it month-only, so the database refused a weekly period before the app ever saw it. No column added, no row rewritten.                                                      |
 | 51  | `51_correct_job_pull.sql`                     | Lets a `jobs_pull` holder correct a wrong PULL: credits stock back to the exact batches it came from via the line's `consumed` split, and optionally pulls the right item instead, in one write.                                                                                                                    |
 | 52  | `52_add_and_pull_job_materials.sql`           | Lets a `jobs_pull` holder add material to a job that is already pulled and pull it in one write — the crew-needs-more-coil case that used to mean building a second job for the same roof. **Extended by 57.**                                                                                                      |
+| 53  | `53_oil_due_stall_escalation.sql`             | A filed maintenance request now PAUSES the oil-due escalation instead of silencing that cycle for good — filing one is a statement of intent, not an oil change. Adds `paused_at` and `stall_last_sent_at` to `oil_due_notices`.                                                                                    |
+| 54  | `54_billing_email.sql`                        | `companies.billing_email`. 47 added a billing contact name but no address to send to, and the Stripe customer's `email` was never written after creation — so an accounting address that changed could not be corrected anywhere in the app.                                                                        |
+| 55  | `55_chat_photos.sql`                          | `chat_messages.photo_url` and the storage policies behind it, so a photo sent to A.N.V.I.L. survives a reload. `chat.js` persisted the turn as the literal "[Photo attached]" and the image lived only in React state until the page went away.                                                                     |
 | 56  | `56_training_media_admin_edit_all.sql`        | Any company's Admin may now edit or remove a GLOBAL clip too, which lands for every tenant. Adding one stays Owner-only, and `training_media_global_guard()` holds the two tiers apart.                                                                                                                             |
 | 57  | `57_top_up_pulled_job_line.sql`               | Replaces 52's function so a line that has ALREADY been pulled can take more ("pulled 6 OSB, need 9 more"): a second FIFO draw appended to the same line, with `planned` revised and a `toppedUp` stamp. Closes the loop where 52 and 51 each refused it and named the other.                                        |
 | 58  | `58_acculynx_server_retry.sql`                | The AccuLynx sync stops being a person's job: `acculynx_sync_candidates()` plus an attempt counter let an hourly function (`netlify/functions/acculynx-retry-sync.js`) finish the paperwork no browser finished. A changed PO resets the counter. Also grants `jobs_close` to `warehouse` in `default_job_perms()`. |
