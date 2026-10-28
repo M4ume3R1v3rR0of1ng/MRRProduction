@@ -51,6 +51,10 @@
     "inline": 1,
     "hex": 0
   },
+  "src/features/inventory/AddFromLibraryModal.jsx": {
+    "inline": 1,
+    "hex": 0
+  },
   "src/features/inventory/BulkReceiveModal.jsx": {
     "inline": 1,
     "hex": 0
@@ -71,12 +75,12 @@
     "inline": 1,
     "hex": 0
   },
-  "src/features/jobs/JobHandoff.jsx": {
+  "src/features/jobs/AddPullMaterialsModal.jsx": {
     "inline": 2,
     "hex": 0
   },
-  "src/features/jobs/PullAddedMaterialsModal.jsx": {
-    "inline": 1,
+  "src/features/jobs/JobHandoff.jsx": {
+    "inline": 2,
     "hex": 0
   },
   "src/features/jobs/PullInventoryView.jsx": {
