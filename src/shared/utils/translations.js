@@ -149,6 +149,12 @@ export const translations = {
     invLibHaveAllTitle: "You already carry all of it",
     invLibHaveAllBody:
       "Every position in the shared library is already in your catalog. Anything else you need, add by hand.",
+    // The grid's own empty states. The first is what a company sees on day one,
+    // which is the moment the library is worth the most, so it names it.
+    invCatEmptyTitle: "Your catalog is empty",
+    invCatEmptyBody:
+      "Most of what you carry is already in the Steadwerk library — add it in one pass instead of typing every position in by hand.",
+    invCatNoMatch: "No items match that search or filter.",
     invPricingRestricted: "Pricing restricted",
     invSortAria: "Sort inventory",
     invSortNameAZ: "↕ Name — A to Z",
@@ -1754,6 +1760,10 @@ export const translations = {
     invLibHaveAllTitle: "Ya maneja todo",
     invLibHaveAllBody:
       "Todas las posiciones de la biblioteca compartida ya están en su catálogo. Lo que falte, agréguelo a mano.",
+    invCatEmptyTitle: "Su catálogo está vacío",
+    invCatEmptyBody:
+      "La mayoría de lo que usted maneja ya está en la biblioteca de Steadwerk: agréguelo de una sola vez en lugar de escribir cada artículo a mano.",
+    invCatNoMatch: "Ningún artículo coincide con esa búsqueda o filtro.",
     invPricingRestricted: "Precios restringidos",
     invSortAria: "Ordenar inventario",
     invSortNameAZ: "↕ Nombre — A a Z",

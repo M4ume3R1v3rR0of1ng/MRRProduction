@@ -182,8 +182,9 @@ export default function AddFromLibraryModal({ inv = [], user, onImported, onClos
           // empty library is Steadwerk's problem, whereas "you already have all of
           // it" is the happy ending.
           <EmptyState
+            well
             icon={Library}
-            title={catalog.length === 0 ? t.invLibEmptyTitle : t.invLibHaveAllTitle}
+            message={catalog.length === 0 ? t.invLibEmptyTitle : t.invLibHaveAllTitle}
             subtitle={catalog.length === 0 ? t.invLibEmptyBody : t.invLibHaveAllBody}
           />
         ) : (

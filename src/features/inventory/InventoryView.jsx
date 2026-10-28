@@ -27,6 +27,7 @@ import {
   Stack,
   Card,
   Meter,
+  EmptyState,
 } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
@@ -558,6 +559,30 @@ export default function InventoryView({
                 </Card>
               );
             })}
+
+            {/* Two different nothings, same as the library dialog draws them. An
+                empty catalog is a company's first day and the one moment the
+                library is worth the most, so it gets named here rather than left
+                to a button in the toolbar competing with "Add item". A filter that
+                matches nothing is just a filter. */}
+            {filtered.length === 0 &&
+              (inv.length === 0 ? (
+                <EmptyState
+                  spanGrid
+                  icon={Library}
+                  message={t.invCatEmptyTitle}
+                  subtitle={t.invCatEmptyBody}
+                  actions={
+                    perms.inv_edit && (
+                      <Btn v="primary" onClick={() => setModal("library")}>
+                        <Library size={14} aria-hidden="true" /> {t.invAddFromLibrary}
+                      </Btn>
+                    )
+                  }
+                />
+              ) : (
+                <EmptyState spanGrid well icon={Search} message={t.invCatNoMatch} />
+              ))}
           </CardGrid>
         </>
       )}

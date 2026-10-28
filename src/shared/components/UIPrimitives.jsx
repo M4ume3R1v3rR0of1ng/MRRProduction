@@ -295,11 +295,19 @@ export function StatTile({
 // every column instead of occupying just one cell. `well` is the sunken,
 // no-shadow look a couple of modals use for a smaller inline list instead of
 // a whole page.
+//
+// `subtitle` is the second, quieter line under the headline — the sentence that
+// says what to do about it, where `message` only names the situation. It is here
+// because AddFromLibraryModal was written against a `subtitle` prop that did not
+// exist, so both its empty states drew a bare icon and no text at all. A two-line
+// empty state is common enough to belong in the primitive rather than be rebuilt
+// from a nested Muted at every call site.
 export function EmptyState({
   icon: Icon,
   iconSize = 30,
   message,
   messageStyle,
+  subtitle,
   actions,
   spanGrid,
   well,
@@ -333,6 +341,11 @@ export function EmptyState({
       >
         {message}
       </span>
+      {subtitle && (
+        <Muted size="sm" style={{ maxWidth: "52ch" }}>
+          {subtitle}
+        </Muted>
+      )}
       {actions && (
         <Row gap={2} align="stretch" justify="center" wrap>
           {actions}
