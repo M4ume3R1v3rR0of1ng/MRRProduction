@@ -19,6 +19,7 @@ import { resolveBatchPerson } from "@/shared/utils/people";
 import { Btn, Fld, Inp, Modal, Row, Text, Muted, Callout } from "@/shared/components/UIPrimitives";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
+import { translations } from "@/shared/utils/translations";
 
 export const lineFor = (job, itemId) =>
   (job.items || job.materials || []).find((i) => i && i.iid === itemId);
@@ -63,6 +64,7 @@ export default function BatchCorrectionModal({
   users = [],
   user,
   perms = {},
+  lang = "en",
   fetchLiveBatches,
   onCorrected,
   onJobRecosted,
@@ -76,6 +78,7 @@ export default function BatchCorrectionModal({
   const [recalc, setRecalc] = useState(null);
   const [saving, setSaving] = useState(false);
   const { showToast } = useNotify();
+  const t = translations[lang] || translations.en;
 
   const close = () => {
     if (!saving) onClose?.();
@@ -86,7 +89,7 @@ export default function BatchCorrectionModal({
     const oldPrice = parseFloat(batch.price) || 0;
     const newPrice = canPrice ? parseFloat(form.price) : oldPrice;
     if (canPrice && !Number.isFinite(newPrice)) {
-      showToast("Unit price must be a valid number.", "warning");
+      showToast(t.bcPriceInvalid, "warning");
       return;
     }
     const newRef = (form.ref || "").trim();
@@ -154,30 +157,31 @@ export default function BatchCorrectionModal({
       );
 
       showToast(
-        recalced > 0
-          ? `Batch corrected — ${recalced} job${recalced > 1 ? "s" : ""} recalculated.`
-          : "Batch corrected.",
+        recalced > 1
+          ? t.bcCorrectedMany.replace("{n}", String(recalced))
+          : recalced === 1
+            ? t.bcCorrectedOne
+            : t.bcCorrected,
         "success",
       );
       setRecalc(null);
       onClose?.();
     } catch (err) {
       console.error(err);
-      showToast(`Database Error correcting batch: ${err.message}`, "error");
+      showToast(`${t.bcSaveFail} ${err.message}`, "error");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Modal title={`Correct Batch — ${fd(batch.rcvd)}`} onClose={close}>
+    <Modal title={t.bcTitle.replace("{date}", fd(batch.rcvd))} onClose={close}>
       <Callout pad="10px 12px" size="xs" color={C.sub} style={{ marginBottom: "var(--space-4)" }}>
-        Received {fd(batch.rcvd)} · {batch.qty} {item.unit} · {batch.rem} remaining · by{" "}
-        {/* Third copy of the same broken lookup. See utils/people. */}
+        {t.bcReceived} {fd(batch.rcvd)} · {batch.qty} {item.unit} · {batch.rem} {t.bcRemaining} ·{" "}
+        {t.bcBy} {/* Third copy of the same broken lookup. See utils/people. */}
         {resolveBatchPerson(users, batch)}
         <Row gap={1} style={{ marginTop: 4 }}>
-          Quantities aren't editable here — use <Wrench size={10} aria-hidden="true" /> Adjust Stock
-          for those.
+          {t.bcQtyNoteBefore} <Wrench size={10} aria-hidden="true" /> {t.bcQtyNoteAfter}
         </Row>
       </Callout>
 
@@ -185,12 +189,15 @@ export default function BatchCorrectionModal({
         <div>
           <Callout tone="warn" bordered pad="12px 14px" style={{ marginBottom: "var(--space-4)" }}>
             <Text weight="extrabold" color={C.navy} style={{ marginBottom: 6 }}>
-              This changes {recalc.exact.length} finished job{recalc.exact.length > 1 ? "s" : ""}
+              {recalc.exact.length === 1
+                ? t.bcChangesOne
+                : t.bcChangesMany.replace("{n}", String(recalc.exact.length))}
             </Text>
             <Muted style={{ marginBottom: 10 }}>
-              These jobs recorded {item.name} at {fm(recalc.oldPrice)} — the price you're
-              correcting. Their cost will be re-derived at {fm(recalc.newPrice)}. Nothing is typed
-              in by hand.
+              {t.bcRecalcBody
+                .replace("{item}", item.name)
+                .replace("{old}", fm(recalc.oldPrice))
+                .replace("{new}", fm(recalc.newPrice))}
             </Muted>
             {recalc.exact.map((j) => {
               const line = lineFor(j, item.id);
@@ -218,7 +225,7 @@ export default function BatchCorrectionModal({
                     {hasSplit(line) && line.consumed.length > 1 && (
                       <Text as="span" weight="normal" color={C.sub}>
                         {" "}
-                        · {line.consumed.length} batches
+                        · {t.bcBatchesN.replace("{n}", String(line.consumed.length))}
                       </Text>
                     )}
                   </Text>
@@ -244,7 +251,7 @@ export default function BatchCorrectionModal({
                 borderTop: `2px solid ${C.bd}`,
               }}
             >
-              <span>Total change</span>
+              <span>{t.bcTotalChange}</span>
               <span>
                 {fm(
                   recalc.exact.reduce(
@@ -276,12 +283,13 @@ export default function BatchCorrectionModal({
               style={{ marginBottom: "var(--space-4)" }}
             >
               <Text as="strong" color={C.navy}>
-                {recalc.blended.length} other job{recalc.blended.length > 1 ? "s" : ""} won't be
-                touched.
+                {recalc.blended.length === 1
+                  ? t.bcUntouchedOne
+                  : t.bcUntouchedMany.replace("{n}", String(recalc.blended.length))}
               </Text>{" "}
-              They pulled {item.name} across several batches, so their cost is a blend this
-              correction can't safely re-derive:{" "}
-              {recalc.blended.map((j) => j.title || j.name || j.id).join(", ")}.
+              {t.bcBlendedBody
+                .replace("{item}", item.name)
+                .replace("{list}", recalc.blended.map((j) => j.title || j.name || j.id).join(", "))}
             </Callout>
           )}
 
@@ -292,7 +300,7 @@ export default function BatchCorrectionModal({
               style={{ flex: 1, justifyContent: "center" }}
               disabled={saving}
             >
-              Back
+              {t.bcBack}
             </Btn>
             <Btn
               v="primary"
@@ -307,12 +315,12 @@ export default function BatchCorrectionModal({
                     style={{ animation: "mrr-spin 0.7s linear infinite" }}
                     aria-hidden="true"
                   />{" "}
-                  Applying...
+                  {t.bcApplying}
                 </>
               ) : (
                 <>
-                  <CheckCircle2 size={14} aria-hidden="true" /> Correct & recalculate{" "}
-                  {recalc.exact.length}
+                  <CheckCircle2 size={14} aria-hidden="true" />{" "}
+                  {t.bcCorrectRecalc.replace("{n}", String(recalc.exact.length))}
                 </>
               )}
             </Btn>
@@ -321,7 +329,7 @@ export default function BatchCorrectionModal({
       ) : (
         <div>
           {perms.inv_pricing_edit && (
-            <Fld label="Unit Price *">
+            <Fld label={t.bcUnitPrice}>
               <Inp
                 type="number"
                 step="0.01"
@@ -332,19 +340,19 @@ export default function BatchCorrectionModal({
               />
             </Fld>
           )}
-          <Fld label="Invoice / PO Number">
+          <Fld label={t.bcInvoiceLabel}>
             <Inp
               value={form.ref}
               onChange={(e) => setForm({ ...form, ref: e.target.value })}
-              placeholder="e.g. 2011850932-001"
+              placeholder={t.bcInvoicePlaceholder}
               disabled={saving}
             />
           </Fld>
-          <Fld label="Supplier / Vendor">
+          <Fld label={t.bcVendorLabel}>
             <Inp
               value={form.vendor}
               onChange={(e) => setForm({ ...form, vendor: e.target.value })}
-              placeholder="e.g. ABC Supply"
+              placeholder={t.bcVendorPlaceholder}
               disabled={saving}
             />
           </Fld>
@@ -355,7 +363,7 @@ export default function BatchCorrectionModal({
               style={{ flex: 1, justifyContent: "center" }}
               disabled={saving}
             >
-              Cancel
+              {t.cancel}
             </Btn>
             <Btn
               v="primary"
@@ -370,11 +378,11 @@ export default function BatchCorrectionModal({
                     style={{ animation: "mrr-spin 0.7s linear infinite" }}
                     aria-hidden="true"
                   />{" "}
-                  Saving...
+                  {t.avSaving}
                 </>
               ) : (
                 <>
-                  <Save size={14} aria-hidden="true" /> Save Batch
+                  <Save size={14} aria-hidden="true" /> {t.bcSaveBatch}
                 </>
               )}
             </Btn>

@@ -399,7 +399,7 @@ export default function InventoryView({
                     <button
                       onClick={(e) => toggleSpecial(item, e)}
                       disabled={!perms.inv_edit}
-                      title={item.special ? "Remove from Special" : "Mark as Special"}
+                      title={item.special ? t.invRemoveSpecial : t.invMarkSpecial}
                       style={{
                         position: "absolute",
                         top: 8,
@@ -668,6 +668,7 @@ export default function InventoryView({
 
       {modal === "batch" && sel && batchSel && (
         <BatchCorrectionModal
+          lang={lang}
           item={sel}
           batch={batchSel}
           jobs={jobs}

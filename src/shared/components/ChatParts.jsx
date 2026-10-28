@@ -55,7 +55,16 @@ export function ChatBubble({ mine, photo, photoAlt, onPhotoClick, children }) {
 }
 
 // The photo attached to the message being written, with an × to drop it.
-export function PendingPhoto({ src, alt, onRemove, size = 60, style }) {
+export function PendingPhoto({
+  src,
+  alt,
+  onRemove,
+  size = 60,
+  style,
+  // Supplied by the caller, which has a lang; this component deliberately has
+  // none of its own. English default so a caller that forgets still reads.
+  removeLabel = "Remove photo",
+}) {
   const badge = size > 56 ? 18 : 16;
   return (
     <div style={{ position: "relative", width: size, height: size, ...style }}>
@@ -73,7 +82,7 @@ export function PendingPhoto({ src, alt, onRemove, size = 60, style }) {
       <button
         type="button"
         onClick={onRemove}
-        aria-label="Remove photo"
+        aria-label={removeLabel}
         style={{
           position: "absolute",
           top: -6,

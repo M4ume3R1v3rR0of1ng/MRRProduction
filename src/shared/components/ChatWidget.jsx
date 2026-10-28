@@ -673,6 +673,7 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
 
           {pendingPhoto && editingIndex === null && (
             <PendingPhoto
+              removeLabel={t.chRemovePhoto}
               src={pendingPhoto}
               alt={t.chPendingAttachment}
               onRemove={() => setPendingPhoto(null)}

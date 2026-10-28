@@ -1608,6 +1608,54 @@ export const translations = {
     svcDetail: "Detail",
     svcInspection: "Inspection",
     svcOther: "Other",
+    // BatchCorrectionModal. Several of these are sentences with values dropped
+    // into them, so they are templates with named slots rather than fragments
+    // concatenated in JSX — word order differs between the two languages and
+    // gluing pieces together would fix English's.
+    //
+    // Counts are spelled as separate singular and plural keys instead of
+    // appending an "s", which only ever worked for English.
+    bcTitle: "Correct Batch — {date}",
+    bcReceived: "Received",
+    bcRemaining: "remaining",
+    bcBy: "by",
+    bcQtyNoteBefore: "Quantities aren't editable here — use",
+    bcQtyNoteAfter: "Adjust Stock for those.",
+    bcChangesOne: "This changes 1 finished job",
+    bcChangesMany: "This changes {n} finished jobs",
+    bcRecalcBody:
+      "These jobs recorded {item} at {old} — the price you're correcting. Their cost will be re-derived at {new}. Nothing is typed in by hand.",
+    bcBatchesN: "{n} batches",
+    bcTotalChange: "Total change",
+    bcUntouchedOne: "1 other job won't be touched.",
+    bcUntouchedMany: "{n} other jobs won't be touched.",
+    bcBlendedBody:
+      "They pulled {item} across several batches, so their cost is a blend this correction can't safely re-derive: {list}.",
+    bcBack: "Back",
+    bcApplying: "Applying...",
+    bcCorrectRecalc: "Correct & recalculate {n}",
+    bcUnitPrice: "Unit Price *",
+    bcInvoiceLabel: "Invoice / PO Number",
+    bcInvoicePlaceholder: "e.g. 2011850932-001",
+    bcVendorLabel: "Supplier / Vendor",
+    bcVendorPlaceholder: "e.g. ABC Supply",
+    bcSaveBatch: "Save Batch",
+    bcPriceInvalid: "Unit price must be a valid number.",
+    bcCorrected: "Batch corrected.",
+    bcCorrectedOne: "Batch corrected — 1 job recalculated.",
+    bcCorrectedMany: "Batch corrected — {n} jobs recalculated.",
+    bcSaveFail: "Database Error correcting batch:",
+    // The star toggle's tooltip in the inventory grid. The audit-log sentence it
+    // writes ("Marked \"X\" as special") stays English: that is a record, not a label.
+    invMarkSpecial: "Mark as Special",
+    invRemoveSpecial: "Remove from Special",
+    // ResetPasswordScreen's heading and submit button.
+    rpHeadingDone: "Password updated",
+    rpHeadingSet: "Set a new password",
+    rpSaving: "Saving…",
+    rpSubmit: "Update password",
+    // Passed into PendingPhoto, which is presentational and has no lang of its own.
+    chRemovePhoto: "Remove photo",
     // The two badges on a vehicle card, and the rest of FleetManagementView's
     // own leftovers. The status VALUES (overdue/soon) are computed, not stored,
     // so only these labels were ever English.
@@ -3316,6 +3364,43 @@ export const translations = {
     svcDetail: "Limpieza Detallada",
     svcInspection: "Inspección",
     svcOther: "Otro",
+    bcTitle: "Corregir Lote — {date}",
+    bcReceived: "Recibido",
+    bcRemaining: "restante",
+    bcBy: "por",
+    bcQtyNoteBefore: "Las cantidades no se editan aquí — use",
+    bcQtyNoteAfter: "Ajustar Existencias para eso.",
+    bcChangesOne: "Esto cambia 1 trabajo terminado",
+    bcChangesMany: "Esto cambia {n} trabajos terminados",
+    bcRecalcBody:
+      "Estos trabajos registraron {item} a {old} — el precio que está corrigiendo. Su costo se volverá a calcular a {new}. Nada se escribe a mano.",
+    bcBatchesN: "{n} lotes",
+    bcTotalChange: "Cambio total",
+    bcUntouchedOne: "1 otro trabajo no se modificará.",
+    bcUntouchedMany: "{n} otros trabajos no se modificarán.",
+    bcBlendedBody:
+      "Sacaron {item} de varios lotes, así que su costo es una mezcla que esta corrección no puede recalcular con seguridad: {list}.",
+    bcBack: "Atrás",
+    bcApplying: "Aplicando...",
+    bcCorrectRecalc: "Corregir y recalcular {n}",
+    bcUnitPrice: "Precio Unitario *",
+    bcInvoiceLabel: "Número de Factura / Orden",
+    bcInvoicePlaceholder: "ej. 2011850932-001",
+    bcVendorLabel: "Proveedor",
+    bcVendorPlaceholder: "ej. ABC Supply",
+    bcSaveBatch: "Guardar Lote",
+    bcPriceInvalid: "El precio unitario debe ser un número válido.",
+    bcCorrected: "Lote corregido.",
+    bcCorrectedOne: "Lote corregido — 1 trabajo recalculado.",
+    bcCorrectedMany: "Lote corregido — {n} trabajos recalculados.",
+    bcSaveFail: "Error de base de datos al corregir el lote:",
+    invMarkSpecial: "Marcar como Especial",
+    invRemoveSpecial: "Quitar de Especiales",
+    rpHeadingDone: "Contraseña actualizada",
+    rpHeadingSet: "Establecer una nueva contraseña",
+    rpSaving: "Guardando…",
+    rpSubmit: "Actualizar contraseña",
+    chRemovePhoto: "Quitar foto",
     flOilOverdue: "Aceite Vencido",
     flOilSoon: "Aceite Pronto",
     flOilOk: "Aceite OK",

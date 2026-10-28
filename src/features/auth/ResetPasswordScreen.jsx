@@ -102,7 +102,7 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
         <Stack gap={6} align="center" style={{ textAlign: "center", marginBottom: 32 }}>
           <SteadwerkLockup size={64} />
           <Text size="base" color={C.sub}>
-            {done ? "Password updated" : "Set a new password"}
+            {done ? t.rpHeadingDone : t.rpHeadingSet}
           </Text>
         </Stack>
 
@@ -162,7 +162,7 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
               disabled={submitting}
               style={{ marginTop: 8 }}
             >
-              {submitting ? "Saving…" : "Update password"}
+              {submitting ? t.rpSaving : t.rpSubmit}
             </Btn>
           </>
         )}

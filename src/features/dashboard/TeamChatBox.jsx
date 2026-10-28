@@ -482,6 +482,7 @@ export default function TeamChatBox({
 
       {pendingPhoto && (
         <PendingPhoto
+          removeLabel={t.chRemovePhoto}
           src={pendingPhoto}
           alt={t.chPendingAttachment}
           onRemove={() => setPendingPhoto(null)}
