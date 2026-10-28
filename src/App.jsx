@@ -1267,6 +1267,7 @@ export default function App() {
                         setRolePerms={app.setRolePerms}
                         acculynxConfig={app.acculynxConfig}
                         setAccuLynxConfig={app.setAccuLynxConfig}
+                        currentUser={app.curUser}
                         lang={lang}
                       />
                     ) : (

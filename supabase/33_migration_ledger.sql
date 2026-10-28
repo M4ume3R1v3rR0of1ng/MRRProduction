@@ -507,6 +507,14 @@ begin
       where n.nspname = 'public' and p.proname = 'set_member_role'
     ), false),
     'set_member_role() honours users_manage');
+
+  -- 63 swaps audit_select_admin for a policy by a new name, so unlike 62 this one
+  -- has a clean existence probe: the new name cannot predate the file. A database
+  -- still carrying audit_select_admin reads 'missing' here, which is the truth —
+  -- its users_manage holders are still seeing an empty audit log.
+  perform public._mig_record('63_delegated_reads_and_branding.sql',
+    public._mig_has_policy('audit_select_member_manager', 'audit_logs'),
+    'policy audit_select_member_manager');
 end $$;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists

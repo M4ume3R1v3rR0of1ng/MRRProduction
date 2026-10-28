@@ -152,11 +152,24 @@ export default function SettingsView({
   setRolePerms,
   acculynxConfig,
   setAccuLynxConfig,
+  currentUser,
   lang = "en",
 }) {
   const { showToast } = useNotify();
   const t = translations[lang] || translations.en;
-  const [currentTab, setCurrentTab] = useState("Permissions");
+
+  // This screen opens on settings_manage, which an admin can grant to any role.
+  // Two of its six tabs stay admin-only on the server and always will:
+  //
+  //   Permissions — editing the matrix is the escalation that makes every other
+  //                 restriction moot, since you could grant yourself the rest.
+  //   CRM         — the AccuLynx API key is a credential for the company's whole
+  //                 job history, not a piece of company config.
+  //
+  // Both are hidden rather than shown-and-failing. supabase/63 has the reasoning
+  // and hands branding over; the rest of the tabs already worked for any member.
+  const fullAdmin = currentUser?.role === "admin" || currentUser?.isPlatformAdmin === true;
+  const [currentTab, setCurrentTab] = useState(fullAdmin ? "Permissions" : "Automations");
   // Company display name + tax, stored in companies.branding via set_company_branding.
   // This is what the top bar, sidebar, and every PDF report read — so a tenant controls
   // how their name and tax line appear without touching code.
@@ -283,7 +296,7 @@ export default function SettingsView({
   const [loadingFolders, setLoadingFolders] = useState(false);
 
   const tabs = [
-    { id: "Permissions", label: "Permissions", icon: Lock },
+    ...(fullAdmin ? [{ id: "Permissions", label: "Permissions", icon: Lock }] : []),
     // "Automations" rather than "Notifications": email is the first thing this panel
     // switches on, not the only thing planned, and the rows already read as rules
     // rather than as a notification inbox.
@@ -292,7 +305,7 @@ export default function SettingsView({
     // connect to, not the only one planned. Naming the tab after the category
     // means adding Jobber or ServiceTitan later is a new section in this panel,
     // not a renamed tab and a broken bookmark.
-    { id: "CRM", label: "CRM Integration", icon: Link2 },
+    ...(fullAdmin ? [{ id: "CRM", label: "CRM Integration", icon: Link2 }] : []),
     { id: "Branding", label: "Branding", icon: Building2 },
     { id: "Warehouses", label: "Warehouses", icon: Factory },
     { id: "System", label: "System", icon: Info },
@@ -529,7 +542,7 @@ export default function SettingsView({
       />
 
       {/* ── PANEL: Permissions ─────────────────────────────────────────── */}
-      {currentTab === "Permissions" && (
+      {fullAdmin && currentTab === "Permissions" && (
         <Card pad="lg">
           <SectionTitle icon={Lock} title={t.stRolePerms} subtitle={t.stRolePermsDesc} />
           <div className="sw-table-scroll">
@@ -711,7 +724,7 @@ export default function SettingsView({
       )}
 
       {/* ── PANEL: CRM Integration ─────────────────────────────────────── */}
-      {currentTab === "CRM" && (
+      {fullAdmin && currentTab === "CRM" && (
         <Card pad="lg">
           <Row gap={5} align="flex-start" justify="space-between" wrap style={{ marginBottom: 20 }}>
             <SectionTitle

@@ -134,6 +134,7 @@ in SQL, change it there too.
 | 60  | `60_training_media_one_shared_library.sql`    | **Read the file's warnings first.** One training library: every company reads every clip. Removes 45's per-company private tier, which had hidden the whole library inside one tenant — and the backfill publishes any genuinely private clip to everyone.                                                          |
 | 61  | `61_inventory_catalog.sql`                    | **Required for "Add from library" in Inventory.** `inventory_catalog` — the generic positions a new company stands its catalog up from. Every signed-in user reads it, a platform admin writes it. Importing COPIES a row into that company's own catalog, with no link left behind.                                |
 | 62  | `62_delegated_user_management.sql`            | **Required if you grant "Manage Users" to a non-admin role.** `set_member_role()` now accepts `has_perm('users_manage')`, not just the literal `admin` role — with three refusals: no granting admin, no touching an admin's membership, no changing your own role. Mirrored in `_shared/userAdmin.js`.             |
+| 63  | `63_delegated_reads_and_branding.sql`         | **Required with 62 if you grant Manage Users or System Settings.** Lets a `users_manage` holder READ the audit log their nav offers — RLS filtered it to admins, so the page came back silently empty — and gives `set_company_branding()` to `settings_manage`. The AccuLynx key and matrix stay admin-only.       |
 
 ## Adding a migration
 
