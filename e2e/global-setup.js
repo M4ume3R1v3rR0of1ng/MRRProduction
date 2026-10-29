@@ -89,6 +89,58 @@ async function seed({ url, anonKey, admin, company, runId, createdUserIds }) {
   // account that files a maintenance ticket without being able to act on it.
   const driver = await createMember("driver", "ZZ E2E Driver", "employee");
 
+  // A non-admin who HAS been granted users_manage — the delegate 62 and 63 exist
+  // for. "warehouse" holds none of it by default, so the grant below is the only
+  // reason this account can manage users or read the log.
+  //
+  // has_perm() coalesces per key (override -> role_permissions -> default), so a
+  // one-key jsonb grants exactly this and leaves the rest of the role alone.
+  const delegate = await createMember("delegate", "ZZ E2E Delegate", "warehouse");
+  await admin.from("role_permissions").upsert(
+    {
+      company_id: company.id,
+      role: "warehouse",
+      permissions: { users_manage: true, settings_manage: true },
+    },
+    { onConflict: "company_id,role" },
+  );
+
+  // One row for the delegate to find. Written with the service-role key because
+  // logAction runs in a browser session, and the point here is that the row
+  // exists before anyone signs in — so an empty log in the spec means RLS hid it,
+  // not that nothing had happened yet.
+  await admin.from("audit_logs").insert({
+    company_id: company.id,
+    user_id: adminUser.userId,
+    user_email: adminUser.email,
+    action_type: "E2E_SEED",
+    description: "Seeded audit row for the delegated-read spec",
+    metadata: { active_view: "system_core" },
+    created_at: new Date().toISOString(),
+  });
+
+  // Whether supabase/63's policy is actually on this database. Probed with a real
+  // session rather than by reading pg_policies, which the REST API does not
+  // expose. Recorded rather than thrown, exactly like the MFA enrolment below: a
+  // database missing 62/63 should fail the delegation spec by name, not every
+  // other flow in the suite.
+  let delegateAuditRows = null;
+  let delegateSetupError = null;
+  try {
+    const asDelegate = createClient(url, anonKey, { auth: { persistSession: false } });
+    const { error: signInErr } = await asDelegate.auth.signInWithPassword({
+      email: delegate.email,
+      password: delegate.password,
+    });
+    if (signInErr) throw signInErr;
+    const { data: rows, error: readErr } = await asDelegate.from("audit_logs").select("id");
+    if (readErr) throw readErr;
+    delegateAuditRows = (rows || []).length;
+    await asDelegate.auth.signOut();
+  } catch (err) {
+    delegateSetupError = err.message || String(err);
+  }
+
   // An account with a verified TOTP factor. The admin API can list and delete
   // factors but not create one, so enrolment goes through the user's own session,
   // the same enroll -> challengeAndVerify sequence MfaPanel.jsx runs, answered
@@ -202,6 +254,12 @@ async function seed({ url, anonKey, admin, company, runId, createdUserIds }) {
         driverEmail: driver.email,
         driverPassword: driver.password,
         driverName: driver.name,
+        delegateEmail: delegate.email,
+        delegatePassword: delegate.password,
+        delegateName: delegate.name,
+        // 0 means RLS filtered the seeded row: supabase/63 is not on this database.
+        delegateAuditRows,
+        delegateSetupError,
         mfaEmail: mfaUser.email,
         mfaPassword: mfaUser.password,
         mfaSecret,
