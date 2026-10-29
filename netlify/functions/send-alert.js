@@ -10,6 +10,7 @@ import {
   companyMemberEmails,
 } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
+import { checkRateLimit, rateLimitedResponse } from "./_shared/rateLimit.js";
 
 // alerts@<verified platform domain> — shares the domain with send-email, keeps its own
 // local part. See platformFromAddress in _shared/tenant.js.
@@ -49,6 +50,14 @@ const rawHandler = async (event) => {
         body: JSON.stringify({ error: callerError.message }),
       };
     }
+
+    // Same domain and the same reason as send-email. A low-stock alert fires
+    // from a person crossing a threshold, not in bursts.
+    const rl = checkRateLimit(`send-alert:${caller.userId}`, {
+      max: 20,
+      windowMs: 60 * 1000,
+    });
+    if (!rl.allowed) return rateLimitedResponse(rl.retryAfterSeconds, headers);
 
     if (!email) {
       return {

@@ -9,6 +9,7 @@ import {
   companyMemberEmails,
 } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
+import { checkRateLimit, rateLimitedResponse } from "./_shared/rateLimit.js";
 
 // notifications@<verified platform domain>, company name as the display name. See
 // platformFromAddress in _shared/tenant.js for how the domain is resolved.
@@ -38,6 +39,16 @@ const rawHandler = async (event) => {
         body: JSON.stringify({ error: callerError.message }),
       };
     }
+
+    // Mail goes out from a verified platform domain, so the thing being
+    // protected is sender reputation rather than compute. 20/min is far above
+    // any real use — a person clicking Email Report sends one at a time — and
+    // well under what would get the domain complained about.
+    const rl = checkRateLimit(`send-email:${caller.userId}`, {
+      max: 20,
+      windowMs: 60 * 1000,
+    });
+    if (!rl.allowed) return rateLimitedResponse(rl.retryAfterSeconds, headers);
 
     if (!to || !subject || !html) {
       return {

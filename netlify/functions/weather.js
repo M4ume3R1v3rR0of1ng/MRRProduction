@@ -7,6 +7,7 @@
 
 import { adminClient, resolveCaller, corsHeaders as getCorsHeaders } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
+import { checkRateLimit, rateLimitedResponse } from "./_shared/rateLimit.js";
 
 // Fallback: the Saint Joe Road warehouse, Fort Wayne IN. Each company sets its own
 // coordinates in companies.integrations.weather — otherwise a roofing crew in another
@@ -58,6 +59,15 @@ const rawHandler = async (event) => {
         body: JSON.stringify({ error: callerError.message }),
       };
     }
+
+    // Spends a third-party forecast quota shared by every tenant, so one
+    // company's loop should not exhaust it for the rest. The dashboard asks
+    // once per load and caches, so 30/min is many times normal.
+    const rl = checkRateLimit(`weather:${caller.userId}`, {
+      max: 30,
+      windowMs: 60 * 1000,
+    });
+    if (!rl.allowed) return rateLimitedResponse(rl.retryAfterSeconds, corsHeaders);
 
     const weather = caller.integrations?.weather || {};
     const lat = weather.lat ?? DEFAULT_LAT;
