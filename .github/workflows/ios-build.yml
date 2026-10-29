@@ -61,9 +61,9 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "24"
           cache: npm
@@ -163,9 +163,9 @@ jobs:
       BUNDLE_ID: com.steadwerk.app
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: "24"
           cache: npm
@@ -422,7 +422,7 @@ jobs:
       # the artifact to hand to anyone debugging the signing itself.
       - name: Keep the .ipa as a workflow artifact
         if: always() && env.IPA_PATH != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: steadwerk-ios-${{ env.BUILD_NUMBER }}
           path: ${{ env.EXPORT_PATH }}
