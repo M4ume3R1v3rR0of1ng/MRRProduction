@@ -45,6 +45,7 @@ import {
   TextBtn,
   Card,
 } from "@/shared/components/UIPrimitives";
+import { translations } from "@/shared/utils/translations";
 import { useNotify } from "@/shared/context/NotificationContext";
 
 // Replace in place if the id is already known, otherwise append. Pulled out as a
@@ -64,13 +65,14 @@ export const selectableMaterials = (inv, chosen, query) =>
       !chosen.some((t) => t.iid === i.id),
   );
 
-export default function JobTemplatesModal({ inv = [], onClose }) {
+export default function JobTemplatesModal({ inv = [], onClose, lang = "en" }) {
   const [tpls, setTpls] = useState([]);
   const [editing, setEditing] = useState(null); // the template being edited
   const [srch, setSrch] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { showToast } = useNotify();
+  const t = translations[lang] || translations.en;
 
   // Load on mount rather than in the caller's click handler. Previously opening
   // this modal meant remembering to call openTemplates() instead of just setting
@@ -83,7 +85,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
         if (live) setTpls(saved || resolveDefaultTemplates(inv));
       } catch (err) {
         if (!live) return;
-        showToast(`Could not load templates: ${err.message}`, "error");
+        showToast(`${t.jtLoadFail} ${err.message}`, "error");
         setTpls(resolveDefaultTemplates(inv));
       } finally {
         if (live) setLoading(false);
@@ -104,7 +106,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
       setTpls(next);
       return true;
     } catch (err) {
-      showToast(`Database Error: Could not save templates. ${err.message}`, "error");
+      showToast(`${t.jtSaveFail} ${err.message}`, "error");
       return false;
     } finally {
       setSaving(false);
@@ -113,16 +115,16 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
 
   const saveEdit = async () => {
     if (!editing.name.trim()) {
-      showToast("Template name is required.", "warning");
+      showToast(t.jtNameRequired, "warning");
       return;
     }
     if (editing.items.length === 0) {
-      showToast("Add at least one material to the template.", "warning");
+      showToast(t.jtNeedMaterial, "warning");
       return;
     }
     const cleaned = { ...editing, name: editing.name.trim() };
     if (await persist(upsertTemplate(tpls, cleaned))) {
-      showToast(`Template "${cleaned.name}" saved.`, "success");
+      showToast(t.jtSavedOk.replace("{name}", cleaned.name), "success");
       setEditing(null);
     }
   };
@@ -135,7 +137,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
     )
       return;
     if (await persist(tpls.filter((t) => t.id !== tpl.id))) {
-      showToast(`Template "${tpl.name}" deleted.`, "success");
+      showToast(t.jtDeletedOk.replace("{name}", tpl.name), "success");
     }
   };
 
@@ -152,18 +154,18 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
     <Modal
       title={
         <Row as="span">
-          <LayoutTemplate size={17} aria-hidden="true" /> Job Material Templates
+          <LayoutTemplate size={17} aria-hidden="true" /> {t.jtTitle}
         </Row>
       }
       onClose={requestClose}
       wide
     >
       {loading ? (
-        <LoadingState label="Loading templates..." />
+        <LoadingState label={t.jtLoading} />
       ) : editing ? (
         <>
           <div style={{ display: "grid", gridTemplateColumns: "90px 1fr", gap: "var(--space-3)" }}>
-            <Fld label="Icon">
+            <Fld label={t.jtIcon}>
               <Inp
                 value={editing.icon || ""}
                 onChange={(e) => setEditing({ ...editing, icon: e.target.value })}
@@ -171,11 +173,11 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                 disabled={saving}
               />
             </Fld>
-            <Fld label="Template Name *">
+            <Fld label={t.jtNameLabel}>
               <Inp
                 value={editing.name}
                 onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                placeholder="e.g. Economy Roof"
+                placeholder={t.jtNamePlaceholder}
                 disabled={saving}
               />
             </Fld>
@@ -187,16 +189,17 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                 gap={2}
                 style={{ margin: "0 0 8px", color: C.navy, fontSize: "var(--text-sm)" }}
               >
-                <Package size={13} aria-hidden="true" /> Materials ({editing.items.length})
+                <Package size={13} aria-hidden="true" />{" "}
+                {t.jtMaterialsN.replace("{n}", String(editing.items.length))}
               </Row>
               {editing.items.length === 0 ? (
                 <Text as="p" size="sm" color={C.sub}>
-                  Add materials from the catalog on the right.
+                  {t.jtAddFromCatalog}
                 </Text>
               ) : (
                 <Stack gap={2} style={{ maxHeight: 260, overflowY: "auto" }}>
-                  {editing.items.map((t, idx) => {
-                    const inCatalog = t.iid && inv.find((i) => i && i.id === t.iid);
+                  {editing.items.map((row, idx) => {
+                    const inCatalog = row.iid && inv.find((i) => i && i.id === row.iid);
                     return (
                       <Callout key={t.iid || `x_${idx}`} pad="7px 9px" style={{ borderRadius: 7 }}>
                         <Text size="xs" weight="bold" color={C.navy} style={{ marginBottom: 4 }}>
@@ -235,7 +238,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                             color={C.rd}
                             weight="normal"
                             size="lg"
-                            aria-label="Remove"
+                            aria-label={t.jtRemove}
                             style={{ marginLeft: "auto", lineHeight: 1, padding: "1px 6px" }}
                             disabled={saving}
                           >
@@ -253,7 +256,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                 prefix={<Search size={13} />}
                 value={srch}
                 onChange={(e) => setSrch(e.target.value)}
-                placeholder="Search catalog..."
+                placeholder={t.jtSearchCatalog}
                 style={{ marginBottom: 8 }}
                 disabled={saving}
               />
@@ -302,7 +305,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
               style={{ flex: 1, justifyContent: "center" }}
               disabled={saving}
             >
-              ← Back
+              {t.jtBack}
             </Btn>
             <Btn
               v="primary"
@@ -317,11 +320,11 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                     style={{ animation: "mrr-spin 0.7s linear infinite" }}
                     aria-hidden="true"
                   />{" "}
-                  Saving...
+                  {t.avSaving}
                 </>
               ) : (
                 <>
-                  <Save size={14} aria-hidden="true" /> Save Template
+                  <Save size={14} aria-hidden="true" /> {t.jtSaveTemplate}
                 </>
               )}
             </Btn>
@@ -330,12 +333,11 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
       ) : (
         <>
           <Muted as="p" size="sm" style={{ margin: "0 0 12px" }}>
-            These material packages appear in the Build Jobs wizard (Step 2) for one-click job
-            lists.
+            {t.jtBlurb}
           </Muted>
           {tpls.length === 0 && (
             <Muted as="p" size="sm" style={{ textAlign: "center", padding: "16px 0" }}>
-              No templates yet — create your first one below.
+              {t.jtNoTemplates}
             </Muted>
           )}
           <Stack gap={3} style={{ maxHeight: 320, overflowY: "auto" }}>
@@ -355,7 +357,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                       }}
                       disabled={saving}
                     >
-                      <Pencil size={12} aria-hidden="true" /> Edit
+                      <Pencil size={12} aria-hidden="true" /> {t.jtEdit}
                     </Btn>
                     <Btn v="danger" sz="sm" onClick={() => deleteTpl(tpl)} disabled={saving}>
                       <Trash2 size={12} aria-hidden="true" />
@@ -364,8 +366,8 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
                 </Row>
                 <Muted size="2xs" style={{ lineHeight: 1.7 }}>
                   {(tpl.items || [])
-                    .map((t) => t.iname + (t.qty > 1 ? ` ×${t.qty}` : ""))
-                    .join(" · ") || "No materials"}
+                    .map((row) => row.iname + (row.qty > 1 ? ` ×${row.qty}` : ""))
+                    .join(" · ") || t.jtNoMaterials}
                 </Muted>
               </Callout>
             ))}
@@ -377,7 +379,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
               style={{ flex: 1, justifyContent: "center" }}
               disabled={saving}
             >
-              Close
+              {t.close}
             </Btn>
             <Btn
               v="primary"
@@ -388,7 +390,7 @@ export default function JobTemplatesModal({ inv = [], onClose }) {
               style={{ flex: 1, justifyContent: "center" }}
               disabled={saving}
             >
-              + New Template
+              {t.jtNewTemplate}
             </Btn>
           </Row>
         </>

@@ -588,10 +588,13 @@ export default function InventoryView({
       )}
 
       {/* ── JOB MATERIAL TEMPLATES MANAGER ── */}
-      {modal === "tpl" && <JobTemplatesModal inv={inv} onClose={() => setModal(null)} />}
+      {modal === "tpl" && (
+        <JobTemplatesModal inv={inv} lang={lang} onClose={() => setModal(null)} />
+      )}
 
       {modal === "bulk" && perms.inv_bulk_receive && (
         <BulkReceiveModal
+          lang={lang}
           inv={inv}
           setInv={setInv}
           users={users}

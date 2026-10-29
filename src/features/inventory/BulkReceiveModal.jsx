@@ -33,6 +33,7 @@ import {
   Grid,
   Card,
 } from "@/shared/components/UIPrimitives";
+import { translations } from "@/shared/utils/translations";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -70,12 +71,21 @@ const emptyMeta = () => ({ date: todayLocal(), po: "", vendor: "" });
 // app's Eyebrow because three of them share one narrow row.
 const FIELD_LABEL = { fontSize: 9, textTransform: "uppercase", marginBottom: 3 };
 
-export default function BulkReceiveModal({ inv = [], setInv, users, user, perms = {}, onClose }) {
+export default function BulkReceiveModal({
+  inv = [],
+  setInv,
+  users,
+  user,
+  perms = {},
+  onClose,
+  lang = "en",
+}) {
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState(emptyMeta);
   const [srch, setSrch] = useState("");
   const [saving, setSaving] = useState(false);
   const { showToast } = useNotify();
+  const t = translations[lang] || translations.en;
 
   const selectable = useMemo(
     () =>
@@ -113,7 +123,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
 
   const commit = async () => {
     if (!meta.date) {
-      showToast("Please set a received date.", "info");
+      showToast(t.brNeedDate, "info");
       return;
     }
     const valid = rows.filter(hasQuantity);
@@ -121,10 +131,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
     // can name them in a warning instead of silently swallowing the delivery.
     const skipped = rows.filter((b) => !hasQuantity(b));
     if (valid.length === 0) {
-      showToast(
-        "Nothing was received — every row is missing a quantity. Enter a quantity for each item.",
-        "warning",
-      );
+      showToast(t.brNoQuantities, "warning");
       return;
     }
 
@@ -132,9 +139,10 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
     const unpriced = priced.filter((b) => b.rate === null);
     if (unpriced.length > 0) {
       showToast(
-        `Enter a unit price for: ${unpriced.map((b) => b.iname).join(", ")}. ${
-          unpriced.length > 1 ? "They have" : "It has"
-        } no previous price to fall back on, and receiving at $0 would bill the job nothing for real material.`,
+        (unpriced.length > 1 ? t.brNeedPriceMany : t.brNeedPriceOne).replace(
+          "{list}",
+          unpriced.map((b) => b.iname).join(", "),
+        ),
         "warning",
       );
       return;
@@ -231,15 +239,15 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
       );
 
       showToast(
-        `Bulk delivery received — ${valid.length} item${valid.length > 1 ? "s" : ""} added.`,
+        valid.length > 1 ? t.brReceivedMany.replace("{n}", String(valid.length)) : t.brReceivedOne,
         "success",
       );
       // Surface anything left out so a forgotten quantity cannot quietly disappear.
       if (skipped.length) {
         showToast(
-          `${skipped.length} item${skipped.length > 1 ? "s were" : " was"} NOT received (no quantity entered): ${skipped
-            .map((b) => b.iname)
-            .join(", ")}.`,
+          (skipped.length > 1 ? t.brSkippedMany : t.brSkippedOne)
+            .replace("{n}", String(skipped.length))
+            .replace("{list}", skipped.map((b) => b.iname).join(", ")),
           "warning",
         );
       }
@@ -249,7 +257,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
       onClose?.();
     } catch (err) {
       console.error(err);
-      showToast(`Error logging batch payload operations: ${err.message}`, "error");
+      showToast(`${t.brCommitFail} ${err.message}`, "error");
     } finally {
       setSaving(false);
     }
@@ -259,7 +267,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
     <Modal
       title={
         <Row as="span">
-          <Package size={17} aria-hidden="true" /> Receive Bulk Order Manifest
+          <Package size={17} aria-hidden="true" /> {t.brTitle}
         </Row>
       }
       onClose={close}
@@ -273,8 +281,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
         color={C.navy}
         style={{ marginBottom: 14 }}
       >
-        <strong>Inbound Accounting:</strong> FIFO indices update automatically. Each item maps a
-        standalone discrete batch vector tracking vendor origins.
+        <strong>{t.brAccountingLead}</strong> {t.brAccountingBody}
       </Callout>
 
       <Grid
@@ -287,25 +294,25 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
           marginBottom: 16,
         }}
       >
-        <Fld label="Date Received *">
+        <Fld label={t.brDateLabel}>
           <Inp
             type="date"
             value={meta.date}
             onChange={(e) => setMeta({ ...meta, date: e.target.value })}
           />
         </Fld>
-        <Fld label="PO / Order #">
+        <Fld label={t.brPoLabel}>
           <Inp
             value={meta.po}
             onChange={(e) => setMeta({ ...meta, po: e.target.value })}
-            placeholder="e.g. PO-2025-100"
+            placeholder={t.brPoPlaceholder}
           />
         </Fld>
-        <Fld label="Vendor / Supplier">
+        <Fld label={t.brVendorLabel}>
           <Inp
             value={meta.vendor}
             onChange={(e) => setMeta({ ...meta, vendor: e.target.value })}
-            placeholder="e.g. ABC Supply"
+            placeholder={t.bcVendorPlaceholder}
           />
         </Fld>
       </Grid>
@@ -313,13 +320,13 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
       <div className="sw-split" style={{ gap: "var(--space-6)", marginBottom: 16 }}>
         <Stack gap={0} style={{ minWidth: 0 }}>
           <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)", marginBottom: 6 }}>
-            Select Items to Receive
+            {t.brSelectItems}
           </Eyebrow>
           <Inp
             prefix={<Search size={13} />}
             value={srch}
             onChange={(e) => setSrch(e.target.value)}
-            placeholder="Search inventory..."
+            placeholder={t.brSearchInventory}
             style={{ marginBottom: 8 }}
           />
           <Stack gap="5px" style={{ maxHeight: 320, overflowY: "auto" }}>
@@ -348,9 +355,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
             {selectable.length === 0 && (
               <EmptyState
                 well
-                message={
-                  rows.length > 0 ? "All items matched ✓" : "No matching inventory items found"
-                }
+                message={rows.length > 0 ? t.brAllMatched : t.brNoMatches}
                 style={{ padding: 20 }}
               />
             )}
@@ -360,7 +365,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
         <Stack gap={0} style={{ minWidth: 0 }}>
           <Row gap={0} justify="space-between" style={{ marginBottom: 6 }}>
             <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)" }}>
-              Manifest Queue {rows.length > 0 && `(${rows.length})`}
+              {t.brManifestQueue} {rows.length > 0 && `(${rows.length})`}
             </Eyebrow>
             {rows.length > 0 && (
               <TextBtn
@@ -369,7 +374,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                 size="xs"
                 style={{ padding: "1px 6px" }}
               >
-                Clear All
+                {t.brClearAll}
               </TextBtn>
             )}
           </Row>
@@ -378,7 +383,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
             <EmptyState
               well
               icon={ClipboardList}
-              message="Manifest queue is empty"
+              message={t.brQueueEmpty}
               style={{ height: 200 }}
             />
           ) : (
@@ -411,7 +416,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                       <div className="sw-grid-2-auto">
                         <div>
                           <Text weight="bold" color={C.sub} style={FIELD_LABEL}>
-                            Qty ({b.unit})
+                            {t.brQtyUnit.replace("{unit}", b.unit)}
                           </Text>
                           <Inp
                             type="number"
@@ -423,7 +428,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                         </div>
                         <div>
                           <Text weight="bold" color={C.sub} style={FIELD_LABEL}>
-                            Unit Price
+                            {t.brUnitPrice}
                           </Text>
                           {perms.inv_pricing_edit ? (
                             <Inp
@@ -451,7 +456,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                         </div>
                         <Stack gap={0} style={{ paddingBottom: 2, textAlign: "right" }}>
                           <Text weight="bold" color={C.sub} style={FIELD_LABEL}>
-                            Subtotal
+                            {t.brSubtotal}
                           </Text>
                           <Text size="base" weight="extrabold" color={sub > 0 ? C.gr : C.sub}>
                             {fm(sub)}
@@ -479,10 +484,10 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                     color={"rgba(255,255,255,0.55)"}
                     style={{ textTransform: "uppercase" }}
                   >
-                    Manifest Valuation
+                    {t.brValuation}
                   </Text>
                   <Text size="xs" color={"rgba(255,255,255,0.7)"} style={{ marginTop: 2 }}>
-                    {validCount} valid item positions
+                    {t.brValidPositions.replace("{n}", String(validCount))}
                   </Text>
                 </div>
                 <Text size="3xl" weight="black" color={C.gold}>
@@ -501,7 +506,7 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
           style={{ flex: 1, justifyContent: "center" }}
           disabled={saving}
         >
-          Cancel
+          {t.cancel}
         </Btn>
         <Btn
           v="gold"
@@ -517,11 +522,12 @@ export default function BulkReceiveModal({ inv = [], setInv, users, user, perms 
                 style={{ animation: "mrr-spin 0.7s linear infinite" }}
                 aria-hidden="true"
               />{" "}
-              Logging Operation...
+              {t.brLogging}
             </>
           ) : (
             <>
-              <CheckCircle2 size={14} aria-hidden="true" /> Commit Manifest ({validCount} Items)
+              <CheckCircle2 size={14} aria-hidden="true" />{" "}
+              {t.brCommitN.replace("{n}", String(validCount))}
             </>
           )}
         </Btn>
