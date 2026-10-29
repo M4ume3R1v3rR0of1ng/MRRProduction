@@ -21,6 +21,7 @@ import {
   Muted,
   Grid,
 } from "@/shared/components/UIPrimitives";
+import { translations } from "@/shared/utils/translations";
 
 // Oldest first: the batch FIFO will draw from next is the first one with stock
 // left on it, which is what the ACTIVE marker points at.
@@ -31,6 +32,7 @@ export default function ItemDetailModal({
   item,
   users = [],
   perms = {},
+  lang = "en",
   onSetPhoto,
   onEdit,
   onReceive,
@@ -39,17 +41,18 @@ export default function ItemDetailModal({
   onCorrectBatch,
   onClose,
 }) {
+  const t = translations[lang] || translations.en;
   const specs = [
-    ["Total Stock", `${tot(item)} ${item.unit}`],
-    ["Category", item.cat],
-    ["Unit", item.unit],
+    [t.idTotalStock, `${tot(item)} ${item.unit}`],
+    [t.osCategory, item.cat],
+    [t.unit, item.unit],
     ...(perms.inv_pricing_view
       ? [
-          ["Current Price", fm(newestPrice(item))],
-          ["Low Alert", `${item.alrt} ${item.unit}`],
+          [t.idCurrentPrice, fm(newestPrice(item))],
+          [t.idLowAlert, `${item.alrt} ${item.unit}`],
         ]
-      : [["Low Alert", `${item.alrt} ${item.unit}`]]),
-    ["Batches", (item.batches || []).length],
+      : [[t.idLowAlert, `${item.alrt} ${item.unit}`]]),
+    [t.idBatches, (item.batches || []).length],
   ];
 
   const batches = batchesOldestFirst(item);
@@ -59,18 +62,18 @@ export default function ItemDetailModal({
       <Grid gap={7} style={{ marginBottom: 16 }}>
         <div>
           <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)", marginBottom: 8 }}>
-            Product Photo
+            {t.idProductPhoto}
           </Eyebrow>
           <PhotoUpload
             current={item.photo_url || null}
             onUpload={(data) => onSetPhoto?.(item.id, data)}
-            label="Upload product photo"
+            label={t.idUploadPhoto}
             previewHeight={180}
           />
         </div>
         <div>
           <Eyebrow color={C.navy} style={{ fontWeight: "var(--weight-bold)", marginBottom: 8 }}>
-            Item Details
+            {t.idItemDetails}
           </Eyebrow>
           <Stack gap={2}>
             {specs.map(([k, v]) => (
@@ -98,22 +101,22 @@ export default function ItemDetailModal({
           <Row align="stretch" wrap style={{ marginTop: 12 }}>
             {perms.inv_edit && (
               <Btn v="outline" sz="sm" onClick={onEdit}>
-                <Pencil size={13} aria-hidden="true" /> Edit Materials
+                <Pencil size={13} aria-hidden="true" /> {t.idEditMaterials}
               </Btn>
             )}
             {perms.inv_receive && (
               <Btn v="primary" sz="sm" onClick={onReceive}>
-                + Receive Batch
+                {t.idReceiveBatch}
               </Btn>
             )}
             {perms.inv_adjust && (
               <Btn v="gold" sz="sm" onClick={onAdjust}>
-                <Wrench size={13} aria-hidden="true" /> Adjust Stock
+                <Wrench size={13} aria-hidden="true" /> {t.idAdjustStock}
               </Btn>
             )}
             {perms.inv_edit && (
               <Btn v="danger" sz="sm" onClick={onDelete}>
-                <Trash2 size={13} aria-hidden="true" /> Delete Product
+                <Trash2 size={13} aria-hidden="true" /> {t.idDeleteProduct}
               </Btn>
             )}
           </Row>
@@ -126,7 +129,7 @@ export default function ItemDetailModal({
         color={C.navy}
         style={{ margin: "0 0 8px", textTransform: "uppercase" }}
       >
-        Batch History (FIFO)
+        {t.idBatchHistory}
       </Text>
       {batches.map((b, i) => {
         const isActive = i === 0 && b.rem > 0;
@@ -147,7 +150,7 @@ export default function ItemDetailModal({
                 <Text size="sm" weight="bold" color={C.navy}>
                   {isActive && (
                     <Text as="span" color={C.blue}>
-                      ▶ ACTIVE ·{" "}
+                      ▶ {t.idActive} ·{" "}
                     </Text>
                   )}
                   {fd(b.rcvd)}
@@ -167,16 +170,18 @@ export default function ItemDetailModal({
                 {/* `?.name || "Unknown"` here found the right person and threw the
                     answer away — profiles keep the name in full_name — and could
                     never resolve a pre-Auth id at all. See utils/people. */}
-                <Muted>By: {resolveBatchPerson(users, b)}</Muted>
+                <Muted>
+                  {t.idBy} {resolveBatchPerson(users, b)}
+                </Muted>
               </div>
               <Row style={{ textAlign: "right" }}>
                 <div>
                   <Text size="sm" weight="extrabold" color={b.rem === 0 ? C.sub : C.gr}>
-                    {b.rem}/{b.qty} remaining
+                    {b.rem}/{b.qty} {t.bcRemaining}
                   </Text>
                   {perms.inv_pricing_view && (
                     <Text size="xs" weight="bold" color={unpriced ? C.rd : C.blue}>
-                      {fm(b.price)} ea.
+                      {fm(b.price)} {t.idEach}
                       {unpriced && b.rem > 0 && (
                         <>
                           {" "}
@@ -185,7 +190,7 @@ export default function ItemDetailModal({
                             style={{ verticalAlign: -1 }}
                             aria-hidden="true"
                           />{" "}
-                          unpriced
+                          {t.idUnpriced}
                         </>
                       )}
                     </Text>
@@ -196,7 +201,7 @@ export default function ItemDetailModal({
                     v="ghost"
                     sz="sm"
                     onClick={() => onCorrectBatch?.(b)}
-                    title="Correct this batch's price, PO or vendor"
+                    title={t.idCorrectBatch}
                   >
                     <Pencil size={13} aria-hidden="true" />
                   </Btn>
@@ -208,7 +213,7 @@ export default function ItemDetailModal({
       })}
       {batches.length === 0 && (
         <Text as="p" size="base" color={C.sub}>
-          No receipt stacks logged yet.
+          {t.idNoBatches}
         </Text>
       )}
     </Modal>

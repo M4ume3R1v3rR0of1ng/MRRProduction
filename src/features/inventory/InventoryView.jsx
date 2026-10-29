@@ -603,6 +603,7 @@ export default function InventoryView({
 
       {modal === "detail" && sel && (
         <ItemDetailModal
+          lang={lang}
           item={sel}
           users={users}
           perms={perms}
