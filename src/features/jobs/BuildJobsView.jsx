@@ -1472,6 +1472,7 @@ export default function BuildJobs({
       {/* ── MODAL: SUPERVISOR APPROVAL POPUP ── */}
       {modal === "edit" && sel && (
         <EditJobModal
+          lang={lang}
           job={sel}
           inv={inv}
           fieldUsers={fieldUsers}

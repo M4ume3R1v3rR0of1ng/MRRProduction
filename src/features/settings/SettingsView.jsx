@@ -296,19 +296,19 @@ export default function SettingsView({
   const [loadingFolders, setLoadingFolders] = useState(false);
 
   const tabs = [
-    ...(fullAdmin ? [{ id: "Permissions", label: "Permissions", icon: Lock }] : []),
+    ...(fullAdmin ? [{ id: "Permissions", label: t.stTabPermissions, icon: Lock }] : []),
     // "Automations" rather than "Notifications": email is the first thing this panel
     // switches on, not the only thing planned, and the rows already read as rules
     // rather than as a notification inbox.
-    { id: "Automations", label: "Automations", icon: Bell },
+    { id: "Automations", label: t.stTabAutomations, icon: Bell },
     // "CRM Integration" rather than "AccuLynx": AccuLynx is the first CRM we
     // connect to, not the only one planned. Naming the tab after the category
     // means adding Jobber or ServiceTitan later is a new section in this panel,
     // not a renamed tab and a broken bookmark.
-    ...(fullAdmin ? [{ id: "CRM", label: "CRM Integration", icon: Link2 }] : []),
-    { id: "Branding", label: "Branding", icon: Building2 },
-    { id: "Warehouses", label: "Warehouses", icon: Factory },
-    { id: "System", label: "System", icon: Info },
+    ...(fullAdmin ? [{ id: "CRM", label: t.stTabCrm, icon: Link2 }] : []),
+    { id: "Branding", label: t.stTabBranding, icon: Building2 },
+    { id: "Warehouses", label: t.stTabWarehouses, icon: Factory },
+    { id: "System", label: t.stTabSystem, icon: Info },
   ];
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -727,11 +727,7 @@ export default function SettingsView({
       {fullAdmin && currentTab === "CRM" && (
         <Card pad="lg">
           <Row gap={5} align="flex-start" justify="space-between" wrap style={{ marginBottom: 20 }}>
-            <SectionTitle
-              icon={Link2}
-              title={t.stAxIntegration}
-              subtitle="Sync Upload files the completion report PDF in the AccuLynx job's Documents and posts the material cost, including tax, as an Additional Job Expense. The PDF button in Pull Inventory only opens the report for printing."
-            />
+            <SectionTitle icon={Link2} title={t.stAxIntegration} subtitle={t.stSyncUploadDesc} />
             {/* Status pill updated to seamlessly allow headless environment configurations */}
             <StatusPill
               active={!!(acculynxConfig?.enabled && acculynxConfig?.proxyUrl)}
@@ -1018,7 +1014,7 @@ export default function SettingsView({
           </CardGrid>
           <Row gap={0} align="stretch" justify="flex-end" style={{ marginBottom: 24 }}>
             <Btn v="primary" onClick={saveBranding} disabled={savingBrand}>
-              {savingBrand ? "Saving…" : "Save Company Details"}
+              {savingBrand ? t.stSavingBrand : t.stSaveCompanyDetails}
             </Btn>
           </Row>
 
@@ -1055,7 +1051,7 @@ export default function SettingsView({
             >
               <ImageIcon size={26} color={T.blue} strokeWidth={1.5} aria-hidden="true" />
               <Text size="md" weight="bold" color={T.blue}>
-                {logos ? "Replace logo" : "Upload logo"}
+                {logos ? t.stReplaceLogo : t.stUploadLogo}
               </Text>
               <Text size="sm" color={T.slateL}>
                 {t.stLogoFormats}
@@ -1127,7 +1123,7 @@ export default function SettingsView({
                         {w.code && <Bdg color="sky">{w.code}</Bdg>}
                       </Row>
                       <Row gap={1} style={{ fontSize: "var(--text-sm)", color: T.slateL }}>
-                        <MapPin size={12} aria-hidden="true" /> {w.location || "No address logged"}
+                        <MapPin size={12} aria-hidden="true" /> {w.location || t.stNoAddress}
                       </Row>
                     </div>
                     <StatusPill
@@ -1159,18 +1155,20 @@ export default function SettingsView({
 
           <CardGrid minWidth={220}>
             {[
-              { label: "Version", value: "WMS v5.0" },
-              { label: "Storage", value: "Supabase (row-level security)" },
-              { label: "Photos", value: "Auto-compressed JPEG" },
-              { label: "PDF Engine", value: "Browser print → Save as PDF" },
+              // The version string is a build identifier, and AccuLynx is a product
+              // name, so neither is translated.
+              { label: t.stInfoVersion, value: "WMS v5.0" },
+              { label: t.stInfoStorage, value: t.stInfoStorageValue },
+              { label: t.stInfoPhotos, value: t.stInfoPhotosValue },
+              { label: t.stInfoPdfEngine, value: t.stInfoPdfEngineValue },
               {
                 label: "AccuLynx",
                 value:
                   acculynxConfig?.enabled && acculynxConfig?.proxyUrl
-                    ? "Enabled"
-                    : "Not configured",
+                    ? t.stInfoEnabled
+                    : t.stInfoNotConfigured,
               },
-              { label: "Permissions", value: "Role-based with per-user overrides" },
+              { label: t.stTabPermissions, value: t.stInfoPermsValue },
             ].map(({ label, value }) => (
               <Callout key={label} bordered pad="14px 16px" style={{ borderRadius: T.radius }}>
                 <Eyebrow style={{ fontSize: "var(--text-2xs)", marginBottom: 5 }}>{label}</Eyebrow>

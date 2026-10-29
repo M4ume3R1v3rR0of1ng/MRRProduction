@@ -44,7 +44,7 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
       return setErr(problem);
     }
     if (pass !== confirm) {
-      return setErr("The two passwords don't match.");
+      return setErr(t.rpMismatch);
     }
     setSubmitting(true);
     // The recovery session established from the link authorizes this one write:
@@ -52,10 +52,7 @@ export default function ResetPasswordScreen({ onDone, lang = "en" }) {
     // to be used from a clean login — no half-authenticated session left behind.
     const { error } = await supabase.auth.updateUser({ password: pass });
     if (error) {
-      setErr(
-        error.message ||
-          "Could not update your password. The link may have expired — request a new one.",
-      );
+      setErr(error.message || t.rpUpdateFail);
       setSubmitting(false);
       return;
     }

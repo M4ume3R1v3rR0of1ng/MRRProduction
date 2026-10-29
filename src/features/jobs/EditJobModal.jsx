@@ -31,6 +31,7 @@ import {
   TextBtn,
   Card,
 } from "@/shared/components/UIPrimitives";
+import { translations } from "@/shared/utils/translations";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -66,6 +67,7 @@ export default function EditJobModal({
   fieldUsers = [],
   activeUser,
   perms = {},
+  lang = "en",
   onSaved,
   onClose,
   onCorrectReturn,
@@ -75,6 +77,7 @@ export default function EditJobModal({
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const { showToast } = useNotify();
+  const t = translations[lang] || translations.en;
 
   const addable = addableInventory(inv, items, search);
 
@@ -114,7 +117,7 @@ export default function EditJobModal({
 
   const save = async () => {
     if (!form.po || !form.name) {
-      showToast("PO and Job Name are strictly required fields.", "warning");
+      showToast(t.ejRequiredErr, "warning");
       return;
     }
     setSaving(true);
@@ -157,27 +160,27 @@ export default function EditJobModal({
         "production",
       );
 
-      showToast("Job build updated successfully.", "success");
+      showToast(t.ejSavedOk, "success");
       onSaved?.({ ...job, ...payload });
     } catch (err) {
       console.error("Failed to save job edits:", err);
-      showToast(`Database Error: Could not save job edits. ${err.message}`, "error");
+      showToast(`${t.ejSaveFail} ${err.message}`, "error");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <Modal title={`Edit Job — ${job.po}`} onClose={close} wide>
+    <Modal title={t.ejTitle.replace("{po}", job.po)} onClose={close} wide>
       <Grid gap={4}>
-        <Fld label="Job PO Number *">
+        <Fld label={t.ejPoLabel}>
           <Inp
             value={form.po}
             onChange={(e) => setForm({ ...form, po: e.target.value })}
             disabled={saving}
           />
         </Fld>
-        <Fld label="Job Name *">
+        <Fld label={t.ejNameLabel}>
           <Inp
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -185,7 +188,7 @@ export default function EditJobModal({
           />
         </Fld>
       </Grid>
-      <Fld label="Job Address">
+      <Fld label={t.ejAddressLabel}>
         <Inp
           value={form.addr}
           onChange={(e) => setForm({ ...form, addr: e.target.value })}
@@ -193,22 +196,22 @@ export default function EditJobModal({
         />
       </Fld>
       <Grid gap={4}>
-        <Fld label="Production Schedule Start Date">
+        <Fld label={t.ejStartDateLabel}>
           <Inp
             type="date"
-            aria-label="Production Schedule Start Date"
+            aria-label={t.ejStartDateLabel}
             value={form.scheduledDate}
             onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
             disabled={saving}
           />
         </Fld>
-        <Fld label="Assigned Site Supervisor">
+        <Fld label={t.ejSupervisorLabel}>
           <Sel
             value={form.assignedto}
             onChange={(e) => setForm({ ...form, assignedto: e.target.value })}
             disabled={saving}
           >
-            <option value="">— Unassigned —</option>
+            <option value="">{t.ejUnassigned}</option>
             {fieldUsers.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name}
@@ -218,10 +221,7 @@ export default function EditJobModal({
         </Fld>
       </Grid>
       {perms.jobs_revenue && (
-        <Fld
-          label="Contract Value"
-          hint="What the customer is paying. Leave blank if not known yet — blank keeps the job out of margin reporting rather than counting it as a loss."
-        >
+        <Fld label={t.ejContractValue} hint={t.ejContractValueHint}>
           <Inp
             prefix="$"
             type="number"
@@ -229,13 +229,13 @@ export default function EditJobModal({
             min="0"
             value={form.contractValue}
             onChange={(e) => setForm({ ...form, contractValue: e.target.value })}
-            placeholder="e.g. 14500.00"
+            placeholder={t.ejContractValuePlaceholder}
             disabled={saving}
           />
         </Fld>
       )}
 
-      <Fld label="Notes">
+      <Fld label={t.ejNotesLabel}>
         <TA
           value={form.notes}
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -245,12 +245,12 @@ export default function EditJobModal({
 
       <Row gap={2} justify="space-between" wrap style={{ margin: "16px 0 8px" }}>
         <Text as="h4" size="sm" color={C.navy} style={{ margin: 0, textTransform: "uppercase" }}>
-          Materials Checklist
+          {t.ejMaterialsChecklist}
         </Text>
         {canCorrectReturn && (
           <Row gap={2} align="stretch" wrap>
             <Btn v="outline" sz="sm" onClick={() => onCorrectReturn()} disabled={saving}>
-              <RefreshCw size={13} aria-hidden="true" /> Correct Return
+              <RefreshCw size={13} aria-hidden="true" /> {t.ejCorrectReturn}
             </Btn>
           </Row>
         )}
@@ -259,7 +259,7 @@ export default function EditJobModal({
       <Stack gap={2} style={{ marginBottom: 10 }}>
         {items.length === 0 ? (
           <Muted as="p" size="sm" style={{ margin: 0 }}>
-            No materials on this job.
+            {t.ejNoMaterials}
           </Muted>
         ) : (
           items.map((item) => (
@@ -301,12 +301,12 @@ export default function EditJobModal({
         )}
       </Stack>
 
-      <Fld label="Add Material">
+      <Fld label={t.ejAddMaterial}>
         <Inp
           prefix={<Search size={13} />}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search inventory..."
+          placeholder={t.ejSearchInventory}
           disabled={saving}
         />
       </Fld>
@@ -324,7 +324,7 @@ export default function EditJobModal({
         >
           {addable.length === 0 ? (
             <Muted size="sm" style={{ padding: 10, textAlign: "center" }}>
-              No matching inventory items.
+              {t.ejNoMatches}
             </Muted>
           ) : (
             addable.map((item) => (
@@ -360,7 +360,7 @@ export default function EditJobModal({
           style={{ flex: 1, justifyContent: "center" }}
           disabled={saving}
         >
-          Cancel
+          {t.cancel}
         </Btn>
         <Btn
           v="primary"
@@ -375,11 +375,11 @@ export default function EditJobModal({
                 style={{ animation: "mrr-spin 0.7s linear infinite" }}
                 aria-hidden="true"
               />{" "}
-              Saving...
+              {t.avSaving}
             </>
           ) : (
             <>
-              <Save size={14} aria-hidden="true" /> Save Changes
+              <Save size={14} aria-hidden="true" /> {t.ejSaveChanges}
             </>
           )}
         </Btn>
