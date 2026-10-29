@@ -390,7 +390,6 @@ export const translations = {
     cwCancelled: "Cancelled — nothing was changed.",
     cwApplying: "Applying...",
     cwAskAnvil: "Ask A.N.V.I.L.",
-    cwAskAnvilAbout: "Ask A.N.V.I.L. about this",
     cwBriefingTitle: "Your day, from A.N.V.I.L.",
     cwBriefingEmpty: "Nothing needs your attention right now.",
     cwBriefingAsk: "What should I look at today?",
@@ -703,7 +702,6 @@ export const translations = {
 
     // Inventory Panel
     searchInventory: "Search stock materials...",
-    availableStock: "Available Stock",
     unit: "Unit",
     status: "Status",
     // Fleet & Maintenance
@@ -711,8 +709,6 @@ export const translations = {
     trucks: "trucks",
     trailers: "trailers",
     mileage: "Mileage",
-    lastOil: "Last Oil Change",
-    detailStatus: "Detail Status",
     requestMaintBtn: "Request Maintenance",
     pending: "Pending",
     scheduled: "Scheduled",
@@ -800,8 +796,6 @@ export const translations = {
     maintScheduleInfo: "Schedule Info:",
     maintSpareReturnsOnComplete:
       "The driver moves back to their own vehicle automatically when this service is marked complete.",
-    maintFinalNotes: "Final Completion Notes",
-    maintFinalPlaceholder: "e.g., Service resolved...",
     maintCompleteClose: "Complete & Close Request",
     maintRequestClosed: "Request Closed",
     maintResolutionNotesLabel: "Resolution Notes:",
@@ -852,11 +846,9 @@ export const translations = {
     pullFilterAllShort: "All",
     pullFilterApprovedShort: "Approved",
     pullFilterActiveShort: "Active",
-    pullFilterCompletedShort: "Completed",
     pullFilterAll: "Every open job, approved and active",
     pullFilterApproved: "Approved. Waiting to be pulled.",
     pullFilterActive: "Active. Pulled already, waiting to be returned and completed.",
-    pullFilterCompleted: "Finished. Stock is back in inventory and the PDF can be reopened here.",
     pullNoneMatchFilter: "No jobs match that filter right now.",
     pullShowAllJobs: "Show all open jobs",
     pullSortAria: "Sort jobs",
@@ -917,14 +909,7 @@ export const translations = {
     pullTrailer: "Trailer",
     pullApproved: "Approved",
     pullNoneNeeded: "None needed",
-    pullConfigureAccuLynx:
-      "Configure AccuLynx in Settings → AccuLynx to enable automatic document upload and cost entry.",
-    pullSyncUpload: "Sync Upload",
-    pullAccuLynxUploadTitle: "AccuLynx Upload",
-    pullUploadNow: "Upload Now",
-    pullRetryUpload: "Retry Upload",
     pullUploadFailedBadge: "Upload Failed",
-    pullUploadNotConfig: "Upload Not Configured",
     pullRemoveConfirm:
       "already has {qty} {unit} pulled from the warehouse. Removing it here will NOT return that stock — it only removes it from this job's checklist. Continue?",
     pullJobSaved: "Job details saved.",
@@ -999,10 +984,6 @@ export const translations = {
     // drops it out of the work queue immediately, so a message about generating a
     // report reads as failure when the report is popup-blocked and the card has
     // already disappeared.
-    pullJobCompleted:
-      "Job completed and stock returned. It moved to the Completed filter, where you can reopen the PDF.",
-    pullPopupBlocked1:
-      "Popup blocked, so the report did not open. It was still filed to AccuLynx. Allow popups for this site if you want the printable copy, or ask the office to reopen it from Build Jobs.",
     pullPdfBlockedTitle: "The report did not open",
     pullPdfBlockedAsk:
       "Your browser blocked the popup, so no report was produced for this job. Nothing has been completed yet.",
@@ -1041,14 +1022,7 @@ export const translations = {
     pullRemoveTitle: "Remove this material?",
     pullRemoveYes: "Remove it",
     pullReportUploaded: "Completion report filed on the AccuLynx job.",
-    pullReportUploadFail: "Job completed, but the report upload to AccuLynx failed:",
     pullReportFiled: "Report Filed",
-    pullReportFiledTitle: "Report filed in AccuLynx",
-    pullReportFiledAt: "Uploaded",
-    pullReportNotFiled: "Report not filed yet",
-    pullReportNotFiledDesc:
-      "AccuLynx is connected. Press Upload Now to file the report. The PDF button only opens it for printing.",
-    pullPopupBlocked2: "Popup blocked. Allow popups for this site to open the PDF report.",
     pullReturnError: "Database Error: Could not process return & completion.",
     pullReturnOffline:
       "No connection, so the job could not be completed. Get a signal and press Complete Job again. It is safe to retry.",
@@ -1204,7 +1178,6 @@ export const translations = {
     bjPopupBlocked: "Popup blocked. Allow popups for this site to open the PDF report.",
     bjTemplateAllPresent: 'Everything in "{name}" is already on the job list.',
     bjDraftSaved: "Job draft saved successfully.",
-    bjJobApprovedNotified: "Job approved and supervisor notified.",
     bjSubtitle: "Plan inventory, assign site supervisors, manage the pipeline",
     bjSortNewest: "↕ Date Created — Newest",
     bjSortOldest: "↕ Date Created — Oldest",
@@ -1459,10 +1432,7 @@ export const translations = {
     trMarkedWatchedOk: "Marked as watched.",
     trMarkWatchedFail: "Could not save that:",
     trRoster: "{done} of {total} watched",
-    trRosterNone: "Not assigned to anyone yet",
-    trRosterOutstanding: "Still to watch",
     trRosterOverdue: "{n} overdue",
-    trRosterWatchedBy: "Watched by",
     trWithdraw: "Withdraw",
     trWithdrawConfirm: 'Withdraw "{title}" from {name}? It disappears from their Training tab.',
     trWithdrawnOk: "Assignment withdrawn.",
@@ -2280,7 +2250,6 @@ export const translations = {
     cwCancelled: "Cancelado — no se cambió nada.",
     cwApplying: "Aplicando...",
     cwAskAnvil: "Preguntar a A.N.V.I.L.",
-    cwAskAnvilAbout: "Preguntar a A.N.V.I.L. sobre esto",
     cwBriefingTitle: "Su día, según A.N.V.I.L.",
     cwBriefingEmpty: "Nada requiere su atención en este momento.",
     cwBriefingAsk: "¿Qué debería revisar hoy?",
@@ -2603,7 +2572,6 @@ export const translations = {
     // ── ADDED MISSING INVENTORY SPANISH STRINGS ──
     searchInventory: "Buscar materiales...",
 
-    availableStock: "Stock Disponible",
     unit: "Unidad",
     status: "Estado",
     // ── ADDED MISSING FLEET & MAINTENANCE SPANISH STRINGS ──
@@ -2611,8 +2579,6 @@ export const translations = {
     trucks: "camiones",
     trailers: "remolques",
     mileage: "Kilometraje",
-    lastOil: "Último Cambio de Aceite",
-    detailStatus: "Estado de Limpieza",
     requestMaintBtn: "Solicitar Mantenimiento",
     pending: "Pendiente",
     scheduled: "Programado",
@@ -2700,8 +2666,6 @@ export const translations = {
     maintScheduleInfo: "Información de Programación:",
     maintSpareReturnsOnComplete:
       "El conductor regresa a su vehículo automáticamente cuando este servicio se marca como completado.",
-    maintFinalNotes: "Notas Finales de Finalización",
-    maintFinalPlaceholder: "ej., Servicio resuelto...",
     maintCompleteClose: "Completar y Cerrar Solicitud",
     maintRequestClosed: "Solicitud Cerrada",
     maintResolutionNotesLabel: "Notas de Resolución:",
@@ -2750,12 +2714,9 @@ export const translations = {
     pullFilterAllShort: "Todos",
     pullFilterApprovedShort: "Aprobados",
     pullFilterActiveShort: "Activos",
-    pullFilterCompletedShort: "Completados",
     pullFilterAll: "Todos los trabajos abiertos, aprobados y activos",
     pullFilterApproved: "Aprobados. Esperando a que se surtan.",
     pullFilterActive: "Activos. Ya surtidos, esperando devolución y cierre.",
-    pullFilterCompleted:
-      "Terminados. El material volvió al inventario y el PDF se puede reabrir aquí.",
     pullNoneMatchFilter: "Ningún trabajo coincide con ese filtro ahora.",
     pullShowAllJobs: "Mostrar todos los trabajos abiertos",
     pullSortAria: "Ordenar trabajos",
@@ -2817,14 +2778,7 @@ export const translations = {
     pullTrailer: "Remolque",
     pullApproved: "Aprobado",
     pullNoneNeeded: "Ninguno necesario",
-    pullConfigureAccuLynx:
-      "Configure AccuLynx en Configuración → AccuLynx para habilitar la carga automática de documentos y el registro de costos.",
-    pullSyncUpload: "Subir a AccuLynx",
-    pullAccuLynxUploadTitle: "Carga a AccuLynx",
-    pullUploadNow: "Subir Ahora",
-    pullRetryUpload: "Reintentar Carga",
     pullUploadFailedBadge: "Falló la Carga",
-    pullUploadNotConfig: "Carga No Configurada",
     pullRemoveConfirm:
       "ya tiene {qty} {unit} retirados del almacén. Quitarlo aquí NO devolverá ese stock — solo lo elimina de la lista de este trabajo. ¿Continuar?",
     pullJobSaved: "Detalles del trabajo guardados.",
@@ -2884,10 +2838,6 @@ export const translations = {
       "Estos artículos ya no están en el inventario, así que no se retiró nada: {items}. Actualice la página e intente de nuevo.",
     pullPulledOk: "Materiales retirados con éxito del almacén.",
     pullPullAborted: "Error de Base de Datos: Retiro cancelado.",
-    pullJobCompleted:
-      "Trabajo completado y material devuelto. Pasó al filtro Completados, donde puede volver a abrir el PDF.",
-    pullPopupBlocked1:
-      "Ventana emergente bloqueada, el reporte no se abrió. De todos modos se archivó en AccuLynx. Permita ventanas emergentes si quiere la copia impresa, o pida a la oficina que lo abra desde Crear Trabajos.",
     pullPdfBlockedTitle: "El reporte no se abrió",
     pullPdfBlockedAsk:
       "Su navegador bloqueó la ventana emergente, así que no se generó ningún reporte para este trabajo. Todavía no se ha completado nada.",
@@ -2926,15 +2876,7 @@ export const translations = {
     pullRemoveTitle: "¿Quitar este material?",
     pullRemoveYes: "Quitarlo",
     pullReportUploaded: "Reporte de finalización archivado en el trabajo de AccuLynx.",
-    pullReportUploadFail: "Trabajo completado, pero falló la carga del reporte a AccuLynx:",
     pullReportFiled: "Reporte Archivado",
-    pullReportFiledTitle: "Reporte archivado en AccuLynx",
-    pullReportFiledAt: "Subido",
-    pullReportNotFiled: "Reporte aún no archivado",
-    pullReportNotFiledDesc:
-      "AccuLynx está conectado. Presione Subir Ahora para archivar el reporte. El botón PDF solo lo abre para imprimir.",
-    pullPopupBlocked2:
-      "Ventana emergente bloqueada. Permita ventanas emergentes para este sitio para abrir el reporte PDF.",
     pullReturnError: "Error de Base de Datos: No se pudo procesar la devolución y finalización.",
     pullReturnOffline:
       "Sin conexión, así que el trabajo no se pudo completar. Consiga señal y presione Completar Trabajo otra vez. Es seguro reintentar.",
@@ -3092,7 +3034,6 @@ export const translations = {
       "Ventana emergente bloqueada. Permita las ventanas emergentes de este sitio para abrir el reporte PDF.",
     bjTemplateAllPresent: 'Todo lo de "{name}" ya está en la lista del trabajo.',
     bjDraftSaved: "Borrador del trabajo guardado correctamente.",
-    bjJobApprovedNotified: "Trabajo aprobado y supervisor notificado.",
     bjSubtitle:
       "Planifique inventario, asigne supervisores de obra y administre el flujo de trabajo",
     bjSortNewest: "↕ Fecha de Creación — Más Reciente",
@@ -3351,10 +3292,7 @@ export const translations = {
     trMarkedWatchedOk: "Marcado como visto.",
     trMarkWatchedFail: "No se pudo guardar:",
     trRoster: "{done} de {total} lo han visto",
-    trRosterNone: "Todavía no está asignado a nadie",
-    trRosterOutstanding: "Falta por ver",
     trRosterOverdue: "{n} vencido(s)",
-    trRosterWatchedBy: "Visto por",
     trWithdraw: "Retirar",
     trWithdrawConfirm: '¿Retirar "{title}" de {name}? Desaparecerá de su pestaña de Capacitación.',
     trWithdrawnOk: "Asignación retirada.",
