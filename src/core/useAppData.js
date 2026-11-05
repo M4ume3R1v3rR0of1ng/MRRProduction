@@ -308,7 +308,17 @@ export function useAppData() {
           setReqs([]);
           setJobTrailers([]);
           setWH([]);
-          setTrainingMedia([]);
+          // The library is the one thing here that is NOT per-company (supabase/60),
+          // and the Owner manages it from this tenant: Training is in this nav. It
+          // used to be cleared with the rest, so the Owner saw an empty library
+          // while every other company saw all of it.
+          const { data: media, error: mediaErr } = await supabase
+            .from("training_media")
+            .select("*")
+            .order("sort_order", { ascending: true })
+            .order("created_at", { ascending: true });
+          if (mediaErr) console.error("Training media failed to load:", mediaErr);
+          setTrainingMedia(media || []);
           // Users and permissions DO matter here: Steadwerk has staff, and the
           // Users and Settings screens stay available to administer them.
           const { data: mems } = await supabase

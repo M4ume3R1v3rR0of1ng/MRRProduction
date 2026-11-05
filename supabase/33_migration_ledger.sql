@@ -515,6 +515,18 @@ begin
   perform public._mig_record('63_delegated_reads_and_branding.sql',
     public._mig_has_policy('audit_select_member_manager', 'audit_logs'),
     'policy audit_select_member_manager');
+
+  -- 64 replaces 56's update and delete policies under the same names, so existence
+  -- proves nothing. What changed is their text: 56's reads `or is_global`, 64's does
+  -- not. Probed by reading the delete policy's expression.
+  perform public._mig_record('64_training_media_write_own_clips_only.sql',
+    coalesce((
+      select qual not like '%is_global%'
+      from pg_policies
+      where schemaname = 'public' and tablename = 'training_media'
+        and policyname = 'training_media_row_delete'
+    ), false),
+    'training_media delete policy no longer reaches is_global rows');
 end $$;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists

@@ -158,23 +158,23 @@ export function mediaRow({ title, blurb, kind, url, sortOrder, user }) {
 //   1. Nobody touches a bundled clip. It ships in the build, so there is no row to
 //      change and no file to delete.
 //   2. A platform admin (Owner) may edit or remove any clip.
-//   3. A company Admin may edit or remove any clip their company can SEE (supabase/56).
+//   3. A company Admin may edit or remove only the clips their own company added
+//      (company_id matches), since supabase/64.
 //
-// Rule 3 used to mean "their own company's private clips, plus Steadwerk's global
-// ones". After supabase/60 there is one library and every company sees all of it, so
-// rule 3 now reaches EVERY clip: an edit or a delete by any company's Admin lands for
-// every other company and on the logged-out /training page, and a delete clears every
-// company's assignments and read receipts for it. 60 left that reach in place on
-// purpose — the UI warns before an edit, and narrowing it is a decision still to be
-// made. companyId is no longer consulted, because there is no row a company can see
-// but not write; it stays in the signature so the caller does not have to change when
-// that decision lands.
+// Every company still READS the whole library (60), but another company's clip is
+// read-only to them. 56 and 60 let any Admin reach every clip, and a delete cascaded
+// into every company's assignments and read receipts for it. Assigning a clip to their
+// own crew (48) is a company row, not a change to the clip, and is unaffected.
 //
-// This decides which BUTTONS appear. The row-write policies in supabase/56, still
-// live, are what actually enforce it; a hidden button stops nobody.
-export function canEditMedia(clip, { isPlatformAdmin = false, isCompanyAdmin = false } = {}) {
+// This decides which BUTTONS appear. The row-write policies in supabase/64 are what
+// actually enforce it; a hidden button stops nobody.
+export function canEditMedia(
+  clip,
+  { isPlatformAdmin = false, isCompanyAdmin = false, companyId = null } = {},
+) {
   if (!clip || clip.bundled) return false;
-  return isPlatformAdmin === true || isCompanyAdmin === true;
+  if (isPlatformAdmin === true) return true;
+  return isCompanyAdmin === true && !!companyId && clip.company_id === companyId;
 }
 
 // Bundled clips first, then the uploaded library by sort order and then upload time, so

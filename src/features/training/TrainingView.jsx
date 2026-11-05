@@ -98,18 +98,13 @@ export default function TrainingView({
 }) {
   const t = translations[lang] || translations.en;
   const { showToast } = useNotify();
-  // Two kinds of admin, and after supabase/60 they reach the same clips, because every
-  // company now sees the whole library.
-  //
-  // A platform admin (Owner) can add, edit or remove anything. A company's own Admin
-  // can too — 56 gave them edit and delete over any clip their company can see, and 60
-  // made that every clip, so what used to be "Steadwerk's global clips plus my own" is
-  // now the entire library. Adding is theirs as well, and what they add is published to
-  // every company, which is the part that is new. canEditMedia in ./trainingMedia holds
-  // the rule; the RLS in 56 is what enforces it, and a hidden button stops nobody.
-  //
-  // That reach is wide on purpose for now — narrowing it is a separate decision — so
-  // the edit form warns before a save and the remove confirm says who else it lands on.
+  // Every company reads the whole library (supabase/60), but writes are narrower
+  // (supabase/64). A platform admin (Owner) can add, edit or remove anything. A
+  // company's own Admin can add, and can edit or remove only the clips their company
+  // added; what they add is published to every company. canEditMedia in
+  // ./trainingMedia holds the rule; the RLS in 64 is what enforces it, and a hidden
+  // button stops nobody. The edit form still warns before a save and the remove
+  // confirm says who else it lands on, because even an own clip is read by everyone.
   //
   // Assigning a clip to a crew with a due date is a company Admin's job (supabase/48).
   // That writes their own company's row rather than touching the clip.
@@ -572,10 +567,9 @@ export default function TrainingView({
                   {/* Bundled clips ship in the build and have no row to change, so
                     there is nothing to edit or delete even for an Owner — "The Full
                     Tour" excepted, since supabase/44 made it a real row. Beyond that,
-                    canEditMedia decides: an Owner or any company's Admin, for any clip,
-                    now that every company sees all of them (supabase/60 over 56's
-                    reach). The RLS policies in supabase/56 refuse the rest whether or
-                    not this button is shown. */}
+                    canEditMedia decides: an Owner for any clip, a company's Admin for
+                    their own company's clips only (supabase/64). The RLS policies in
+                    64 refuse the rest whether or not this button is shown. */}
                   <Row gap={2} style={{ flexShrink: 0 }}>
                     {/* Assign is the one thing here that stays a tenant's own: a company
                       Admin points clips at their own crew with their own due dates. The
@@ -588,7 +582,11 @@ export default function TrainingView({
                         <UserCheck size={13} aria-hidden="true" /> {t.trAssign}
                       </Btn>
                     )}
-                    {canEditMedia(clip, { isPlatformAdmin, isCompanyAdmin }) && (
+                    {canEditMedia(clip, {
+                      isPlatformAdmin,
+                      isCompanyAdmin,
+                      companyId: user?.companyId,
+                    }) && (
                       <Btn
                         v="ghost"
                         sz="sm"

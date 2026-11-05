@@ -159,14 +159,17 @@ describe("canEditMedia", () => {
     expect(canEditMedia({ id: "a", is_global: true, company_id: "c2" }, owner)).toBe(true);
   });
 
-  // 56's reach, which supabase/60 left in place: any clip the company can SEE. 60 made
-  // that every clip, so a company admin now reaches another company's upload too — the
-  // consequence of one shared library, and the thing to revisit when write permissions
-  // are narrowed.
-  it("lets a company admin edit any clip, whoever uploaded it", () => {
+  // supabase/64: every company reads the whole library, but an Admin writes only the
+  // clips their own company added.
+  it("lets a company admin edit only their own company's clips", () => {
     expect(canEditMedia({ id: "a", is_global: true, company_id: "c1" }, admin)).toBe(true);
-    expect(canEditMedia({ id: "a", is_global: true, company_id: "steadwerk" }, admin)).toBe(true);
-    expect(canEditMedia({ id: "a", is_global: true, company_id: "c2" }, admin)).toBe(true);
+    expect(canEditMedia({ id: "a", is_global: true, company_id: "steadwerk" }, admin)).toBe(false);
+    expect(canEditMedia({ id: "a", is_global: true, company_id: "c2" }, admin)).toBe(false);
+  });
+
+  it("refuses a company admin with no company, or a clip with no owner", () => {
+    expect(canEditMedia({ id: "a", company_id: "c1" }, { isCompanyAdmin: true })).toBe(false);
+    expect(canEditMedia({ id: "a" }, admin)).toBe(false);
   });
 
   it("refuses a bundled clip to everyone, platform admin included", () => {
