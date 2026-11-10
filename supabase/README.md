@@ -135,6 +135,7 @@ in SQL, change it there too.
 | 61  | `61_inventory_catalog.sql`                    | **Required for "Add from library" in Inventory.** `inventory_catalog` — the generic positions a new company stands its catalog up from. Every signed-in user reads it, a platform admin writes it. Importing COPIES a row into that company's own catalog, with no link left behind.                                |
 | 62  | `62_delegated_user_management.sql`            | **Required if you grant "Manage Users" to a non-admin role.** `set_member_role()` now accepts `has_perm('users_manage')`, not just the literal `admin` role — with three refusals: no granting admin, no touching an admin's membership, no changing your own role. Mirrored in `_shared/userAdmin.js`.             |
 | 63  | `63_delegated_reads_and_branding.sql`         | **Required with 62 if you grant Manage Users or System Settings.** Lets a `users_manage` holder READ the audit log their nav offers — RLS filtered it to admins, so the page came back silently empty — and gives `set_company_branding()` to `settings_manage`. The AccuLynx key and matrix stay admin-only.       |
+| 65  | `65_anvil_pro_reorder.sql`                    | **Required for Anvil Pro.** `companies.anvil_pro` / `anvil_pro_comped`, per-item reorder fields on `inventory`, and the reorder settings and approval-queue tables (read-only from the browser). Run before setting the `STRIPE_ANVIL_PRO_*` env vars.                                                              |
 
 ## Adding a migration
 

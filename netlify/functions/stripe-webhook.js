@@ -109,6 +109,31 @@ function recurringPacksFromSubscription(sub) {
   return packs;
 }
 
+// Is the Anvil Pro add-on on this subscription? Same mirror discipline as the crew packs: the
+// subscription is the truth (a customer can drop the add-on from the hosted billing portal),
+// so it is re-read from the line items on every event and never accumulated.
+//
+// Returns null when the add-on is not CONFIGURED (neither price env var set) or the items
+// are unreadable, which tells the caller to leave companies.anvil_pro alone. That null is
+// load-bearing in a second way: until the Pro prices exist, this webhook must not write a
+// column that supabase/65 may not have added yet. A write to a missing column throws, the
+// handler answers 500, and Stripe retries every billing event for every customer forever,
+// which is exactly how migrations 16 and 27 once took billing down. See supabase/33.
+/**
+ * @param {Stripe.Subscription} sub
+ * @returns {boolean | null}
+ */
+export function anvilProFromSubscription(sub) {
+  const items = sub?.items?.data;
+  if (!Array.isArray(items)) return null;
+  const proPriceIds = [
+    process.env.STRIPE_ANVIL_PRO_PRICE_ID,
+    process.env.STRIPE_ANVIL_PRO_ANNUAL_PRICE_ID,
+  ].filter(Boolean);
+  if (proPriceIds.length === 0) return null;
+  return items.some((it) => proPriceIds.includes(it.price?.id));
+}
+
 // Which cadence is this subscription billed on, 'monthly' or 'annual'?
 //
 // create-checkout records the customer's choice in the subscription metadata, but
@@ -221,6 +246,7 @@ export function must(what, result) {
  * @property {string | null} [stripeSubscriptionId] - Bare Stripe subscription id (see stripeId()).
  * @property {number | null} [baseSeats]
  * @property {number | null} [recurringPacks]
+ * @property {boolean | null} [anvilPro]
  * @property {"monthly" | "annual" | null} [billingInterval]
  */
 
@@ -234,7 +260,15 @@ export function must(what, result) {
  */
 async function applyStatus(
   admin,
-  { companyId, stripeCustomerId, stripeSubscriptionId, baseSeats, recurringPacks, billingInterval },
+  {
+    companyId,
+    stripeCustomerId,
+    stripeSubscriptionId,
+    baseSeats,
+    recurringPacks,
+    anvilPro,
+    billingInterval,
+  },
   status,
 ) {
   if (!status) return;
@@ -302,6 +336,7 @@ async function applyStatus(
    * @type {{
    *   subscription_status: CompanySubscriptionStatus,
    *   recurring_seat_packs?: number,
+   *   anvil_pro?: boolean,
    *   billing_interval?: "monthly" | "annual",
    *   seat_capacity?: number,
    * }}
@@ -316,6 +351,10 @@ async function applyStatus(
   const billedPacks =
     typeof recurringPacks === "number" ? recurringPacks : co.recurring_seat_packs || 0;
   if (typeof recurringPacks === "number") patch.recurring_seat_packs = recurringPacks;
+
+  // Anvil Pro, mirrored the same way and only when it could be read (see
+  // anvilProFromSubscription for why null must mean "do not write").
+  if (typeof anvilPro === "boolean") patch.anvil_pro = anvilPro;
 
   // Same mirror discipline as the pack count: write it only when we actually read a
   // cadence off the subscription. Without this the owner console prices an annual
@@ -667,6 +706,7 @@ const rawHandler = async (event) => {
             stripeSubscriptionId: sub.id,
             baseSeats: baseSeatsFromSubscription(sub),
             recurringPacks: recurringPacksFromSubscription(sub),
+            anvilPro: anvilProFromSubscription(sub),
             billingInterval: billingIntervalFromSubscription(sub),
           },
           mapStripeStatus(sub.status),
@@ -682,6 +722,9 @@ const rawHandler = async (event) => {
             companyId: sub.metadata?.company_id || null,
             stripeCustomerId: stripeId(sub.customer),
             stripeSubscriptionId: sub.id,
+            // A cancelled subscription has no add-on. Null, not false, while the add-on is
+            // unconfigured, for the reason given on anvilProFromSubscription.
+            anvilPro: anvilProFromSubscription(sub) === null ? null : false,
           },
           "canceled",
         );

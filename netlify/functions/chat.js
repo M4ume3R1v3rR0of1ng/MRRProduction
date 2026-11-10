@@ -38,6 +38,8 @@ import {
   verifyAction,
 } from "./_shared/anvilActions.js";
 import { buildBriefing, loadBriefingData } from "./_shared/anvilBriefing.js";
+import { toolTier } from "./_shared/anvilCapabilities.js";
+import { hasAnvilPro, PRO_REQUIRED_MESSAGE } from "./_shared/anvilPro.js";
 
 // CORS used to be a second, hand-copied ALLOWED_ORIGINS list here, which had
 // drifted from _shared/tenant.js's copy and was missing "capacitor://localhost" —
@@ -206,9 +208,21 @@ const READ_TOOLS = [
       "Assemble the caller's own operational briefing for today — the same one A.N.V.I.L. writes to them each morning: today's jobs, overdue oil changes, pending tickets, low stock, outstanding training, and loose ends, all filtered to what this user is allowed to see. Use when the user asks what they should be looking at, what needs attention, how the day looks, or for a catch-up.",
     input_schema: { type: "object", properties: {} },
   },
+  {
+    name: "get_reorder_proposals",
+    description:
+      "List the reorders A.N.V.I.L. has drafted for low-stock items and is waiting for a person to approve: item, what is left, the line it fell below, and the suggested quantity. Anvil Pro only. Use for 'what are we about to order', 'what needs reordering', or 'is anything waiting on me'. This only reads the queue; approving or dismissing happens in the Inventory page.",
+    input_schema: { type: "object", properties: {} },
+  },
 ];
 
 // What the model is offered: reads plus the confirm-gated writes.
+//
+// The list is the SAME for every company, Pro or not, on purpose. It is the first thing in
+// the cached prompt prefix, so a per-company list would give every plan its own cache. The
+// gate is at execution instead (see gateTool): a company without Anvil Pro that asks for a
+// Pro feature gets an answer that says so, which is also a better upsell than a tool the
+// model has never heard of.
 const TOOLS = [...READ_TOOLS, ...ACTION_TOOLS];
 
 // ── THE SYSTEM PROMPT IS SPLIT IN TWO, AND THE SPLIT IS LOAD-BEARING ───────
@@ -240,6 +254,7 @@ If a write tool reports an ambiguous match, ask the user which one they meant ra
 Telling you work is DONE and asking for work to be done are different things: log_service_record records a completed service, file_maintenance_request asks for one that still needs doing. "I changed the oil on 011" is the first; "011 needs an oil change" is the second.
 Never speculate about other companies on the platform; you have no access to them.
 If a tool returns a permission error, tell the user plainly they don't have access to that rather than guessing or making something up.
+If a tool returns requires_pro, that feature is part of the paid Anvil Pro add-on and is not on for this company: say so in one sentence and that an admin can add it from the Billing tab. Do not try to answer from other tools in its place.
 Keep answers short and directly useful — this is an internal ops tool, not a chatty assistant.`;
 
 /**
@@ -980,6 +995,24 @@ async function executeTool(admin, perms, caller, actorName, name, input) {
         ? { sections: briefing.sections }
         : { sections: [], note: "Nothing needs attention today." };
     }
+    case "get_reorder_proposals": {
+      // inv_edit, not inv_view: this is the approval queue, and approving is an
+      // inventory-editing act. Someone who can only look at stock has no business
+      // seeing what is about to be ordered or from whom.
+      if (!perms.inv_edit)
+        return { error: "This user does not have permission to manage reorders." };
+      const { data, error } = await admin
+        .from("anvil_reorder_proposals")
+        .select("item_name, unit, on_hand, alert_level, suggested_qty, supplier_name, created_at")
+        .eq("company_id", companyId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: true })
+        .limit(25);
+      if (error) return { error: error.message };
+      return data?.length
+        ? { pending: data }
+        : { pending: [], note: "Nothing is waiting on approval." };
+    }
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -1278,6 +1311,16 @@ const rawHandler = async (event) => {
         };
       }
 
+      // A write tool moved to Pro after its preview was issued (or a company dropped the
+      // add-on in between) must not commit: the preview was free to see, the write is not.
+      if (toolTier(confirmAction.tool) === "pro" && !(await hasAnvilPro(admin, caller.companyId))) {
+        return {
+          statusCode: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          body: JSON.stringify({ reply: PRO_REQUIRED_MESSAGE, applied: false }),
+        };
+      }
+
       const outcome = await executeAction(admin, {
         perms,
         caller,
@@ -1339,6 +1382,17 @@ const rawHandler = async (event) => {
     // ever one: see the comment at its assignment below.
     let pendingAction = null;
 
+    // Anvil Pro gate, evaluated at most once per request and only if a Pro tool is
+    // actually asked for, so a free question costs no extra query. Returns the tool result
+    // to hand the model when the tool is not available to this company, else null.
+    /** @type {Promise<boolean> | null} */
+    let proLookup = null;
+    const gateTool = async (toolName) => {
+      if (toolTier(toolName) === "free") return null;
+      proLookup ??= hasAnvilPro(admin, caller.companyId);
+      return (await proLookup) ? null : { error: PRO_REQUIRED_MESSAGE, requires_pro: true };
+    };
+
     for (let i = 0; i < 5; i++) {
       const response = await anthropic.messages.create({
         model: "claude-haiku-5-5",
@@ -1380,9 +1434,12 @@ const rawHandler = async (event) => {
       const toolResults = await Promise.all(
         toolUses.map(async (toolUse) => {
           const input = toolUse.input || {};
-          const result = ACTION_NAMES.has(toolUse.name)
-            ? await previewAction(admin, { perms, caller, tool: toolUse.name, input })
-            : await executeTool(admin, perms, caller, actorName, toolUse.name, input);
+          const blocked = await gateTool(toolUse.name);
+          const result = blocked
+            ? blocked
+            : ACTION_NAMES.has(toolUse.name)
+              ? await previewAction(admin, { perms, caller, tool: toolUse.name, input })
+              : await executeTool(admin, perms, caller, actorName, toolUse.name, input);
 
           // The FIRST valid preview wins and any later one in the same turn is
           // dropped. One Confirm button can only mean one thing, and a model

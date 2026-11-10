@@ -32,6 +32,12 @@ const BASE_PRICE = 99;
 const BASE_SEATS = 10;
 const PACK_PRICE = 10;
 const PACK_SEATS = 5;
+// Anvil Pro, the paid AI add-on. The amount that is actually CHARGED is the Stripe Price:
+// STRIPE_ANVIL_PRO_PRICE_ID (monthly) or STRIPE_ANVIL_PRO_ANNUAL_PRICE_ID (yearly), picked
+// by anvil-pro.js from the company's own base-plan interval. These two numbers only drive
+// the wording on screen and in the confirm dialog, so change them together with the Prices.
+const ANVIL_PRO_PRICE = 50;
+const ANVIL_PRO_ANNUAL_PRICE = 500; // two months free
 // Must match LandingPage.jsx's own ANNUAL_PRICE and the STRIPE_ANNUAL_PRICE_ID
 // amount — discounted 12-month prepay, the "2 months free" option.
 const ANNUAL_PRICE = 990;
@@ -62,9 +68,13 @@ export default function BillingView({ user, lang = "en" }) {
   const [contactBusy, setContactBusy] = useState(false);
   const [billingInterval, setBillingInterval] = useState(null); // "monthly" | "annual" | null
   const [annualBusy, setAnnualBusy] = useState(false);
+  const [anvilPro, setAnvilPro] = useState(false);
+  const [anvilProComped, setAnvilProComped] = useState(false);
+  const [proBusy, setProBusy] = useState(false);
   const [cardInfo, setCardInfo] = useState(null); // { hasCard, brand, last4, expMonth, expYear }
 
   const isAdmin = user?.role === "admin" || user?.isPlatformAdmin;
+  const annualPro = billingInterval === "annual";
 
   const load = async () => {
     setLoading(true);
@@ -83,11 +93,15 @@ export default function BillingView({ user, lang = "en" }) {
     // off the current user's company via a lightweight companies select (RLS-scoped).
     const { data: statusRow } = await supabase
       .from("companies")
-      .select("subscription_status, purchased_seat_packs, billing_interval")
+      .select(
+        "subscription_status, purchased_seat_packs, billing_interval, anvil_pro, anvil_pro_comped",
+      )
       .maybeSingle();
     setStatus(statusRow?.subscription_status || null);
     setGrandfatheredPacks(statusRow?.purchased_seat_packs || 0);
     setBillingInterval(statusRow?.billing_interval || null);
+    setAnvilPro(statusRow?.anvil_pro === true);
+    setAnvilProComped(statusRow?.anvil_pro_comped === true);
     setLoading(false);
 
     // Card details are a second, non-blocking round trip — only worth making for a
@@ -182,6 +196,38 @@ export default function BillingView({ user, lang = "en" }) {
       showToast(`${delta > 0 ? t.blAddSeatsFail : t.blRemoveSeatsFail} ${err.message}`, "error");
     } finally {
       setBusy(false);
+    }
+  };
+
+  // Edits the Stripe subscription; the webhook mirrors the result into companies.anvil_pro
+  // and this reloads. Like the seat packs, there is a beat where the two disagree, and
+  // the toast says so instead of optimistically flipping a switch the database has not.
+  const toggleAnvilPro = async () => {
+    const enabling = !anvilPro;
+    // An annual company is billed the annual Pro price, so the dialog says so.
+    const msg = enabling
+      ? annualPro
+        ? t.anvilProConfirmOnAnnual
+        : t.anvilProConfirmOn
+      : t.anvilProConfirmOff;
+    const price = annualPro ? ANVIL_PRO_ANNUAL_PRICE : ANVIL_PRO_PRICE;
+    if (!window.confirm(msg.replaceAll("${price}", price))) return;
+    setProBusy(true);
+    try {
+      const accessToken = await getAccessToken();
+      const res = await fetch("/.netlify/functions/anvil-pro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken, enabled: enabling }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      showToast(enabling ? t.anvilProAdded : t.anvilProRemoved, "success");
+      await load();
+    } catch (err) {
+      showToast(`${t.anvilProFail} ${err.message}`, "error");
+    } finally {
+      setProBusy(false);
     }
   };
 
@@ -327,6 +373,38 @@ export default function BillingView({ user, lang = "en" }) {
                   {t.blSwitchAnnual}
                 </Btn>
               </>
+            )}
+          </Card>
+
+          {/* Anvil Pro — the paid AI add-on. Admin-only to change; the server re-checks. */}
+          <Card variant="flat" pad="var(--space-8)" style={{ marginBottom: 16 }}>
+            <Eyebrow style={{ marginBottom: 8 }}>{t.anvilProTitle}</Eyebrow>
+            <Stack gap={0} align="flex-start" style={{ marginBottom: 8 }}>
+              <Bdg color={anvilPro || anvilProComped ? "green" : "gray"}>
+                {anvilPro || anvilProComped ? t.anvilProOn : t.anvilProOff}
+              </Bdg>
+            </Stack>
+            <Text size="base" color={C.sub} style={{ marginBottom: 12 }}>
+              {t.anvilProBlurb}{" "}
+              {!anvilProComped && (
+                <Text as="span" size="base" weight="semibold" color={C.navy}>
+                  {annualPro
+                    ? `$${ANVIL_PRO_ANNUAL_PRICE}/${t.anvilProPerYear}`
+                    : `$${ANVIL_PRO_PRICE}/${t.anvilProPerMonth}`}
+                </Text>
+              )}
+            </Text>
+            {anvilProComped ? (
+              <Text size="base" color={C.sub}>
+                {t.anvilProComped}
+              </Text>
+            ) : (
+              isAdmin &&
+              capacity != null && (
+                <Btn v={anvilPro ? "ghost" : "gold"} onClick={toggleAnvilPro} disabled={proBusy}>
+                  {anvilPro ? t.anvilProTurnOff : t.anvilProTurnOn}
+                </Btn>
+              )
             )}
           </Card>
 

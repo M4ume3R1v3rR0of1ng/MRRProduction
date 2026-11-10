@@ -10,6 +10,7 @@ import {
   AlertOctagon,
   Star,
   Library,
+  PackageCheck,
 } from "lucide-react";
 import { supabase, updateRowStrict } from "@/shared/utils/supabase";
 import { C, fm, tot, newestPrice } from "@/shared/utils/helpers";
@@ -43,6 +44,8 @@ import AdjustStockModal from "./AdjustStockModal";
 import BatchCorrectionModal from "./BatchCorrectionModal";
 import AddFromLibraryModal from "./AddFromLibraryModal";
 import InventoryCountTab from "./InventoryCountTab";
+import ReorderTab from "./ReorderTab";
+import useAnvilPro from "./useAnvilPro";
 
 export default function InventoryView({
   inv = [],
@@ -61,6 +64,8 @@ export default function InventoryView({
   // the variance it exposes. They share this screen because they are the same
   // subject seen two ways: what the books say, and whether the books are true.
   const [tab, setTab] = useState("catalog");
+  // For what to SHOW only. The reorder endpoints re-check Pro on the server.
+  const anvilPro = useAnvilPro();
   const [srch, setSrch] = useState(inventorySearchQuery);
   const [cat, setCat] = useState("All");
   // The two price sorts only exist for someone who may see pricing, so the valid
@@ -270,6 +275,11 @@ export default function InventoryView({
           ...(perms.inv_count
             ? [{ id: "count", icon: Calculator, label: t.invTabCount, title: t.invTabCountHint }]
             : []),
+          // Shown to anyone who can edit inventory, Pro or not: without Pro the tab
+          // explains the add-on instead of vanishing, which is how a company finds out.
+          ...(perms.inv_edit
+            ? [{ id: "reorder", icon: PackageCheck, label: "Reorders", title: "Anvil Pro" }]
+            : []),
         ]}
       />
 
@@ -277,7 +287,9 @@ export default function InventoryView({
           is revoked while sitting on the count tab would otherwise keep the sheet
           on screen, because `tab` is component state and losing the button does
           not change it. */}
-      {tab === "count" && perms.inv_count ? (
+      {tab === "reorder" && perms.inv_edit ? (
+        <ReorderTab pro={anvilPro} />
+      ) : tab === "count" && perms.inv_count ? (
         <InventoryCountTab
           inv={inv}
           jobs={jobs}
@@ -638,6 +650,7 @@ export default function InventoryView({
       {(modal === "add" || (modal === "edit" && sel)) && (
         <ItemFormModal
           item={modal === "edit" ? sel : null}
+          anvilPro={anvilPro}
           user={user}
           perms={perms}
           fetchLiveBatches={fetchLiveBatches}

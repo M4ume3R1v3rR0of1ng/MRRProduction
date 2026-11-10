@@ -527,7 +527,15 @@ begin
         and policyname = 'training_media_row_delete'
     ), false),
     'training_media delete policy no longer reaches is_global rows');
-end $$;
+
+  -- 65 adds companies.anvil_pro, a column nothing earlier made, plus the two reorder
+  -- tables. The column alone is a clean probe; the proposals table is checked as well
+  -- because it is the part a half-run file would be missing.
+  perform public._mig_record('65_anvil_pro_reorder.sql',
+    public._mig_has_column('companies', 'anvil_pro')
+      and public._mig_has_table('anvil_reorder_proposals'),
+    'companies.anvil_pro and table anvil_reorder_proposals');
+end $;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists
 -- every file rather than silently omitting the ones it cannot check.

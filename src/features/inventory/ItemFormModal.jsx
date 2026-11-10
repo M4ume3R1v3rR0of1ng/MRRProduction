@@ -38,6 +38,27 @@ export const UNITS = [
   "lbs",
 ];
 
+// The three Anvil Pro reorder fields, as a patch, containing ONLY what changed.
+//
+// ⚠️ This must return {} for a shop that never touched them. These columns come from
+// supabase/65; an insert or update naming a column the database does not have fails whole,
+// and for an update that would mean nobody can edit ANY item on a database where 65 has not
+// run. Writing only what moved keeps every existing edit exactly as it was until somebody
+// actually uses the feature.
+export const reorderFieldsToWrite = (form, item) => {
+  const out = {};
+  const was = (k) => ((item?.[k] ?? "") === "" ? "" : String(item[k]));
+  const now = (k) => String(form[k] ?? "").trim();
+  if (now("reorder_qty") !== was("reorder_qty")) {
+    const n = parseFloat(now("reorder_qty"));
+    out.reorder_qty = Number.isFinite(n) && n > 0 ? n : null;
+  }
+  for (const k of ["supplier_name", "supplier_email"]) {
+    if (now(k) !== was(k)) out[k] = now(k) || null;
+  }
+  return out;
+};
+
 // Did the operator actually change the price? Only true when they can edit
 // pricing at all, typed something, it parses, and it differs from what the
 // newest batch already says. Anything less must not rewrite a batch.
@@ -84,6 +105,7 @@ export default function ItemFormModal({
   onCreated,
   onSaved,
   onClose,
+  anvilPro = false,
 }) {
   const isEdit = !!item;
   const [form, setForm] = useState(() =>
@@ -94,8 +116,20 @@ export default function ItemFormModal({
           unit: item.unit || "rolls",
           alrt: item.alrt ?? "",
           price: "",
+          reorder_qty: item.reorder_qty ?? "",
+          supplier_name: item.supplier_name ?? "",
+          supplier_email: item.supplier_email ?? "",
         }
-      : { name: "", cat: "", unit: "rolls", alrt: "10", price: "" },
+      : {
+          name: "",
+          cat: "",
+          unit: "rolls",
+          alrt: "10",
+          price: "",
+          reorder_qty: "",
+          supplier_name: "",
+          supplier_email: "",
+        },
   );
   const [saving, setSaving] = useState(false);
   const { showToast } = useNotify();
@@ -118,6 +152,7 @@ export default function ItemFormModal({
       unit: form.unit,
       alrt: parseInt(form.alrt) || 5,
       batches: [],
+      ...reorderFieldsToWrite(form, null),
     };
     try {
       const { error } = await supabase.from("inventory").insert([record]);
@@ -149,6 +184,7 @@ export default function ItemFormModal({
       cat: form.cat,
       unit: form.unit,
       alrt: parseInt(form.alrt) || item.alrt,
+      ...reorderFieldsToWrite(form, item),
     };
     const oldPrice = newestPrice(item);
     const newPrice = parseFloat(form.price);
@@ -237,6 +273,36 @@ export default function ItemFormModal({
           disabled={saving}
         />
       </Fld>
+      {anvilPro && (
+        <>
+          <Fld label="Reorder Quantity (Anvil Pro)">
+            <Inp
+              type="number"
+              min="0"
+              value={form.reorder_qty}
+              onChange={(e) => set({ reorder_qty: e.target.value })}
+              placeholder="How much to order when this runs low"
+              disabled={saving}
+            />
+          </Fld>
+          <Fld label="Supplier (Anvil Pro)">
+            <Inp
+              value={form.supplier_name}
+              onChange={(e) => set({ supplier_name: e.target.value })}
+              placeholder="e.g. ABC Supply"
+              disabled={saving}
+            />
+          </Fld>
+          <Fld label="Supplier Email (Anvil Pro)">
+            <Inp
+              type="email"
+              value={form.supplier_email}
+              onChange={(e) => set({ supplier_email: e.target.value })}
+              disabled={saving}
+            />
+          </Fld>
+        </>
+      )}
       {isEdit && perms.inv_pricing_edit && (
         <Fld label="Current Price Per Unit">
           <Inp

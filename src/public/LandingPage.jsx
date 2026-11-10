@@ -34,6 +34,11 @@ const TRIAL_DAYS = 14;
 // display prices in LoginScreen's signup toggle.
 const ANNUAL_PRICE = 990;
 const ANNUAL_SAVINGS_PCT = Math.round((1 - ANNUAL_PRICE / (BASE_PRICE * 12)) * 100);
+// A.N.V.I.L. Pro, the optional add-on. Display text only: what is charged is the Stripe
+// Price in STRIPE_ANVIL_PRO_PRICE_ID / STRIPE_ANVIL_PRO_ANNUAL_PRICE_ID. Keep these in
+// step with ANVIL_PRO_PRICE and ANVIL_PRO_ANNUAL_PRICE in BillingView.jsx.
+const ANVIL_PRO_PRICE = 50;
+const ANVIL_PRO_ANNUAL_PRICE = 500;
 
 const CSS = `
 .sw-landing {
@@ -549,6 +554,7 @@ const CSS = `
 .sw-landing .rates { display:grid; grid-template-columns:1.15fr 1fr; gap:0; border:1px solid var(--line-2); background:var(--line); }
 @media (max-width:760px){ .sw-landing .rates { grid-template-columns:1fr; } }
 .sw-landing .rate { background:var(--surface); padding:34px 32px 36px; display:flex; flex-direction:column; gap:14px; position:relative; }
+.sw-landing .rate.pro-rate { grid-column:1 / -1; }
 .sw-landing .rate.lead-rate::after { content:""; position:absolute; top:0; left:32px; width:26px; height:3px; background:var(--accent); }
 .sw-landing .rate .code { font-family:"IBM Plex Mono",monospace; font-size:12px; font-weight:600; letter-spacing:.12em; color:var(--accent-deep); }
 .sw-landing .rate .fig { display:flex; align-items:baseline; gap:9px; }
@@ -1179,8 +1185,8 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
               <Text weight="bold" color={"var(--good)"} style={{ fontSize: "0.85rem", margin: "2px 0 6px" }}>
                 or ${ANNUAL_PRICE}/year · save {ANNUAL_SAVINGS_PCT}%
               </Text>
-              <div className="what">Everything, for up to {BASE_SEATS} people.</div>
-              <p>Inventory, jobs, fleet, maintenance, costed reports, and per-role access for the whole crew. This isn't a starter tier. It's the whole thing.</p>
+              <div className="what">Everything you run the yard on, for up to {BASE_SEATS} people.</div>
+              <p>Inventory, jobs, fleet, maintenance, costed reports, per-role access, and A.N.V.I.L., the assistant you can ask about your stock, trucks and schedule. This isn't a starter tier. It runs the whole operation.</p>
               <div className="rate-cta">
                 <button className="btn btn-primary btn-lg" type="button" onClick={onStart}>Start your company</button>
                 {/* eslint-disable-next-line react/jsx-no-comment-textnodes -- deliberate
@@ -1202,6 +1208,24 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
               </ul>
               <p>Hire five for the busy season and it's ${PACK_PRICE} a month while you need them. Let them go in the autumn and your bill goes back to ${BASE_PRICE}.</p>
             </div>
+            <div className="rate pro-rate">
+              <span className="code">A.N.V.I.L. PRO · OPTIONAL</span>
+              <div className="fig">
+                <span className="amt">${ANVIL_PRO_PRICE}</span>
+                <span className="per">/ month</span>
+              </div>
+              <Text weight="bold" color={"var(--good)"} style={{ fontSize: "0.85rem", margin: "2px 0 6px" }}>
+                or ${ANVIL_PRO_ANNUAL_PRICE}/year · two months free
+              </Text>
+              <div className="what">A.N.V.I.L. watches your stock so you don't have to.</div>
+              <ul className="rate-list">
+                <li>Checks every item against its low-stock line each weekday and drafts a reorder for anything under it.</li>
+                <li>Emails the people who approve orders when a reorder is waiting.</li>
+                <li>Review, change the quantity, then approve or dismiss. Nothing is ordered without a person saying yes.</li>
+                <li>Ask it "what are we about to order?" from chat.</li>
+              </ul>
+              <p>The Monday low-stock email, the morning briefing and everything else A.N.V.I.L. does today are already in the base price. Pro adds the work of drafting and approving reorders. Turn it on or off from your Billing tab; it's prorated both ways.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -1222,7 +1246,13 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
             <details>
               <summary>What does it cost, all in?</summary>
               <div className="ans">
-                <b>${BASE_PRICE} a month</b> covers up to {BASE_SEATS} people and every feature. Nothing gets held back for a bigger plan. Past {BASE_SEATS}, another {PACK_SEATS} people cost <b>${PACK_PRICE} a month</b>, and you can drop the pack again when the season turns. No setup fee, no per-job fee, no onboarding charge.
+                <b>${BASE_PRICE} a month</b> covers up to {BASE_SEATS} people and every core feature. Nothing gets held back for a bigger plan. The one optional extra is A.N.V.I.L. Pro, <b>${ANVIL_PRO_PRICE} a month</b>, which drafts reorders for you. Past {BASE_SEATS}, another {PACK_SEATS} people cost <b>${PACK_PRICE} a month</b>, and you can drop the pack again when the season turns. No setup fee, no per-job fee, no onboarding charge.
+              </div>
+            </details>
+            <details>
+              <summary>What is A.N.V.I.L., and what costs extra?</summary>
+              <div className="ans">
+                A.N.V.I.L. is the assistant built into the app. Ask it about jobs, stock, trucks and the schedule, have it file a ticket or log mileage (it waits for your Confirm first), and get a morning briefing and a Monday low-stock email. All of that is in the base price. <b>A.N.V.I.L. Pro</b> (${ANVIL_PRO_PRICE} a month, or ${ANVIL_PRO_ANNUAL_PRICE} a year) adds automatic reordering: it drafts a reorder when an item runs low and waits for someone to approve it. It never orders anything on its own.
               </div>
             </details>
             <details>

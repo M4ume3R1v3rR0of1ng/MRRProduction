@@ -214,6 +214,25 @@ export const translations = {
     blRemoveSeatsFail: "Could not remove seats:",
     blSeatsAdded: "Seats added. Your new capacity appears in a moment, once Stripe confirms.",
     blSeatsRemoved: "Seats removed. Your new capacity appears in a moment, once Stripe confirms.",
+    anvilProTitle: "Anvil Pro",
+    anvilProBlurb:
+      "A.N.V.I.L. watches your stock for you: it drafts a reorder when an item runs low, emails the people who approve orders, and waits for a yes. Nothing is ordered without a person approving it.",
+    anvilProOn: "On",
+    anvilProOff: "Off",
+    anvilProComped: "Included with your account at no charge.",
+    anvilProTurnOn: "Turn on Anvil Pro",
+    anvilProTurnOff: "Turn off Anvil Pro",
+    anvilProConfirmOn:
+      "Add Anvil Pro for ${price} a month? This is added to your subscription, so your bill goes up by ${price} every month until you turn it off. The first charge is prorated for the rest of this billing period.",
+    anvilProConfirmOnAnnual:
+      "Add Anvil Pro for ${price} a year? This is added to your annual subscription, so your yearly bill goes up by ${price} until you turn it off. The first charge is prorated for the rest of this billing period.",
+    anvilProPerMonth: "month",
+    anvilProPerYear: "year",
+    anvilProConfirmOff:
+      "Turn off Anvil Pro? You get a prorated credit for the rest of this billing period, and automatic reorders stop. Your reorder settings are kept if you turn it back on.",
+    anvilProFail: "Could not change Anvil Pro:",
+    anvilProAdded: "Anvil Pro added. It switches on in a moment, once Stripe confirms.",
+    anvilProRemoved: "Anvil Pro removed. It switches off in a moment, once Stripe confirms.",
     blRemoveBlocked:
       "There is nothing to remove, or all your seats are in use. Deactivate a user first.",
     blProrationNote:
@@ -2083,6 +2102,25 @@ export const translations = {
       "Usuarios agregados. Su nueva capacidad aparece en un momento, cuando Stripe lo confirme.",
     blSeatsRemoved:
       "Usuarios quitados. Su nueva capacidad aparece en un momento, cuando Stripe lo confirme.",
+    anvilProTitle: "Anvil Pro",
+    anvilProBlurb:
+      "A.N.V.I.L. vigila su inventario: prepara un pedido cuando un artículo se está acabando, avisa por correo a quienes aprueban pedidos y espera un sí. Nada se pide sin que una persona lo apruebe.",
+    anvilProOn: "Activado",
+    anvilProOff: "Desactivado",
+    anvilProComped: "Incluido en su cuenta sin cargo.",
+    anvilProTurnOn: "Activar Anvil Pro",
+    anvilProTurnOff: "Desactivar Anvil Pro",
+    anvilProConfirmOn:
+      "¿Agregar Anvil Pro por ${price} al mes? Se agrega a su suscripción, así que su factura sube ${price} cada mes hasta que lo desactive. El primer cargo es prorrateado por lo que resta del período.",
+    anvilProConfirmOnAnnual:
+      "¿Agregar Anvil Pro por ${price} al año? Se agrega a su suscripción anual, así que su factura anual sube ${price} hasta que lo desactive. El primer cargo es prorrateado por lo que resta del período.",
+    anvilProPerMonth: "mes",
+    anvilProPerYear: "año",
+    anvilProConfirmOff:
+      "¿Desactivar Anvil Pro? Recibirá un crédito prorrateado por lo que resta del período y los pedidos automáticos se detienen. Su configuración se conserva si lo vuelve a activar.",
+    anvilProFail: "No se pudo cambiar Anvil Pro:",
+    anvilProAdded: "Anvil Pro agregado. Se activa en un momento, cuando Stripe lo confirme.",
+    anvilProRemoved: "Anvil Pro quitado. Se desactiva en un momento, cuando Stripe lo confirme.",
     blRemoveBlocked:
       "No hay nada que quitar, o todos sus usuarios están en uso. Desactive un usuario primero.",
     blProrationNote:
