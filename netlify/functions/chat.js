@@ -608,7 +608,7 @@ async function executeTool(admin, perms, caller, actorName, name, input) {
       if (!perms.jobs_view) return { error: "This user does not have permission to view jobs." };
       let q = admin
         .from("jobs")
-        .select("po, title, name, addr, status, materials, items")
+        .select("po, title, addr, status, materials, items")
         .eq("company_id", companyId)
         .limit(30);
       if (input.status) q = q.eq("status", input.status);
@@ -789,7 +789,7 @@ async function executeTool(admin, perms, caller, actorName, name, input) {
       ] = await Promise.all([
         admin
           .from("jobs")
-          .select('id, po, title, name, addr, status, "scheduledDate", assignedto')
+          .select('id, po, title, addr, status, "scheduledDate", assignedto')
           .eq("company_id", companyId)
           .limit(500),
         perms.maint_submit || perms.maint_manage || perms.fleet_view
@@ -841,7 +841,7 @@ async function executeTool(admin, perms, caller, actorName, name, input) {
       }
       const { data, error } = await admin
         .from("jobs")
-        .select("po, title, name, addr, status, materials, items, contract_value")
+        .select("po, title, addr, status, materials, items, contract_value")
         .eq("company_id", companyId)
         .limit(500);
       if (error) return { error: error.message };

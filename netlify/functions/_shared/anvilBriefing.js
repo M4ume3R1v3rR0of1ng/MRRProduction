@@ -282,7 +282,7 @@ export async function loadBriefingData(admin, companyId) {
       .limit(500),
     admin
       .from("jobs")
-      .select('id, po, title, name, status, "scheduledDate", assignedto, completed, "completedAt"')
+      .select('id, po, title, status, "scheduledDate", assignedto, completed, "completedAt"')
       .eq("company_id", companyId)
       .limit(500),
     admin
