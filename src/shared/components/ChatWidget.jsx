@@ -17,7 +17,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Bot, X, AlertTriangle, Check } from "lucide-react";
 import { translations } from "../utils/translations";
-import { supabase } from "../utils/supabase";
+import { supabase, getAccessToken } from "../utils/supabase";
 import { C, compressImg } from "../utils/helpers";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
 import {
@@ -47,6 +47,11 @@ const lastSeenKey = (userId) => `mrr-chat-last-seen-${userId}`;
 // than written inline for the same reason LayoutPrimitives hoists TRUNCATE and
 // CELL_PAD: a style object rebuilt on every render is a new object every
 // render, and these never change.
+// Shown for a missing or rejected sign-in token. The server's own wording ("Not
+// authenticated") reads like a broken feature, but it just means the hour-long token has gone
+// stale and the refresh failed.
+const SESSION_EXPIRED = "Your sign-in session expired. Reload the page and sign in again.";
+
 const TITLE_ACRONYM = { letterSpacing: "0.06em" };
 const TITLE_EXPANSION = { opacity: 0.75, lineHeight: 1.2 };
 // The confirm bar's own shell. A subtle surface rather than a Callout tone, so
@@ -251,9 +256,8 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
     setMessages(nextMessages);
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) throw new Error("Not signed in.");
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error(SESSION_EXPIRED);
 
       // The photo goes to storage BEFORE the question goes to the model, so
       // the turn can be replayed after a reload instead of coming back as
@@ -303,6 +307,7 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
       } catch {
         throw new Error(`Server returned an unreadable response (${response.status}).`);
       }
+      if (response.status === 401) throw new Error(SESSION_EXPIRED);
       if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`);
 
       setMessages((prev) => {
@@ -341,9 +346,8 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
     setApplying(true);
     setError("");
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) throw new Error("Not signed in.");
+      const accessToken = await getAccessToken();
+      if (!accessToken) throw new Error(SESSION_EXPIRED);
 
       const response = await fetch("/.netlify/functions/chat", {
         method: "POST",
@@ -361,6 +365,7 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
       } catch {
         throw new Error(`Server returned an unreadable response (${response.status}).`);
       }
+      if (response.status === 401) throw new Error(SESSION_EXPIRED);
       if (!response.ok) throw new Error(result.error || `Request failed (${response.status})`);
 
       setMessages((prev) => [
