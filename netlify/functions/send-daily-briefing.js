@@ -41,11 +41,24 @@ import { adminClient, USABLE_SUBSCRIPTION_STATES } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 import { loadCompanyRoster } from "./_shared/anvilPerms.js";
 import { buildBriefing, loadBriefingData } from "./_shared/anvilBriefing.js";
+import { localParts } from "./_shared/localTime.js";
+
+const BRIEFING_HOUR = 7;
 
 const rawHandler = async () => {
   const admin = adminClient();
-  const today = new Date().toISOString().slice(0, 10);
-  const weekday = new Date(`${today}T12:00:00Z`).getUTCDay();
+  // Local (Eastern) day and hour, not UTC. The cron fires at both 11:00 and 12:00 UTC, and only
+  // the firing that lands on 7am Eastern does the work, so the briefing arrives at 7 all year
+  // instead of 7 in winter and 8 in summer. See _shared/localTime.js.
+  const local = localParts();
+  if (local.hour !== BRIEFING_HOUR) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ skipped: "not 7am Eastern", hour: local.hour }),
+    };
+  }
+  const today = local.day;
+  const weekday = local.weekday;
   if (weekday === 0 || weekday === 6) {
     return {
       statusCode: 200,
@@ -140,11 +153,12 @@ const rawHandler = async () => {
 
 export const handler = withSentry("send-daily-briefing", rawHandler);
 
-// 12:00 UTC ≈ 7am Central / 8am Eastern — an hour before the oil escalation
-// job (13:00), so the briefing is what somebody reads first and the urgent
-// notice lands on top of it rather than underneath. One fixed run for every
-// company regardless of their local timezone, the same limitation
-// daily-archive.js and send-maintenance-push-notices.js already accept.
+// Scheduled at 11:00 AND 12:00 UTC; exactly one of them is 7am Eastern in any
+// season (the handler returns early on the other). That keeps the briefing ahead
+// of the oil escalation job (13:00 UTC), so it is what somebody reads first and
+// the urgent notice lands on top of it rather than underneath. One platform time
+// zone for every company, the same limitation daily-archive.js and
+// send-maintenance-push-notices.js already accept.
 export const config = {
-  schedule: "0 12 * * *",
+  schedule: "0 11,12 * * *",
 };

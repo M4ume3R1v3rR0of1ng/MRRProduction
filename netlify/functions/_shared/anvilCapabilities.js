@@ -170,6 +170,15 @@ export const CAPABILITIES = [
     tier: "free",
   },
   {
+    id: "end_of_day_recap",
+    label: "End-of-day recap",
+    description:
+      "Each weekday at 5pm Eastern A.N.V.I.L. writes every person one message: what got done, what did not, and what is on for the next working day. Silent when there is nothing to say.",
+    kind: "automatic",
+    tool: null,
+    tier: "free",
+  },
+  {
     id: "translate",
     label: "Spanish / English translation",
     description:

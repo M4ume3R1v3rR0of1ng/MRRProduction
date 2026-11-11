@@ -42,7 +42,8 @@ Moving an existing capability to Pro takes it away from companies that have it n
 
 | Capability                    | What it does                                                                      | Plan now      |
 | ----------------------------- | --------------------------------------------------------------------------------- | ------------- |
-| Morning briefing              | One message per person each weekday, silent when nothing matters                  | Free          |
+| Morning briefing              | One message per person each weekday at 7am Eastern, silent when nothing matters   | Free          |
+| End-of-day recap              | 5pm Eastern each weekday: what got done, what did not, what is on next day        | Free          |
 | Spanish / English translation | Reading aid for typed notes; original never changed                               | Free          |
 | Low-stock watch               | Weekday check of every item against its line; drafts a reorder for anything under | **Pro** (new) |
 | Low-stock email               | Mondays: emails stock managers which items are under their line; silent if none   | Free          |
@@ -123,7 +124,6 @@ moves into the tables above and into `anvilCapabilities.js` with its `tier`.
 | Capability                 | What it does                                                                                            | Category        |
 | -------------------------- | ------------------------------------------------------------------------------------------------------- | --------------- |
 | "How do I..." help         | Answers questions about using Steadwerk itself. Read-only; needs current help content.                  | Ask             |
-| End-of-day recap           | What got done, what slipped, what is on for tomorrow. Fixed 5pm delivery (decision 6).                  | Runs on its own |
 | Fleet compliance reminders | Upcoming registration, DOT inspection and insurance expiry. Needs expiry dates on each vehicle/trailer. | Runs on its own |
 | Training nudges            | Reminder to the person whose training is overdue. Limit how often the same person is nudged.            | Runs on its own |
 
@@ -155,9 +155,14 @@ Decided 2026-11-10. These answer the six open questions from the product team's 
 5. **Learned usage rate.** Needs at least **60 days** of history per item before it is trusted
    over the fixed reorder line. Guard rail: the learned line is never allowed below the fixed
    line without being flagged, so a quiet stretch cannot cause a stockout.
-6. **Delivery times.** Fixed for everyone, in each company's own time zone: morning briefing at
+6. **Delivery times.** Fixed for everyone, in Eastern time (there is no per-company time zone yet, so a company elsewhere gets Eastern times): morning briefing at
    **7:00 am**, end-of-day recap at **5:00 pm**. Each stays one message per person per weekday and
-   silent when nothing matters.
+   silent when nothing matters. **Built:** both run at the stated Eastern hour all year, DST included.
+   Each cron is scheduled at the two candidate UTC hours and the handler runs only on the right
+   local one (`_shared/localTime.js`). The recap's content is: finished today, scheduled for
+   today and not finished, and what is on for the next working day (Monday on a Friday), built
+   from each person's own permissions; a crew member sees only their own jobs. A companies.timezone
+   column would let a tenant have its own hours.
 
 **Risk accepted in decision 4:** crew members can message homeowners, so the full-text preview and
 the draft-versus-final audit trail are what protect against a wrong or off-tone message.
