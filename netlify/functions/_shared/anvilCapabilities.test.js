@@ -39,7 +39,7 @@ describe("capability registry", () => {
   it("keeps everything that shipped before Anvil Pro free", () => {
     const pro = CAPABILITIES.filter((c) => c.tier === "pro").map((c) => c.id);
     expect(pro.sort()).toEqual(
-      ["reorder_approval", "reorder_ask", "reorder_email", "reorder_watch"].sort(),
+      ["reorder_approval", "reorder_ask", "reorder_email", "reorder_po", "reorder_watch"].sort(),
     );
   });
 

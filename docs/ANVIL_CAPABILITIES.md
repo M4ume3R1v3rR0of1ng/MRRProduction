@@ -28,14 +28,15 @@ Moving an existing capability to Pro takes it away from companies that have it n
 
 ## Do it for me (each one waits for a Confirm button)
 
-| Capability                     | What it does                                                   | Plan now      |
-| ------------------------------ | -------------------------------------------------------------- | ------------- |
-| File a maintenance request     | Open a ticket from chat                                        | Free          |
-| Schedule a maintenance request | Put a shop date on a pending ticket                            | Free          |
-| Correct a stock count          | Set an item's on-hand to a counted number                      | Free          |
-| Log mileage                    | Record an odometer reading                                     | Free          |
-| Log a service record           | Record a service that was performed                            | Free          |
-| Reorder approval queue         | Review, edit the quantity, approve or dismiss drafted reorders | **Pro** (new) |
+| Capability                     | What it does                                                        | Plan now      |
+| ------------------------------ | ------------------------------------------------------------------- | ------------- |
+| File a maintenance request     | Open a ticket from chat                                             | Free          |
+| Schedule a maintenance request | Put a shop date on a pending ticket                                 | Free          |
+| Correct a stock count          | Set an item's on-hand to a counted number                           | Free          |
+| Log mileage                    | Record an odometer reading                                          | Free          |
+| Log a service record           | Record a service that was performed                                 | Free          |
+| Reorder approval queue         | Review, edit the quantity, approve or dismiss drafted reorders      | **Pro** (new) |
+| Send purchase order            | Email the PO for an approved reorder to the supplier, mark received | **Pro** (new) |
 
 ## Runs on its own
 
@@ -74,11 +75,21 @@ Decided 2026-11-10.
    `ANVIL_PRO_PRICE` in `BillingView.jsx`; they are display text only, so keep them in step
    with the Stripe Prices.
 
-## What "approve" does today
+## How a reorder moves through the queue
 
-It records who approved what quantity. It does **not** send a purchase order to a supplier; that
-waits on your supplier answers. Approved reorders stay visible in the queue as "Approved, not yet
-ordered" so nothing falls through the gap.
+`waiting on approval` -> `approved` -> `ordered` -> `received` (or `dismissed`).
+
+- **Approve** records who approved what quantity. It sends nothing.
+- **Send purchase order** is a separate step on an approved reorder. It shows who it will be
+  emailed to and says it cannot be undone, then emails a fixed-format PO (item, quantity, PO
+  number, who to reply to) to the supplier email saved on the item. If the item has no
+  supplier email, the person types one in. Replies go to the person who sent it. It can only be
+  sent once per reorder; a failed send puts the reorder back to approved so it can be retried.
+  No CC yet (on hold), and no PDF attachment: the PO is the email itself.
+- **Mark received** closes the loop when the delivery arrives. It is also available straight
+  from approved, for an order that was phoned in.
+
+Needs `supabase/66_anvil_reorder_purchase_orders.sql` run before it works.
 
 ---
 
@@ -123,7 +134,6 @@ moves into the tables above and into `anvilCapabilities.js` with its `tier`.
 | Customer update drafts    | Drafts homeowner messages ("crew on the way", "job complete, photos attached"). Confirm before sending; audit-logged.           | Do it for me    |
 | Job margin alerts         | Flags a job trending over its material budget. Only people allowed to see costs get alerts. Needs a material budget on the job. | Runs on its own |
 | Auto-schedule maintenance | Proposes shop dates for due maintenance around the job calendar. Uses learned service cadence and the clash check.              | Do it for me    |
-| Send PO to supplier       | After a reorder is approved, emails the PO to the supplier and tracks receipt (decision 1).                                     | Do it for me    |
 | Crew and trailer planner  | Suggests clash-free crew and trailer assignments. Suggestions only; applying needs Confirm.                                     | Do it for me    |
 | Weekly owner report       | Weekly margins, fleet costs, stock spend and overdue items. Owner/permissioned recipients only.                                 | Runs on its own |
 

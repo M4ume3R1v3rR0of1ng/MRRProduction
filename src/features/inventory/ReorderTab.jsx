@@ -6,10 +6,12 @@
 // Every read and write goes through netlify/functions/anvil-reorder.js, which re-checks Pro,
 // inv_edit and the company. This component only decides what to show.
 //
-// ⚠️ "Approve" records a person's yes and the quantity they settled on. It does NOT place an
-// order with a supplier; that step is not built yet. The copy says so, because a button that
-// reads "Approve" under a heading about ordering would otherwise promise a purchase order
-// that nobody is sending.
+// The life of a reorder here: waiting on approval -> approved -> ordered -> received.
+//
+// ⚠️ "Approve" records a person's yes and the quantity they settled on. It does NOT email
+// anyone. Sending the purchase order is its own step, with a preview of who it goes to,
+// because an email to a supplier cannot be taken back. The "Approved" section is where that
+// happens, and "Ordered" is where a delivery is marked received.
 import { useCallback, useEffect, useState } from "react";
 import { getAccessToken } from "@/shared/utils/supabase";
 import {
@@ -52,6 +54,8 @@ export default function ReorderTab({ pro }) {
   const [busy, setBusy] = useState(false);
   const [qty, setQty] = useState({}); // proposal id -> edited quantity
   const [emails, setEmails] = useState("");
+  const [reviewing, setReviewing] = useState(null); // proposal id whose PO preview is open
+  const [toDraft, setToDraft] = useState({}); // proposal id -> supplier email typed in
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -121,7 +125,7 @@ export default function ReorderTab({ pro }) {
             <Text size="base" color={C.sub}>
               Each weekday A.N.V.I.L. checks every item against its low-stock line, drafts a reorder
               for anything at or below it, and emails the people who can edit inventory. Nothing is
-              ordered until someone approves it here.
+              ordered until someone approves it here and sends the purchase order.
             </Text>
           </Stack>
           <Btn
@@ -210,6 +214,113 @@ export default function ReorderTab({ pro }) {
         })
       )}
 
+      {(state.approved || []).length > 0 && (
+        <>
+          <Eyebrow>Approved, ready to send ({state.approved.length})</Eyebrow>
+          {state.approved.map((p) => {
+            const amount = p.approved_qty ?? p.suggested_qty;
+            const to = (p.supplier_email || toDraft[p.id] || "").trim();
+            const open = reviewing === p.id;
+            return (
+              <Card key={p.id} variant="flat" pad="var(--space-6)">
+                <Row justify="space-between" align="center" wrap gap={4}>
+                  <Stack gap={0}>
+                    <Text size="md" weight="bold" color={C.navy}>
+                      {p.item_name}
+                    </Text>
+                    <Muted>
+                      Order {fmt(amount)} {p.unit || ""}
+                      {p.supplier_name ? ` from ${p.supplier_name}` : ""}
+                    </Muted>
+                  </Stack>
+                  <Row gap={3} align="center" wrap>
+                    {!p.supplier_email && (
+                      <Inp
+                        type="email"
+                        placeholder="Supplier email"
+                        value={toDraft[p.id] || ""}
+                        onChange={(e) => setToDraft((d) => ({ ...d, [p.id]: e.target.value }))}
+                        style={{ width: 210 }}
+                        aria-label={`Supplier email for ${p.item_name}`}
+                        disabled={busy}
+                      />
+                    )}
+                    <Btn
+                      v="gold"
+                      disabled={busy || !to}
+                      onClick={() => setReviewing(open ? null : p.id)}
+                    >
+                      Review and send PO
+                    </Btn>
+                    <Btn
+                      v="ghost"
+                      disabled={busy}
+                      onClick={() => act({ action: "receive", id: p.id }, "Marked received.")}
+                    >
+                      Mark received
+                    </Btn>
+                  </Row>
+                </Row>
+                {open && (
+                  <Stack gap={2} style={{ marginTop: 12 }}>
+                    <Text size="base" color={C.navy}>
+                      This emails a purchase order for {fmt(amount)} {p.unit || ""} of {p.item_name}{" "}
+                      to <b>{to}</b>. Replies come to you. It can't be undone once sent.
+                    </Text>
+                    <Row gap={3}>
+                      <Btn
+                        v="gold"
+                        disabled={busy}
+                        onClick={async () => {
+                          await act(
+                            { action: "send_po", id: p.id, to: p.supplier_email ? undefined : to },
+                            "Purchase order sent.",
+                          );
+                          setReviewing(null);
+                        }}
+                      >
+                        Send purchase order
+                      </Btn>
+                      <Btn v="ghost" disabled={busy} onClick={() => setReviewing(null)}>
+                        Cancel
+                      </Btn>
+                    </Row>
+                  </Stack>
+                )}
+              </Card>
+            );
+          })}
+        </>
+      )}
+
+      {(state.ordered || []).length > 0 && (
+        <>
+          <Eyebrow>Ordered, waiting for delivery ({state.ordered.length})</Eyebrow>
+          {state.ordered.map((p) => (
+            <Card key={p.id} variant="flat" pad="var(--space-6)">
+              <Row justify="space-between" align="center" wrap gap={4}>
+                <Stack gap={0}>
+                  <Text size="md" weight="bold" color={C.navy}>
+                    {p.item_name} · {fmt(p.approved_qty ?? p.suggested_qty)} {p.unit || ""}
+                  </Text>
+                  <Muted>
+                    {p.po_number} sent to {p.ordered_to}
+                    {p.ordered_at ? ` on ${new Date(p.ordered_at).toLocaleDateString()}` : ""}
+                  </Muted>
+                </Stack>
+                <Btn
+                  v="gold"
+                  disabled={busy}
+                  onClick={() => act({ action: "receive", id: p.id }, "Marked received.")}
+                >
+                  Mark received
+                </Btn>
+              </Row>
+            </Card>
+          ))}
+        </>
+      )}
+
       {state.recent.length > 0 && (
         <>
           <Eyebrow>Recently decided</Eyebrow>
@@ -217,12 +328,12 @@ export default function ReorderTab({ pro }) {
             <Row key={p.id} justify="space-between" align="center" wrap gap={3}>
               <Text size="base" color={C.sub}>
                 {p.item_name}
-                {p.status === "approved" && p.approved_qty
+                {p.status === "received" && p.approved_qty
                   ? ` · ${fmt(p.approved_qty)} ${p.unit || ""}`
                   : ""}
               </Text>
-              <Bdg color={p.status === "approved" ? "green" : "gray"}>
-                {p.status === "approved" ? "Approved, not yet ordered" : "Dismissed"}
+              <Bdg color={p.status === "received" ? "green" : "gray"}>
+                {p.status === "received" ? "Received" : "Dismissed"}
               </Bdg>
             </Row>
           ))}

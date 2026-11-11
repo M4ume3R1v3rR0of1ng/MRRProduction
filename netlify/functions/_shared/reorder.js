@@ -184,3 +184,63 @@ export function buildLowStockEmail({ companyName, items, appUrl }) {
       `<p>See Inventory: <a href="${esc(appUrl)}">${esc(appUrl)}</a></p>`,
   };
 }
+
+// ── Purchase orders ──────────────────────────────────────────────────────────────────
+//
+// What an approved reorder becomes when it is emailed to the supplier (supabase/66). The email
+// is built from fixed fields only, with no free text from the sender, so the endpoint that
+// sends it cannot be used to mail arbitrary content to an arbitrary address from our domain.
+
+/**
+ * A PO number a person can read out over the phone: the date plus the first four characters
+ * of the proposal id. Stable for a given proposal, and stored on the row when the PO is sent.
+ * @param {string} proposalId
+ * @param {Date} when
+ */
+export function makePoNumber(proposalId, when) {
+  const ymd = when.toISOString().slice(0, 10).replace(/-/g, "");
+  const tail = String(proposalId)
+    .replace(/[^a-z0-9]/gi, "")
+    .slice(0, 4)
+    .toUpperCase();
+  return `PO-${ymd}-${tail || "0000"}`;
+}
+
+/**
+ * @param {{
+ *   companyName: string, poNumber: string, itemName: string, unit: string | null,
+ *   qty: number, supplierName: string | null, sentByName: string, sentByEmail: string,
+ *   dateLabel: string
+ * }} args
+ * @returns {{ subject: string, html: string }}
+ */
+export function buildPurchaseOrderEmail({
+  companyName,
+  poNumber,
+  itemName,
+  unit,
+  qty,
+  supplierName,
+  sentByName,
+  sentByEmail,
+  dateLabel,
+}) {
+  /** @param {string} label @param {string} value */
+  const row = (label, value) =>
+    `<tr><td style="padding:4px 16px 4px 0;color:#555">${esc(label)}</td><td style="padding:4px 0"><b>${esc(value)}</b></td></tr>`;
+  return {
+    subject: `Purchase order ${poNumber} — ${companyName}`,
+    html:
+      `<p>${supplierName ? `Hello ${esc(supplierName)},` : "Hello,"}</p>` +
+      `<p>${esc(companyName)} would like to order the following.</p>` +
+      `<table style="border-collapse:collapse">` +
+      row("PO number", poNumber) +
+      row("Date", dateLabel) +
+      row("Item", itemName) +
+      row("Quantity", `${fmt(qty)} ${unit || ""}`.trim()) +
+      `</table>` +
+      `<p>Please reply to confirm availability and the delivery date. ` +
+      `Questions about this order go to ${esc(sentByName)} at ` +
+      `<a href="mailto:${esc(sentByEmail)}">${esc(sentByEmail)}</a>.</p>`,
+  };
+}

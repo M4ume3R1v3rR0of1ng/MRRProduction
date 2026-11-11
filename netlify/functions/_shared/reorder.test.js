@@ -7,6 +7,8 @@ import {
   findLowStockItems,
   buildLowStockEmail,
   wantsFreeLowStockNotice,
+  makePoNumber,
+  buildPurchaseOrderEmail,
 } from "./reorder.js";
 
 const item = (over = {}) => ({
@@ -160,5 +162,43 @@ describe("Free low-stock notice", () => {
     expect(subject).toBe("1 item is low on stock — Acme Roofing");
     expect(html).toContain("2 sheets left (line: 10)");
     expect(html).not.toMatch(/suggest|approve|reorder|ordered/i);
+  });
+});
+
+describe("purchase order email", () => {
+  const args = {
+    companyName: "Acme Roofing",
+    poNumber: "PO-20261111-AB12",
+    itemName: "OSB 7/16",
+    unit: "sheets",
+    qty: 40,
+    supplierName: "ABC Supply",
+    sentByName: "Sam",
+    sentByEmail: "sam@acme.test",
+    dateLabel: "Nov 11, 2026",
+  };
+
+  it("numbers a PO from the date and the proposal id", () => {
+    expect(makePoNumber("ab12-cd34", new Date("2026-11-11T15:00:00Z"))).toBe("PO-20261111-AB12");
+  });
+
+  it("states the item, quantity, PO number and who to reply to", () => {
+    const { subject, html } = buildPurchaseOrderEmail(args);
+    expect(subject).toBe("Purchase order PO-20261111-AB12 — Acme Roofing");
+    expect(html).toContain("OSB 7/16");
+    expect(html).toContain("40 sheets");
+    expect(html).toContain("PO-20261111-AB12");
+    expect(html).toContain("mailto:sam@acme.test");
+    expect(html).toContain("Hello ABC Supply,");
+  });
+
+  it("escapes anything a person typed into an item or company name", () => {
+    const { html } = buildPurchaseOrderEmail({ ...args, itemName: "<script>x</script>" });
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("greets generically when no supplier name is on file", () => {
+    expect(buildPurchaseOrderEmail({ ...args, supplierName: null }).html).toContain("Hello,");
   });
 });

@@ -225,6 +225,15 @@ export const CAPABILITIES = [
     tier: "pro",
   },
   {
+    id: "reorder_po",
+    label: "Send purchase order",
+    description:
+      "After a reorder is approved, emails the purchase order to the supplier (a separate, previewed step that cannot be undone) and tracks it until someone marks it received.",
+    kind: "act",
+    tool: null,
+    tier: "pro",
+  },
+  {
     id: "reorder_ask",
     label: "Ask about pending reorders",
     description: '"What are we about to order?" answered from chat.',
