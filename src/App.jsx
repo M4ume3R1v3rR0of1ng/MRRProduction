@@ -1367,7 +1367,7 @@ export default function App() {
         </div>
       </div>
       <Suspense fallback={null}>
-        <ChatWidget user={app.curUser} lang={lang} context={anvilContext} />
+        <ChatWidget user={app.curUser} lang={lang} context={anvilContext} perms={app.userPerms} />
       </Suspense>
     </IdleTimeoutWrapper>
   );

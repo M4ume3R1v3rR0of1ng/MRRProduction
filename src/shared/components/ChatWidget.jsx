@@ -20,6 +20,10 @@ import { translations } from "../utils/translations";
 import { supabase, getAccessToken } from "../utils/supabase";
 import { C, compressImg } from "../utils/helpers";
 import { uploadPhotoToBucket } from "../utils/storageBucketUpload";
+import { badgeCount, badgeLabel } from "./chatBadge";
+import useAnvilPro from "../../features/inventory/useAnvilPro";
+import useReorderWaiting from "../../features/inventory/useReorderWaiting";
+import ReorderWaitingPanel from "../../features/inventory/ReorderWaitingPanel";
 import {
   LoadingState,
   Modal,
@@ -69,7 +73,7 @@ const CONFIRM_BAR = {
   background: C.subtle,
 };
 
-export default function ChatWidget({ user, lang = "en", context = null }) {
+export default function ChatWidget({ user, lang = "en", context = null, perms = null }) {
   const t = translations[lang] || translations.en;
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -89,6 +93,14 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
   // send-maintenance-push-notices.js) rather than one it was asked for.
   // Drives the unread badge on the launcher button below.
   const [hasUnread, setHasUnread] = useState(false);
+  // Reorders waiting on this person's yes (Anvil Pro). The server re-checks Pro and the
+  // inventory permission on every action; this only decides whether to show the panel and number.
+  const anvilPro = useAnvilPro();
+  const canApproveReorders = anvilPro && perms?.inv_edit === true && !!user?.companyId;
+  const { count: waitingReorders, refresh: refreshWaiting } = useReorderWaiting(
+    canApproveReorders,
+    user?.companyId,
+  );
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   // Tags every message THIS TAB sends, so its own realtime echo can be told
@@ -211,6 +223,12 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
       supabase.removeChannel(channel);
     };
   }, [user?.id, open]);
+
+  const badge = badgeCount({
+    waiting: waitingReorders,
+    hasPendingAction: !!pendingAction,
+    chatOpen: open,
+  });
 
   const toggleOpen = () => {
     if (!open) {
@@ -545,6 +563,10 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
             </TextBtn>
           </Row>
 
+          {canApproveReorders && waitingReorders > 0 && (
+            <ReorderWaitingPanel onChanged={refreshWaiting} />
+          )}
+
           <div
             ref={scrollRef}
             style={{
@@ -737,7 +759,9 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
             style={{
               position: "absolute",
               top: 2,
-              right: 2,
+              // Top-left when a count owns the top-right, so "something new to read" and
+              // "something waiting on you" can both show.
+              ...(badge > 0 ? { left: 2 } : { right: 2 }),
               width: 14,
               height: 14,
               borderRadius: "50%",
@@ -745,6 +769,32 @@ export default function ChatWidget({ user, lang = "en", context = null }) {
               border: `2px solid ${C.w}`,
             }}
           />
+        )}
+        {/* How many things are waiting on this person's yes: reorders to approve or send, or a
+            change A.N.V.I.L. lined up that has not been confirmed. */}
+        {badge > 0 && !open && (
+          <span
+            aria-label={`${badge} waiting on you`}
+            style={{
+              position: "absolute",
+              top: -4,
+              right: -4,
+              minWidth: 22,
+              height: 22,
+              padding: "0 6px",
+              borderRadius: 11,
+              background: C.rd,
+              color: C.onAccent,
+              border: `2px solid ${C.w}`,
+              fontSize: 12,
+              fontWeight: 800,
+              lineHeight: "18px",
+              textAlign: "center",
+              boxSizing: "border-box",
+            }}
+          >
+            {badgeLabel(badge)}
+          </span>
         )}
       </button>
 
