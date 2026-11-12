@@ -15,7 +15,7 @@ import {
   Loader2,
   Save,
 } from "lucide-react";
-import { supabase, updateRowStrict } from "@/shared/utils/supabase";
+import { supabase, updateRowStrict, getAccessToken } from "@/shared/utils/supabase";
 import {
   Btn,
   Bdg,
@@ -134,6 +134,29 @@ export default function FleetManagementView({
   // Which dialog is open stays here; each dialog owns its own form state.
   const [isInspectOpen, setIsInspectOpen] = useState(false);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+  const [testingOilEmail, setTestingOilEmail] = useState(false);
+
+  // Sends ONE sample oil-change email to the signed-in user only, with a dry-run
+  // of what the nightly job would do per truck. Changes nothing, notifies no one
+  // else — see netlify/functions/send-oil-test-email.js.
+  const sendOilTestEmail = async () => {
+    setTestingOilEmail(true);
+    try {
+      const accessToken = await getAccessToken();
+      const res = await fetch("/.netlify/functions/send-oil-test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
+      showToast(`Test email sent to ${body.sentTo}. Check your inbox (and spam).`, "success");
+    } catch (err) {
+      showToast(`Test email failed: ${err.message}`, "error");
+    } finally {
+      setTestingOilEmail(false);
+    }
+  };
   // The scheduled maintenance request we are lending a spare against. The dialog
   // owns the RPC and its own in-flight flag; see LendSpareModal.
   const [swapReq, setSwapReq] = useState(null);
@@ -547,6 +570,11 @@ export default function FleetManagementView({
                 style={{ fontWeight: "var(--weight-extrabold)" }}
               >
                 {t.flAddVehicle}
+              </Btn>
+            )}
+            {perms.fleet_edit && (
+              <Btn sz="sm" onClick={sendOilTestEmail} disabled={testingOilEmail}>
+                {testingOilEmail ? "Sending…" : "Test oil email"}
               </Btn>
             )}
             {/* ── THE LOG INSPECTION TOGGLE ACTION BUTTON ── */}
