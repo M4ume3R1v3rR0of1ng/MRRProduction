@@ -50,6 +50,13 @@ on:
         type: string
         default: ""
 
+# The one Xcode both jobs build with. Selected explicitly rather than taking
+# the image default, which GitHub moves as it adds point releases. Must be iOS
+# SDK 26 or later for App Store Connect to accept the upload. The list of what
+# macos-26 carries is in actions/runner-images, images/macos/macos-26-arm64-Readme.md.
+env:
+  XCODE_APP: /Applications/Xcode_26.6.app
+
 jobs:
   build:
     name: Compile for iOS Simulator
@@ -57,7 +64,14 @@ jobs:
     # 2026-08-19, and GitHub rotates what "latest" means along with the bundled
     # Xcode. Pinning means an Xcode bump breaks the build on a commit that
     # changes this line, instead of on an unrelated Tuesday. Bump deliberately.
-    runs-on: macos-15
+    #
+    # macos-26 since 2026-11-18: App Store Connect now rejects any build made
+    # with an SDK older than iOS 26 ("SDK version issue ... must be built with
+    # the iOS 26 SDK or later"), and macos-15 ships Xcode 16.4 / iOS 18.5. Both
+    # jobs move together so this cheap compile check runs the same Xcode the
+    # release does. The Xcode itself is pinned by XCODE_APP below, not by the
+    # image's default.
+    runs-on: macos-26
     timeout-minutes: 30
 
     steps:
@@ -101,8 +115,8 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - name: Xcode version
-        run: xcodebuild -version
+      - name: Select Xcode
+        run: sudo xcode-select -s "$XCODE_APP" && xcodebuild -version
 
       # -scheme App resolves because ios/App/App.xcodeproj/xcshareddata/xcschemes/
       # App.xcscheme is committed. Xcode generates schemes into xcuserdata by
@@ -154,7 +168,8 @@ jobs:
     # A signing failure stacked on a compile failure is two problems reported as
     # one, and the cheap job is the one that should find the cheap mistake.
     needs: build
-    runs-on: macos-15
+    # Same image and Xcode as the build job; see the note there.
+    runs-on: macos-26
     timeout-minutes: 45
 
     env:
@@ -169,6 +184,9 @@ jobs:
         with:
           node-version: "24"
           cache: npm
+
+      - name: Select Xcode
+        run: sudo xcode-select -s "$XCODE_APP" && xcodebuild -version
 
       # Nine secrets, checked in one place so a missing one is a named error in
       # the first ten seconds rather than an Xcode diagnostic twenty minutes in.
