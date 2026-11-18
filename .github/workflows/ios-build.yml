@@ -351,6 +351,18 @@ jobs:
       # issued today. An account old enough to still be using an "iPhone
       # Distribution" certificate needs that string instead — the import step
       # above prints every identity it loaded, which is where to check.
+      #
+      # The style, identity and profile are NOT passed as CODE_SIGN_STYLE=,
+      # CODE_SIGN_IDENTITY= and PROVISIONING_PROFILE_SPECIFIER= here. A setting on the xcodebuild command
+      # line applies to EVERY target in the build, including the Swift packages'
+      # own targets (the camera plugin's IONCameraLib), and those reject a
+      # profile outright: "IONCameraLib does not support provisioning profiles"
+      # failed the first real archive on 2026-11-18. Instead the App target's
+      # Release config reads three variables of its own, STEADWERK_CODE_SIGN_STYLE,
+      # STEADWERK_CODE_SIGN_IDENTITY and STEADWERK_PROVISIONING_PROFILE (see
+      # project.pbxproj). Nothing else
+      # reads them, so only the app is manually signed with the profile, and
+      # without them the project stays automatically signed for a Mac user.
       - name: Archive for device
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -363,10 +375,10 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$ARCHIVE_PATH" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
-            CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
-            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            STEADWERK_CODE_SIGN_IDENTITY="Apple Distribution" \
+            STEADWERK_CODE_SIGN_STYLE=Manual \
+            STEADWERK_PROVISIONING_PROFILE="$PROFILE_NAME" \
             archive
 
       - name: Export a signed .ipa

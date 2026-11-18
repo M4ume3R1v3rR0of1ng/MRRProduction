@@ -18,6 +18,7 @@ import {
 import { sendEmail } from "@/shared/utils/email";
 import { translations } from "@/shared/utils/translations";
 import MfaPanel from "./MfaPanel";
+import DeleteAccountPanel from "./DeleteAccountPanel";
 
 export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
   const t = translations[lang] || translations.en;
@@ -421,6 +422,10 @@ export default function ProfileView({ user, onUpdateUser, lang = "en" }) {
           purpose — it is the same subject, and it is the half that still holds
           when the password is the part that leaks. */}
       <MfaPanel user={user} lang={lang} />
+
+      {/* CARD 5: Account deletion. Last, because it is the least-used and the
+          most consequential; Apple requires it be reachable in-app. */}
+      <DeleteAccountPanel lang={lang} />
     </Stack>
   );
 }

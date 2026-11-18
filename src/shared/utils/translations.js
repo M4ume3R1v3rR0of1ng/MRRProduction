@@ -1349,6 +1349,17 @@ export const translations = {
     profCurrentPw: "Current Password",
     profNewPw: "New Password",
     profConfirmPw: "Confirm New Password",
+    profDeleteTitle: "Delete Account",
+    profDeleteIntro:
+      "Your account is managed by your company. Requesting deletion emails your company's admins, who remove your login within 30 days. Jobs, inspections and other records you created belong to the company and stay with it.",
+    profDeleteRequest: "Request Account Deletion",
+    profDeleteReason: "Reason (optional)",
+    profDeleteConfirm: "Send the request? Your admins will be emailed and you will get a copy.",
+    profDeleteYes: "Yes, Send Request",
+    profDeleteCancel: "Cancel",
+    profDeleteSending: "Sending...",
+    profDeleteSent:
+      "Request sent. Your company's admins have been notified, and a copy was emailed to you.",
 
     // Fleet Management
     // App chrome (header bar, sync indicator, global search)
@@ -3228,6 +3239,18 @@ export const translations = {
     profCurrentPw: "Contraseña Actual",
     profNewPw: "Nueva Contraseña",
     profConfirmPw: "Confirmar Nueva Contraseña",
+    profDeleteTitle: "Eliminar Cuenta",
+    profDeleteIntro:
+      "Su cuenta la administra su empresa. Al solicitar la eliminación se envía un correo a los administradores de su empresa, quienes eliminarán su acceso en un plazo de 30 días. Los trabajos, inspecciones y otros registros que usted creó pertenecen a la empresa y se quedan con ella.",
+    profDeleteRequest: "Solicitar Eliminación de Cuenta",
+    profDeleteReason: "Motivo (opcional)",
+    profDeleteConfirm:
+      "¿Enviar la solicitud? Se enviará un correo a sus administradores y usted recibirá una copia.",
+    profDeleteYes: "Sí, Enviar Solicitud",
+    profDeleteCancel: "Cancelar",
+    profDeleteSending: "Enviando...",
+    profDeleteSent:
+      "Solicitud enviada. Se notificó a los administradores de su empresa y se le envió una copia por correo.",
 
     // Fleet Management
     // App chrome (header bar, sync indicator, global search)

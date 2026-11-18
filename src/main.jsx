@@ -7,6 +7,7 @@ import { registerSW } from "virtual:pwa-register";
 import { reloadWhenIdle } from "./shared/utils/deferredReload";
 import { applyTheme, readTheme } from "./shared/utils/theme";
 import { initSentry } from "./shared/utils/sentry";
+import { installFunctionsFetch } from "./core/functionsOrigin";
 import "./tokens.css";
 
 // Stamp the theme before the first render so no view ever paints in the wrong
@@ -21,6 +22,19 @@ applyTheme(readTheme());
 // ErrorBoundary below (which only catches errors React itself throws during
 // render/lifecycle).
 initSentry();
+
+// iOS only: point relative /.netlify/functions/* calls at steadwerk.com, since
+// inside the app the page origin is capacitor://localhost. A no-op on the web.
+// See src/core/functionsOrigin.js.
+//
+// AFTER initSentry, deliberately, so this wrapper is the outer one. Sentry's
+// fetch instrumentation then sees the rewritten https://steadwerk.com URL, which
+// does not match tracePropagationTargets ([window.location.origin], i.e.
+// capacitor://localhost), so it adds no sentry-trace/baggage headers. If Sentry
+// saw the relative URL instead, it would add them to what is now a cross-origin
+// call, and the CORS preflight would reject every one: the functions only allow
+// Content-Type and Authorization (corsHeaders in netlify/functions/_shared/tenant.js).
+installFunctionsFetch();
 
 // Pick up a new deploy without anyone pressing refresh.
 //
