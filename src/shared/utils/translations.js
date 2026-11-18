@@ -1626,6 +1626,9 @@ export const translations = {
     stProStatusOff: "Off",
     stProUpsell:
       "ANVIL Pro adds automatic reordering: A.N.V.I.L. watches each item against its low-stock line, drafts a reorder when one runs low, emails the people who approve orders, and waits for a yes. An admin can add it from Billing.",
+    stProUpsellIos:
+      "ANVIL Pro adds automatic reordering: A.N.V.I.L. watches each item against its low-stock line, drafts a reorder when one runs low, emails the people who approve orders, and waits for a yes. Ask your company admin about adding it.",
+    stProStatusError: "Could not load",
     stProGoBilling: "Go to Billing",
     stProNeedsInvEdit: "Automatic reordering is managed by people who can edit inventory.",
     stProReorderTitle: "Automatic reordering",
@@ -3532,6 +3535,9 @@ export const translations = {
     stProStatusOff: "Desactivado",
     stProUpsell:
       "ANVIL Pro agrega el reabastecimiento automático: A.N.V.I.L. vigila cada artículo contra su nivel de existencias bajas, prepara un pedido cuando se agota, envía un correo a quienes aprueban pedidos y espera un sí. Un administrador puede agregarlo desde Facturación.",
+    stProUpsellIos:
+      "ANVIL Pro agrega el reabastecimiento automático: A.N.V.I.L. vigila cada artículo contra su nivel de existencias bajas, prepara un pedido cuando se agota, envía un correo a quienes aprueban pedidos y espera un sí. Pregunte al administrador de su empresa si desea agregarlo.",
+    stProStatusError: "No se pudo cargar",
     stProGoBilling: "Ir a Facturación",
     stProNeedsInvEdit:
       "El reabastecimiento automático lo administran las personas que pueden editar el inventario.",

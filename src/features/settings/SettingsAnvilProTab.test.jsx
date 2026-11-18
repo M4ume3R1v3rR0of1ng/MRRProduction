@@ -73,16 +73,25 @@ describe("Settings → ANVIL Pro tab", () => {
 });
 
 describe("Inventory → Reorders", () => {
+  const emptyList = {
+    enabled: false,
+    notifyEmails: [],
+    pending: [],
+    approved: [],
+    ordered: [],
+    recent: [],
+  };
+
+  it("keeps the switch for inventory editors who cannot open Settings", async () => {
+    callReorder.mockResolvedValue(emptyList);
+    wrap(<ReorderTab pro canOpenSettings={false} t={t} />);
+    expect(await screen.findByRole("button", { name: t.stProTurnOn })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Settings/ })).toBeNull();
+  });
+
   it("points to Settings instead of carrying the switch", async () => {
-    callReorder.mockResolvedValue({
-      enabled: false,
-      notifyEmails: [],
-      pending: [],
-      approved: [],
-      ordered: [],
-      recent: [],
-    });
-    wrap(<ReorderTab pro />);
+    callReorder.mockResolvedValue(emptyList);
+    wrap(<ReorderTab pro canOpenSettings t={t} />);
     const link = await screen.findByRole("link", { name: /Settings/ });
     expect(link.getAttribute("href")).toBe("/settings");
     expect(screen.queryByRole("button", { name: "Turn on" })).toBeNull();

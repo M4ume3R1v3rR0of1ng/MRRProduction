@@ -16,21 +16,14 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { callReorder as call } from "./reorderApi";
 import ReorderCards from "./ReorderCards";
-import {
-  Card,
-  Stack,
-  Row,
-  Text,
-  Muted,
-  Bdg,
-  Eyebrow,
-} from "@/shared/components/UIPrimitives";
+import AutoReorderControls from "./AutoReorderControls";
+import { Card, Stack, Row, Text, Muted, Bdg, Eyebrow } from "@/shared/components/UIPrimitives";
 import { C } from "@/shared/utils/helpers";
 import { useNotify } from "@/shared/context/NotificationContext";
 
 const fmt = (n) => (Number.isInteger(Number(n)) ? String(Number(n)) : Number(n).toFixed(1));
 
-export default function ReorderTab({ pro }) {
+export default function ReorderTab({ pro, canOpenSettings = false, t }) {
   const { showToast } = useNotify();
   const [state, setState] = useState(null); // { enabled, notifyEmails, pending, recent }
   const [loading, setLoading] = useState(true);
@@ -84,10 +77,19 @@ export default function ReorderTab({ pro }) {
 
   return (
     <Stack gap={4}>
-      <Muted>
-        Automatic reordering, and who gets emailed about it, are in{" "}
-        <Link to="/settings">Settings → ANVIL Pro</Link>.
-      </Muted>
+      {canOpenSettings ? (
+        <Muted>
+          Automatic reordering, and who gets emailed about it, are in{" "}
+          <Link to="/settings">Settings → ANVIL Pro</Link>.
+        </Muted>
+      ) : (
+        <AutoReorderControls
+          enabled={state.enabled}
+          notifyEmails={state.notifyEmails}
+          onSave={(payload, done) => act({ action: "settings", ...payload }, done)}
+          t={t}
+        />
+      )}
 
       <ReorderCards state={state} act={act} busy={busy} />
 

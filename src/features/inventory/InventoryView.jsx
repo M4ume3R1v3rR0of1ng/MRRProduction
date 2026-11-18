@@ -288,7 +288,7 @@ export default function InventoryView({
           on screen, because `tab` is component state and losing the button does
           not change it. */}
       {tab === "reorder" && perms.inv_edit ? (
-        <ReorderTab pro={anvilPro} />
+        <ReorderTab pro={anvilPro} canOpenSettings={!!perms.settings_manage} t={t} />
       ) : tab === "count" && perms.inv_count ? (
         <InventoryCountTab
           inv={inv}

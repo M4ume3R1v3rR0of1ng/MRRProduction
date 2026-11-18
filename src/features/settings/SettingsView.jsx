@@ -1154,7 +1154,11 @@ export default function SettingsView({
 
       {/* ── PANEL: System ──────────────────────────────────────────────── */}
       {currentTab === "AnvilPro" && (
-        <AnvilProSettings canEditInventory={!!userPerms.inv_edit} t={t} />
+        <AnvilProSettings
+          canEditInventory={!!userPerms.inv_edit}
+          companyId={currentUser?.companyId}
+          t={t}
+        />
       )}
 
       {currentTab === "System" && (

@@ -5,55 +5,50 @@
 // render only for people with inv_edit, because netlify/functions/anvil-reorder.js refuses
 // anyone else, and a control that cannot save is worse than no control.
 //
-// Subscribing to or cancelling Pro is a Stripe change and stays in Billing; this only links.
+// Subscribing to or cancelling Pro is a Stripe change and stays in Billing; this only links,
+// and not at all in the iOS app, which has no Billing screen (App Store purchase rules).
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { supabase } from "@/shared/utils/supabase";
 import { callReorder } from "@/features/inventory/reorderApi";
+import AutoReorderControls from "@/features/inventory/AutoReorderControls";
 import { useNotify } from "@/shared/context/NotificationContext";
+import { IS_IOS_APP } from "@/core/platform";
 import { C } from "@/shared/utils/helpers";
-import {
-  Btn,
-  Inp,
-  Card,
-  Stack,
-  Row,
-  Text,
-  Muted,
-  Bdg,
-  Eyebrow,
-  SectionTitle,
-} from "@/shared/components/UIPrimitives";
+import { Card, Stack, Text, Muted, Bdg, SectionTitle } from "@/shared/components/UIPrimitives";
 
 const STATUS = {
   active: { color: "green", key: "stProStatusActive" },
   comped: { color: "gold", key: "stProStatusComped" },
   off: { color: "gray", key: "stProStatusOff" },
+  error: { color: "red", key: "stProStatusError" },
 };
 
-export default function AnvilProSettings({ canEditInventory, t }) {
+export default function AnvilProSettings({ canEditInventory, companyId, t }) {
   const { showToast } = useNotify();
-  const [status, setStatus] = useState(null); // "active" | "comped" | "off"
+  const [status, setStatus] = useState(null); // "active" | "comped" | "off" | "error"
   const [settings, setSettings] = useState(null); // { enabled, notifyEmails }
-  const [emails, setEmails] = useState("");
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let live = true;
+    // Scoped to the active company: RLS lets platform admins and people in several
+    // companies read more than one row, and maybeSingle() errors on more than one.
     supabase
       .from("companies")
       .select("anvil_pro, anvil_pro_comped")
+      .eq("id", companyId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (!live) return;
-        if (error || !data) return setStatus("off");
-        setStatus(data.anvil_pro_comped ? "comped" : data.anvil_pro ? "active" : "off");
+        // A failed lookup is not "no Pro"; saying Off would upsell a paying company.
+        if (error) return setStatus("error");
+        setStatus(data?.anvil_pro_comped ? "comped" : data?.anvil_pro ? "active" : "off");
       });
     return () => {
       live = false;
     };
-  }, []);
+  }, [companyId]);
 
   const pro = status === "active" || status === "comped";
   const showControls = pro && canEditInventory;
@@ -62,7 +57,6 @@ export default function AnvilProSettings({ canEditInventory, t }) {
     try {
       const data = await callReorder({ action: "list" });
       setSettings({ enabled: data.enabled === true, notifyEmails: data.notifyEmails || [] });
-      setEmails((data.notifyEmails || []).join(", "));
     } catch (err) {
       setSettings(null);
       showToast(`${t.stProLoadFail} ${err.message}`, "error");
@@ -74,15 +68,12 @@ export default function AnvilProSettings({ canEditInventory, t }) {
   }, [showControls, load]);
 
   const save = async (payload, done) => {
-    setBusy(true);
     try {
       await callReorder({ action: "settings", ...payload });
       showToast(done, "success");
       await load();
     } catch (err) {
       showToast(err.message, "error");
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -95,12 +86,12 @@ export default function AnvilProSettings({ canEditInventory, t }) {
         <SectionTitle icon={Sparkles} size="lg" actions={<Bdg color={s.color}>{t[s.key]}</Bdg>}>
           {t.stProTitle}
         </SectionTitle>
-        {!pro && (
+        {status === "off" && (
           <Stack gap={2} style={{ marginTop: 12 }}>
             <Text size="base" color={C.sub}>
-              {t.stProUpsell}
+              {IS_IOS_APP ? t.stProUpsellIos : t.stProUpsell}
             </Text>
-            <Link to="/billing">{t.stProGoBilling}</Link>
+            {!IS_IOS_APP && <Link to="/billing">{t.stProGoBilling}</Link>}
           </Stack>
         )}
         {pro && !canEditInventory && (
@@ -111,58 +102,12 @@ export default function AnvilProSettings({ canEditInventory, t }) {
       </Card>
 
       {showControls && settings && (
-        <Card pad="lg">
-          <Row justify="space-between" align="center" wrap gap={4}>
-            <Stack gap={1}>
-              <Eyebrow>{t.stProReorderTitle}</Eyebrow>
-              <Text size="base" color={C.sub}>
-                {t.stProReorderDesc}
-              </Text>
-            </Stack>
-            <Btn
-              v={settings.enabled ? "ghost" : "gold"}
-              disabled={busy}
-              onClick={() =>
-                save(
-                  { enabled: !settings.enabled },
-                  settings.enabled ? t.stProReorderOff : t.stProReorderOn,
-                )
-              }
-            >
-              {settings.enabled ? t.stProTurnOff : t.stProTurnOn}
-            </Btn>
-          </Row>
-          <Row gap={4} align="flex-end" wrap style={{ marginTop: 14 }}>
-            <Stack gap={0} style={{ flex: 1, minWidth: 220 }}>
-              <Muted as="label" htmlFor="anvil-pro-emails">
-                {t.stProAlsoEmail}
-              </Muted>
-              <Inp
-                id="anvil-pro-emails"
-                value={emails}
-                onChange={(e) => setEmails(e.target.value)}
-                disabled={busy}
-              />
-            </Stack>
-            <Btn
-              v="ghost"
-              disabled={busy}
-              onClick={() =>
-                save(
-                  {
-                    notifyEmails: emails
-                      .split(/[,\s]+/)
-                      .map((e) => e.trim())
-                      .filter(Boolean),
-                  },
-                  t.stProEmailsSaved,
-                )
-              }
-            >
-              {t.stProSave}
-            </Btn>
-          </Row>
-        </Card>
+        <AutoReorderControls
+          enabled={settings.enabled}
+          notifyEmails={settings.notifyEmails}
+          onSave={save}
+          t={t}
+        />
       )}
     </Stack>
   );

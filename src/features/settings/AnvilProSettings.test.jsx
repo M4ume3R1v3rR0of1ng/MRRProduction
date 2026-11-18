@@ -12,7 +12,7 @@ import { MemoryRouter } from "react-router-dom";
 import AnvilProSettings from "./AnvilProSettings.jsx";
 import { NotificationProvider } from "@/shared/context/NotificationContext";
 import { translations } from "@/shared/utils/translations";
-import { reset, respond } from "@/test/fakeSupabase";
+import { reset, respond, allCalls } from "@/test/fakeSupabase";
 import { callReorder } from "@/features/inventory/reorderApi";
 
 vi.mock("@supabase/supabase-js", async () => {
@@ -20,6 +20,12 @@ vi.mock("@supabase/supabase-js", async () => {
   return { createClient: () => fakeSupabase };
 });
 vi.mock("@/features/inventory/reorderApi", () => ({ callReorder: vi.fn() }));
+const platform = vi.hoisted(() => ({ ios: false }));
+vi.mock("@/core/platform", () => ({
+  get IS_IOS_APP() {
+    return platform.ios;
+  },
+}));
 
 const t = translations.en;
 
@@ -29,7 +35,7 @@ const renderPanel = (canEditInventory) =>
   render(
     <MemoryRouter>
       <NotificationProvider>
-        <AnvilProSettings canEditInventory={canEditInventory} t={t} />
+        <AnvilProSettings canEditInventory={canEditInventory} companyId="c1" t={t} />
       </NotificationProvider>
     </MemoryRouter>,
   );
@@ -37,6 +43,7 @@ const renderPanel = (canEditInventory) =>
 beforeEach(() => {
   reset();
   callReorder.mockReset();
+  platform.ios = false;
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -53,6 +60,33 @@ describe("AnvilProSettings", () => {
       "/billing",
     );
     expect(callReorder).not.toHaveBeenCalled();
+  });
+
+  it("looks up Pro for the active company only", async () => {
+    company({ anvil_pro: false, anvil_pro_comped: false });
+    renderPanel(true);
+    await screen.findByText(t.stProStatusOff);
+    const lookup = allCalls().find((c) => c.table === "companies");
+    expect(lookup.filters.id).toBe("c1");
+  });
+
+  it("says the status could not be loaded instead of Off when the lookup fails", async () => {
+    respond(
+      { table: "companies", op: "select" },
+      { data: null, error: { message: "multiple rows" } },
+    );
+    renderPanel(true);
+    expect(await screen.findByText(t.stProStatusError)).toBeTruthy();
+    expect(screen.queryByText(t.stProStatusOff)).toBeNull();
+    expect(screen.queryByRole("link", { name: t.stProGoBilling })).toBeNull();
+  });
+
+  it("does not link to Billing in the iOS app", async () => {
+    platform.ios = true;
+    company({ anvil_pro: false, anvil_pro_comped: false });
+    renderPanel(true);
+    expect(await screen.findByText(t.stProUpsellIos)).toBeTruthy();
+    expect(screen.queryByRole("link", { name: t.stProGoBilling })).toBeNull();
   });
 
   it("shows Comped for a comped company", async () => {
