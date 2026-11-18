@@ -13,11 +13,10 @@
 // because an email to a supplier cannot be taken back. The "Approved" section is where that
 // happens, and "Ordered" is where a delivery is marked received.
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { callReorder as call } from "./reorderApi";
 import ReorderCards from "./ReorderCards";
 import {
-  Btn,
-  Inp,
   Card,
   Stack,
   Row,
@@ -36,14 +35,12 @@ export default function ReorderTab({ pro }) {
   const [state, setState] = useState(null); // { enabled, notifyEmails, pending, recent }
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [emails, setEmails] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await call({ action: "list" });
       setState(data);
-      setEmails((data.notifyEmails || []).join(", "));
     } catch (err) {
       showToast(`Could not load reorders: ${err.message}`, "error");
     } finally {
@@ -85,53 +82,12 @@ export default function ReorderTab({ pro }) {
     }
   };
 
-  const saveEmails = () =>
-    act(
-      {
-        action: "settings",
-        notifyEmails: emails
-          .split(/[,\s]+/)
-          .map((e) => e.trim())
-          .filter(Boolean),
-      },
-      "Notification list saved.",
-    );
-
   return (
     <Stack gap={4}>
-      <Card variant="flat" pad="var(--space-8)">
-        <Row justify="space-between" align="center" wrap gap={4}>
-          <Stack gap={1}>
-            <Eyebrow>Automatic reordering</Eyebrow>
-            <Text size="base" color={C.sub}>
-              Each weekday A.N.V.I.L. checks every item against its low-stock line, drafts a reorder
-              for anything at or below it, and emails the people who can edit inventory. Nothing is
-              ordered until someone approves it here and sends the purchase order.
-            </Text>
-          </Stack>
-          <Btn
-            v={state.enabled ? "ghost" : "gold"}
-            disabled={busy}
-            onClick={() =>
-              act(
-                { action: "settings", enabled: !state.enabled },
-                state.enabled ? "Automatic reordering is off." : "Automatic reordering is on.",
-              )
-            }
-          >
-            {state.enabled ? "Turn off" : "Turn on"}
-          </Btn>
-        </Row>
-        <Row gap={4} align="flex-end" wrap style={{ marginTop: 14 }}>
-          <Stack gap={0} style={{ flex: 1, minWidth: 220 }}>
-            <Muted>Also email (team members only, comma separated)</Muted>
-            <Inp value={emails} onChange={(e) => setEmails(e.target.value)} disabled={busy} />
-          </Stack>
-          <Btn v="ghost" onClick={saveEmails} disabled={busy}>
-            Save
-          </Btn>
-        </Row>
-      </Card>
+      <Muted>
+        Automatic reordering, and who gets emailed about it, are in{" "}
+        <Link to="/settings">Settings → ANVIL Pro</Link>.
+      </Muted>
 
       <ReorderCards state={state} act={act} busy={busy} />
 

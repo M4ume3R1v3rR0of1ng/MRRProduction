@@ -17,6 +17,7 @@ import {
   Save,
   Loader2,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { supabase, getAccessToken } from "@/shared/utils/supabase";
 import { C, HEX, compressImg } from "@/shared/utils/helpers";
@@ -54,6 +55,7 @@ import { useNotify } from "@/shared/context/NotificationContext";
 // reads its config/test-connection helpers, so this stays a cross-feature @/ import.
 import { fetchAccuLynxJob, fetchAccuLynxDocumentFolders } from "@/features/jobs/accuLynxSync";
 import { US_STATES, stateByCode } from "./salesTax";
+import AnvilProSettings from "./AnvilProSettings";
 import {
   AUTOMATION_GROUPS,
   automationsForGroup,
@@ -153,6 +155,7 @@ export default function SettingsView({
   acculynxConfig,
   setAccuLynxConfig,
   currentUser,
+  userPerms = {},
   lang = "en",
 }) {
   const { showToast } = useNotify();
@@ -301,6 +304,7 @@ export default function SettingsView({
     // switches on, not the only thing planned, and the rows already read as rules
     // rather than as a notification inbox.
     { id: "Automations", label: t.stTabAutomations, icon: Bell },
+    { id: "AnvilPro", label: t.stTabAnvilPro, icon: Sparkles },
     // "CRM Integration" rather than "AccuLynx": AccuLynx is the first CRM we
     // connect to, not the only one planned. Naming the tab after the category
     // means adding Jobber or ServiceTitan later is a new section in this panel,
@@ -1149,6 +1153,10 @@ export default function SettingsView({
       )}
 
       {/* ── PANEL: System ──────────────────────────────────────────────── */}
+      {currentTab === "AnvilPro" && (
+        <AnvilProSettings canEditInventory={!!userPerms.inv_edit} t={t} />
+      )}
+
       {currentTab === "System" && (
         <Card pad="lg">
           <SectionTitle icon={Info} title={t.stSystemInfo} />
