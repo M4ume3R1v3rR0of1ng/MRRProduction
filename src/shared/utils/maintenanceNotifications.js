@@ -149,6 +149,9 @@ export function buildMaintEmail(event, req) {
       row("Reported by", filedBy) +
       row("Mileage", mileage) +
       row("Scheduled for", scheduledDate ? escapeHtml(formatDate(scheduledDate)) : "") +
+      // shop_name is not a column: the caller resolves shop_id to a name (see
+      // MaintenanceRequestsView updateStatus) so the driver is told where to take it.
+      row("Shop", escapeHtml(req?.shop_name || "")) +
       row("Completed", completedAt ? escapeHtml(formatDate(completedAt)) : "") +
       `<p><strong>Reported issue:</strong> ${notes}</p>` +
       row("Shop notes", shopNotes) +

@@ -535,6 +535,14 @@ begin
     public._mig_has_column('companies', 'anvil_pro')
       and public._mig_has_table('anvil_reorder_proposals'),
     'companies.anvil_pro and table anvil_reorder_proposals');
+
+  -- 67 creates the shops table and the shop_id column on maintenance_requests,
+  -- neither of which anything earlier made. Both are probed: the column is the
+  -- part a half-run file would be missing.
+  perform public._mig_record('67_fleet_shops.sql',
+    public._mig_has_table('shops')
+      and public._mig_has_column('maintenance_requests', 'shop_id'),
+    'table shops and maintenance_requests.shop_id');
 end $;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists

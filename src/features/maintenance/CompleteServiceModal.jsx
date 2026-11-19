@@ -28,6 +28,8 @@ import {
 } from "@/shared/components/UIPrimitives";
 import { useNotify } from "@/shared/context/NotificationContext";
 import { translations } from "@/shared/utils/translations";
+import ShopPicker from "@/features/fleet/ShopPicker";
+import { shopName } from "@/features/fleet/shops";
 
 const SERVICE_TYPES = [
   "Oil Change",
@@ -55,6 +57,7 @@ export default function CompleteServiceModal({
   req,
   vehs = [],
   users = [],
+  shops = [],
   user,
   onSubmit,
   onClose,
@@ -80,10 +83,14 @@ export default function CompleteServiceModal({
   const currentDriver = veh?.assignedTo ? users.find((u) => u.id === veh.assignedTo) : null;
   const { showToast } = useNotify();
 
+  // A ticket scheduled at a shop starts with that shop picked and its name as
+  // Performed By, since that is who most likely did the work.
+  const scheduledShopName = shopName(req.shop_id, shops);
   const [form, setForm] = useState({
     serviceType: guessServiceType(req.type),
     serviceDate: todayLocal(),
-    performedBy: user?.name || user?.email || "",
+    shopId: scheduledShopName ? req.shop_id : null,
+    performedBy: scheduledShopName || user?.name || user?.email || "",
     mileage: "",
     cost: "",
     notes: "",
@@ -113,6 +120,7 @@ export default function CompleteServiceModal({
         serviceType: form.serviceType,
         serviceDate: form.serviceDate,
         performedBy: form.performedBy.trim(),
+        shopId: form.shopId || null,
         mileage: form.mileage ? parseFloat(form.mileage) : null,
         cost: form.cost ? parseFloat(form.cost) : 0,
         notes: form.notes.trim(),
@@ -197,6 +205,19 @@ export default function CompleteServiceModal({
             />
           </Fld>
         </Grid>
+
+        <ShopPicker
+          shops={shops}
+          value={form.shopId}
+          lang={lang}
+          onChange={(id) =>
+            setForm({
+              ...form,
+              shopId: id,
+              performedBy: id ? shopName(id, shops) : form.performedBy,
+            })
+          }
+        />
 
         <Grid gap={4}>
           <Fld label={t.csPerformedBy}>

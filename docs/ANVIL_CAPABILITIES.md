@@ -6,7 +6,8 @@ This is the list to decide from. The code reads the same list from
 not in that file, so nothing can ship without a decision.
 
 **Current state:** everything that existed before Anvil Pro is **Free** (nothing changes for
-any company today). Only the four new reorder capabilities are **Pro**.
+any company today). Only capabilities that are new since then are **Pro**: reordering, and
+A.N.V.I.L.'s shop tools (decision 4).
 Moving an existing capability to Pro takes it away from companies that have it now.
 
 ## Ask A.N.V.I.L. (answers questions, changes nothing)
@@ -25,6 +26,7 @@ Moving an existing capability to Pro takes it away from companies that have it n
 | On-demand briefing         | The morning briefing, whenever asked                            | Free          |
 | Photo in chat              | Send a photo with a question                                    | Free          |
 | Ask about pending reorders | "What are we about to order?"                                   | **Pro** (new) |
+| Ask about your shops       | Shop contacts, work done per vehicle, spend, upcoming bookings  | **Pro** (new) |
 
 ## Do it for me (each one waits for a Confirm button)
 
@@ -37,6 +39,7 @@ Moving an existing capability to Pro takes it away from companies that have it n
 | Log a service record           | Record a service that was performed                                 | Free          |
 | Reorder approval queue         | Review, edit the quantity, approve or dismiss drafted reorders      | **Pro** (new) |
 | Send purchase order            | Email the PO for an approved reorder to the supplier, mark received | **Pro** (new) |
+| Book a ticket at a shop        | Schedule a pending ticket at a named shop; does not contact it      | **Pro** (new) |
 
 ## Runs on its own
 
@@ -75,6 +78,11 @@ Decided 2026-11-10.
    `$50/month` to everyone else. Those two figures are `ANVIL_PRO_ANNUAL_PRICE` and
    `ANVIL_PRO_PRICE` in `BillingView.jsx`; they are display text only, so keep them in step
    with the Stripe Prices.
+4. **Shops: the list is Free, A.N.V.I.L. knowing about it is Pro.** Decided 2026-11-19. Fleet →
+   Shops (`supabase/67_fleet_shops.sql`) is in the base price for every company: the directory,
+   picking a shop when scheduling or completing a service, and each shop's history and spend.
+   Pro adds asking A.N.V.I.L. about shops and booking a ticket at a shop from chat. Plain
+   "schedule a maintenance request" stays Free, per the no-downgrade rule.
 
 ## How a reorder moves through the queue
 

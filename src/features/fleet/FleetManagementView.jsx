@@ -54,6 +54,10 @@ import MaintenanceRequestModal from "./MaintenanceRequestModal";
 import AddVehicleModal from "./AddVehicleModal";
 import InspectionModal from "./InspectionModal";
 import LendSpareModal from "./LendSpareModal";
+import ShopsPanel from "./ShopsPanel";
+import ShopPicker from "./ShopPicker";
+import { useShops } from "./useShops";
+import { shopName } from "./shops";
 
 // ── MAIN VIEW COMPONENT (The Only Default Export) ──
 // The values of the <option> list in this view's sort dropdown, in the same
@@ -115,6 +119,8 @@ export default function FleetManagementView({
   };
 
   const [subView, setSubView] = useState("list");
+  // The company's outside shops: the Shops tab, and the picker on Log Service.
+  const shopsApi = useShops(user?.companyId);
   const [calSel, setCalSel] = useState(null);
   const [filt, setFilt] = useState("all");
   const [sortBy, setSortBy] = useStickySort("fleet", SORTS, "name_az");
@@ -258,6 +264,9 @@ export default function FleetManagementView({
       by: form.by || user.name,
       notes: form.notes || "",
       cost: parseFloat(form.cost) || 0,
+      // Only when a shop was picked, so an entry without one keeps the exact
+      // shape it always had. Read back by features/fleet/shops.js shopHistory.
+      ...(form.shopId ? { shop_id: form.shopId } : {}),
     };
     try {
       // Append to the service history currently in the database, not this
@@ -605,6 +614,7 @@ export default function FleetManagementView({
               {[
                 ["list", t.flViewList],
                 ["calendar", t.flViewTrailerCal],
+                ["shops", t.shTab],
               ].map(([v, label]) => (
                 <Btn
                   key={v}
@@ -633,7 +643,20 @@ export default function FleetManagementView({
         />
       )}
 
-      {subView === "calendar" ? (
+      {subView === "shops" ? (
+        <div style={{ flex: 1, overflowY: "auto", paddingRight: 6 }}>
+          <ShopsPanel
+            shopsApi={shopsApi}
+            vehs={vehs}
+            setVehs={setVehs}
+            reqs={reqs}
+            setReqs={setReqs}
+            perms={perms}
+            user={user}
+            lang={lang}
+          />
+        </div>
+      ) : subView === "calendar" ? (
         <div style={{ flex: 1, overflowY: "auto", paddingRight: 6, paddingBottom: 24 }}>
           <TrailerCalendar
             lang={lang}
@@ -1364,6 +1387,16 @@ export default function FleetManagementView({
               />
             </Fld>
           )}
+          {/* Picking a shop fills Performed By with its name, which stays
+              editable: a shop's own mechanic's name is also a fine answer. */}
+          <ShopPicker
+            shops={shopsApi.shops}
+            value={form.shopId || null}
+            lang={lang}
+            onChange={(id) =>
+              setForm({ ...form, shopId: id, by: id ? shopName(id, shopsApi.shops) : form.by })
+            }
+          />
           <Fld label={t.flPerformedBy}>
             <Inp
               value={form.by || ""}

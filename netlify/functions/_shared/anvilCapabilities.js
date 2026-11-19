@@ -250,6 +250,28 @@ export const CAPABILITIES = [
     tool: "get_reorder_proposals",
     tier: "pro",
   },
+
+  // ── New with Anvil Pro: shops in chat ────────────────────────────────────
+  // The Shops list itself (Fleet → Shops, supabase/67) is in the base price.
+  // What Pro adds is A.N.V.I.L. knowing about it.
+  {
+    id: "shops_ask",
+    label: "Ask about your shops",
+    description:
+      '"Where did Truck 3 get tires last time?", "What\'s McMahon\'s number?", "What have we spent at the Ford dealer?" answered from chat.',
+    kind: "ask",
+    tool: "get_shops",
+    tier: "pro",
+  },
+  {
+    id: "shops_schedule",
+    label: "Book a ticket at a shop",
+    description:
+      "Schedule a pending maintenance request at a named shop on a date, after a Confirm. It does not contact the shop.",
+    kind: "act",
+    tool: "schedule_maintenance_at_shop",
+    tier: "pro",
+  },
 ];
 
 const BY_TOOL = new Map(CAPABILITIES.filter((c) => c.tool).map((c) => [c.tool, c]));

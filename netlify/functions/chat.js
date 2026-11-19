@@ -40,6 +40,9 @@ import {
 import { buildBriefing, loadBriefingData } from "./_shared/anvilBriefing.js";
 import { toolTier } from "./_shared/anvilCapabilities.js";
 import { hasAnvilPro, PRO_REQUIRED_MESSAGE } from "./_shared/anvilPro.js";
+// The same history and spend math the Fleet → Shops tab shows, so A.N.V.I.L. and
+// the screen can never disagree about what a shop has cost.
+import { shopHistory } from "../../src/features/fleet/shops.js";
 
 // CORS used to be a second, hand-copied ALLOWED_ORIGINS list here, which had
 // drifted from _shared/tenant.js's copy and was missing "capacitor://localhost" —
@@ -214,6 +217,25 @@ const READ_TOOLS = [
       "List the reorders A.N.V.I.L. has drafted for low-stock items and is waiting for a person to approve: item, what is left, the line it fell below, and the suggested quantity. Anvil Pro only. Use for 'what are we about to order', 'what needs reordering', or 'is anything waiting on me'. This only reads the queue; approving or dismissing happens in the Inventory page.",
     input_schema: { type: "object", properties: {} },
   },
+  {
+    name: "get_shops",
+    description:
+      "Look up the outside shops the company sends vehicles to (tire shops, dealers, glass, etc.): contact details, what each handles, the work each has done on which vehicle and what it cost, and work booked there that is coming up. Anvil Pro only. Use for 'what's McMahon's number', 'where did Truck 3 get tires last time', 'what have we spent at Jim Schmidt Ford this year', or 'which shop does alignments'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        shop_name: {
+          type: "string",
+          description: "Part of a shop's name to narrow to. Omit to list every shop.",
+        },
+        vehicle_name: {
+          type: "string",
+          description:
+            "A vehicle name or plate, to show only the work done on that vehicle. Omit for all vehicles.",
+        },
+      },
+    },
+  },
 ];
 
 // What the model is offered: reads plus the confirm-gated writes.
@@ -251,6 +273,7 @@ When asked how the day or week looks, or what they should be looking at, call ge
 Job costing covers MATERIAL cost only. Labour, overhead, subcontractors and disposal are not tracked anywhere in this system, so never call a margin from get_job_costing "profit" without saying what it leaves out.
 You can also CHANGE things: file and schedule maintenance requests, correct stock, log mileage, and record a service that has been performed. Those tools do not act when you call them — they return a preview, and the app shows the user a Confirm button. So: call the tool once, relay its summary in one short sentence, and stop. Never say something has been filed, corrected, scheduled or logged on the strength of a preview; the user has not pressed Confirm yet, and you will not be told when they do.
 If a write tool reports an ambiguous match, ask the user which one they meant rather than guessing.
+When the user names an outside shop while scheduling ("book it at McMahon's"), use schedule_maintenance_at_shop, not schedule_maintenance_request. Steadwerk never contacts a shop: booking only records where the vehicle is going, so never say the shop has been told or the slot is held.
 Telling you work is DONE and asking for work to be done are different things: log_service_record records a completed service, file_maintenance_request asks for one that still needs doing. "I changed the oil on 011" is the first; "011 needs an oil change" is the second.
 Never speculate about other companies on the platform; you have no access to them.
 If a tool returns a permission error, tell the user plainly they don't have access to that rather than guessing or making something up.
@@ -1013,9 +1036,106 @@ async function executeTool(admin, perms, caller, actorName, name, input) {
         ? { pending: data }
         : { pending: [], note: "Nothing is waiting on approval." };
     }
+    case "get_shops": {
+      // The same people who can see the fleet or run maintenance. The Shops tab
+      // itself is readable by everyone in the company, but the spend totals here
+      // are fleet money, so this follows the maintenance tools' line.
+      if (!perms.maint_manage && !perms.fleet_view) {
+        return { error: "This user does not have permission to view shops." };
+      }
+      const [shopsRes, vehRes, reqRes] = await Promise.all([
+        admin.from("shops").select("*").eq("company_id", companyId).limit(200),
+        admin.from("vehicles").select("id, name, plate, sl").eq("company_id", companyId).limit(200),
+        admin
+          .from("maintenance_requests")
+          .select("id, vname, type, status, scheduled_date, shop_id")
+          .eq("company_id", companyId)
+          .in("status", ["pending", "scheduled"])
+          .limit(500),
+      ]);
+      if (shopsRes.error) {
+        // No shops table yet: supabase/67 has not been run on this database.
+        if (shopsRes.error.code === "PGRST205" || shopsRes.error.code === "42P01") {
+          return { shops: [], note: "Shops are not set up for this company yet." };
+        }
+        return { error: shopsRes.error.message };
+      }
+      if (vehRes.error) return { error: vehRes.error.message };
+      if (reqRes.error) return { error: reqRes.error.message };
+      return summarizeShops({
+        shops: shopsRes.data || [],
+        vehs: vehRes.data || [],
+        reqs: reqRes.data || [],
+        shopName: input.shop_name,
+        vehicleName: input.vehicle_name,
+      });
+    }
     default:
       return { error: `Unknown tool: ${name}` };
   }
+}
+
+/**
+ * What get_shops returns: each shop's contact details, totals, recent work and
+ * upcoming bookings, optionally narrowed to shops whose name contains
+ * `shopName` and to work on vehicles whose name or plate contains `vehicleName`.
+ * Archived shops are included and flagged, because "where did we used to take
+ * the trucks" is a fair question. Exported for the test.
+ */
+export function summarizeShops({ shops, vehs, reqs, shopName, vehicleName }) {
+  const n = (s) =>
+    String(s || "")
+      .trim()
+      .toLowerCase();
+  const wantShop = n(shopName);
+  const wantVeh = n(vehicleName);
+  const vehMatches = (v) => !wantVeh || n(v.name).includes(wantVeh) || n(v.plate).includes(wantVeh);
+  const scopedVehs = vehs.filter(vehMatches);
+  const scopedNames = new Set(scopedVehs.map((v) => n(v.name)));
+
+  const picked = shops.filter((s) => !wantShop || n(s.name).includes(wantShop));
+  if (picked.length === 0) {
+    return {
+      shops: [],
+      note: wantShop ? `No shop matches "${shopName}".` : "No shops have been added yet.",
+    };
+  }
+
+  return {
+    shops: picked.map((s) => {
+      const h = shopHistory(s, scopedVehs, reqs);
+      return {
+        name: s.name,
+        archived: s.active === false,
+        handles: s.specialties || [],
+        phone: s.phone || null,
+        email: s.email || null,
+        address: s.address || null,
+        contact: s.contact || null,
+        notes: s.notes || null,
+        visits: h.visits,
+        total_spend: Math.round(h.spend * 100) / 100,
+        last_visit: h.lastVisit,
+        // Newest first; capped so a busy shop does not flood the context.
+        recent_work: h.done.slice(0, 15).map((e) => ({
+          date: e.date,
+          vehicle: e.vehicleName,
+          work: e.type,
+          cost: e.cost,
+          notes: e.notes || undefined,
+        })),
+        coming_up: h.upcoming
+          .filter((u) => !wantVeh || scopedNames.has(n(String(u.vehicleName).split(" (")[0])))
+          .map((u) => ({
+            vehicle: u.vehicleName,
+            work: u.type,
+            status: u.status,
+            date: u.date || null,
+          })),
+      };
+    }),
+    ...(wantVeh && scopedVehs.length === 0 ? { note: `No vehicle matches "${vehicleName}".` } : {}),
+  };
 }
 
 /**

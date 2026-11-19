@@ -113,6 +113,32 @@ export const ACTION_TOOLS = [
     strict: true,
   },
   {
+    name: "schedule_maintenance_at_shop",
+    description:
+      "Put a date AND an outside shop on a pending maintenance request and move it to scheduled, e.g. 'book Truck 3's tires at McMahon's for Tuesday'. Anvil Pro only. Use this instead of schedule_maintenance_request whenever the user names a shop. Calling this does NOT schedule anything yet — it returns a preview for the user to confirm. Relay the summary and stop.",
+    input_schema: {
+      type: "object",
+      properties: {
+        request_id: {
+          type: "string",
+          description:
+            "The request's id, as returned by get_maintenance_requests. Ask the user which ticket if more than one could match.",
+        },
+        scheduled_date: {
+          type: "string",
+          description: "The day it goes into the shop, as YYYY-MM-DD.",
+        },
+        shop_name: {
+          type: "string",
+          description: "The shop's name, or enough of it to pick one shop out.",
+        },
+      },
+      required: ["request_id", "scheduled_date", "shop_name"],
+      additionalProperties: false,
+    },
+    strict: true,
+  },
+  {
     name: "adjust_stock",
     description:
       "Correct an inventory item's on-hand quantity to a counted number (a physical count, damage, a miscount). Calling this does NOT adjust anything yet — it returns a preview showing the current quantity, the new one, and the difference, for the user to confirm. Relay the summary and stop.",
@@ -198,6 +224,9 @@ export const ACTION_NAMES = new Set(ACTION_TOOLS.map((t) => t.name));
 const ACTION_PERM = {
   file_maintenance_request: "maint_submit",
   schedule_maintenance_request: "maint_manage",
+  // The same right as scheduling without a shop. Picking WHERE is part of
+  // booking the work, not a fleet edit.
+  schedule_maintenance_at_shop: "maint_manage",
   adjust_stock: "inv_adjust",
   log_mileage: "fleet_log_mi",
   // Deliberately NOT fleet_log_mi, though this writes a mileage too: the Fleet
@@ -478,6 +507,52 @@ async function buildAction(admin, { caller, tool, input }) {
       };
     }
 
+    case "schedule_maintenance_at_shop": {
+      const day = String(input.scheduled_date || "").trim();
+      if (!DAY_RE.test(day)) {
+        return { error: "The date must be a calendar day in YYYY-MM-DD form." };
+      }
+      // Active shops only: an archived shop is one the company stopped using.
+      const { data: shops, error: shopError } = await admin
+        .from("shops")
+        .select("id, name")
+        .eq("company_id", companyId)
+        .eq("active", true)
+        .limit(200);
+      if (shopError) {
+        if (shopError.code === "PGRST205" || shopError.code === "42P01") {
+          return { error: "Shops are not set up for this company yet, so none can be booked." };
+        }
+        return { error: shopError.message };
+      }
+      const foundShop = matchOne(shops || [], input.shop_name, ["name"], "shop");
+      if (foundShop.error) return { error: foundShop.error };
+
+      const { data, error } = await admin
+        .from("maintenance_requests")
+        .select("id, vname, type, status")
+        .eq("company_id", companyId)
+        .eq("id", input.request_id)
+        .maybeSingle();
+      if (error) return { error: error.message };
+      if (!data) return { error: `No maintenance request found with id ${input.request_id}.` };
+      if (data.status !== "pending") {
+        return {
+          error: `That request is already ${data.status}, so there is nothing to schedule. Tell the user rather than changing it.`,
+        };
+      }
+
+      return {
+        input: {
+          request_id: data.id,
+          scheduled_date: day,
+          shop_id: foundShop.row.id,
+          shop_name: foundShop.row.name,
+        },
+        summary: `Schedule the ${data.type || "service"} on ${data.vname || "that vehicle"} at ${foundShop.row.name} for ${day}, moving the ticket from pending to scheduled.`,
+      };
+    }
+
     case "adjust_stock": {
       const qty = Number(input.new_quantity);
       if (!Number.isFinite(qty) || qty < 0) {
@@ -738,6 +813,56 @@ export async function executeAction(admin, { perms, caller, actorName, tool, inp
           metadata: {
             request_id: input.request_id,
             scheduled_date: input.scheduled_date,
+            via: "anvil",
+          },
+        },
+      };
+    }
+
+    case "schedule_maintenance_at_shop": {
+      // Same pending-only guard as schedule_maintenance_request. The shop is
+      // re-checked too: archived or removed since the preview means no booking.
+      const { data: shop, error: shopError } = await admin
+        .from("shops")
+        .select("id, name")
+        .eq("company_id", companyId)
+        .eq("id", input.shop_id)
+        .eq("active", true)
+        .maybeSingle();
+      if (shopError) return { error: shopError.message };
+      if (!shop) {
+        return {
+          error: `${input.shop_name} is no longer an active shop for this company. Nothing was changed.`,
+        };
+      }
+      const { data, error } = await admin
+        .from("maintenance_requests")
+        .update({
+          status: "scheduled",
+          scheduled_date: input.scheduled_date,
+          shop_id: input.shop_id,
+        })
+        .eq("company_id", companyId)
+        .eq("id", input.request_id)
+        .eq("status", "pending")
+        .select("id, vname, type");
+      if (error) return { error: error.message };
+      if (!data || data.length === 0) {
+        return {
+          error:
+            "That request is no longer pending — somebody moved it in the last few moments. Nothing was changed.",
+        };
+      }
+      return {
+        ok: true,
+        message: `Scheduled. The ${data[0].type || "service"} on ${data[0].vname || "that vehicle"} is booked at ${shop.name} for ${input.scheduled_date}. Steadwerk does not contact the shop, so call them to hold the slot.`,
+        audit: {
+          action_type: "FLEET_MAINTENANCE",
+          description: `A.N.V.I.L. scheduled request ${input.request_id} at ${shop.name} for ${input.scheduled_date}`,
+          metadata: {
+            request_id: input.request_id,
+            scheduled_date: input.scheduled_date,
+            shop_id: input.shop_id,
             via: "anvil",
           },
         },

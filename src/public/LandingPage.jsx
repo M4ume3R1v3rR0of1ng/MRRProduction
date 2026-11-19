@@ -1076,7 +1076,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
               </div>
             </div>
             <div className="cell"><span className="code">JOB</span><h3>Jobs</h3><div className="lead">Draft to closed-out, one thread.</div><p>Build the job, pull the materials to it, complete it, and the close-out report writes itself.</p></div>
-            <div className="cell"><span className="code">FLT</span><h3>Fleet</h3><div className="lead">"Where's Truck 3?" On the screen.</div><p>Trucks, trailers, mileage, oil, and services are tracked, not guessed at from the cab of another one.</p></div>
+            <div className="cell"><span className="code">FLT</span><h3>Fleet</h3><div className="lead">"Where's Truck 3?" On the screen.</div><p>Trucks, trailers, mileage, oil, services, and the shops they go to are tracked, not guessed at from the cab of another one.</p></div>
             <div className="cell"><span className="code">MNT</span><h3>Maintenance</h3><div className="lead">Flag it from the cab.</div><p>Crews report a problem the moment it starts. Managers see it before it becomes a breakdown.</p></div>
             <div className="cell"><span className="code">RPT</span><h3>Reports</h3><div className="lead">Job complete. Report's ready.</div><p>Costed from the batches actually used on the job, never a price typed in twice, never a guess.</p></div>
             <div className="cell cell-full cell-feature">
@@ -1202,13 +1202,15 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
             </div>
             <div className="cell cell-full">
               <span className="code">A.N.V.I.L. PRO · ${ANVIL_PRO_PRICE}/MONTH · OPTIONAL</span>
-              <h3>Reordering, drafted and tracked</h3>
-              <div className="lead">Pro is about stock. Fleet and maintenance are already in the base price.</div>
+              <h3>Reordering, and your shops in chat</h3>
+              <div className="lead">Fleet and maintenance tracking, and your list of shops, are already in the base price. Pro is the work A.N.V.I.L. does on top.</div>
               <ul className="rate-list">
                 <li>Each weekday it checks every item against its low-stock line and drafts a reorder for anything under it.</li>
                 <li>It emails the people who approve orders when one is waiting. They change the quantity, approve it or dismiss it.</li>
                 <li>Once approved, it emails the purchase order to the supplier (you preview it first) and tracks it until someone marks it received.</li>
                 <li>Ask "what are we about to order?" in chat.</li>
+                <li>Ask about your shops: "where did Truck 3 get tires last time?", "what have we spent at the Ford dealer this year?"</li>
+                <li>Book a ticket at a shop from chat: "put Truck 3's tires at McMahon's Tuesday." It waits for your Confirm, and you still make the call to the shop.</li>
               </ul>
               <p>It never orders anything without a person saying yes.</p>
             </div>
@@ -1287,15 +1289,16 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
               <Text weight="bold" color={"var(--good)"} style={{ fontSize: "0.85rem", margin: "2px 0 6px" }}>
                 or ${ANVIL_PRO_ANNUAL_PRICE}/year · two months free
               </Text>
-              <div className="what">A.N.V.I.L. watches your stock so you don't have to.</div>
+              <div className="what">A.N.V.I.L. watches your stock and knows your shops.</div>
               <ul className="rate-list">
                 <li>Checks every item against its low-stock line each weekday and drafts a reorder for anything under it.</li>
                 <li>Emails the people who approve orders when a reorder is waiting.</li>
                 <li>Review, change the quantity, then approve or dismiss. Nothing is ordered without a person saying yes.</li>
                 <li>Emails the approved purchase order to the supplier and tracks it until it's received.</li>
                 <li>Ask it "what are we about to order?" from chat.</li>
+                <li>Ask it about your shops, and book a ticket at one, from chat.</li>
               </ul>
-              <p>The Monday low-stock email, the morning briefing and everything else A.N.V.I.L. does today are already in the base price. Pro adds the work of drafting and approving reorders. Turn it on or off from your Billing tab; it's prorated both ways.</p>
+              <p>The Monday low-stock email, the morning briefing, your list of shops and everything else A.N.V.I.L. does today are already in the base price. Pro adds drafting and approving reorders, and A.N.V.I.L. working with your shops. Turn it on or off from your Billing tab; it's prorated both ways.</p>
             </div>
           </div>
         </div>
@@ -1323,13 +1326,13 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
             <details>
               <summary>What is A.N.V.I.L., and what costs extra?</summary>
               <div className="ans">
-                A.N.V.I.L. is the assistant built into the app. Ask it about jobs, stock, trucks and the schedule, have it file a ticket or log mileage (it waits for your Confirm first), and get a morning briefing and a Monday low-stock email. All of that is in the base price. <b>A.N.V.I.L. Pro</b> (${ANVIL_PRO_PRICE} a month, or ${ANVIL_PRO_ANNUAL_PRICE} a year) adds automatic reordering: it drafts a reorder when an item runs low and waits for someone to approve it. It never orders anything on its own. Fleet and maintenance help, including oil-change reminders and the maintenance to-do list, is in the base price, not Pro. <a href="#anvil" onClick={scrollTo("anvil")}>See everything it does.</a>
+                A.N.V.I.L. is the assistant built into the app. Ask it about jobs, stock, trucks and the schedule, have it file a ticket or log mileage (it waits for your Confirm first), and get a morning briefing and a Monday low-stock email. All of that is in the base price. <b>A.N.V.I.L. Pro</b> (${ANVIL_PRO_PRICE} a month, or ${ANVIL_PRO_ANNUAL_PRICE} a year) adds automatic reordering: it drafts a reorder when an item runs low and waits for someone to approve it. It never orders anything on its own. Pro also lets you ask A.N.V.I.L. about your shops and book a ticket at one from chat. Fleet and maintenance help, including oil-change reminders, the maintenance to-do list and your list of shops, is in the base price, not Pro. <a href="#anvil" onClick={scrollTo("anvil")}>See everything it does.</a>
               </div>
             </details>
             <details>
               <summary>Does it book my trucks in with a repair shop?</summary>
               <div className="ans">
-                No. Steadwerk tracks the work, not the appointment. A maintenance request gets a shop date when someone schedules it, and when the work is done you log the service with who did it and what it cost, whether that's your own mechanic or an outside shop. Calling the shop to book the slot is still a phone call you make.
+                It records the booking, but it doesn't call the shop. Keep the shops you use under Fleet → Shops, with their phone numbers and what they handle. When you schedule a truck, pick the shop and the date, and the ticket, the driver's email and the shop's history all show where it's going. When the work is done, log what it cost, and each shop keeps a running record of its work and your spend there. Holding the slot is still a phone call you make.
               </div>
             </details>
             <details>

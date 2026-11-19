@@ -193,3 +193,74 @@ describe("buildScheduleWindow", () => {
     expect(result.schedule[0].maintenance[0].vehicle).toBe("013 (OLD)");
   });
 });
+
+describe("summarizeShops", () => {
+  const shops = [
+    {
+      id: "s1",
+      name: "McMahon's Best-One Tire",
+      specialties: ["Tires"],
+      phone: "260-555-0101",
+      active: true,
+    },
+    { id: "s2", name: "Jim Schmidt Ford", specialties: ["Ford dealer"], active: false },
+  ];
+  const vehs = [
+    {
+      id: "v1",
+      name: "003",
+      plate: "ABC123",
+      sl: [
+        { type: "Tires", dt: "2026-04-02", cost: 800, shop_id: "s1" },
+        { type: "Tires", dt: "2026-10-12", cost: 820, shop_id: "s1" },
+      ],
+    },
+    {
+      id: "v2",
+      name: "011",
+      plate: "XYZ9",
+      sl: [{ type: "Brakes", dt: "2026-06-01", cost: 300, shop_id: "s1" }],
+    },
+  ];
+  const reqs = [
+    {
+      id: "r1",
+      vname: "011 (XYZ9)",
+      type: "Alignment",
+      status: "scheduled",
+      scheduled_date: "2026-11-25",
+      shop_id: "s1",
+    },
+  ];
+
+  it("answers 'where did 003 get tires last time' from that truck's work only", async () => {
+    const { summarizeShops } = await import("../chat.js");
+    const out = summarizeShops({ shops, vehs, reqs, shopName: "mcmahon", vehicleName: "003" });
+    expect(out.shops).toHaveLength(1);
+    expect(out.shops[0].recent_work[0]).toMatchObject({
+      date: "2026-10-12",
+      vehicle: "003",
+      cost: 820,
+    });
+    expect(out.shops[0].visits).toBe(2);
+    expect(out.shops[0].coming_up).toEqual([]);
+  });
+
+  it("totals a shop across the fleet and flags archived shops", async () => {
+    const { summarizeShops } = await import("../chat.js");
+    const out = summarizeShops({ shops, vehs, reqs });
+    const tire = out.shops.find((s) => s.name.startsWith("McMahon"));
+    expect(tire.total_spend).toBe(1920);
+    expect(tire.coming_up).toEqual([
+      { vehicle: "011 (XYZ9)", work: "Alignment", status: "scheduled", date: "2026-11-25" },
+    ]);
+    expect(out.shops.find((s) => s.name === "Jim Schmidt Ford").archived).toBe(true);
+  });
+
+  it("says so when nothing matches", async () => {
+    const { summarizeShops } = await import("../chat.js");
+    expect(summarizeShops({ shops, vehs, reqs, shopName: "glass" }).note).toMatch(
+      /No shop matches/,
+    );
+  });
+});

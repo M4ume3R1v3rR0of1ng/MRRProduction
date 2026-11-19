@@ -740,3 +740,79 @@ describe("log_service_record", () => {
     ]);
   });
 });
+
+describe("schedule_maintenance_at_shop", () => {
+  const pending = { id: "r1", vname: "003 (ABC123)", type: "Tires", status: "pending" };
+  const tire = { id: "s1", name: "McMahon's Best-One Tire", active: true };
+  const ford = { id: "s2", name: "Jim Schmidt Ford", active: true };
+
+  it("resolves the shop by part of its name and pins its id in the signed input", async () => {
+    const admin = fakeAdmin({ maintenance_requests: [pending], shops: [tire, ford] });
+    const result = await previewAction(admin, {
+      perms: allPerms,
+      caller,
+      tool: "schedule_maintenance_at_shop",
+      input: { request_id: "r1", scheduled_date: "2026-11-24", shop_name: "mcmahon" },
+    });
+    expect(result.requires_confirmation).toBe(true);
+    expect(result.action.input).toMatchObject({ shop_id: "s1", scheduled_date: "2026-11-24" });
+    expect(result.summary).toMatch(/at McMahon's Best-One Tire for 2026-11-24/);
+  });
+
+  it("asks rather than guesses when the shop name fits more than one", async () => {
+    const admin = fakeAdmin({
+      maintenance_requests: [pending],
+      shops: [tire, { id: "s3", name: "McMahon's Glass", active: true }],
+    });
+    const result = await previewAction(admin, {
+      perms: allPerms,
+      caller,
+      tool: "schedule_maintenance_at_shop",
+      input: { request_id: "r1", scheduled_date: "2026-11-24", shop_name: "McMahon" },
+    });
+    expect(result.error).toMatch(/more than one shop/i);
+  });
+
+  it("writes the shop onto the ticket with the date when confirmed", async () => {
+    let written = null;
+    const admin = fakeAdmin(
+      { maintenance_requests: [pending], shops: [tire] },
+      { onUpdate: (table, changes) => table === "maintenance_requests" && (written = changes) },
+    );
+    const result = await executeAction(admin, {
+      perms: allPerms,
+      caller,
+      actorName: "Jane",
+      tool: "schedule_maintenance_at_shop",
+      input: {
+        request_id: "r1",
+        scheduled_date: "2026-11-24",
+        shop_id: "s1",
+        shop_name: tire.name,
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(written).toEqual({ status: "scheduled", scheduled_date: "2026-11-24", shop_id: "s1" });
+    expect(result.message).toMatch(/call them to hold the slot/);
+  });
+
+  it("books nothing if the shop was archived after the preview", async () => {
+    const admin = fakeAdmin({
+      maintenance_requests: [pending],
+      shops: [{ ...tire, active: false }],
+    });
+    const result = await executeAction(admin, {
+      perms: allPerms,
+      caller,
+      actorName: "Jane",
+      tool: "schedule_maintenance_at_shop",
+      input: {
+        request_id: "r1",
+        scheduled_date: "2026-11-24",
+        shop_id: "s1",
+        shop_name: tire.name,
+      },
+    });
+    expect(result.error).toMatch(/no longer an active shop/);
+  });
+});

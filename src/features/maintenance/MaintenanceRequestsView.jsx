@@ -49,6 +49,9 @@ import TranslatableText from "@/shared/components/TranslatableText";
 import CompleteServiceModal from "./CompleteServiceModal";
 import LendSpareModal from "@/features/fleet/LendSpareModal";
 import { generateMaintenancePdf } from "./maintenancePdf";
+import ShopPicker from "@/features/fleet/ShopPicker";
+import { useShops } from "@/features/fleet/useShops";
+import { shopName } from "@/features/fleet/shops";
 
 // The values of the <option> list in this view's sort dropdown, in the same
 // order. useStickySort checks a remembered choice against this before trusting
@@ -87,6 +90,16 @@ export default function MaintenanceRequestsView({
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({});
   const [subView, setSubView] = useState("list");
+
+  // The company's outside shops, for the picker on scheduling and completing a
+  // ticket and the "at McMahon's" label on its card. See features/fleet/shops.js.
+  const { shops } = useShops(activeUser?.companyId);
+
+  // The scheduling form belongs to one ticket. Without this, a shop picked on a
+  // ticket that was then closed unsaved would come up pre-selected on the next.
+  useEffect(() => {
+    setForm({});
+  }, [sel?.id]);
 
   // The ticket "Complete Service" was opened against. Separate from `sel` so the
   // review modal underneath stays mounted with its own state while this one is open.
@@ -257,6 +270,17 @@ export default function MaintenanceRequestsView({
   const updateStatus = async (id, status, whNotes = "") => {
     const scheduledDate = form.scheduledDate || "";
     const completedAt = status === "completed" ? new Date().toISOString() : "";
+    // Only written when a shop was picked: the column exists only once
+    // supabase/67 has run, and an update naming it before then would fail the
+    // whole scheduling step, not just the shop.
+    // Clearing a shop writes null, but only on a ticket that already has one,
+    // which can only exist once the column does.
+    const hadShop = !!reqs.find((r) => r.id === id)?.shop_id;
+    const shopPatch = form.shopId
+      ? { shop_id: form.shopId }
+      : form.shopId === null && hadShop
+        ? { shop_id: null }
+        : {};
 
     const currentTicket = reqs.find((r) => r.id === id);
     // Flag the change so the requester gets a dashboard alert (same pattern as jobs.newforassigned);
@@ -272,6 +296,7 @@ export default function MaintenanceRequestsView({
         scheduled_date: scheduledDate,
         completed_at: completedAt,
         newforrequester: notifyRequester,
+        ...shopPatch,
       },
       user.companyId,
     );
@@ -303,9 +328,14 @@ export default function MaintenanceRequestsView({
         status,
         req: {
           ...currentTicket,
+          ...shopPatch,
           wh_notes: whNotes,
           scheduled_date: scheduledDate,
           completed_at: completedAt,
+          shop_name: shopName(
+            form.shopId !== undefined ? form.shopId : currentTicket.shop_id,
+            shops,
+          ),
         },
         users,
         vehicles: vehs,
@@ -319,6 +349,7 @@ export default function MaintenanceRequestsView({
         r.id === id
           ? {
               ...r,
+              ...shopPatch,
               status,
               wh_notes: whNotes,
               scheduled_date: scheduledDate,
@@ -407,6 +438,10 @@ export default function MaintenanceRequestsView({
       // the same in this call as it does in the SQL.
       p_reassign_driver_id:
         details.reassignDriverId === undefined ? null : details.reassignDriverId,
+      // Only sent when a shop was picked. The function only takes p_shop_id once
+      // supabase/67 has run; before that, naming it would make PostgREST find no
+      // matching function and fail every completion, shop or not.
+      ...(details.shopId ? { p_shop_id: details.shopId } : {}),
     });
     if (error) throw error;
 
@@ -421,6 +456,8 @@ export default function MaintenanceRequestsView({
               status: "completed",
               wh_notes: details.notes || r.wh_notes,
               completed_at: nowIso,
+              shop_id: details.shopId || r.shop_id || null,
+              performed_by: details.performedBy,
               // Mirrors what supabase/38_complete_service_notifies_driver.sql now sets
               // server-side, so this session's own optimistic update doesn't disagree
               // with the row the RPC actually wrote.
@@ -700,6 +737,8 @@ export default function MaintenanceRequestsView({
                             >
                               <Calendar size={11} aria-hidden="true" /> {t.scheduled}:{" "}
                               {new Date(r.scheduled_date).toLocaleDateString()}
+                              {shopName(r.shop_id, shops) &&
+                                ` ${t.shAt} ${shopName(r.shop_id, shops)}`}
                             </Row>
                           )}
                         </Muted>
@@ -980,6 +1019,12 @@ export default function MaintenanceRequestsView({
                     onChange={(e) => setForm({ ...form, scheduledDate: e.target.value })}
                   />
                 </Fld>
+                <ShopPicker
+                  shops={shops}
+                  value={form.shopId !== undefined ? form.shopId : sel.shop_id || null}
+                  lang={lang}
+                  onChange={(id) => setForm({ ...form, shopId: id })}
+                />
                 <Fld label={t.maintResolutionNotes}>
                   <TA
                     placeholder={t.maintSchedNotesPlaceholder}
@@ -1110,6 +1155,7 @@ export default function MaintenanceRequestsView({
           req={completeServiceReq}
           vehs={vehs}
           users={users}
+          shops={shops}
           user={activeUser}
           onClose={() => setCompleteServiceReq(null)}
           onSubmit={(details) => completeService(completeServiceReq, details)}

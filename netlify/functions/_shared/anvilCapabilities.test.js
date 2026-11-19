@@ -38,9 +38,26 @@ describe("capability registry", () => {
 
   it("keeps everything that shipped before Anvil Pro free", () => {
     const pro = CAPABILITIES.filter((c) => c.tier === "pro").map((c) => c.id);
+    // Only additions belong in this list. shops_ask and shops_schedule were
+    // new with supabase/67 and Pro from day one: the Shops list itself is in
+    // the base price, A.N.V.I.L. knowing about it is the Pro part.
     expect(pro.sort()).toEqual(
-      ["reorder_approval", "reorder_ask", "reorder_email", "reorder_po", "reorder_watch"].sort(),
+      [
+        "reorder_approval",
+        "reorder_ask",
+        "reorder_email",
+        "reorder_po",
+        "reorder_watch",
+        "shops_ask",
+        "shops_schedule",
+      ].sort(),
     );
+  });
+
+  it("puts the shop tools on Pro and leaves plain scheduling free", () => {
+    expect(toolTier("get_shops")).toBe("pro");
+    expect(toolTier("schedule_maintenance_at_shop")).toBe("pro");
+    expect(toolTier("schedule_maintenance_request")).toBe("free");
   });
 
   it("fails closed for a tool nobody registered", () => {
