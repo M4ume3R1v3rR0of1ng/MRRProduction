@@ -1146,6 +1146,76 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
         </div>
       </section>
 
+      {/* ── A.N.V.I.L. ──
+          Every line here maps to a capability in
+          netlify/functions/_shared/anvilCapabilities.js, the one list of what
+          A.N.V.I.L. does and which plan it is in. Change that list, change this.
+          Fleet and maintenance are BASE-price capabilities; Pro is reordering
+          only. This section exists because a reader assumed the opposite. */}
+      <section className="band" id="anvil">
+        <div className="wrap">
+          <div className="band-head reveal">
+            <span className="eyebrow">A.N.V.I.L. · The assistant</span>
+            <h2>Ask it. Have it do it. Let it keep watch.</h2>
+            <p>A.N.V.I.L. is built into Steadwerk and reads the same records your crew works in: stock, jobs, trucks, the schedule. It answers from those records, changes nothing until you tap Confirm, and runs a few jobs on its own. Everything on this page except reordering is in the base price.</p>
+          </div>
+          <div className="ledger reveal stagger">
+            <div className="cell">
+              <span className="code">ASK</span>
+              <h3>Ask it</h3>
+              <div className="lead">Plain questions, answered from your own records.</div>
+              <ul className="rate-list">
+                <li>What's low or out, in every warehouse.</li>
+                <li>Where a job stands, by PO, name or address.</li>
+                <li>Mileage, oil and detail status for every truck and trailer.</li>
+                <li>A ranked maintenance to-do list, with the reason behind each item.</li>
+                <li>Which trucks keep coming back for the same repair, and when each one is likely due next.</li>
+                <li>What's on the schedule, and any trailer booked twice.</li>
+                <li>Material cost and margin on a job, for the people allowed to see money.</li>
+                <li>Who's behind on training.</li>
+              </ul>
+            </div>
+            <div className="cell">
+              <span className="code">ACT</span>
+              <h3>Have it do it</h3>
+              <div className="lead">Every change waits for your Confirm.</div>
+              <ul className="rate-list">
+                <li>File a maintenance request on a truck or trailer.</li>
+                <li>Put a shop date on a pending request.</li>
+                <li>Log an odometer reading.</li>
+                <li>Log a service that's been done: who did it, what it cost.</li>
+                <li>Correct a stock count after a recount.</li>
+              </ul>
+              <p>It shows you exactly what it's about to change. Tap Confirm, or walk away and nothing happens. Each person can only do what their role already allows.</p>
+            </div>
+            <div className="cell">
+              <span className="code">AUTO</span>
+              <h3>It keeps watch</h3>
+              <div className="lead">Runs on its own. Quiet when there's nothing to say.</div>
+              <ul className="rate-list">
+                <li>A 7am note to each person about their day.</li>
+                <li>A 5pm recap: what got done, what didn't, what's on next.</li>
+                <li>Oil changes: it projects each truck's due date from its own mileage, warns the driver a week out, then keeps after the driver and the fleet manager daily until the oil change is logged.</li>
+                <li>A Monday email listing what's low.</li>
+                <li>Notes translated between Spanish and English, with the original kept.</li>
+              </ul>
+            </div>
+            <div className="cell cell-full">
+              <span className="code">A.N.V.I.L. PRO · ${ANVIL_PRO_PRICE}/MONTH · OPTIONAL</span>
+              <h3>Reordering, drafted and tracked</h3>
+              <div className="lead">Pro is about stock. Fleet and maintenance are already in the base price.</div>
+              <ul className="rate-list">
+                <li>Each weekday it checks every item against its low-stock line and drafts a reorder for anything under it.</li>
+                <li>It emails the people who approve orders when one is waiting. They change the quantity, approve it or dismiss it.</li>
+                <li>Once approved, it emails the purchase order to the supplier (you preview it first) and tracks it until someone marks it received.</li>
+                <li>Ask "what are we about to order?" in chat.</li>
+              </ul>
+              <p>It never orders anything without a person saying yes.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── HOW IT WORKS ── */}
       <section className="band" id="how">
         <div className="wrap">
@@ -1222,6 +1292,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
                 <li>Checks every item against its low-stock line each weekday and drafts a reorder for anything under it.</li>
                 <li>Emails the people who approve orders when a reorder is waiting.</li>
                 <li>Review, change the quantity, then approve or dismiss. Nothing is ordered without a person saying yes.</li>
+                <li>Emails the approved purchase order to the supplier and tracks it until it's received.</li>
                 <li>Ask it "what are we about to order?" from chat.</li>
               </ul>
               <p>The Monday low-stock email, the morning briefing and everything else A.N.V.I.L. does today are already in the base price. Pro adds the work of drafting and approving reorders. Turn it on or off from your Billing tab; it's prorated both ways.</p>
@@ -1252,7 +1323,13 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
             <details>
               <summary>What is A.N.V.I.L., and what costs extra?</summary>
               <div className="ans">
-                A.N.V.I.L. is the assistant built into the app. Ask it about jobs, stock, trucks and the schedule, have it file a ticket or log mileage (it waits for your Confirm first), and get a morning briefing and a Monday low-stock email. All of that is in the base price. <b>A.N.V.I.L. Pro</b> (${ANVIL_PRO_PRICE} a month, or ${ANVIL_PRO_ANNUAL_PRICE} a year) adds automatic reordering: it drafts a reorder when an item runs low and waits for someone to approve it. It never orders anything on its own.
+                A.N.V.I.L. is the assistant built into the app. Ask it about jobs, stock, trucks and the schedule, have it file a ticket or log mileage (it waits for your Confirm first), and get a morning briefing and a Monday low-stock email. All of that is in the base price. <b>A.N.V.I.L. Pro</b> (${ANVIL_PRO_PRICE} a month, or ${ANVIL_PRO_ANNUAL_PRICE} a year) adds automatic reordering: it drafts a reorder when an item runs low and waits for someone to approve it. It never orders anything on its own. Fleet and maintenance help, including oil-change reminders and the maintenance to-do list, is in the base price, not Pro. <a href="#anvil" onClick={scrollTo("anvil")}>See everything it does.</a>
+              </div>
+            </details>
+            <details>
+              <summary>Does it book my trucks in with a repair shop?</summary>
+              <div className="ans">
+                No. Steadwerk tracks the work, not the appointment. A maintenance request gets a shop date when someone schedules it, and when the work is done you log the service with who did it and what it cost, whether that's your own mechanic or an outside shop. Calling the shop to book the slot is still a phone call you make.
               </div>
             </details>
             <details>
@@ -1358,6 +1435,7 @@ export default function LandingPage({ onSignIn, onStart, onShowTerms, onShowPriv
               <li><a href="#features" onClick={scrollTo("features")}>Inventory</a></li>
               <li><a href="#features" onClick={scrollTo("features")}>Fleet</a></li>
               <li><a href="#features" onClick={scrollTo("features")}>Jobs &amp; reports</a></li>
+              <li><a href="#anvil" onClick={scrollTo("anvil")}>A.N.V.I.L.</a></li>
               <li><a href="#glimpse" onClick={scrollTo("glimpse")}>In the wild</a></li>
               <li><a href="#pricing" onClick={scrollTo("pricing")}>Pricing</a></li>
               <li><a href="#faq" onClick={scrollTo("faq")}>FAQ</a></li>
