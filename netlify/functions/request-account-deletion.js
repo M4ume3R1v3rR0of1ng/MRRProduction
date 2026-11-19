@@ -18,10 +18,12 @@
 // WHO IS EMAILED
 //
 //   * Every other active admin of the caller's company. They do the removal.
-//   * The platform's privacy address, always. It is the published contact in
-//     the privacy policy, it keeps a record that the request was made, and it is
-//     the only recipient left when the caller is the company's sole admin.
+//   * Only when there are none (the caller is the company's sole admin): the
+//     platform admins (profiles.is_platform_admin), because removing a
+//     company's last admin is not something anyone inside the company can do.
 //   * The caller, a receipt saying what was asked and who was told.
+//
+// Admins only. No shared inbox is copied (privacy@ was, until 2026-11-19).
 
 import { Resend } from "resend";
 import {
@@ -35,9 +37,6 @@ import { withSentry } from "./_shared/sentry.js";
 import { checkRateLimit, rateLimitedResponse } from "./_shared/rateLimit.js";
 
 const MAIL_FROM = platformFromAddress("notifications");
-
-// Same address src/public/PrivacyPage.jsx publishes. Change both together.
-export const PRIVACY_EMAIL = "privacy@steadwerk.com";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -71,7 +70,7 @@ export function pickAdminRecipients(adminEmails, callerEmail) {
 }
 
 /**
- * Pure: the email the admins (and the privacy inbox) receive. Exported for the test.
+ * Pure: the email the admins receive. Exported for the test.
  *
  * @param {{ name: string, email: string, role: string | undefined, companyName: string, hasAdmins: boolean, reason: string }} req
  * @returns {{ subject: string, html: string }}
@@ -80,7 +79,7 @@ export function buildRequestEmail({ name, email, role, companyName, hasAdmins, r
   const who = name ? `${name} (${email})` : email;
   const nextStep = hasAdmins
     ? `<p>An admin of ${escapeHtml(companyName)} should remove this person under <strong>Users</strong> in Steadwerk on the web. That deletes their login; their company records stay with the company.</p>`
-    : `<p><strong>This person is the only admin of ${escapeHtml(companyName)}.</strong> Removing them leaves the company with no admin, so Steadwerk support needs to handle this one directly with them.</p>`;
+    : `<p><strong>This person is the only admin of ${escapeHtml(companyName)}.</strong> Removing them leaves the company with no admin, so this came to you as a Steadwerk platform admin to handle directly with them.</p>`;
   return {
     subject: `Account deletion request: ${who}`,
     html:
@@ -157,6 +156,28 @@ const rawHandler = async (event) => {
     }
     const recipients = pickAdminRecipients(adminEmails, caller.email);
 
+    // Sole admin: nobody in the company can act, so it goes to the platform.
+    let to = recipients;
+    if (!to.length) {
+      const { data: platformAdmins } = await admin
+        .from("profiles")
+        .select("email")
+        .eq("is_platform_admin", true);
+      to = pickAdminRecipients(
+        (platformAdmins || []).map((p) => p.email),
+        caller.email,
+      );
+    }
+    if (!to.length) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: "No admin was found to send this request to. Please contact your company.",
+        }),
+      };
+    }
+
     const { data: me } = await admin
       .from("profiles")
       .select("full_name")
@@ -178,8 +199,7 @@ const rawHandler = async (event) => {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error: sendError } = await resend.emails.send({
       from: `Steadwerk <${MAIL_FROM}>`,
-      to: recipients.length ? recipients : [PRIVACY_EMAIL],
-      ...(recipients.length ? { bcc: [PRIVACY_EMAIL] } : {}),
+      to,
       replyTo: caller.email,
       subject: message.subject,
       html: message.html,
@@ -208,7 +228,7 @@ const rawHandler = async (event) => {
           `<p>They will remove your login within 30 days. Records you created for ${escapeHtml(
             caller.companyName,
           )}, such as jobs and inspections, belong to the company and stay with it.</p>` +
-          `<p>Questions? Reply to <a href="mailto:${PRIVACY_EMAIL}">${PRIVACY_EMAIL}</a>.</p>`,
+          `<p>Questions? Ask your company's admin.</p>`,
       });
     } catch (err) {
       console.error("request-account-deletion: receipt failed:", errorMessage(err));
