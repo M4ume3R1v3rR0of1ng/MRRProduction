@@ -23,12 +23,7 @@
 // people the real job emails, so a test of "what would reach me" is theirs to run.
 
 import { Resend } from "resend";
-import {
-  adminClient,
-  resolveCaller,
-  corsHeaders,
-  platformFromAddress,
-} from "./_shared/tenant.js";
+import { adminClient, resolveCaller, corsHeaders, platformFromAddress } from "./_shared/tenant.js";
 import { withSentry } from "./_shared/sentry.js";
 import { checkRateLimit, rateLimitedResponse } from "./_shared/rateLimit.js";
 import { loadFleetManagers, dropUser } from "./_shared/fleetRecipients.js";
@@ -135,11 +130,7 @@ const rawHandler = async (event) => {
 
     const todayStr = new Date().toISOString().split("T")[0];
     const [{ data: vehicles }, { data: notices }, { data: openReqs }] = await Promise.all([
-      admin
-        .from("vehicles")
-        .select("*")
-        .eq("company_id", caller.companyId)
-        .eq("type", "truck"),
+      admin.from("vehicles").select("*").eq("company_id", caller.companyId).eq("type", "truck"),
       admin.from("oil_due_notices").select("*").eq("company_id", caller.companyId),
       admin
         .from("maintenance_requests")

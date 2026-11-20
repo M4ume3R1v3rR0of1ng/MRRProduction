@@ -30,11 +30,13 @@
 ### Task 1: `AnvilProSettings` component
 
 **Files:**
+
 - Create: `src/features/settings/AnvilProSettings.jsx`
 - Create: `src/features/settings/AnvilProSettings.test.jsx`
 - Modify: `src/shared/utils/translations.js` (add `stPro*` keys in `en` near line 1621 and `es` near line 3507)
 
 **Interfaces:**
+
 - Consumes: `callReorder(payload) -> Promise<{enabled:boolean, notifyEmails:string[], ...}>` from `@/features/inventory/reorderApi`; `supabase` from `@/shared/utils/supabase`; `useNotify()`.
 - Produces: `export default function AnvilProSettings({ canEditInventory: boolean, t: object })`.
 
@@ -49,14 +51,14 @@ Status: read `companies.anvil_pro, anvil_pro_comped` with `supabase.from("compan
   - `shows an error and no switch when loading fails` — list rejects `new Error("boom")`; expect error toast containing `boom`, no "Turn on"/"Turn off" button.
 
 - [ ] **Step 2: Run to verify they fail**
-  Run: `npx vitest run src/features/settings/AnvilProSettings.test.jsx`
-  Expected: FAIL (module not found).
+      Run: `npx vitest run src/features/settings/AnvilProSettings.test.jsx`
+      Expected: FAIL (module not found).
 
 - [ ] **Step 3: Implement `AnvilProSettings`**. Layout: a `Card` with `SectionTitle`-style heading + status `Bdg` (green Active, gold Comped, gray Off); when Off, `t.stProUpsell` text and a `Link to="/billing"` labeled `t.stProGoBilling`. When Pro and `canEditInventory`, the automatic-reordering card moved verbatim from `ReorderTab.jsx:102-135` (switch, blurb, "Also email" input + Save), with the same split regex `/[,\s]+/`. When Pro and not `canEditInventory`, `t.stProNeedsInvEdit`. Add the translation keys used (`stTabAnvilPro`, `stProTitle`, `stProStatusActive`, `stProStatusComped`, `stProStatusOff`, `stProUpsell`, `stProGoBilling`, `stProNeedsInvEdit`, `stProReorderTitle`, `stProReorderDesc`, `stProAlsoEmail`, `stProReorderOn`, `stProReorderOff`, `stProEmailsSaved`) in `en` and `es`.
 
 - [ ] **Step 4: Run to verify they pass**
-  Run: `npx vitest run src/features/settings/AnvilProSettings.test.jsx`
-  Expected: 6 passed.
+      Run: `npx vitest run src/features/settings/AnvilProSettings.test.jsx`
+      Expected: 6 passed.
 
 - [ ] **Step 5: Commit**
   ```bash
@@ -67,11 +69,13 @@ Status: read `companies.anvil_pro, anvil_pro_comped` with `supabase.from("compan
 ### Task 2: Wire the tab into Settings and slim the Reorders tab
 
 **Files:**
+
 - Modify: `src/features/settings/SettingsView.jsx:136-160` (new prop), `:299-311` (tab list), after `:1152` block (render)
 - Modify: `src/App.jsx:1251-1272` (pass prop)
 - Modify: `src/features/inventory/ReorderTab.jsx:88-136` (remove settings card)
 
 **Interfaces:**
+
 - Consumes: `AnvilProSettings({ canEditInventory, t })` from Task 1.
 - Produces: `SettingsView` prop `userPerms` (object of permission flags, same shape as `app.userPerms`).
 
@@ -80,8 +84,8 @@ Status: read `companies.anvil_pro, anvil_pro_comped` with `supabase.from("compan
 - [ ] **Step 2: Slim `ReorderTab`.** Remove the "Automatic reordering" card, the `emails` state and `saveEmails`; in its place render one `Muted` line: "Automatic reordering and who gets emailed are in Settings → ANVIL Pro." with a `Link to="/settings"`. Keep `state.enabled` unused-safe (no other reference). The non-Pro upsell card stays.
 
 - [ ] **Step 3: Verify**
-  Run: `npx vitest run && npx eslint src/features/settings src/features/inventory/ReorderTab.jsx src/App.jsx`
-  Expected: all tests pass, no lint errors. Then run the app (`run` skill), open Settings → ANVIL Pro, flip the switch, confirm the toast and that Inventory → Reorders shows the pointer line instead of the card.
+      Run: `npx vitest run && npx eslint src/features/settings src/features/inventory/ReorderTab.jsx src/App.jsx`
+      Expected: all tests pass, no lint errors. Then run the app (`run` skill), open Settings → ANVIL Pro, flip the switch, confirm the toast and that Inventory → Reorders shows the pointer line instead of the card.
 
 - [ ] **Step 4: Commit**
   ```bash

@@ -40,7 +40,7 @@
     "hex": 0
   },
   "src/features/fleet/FleetManagementView.jsx": {
-    "inline": 5,
+    "inline": 6,
     "hex": 0
   },
   "src/features/fleet/InspectionModal.jsx": {
@@ -49,6 +49,10 @@
   },
   "src/features/fleet/MaintenanceRequestModal.jsx": {
     "inline": 1,
+    "hex": 0
+  },
+  "src/features/fleet/ShopsPanel.jsx": {
+    "inline": 13,
     "hex": 0
   },
   "src/features/inventory/AddFromLibraryModal.jsx": {
@@ -72,6 +76,10 @@
     "hex": 0
   },
   "src/features/inventory/JobTemplatesModal.jsx": {
+    "inline": 1,
+    "hex": 0
+  },
+  "src/features/inventory/ReorderWaitingPanel.jsx": {
     "inline": 1,
     "hex": 0
   },
@@ -132,7 +140,7 @@
     "hex": 0
   },
   "src/shared/components/ChatWidget.jsx": {
-    "inline": 7,
+    "inline": 8,
     "hex": 0
   },
   "src/shared/components/ErrorBoundary.jsx": {
