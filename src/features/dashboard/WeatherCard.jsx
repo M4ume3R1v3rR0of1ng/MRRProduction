@@ -72,9 +72,13 @@ export default function WeatherCard({ lang = "en" }) {
       <Text as="h3" size="xs" weight="extrabold" color={C.navy} style={{ margin: 0 }}>
         {t.wcTitle}
       </Text>
-      <Text as="span" size="2xs" weight="semibold" color={C.sub}>
-        Saint Joe Road · Fort Wayne, IN
-      </Text>
+      {/* Named by the server alongside the forecast, so the label can never
+          disagree with the numbers. Blank while loading rather than guessing. */}
+      {state.data?.location?.label && (
+        <Text as="span" size="2xs" weight="semibold" color={C.sub}>
+          {state.data.location.label}
+        </Text>
+      )}
     </Row>
   );
 

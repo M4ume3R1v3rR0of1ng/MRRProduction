@@ -847,7 +847,10 @@ export default function App() {
             flexDirection: "column",
             minWidth: 0,
             height: "100%", // Inherit frozen screen layout constraints
-            marginTop: isMobile ? "var(--chrome-total)" : 0,
+            // No top offset here: the mobile header above is sticky, so it is in
+            // normal flow and already takes up --chrome-total. A marginTop of the
+            // same amount reserved the header's height twice, leaving an empty
+            // band the height of the header (status bar included) under it.
             // Keeps the bottom of every view clear of the home indicator on an
             // installed iOS app. 0px everywhere else.
             paddingBottom: isMobile ? "var(--safe-bottom)" : 0,

@@ -56,6 +56,7 @@ import { useNotify } from "@/shared/context/NotificationContext";
 import { fetchAccuLynxJob, fetchAccuLynxDocumentFolders } from "@/features/jobs/accuLynxSync";
 import { US_STATES, stateByCode } from "./salesTax";
 import AnvilProSettings from "./AnvilProSettings";
+import WeatherLocationSettings from "./WeatherLocationSettings";
 import {
   AUTOMATION_GROUPS,
   automationsForGroup,
@@ -1150,6 +1151,9 @@ export default function SettingsView({
             )}
           </Stack>
         </Card>
+      )}
+      {currentTab === "Warehouses" && (
+        <WeatherLocationSettings company={company} setCompany={setCompany} t={t} />
       )}
 
       {/* ── PANEL: System ──────────────────────────────────────────────── */}

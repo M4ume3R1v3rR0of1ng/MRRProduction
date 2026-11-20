@@ -19,6 +19,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/shared/utils/supabase";
 import { IS_IOS_APP } from "@/core/platform";
+import { FUNCTIONS_ORIGIN } from "@/core/functionsOrigin";
 import { C } from "@/shared/utils/helpers";
 import {
   Fld,
@@ -237,7 +238,11 @@ export default function LoginScreen({
     // Auth → URL Configuration). We always show the same confirmation whether or not
     // the address is registered — never reveal which emails have accounts.
     try {
-      await supabase.auth.resetPasswordForEmail(target, { redirectTo: window.location.origin });
+      // In the iOS app window.location.origin is capacitor://localhost, which a
+      // link in an email cannot open. Send the reset to the website instead.
+      await supabase.auth.resetPasswordForEmail(target, {
+        redirectTo: IS_IOS_APP ? FUNCTIONS_ORIGIN : window.location.origin,
+      });
     } catch {
       /* swallowed on purpose — see note above */
     } finally {
@@ -463,8 +468,10 @@ export default function LoginScreen({
         }}
       >
         {/* Back to the public landing page. Hidden during the company picker, where
-            "back" would be ambiguous. */}
-        {onBack && !choices && (
+            "back" would be ambiguous, and in the iOS app, which has no landing page
+            to go back to (it is cut from that build) — the link only bounced the
+            user to an empty screen, and App Review taps everything. */}
+        {onBack && !choices && !IS_IOS_APP && (
           <TextBtn
             type="button"
             onClick={onBack}
