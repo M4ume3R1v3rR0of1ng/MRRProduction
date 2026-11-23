@@ -685,12 +685,18 @@ export default function App() {
         style={{
           display: "flex",
           flexDirection: isMobile ? "column" : "row",
-          height: "100vh", // Force the layout wrapper to freeze at exactly screen height
-          maxHeight: "100vh",
+          // Pinned to the screen rather than sized to 100vh. A 100vh box still sits
+          // in the document, and on an iPhone the document itself can be dragged:
+          // in the iOS app that slid the whole shell up, header and all, until the
+          // company name and menu button sat under the clock and the Dynamic Island
+          // where nobody could find or tap them. A fixed shell has nothing to scroll
+          // it, and inset: 0 is the real visible screen, which 100vh is not once
+          // mobile Safari's toolbars come and go.
+          position: "fixed",
+          inset: 0,
           background: C.bg,
           fontFamily: "var(--font-sans)",
-          width: "100vw",
-          overflow: "hidden", // Prevents the whole browser page from ever scrolling
+          overflow: "hidden",
         }}
       >
         {/* ── FIXED BOTTOM BANNER STACK ──
