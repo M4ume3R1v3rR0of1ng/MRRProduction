@@ -434,6 +434,20 @@ html {
   }
 }
 
+/* iOS zooms the whole page in when a text field under 16px gets focus, and does
+   not reliably zoom back out after the keyboard closes, which left the iOS app
+   stuck zoomed in after typing in Team Chat. Every field here is 11-14px, so on
+   touch screens they are held at 16px, the size iOS will not zoom for. The
+   !important is needed because most fields set their size in an inline style.
+   Desktop (a fine pointer) keeps the compact sizes. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
