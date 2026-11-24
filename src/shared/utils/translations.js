@@ -1238,6 +1238,24 @@ export const translations = {
     bjCloseAndFile: "File report and close",
     bjClosing: "Filing report...",
     bjCloseSynced: "Report filed to AccuLynx.",
+    // "AccuLynx out of date" — a correction after the cost was posted. supabase/68.
+    bjAxOutOfDate: "AccuLynx out of date",
+    bjAxDetail:
+      "Materials were corrected after the cost was sent. AccuLynx shows {from}; it should be {to}. A revised report was filed and the people who close jobs were emailed what to change.",
+    bjAxDetailNoAmounts:
+      "Materials were corrected after the cost was sent, so AccuLynx shows the old cost. The people who close jobs were emailed what to change.",
+    bjAxMarkUpdated: "Updated in AccuLynx",
+    bjAxMarkTitle: "AccuLynx updated?",
+    bjAxMarkConfirm:
+      "Only press this once the material cost expense on this job in AccuLynx says {to}.",
+    bjAxMarkDone: "Marked as updated in AccuLynx.",
+    bjAxMarkFail: "Could not save:",
+    bjAxNowOutOfDate:
+      "Saved. AccuLynx still shows the old material cost, so {n} people who close jobs were emailed what to change.",
+    bjAxNowOutOfDateNoEmail:
+      "Saved. AccuLynx still shows the old material cost and the job is marked out of date, but no email went out.",
+    bjAxBackInStep: "Saved. The material cost matches AccuLynx again.",
+    bjAxNoticeFail: "Saved, but could not check AccuLynx:",
     bjCloseSyncFail: "Job NOT closed. The report could not be filed to AccuLynx:",
     bjCloseSyncFailTitle: "Report could not be filed",
     bjCloseSyncFailAsk:
@@ -3221,6 +3239,23 @@ export const translations = {
     bjCloseAndFile: "Archivar reporte y cerrar",
     bjClosing: "Archivando reporte...",
     bjCloseSynced: "Reporte archivado en AccuLynx.",
+    bjAxOutOfDate: "AccuLynx desactualizado",
+    bjAxDetail:
+      "Los materiales se corrigieron después de enviar el costo. AccuLynx muestra {from}; debería ser {to}. Se archivó un reporte revisado y se envió un correo a quienes cierran trabajos con el cambio a hacer.",
+    bjAxDetailNoAmounts:
+      "Los materiales se corrigieron después de enviar el costo, así que AccuLynx muestra el costo anterior. Se envió un correo a quienes cierran trabajos con el cambio a hacer.",
+    bjAxMarkUpdated: "Actualizado en AccuLynx",
+    bjAxMarkTitle: "¿AccuLynx actualizado?",
+    bjAxMarkConfirm:
+      "Presione esto solo cuando el gasto de costo de materiales de este trabajo en AccuLynx diga {to}.",
+    bjAxMarkDone: "Marcado como actualizado en AccuLynx.",
+    bjAxMarkFail: "No se pudo guardar:",
+    bjAxNowOutOfDate:
+      "Guardado. AccuLynx todavía muestra el costo de materiales anterior, así que se envió un correo a {n} personas que cierran trabajos con el cambio a hacer.",
+    bjAxNowOutOfDateNoEmail:
+      "Guardado. AccuLynx todavía muestra el costo anterior y el trabajo está marcado como desactualizado, pero no se envió ningún correo.",
+    bjAxBackInStep: "Guardado. El costo de materiales coincide de nuevo con AccuLynx.",
+    bjAxNoticeFail: "Guardado, pero no se pudo revisar AccuLynx:",
     bjCloseSyncFail: "El trabajo NO se cerró. No se pudo archivar el reporte en AccuLynx:",
     bjCloseCostFail:
       "El trabajo NO se cerró. No se pudo registrar el costo de materiales en AccuLynx:",

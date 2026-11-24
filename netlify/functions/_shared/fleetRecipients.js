@@ -47,6 +47,27 @@ const FLEET_EDIT_DEFAULTS = {
 
 export const FLEET_MANAGE_PERM = "fleet_edit";
 
+// Mirrors DEFAULT_ROLE_PERMS[role].jobs_close in src/shared/database/permissions.js
+// and default_job_perms() in supabase/58 — keep all three in step. jobs_close is
+// "Close Completed Jobs ... once payment is confirmed in AccuLynx": the people who
+// keep AccuLynx right, and so the ones told when a correction leaves it wrong.
+export const JOBS_CLOSE_DEFAULTS = {
+  warehouse: true,
+  coordinator: true,
+  manager: true,
+  employee: false,
+  field: false,
+  bookkeeper: true,
+};
+
+// The baseline for each permission this file is asked to resolve. A permission with
+// no entry here falls back to the fleet defaults, as every caller did before.
+const ROLE_DEFAULTS_BY_PERM = {
+  fleet_edit: FLEET_EDIT_DEFAULTS,
+  jobs_close: JOBS_CLOSE_DEFAULTS,
+};
+const defaultsFor = (perm) => ROLE_DEFAULTS_BY_PERM[perm] || FLEET_EDIT_DEFAULTS;
+
 // Pure: does this member hold `perm` in this company?
 //
 // Mirrors getEffectivePerms() in src/shared/database/permissions.js — admin
@@ -54,13 +75,13 @@ export const FLEET_MANAGE_PERM = "fleet_edit";
 // company's saved role row, then that one person's overrides, last write wins.
 export function memberHoldsPerm(
   member,
-  { rolePermissions = {}, overrides = {}, roleDefaults = FLEET_EDIT_DEFAULTS, perm } = {},
+  { rolePermissions = {}, overrides = {}, roleDefaults, perm } = {},
 ) {
   if (!member) return false;
   if (member.role === "admin") return true;
 
   const resolved = {
-    ...{ [perm]: roleDefaults[member.role] === true },
+    ...{ [perm]: (roleDefaults || defaultsFor(perm))[member.role] === true },
     ...(rolePermissions[member.role] || {}),
     ...(overrides[member.user_id ?? member.id] || {}),
   };

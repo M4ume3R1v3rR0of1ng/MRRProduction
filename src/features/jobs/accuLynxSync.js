@@ -26,9 +26,31 @@ export const costOnly = (r) => !!r?.costFailed && !r?.reportFailed;
 // behaviour this whole migration replaced, not a regression.
 async function persistSyncState(jobId, fields) {
   if (!jobId) return;
-  const { error } = await updateRowStrict("jobs", jobId, fields);
+  let { error } = await updateRowStrict("jobs", jobId, fields);
+  // Before supabase/68 runs, the whole update is refused for naming a column that
+  // does not exist, and with it report_uploaded_at, which is what stops a second
+  // copy of the report being filed. Write the rest rather than lose all of it.
+  if (error && "acculynx_posted_amount" in fields && /acculynx_posted_amount/.test(error.message)) {
+    const rest = { ...fields };
+    delete rest.acculynx_posted_amount;
+    ({ error } = await updateRowStrict("jobs", jobId, rest));
+  }
   if (error) console.warn("Could not persist AccuLynx sync state:", error.message);
 }
+
+// What our expense line in AccuLynx says, or null when nothing of ours is known to
+// be there. supabase/68. Once set, no sync posts the cost again: a correction is
+// handled by acculynx-correction-notice.js, never by a second expense line.
+export const postedAmountOf = (job) => {
+  const n = job?.acculynx_posted_amount;
+  return n === null || n === undefined || n === "" ? null : Number(n);
+};
+// The corrected cost AccuLynx should show instead, or null when it matches.
+export const correctAmountOf = (job) => {
+  const n = job?.acculynx_correct_amount;
+  return n === null || n === undefined || n === "" ? null : Number(n);
+};
+export const accuLynxOutOfDate = (job) => correctAmountOf(job) !== null;
 
 // Shown instead of the proxy's bare "Not authenticated", which points at the wrong
 // thing entirely: nothing is wrong with AccuLynx or the API key.
@@ -183,6 +205,7 @@ export async function syncJobReportToAccuLynx({
     fields.report_uploaded_at = report.uploadedAt;
     fields.report_file_name = report.filename;
   }
+  if (cost.ok) fields.acculynx_posted_amount = cost.amount;
 
   applyJobState(setJobs, job?.id, fields);
   await persistSyncState(job?.id, fields);
@@ -211,6 +234,13 @@ function applyJobState(setJobs, jobId, fields) {
 // like a retry to AccuLynx, it looks like a second cost. This function owns the
 // transport and the error wording; it does not own the arithmetic.
 async function postJobCostToAccuLynx({ job, users, inv, company, config }) {
+  // Already on the job. Re-sending used to be harmless because the duplicate guard
+  // matched the same amount; after a correction the amount differs and it would book
+  // a second line. See postedAmountOf.
+  if (postedAmountOf(job) !== null) {
+    return { ok: false, skipped: true, error: "Cost was already posted." };
+  }
+
   const { amount, lineItems, paymentDescription } = buildCostPayload(job, users, inv, company);
 
   if (!(amount > 0)) {

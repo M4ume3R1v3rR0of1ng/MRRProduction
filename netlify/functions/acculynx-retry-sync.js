@@ -28,6 +28,7 @@
 //      ACCULYNX_API_KEY (legacy fallback for maumee-river-roofing only).
 
 import { adminClient } from "./_shared/tenant.js";
+import { loadAccuLynxConfig, loadReportContext } from "./_shared/acculynxCompany.js";
 import { postJobExpense, uploadJobDocument } from "./_shared/acculynxWrites.js";
 import { withSentry } from "./_shared/sentry.js";
 // The browser's own report code, imported rather than reimplemented. The cost this
@@ -66,69 +67,17 @@ export function nextAttemptDue(job, now = Date.now()) {
   return now - last >= waitMs;
 }
 
-// One company's AccuLynx settings. The non-secret half lives in `settings` (every
-// member can read it); the key itself is in company_secrets, which no browser role
-// is granted. Returns null when this company has nothing for us to do.
-async function companyConfig(admin, company) {
-  const [{ data: settingsRow }, { data: secrets }] = await Promise.all([
-    admin
-      .from("settings")
-      .select("value")
-      .eq("company_id", company.id)
-      .eq("key", "acculynx_config")
-      .maybeSingle(),
-    admin.from("company_secrets").select("integrations").eq("company_id", company.id).maybeSingle(),
-  ]);
-
-  let config = {};
-  if (settingsRow?.value) {
-    try {
-      config = JSON.parse(settingsRow.value);
-    } catch {
-      // A corrupt settings blob must not stop the other tenants' retries.
-      return { skip: "settings row is not valid JSON" };
-    }
-  }
-
-  // Both toggles, deliberately. `enabled` is "this company uses AccuLynx";
-  // `autoSync` is "send it without being asked" — and a company that turned that
-  // off did so to stop exactly this.
-  if (!config.enabled) return { skip: "integration disabled" };
-  if (!config.autoSync) return { skip: "auto sync off" };
-
-  const apiKey =
-    secrets?.integrations?.acculynxApiKey ||
-    (company.slug === "maumee-river-roofing" ? process.env.ACCULYNX_API_KEY : null);
-  if (!apiKey) return { skip: "no API key configured" };
-
-  return { apiKey, config };
-}
-
-// Everything buildJobReportModel needs, loaded once per company rather than once
-// per job: the roster (for the supervisor's name), inventory (for the price of a
-// line with no pull-time snapshot) and the company row (name, tax rate, logo).
-async function companyContext(admin, companyId) {
-  const [{ data: mems }, { data: inv }, { data: company }] = await Promise.all([
-    admin.from("memberships").select("user_id, role, active").eq("company_id", companyId),
-    admin.from("inventory").select("*").eq("company_id", companyId),
-    admin.from("companies").select("id, name, slug, branding").eq("id", companyId).single(),
-  ]);
-
-  const memberIds = (mems || []).map((m) => m.user_id);
-  const { data: profs } = memberIds.length
-    ? await admin.from("profiles").select("*").in("id", memberIds)
-    : { data: [] };
-  const roleByUser = Object.fromEntries((mems || []).map((m) => [m.user_id, m]));
-
-  return {
-    // Same shape the browser assembles, so the report reads identically.
-    users: (profs || []).map((p) => {
-      const m = roleByUser[p.id];
-      return m ? { ...p, role: m.role, active: m.active } : p;
-    }),
-    inv: inv || [],
-    company: company || null,
-  };
+// A write-back that names a column the database does not have yet is refused whole,
+// and losing it is the one failure here that does real harm: report_uploaded_at goes
+// unrecorded and the next run files the report a second time. So until supabase/68
+// has run, drop the new column and write the rest.
+export async function writeBack(admin, jobId, fields) {
+  const first = await admin.from("jobs").update(fields).eq("id", jobId);
+  if (!first.error || !("acculynx_posted_amount" in fields)) return first;
+  if (!/acculynx_posted_amount/.test(first.error.message || "")) return first;
+  const rest = { ...fields };
+  delete rest.acculynx_posted_amount;
+  return admin.from("jobs").update(rest).eq("id", jobId);
 }
 
 // Send one job's two halves and return what to write on it.
@@ -181,10 +130,18 @@ async function syncOneJob({ apiKey, config, job, ctx }) {
     }
   }
 
+  // Once our expense is on the job it is never posted again. A job whose REPORT
+  // failed comes back round with the cost re-sent each time, which the duplicate
+  // guard absorbed only while the amount stayed the same; after a correction it
+  // would book the new total beside the old one. acculynx-correction-notice.js
+  // owns that case (supabase/68).
+  const alreadyPosted = job.acculynx_posted_amount != null;
+
   let cost;
   try {
-    const posted =
-      amount > 0
+    const posted = alreadyPosted
+      ? { ok: true, skipped: true, message: "Cost was already posted." }
+      : amount > 0
         ? await postJobExpense(apiKey, {
             acculynxJobId,
             poNumber,
@@ -243,6 +200,8 @@ async function syncOneJob({ apiKey, config, job, ctx }) {
     fields.report_uploaded_at = report.uploadedAt;
     fields.report_file_name = report.filename;
   }
+  // What our line in AccuLynx now says, so a later correction knows the old figure.
+  if (cost.ok) fields.acculynx_posted_amount = amount;
 
   return { fields, ok: !anyFailed, note: fields.syncNote };
 }
@@ -289,14 +248,14 @@ const rawHandler = async () => {
 
   const perCompany = new Map();
   for (const company of companies || []) {
-    const resolved = await companyConfig(admin, company);
+    const resolved = await loadAccuLynxConfig(admin, company, { requireAutoSync: true });
     if (resolved.skip) {
       console.log(`acculynx-retry-sync: skipping ${company.slug} — ${resolved.skip}.`);
       continue;
     }
     perCompany.set(company.id, {
       ...resolved,
-      ctx: await companyContext(admin, company.id),
+      ctx: await loadReportContext(admin, company.id),
       slug: company.slug,
     });
   }
@@ -362,7 +321,7 @@ const rawHandler = async () => {
       };
     }
 
-    const { error: writeError } = await admin.from("jobs").update(result.fields).eq("id", job.id);
+    const { error: writeError } = await writeBack(admin, job.id, result.fields);
     if (writeError) {
       // The write is the only durable record that this happened. If it fails the
       // work was still done in AccuLynx, so log loudly — a silent miss here means

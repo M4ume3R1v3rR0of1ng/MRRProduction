@@ -316,3 +316,41 @@ describe("attributing the failure", () => {
     expect(costOnly(undefined)).toBe(false);
   });
 });
+
+describe("the posted figure (supabase/68)", () => {
+  it("records what it posted, so a later correction knows the old cost", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => okJson({ ok: true, message: "done" })),
+    );
+    await syncJobReportToAccuLynx({ job: jobWithMaterials, config, inv });
+    expect(updateRowStrict.mock.calls[0][2].acculynx_posted_amount).toBe(107);
+  });
+
+  it("does not post the cost again once it is recorded, even after a correction", async () => {
+    const fetchMock = vi.fn(async () => okJson({ ok: true, message: "done" }));
+    vi.stubGlobal("fetch", fetchMock);
+    // Report failed last time, cost posted at $214, then corrected down to $107.
+    const job = { ...jobWithMaterials, syncStatus: "failed", acculynx_posted_amount: 214 };
+    const r = await syncJobReportToAccuLynx({ job, config, inv });
+    const bodies = bodiesOf(fetchMock);
+    expect(bodies.map((b) => b.action)).toEqual(["uploadDocument"]);
+    expect(r.ok).toBe(true);
+  });
+
+  it("still saves the sync state when the column does not exist yet", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => okJson({ ok: true, message: "done" })),
+    );
+    updateRowStrict
+      .mockResolvedValueOnce({
+        error: { message: 'column "acculynx_posted_amount" does not exist' },
+      })
+      .mockResolvedValueOnce({ error: null });
+    await syncJobReportToAccuLynx({ job: jobWithMaterials, config, inv });
+    expect(updateRowStrict).toHaveBeenCalledTimes(2);
+    expect(updateRowStrict.mock.calls[1][2].acculynx_posted_amount).toBeUndefined();
+    expect(updateRowStrict.mock.calls[1][2].report_uploaded_at).toBeTruthy();
+  });
+});

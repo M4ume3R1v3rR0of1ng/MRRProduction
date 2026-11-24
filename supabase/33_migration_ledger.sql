@@ -543,6 +543,12 @@ begin
     public._mig_has_table('shops')
       and public._mig_has_column('maintenance_requests', 'shop_id'),
     'table shops and maintenance_requests.shop_id');
+
+  -- 68 adds three jobs columns nothing earlier made. The last of the three is
+  -- probed, since it is the one a half-run file would be missing.
+  perform public._mig_record('68_acculynx_out_of_date.sql',
+    public._mig_has_column('jobs', 'acculynx_out_of_date_at'),
+    'jobs.acculynx_out_of_date_at');
 end $;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists

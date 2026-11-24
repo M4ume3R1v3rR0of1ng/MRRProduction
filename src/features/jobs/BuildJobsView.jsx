@@ -77,7 +77,12 @@ import {
   reportUploadedAtOf,
   costOnly,
   checkAccuLynxJobRef,
+  accuLynxOutOfDate,
+  correctAmountOf,
+  postedAmountOf,
 } from "./accuLynxSync";
+import { reportAccuLynxCorrection, markAccuLynxUpdated } from "./accuLynxCorrection";
+import { money } from "./accuLynxPayload";
 import { logAction } from "@/shared/utils/logger";
 
 import { fetchJobTemplates, resolveDefaultTemplates } from "./jobTemplates";
@@ -754,6 +759,61 @@ export default function BuildJobs({
   //     the upload would put a second copy of the same report on the AccuLynx job.
   //   * AccuLynx not configured. There is nowhere to file, so requiring it would
   //     make Close permanently unavailable for a company that doesn't use AccuLynx.
+  // After any material correction: if the job's cost already reached AccuLynx and
+  // the corrected total differs, the server flags it, files a revised report and
+  // emails the people who close jobs. See acculynx-correction-notice.js.
+  const noteCorrection = async (before, updated) => {
+    const r = await reportAccuLynxCorrection({
+      before,
+      after: updated,
+      users,
+      inv,
+      company,
+      setJobs,
+    });
+    if (!r) return;
+    if (r.fields) setSel((p) => (p && p.id === updated.id ? { ...p, ...r.fields } : p));
+    if (r.error) showToast(`${t.bjAxNoticeFail} ${r.error}`, "warning");
+    else if (r.outOfDate) {
+      showToast(
+        r.emailed
+          ? t.bjAxNowOutOfDate.replace("{n}", String(r.emailed))
+          : `${t.bjAxNowOutOfDateNoEmail} ${r.emailError || ""}`.trim(),
+        "warning",
+      );
+    } else if (r.cleared) showToast(t.bjAxBackInStep, "success");
+  };
+
+  const [markingAx, setMarkingAx] = useState(false);
+  const markAxUpdated = async (job = sel) => {
+    if (!job || markingAx) return;
+    const go = await confirm({
+      title: t.bjAxMarkTitle,
+      message: t.bjAxMarkConfirm.replace("{to}", money(correctAmountOf(job))),
+      confirmLabel: t.bjAxMarkUpdated,
+    });
+    if (!go) return;
+    setMarkingAx(true);
+    const r = await markAccuLynxUpdated(job);
+    setMarkingAx(false);
+    if (!r.ok) {
+      showToast(`${t.bjAxMarkFail} ${r.error}`, "error");
+      return;
+    }
+    const updated = { ...job, ...r.fields };
+    setJobs((p) => p.map((j) => (j.id === job.id ? updated : j)));
+    setSel((p) => (p && p.id === job.id ? updated : p));
+    await logAction(
+      activeUser.id,
+      activeUser.email,
+      "JOB_ACCULYNX_UPDATED",
+      `Confirmed AccuLynx material cost updated to ${money(correctAmountOf(job))} on "${job.title || job.name}" (PO: ${job.po})`,
+      { job_id: job.id, from: postedAmountOf(job), to: correctAmountOf(job) },
+      "production",
+    );
+    showToast(t.bjAxMarkDone, "success");
+  };
+
   const closeJob = async (job = sel) => {
     if (!job || closing) return;
 
@@ -1075,6 +1135,7 @@ export default function BuildJobs({
                         {syncStatusOf(job) === "manual" && (
                           <Bdg color="amber">{t.pullConfigureSync}</Bdg>
                         )}
+                        {accuLynxOutOfDate(job) && <Bdg color="red">{t.bjAxOutOfDate}</Bdg>}
                       </Row>
                       {/* Clamped to one line: an address that wraps is worth reading in
                           full, but a job title that wraps just shoves every card in the
@@ -1335,6 +1396,32 @@ export default function BuildJobs({
               </Btn>
             )}
           </Row>
+          {accuLynxOutOfDate(sel) && (
+            <Callout tone="warn" bordered pad="12px 14px" style={{ marginBottom: 14 }}>
+              <Row gap={2} wrap align="center" style={{ justifyContent: "space-between" }}>
+                <Stack gap={0} style={{ flex: "1 1 260px" }}>
+                  <Row gap={1} as="span">
+                    <AlertTriangle size={14} aria-hidden="true" color={C.rd} />
+                    <Text weight="bold" color={C.navy} style={{ margin: 0 }}>
+                      {t.bjAxOutOfDate}
+                    </Text>
+                  </Row>
+                  <Muted as="p" size="sm" style={{ margin: "4px 0 0" }}>
+                    {perms.jobs_close || perms.inv_pricing_view
+                      ? t.bjAxDetail
+                          .replace("{from}", money(postedAmountOf(sel) ?? 0))
+                          .replace("{to}", money(correctAmountOf(sel)))
+                      : t.bjAxDetailNoAmounts}
+                  </Muted>
+                </Stack>
+                {perms.jobs_close && (
+                  <Btn v="outline" sz="sm" disabled={markingAx} onClick={() => markAxUpdated()}>
+                    <CheckCircle2 size={13} aria-hidden="true" /> {t.bjAxMarkUpdated}
+                  </Btn>
+                )}
+              </Row>
+            </Callout>
+          )}
           <CardGrid minWidth={140} gap="var(--space-3)" style={{ marginBottom: 16 }}>
             {[
               // Not itself a list item — a value in a [label, value] tuple, rendered
@@ -1479,9 +1566,12 @@ export default function BuildJobs({
           activeUser={activeUser}
           perms={perms}
           onSaved={(updated) => {
+            const before = sel;
             setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
             setSel(updated);
             setModal("detail");
+            // Removing a line that was already pulled takes its cost off the job.
+            noteCorrection(before, updated);
           }}
           onClose={() => setModal("detail")}
           onCorrectReturn={perms.jobs_close ? () => setModal("correctReturn") : undefined}
@@ -1497,9 +1587,11 @@ export default function BuildJobs({
           activeUser={activeUser}
           t={t}
           onSaved={(updated) => {
+            const before = sel;
             setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
             setSel(updated);
             setModal("edit");
+            noteCorrection(before, updated);
           }}
           onClose={() => setModal("edit")}
         />
@@ -1519,9 +1611,11 @@ export default function BuildJobs({
           activeUser={activeUser}
           t={t}
           onSaved={(updated, changedBatches) => {
+            const before = sel;
             setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
             setSel(updated);
             setModal("detail");
+            noteCorrection(before, updated);
             if (changedBatches && typeof setInv === "function") {
               setInv((p) =>
                 p.map((i) => (changedBatches[i.id] ? { ...i, batches: changedBatches[i.id] } : i)),
@@ -1542,9 +1636,11 @@ export default function BuildJobs({
           activeUser={activeUser}
           t={t}
           onSaved={(updated, freshInv) => {
+            const before = sel;
             setJobs((p) => p.map((j) => (j.id === updated.id ? updated : j)));
             setSel(updated);
             setModal("detail");
+            noteCorrection(before, updated);
             if (freshInv && typeof setInv === "function") {
               setInv((p) => p.map((i) => (freshInv[i.id] ? { ...i, batches: freshInv[i.id] } : i)));
             }

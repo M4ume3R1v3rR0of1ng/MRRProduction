@@ -159,3 +159,37 @@ describe("there is exactly one implementation of each AccuLynx write", () => {
     expect(writes).toContain("expenseRefFor");
   });
 });
+
+describe("writeBack before supabase/68 has run", () => {
+  it("drops the new column and still records the rest", async () => {
+    const { writeBack } = await import("../acculynx-retry-sync.js");
+    const calls = [];
+    const admin = {
+      from: () => ({
+        update: (fields) => ({
+          eq: async () => {
+            calls.push(fields);
+            return "acculynx_posted_amount" in fields
+              ? { error: { message: "column jobs.acculynx_posted_amount does not exist" } }
+              : { error: null };
+          },
+        }),
+      }),
+    };
+    const r = await writeBack(admin, "j1", {
+      syncStatus: "synced",
+      report_uploaded_at: "t",
+      acculynx_posted_amount: 10,
+    });
+    expect(r.error).toBeNull();
+    expect(calls[1]).toEqual({ syncStatus: "synced", report_uploaded_at: "t" });
+  });
+
+  it("never posts the cost again once a posted figure is stored", () => {
+    // Read from source: syncOneJob is not exported, and this is the one line that
+    // stops a corrected job's new total being booked beside the old one.
+    expect(read("netlify/functions/acculynx-retry-sync.js")).toMatch(
+      /const posted = alreadyPosted\s*\?/,
+    );
+  });
+});

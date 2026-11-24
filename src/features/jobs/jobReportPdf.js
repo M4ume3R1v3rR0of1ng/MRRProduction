@@ -25,9 +25,14 @@ const fp = (n) => "$" + n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
 // AccuLynx strips spaces and special characters from uploaded file names. Doing it
 // here means the name we report back to the user is the name that actually lands.
-export function pdfFileNameFor(job) {
+//
+// A revised report gets its own name, dated, so it sits beside the original in Job
+// Paperwork rather than looking like a second copy of it.
+export function pdfFileNameFor(job, { revised = null } = {}) {
   const po = String(job?.po || job?.title || job?.name || "job").replace(/[^A-Za-z0-9]/g, "");
-  return `JobReport${po || "Job"}.pdf`;
+  if (!revised) return `JobReport${po || "Job"}.pdf`;
+  const day = new Date(revised.at || Date.now()).toISOString().slice(0, 10).replace(/-/g, "");
+  return `JobReport${po || "Job"}Revised${day}.pdf`;
 }
 
 function drawLogo(doc, activeLogo, x, y) {
@@ -51,8 +56,21 @@ function drawLogo(doc, activeLogo, x, y) {
 /**
  * Render the completion report for `job` as a PDF.
  * Returns { blob, base64, filename } — base64 is the bare payload with no data: prefix.
+ *
+ * `opts.revised` = { from, at } marks it as the corrected report filed after a
+ * material correction (acculynx-correction-notice.js): the heading says REVISED and
+ * a line states the cost it replaces, so nobody reading Job Paperwork has to guess
+ * which of the two reports is current.
  */
-export async function buildJobReportPdf(job, users, activeLogo, inv = [], company = null) {
+export async function buildJobReportPdf(
+  job,
+  users,
+  activeLogo,
+  inv = [],
+  company = null,
+  opts = {},
+) {
+  const revised = opts?.revised || null;
   const m = buildJobReportModel(job, users, inv, company);
 
   // Dynamically imported so jsPDF (~350KB) stays out of the main bundle and only
@@ -78,7 +96,7 @@ export async function buildJobReportPdf(job, users, activeLogo, inv = [], compan
     .setFont("helvetica", "normal")
     .setFontSize(9)
     .setTextColor(...SLATE);
-  doc.text("JOB COMPLETION REPORT", margin, y + 26);
+  doc.text(revised ? "JOB COMPLETION REPORT - REVISED" : "JOB COMPLETION REPORT", margin, y + 26);
   y += 40;
 
   doc.setDrawColor(...AMBER).setLineWidth(2);
@@ -101,6 +119,18 @@ export async function buildJobReportPdf(job, users, activeLogo, inv = [], compan
     ],
   ];
   if (m.notes) meta.push(["NOTES", m.notes]);
+  if (revised) {
+    const on = new Date(revised.at || Date.now()).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const was = Number.isFinite(Number(revised.from)) ? ` (was ${fp(Number(revised.from))})` : "";
+    meta.push([
+      "REVISED",
+      `${on}: materials corrected after completion. Replaces the earlier report${was}.`,
+    ]);
+  }
 
   autoTable(doc, {
     startY: y,
@@ -229,5 +259,5 @@ export async function buildJobReportPdf(job, users, activeLogo, inv = [], compan
   const uri = doc.output("datauristring");
   const base64 = uri.slice(uri.lastIndexOf(",") + 1);
 
-  return { blob, base64, filename: pdfFileNameFor(job), model: m };
+  return { blob, base64, filename: pdfFileNameFor(job, { revised }), model: m };
 }

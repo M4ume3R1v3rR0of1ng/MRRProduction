@@ -136,3 +136,23 @@ describe("dropUser", () => {
     expect(dropUser([{ id: 7, email: "a@x.com" }], "7")).toEqual([]);
   });
 });
+
+describe("jobs_close: who is told AccuLynx is out of date", () => {
+  const perm = "jobs_close";
+  it("uses the jobs_close defaults, not the fleet ones", () => {
+    expect(memberHoldsPerm(member("u1", "bookkeeper"), { perm })).toBe(true);
+    expect(memberHoldsPerm(member("u2", "manager"), { perm })).toBe(true);
+    expect(memberHoldsPerm(member("u3", "warehouse"), { perm })).toBe(true);
+    expect(memberHoldsPerm(member("u4", "field"), { perm })).toBe(false);
+    expect(memberHoldsPerm(member("u5", "employee"), { perm })).toBe(false);
+  });
+
+  it("still lets a company's saved role row win", () => {
+    expect(
+      memberHoldsPerm(member("u1", "warehouse"), {
+        perm,
+        rolePermissions: { warehouse: { jobs_close: false } },
+      }),
+    ).toBe(false);
+  });
+});
