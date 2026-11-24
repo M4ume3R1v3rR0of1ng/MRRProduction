@@ -29,7 +29,18 @@
 
 import { adminClient } from "./_shared/tenant.js";
 import { loadAccuLynxConfig, loadReportContext } from "./_shared/acculynxCompany.js";
-import { postJobExpense, uploadJobDocument } from "./_shared/acculynxWrites.js";
+import {
+  postJobExpense,
+  resolveAccuLynxJobId,
+  uploadJobDocument,
+} from "./_shared/acculynxWrites.js";
+import { planCorrectionNotice } from "./_shared/acculynxCorrection.js";
+import {
+  clearCheckDue,
+  clearOutOfDate,
+  flagOutOfDate,
+  mailPoMoved,
+} from "./_shared/acculynxOutOfDate.js";
 import { withSentry } from "./_shared/sentry.js";
 // The browser's own report code, imported rather than reimplemented. The cost this
 // posts and the PDF it files are byte-for-byte what Pull Inventory would have sent,
@@ -40,7 +51,7 @@ import { withSentry } from "./_shared/sentry.js";
 // prior posting on the AMOUNT to the penny, so a retry that computed the figure
 // from a second copy of the arithmetic would not recognise itself: it would post
 // the material cost onto the job twice.
-import { buildCostPayload } from "../../src/features/jobs/accuLynxPayload.js";
+import { buildCostPayload, materialCountChanges } from "../../src/features/jobs/accuLynxPayload.js";
 import { buildJobReportPdf } from "../../src/features/jobs/jobReportPdf.js";
 
 // How many jobs one run will attempt. A job costs up to four AccuLynx round trips
@@ -150,11 +161,21 @@ async function syncOneJob({ apiKey, config, job, ctx }) {
             lineItems,
           })
         : { ok: true, skipped: true, message: "No material cost to post." };
-    cost = posted.skipped
-      ? { ok: false, skipped: true, error: posted.message }
-      : posted.ok
-        ? { ok: true, message: posted.message, alreadyRecorded: !!posted.alreadyRecorded }
-        : { ok: false, error: posted.error, status: posted.status };
+    // A conflict is our earlier line at another amount (see findOurEarlierLine).
+    // The cost IS on the job, so it is not a failure to retry; the job is flagged
+    // out of date after the write-back.
+    cost = posted.conflict
+      ? { ok: true, message: posted.error, postedAmount: posted.priorAmount, conflict: posted }
+      : posted.skipped
+        ? { ok: false, skipped: true, error: posted.message }
+        : posted.ok
+          ? {
+              ok: true,
+              message: posted.message,
+              alreadyRecorded: !!posted.alreadyRecorded,
+              postedAmount: amount,
+            }
+          : { ok: false, error: posted.error, status: posted.status };
   } catch (err) {
     cost = { ok: false, error: err.message, status: 502 };
   }
@@ -201,15 +222,17 @@ async function syncOneJob({ apiKey, config, job, ctx }) {
     fields.report_file_name = report.filename;
   }
   // What our line in AccuLynx now says, so a later correction knows the old figure.
-  if (cost.ok) fields.acculynx_posted_amount = amount;
+  if (cost.ok) fields.acculynx_posted_amount = cost.postedAmount;
 
-  return { fields, ok: !anyFailed, note: fields.syncNote };
+  return {
+    fields,
+    ok: !anyFailed,
+    note: fields.syncNote,
+    conflict: cost.conflict ? { posted: cost.conflict.priorAmount, correct: amount } : null,
+  };
 }
 
-const rawHandler = async () => {
-  const admin = adminClient();
-  const now = Date.now();
-
+async function runRetries(admin, now) {
   // The candidate set comes from an RPC, not a PostgREST filter, and that is not
   // fussiness: the predicate has to test "syncStatus", a quoted camelCase column,
   // and a mis-spelled column inside an `or=(…)` filter does not error — it matches
@@ -228,13 +251,13 @@ const rawHandler = async () => {
 
   if (findError) {
     console.error("acculynx-retry-sync: could not list candidate jobs:", findError.message);
-    return { statusCode: 500, body: JSON.stringify({ error: findError.message }) };
+    return { error: findError.message };
   }
 
   const due = (candidates || []).filter((j) => nextAttemptDue(j, now)).slice(0, MAX_JOBS_PER_RUN);
   if (due.length === 0) {
     console.log("acculynx-retry-sync: nothing due.");
-    return { statusCode: 200, body: JSON.stringify({ ok: true, attempted: 0, synced: 0 }) };
+    return { attempted: 0, synced: 0, stillFailing: 0 };
   }
 
   // Resolve each company once. A company whose integration is off, or which has no
@@ -332,6 +355,10 @@ const rawHandler = async () => {
       );
     }
 
+    if (result.conflict && !writeError) {
+      await flagConflict(admin, { job, tenant, ...result.conflict });
+    }
+
     if (result.ok) synced += 1;
     else failures.push(`${job.po || job.id}: ${result.note}`);
   }
@@ -340,11 +367,204 @@ const rawHandler = async () => {
     `acculynx-retry-sync: attempted ${attempted}, synced ${synced}` +
       (failures.length ? `, still failing — ${failures.join(" | ")}` : ""),
   );
+  return { attempted, synced, stillFailing: failures.length };
+}
 
+// AccuLynx already held this job's cost at another figure; the sync posted nothing.
+async function flagConflict(admin, { job, tenant, posted, correct }) {
+  const plan = planCorrectionNotice({
+    job: { ...job, acculynx_posted_amount: posted },
+    newAmount: correct,
+  });
+  if (plan.action !== "flag") return;
+  const r = await flagOutOfDate(admin, {
+    job,
+    companyId: job.company_id,
+    companyName: tenant.ctx.company?.name || "Steadwerk",
+    ctx: tenant.ctx,
+    posted: plan.posted,
+    correct: plan.correct,
+    byName: "Steadwerk's hourly AccuLynx sync",
+  });
+  if (!r.ok) console.error(`acculynx-retry-sync: could not flag job ${job.id}:`, r.error);
+}
+
+// ── The watch pass (supabase/69) ─────────────────────────────────────────────
+//
+// The trigger marks a job whose materials or PO changed after something reached
+// AccuLynx, whoever changed it. This acts on those marks, so a correction is caught
+// even when the browser never managed to report it.
+const MAX_WATCH_PER_RUN = 20;
+
+// One job whose materials changed: compare with AccuLynx, flag or clear.
+export async function checkChangedJob(admin, { job, ctx, companyName }) {
+  const before = job.acculynx_items_before;
+  const after = job.items || job.materials || [];
+  const beforeAmount = Array.isArray(before)
+    ? buildCostPayload(
+        { ...job, items: before, materials: before },
+        ctx.users,
+        ctx.inv,
+        ctx.company,
+      ).amount
+    : null;
+  const { amount } = buildCostPayload(job, ctx.users, ctx.inv, ctx.company);
+  const plan = planCorrectionNotice({ job, newAmount: amount, beforeAmount });
+
+  if (plan.action === "flag") {
+    const r = await flagOutOfDate(admin, {
+      job,
+      companyId: job.company_id,
+      companyName,
+      ctx,
+      posted: plan.posted,
+      correct: plan.correct,
+      changes: Array.isArray(before) ? materialCountChanges(before, after) : [],
+      byName: "Steadwerk's hourly check",
+    });
+    // Leave the mark in place if the flag did not land, so the next run tries again.
+    if (!r.ok) return { action: "error", error: r.error };
+  } else if (plan.action === "clear") {
+    const r = await clearOutOfDate(admin, { jobId: job.id, companyId: job.company_id });
+    if (!r.ok) return { action: "error", error: r.error };
+  }
+  await clearCheckDue(admin, {
+    jobId: job.id,
+    companyId: job.company_id,
+    seq: job.acculynx_check_seq,
+  });
+  return plan;
+}
+
+// The sync state a job is reset to when its PO moved to a different AccuLynx job:
+// nothing of ours is on the new one yet, so the retry files it all again there.
+export function poMovedResetFields(oldPo, newPo) {
   return {
-    statusCode: 200,
-    body: JSON.stringify({ ok: true, attempted, synced, stillFailing: failures.length }),
+    acculynx_po_moved_from: null,
+    syncStatus: null,
+    syncNote:
+      `PO changed from ${oldPo} to ${newPo} after it was filed in AccuLynx. Sending it under ` +
+      `${newPo}; remove the old filing from AccuLynx job ${oldPo}.`,
+    report_uploaded_at: null,
+    report_file_name: null,
+    acculynx_posted_amount: null,
+    acculynx_correct_amount: null,
+    acculynx_out_of_date_at: null,
+    acculynx_check_due: false,
+    acculynx_items_before: null,
+    sync_attempts: 0,
+    sync_last_attempt_at: null,
   };
+}
+
+// One job whose PO changed after filing. Returns what was done.
+export async function handlePoMove(admin, { job, apiKey, companyName }) {
+  const oldPo = job.acculynx_po_moved_from;
+  let oldRef;
+  let newRef;
+  try {
+    [oldRef, newRef] = await Promise.all([
+      resolveAccuLynxJobId(apiKey, { poNumber: oldPo }),
+      resolveAccuLynxJobId(apiKey, { poNumber: job.po }),
+    ]);
+  } catch (err) {
+    // AccuLynx unreachable: no evidence either way. Try again next hour.
+    return { action: "retry", error: err.message };
+  }
+
+  if (oldRef.ok && newRef.ok && oldRef.acculynxJobId === newRef.acculynxJobId) {
+    // A different spelling of the same AccuLynx job. Nothing moved.
+    await admin
+      .from("jobs")
+      .update({ acculynx_po_moved_from: null })
+      .eq("id", job.id)
+      .eq("company_id", job.company_id);
+    return { action: "same-job" };
+  }
+
+  // Reset first, guarded on the PO still being the one checked: someone may have
+  // changed it again during this run, and the trigger has already re-marked it.
+  const { data: reset, error } = await admin
+    .from("jobs")
+    .update(poMovedResetFields(oldPo, job.po || "(none)"))
+    .eq("id", job.id)
+    .eq("company_id", job.company_id)
+    .eq("po", job.po)
+    .select("id");
+  if (error) return { action: "error", error: error.message };
+  if (!reset?.length) return { action: "retry", error: "PO changed again during the check" };
+
+  const mail = await mailPoMoved(admin, {
+    job,
+    companyId: job.company_id,
+    companyName,
+    oldPo,
+    newPoFound: newRef.ok,
+  });
+  return { action: "moved", ...mail };
+}
+
+async function runWatch(admin) {
+  const { data: rows, error } = await admin
+    .from("jobs")
+    .select("*")
+    .or("acculynx_check_due.eq.true,acculynx_po_moved_from.not.is.null")
+    .limit(MAX_WATCH_PER_RUN);
+  if (error) {
+    // Most likely supabase/69 has not been run. The retries are unaffected.
+    console.log("acculynx-retry-sync: watch pass skipped:", error.message);
+    return { checked: 0 };
+  }
+
+  const tenants = new Map();
+  const tenantFor = async (companyId) => {
+    if (tenants.has(companyId)) return tenants.get(companyId);
+    const ctx = await loadReportContext(admin, companyId);
+    const cfg = ctx.company ? await loadAccuLynxConfig(admin, ctx.company) : { skip: "no company" };
+    const t = { ctx, cfg, companyName: ctx.company?.name || "Steadwerk" };
+    tenants.set(companyId, t);
+    return t;
+  };
+
+  let checked = 0;
+  for (const job of rows || []) {
+    try {
+      const t = await tenantFor(job.company_id);
+      if (job.acculynx_po_moved_from) {
+        // Without the company's key there is no telling whether the PO now points
+        // somewhere else, so wait rather than guess.
+        if (t.cfg.skip) continue;
+        const r = await handlePoMove(admin, {
+          job,
+          apiKey: t.cfg.apiKey,
+          companyName: t.companyName,
+        });
+        checked += 1;
+        console.log(`acculynx-retry-sync: PO change on job ${job.id}: ${r.action}`);
+        // A moved job was reset and will be sent again in full, so its material
+        // check no longer applies.
+        if (r.action !== "same-job") continue;
+      }
+      if (job.acculynx_check_due) {
+        const r = await checkChangedJob(admin, { job, ctx: t.ctx, companyName: t.companyName });
+        checked += 1;
+        console.log(`acculynx-retry-sync: material change on job ${job.id}: ${r.action}`);
+      }
+    } catch (err) {
+      console.error(`acculynx-retry-sync: watch on job ${job.id} threw:`, err.message);
+    }
+  }
+  return { checked };
+}
+
+const rawHandler = async () => {
+  const admin = adminClient();
+  const retries = await runRetries(admin, Date.now());
+  const watch = await runWatch(admin);
+  if (retries.error) {
+    return { statusCode: 500, body: JSON.stringify({ error: retries.error, ...watch }) };
+  }
+  return { statusCode: 200, body: JSON.stringify({ ok: true, ...retries, ...watch }) };
 };
 
 export const handler = withSentry("acculynx-retry-sync", rawHandler);

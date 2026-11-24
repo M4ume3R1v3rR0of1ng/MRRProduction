@@ -51,6 +51,20 @@ export const formFromJob = (job = {}) => ({
   contractValue: job.contract_value == null ? "" : String(job.contract_value),
 });
 
+// Has this job's cost or report already reached AccuLynx, and is the PO changing?
+export const poChangeNeedsWarning = (job = {}, newPo = "") => {
+  const changed =
+    String(newPo).trim().toLowerCase() !==
+    String(job.po || "")
+      .trim()
+      .toLowerCase();
+  const filed =
+    job.syncStatus === "synced" ||
+    !!job.report_uploaded_at ||
+    (job.acculynx_posted_amount !== null && job.acculynx_posted_amount !== undefined);
+  return changed && filed;
+};
+
 export const itemsFromJob = (job = {}) => (job.items || job.materials || []).filter(Boolean);
 
 // Inventory still offerable: matches the search and is not already on the job.
@@ -76,7 +90,7 @@ export default function EditJobModal({
   const [items, setItems] = useState(() => itemsFromJob(job));
   const [search, setSearch] = useState("");
   const [saving, setSaving] = useState(false);
-  const { showToast } = useNotify();
+  const { showToast, confirm } = useNotify();
   const t = translations[lang] || translations.en;
 
   const addable = addableInventory(inv, items, search);
@@ -119,6 +133,20 @@ export default function EditJobModal({
     if (!form.po || !form.name) {
       showToast(t.ejRequiredErr, "warning");
       return;
+    }
+    // The PO is what an unlinked job is filed under in AccuLynx. Changing it after
+    // the cost or report went there leaves them on the old AccuLynx job, so say what
+    // happens next before doing it. supabase/69 and the hourly retry do the rest.
+    if (poChangeNeedsWarning(job, form.po)) {
+      const go = await confirm({
+        title: t.ejPoFiledTitle,
+        message: (job.acculynx_job_id ? t.ejPoFiledLinked : t.ejPoFiledMove)
+          .replace("{old}", job.po || "")
+          .replace("{new}", form.po.trim()),
+        confirmLabel: t.ejPoFiledYes,
+        tone: job.acculynx_job_id ? undefined : "danger",
+      });
+      if (!go) return;
     }
     setSaving(true);
     try {

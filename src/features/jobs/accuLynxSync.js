@@ -206,8 +206,17 @@ export async function syncJobReportToAccuLynx({
     fields.report_file_name = report.filename;
   }
   if (cost.ok) fields.acculynx_posted_amount = cost.amount;
+  // Mirror the flag the server wrote, so the badge shows without a reload. Only in
+  // memory: the server already saved it, and persisting it here would race it.
+  const shown = cost.conflict
+    ? {
+        ...fields,
+        acculynx_correct_amount: cost.conflict.correct,
+        acculynx_out_of_date_at: cost.conflict.at,
+      }
+    : fields;
 
-  applyJobState(setJobs, job?.id, fields);
+  applyJobState(setJobs, job?.id, shown);
   await persistSyncState(job?.id, fields);
 
   return {
@@ -265,6 +274,9 @@ async function postJobCostToAccuLynx({ job, users, inv, company, config }) {
         body: JSON.stringify({
           poNumber: job?.po || "NO_PO",
           acculynxJobId: job?.acculynx_job_id || null,
+          // Lets the server flag THIS job if AccuLynx already holds its cost at
+          // another amount, instead of posting a second line.
+          jobId: job?.id || null,
           paymentDescription,
           totalMaterialCost: amount,
           lineItems,
@@ -275,6 +287,18 @@ async function postJobCostToAccuLynx({ job, users, inv, company, config }) {
     );
 
     const data = await readProxyJson(res, config.proxyUrl);
+
+    // AccuLynx already had this job's cost at another figure. Nothing was posted;
+    // the server flagged the job out of date. What AccuLynx holds is the posted
+    // amount, not what this job costs now.
+    if (data.conflict) {
+      return {
+        ok: true,
+        amount: data.posted,
+        conflict: { correct: data.correct, at: data.at || new Date().toISOString() },
+        message: data.message,
+      };
+    }
 
     return {
       ok: true,

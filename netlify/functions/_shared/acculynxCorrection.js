@@ -93,6 +93,51 @@ function escapeHtml(value) {
 }
 
 /**
+ * The email sent when a job's PO changed after its cost or report reached AccuLynx
+ * under the old one. Steadwerk cannot delete from AccuLynx, so a person removes the
+ * old filing; Steadwerk files again under the new PO itself.
+ *
+ * @param {{ companyName: string, job: object, oldPo: string, newPo: string,
+ *   posted: number | null, reportFile: string | null, newPoFound: boolean,
+ *   appUrl: string }} p
+ */
+export function buildPoMovedEmail({
+  companyName,
+  job,
+  oldPo,
+  newPo,
+  posted,
+  reportFile,
+  newPoFound,
+  appUrl,
+}) {
+  const title = job?.title || job?.name || "Job";
+  const filed = [
+    posted !== null && posted !== undefined && Number(posted) > 0
+      ? `the expense <strong>"Material Cost - ${escapeHtml(title)}"</strong> (${money(posted)})`
+      : null,
+    reportFile ? `the report <strong>${escapeHtml(reportFile)}</strong>` : null,
+  ].filter(Boolean);
+  const what = filed.length ? filed.join(" and ") : "anything Steadwerk filed for this job";
+
+  const next = newPoFound
+    ? `<p>Steadwerk will file the cost and report on AccuLynx job <strong>${escapeHtml(newPo)}</strong> within the hour. Nothing needs adding there by hand.</p>`
+    : `<p><strong>PO ${escapeHtml(newPo)} matches no job in AccuLynx</strong>, so nothing can be filed under it yet. Correct the PO in Build Jobs and Steadwerk will file it on the next hourly run.</p>`;
+
+  return {
+    subject: `AccuLynx: remove ${title} from job ${oldPo} (PO changed to ${newPo})`,
+    html:
+      `<p>The PO on <strong>${escapeHtml(title)}</strong> was changed from <strong>${escapeHtml(oldPo)}</strong> ` +
+      `to <strong>${escapeHtml(newPo)}</strong> after it had been sent to AccuLynx under the old PO.</p>` +
+      `<p style="font-size:16px">In AccuLynx, open job <strong>${escapeHtml(oldPo)}</strong> and remove ${what}. ` +
+      `They belong to a different job.</p>` +
+      next +
+      (appUrl ? `<p><a href="${escapeHtml(appUrl)}">Open Steadwerk</a></p>` : "") +
+      `<p style="color:#64748b;font-size:12px">Sent by Steadwerk for ${escapeHtml(companyName)} to people who can close jobs.</p>`,
+  };
+}
+
+/**
  * The email to the people who close jobs.
  *
  * @param {{ companyName: string, job: object, posted: number, correct: number,

@@ -11,7 +11,21 @@ import { updateRowStrict } from "@/shared/utils/supabase";
 import { sendLowStockAlerts } from "./lowStockAlerts";
 import { C, uid, tot, newestPrice, todayLocal } from "@/shared/utils/helpers";
 import { displayNameOf } from "@/shared/utils/people";
-import { Btn, Fld, Inp, Modal, TA, Card, Row, Text } from "@/shared/components/UIPrimitives";
+import {
+  Btn,
+  Callout,
+  Fld,
+  Inp,
+  Modal,
+  TA,
+  Card,
+  Row,
+  Stack,
+  Text,
+  Muted,
+} from "@/shared/components/UIPrimitives";
+import { translations } from "@/shared/utils/translations";
+import { jobsThatPulled } from "./jobsForItem";
 import { logAction } from "@/shared/utils/logger";
 import { useNotify } from "@/shared/context/NotificationContext";
 
@@ -67,7 +81,14 @@ export default function AdjustStockModal({
   fetchLiveBatches,
   onAdjusted,
   onClose,
+  jobs = [],
+  onOpenJob,
+  lang = "en",
 }) {
+  const t = translations[lang] || translations.en;
+  // A job's miscount belongs on the job, or its cost and AccuLynx stay wrong. See
+  // jobsForItem.js. Only offered with somewhere to send people (onOpenJob).
+  const recentJobs = onOpenJob ? jobsThatPulled(jobs, item.id) : [];
   const [form, setForm] = useState({ newQty: "", reason: "" });
   const [saving, setSaving] = useState(false);
   const { showToast } = useNotify();
@@ -150,6 +171,34 @@ export default function AdjustStockModal({
           {tot(item)} {item.unit}
         </Text>
       </Card>
+      {recentJobs.length > 0 && (
+        <Callout tone="warn" bordered pad="12px 14px" style={{ marginBottom: 14 }}>
+          <Text size="sm" weight="bold" color={C.navy} style={{ margin: 0 }}>
+            {t.adjJobMiscountTitle}
+          </Text>
+          <Muted as="p" size="sm" style={{ margin: "4px 0 8px" }}>
+            {t.adjJobMiscountInfo}
+          </Muted>
+          <Stack gap={1}>
+            {recentJobs.map((j) => (
+              <Row key={j.id} gap={2} align="center" style={{ justifyContent: "space-between" }}>
+                <Text size="sm" style={{ margin: 0 }}>
+                  <Text as="strong" color={C.navy}>
+                    {j.po}
+                  </Text>{" "}
+                  {j.title} ·{" "}
+                  {t.adjJobPulledReturned
+                    .replace("{p}", `${j.pulled} ${j.unit}`.trim())
+                    .replace("{r}", `${j.returned} ${j.unit}`.trim())}
+                </Text>
+                <Btn v="outline" sz="sm" disabled={saving} onClick={() => onOpenJob(j.id)}>
+                  {t.adjOpenJob}
+                </Btn>
+              </Row>
+            ))}
+          </Stack>
+        </Callout>
+      )}
       <Fld label={`Corrected Quantity (${item.unit})`}>
         <Inp
           type="number"

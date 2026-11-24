@@ -161,3 +161,14 @@ describe("EditJobModal render", () => {
     expect(() => render({ job: { ...modernJob, items: [] } })).not.toThrow();
   });
 });
+
+describe("poChangeNeedsWarning", () => {
+  it("warns only when a filed job's PO actually changes", async () => {
+    const { poChangeNeedsWarning } = await import("./EditJobModal");
+    expect(poChangeNeedsWarning({ po: "22562", syncStatus: "synced" }, "22526")).toBe(true);
+    expect(poChangeNeedsWarning({ po: "22562", report_uploaded_at: "t" }, "22526")).toBe(true);
+    expect(poChangeNeedsWarning({ po: "22562", acculynx_posted_amount: 0 }, "22526")).toBe(true);
+    expect(poChangeNeedsWarning({ po: "22562", syncStatus: "synced" }, " 22562 ")).toBe(false);
+    expect(poChangeNeedsWarning({ po: "22562", syncStatus: "failed" }, "22526")).toBe(false);
+  });
+});

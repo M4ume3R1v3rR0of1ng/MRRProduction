@@ -58,6 +58,7 @@ export default function InventoryView({
   inventorySearchQuery,
   setInventorySearchQuery,
   lang = "en",
+  onOpenJob,
 }) {
   const t = translations[lang] || translations.en;
   // "catalog" is the live stock grid; "count" is the monthly physical count and
@@ -680,6 +681,10 @@ export default function InventoryView({
           fetchLiveBatches={fetchLiveBatches}
           onAdjusted={patchBatches}
           onClose={() => setModal("detail")}
+          jobs={jobs}
+          lang={lang}
+          // Build Jobs is where the job's own corrections live.
+          onOpenJob={perms.jobs_build || perms.jobs_close ? onOpenJob : undefined}
         />
       )}
 

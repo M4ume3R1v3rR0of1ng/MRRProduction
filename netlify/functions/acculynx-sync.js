@@ -19,12 +19,54 @@ import {
   uploadJobDocument,
 } from "./_shared/acculynxWrites.js";
 import { withSentry } from "./_shared/sentry.js";
+import { loadReportContext } from "./_shared/acculynxCompany.js";
+import { planCorrectionNotice } from "./_shared/acculynxCorrection.js";
+import { flagOutOfDate } from "./_shared/acculynxOutOfDate.js";
 
 // CORS used to be a second, hand-copied ALLOWED_ORIGINS list here, which had
 // drifted from _shared/tenant.js's copy and was missing "capacitor://localhost" —
 // the iOS app's origin under WKWebView. That silently CORS-blocked AccuLynx sync
 // for every iOS user. Importing the one shared list means it can't drift again.
 // X-Content-Type-Options is added on top since the shared helper doesn't set it.
+// Record a sync-time conflict on the caller's own job: AccuLynx holds `priorAmount`,
+// the job now costs `amount`.
+async function flagConflict(admin, caller, jobId, expense) {
+  const { data: job, error } = await admin
+    .from("jobs")
+    .select("*")
+    .eq("id", jobId)
+    .eq("company_id", caller.companyId)
+    .maybeSingle();
+  if (error || !job) return { ok: false, error: error?.message || "Job not found." };
+  if (!("acculynx_correct_amount" in job)) return { ok: false, error: "Run supabase/68." };
+
+  const plan = planCorrectionNotice({
+    job: { ...job, acculynx_posted_amount: expense.priorAmount },
+    newAmount: expense.amount,
+  });
+  if (plan.action !== "flag") {
+    // Already flagged at this figure: just make sure the posted amount is recorded.
+    await admin
+      .from("jobs")
+      .update({ acculynx_posted_amount: expense.priorAmount })
+      .eq("id", job.id)
+      .eq("company_id", caller.companyId);
+    return { ok: true };
+  }
+  const ctx = await loadReportContext(admin, caller.companyId);
+  const me = ctx.users.find((u) => u.id === caller.userId);
+  return flagOutOfDate(admin, {
+    job,
+    companyId: caller.companyId,
+    companyName: caller.companyName,
+    ctx,
+    posted: plan.posted,
+    correct: plan.correct,
+    byName: me?.full_name || me?.name || caller.email,
+    replyTo: caller.email,
+  });
+}
+
 function getCorsHeaders(requestOrigin) {
   return { ...buildCorsHeaders(requestOrigin), "X-Content-Type-Options": "nosniff" };
 }
@@ -236,6 +278,32 @@ const rawHandler = async (event) => {
       accountTypeName: body.accountTypeName,
       paymentDate: body.paymentDate,
     });
+
+    // Our earlier line is on the job at another amount. Not posted (that would be a
+    // second material line); instead the job is flagged out of date and the people
+    // who close jobs are told what to change, exactly as after a correction.
+    if (expense.conflict) {
+      const flagged = body.jobId
+        ? await flagConflict(admin, caller, body.jobId, expense).catch((err) => ({
+            ok: false,
+            error: err.message,
+          }))
+        : null;
+      if (!flagged?.ok) {
+        // Could not record it (old client sent no jobId, or the write failed): still
+        // refuse to post, and say why.
+        return reply(409, { ok: false, conflict: true, error: expense.error });
+      }
+      return reply(200, {
+        ok: true,
+        conflict: true,
+        acculynxJobId: expense.acculynxJobId,
+        posted: expense.priorAmount,
+        correct: expense.amount,
+        at: flagged.at || null,
+        message: expense.error,
+      });
+    }
 
     if (!expense.ok) {
       return reply(expense.status, { ok: false, error: expense.error });

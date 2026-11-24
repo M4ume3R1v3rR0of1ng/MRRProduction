@@ -6,33 +6,16 @@
 // only supplies what the browser alone knows: the job as it stood BEFORE the
 // correction, and which counts changed.
 import { getAccessToken, updateRowStrict } from "@/shared/utils/supabase";
-import { buildCostPayload } from "./accuLynxPayload";
+import { buildCostPayload, materialCountChanges } from "./accuLynxPayload";
 import { postedAmountOf, correctAmountOf, syncStatusOf } from "./accuLynxSync";
 
 const ENDPOINT = "/.netlify/functions/acculynx-correction-notice";
 
 const linesOf = (job) => (job?.items || job?.materials || []).filter(Boolean);
 
-/**
- * Which pulled/returned counts differ between two versions of a job. A line Edit
- * Job removed counts as going to 0, since its cost leaves the job with it.
- */
-export function correctionChanges(before, after) {
-  const prior = new Map(linesOf(before).map((i) => [i.iid, i]));
-  const now = new Map(linesOf(after).map((i) => [i.iid, i]));
-  const out = [];
-  for (const iid of new Set([...prior.keys(), ...now.keys()])) {
-    const was = prior.get(iid) || {};
-    const is = now.get(iid) || {};
-    const line = now.get(iid) || was;
-    for (const field of ["pulled", "returned"]) {
-      const from = parseFloat(was[field]) || 0;
-      const to = parseFloat(is[field]) || 0;
-      if (from !== to) out.push({ iname: line.iname, unit: line.unit || "", field, from, to });
-    }
-  }
-  return out;
-}
+/** Which pulled/returned counts differ between two versions of a job. */
+export const correctionChanges = (before, after) =>
+  materialCountChanges(linesOf(before), linesOf(after));
 
 /** Could AccuLynx already hold a cost for this job? If not there is nothing to correct. */
 export const mayHavePostedCost = (job) =>

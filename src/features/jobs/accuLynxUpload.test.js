@@ -354,3 +354,26 @@ describe("the posted figure (supabase/68)", () => {
     expect(updateRowStrict.mock.calls[1][2].report_uploaded_at).toBeTruthy();
   });
 });
+
+describe("AccuLynx already has this job's cost at another amount", () => {
+  it("records what AccuLynx holds and shows the job out of date, posting nothing twice", async () => {
+    const fetchMock = vi.fn(async (url, opts) => {
+      const body = JSON.parse(opts.body);
+      if (body.action === "uploadDocument") return okJson({ ok: true, message: "filed" });
+      return okJson({ ok: true, conflict: true, posted: 214, correct: 107, at: "t", message: "m" });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    let jobs = [jobWithMaterials];
+    await syncJobReportToAccuLynx({
+      job: jobWithMaterials,
+      config,
+      inv,
+      setJobs: (fn) => (jobs = fn(jobs)),
+    });
+    expect(bodiesOf(fetchMock)[1].jobId).toBe("j1");
+    expect(updateRowStrict.mock.calls[0][2].acculynx_posted_amount).toBe(214);
+    expect(jobs[0].acculynx_correct_amount).toBe(107);
+    // The flag is the server's to save; the browser only shows it.
+    expect(updateRowStrict.mock.calls[0][2].acculynx_correct_amount).toBeUndefined();
+  });
+});

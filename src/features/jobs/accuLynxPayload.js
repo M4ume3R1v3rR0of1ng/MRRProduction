@@ -56,3 +56,28 @@ export function buildCostPayload(job, users = [], inv = [], company = null) {
 
   return { model, amount, lineItems, paymentDescription };
 }
+
+const countLines = (items) => (Array.isArray(items) ? items : []).filter(Boolean);
+
+/**
+ * Which pulled/returned counts differ between two versions of a job's materials. A
+ * line that was removed counts as going to 0, since its cost leaves the job with it.
+ * Lives here, not in accuLynxCorrection.js, because the hourly retry needs it too and
+ * this module is Node-resolvable.
+ */
+export function materialCountChanges(beforeItems, afterItems) {
+  const prior = new Map(countLines(beforeItems).map((i) => [i.iid, i]));
+  const now = new Map(countLines(afterItems).map((i) => [i.iid, i]));
+  const out = [];
+  for (const iid of new Set([...prior.keys(), ...now.keys()])) {
+    const was = prior.get(iid) || {};
+    const is = now.get(iid) || {};
+    const line = now.get(iid) || was;
+    for (const field of ["pulled", "returned"]) {
+      const from = parseFloat(was[field]) || 0;
+      const to = parseFloat(is[field]) || 0;
+      if (from !== to) out.push({ iname: line.iname, unit: line.unit || "", field, from, to });
+    }
+  }
+  return out;
+}

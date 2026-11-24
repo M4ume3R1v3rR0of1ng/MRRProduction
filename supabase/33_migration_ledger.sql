@@ -549,6 +549,13 @@ begin
   perform public._mig_record('68_acculynx_out_of_date.sql',
     public._mig_has_column('jobs', 'acculynx_out_of_date_at'),
     'jobs.acculynx_out_of_date_at');
+
+  -- 69 adds the watch columns and their trigger. The trigger is probed with the
+  -- column, since a half-run file could leave either without the other.
+  perform public._mig_record('69_acculynx_change_watch.sql',
+    public._mig_has_column('jobs', 'acculynx_po_moved_from')
+      and public._mig_has_function('acculynx_watch_job_changes'),
+    'jobs.acculynx_po_moved_from + function acculynx_watch_job_changes');
 end $;
 
 -- The five that leave no distinguishable trace. Recorded so the ledger lists

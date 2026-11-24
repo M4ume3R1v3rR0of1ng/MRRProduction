@@ -1134,6 +1134,7 @@ export default function App() {
                         setInventorySearchQuery={setInventorySearchQuery}
                         lang={lang}
                         setLang={setLang}
+                        onOpenJob={(id) => openSearchResult("buildjobs", id)}
                       />
                     ) : (
                       <Navigate to="/dashboard" replace />

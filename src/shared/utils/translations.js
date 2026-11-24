@@ -1240,6 +1240,17 @@ export const translations = {
     bjCloseSynced: "Report filed to AccuLynx.",
     // "AccuLynx out of date" — a correction after the cost was posted. supabase/68.
     bjAxOutOfDate: "AccuLynx out of date",
+    adjJobMiscountTitle: "Was this a job's miscount?",
+    adjJobMiscountInfo:
+      "If the difference is a wrong pull or return on a job, fix it on that job instead (Correct Pulled Materials or Correct Return). That moves the stock AND fixes the job's cost, and AccuLynx is told. Adjusting here fixes only the shelf.",
+    adjJobPulledReturned: "pulled {p}, returned {r}",
+    adjOpenJob: "Open job",
+    ejPoFiledTitle: "This job is already in AccuLynx",
+    ejPoFiledMove:
+      "Its cost and report were filed under PO {old}. If {new} is a different AccuLynx job, the people who close jobs will be emailed to remove them from {old}, and Steadwerk will file them under {new} within the hour.",
+    ejPoFiledLinked:
+      "This job is linked to its AccuLynx job directly, so changing the PO from {old} to {new} only changes the label in Steadwerk. Nothing in AccuLynx moves.",
+    ejPoFiledYes: "Change PO",
     bjAxDetail:
       "Materials were corrected after the cost was sent. AccuLynx shows {from}; it should be {to}. A revised report was filed and the people who close jobs were emailed what to change.",
     bjAxDetailNoAmounts:
@@ -3240,6 +3251,17 @@ export const translations = {
     bjClosing: "Archivando reporte...",
     bjCloseSynced: "Reporte archivado en AccuLynx.",
     bjAxOutOfDate: "AccuLynx desactualizado",
+    adjJobMiscountTitle: "¿Fue un error de conteo en un trabajo?",
+    adjJobMiscountInfo:
+      "Si la diferencia es un retiro o devolución incorrecta en un trabajo, corríjala en ese trabajo (Corregir materiales retirados o Corregir devolución). Así se mueve el inventario Y se corrige el costo del trabajo, y se avisa a AccuLynx. Ajustar aquí solo corrige el estante.",
+    adjJobPulledReturned: "retirado {p}, devuelto {r}",
+    adjOpenJob: "Abrir trabajo",
+    ejPoFiledTitle: "Este trabajo ya está en AccuLynx",
+    ejPoFiledMove:
+      "Su costo y reporte se archivaron con el PO {old}. Si {new} es otro trabajo de AccuLynx, se enviará un correo a quienes cierran trabajos para quitarlos de {old}, y Steadwerk los archivará con {new} dentro de una hora.",
+    ejPoFiledLinked:
+      "Este trabajo está vinculado directamente a su trabajo de AccuLynx, así que cambiar el PO de {old} a {new} solo cambia la etiqueta en Steadwerk. Nada se mueve en AccuLynx.",
+    ejPoFiledYes: "Cambiar PO",
     bjAxDetail:
       "Los materiales se corrigieron después de enviar el costo. AccuLynx muestra {from}; debería ser {to}. Se archivó un reporte revisado y se envió un correo a quienes cierran trabajos con el cambio a hacer.",
     bjAxDetailNoAmounts:

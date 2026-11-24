@@ -138,6 +138,7 @@ in SQL, change it there too.
 | 65  | `65_anvil_pro_reorder.sql`                    | **Required for Anvil Pro.** `companies.anvil_pro` / `anvil_pro_comped`, per-item reorder fields on `inventory`, and the reorder settings and approval-queue tables (read-only from the browser). Run before setting the `STRIPE_ANVIL_PRO_*` env vars.                                                              |
 | 67  | `67_fleet_shops.sql`                          | **Required for Fleet → Shops.** The `shops` table (read by the company, written by `fleet_edit`), `maintenance_requests.shop_id`, `complete_maintenance_service()` with `p_shop_id` (keeps 38's driver alert), and `link_shop_history()`.                                                                           |
 | 68  | `68_acculynx_out_of_date.sql`                 | **Required for "AccuLynx out of date".** Three `jobs` columns recording what our expense line in AccuLynx says and what a later correction says it should be. Drives the Build Jobs badge, the REVISED report and the email to `jobs_close` holders.                                                                |
+| 69  | `69_acculynx_change_watch.sql`                | **Run with 68.** A trigger marks any synced job whose materials or PO change, whoever changed them, and the hourly retry flags the cost out of date or moves the job to its new PO. Catches the corrections the browser could not report.                                                                           |
 
 ## Adding a migration
 

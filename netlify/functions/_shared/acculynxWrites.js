@@ -249,6 +249,13 @@ export const expenseRefFor = (poNumber) =>
 // post proceed: that is the old behaviour, and refusing to post because a read
 // failed would strand the cost instead.
 export async function findPriorExpense(apiKey, acculynxJobId, amount, expenseRef) {
+  const prior = await listPriorExpenses(apiKey, acculynxJobId);
+  return prior ? matchPriorExpense(prior, amount, expenseRef) : null;
+}
+
+// The job's additional-expense lines, or null when they could not be read. Null is
+// not "none": callers treat an unreadable list as "carry on as before".
+export async function listPriorExpenses(apiKey, acculynxJobId) {
   try {
     const res = await fetch(`${API}/jobs/${acculynxJobId}/payments`, {
       headers: authHeaders(apiKey),
@@ -267,19 +274,53 @@ export async function findPriorExpense(apiKey, acculynxJobId, amount, expenseRef
     // Only additionalExpenses is searched. Our line is an expense, and matching a
     // customer's received payment that happened to be the same amount would skip a
     // post that genuinely needed to happen.
-    const prior = Array.isArray(existing?.additionalExpenses?.payments)
-      ? existing.additionalExpenses.payments
-      : [];
-    return (
-      prior.find(
-        (p) =>
-          Math.abs(Number(p.amount) - amount) < 0.005 &&
-          (!expenseRef || String(p.refNumber || "") === expenseRef),
-      ) || null
-    );
+    // The list key has differed between the live API (`payments`) and its published
+    // docs (`additionalExpenses`), so accept either.
+    const bucket = existing?.additionalExpenses;
+    const prior = Array.isArray(bucket?.payments)
+      ? bucket.payments
+      : Array.isArray(bucket?.additionalExpenses)
+        ? bucket.additionalExpenses
+        : [];
+
+    // refNumber is NOT reliably echoed back. Checked 2026-11-12: expense lines we
+    // posted come back with id/to/amount/notes/accountTypeId and no refNumber, so
+    // matching on it alone never fired and a replay booked the cost twice (PO 22562
+    // carries the same $623.44 line twice). When the line carries no refNumber, fall
+    // back to the marker our own notes always start with — "Material Cost - " — so
+    // a dumpster or labour expense of the same amount is still not mistaken for it.
+    return prior;
   } catch {
     return null;
   }
+}
+
+export function matchPriorExpense(prior, amount, expenseRef) {
+  const isOurs = (p) => {
+    if (!expenseRef) return true;
+    if (p.refNumber) return String(p.refNumber) === expenseRef;
+    return String(p.notes || "").startsWith("Material Cost - ");
+  };
+  return prior.find((p) => Math.abs(Number(p.amount) - amount) < 0.005 && isOurs(p)) || null;
+}
+
+// ── Our own earlier line for THIS job, at a different amount ─────────────────
+//
+// The amount match above only recognises a replay of the SAME figure. A job whose
+// cost changed after it posted (a correction, or a legacy line priced at today's
+// rate because it has no pull-time snapshot) would not match, and posting it would
+// put a second material line beside the first. Every line we post starts with the
+// same header, "Material Cost - {job name}", so that first line identifies the job;
+// a sibling job sharing the PO has a different name and is not mistaken for it.
+export const expenseHeaderOf = (text) =>
+  String(text || "")
+    .split("\n")[0]
+    .trim();
+
+export function findOurEarlierLine(prior, paymentDescription) {
+  const header = expenseHeaderOf(paymentDescription);
+  if (!header.startsWith("Material Cost - ")) return null;
+  return prior.find((p) => expenseHeaderOf(p.notes) === header) || null;
 }
 
 // ── Post the material cost as an Additional Job Expense ──────────────────────
@@ -316,7 +357,8 @@ export async function postJobExpense(
   const jobId = resolved.acculynxJobId;
   const expenseRef = expenseRefFor(poNumber);
 
-  const duplicate = await findPriorExpense(apiKey, jobId, amount, expenseRef);
+  const prior = await listPriorExpenses(apiKey, jobId);
+  const duplicate = prior ? matchPriorExpense(prior, amount, expenseRef) : null;
   if (duplicate) {
     return {
       ok: true,
@@ -331,6 +373,26 @@ export async function postJobExpense(
       message:
         `This material cost is already on the AccuLynx job (${amount.toFixed(2)}). ` +
         `Nothing was posted a second time.`,
+    };
+  }
+
+  const earlier = prior ? findOurEarlierLine(prior, paymentDescription) : null;
+  if (earlier) {
+    const priorAmount = Math.round(Number(earlier.amount) * 100) / 100;
+    // Not posted, and not a failure to retry: AccuLynx has this job's cost, just not
+    // the current figure. The caller records priorAmount as what AccuLynx says and
+    // flags the job "AccuLynx out of date" (supabase/68), so a person changes it.
+    return {
+      ok: false,
+      status: 409,
+      conflict: true,
+      acculynxJobId: jobId,
+      priorAmount,
+      amount,
+      error:
+        `AccuLynx already has this job's material cost at $${priorAmount.toFixed(2)}, and it is ` +
+        `now $${amount.toFixed(2)}. Nothing was posted, so it is not booked twice; the job is ` +
+        `marked AccuLynx out of date.`,
     };
   }
 
